@@ -1,0 +1,4 @@
+[mviri]
+format=mipp
+dir=/local_disk/data/satellite/met7
+filename=L-000-MTP___-MET7________-%(channel)s_057E-%(segment)s-%Y%m%d%H%M-__

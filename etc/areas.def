@@ -1,0 +1,1422 @@
+REGION: afghanistan {
+	NAME:		Afghanistan
+	PCS_ID:		merc
+	PCS_DEF:	proj=merc,lat_ts=35,a=6370997.0,lon_0=67.5,lat_0=35
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:	(-1600000.0, 1600000.0, 1600000.0, 4800000.0)
+};
+
+REGION: EuropeCanary {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
+        XSIZE:         3000
+        YSIZE:         1200
+        AREA_EXTENT:   (-4821642.8,1968262.4,4179557.2,5568742.4)
+};
+
+REGION: HREuropeCanary {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
+        XSIZE:         9000
+        YSIZE:         3600
+        AREA_EXTENT:   (-4821642.8,1968262.4,4179557.2,5568742.4)
+};
+
+REGION: AfHorn {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
+        XSIZE:         1100
+        YSIZE:         1600
+        AREA_EXTENT:   (2268302.4, -1329177.2, 5568742.4, 3471462.8)
+};
+
+REGION: afhorn {
+        NAME:           Africa horn 3km resolution
+        PCS_ID:         merc50
+        PCS_DEF:        proj=merc,ellps=bessel,lon_0=50.0
+        XSIZE:          1622
+        YSIZE:          1622
+        AREA_EXTENT:    (-2432000.0,-1130348.139543,2432000.0,3733651.860457)
+};
+
+REGION: met09globe {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         3620
+        YSIZE:         3620
+        AREA_EXTENT:   (-5430724.0, -5430724.0, 5430724.0, 5430724.0)
+};
+
+REGION: met09globeFull {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         3712
+        YSIZE:         3712
+        AREA_EXTENT:   (-5568742.4, -5568742.4, 5568742.4, 5568742.4)
+};
+
+REGION: met07globe {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos57
+        PCS_DEF:       proj=geos, lon_0=57.0, a=6378169.0, b=6356584.0, h=35785831.0, rf=295.49
+        XSIZE:         2500
+        YSIZE:         2500
+        AREA_EXTENT:   (-5621225.237846375, -5621225.237846375, 5621225.237846375, 5621225.237846375)
+};
+
+REGION: HRmet07globe {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos57
+        PCS_DEF:       proj=geos, lon_0=57.0, a=6378169.0, b=6356584.0, h=35785831.0
+        XSIZE:         5000
+        YSIZE:         5000
+        AREA_EXTENT:   (-5621225.237846375, -5621225.237846375, 5621225.237846375, 5621225.237846375)
+};
+
+REGION: sswe {
+	NAME:		Southern Sweden
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378144.0,b=6356759.0,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-400884.23045,-3946631.71387,623115.76955,-2922631.71387)
+};
+
+REGION: ssweTEST {
+	NAME:		Southern Sweden Test
+	PCS_ID:		ps60wgs84test
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-400884.23045,-3946631.71387,623115.76955,-2922631.71387)
+};
+
+REGION: nswe {
+	NAME:		Northern Sweden
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378144.0,b=6356759.0,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-392288.010506,-3105279.35252,631711.989494,-2081279.35252)
+};
+
+REGION: germ {
+	NAME:		Germany
+	PCS_ID:		ps50n1
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=5,lat_ts=50,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-155100.436345,-4441495.37946,868899.563655,-3417495.37946)
+};
+
+REGION: czech {
+	NAME:		Czech Republic
+	PCS_ID:		ps50n2
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=20,lat_ts=50
+	XSIZE:		900
+	YSIZE:		500
+	AREA_EXTENT:	(-618513.46655207768,-4400951.9927915502,281486.53344792232,-3900951.9927915502)
+};
+
+REGION: eire {
+	NAME:		Ireland
+	PCS_ID:		ps55n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=55
+	XSIZE:		800
+	YSIZE:		1000
+	AREA_EXTENT:	(-977519.17967129592, -4234100.7433962571, -177519.17967129592, -3234100.7433962571)
+};
+
+REGION: brit {
+	NAME:		Great Britain - South
+	PCS_ID:		ps55n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=55,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-716080.10173,-4521151.82692,307919.89827,-3497151.82692)
+};
+
+REGION: frsp {
+	NAME:		Western Mediteranean
+	PCS_ID:		ps45n1
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=45,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-181434.193981,-5195595.53301,842565.806019,-4171595.53301)
+};
+
+REGION: finl {
+	NAME:		Southern Finland
+	PCS_ID:		ps60n2
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=20,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-1.93002972383e-10,-3476832.45802,1024000.0,-2452832.45802)
+};
+
+REGION: east {
+	NAME:		Eastern Europe
+	PCS_ID:		ps50n2
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=20,lat_ts=50,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-374546.64223850204, -4281087.7106097164, 649453.35776149796, -3257087.7106097164)
+};
+
+REGION: sval {
+	NAME:		Svalbard
+	PCS_ID:		ps75n
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=20,lat_ts=75
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-287554.94896204612, -1630805.1541895501, 736445.05103795393, -606805.15418955008)
+};
+
+# OSISAF areas for DNMI and DMI:
+#REGION: dnns {
+#	NAME:		DNMI - North Sea
+#	PCS_ID:		ps60n0
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+#	XSIZE:		1200
+#	YSIZE:		1200
+#	AREA_EXTENT:	(-331529.47998, -4353471.19141, 1468470.45898, -2553471.19141)
+#};
+REGION: dnns {
+	NAME:		DNMI - North Sea
+	PCS_ID:		ps60n-dnmi
+	PCS_DEF:	proj=stere,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:	(-331529.480, -4353471.191, 1468470.52, -2553471.1909999996)
+};
+
+#REGION: dngr {
+#	NAME:		DNMI - Greenland
+#	PCS_ID:		ps60n0
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+#	XSIZE:		1200
+#	YSIZE:		1200
+#	AREA_EXTENT:	(-2140135.25391, -2546819.33594, -340135.131836, -746819.213867)
+#};
+REGION: dngr {
+	NAME:		DNMI - Greenland Sea
+	PCS_ID:		ps60n-dnmi
+	PCS_DEF:	proj=stere,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:	(-2140135.254, -2546819.336, -340135.25400000019, -746819.33600000013)
+};
+
+#REGION: dnat {
+#	NAME:		DNMI - North Atlantic
+#	PCS_ID:		ps60n0
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+#	XSIZE:		1200
+#	YSIZE:		1200
+#	AREA_EXTENT:	(-2139178.22266, -4353140.625, -339178.344727, -2553140.625)
+#};
+REGION: dnat {
+	NAME:		DNMI -  North Atlantic Sea
+	PCS_ID:		ps60n-dnmi
+	PCS_DEF:	proj=stere,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:	(-2139178.223, -4353140.625, -339178.22300000023, -2553140.625)
+};
+
+#REGION: dnnr {
+#	NAME:		DNMI - Norwegian Sea
+#	PCS_ID:		ps60n0
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+#	XSIZE:		1200
+#	YSIZE:		1200
+#	AREA_EXTENT:	(-331081.970215, -2547000.24414, 1468917.96875, -747000.244141)
+#};
+REGION: dnnr {
+	NAME:		DNMI - Norwegian Sea and Svalbard
+	PCS_ID:		ps60n-dnmi
+	PCS_DEF:	proj=stere,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:	(-331081.970, -2547000.244, 1468918.03, -747000.24399999995)
+};
+
+
+REGION: cnn_ll {
+	NAME:		Cliwanet Campaign area - south-west
+	PCS_ID:		laea10e55n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=10,lat_0=55
+	XSIZE:		1000
+	YSIZE:		1300
+	AREA_EXTENT:	(-900000, -1080000, 200000, 350000)
+};
+REGION: cnn_ul {
+	NAME:		Cliwanet Campaign area - north-west
+	PCS_ID:		laea10e55n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=10,lat_0=55
+	XSIZE:		1000
+	YSIZE:		1300
+	AREA_EXTENT:	(-900000, 350000, 200000, 1780000)
+};
+REGION: cnn_lr {
+	NAME:		Cliwanet Campaign area - south-east
+	PCS_ID:		laea10e55n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=10,lat_0=55
+	XSIZE:		1000
+	YSIZE:		1300
+	AREA_EXTENT:	(200000, -1080000, 1300000, 350000)
+};
+REGION: cnn_ur {
+	NAME:		Cliwanet Campaign area - north-east
+	PCS_ID:		laea10e55n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=10,lat_0=55
+	XSIZE:		1000
+	YSIZE:		1300
+	AREA_EXTENT:	(200000, 350000, 1300000, 1780000)
+};
+
+REGION: adolfo {
+	NAME:		Baltrad Lambert child
+	PCS_ID:		laea10e55n
+	PCS_DEF:	proj=laea,'ellps=WGS84',a=6378137.0,b=6356752.0,lon_0=10,lat_0=55
+	XSIZE:		950
+	YSIZE:		1100
+	AREA_EXTENT:	(-1950000,-2300000.0,1850000.0,2100000.0)
+};
+
+
+REGION: baltrad_lambert {
+	NAME:		Baltrad Lambert
+	PCS_ID:		laea20e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=20,lat_0=60
+	XSIZE:		815
+	YSIZE:		1195
+	AREA_EXTENT:	(-994211.85388,-1291605.15396,635788.14612,1098394.84604)
+};
+
+REGION: baltrad1km {
+	NAME:		Baltrad Lambert 1km
+	PCS_ID:		laea20e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=20,lat_0=60
+	XSIZE:		1630
+	YSIZE:		2390
+	AREA_EXTENT:	(-994211.85388,-1291605.15396,635788.14612,1098394.84604)
+};
+
+REGION: cliwanet_south {
+	NAME:		Baltex study area - south
+	PCS_ID:		laea20e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=20,lat_0=60
+	XSIZE:		1670
+	YSIZE:		1134
+	AREA_EXTENT:	(-726561.013648, -1221494.00295, 943438.986352, -87494.00295)
+};
+
+REGION: cliwanet_north {
+	NAME:		Baltex study area - north
+	PCS_ID:		laea20e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=20,lat_0=60
+	XSIZE:		1670
+	YSIZE:		1134
+	AREA_EXTENT:	(-726561.013648, -87494.00295, 943438.986352, 1046505.99705)
+};
+
+# For intercomparison with the Spanish Radar Network
+# 1500 pixels
+REGION: spain {
+	NAME:		Spanish Radar Network area
+	PCS_ID:		laea0e40n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=40
+	XSIZE:		860
+	YSIZE:		660
+	AREA_EXTENT:	(-930000.0, -390000.0, 360000.0, 600000.0)
+};
+
+REGION: euro {
+	NAME:		Euro area - Europe
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		512
+	YSIZE:		512
+	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
+};
+
+REGION: euro4 {
+	NAME:		Euro 4km area - Europe
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
+};
+
+REGION: scan {
+	NAME:		Scandinavia
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		512
+	YSIZE:		512
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2102234.8425892727)
+};
+
+REGION: scan2 {
+	NAME:		Scandinavia - 2km area
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2102234.8425892727)
+};
+
+#REGION: scan1 {
+#	NAME:		Scandinavia - 1km area
+#	PCS_ID:		ps60n
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+#	XSIZE:		2048
+#	YSIZE:		2048
+#	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2102234.8425892727)
+#};
+
+# New scan1 with a little extra to the north:
+REGION: scan1 {
+	NAME:		Scandinavia - 1km area
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		2048
+	YSIZE:		2088
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2062234.8425892727)
+};
+
+REGION: europa {
+	NAME:		Big area covering Europe
+	PCS_ID:		ps50n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=50
+	XSIZE:		1000
+	YSIZE:		1000
+	AREA_EXTENT:	(-2224411.0789329573, -6111519.2109529935, 2775588.9210670427, -1111519.2109529935)
+};
+
+REGION: vtcsarea {
+	NAME:		Area for Component test
+	PCS_ID:		ps60ncsvt
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378144.0,b=6356759.0,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		1000
+	YSIZE:		1000
+	AREA_EXTENT:	(-319231.54502232641, -4565223.7839787975, 3680768.4549776735, -565223.7839787975)
+};
+
+REGION: southsweden {
+	NAME:		Sweden 2km
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		512
+	YSIZE:		512
+	AREA_EXTENT:	(-429170.61637649877, -4083285.6572493548, 594829.38362350129, -3059285.6572493548)
+};
+
+REGION: swiss {
+	NAME:		Switzerland 1km
+	PCS_ID:		ps45n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=10,lat_ts=45
+	XSIZE:		1000
+	YSIZE:		1000
+	AREA_EXTENT:	(-724852.77137009462, -4790446.4651272744, 275147.22862990538, -3790446.4651272744)
+};
+
+REGION: mesanX {
+	NAME:		Mesan-X rotated lon/lat 1.8km
+	PCS_ID:		mesan
+	PCS_DEF:        proj=ob_tran,o_proj=eqc,o_lat_p=30,o_lon_p=10,lon_0=-10,a=6371000.0
+	XSIZE:	        1476
+	YSIZE:		1608
+	AREA_EXTENT:	(1067435.7598983962, -1278764.8903419089, 3791765.9965939857, 1690140.6680267097)
+};
+
+# For processing of Inner Arctic data from Oden expedition
+REGION: arc1km {
+	NAME:		Inner Arctic 1km laea
+	PCS_ID:		laea00e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=60
+	XSIZE:		1100
+	YSIZE:		1900
+	AREA_EXTENT:	(-289612.43661871011, 1687838.9370657033, 810387.56338128983, 3587838.9370657033)
+};
+
+# For processing of Inner Arctic data from Oden expedition
+REGION: arc2km {
+	NAME:		Inner Arctic 2km laea
+	PCS_ID:		laea00e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=60
+	XSIZE:		550
+	YSIZE:		950
+	AREA_EXTENT:	(-289612.43661871011, 1687838.9370657033, 810387.56338128983, 3587838.9370657033)
+};
+
+# For processing of eastern Inner Arctic data from Oden expedition
+REGION: arc1km_east {
+	NAME:		Eastern Inner Arctic 1km laea
+	PCS_ID:		laea00e90n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1400
+	YSIZE:		1900
+	AREA_EXTENT:	(216577.23994077701, -1541027.135632145, 1616577.239940777, 358972.86436785501)
+};
+# For processing of eastern Inner Arctic data from Oden expedition
+REGION: arc2km_east {
+	NAME:		Eastern Inner Arctic 2km laea
+	PCS_ID:		laea00e90n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		700
+	YSIZE:		950
+	AREA_EXTENT:	(216577.23994077701, -1541027.135632145, 1616577.239940777, 358972.86436785501)
+};
+
+# For processing of western Inner Arctic data over the SHEBA region
+REGION: arc1km_sheba {
+	NAME:		Western Inner Arctic 1km laea
+	PCS_ID:		laea155we90n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=-155.0,lat_0=90
+	XSIZE:		1200
+	YSIZE:		1300
+	AREA_EXTENT:	(-683140.82313468424, -1876913.9858701916, 516859.17686531576, -576913.98587019159)
+};
+REGION: arc1km_barrow {
+	NAME:		Western Inner Arctic 1km laea Barrow
+	PCS_ID:		laea155we90n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=-155.0,lat_0=90
+	XSIZE:		1200
+	YSIZE:		1300
+	AREA_EXTENT:	(-647356.68664225284, -2736825.1141422777, 552643.31335774716, -1436825.1141422777)
+};
+
+# For processing of CM-SAF southern central area
+REGION: cmsaf1km_sc {
+	NAME:		CM-SAF 1km laea Southern Central
+	PCS_ID:		laea00e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=60
+	XSIZE:		3544
+	YSIZE:		3616
+	AREA_EXTENT:	(-1772000.0, -3297870.7000000002, 1772000.0, 318129.29999999999)
+};
+
+# For processing of CM-SAF southern central area
+REGION: cmsaf8km_sc {
+	NAME:		CM-SAF 8km laea Southern Central
+	PCS_ID:		laea00e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=60
+	XSIZE:		443
+	YSIZE:		452
+	AREA_EXTENT:	(-1772000.0, -3297870.7000000002, 1772000.0, 318129.29999999999)
+};
+
+# For testing processing of 8km CM-SAF northeast  area
+REGION: cmsaf8km_ne {
+	NAME:		CM-SAF 8km laea Northeast
+	PCS_ID:		laea00e60n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=60
+	XSIZE:		527
+	YSIZE:		308
+	AREA_EXTENT:	(-16000.0, 286129.29999999999, 4200000.0, 2750129.2999999998)
+};
+
+# Tiles for cloud climo monthly statistics
+REGION: ibla_57n20e {
+        NAME:		CM_SAF ibla_57n20e
+	PCS_ID: 	sinu57n20e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (607943.70541299647, 5712413.886252759, 1822943.7054129965, 6927413.886252759)
+};
+REGION: ibla_57n20w {
+        NAME:		CM_SAF ibla_57n20w
+	PCS_ID: 	sinu57n20w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-1.8225e+06, 5.7375e+06, -607500, 6.9525e+06)
+};
+REGION: ibla_57n00e {
+        NAME:		CM_SAF ibla_57n00e
+	PCS_ID: 	sinu57n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, 5.7375e+06, 607500, 6.9525e+06)
+};
+REGION: ibla_77n00e {
+        NAME:		CM_SAF ibla_77n00e
+	PCS_ID: 	sinu77n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		720
+	AREA_EXTENT:    (-607500, 8.1675e+06, 607500, 8.8875e+06)
+};
+REGION: ibla_77n00e {
+        NAME:		CM_SAF ibla_77n00e
+	PCS_ID: 	sinu77n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		720
+	AREA_EXTENT:    (-607500, 8.1675e+06, 607500, 8.8875e+06)
+};
+REGION: ibla_77n60e {
+        NAME:		CM_SAF ibla_77n60e
+	PCS_ID: 	sinu77n60e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1350	
+	YSIZE:		720
+	AREA_EXTENT:    (607500, 8.1675e+06, 1.9575e+06, 8.8875e+06)
+};
+REGION: ibla_77n60w {
+        NAME:		CM_SAF ibla_77n60w
+	PCS_ID: 	sinu77n60w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1350	
+	YSIZE:		720
+	AREA_EXTENT:    (-1.9575e+06, 8.1675e+06, -607500, 8.8875e+06)
+};
+REGION: ibla_68n29w {
+        NAME:		CM_SAF ibla_68n29w
+	PCS_ID: 	sinu68n29w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-1.8225e+06, 6.9525e+06, -607500, 8.1675e+06)
+};
+REGION: ibla_68n29e {
+        NAME:		CM_SAF ibla_68n29e
+	PCS_ID: 	sinu68n29e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, 6.9525e+06, 1.8225e+06, 8.1675e+06)
+};
+REGION: ibla_68n58e {
+        NAME:		CM_SAF ibla_68n58e
+	PCS_ID: 	sinu68n58e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1260	
+	YSIZE:		1215
+	AREA_EXTENT:    (1.8225e+06, 6.9525e+06, 3.0825e+06, 8.1675e+06)
+};
+REGION: ibla_68n58w {
+        NAME:		CM_SAF ibla_68n58w
+	PCS_ID: 	sinu68n58w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1260	
+	YSIZE:		1215
+	AREA_EXTENT:    (-3.0825e+06, 6.9525e+06, -1.8225e+06, 8.1675e+06)
+};
+REGION: ibla_35n00e {
+        NAME:		CM_SAF ibla_35n00e
+	PCS_ID: 	sinu35n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, 3.3075e+06, 607500, 4.5225e+06)
+};
+REGION: ibla_35n13e {
+        NAME:		CM_SAF ibla_35n13e
+	PCS_ID: 	sinu35n13e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, 3.3075e+06, 1.8225e+06, 4.5225e+06)
+};
+REGION: ibla_35n13w {
+        NAME:		CM_SAF ibla_35n13w
+	PCS_ID: 	sinu35n13w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-1.8225e+06, 3.3075e+06, -607500, 4.5225e+06)
+};
+REGION: ibla_35n26e {
+        NAME:		CM_SAF ibla_35n26e
+	PCS_ID: 	sinu35n26e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (1.8225e+06, 3.3075e+06, 3.0375e+06, 4.5225e+06)
+};
+REGION: ibla_35n40e {
+        NAME:		CM_SAF ibla_35n40e
+	PCS_ID: 	sinu35n40e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (3.0375e+06, 3.3075e+06, 4.2525e+06, 4.5225e+06)
+};
+REGION: ibla_35n40w {
+        NAME:		CM_SAF ibla_35n40w
+	PCS_ID: 	sinu35n40w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-4.2525e+06, 3.3075e+06, -3.0375e+06, 4.5225e+06)
+};
+REGION: ibla_35n53e {
+        NAME:		CM_SAF ibla_35n53e
+	PCS_ID: 	sinu35n53e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (4.2525e+06, 3.3075e+06, 5.4675e+06, 4.5225e+06)
+};
+REGION: ibla_35n53w {
+        NAME:		CM_SAF ibla_35n53w
+	PCS_ID: 	sinu35n53w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-5.4675e+06, 3.3075e+06, -4.2525e+06, 4.5225e+06)
+};
+REGION: ibla_35n62e {
+        NAME:		CM_SAF ibla_35n62e
+	PCS_ID: 	sinu35n62e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		360	
+	YSIZE:		1215
+	AREA_EXTENT:    (5.4675e+06, 3.3075e+06, 5.8275e+06, 4.5225e+06)
+};
+REGION: ibla_35n62w {
+        NAME:		CM_SAF ibla_35n62w
+	PCS_ID: 	sinu35n62w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		360	
+	YSIZE:		1215
+	AREA_EXTENT:    (-5.8275e+06, 3.3075e+06, -5.4675e+06, 4.5225e+06)
+};
+REGION: ibla_46n00e {
+        NAME:		CM_SAF ibla_46n00e
+	PCS_ID: 	sinu46n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, 4.5225e+06, 607500, 5.7375e+06)
+};
+REGION: ibla_46n16e {
+        NAME:		CM_SAF ibla_46n16e
+	PCS_ID: 	sinu46n16e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, 4.5225e+06, 1.8225e+06, 5.7375e+06)
+};
+REGION: ibla_46n16w {
+        NAME:		CM_SAF ibla_46n16w
+	PCS_ID: 	sinu46n16w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-1.8225e+06, 4.5225e+06, -607500, 5.7375e+06)
+};
+REGION: ibla_46n31w {
+        NAME:		CM_SAF ibla_46n31w
+	PCS_ID: 	sinu46n31w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-3.0375e+06, 4.5225e+06, -1.8225e+06, 5.7375e+06)
+};
+REGION: ibla_46n32e {
+        NAME:		CM_SAF ibla_46n32e
+	PCS_ID: 	sinu46n32e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (1.8225e+06, 4.5225e+06, 3.0375e+06, 5.7375e+06)
+};
+REGION: ibla_46n47e {
+        NAME:		CM_SAF ibla_46n47e
+	PCS_ID: 	sinu46n47e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (3.0375e+06, 4.5225e+06, 4.2525e+06, 5.7375e+06)
+};
+REGION: ibla_46n47w {
+        NAME:		CM_SAF ibla_46n47w
+	PCS_ID: 	sinu46n47w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215	
+	YSIZE:		1215
+	AREA_EXTENT:    (-4.2525e+06, 4.5225e+06, -3.0375e+06, 5.7375e+06)
+};
+REGION: ibla_46n60w {
+        NAME:		CM_SAF ibla_46n60w
+	PCS_ID: 	sinu46n60w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		810	
+	YSIZE:		1215
+	AREA_EXTENT:    (-5.0625e+06, 4.5225e+06, -4.2525e+06, 5.7375e+06)
+};
+REGION: ibla_46n60e {
+        NAME:		CM_SAF ibla_46n60e
+	PCS_ID: 	sinu46n60e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		810	
+	YSIZE:		1215
+	AREA_EXTENT:    (4.2525e+06, 4.5225e+06, 5.0625e+06, 5.7375e+06)
+};
+REGION: ibla_57n00e {
+        NAME:		CM_SAF ibla_57n00e
+	PCS_ID: 	sinu57n00e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, 5.7375e+06, 607500, 6.9525e+06)
+};
+REGION: ibla_57n20e {
+        NAME:		CM_SAF ibla_57n20e
+	PCS_ID: 	sinu57n20e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, 5.7375e+06, 1.8225e+06, 6.9525e+06)
+};
+REGION: ibla_57n20w {
+        NAME:		CM_SAF ibla_57n20w
+	PCS_ID: 	sinu57n20w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-1.8225e+06, 5.7375e+06, -607500, 6.9525e+06)
+};
+REGION: ibla_57n40e {
+        NAME:		CM_SAF ibla_57n40e
+	PCS_ID: 	sinu57n40e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (1.8225e+06, 5.7375e+06, 3.0375e+06, 6.9525e+06)
+};
+REGION: ibla_57n40w {
+        NAME:		CM_SAF ibla_57n40w
+	PCS_ID: 	sinu57n40w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-3.0375e+06, 5.7375e+06, -1.8225e+06, 6.9525e+06)
+};
+REGION: ibla_57n58e {
+        NAME:		CM_SAF ibla_57n58e
+	PCS_ID: 	sinu57n58e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1125
+	YSIZE:		1215
+	AREA_EXTENT:    (3.0375e+06, 5.7375e+06, 4.1625e+06, 6.9525e+06)
+};
+REGION: ibla_57n58w {
+        NAME:		CM_SAF ibla_57n58w
+	PCS_ID: 	sinu57n58w
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1125
+	YSIZE:		1215
+	AREA_EXTENT:    (-4.1625e+06, 5.7375e+06, -3.0375e+06, 6.9525e+06)
+};
+
+REGION: CMSAF_baseline_km5 {
+        NAME:           CM_SAF baseline_km5
+        PCS_ID:         sinusoidal
+        PCS_DEF:        proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+        XSIZE:          2331
+        YSIZE:          1116
+        AREA_EXTENT:    (-5827500,3307500,5827500,8887500) # (xmin, ymin, xmax, ymax) hv and h5dump gives it in format (xmin,xmax,ymin,ymax)
+};
+
+REGION: CMSAF_baseline_km3 {
+        NAME:           CM_SAF baseline_km3
+        PCS_ID:         sinusoidal
+        PCS_DEF:        proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+        XSIZE:          3885
+        YSIZE:          1860
+        AREA_EXTENT:    (-5827500,3307500,5827500,8887500) # (xmin, ymin, xmax, ymax) hv and h5dump gives it in format (xmin,xmax,ymin,ymax)
+};
+
+REGION: CMSAF_baseline_km1 {
+        NAME:           CM_SAF baseline_km1
+        PCS_ID:         sinusoidal
+        PCS_DEF:        proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+        XSIZE:          11655
+        YSIZE:          5580
+        AREA_EXTENT:    (-5827500,3307500,5827500,8887500) # (xmin, ymin, xmax, ymax) hv and h5dump gives it in format (xmin,xmax,ymin,ymax)
+};
+
+REGION: CMSAF_baseline {
+        NAME:		CM_SAF baseline
+	PCS_ID: 	sinusoidal
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		372
+	YSIZE:		777
+	AREA_EXTENT:    (-5827500,3307500,5827500,8887500) # (xmin, ymin, xmax, ymax) hv and h5dump gives it in format (xmin,xmax,ymin,ymax)
+};
+
+REGION: ibla_57n20e_15km {
+        NAME:		CM_SAF ibla_57n20e_15km
+	PCS_ID: 	sinu57n20e_15km
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		81	
+	YSIZE:		81
+	AREA_EXTENT:    (607943.70541299647, 5712413.886252759, 1822943.7054129965, 6927413.886252759)
+};
+
+#For processing of CMSAF Inner Arctic Area (9 tiles, tile size 1215 x 1215)
+
+REGION: ibla_74n135w {
+        NAME:		CM_SAF ibla_74n135w
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-1822500, 607500, -607500, 1822500)
+};
+
+REGION: ibla_79n180e {
+        NAME:		CM_SAF ibla_79n180e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, 607500, 607500, 1822500)
+};
+
+REGION: ibla_74n135e {
+        NAME:		CM_SAF ibla_74n135e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, 607500, 1822500, 1822500)
+};
+
+REGION: ibla_79n90w {
+        NAME:		CM_SAF ibla_79n90w
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-1822500,-607500, -607500, 607500)
+};
+
+REGION: ibla_90n00e {
+        NAME:		CM_SAF ibla_90n00e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, -607500, 607500, 607500)
+};
+
+REGION: ibla_79n90e {
+        NAME:		CM_SAF ibla_79n90e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, -607500, 1822500, 607500)
+};
+
+REGION: ibla_74n45w {
+        NAME:		CM_SAF ibla_74n45w
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-1822500,-1822500, -607500, -607500)
+};
+
+REGION: ibla_79n00e {
+        NAME:		CM_SAF ibla_79n00e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (-607500, -1822500, 607500, -607500)
+};
+
+REGION: ibla_74n45e {
+        NAME:		CM_SAF ibla_74n45e
+	PCS_ID:         laea00e90n 	
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		1215
+	YSIZE:		1215
+	AREA_EXTENT:    (607500, -1822500, 1822500, -607500)
+};
+
+REGION: arctic_super_5010 {
+        NAME:           CM_SAF arctic_super_5010
+        PCS_ID:         laea00e90n
+        PCS_DEF:        proj=laea,a=6370997.0,lon_0=0,lat_0=90
+        XSIZE:          5010
+        YSIZE:          5010
+        AREA_EXTENT:    (-2505000, -2505000, 2505000, 2505000)
+};
+
+REGION: arctic_super_334 {
+        NAME:           CM_SAF arctic_super_334
+        PCS_ID:         laea00e90n
+        PCS_DEF:        proj=laea,a=6370997.0,lon_0=0,lat_0=90
+        XSIZE:          334
+        YSIZE:          334
+        AREA_EXTENT:    (-2505000, -2505000, 2505000, 2505000)
+};
+
+
+# SMHI tiles for routine production:
+
+
+REGION: smhi_tile_11 {
+        NAME:		nwcsaf smhi tile 11 - north-west
+	PCS_ID: 	laea20w77n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=-20,lat_0=77
+	XSIZE:		1200	
+	YSIZE:		1200
+	AREA_EXTENT:    (-600000.0, -600000.0, 600000.0, 600000.0)
+};
+
+REGION: smhi_tile_12 {
+        NAME:		nwcsaf smhi tile 12 - north-central
+	PCS_ID: 	laea15e77n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=15,lat_0=77
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:    (-600000, -600000, 600000, 600000)
+};
+
+REGION: smhi_tile_13 {
+        NAME:		nwcsaf smhi tile 13 - north-east
+	PCS_ID: 	laea50e75n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=50,lat_0=75
+	XSIZE:		1200	
+	YSIZE:		1200
+	AREA_EXTENT:    (-600000, -600000, 600000, 600000)
+};
+
+REGION: smhi_tile_21 {
+        NAME:		nwcsaf smhi tile 21 - central-west
+	PCS_ID: 	llaea10e67n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=67
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (-1.995e+06, -800000, -395000, 800000)
+};
+
+REGION: smhi_tile_22 {
+        NAME:		nwcsaf smhi tile 22 - central-central
+	PCS_ID: 	llaea10e67n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=67
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (-400000, -800000, 1.2e+06, 800000)
+};
+
+REGION: smhi_tile_23 {
+        NAME:		nwcsaf smhi tile 23 - central-central
+	PCS_ID: 	llaea10e67n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=67
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (1.195e+06, -800000, 2.795e+06, 800000)
+};
+
+REGION: smhi_tile_31 {
+        NAME:		nwcsaf smhi tile 31 - south-west
+	PCS_ID: 	laea10e54n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=54
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (-1.995e+06, -800000, -395000, 800000)
+};
+
+REGION: smhi_tile_32 {
+        NAME:		nwcsaf smhi tile 32 - south-central
+	PCS_ID: 	laea10e54n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=54
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (-400000, -800000, 1.2e+06, 800000)
+};
+
+REGION: smhi_tile_33 {
+        NAME:		nwcsaf smhi tile 33 - south-east
+	PCS_ID: 	laea10e54n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=54
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:    (-1.995e+06, -800000, -395000, 800000)
+};
+
+REGION: smhi_tile_41 {
+        NAME:		nwcsaf smhi tile 41 - south-west
+	PCS_ID: 	laea10e41n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=41
+	XSIZE:		1600
+	YSIZE:		1400
+	AREA_EXTENT:    (-1.995e+06, -700000, -395000, 700000)
+};
+
+REGION: smhi_tile_42 {
+        NAME:		nwcsaf smhi tile 42 - south-central
+	PCS_ID: 	laea10e41n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=41
+	XSIZE:		1600
+	YSIZE:		1400
+	AREA_EXTENT:    (-400000, -700000, 1.2e+06, 700000)
+};
+
+REGION: smhi_tile_43 {
+        NAME:		nwcsaf smhi tile 43 - south-east
+	PCS_ID: 	laea10e41n
+	PCS_DEF:	proj=laea,ellps=bessel,a=6378144.0,b=6356759.0,lon_0=10,lat_0=41
+	XSIZE:		1600
+	YSIZE:		1400
+	AREA_EXTENT:    (1.195e+06, -700000, 2.795e+06, 700000)
+};
+
+# Special areas:
+# BAWS
+REGION: baws {
+	NAME:           BAWS
+	PCS_ID:         baws
+	PCS_DEF:        proj=aea,ellps=bessel,lon_0=14,lat_1=60,lat_2=60
+	XSIZE:          1400
+	YSIZE:          1400
+	AREA_EXTENT:    (-475617, 5324430, 924383, 6724430)
+};
+
+# Areas for TV and Newspapers:
+REGION: eurotv {
+        NAME:           Europe TV -  6.2x5.0km
+        PCS_ID:         eurotv
+        PCS_DEF:        proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+        XSIZE:          1024
+        YSIZE:          1024
+        AREA_EXTENT:    (-3503748.8201907813, -6589593.1340587894, 2842567.6359087573, -1499856.5846593212)
+};
+
+# Areas for TV-4 (new since autumn 2007):
+REGION: eurotv4n {
+        NAME:           Europe TV4 -  4.1x4.1km
+        PCS_ID:         eurotv4n
+        PCS_DEF:        proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+        XSIZE:          2048
+        YSIZE:          1152
+        AREA_EXTENT:    (-5103428.6786669521, -6772478.6005340703, 3293371.3213330479, -2049278.6005340703)
+};
+
+REGION: thule {
+        NAME:		Thule - Baffin Bay
+	PCS_ID: 	ps75n70w
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=-70,lat_ts=75
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:    (-719999.99999999965, -2375755.3141059494, 720000.00000000035, -935755.31410594936)
+};
+
+REGION: reunion {
+        NAME:		La Reunion
+	PCS_ID: 	ps20s55e
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=55,lat_ts=-20
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:    (-720000.00000000279, -13119582.454663275, 719999.99999999721, -11679582.454663275)
+};
+
+REGION: tunesia {
+        NAME:		Tunesia
+	PCS_ID: 	sinu35n13e
+	PCS_DEF:	proj=sinu,a=6370997.0,lon_0=0,lat_0=0
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:    (481487.9295057545, 3335846.228540435,1681487.9295057545, 4535846.2285404354)
+};
+
+REGION: canada_bc {
+        NAME:		British Columbia - Canada
+	PCS_ID: 	west_canada_pcs
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=-130,lat_ts=50
+	XSIZE:		1200
+	YSIZE:		1200
+	AREA_EXTENT:    (-899999.99999999837, -4459378.3121952321, 900000.00000000163, -2659378.3121952321)
+};
+
+# Two areas from KG - March 2007:
+REGION: laea_osisaf_maptest {
+        NAME:		Laea osisaf area
+	PCS_ID: 	laea_osisaf
+	PCS_DEF:	proj=laea,ellps=bessel, a=6378388.0, b=6356912.0, lat_0=90, lon_0=0
+	XSIZE:		2800
+	YSIZE:		2400
+	AREA_EXTENT:    (-2058459.1873192789, -1845005.2100251571, 741540.81268072105, 554994.78997484292)
+};
+
+REGION: osisaf_maptest {
+        NAME:		osisaf maptest
+	PCS_ID: 	osisaf_standard
+	PCS_DEF:	proj=stere, a=6378388.0, b=6356912.0, lat_0=90, lon_0=0, lat_ts=70
+	XSIZE:		2800
+	YSIZE:		2400
+	AREA_EXTENT:    (-2044687.3563472556, -1832661.4627934913, 755312.64365274436, 567338.53720650868)
+};
+
+
+# North pole:
+REGION: npole {
+	NAME:		Around the North Pole - 0.9km
+	PCS_ID:		laea00e90n
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=90
+	XSIZE:		2200
+	YSIZE:		2200
+	AREA_EXTENT:	(-1000000,-1000000,1000000,1000000)
+};
+
+# ------------------------------------------------------------------
+# South pole:
+REGION: antarctica {
+	NAME:		Antarctica - 1km
+	PCS_ID:		laea00e90s
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=0,lat_0=-90
+	XSIZE:		5718
+	YSIZE:		5718
+	AREA_EXTENT:	(-2858899.2042342643, -2858899.2042342639,2858899.2042342639, 2858899.2042342643)
+};
+
+# More USGS areas:
+# Euroasia:
+REGION: euroasia {
+	NAME:		Euroasia - Global 1km USGS Landuse database
+	PCS_ID:		laeae20n55
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=55.0,lon_0=20.0
+	XSIZE:		13000
+	YSIZE:		13000
+	AREA_EXTENT:	(-3000000, -4999000, 9999000, 8000000)
+};
+
+# Euroasia-Asia:
+REGION: euroasia_asia {
+	NAME:		Euroasia - optimised for Asia - Global 1km USGS Landuse database
+	PCS_ID:		laeae100n45
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=45.0,lon_0=100.0
+	XSIZE:		13000
+	YSIZE:		12000
+	AREA_EXTENT:	(-8000000, -5499000, 4999000, 6500000)
+};
+
+# Australia-Pacific:
+REGION: australia_pacific {
+	NAME:		Austalia/Pacific - Global 1km USGS Landuse database
+	PCS_ID:		laeae134s15
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=-15.0,lon_0=135.0
+	XSIZE:		9300
+	YSIZE:		8000
+	AREA_EXTENT:	( -5000000, -3944890, 4299000, 4054110)
+};
+
+# Africa:
+REGION: africa {
+	NAME:		Africa - Global 1km USGS Landuse database
+	PCS_ID:		laeae20n05
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=5.0,lon_0=20.0
+	XSIZE:		8350
+	YSIZE:		9276
+	AREA_EXTENT:	(-4458000, -4795000, 3891000, 4480000)
+};
+
+# South America:
+REGION: southamerica {
+	NAME:		South America - Global 1km USGS Landuse database
+	PCS_ID:		laeaw60s15
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=-15.0,lon_0=-60.0
+	XSIZE:		6000
+	YSIZE:		8000
+	AREA_EXTENT:	(-3000000, -4899000, 2999000, 3100000)
+};
+
+# North America:
+REGION: northamerica {
+	NAME:		North America - Global 1km USGS Landuse database
+	PCS_ID:		laeaw100n50
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=50.0,lon_0=-100.0
+	XSIZE:		9223
+	YSIZE:		8996
+	AREA_EXTENT:	(-4487000, -4515000, 4735000, 4480000)
+};
+
+# ------------------------------------------------------------------
+
+
+REGION: bel {
+	NAME:		Belgium
+	PCS_ID:		ps50n
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378144.0,b=6356759.0,lat_0=90,lon_0=0,lat_ts=50
+	XSIZE:		1000
+	YSIZE:		1000
+	AREA_EXTENT:	(-242019.69355332252, -4691733.6260440573, 957980.30644667754, -3491733.6260440573)
+};
+
+# -----------------------------------------------
+# FIXME: Should the DATUM be WGS84 or bessel or something else?
+# We are currently using bessel for NH and WGS84 for SH, which
+# is certainly not correct (I expect they use the same DATUM)
+# Check with OSISAF Help Desk! Adam Dybbroe, 2008-10-28
+#
+# OSISAF areas for Sea Ice products:
+REGION: osisaf_nh {
+	NAME:		OSISAF NH Grid
+	PCS_ID:		ps90-osisaf-nh
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378273.0,b=6356889.44891,lat_0=90,lon_0=-45,lat_ts=70
+	XSIZE:		760
+	YSIZE:		1120
+	AREA_EXTENT:	(-3845001.1743622357, -5344997.0859681126,3754998.8256377643, 5855002.9140318874)
+};
+
+# OSISAF areas for Sea Ice products:
+REGION: osisaf_sh {
+	NAME:		OSISAF SH Grid
+	PCS_ID:		ps90-osisaf-sh
+	PCS_DEF:	proj=stere,ellps=WGS84,a=6378273.0,b=6356889.44891,lat_0=-90,lon_0=-45,lat_ts=-70
+	XSIZE:		790
+	YSIZE:		830
+	AREA_EXTENT:	(-3945003.564117745, -3945003.5641177446,3954996.435882255, 4354996.4358822554)
+};
+# -----------------------------------------------
+
+
+# Test area1 - south-eastern hemisphere:
+REGION: newzealand_test {
+	NAME:		New Zealand
+	PCS_ID:		laea140e70s
+	PCS_DEF:	proj=laea,a=6370997.0,lon_0=140,lat_0=70
+	XSIZE:		2000
+	YSIZE:		2000
+	AREA_EXTENT:	(3550000,-11150000,5550000.0,-9150000.0)
+};
+
+# Test area2 - south-eastern hemisphere:
+REGION: newzealand_test2 {
+	NAME:		New Zealand
+	PCS_ID:		ps55s170e
+	PCS_DEF:	proj=stere,ellps=bessel,a=6378144.0,b=6356759.0,lat_0=-90,lon_0=170,lat_ts=-55
+	XSIZE:		2000
+	YSIZE:		2000
+	AREA_EXTENT:	(-1800000, 3100000,200000, 5100000)
+};
+
+
+REGION: nrd2km {
+	NAME:           NORDRAD 2KM
+	PCS_ID:         ps14n90e
+        PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:          848
+	YSIZE:          952
+	AREA_EXTENT:    (-738816.45716707956, -3995515.8631839422, 957183.54283292044, -2091515.8631839422)
+};
+
+
+REGION: eurosvt {
+	NAME:		Europe SVT - 7.245 km
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		768
+	YSIZE:		576
+	AREA_EXTENT:	(-3297198.6174171409, -6123562.3608791167, 2266961.3825828591, -1950442.3608791167)
+};
+
+#REGION: eurotv4n {
+#	NAME:		Europe TV4 New - 4.1km
+#	PCS_ID:		ps60n
+#	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+#	XSIZE:		2048
+#	YSIZE:		1152
+#	AREA_EXTENT:	(-5103428.6786669521, -6772478.6005340703, 3293371.3213330479, -2049278.6005340703)
+#};
+
+
+# New production areas:
+REGION: eurol3000m {
+	NAME:		Euro 3km area - Europe
+	PCS_ID:		ps60n0
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		2000
+	YSIZE:		1900
+	AREA_EXTENT:	(-2400000.0, -7200000.0, 3600000.0, -1500000.0)
+};
+
+REGION: euron1000m {
+	NAME:		Northern Europe
+	PCS_ID:		ps60n0
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=0,lat_ts=60,a=6378144.0,b=6356759.0
+	XSIZE:		2900
+	YSIZE:		2900
+	AREA_EXTENT:	(-900000.0, -4500000.0,2000000.0, -1600000.0)
+
+};
+
+REGION: eurol {
+        NAME:           Euro 3.0km area - Europe
+        PCS_ID:         ps60wgs84
+        PCS_DEF:        proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+        XSIZE:          2560
+        YSIZE:          2048
+        AREA_EXTENT:    (-3780000.0, -7644000.0, 3900000.0, -1500000.0)
+};
+
+
+REGION: euroxl {
+	NAME:		Euro 4km area - Europe
+	PCS_ID:		ps60wgs84
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		1750
+	YSIZE:		1575
+	AREA_EXTENT:	(-3000000.0, -7800000.0, 4000000.0, -1500000.0)
+};
+
+REGION: scanl {
+	NAME:		Scandinavia - Large
+	PCS_ID:		ps60wgs84
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		2900
+	YSIZE:		2900
+	AREA_EXTENT:	(-900000.0, -4500000.0,2000000.0, -1600000.0)
+
+};
+
+REGION: euron1 {
+	NAME:		Northern Europe - 1km
+	PCS_ID:		ps60wgs84
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		3072
+	YSIZE:		3072
+	AREA_EXTENT:	(-1000000.0, -4500000.0, 2072000.0, -1428000.0)
+
+};
+
+
+# For IceMap - Bpo:
+REGION: nsea {
+        NAME:		North Sea
+	PCS_ID: 	merc
+	PCS_DEF:	proj=merc,ellps=bessel,lat_ts=0,lon_0=15
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:    (-322789.07638000086, 7784901.986829306, 1725210.9236199991, 9832901.9868293069)
+};
+
+# For IceMap:
+REGION: ssea {
+        NAME:		South Sea
+	PCS_ID: 	merc
+	#PCS_DEF:	proj=merc,ellps=bessel,lat_ts=0,lon_0=15
+	PCS_DEF:	proj=merc,ellps=WGS84,lat_ts=0,lon_0=15
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:    (-801407.36204689811, 7003690.6636438016, 1246592.6379531019, 9051690.6636438016)
+};

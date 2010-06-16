@@ -1,0 +1,15 @@
+[satellite]
+name=met09
+number=2
+frequency=900
+
+[seviri]
+format=msg_hrit
+
+[msg_dirs]
+msg_dir=/local_disk/usr/src/msg
+msg_inc=%(msg_dir)s/include
+msg_lib=%(msg_dir)s/bin
+msg_bin=%(msg_dir)s/bin
+ctype_dir=%(msg_dir)s/export/PGE02
+ctth_dir=%(msg_dir)s/export/PGE03
