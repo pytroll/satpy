@@ -50,11 +50,17 @@ def load_mviri(satscene, options):
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
     LOG.debug("Channels to load from mviri: %s"%satscene.channels_to_load)
+    satscene.info = {}
+    satscene.info["Satellite"] = "meteosat07"
     for chn in satscene.channels_to_load:
         metadata, data = xrit.sat.load_meteosat07(satscene.time_slot,
                                                   chn,
                                                   mask = True)()
-        del metadata
+        satscene[chn].info = {"bla": "alb",
+                              'var_name' : chn,
+                              'var_data' : data,
+                              '_FillValue' : -99999,
+                              'var_dim_names': ('x', 'y')}
         satscene[chn] = data
 
         if chn == "00_7":

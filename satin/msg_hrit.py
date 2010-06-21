@@ -81,6 +81,15 @@ def load_seviri(satscene, options):
                                False)
     for chn in data:
         satscene[chn] = np.ma.array(data[chn]["CAL"], mask = data[chn]["MASK"])
+        satscene[chn].info = {
+            'var_name' : chn,
+            'var_data' : satscene[chn].data,
+            'var_dim_names': ('x','y'),
+            '_FillValue' : -99999,
+            'standard_name' : chn,
+            'scale_factor' : 1.0, 
+            'add_offset' : 0.0,
+                }
         if chn != "HRVIS":
             satscene[chn].area_id = satscene.area_id
         else:
@@ -89,6 +98,34 @@ def load_seviri(satscene, options):
     if(len(satscene.channels_to_load) > 1 and
        "HRVIS" in satscene.channels_to_load):
         satscene.area_id = None
+
+    satscene.info = {
+        'var_children' : [   #{'var_name' : 'lat', 'var_callback': Functor(satscene.get_lat, low_res), 'var_dim_names': ('x','y') },
+                             #{'var_name' : 'lon', 'var_callback' : Functor(satscene.get_lon, low_res) , 'var_dim_names': ('x','y') },
+                           ## {'var_name' : 'lat_hrvis', 'var_data' : satscene.lat[high_res]}, 
+                           ## {'var_name' : 'lon_hrvis', 'var_data' : satscene.lon[high_res]}, 
+                        ],
+        'Satellite' : satscene.fullname,
+        'Antenna' : 'Fixed',
+        'Receiver' : 'DMI (SMHI)' ,
+        'Time' : satscene.time_slot.strftime("%Y-%m-%d %H:%M:%S UTC"), 
+        'Area_Name' : satscene.area_id, 
+        'Projection' : 'proj4-name GEOS(lon)',
+        'Columns' : satscene.channels[0].shape[1], 
+        'Lines' : satscene.channels[0].shape[0], 
+        'SampleX' : 1.0, 
+        'SampleY' : 1.0, 
+        'title' : 'SEVIRI HRIT', 
+        # from configurations file
+        #'Conventions' : CONF.get('netcdf', 'Conventions'),
+        #'history' :  "%s : %s \n" % (datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC'),
+        #                            "mpop") ,
+        #'institution' : CONF.get('netcdf', 'institution'),
+        #'source' :  CONF.get('netcdf', 'source'), 
+        #'references' : CONF.get('netcdf', 'references'), 
+        #'comment' : CONF.get('netcdf', 'comment'), 
+         ## 'AreaStartPix' =     
+        }
 
 def get_lat_lon(satscene, resolution):
     """Read data from file and load it into *satscene*.
