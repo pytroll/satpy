@@ -521,8 +521,8 @@ class TestRegularImage(unittest.TestCase):
                                     1 - old_channels[i]))
             self.img.invert(True)
             for i in range(len(self.img.channels)):
-                self.assert_(np.all(self.img.channels[i] ==
-                                    old_channels[i]))
+                self.assert_(np.all(self.img.channels[i] -
+                                    old_channels[i] < EPSILON))
             self.assertRaises(ValueError, self.img.invert,
                               [True, False, True, False,
                                True, False, True, False])
