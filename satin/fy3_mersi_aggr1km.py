@@ -70,7 +70,6 @@ def load_1km_aggregated_mersi(satscene, options):
                 '/EV_1KM_RefSB']
 
     for nodename in datasets:
-        print "Nodename: ",nodename
         band_data = a.getNode(nodename).data()
         valid_range = a.getNode('%s/valid_range' % (nodename)).data()
         band_names = a.getNode('%s/band_name' % (nodename)).data().split(",")
@@ -79,15 +78,50 @@ def load_1km_aggregated_mersi(satscene, options):
         if '6~20' in band_names:
             band_names = ['6','7','8','9','10','11','12','13',
                           '14','15','16','17','18','19','20']
-            
+
         for (i, band) in enumerate(band_names):
-            print "i,band: ",i,band
-            #print "Shape = ",band_data[i].shape
-            #print "valid_range = ",valid_range
+            if band not in satscene.channels_to_load:
+                continue
+            
             satscene[band] = np.ma.masked_outside(band_data[i],
                                                   valid_range[0],
                                                   valid_range[1],
                                                   copy = False)
+            satscene[band].info = {
+                'var_name' : 'ch'+str(band),
+                'var_data' : satscene[band].data,
+                'var_dim_names': ('x','y'),
+                '_FillValue' : 32767,
+                'standard_name' : '',
+                'short_name' : band,
+                'scale_factor' : 1.0, 
+                'add_offset' : 0.0,
+                }
+
+
+    satscene.info = {
+        'var_children' : [   #{'var_name' : 'lat', 'var_callback': Functor(satscene.get_lat, low_res), 'var_dim_names': ('x','y') },
+                             #{'var_name' : 'lon', 'var_callback' : Functor(satscene.get_lon, low_res) , 'var_dim_names': ('x','y') },
+                           ## {'var_name' : 'lat_hrvis', 'var_data' : satscene.lat[high_res]}, 
+                           ## {'var_name' : 'lon_hrvis', 'var_data' : satscene.lon[high_res]}, 
+                        ],
+        'Satellite' : satscene.fullname,
+        'Antenna' : 'None',
+        'Receiver' : 'SMHI' ,
+        'Time' : satscene.time_slot.strftime("%Y-%m-%d %H:%M:%S UTC"), 
+         #'Area_Name' : satscene.area_id, 
+        'Area_Name' : "swath",
+        'Projection' : 'satproj',
+        'Platform' : 'fengyun',
+        'Number' : '3a',
+        'Service' : '',
+         #'Columns' : satscene.channels[0].shape[1], 
+         #'Lines' : satscene.channels[0].shape[0], 
+        'SampleX' : 1.0, 
+        'SampleY' : 1.0, 
+        'title' : 'MERSI Level 1',
+        }
+
 
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.
