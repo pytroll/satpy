@@ -235,7 +235,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False):
+    def project(self, dest_area, channels=None, precompute=False, mode="quick"):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -268,6 +268,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         res = copy.copy(self)
         res.area_id = dest_area
+        res.info["Area_Name"] = dest_area
         res.channels = []
 
         if not _channels <= self.loaded_channels():
@@ -295,13 +296,17 @@ class SatelliteInstrumentScene(SatelliteScene):
                             Projector(chn.area_id,
                                       dest_area,
                                       self.get_lat_lon(chn.resolution),
-                                      precompute=precompute)
+                                      precompute=precompute,
+                                      mode=mode)
                     else:
                         cov[chn.area_id] = Projector(chn.area_id,
                                                      dest_area,
-                                                     precompute=precompute)
+                                                     precompute=precompute,
+                                                     mode=mode)
                 try:
                     res.channels.append(chn.project(cov[chn.area_id]))
+                    res.channels[-1].area_id =  None
+                    res.channels[-1].info["Area_Name"] =  ""
                 except NotLoadedError:
                     LOG.warning("Channel "+str(chn.name)+" not loaded,"
                                 "thus not projected.")
