@@ -82,7 +82,9 @@ def load_seviri(satscene, options):
     satscene.info = {}
     satscene.info["Platform"] = satscene.satname
     satscene.info["Number"] = satscene.number
-    satscene.info["Variant"] = satscene.variant
+    satscene.info["Service"] = satscene.variant
+    satscene.info["Time"] = satscene.time_slot.strftime("%Y-%m-%d %H:%M:%S UTC"),
+    satscene.info["Area_Name"] = satscene.area_id, 
     for chn in satscene.channels_to_load:
         metadata, data = xrit.sat.load_meteosat09(satscene.time_slot,
                                                   chn,
@@ -90,8 +92,11 @@ def load_seviri(satscene, options):
                                                   calibrate = True)()
         satscene[chn].info = {'var_name' : chn,
                               'var_data' : data,
-                              'valid_range' : np.array([data.min(), data.max()]),
-                              'var_dim_names': ('x', 'y')}
+                              'valid_range' : np.array([data.min(),
+                                                        data.max()]),
+                              'var_dim_names': ('x', 'y'),
+                              'Area_Name': satscene[chn].area_id,
+                              'standard_name' : chn}
 
         satscene[chn] = data
 
