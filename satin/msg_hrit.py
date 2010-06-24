@@ -74,29 +74,48 @@ def load_seviri(satscene, options):
     # Do not reload data.
     satscene.channels_to_load -= set([chn.name for chn in
                                       satscene.loaded_channels()])
+
+    new_names = ("VIS006", "VIS008", "IR_016", "IR_039", "WV_062", "WV_073",
+                 "IR_087", "IR_097", "IR_108", "IR_120", "IR_134", "HRV")
+    old_names = ("VIS06", "VIS08", "IR16", "IR39", "WV62", "WV73",
+                 "IR87", "IR97", "IR108", "IR120", "IR134", "HRVIS")
+
+    new_old = {}
+    old_new = {}
+
+    for old, new in zip(old_names, new_names):
+        new_old[new] = old
+        old_new[old] = new
+
+    channels_to_load = [new_old[chn] for chn in satscene.channels_to_load]
     
     data = nwclib.get_channels(satscene.time_slot.strftime("%Y%m%d%H%M"), 
                                satscene.area_id, 
-                               list(satscene.channels_to_load),
+                               list(channels_to_load),
                                False)
     for chn in data:
-        satscene[chn] = np.ma.array(data[chn]["CAL"], mask = data[chn]["MASK"])
-        satscene[chn].info = {
-            'var_name' : chn,
-            'var_data' : satscene[chn].data,
-            'var_dim_names': ('x','y'),
-            '_FillValue' : -99999,
-            'standard_name' : chn,
+        new_chn = old_new[chn]
+
+        if new_chn != "HRV":
+            satscene[new_chn].area_id = satscene.area_id
+        else:
+            satscene[new_chn].area_id = "HR" + satscene.area_id
+
+        satscene[new_chn] = np.ma.array(data[chn]["CAL"], mask = data[chn]["MASK"])
+        satscene[new_chn].info = {
+            'var_name' : new_chn,
+            'var_data' : satscene[new_chn].data,
+            'var_dim_names': ('x'+str(satscene[new_chn].resolution),'y'+str(satscene[new_chn].resolution)),
+            'valid_range' : np.array([satscene[new_chn].data.min(),
+                                      satscene[new_chn].data.max()]),
+            'standard_name' : new_chn,
+            'Area_Name': satscene[new_chn].area_id or "",
             'scale_factor' : 1.0, 
             'add_offset' : 0.0,
                 }
-        if chn != "HRVIS":
-            satscene[chn].area_id = satscene.area_id
-        else:
-            satscene[chn].area_id = "HR" + satscene.area_id
 
     if(len(satscene.channels_to_load) > 1 and
-       "HRVIS" in satscene.channels_to_load):
+       "HRV" in satscene.channels_to_load):
         satscene.area_id = None
 
     satscene.info = {
@@ -108,11 +127,11 @@ def load_seviri(satscene, options):
         'Satellite' : satscene.fullname,
         'Platform' : satscene.satname,
         'Number' : satscene.number,
-        'Variant' : satscene.variant,
+        'Service' : satscene.variant,
         'Antenna' : 'Fixed',
         'Receiver' : 'DMI (SMHI)' ,
         'Time' : satscene.time_slot.strftime("%Y-%m-%d %H:%M:%S UTC"), 
-        'Area_Name' : satscene.area_id, 
+        'Area_Name' : satscene.area_id or "", 
         'Projection' : 'proj4-name GEOS(lon)',
         #'Columns' : satscene.channels[0].shape[1], 
         #'Lines' : satscene.channels[0].shape[0], 

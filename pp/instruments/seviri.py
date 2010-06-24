@@ -33,18 +33,18 @@ from pp.instruments.visir import VisirScene
 import imageo.geo_image as geo_image
 from pp.logger import LOG
 
-SEVIRI = [["VIS06", (0.56, 0.635, 0.71), 3000],
-          ["VIS08", (0.74, 0.81, 0.88), 3000],
-          ["IR16", (1.50, 1.64, 1.78), 3000],
-          ["IR39", (3.48, 3.92, 4.36), 3000],
-          ["WV62", (5.35, 6.25, 7.15), 3000],
-          ["WV73", (6.85, 7.35, 7.85), 3000],
-          ["IR87", (8.30, 8.70, 9.10), 3000],
-          ["IR97", (9.38, 9.66, 9.94), 3000],
-          ["IR108", (9.80, 10.80, 11.80), 3000],
-          ["IR120", (11.00, 12.00, 13.00), 3000],
-          ["IR134", (12.40, 13.40, 14.40), 3000],
-          ["HRVIS", (0.50, 0.70, 0.90), 1000]]
+SEVIRI = [["VIS006", (0.56, 0.635, 0.71), 3000],
+          ["VIS008", (0.74, 0.81, 0.88), 3000],
+          ["IR_016", (1.50, 1.64, 1.78), 3000],
+          ["IR_039", (3.48, 3.92, 4.36), 3000],
+          ["WV_062", (5.35, 6.25, 7.15), 3000],
+          ["WV_073", (6.85, 7.35, 7.85), 3000],
+          ["IR_087", (8.30, 8.70, 9.10), 3000],
+          ["IR_097", (9.38, 9.66, 9.94), 3000],
+          ["IR_108", (9.80, 10.80, 11.80), 3000],
+          ["IR_120", (11.00, 12.00, 13.00), 3000],
+          ["IR_134", (12.40, 13.40, 14.40), 3000],
+          ["HRV", (0.50, 0.70, 0.90), 1000]]
 
 class SeviriScene(VisirScene):
     """This class sets up the Seviri instrument channel list.
@@ -140,7 +140,7 @@ class SeviriScene(VisirScene):
         """Make a High Resolution Overview RGB image composite from Seviri
         channels.
         """
-        self.check_channels(0.6, 0.8, 10.8, "HRVIS")
+        self.check_channels(0.6, 0.8, 10.8, "HRV")
 
         ch1 = self[0.6].check_range()
         ch2 = self[0.8].check_range()
@@ -155,7 +155,7 @@ class SeviriScene(VisirScene):
         img.enhance(stretch = "crude")
         img.enhance(gamma = [1.6, 1.6, 1.1])
         
-        luminance = geo_image.GeoImage((self["HRVIS"].data),
+        luminance = geo_image.GeoImage((self["HRV"].data),
                                        self.area_id,
                                        self.time_slot,
                                        crange = (0,100),
@@ -167,15 +167,15 @@ class SeviriScene(VisirScene):
         
         return img
 
-    hr_overview.prerequisites = set(["HRVIS", 0.6, 0.8, 10.8])
+    hr_overview.prerequisites = set(["HRV", 0.6, 0.8, 10.8])
 
     def hr_visual(self):
         """Make a High Resolution visual BW image composite from Seviri
         channels.
         """
-        self.check_channels("HRVIS")
+        self.check_channels("HRV")
 
-        img = geo_image.GeoImage(self["HRVIS"].data,
+        img = geo_image.GeoImage(self["HRV"].data,
                                  self.area_id,
                                  self.time_slot,
                                  fill_value = 0,
@@ -183,4 +183,4 @@ class SeviriScene(VisirScene):
         img.enhance(stretch="crude")
         return img
 
-    hr_visual.prerequisites = set(["HRVIS"])
+    hr_visual.prerequisites = set(["HRV"])
