@@ -36,8 +36,8 @@ import numpy as np
 import imageo.image
 from pyresample import utils
 from pp.utils import ensure_dir
-from osgeo import gdal
-from osgeo import osr
+import gdal
+import osr
 from imageo.logger import LOG
 
 from imageo import CONFIG_PATH
@@ -66,7 +66,7 @@ class GeoImage(imageo.image.Image):
         super(GeoImage, self).__init__(channels, mode, crange,
                                       fill_value, palette)
 
-    def save(self, filename, compression = 6, tags = {}):
+    def save(self, filename, compression=6, tags={}, gdal_options=[]):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -80,7 +80,7 @@ class GeoImage(imageo.image.Image):
         file_tuple = os.path.splitext(filename)
 
         if(file_tuple[1] == ".tif"):
-            self._geotiff_save(filename, compression, tags)
+            self._geotiff_save(filename, compression, tags, gdal_options)
         else:
             super(GeoImage, self).save(filename, compression)
 
@@ -105,7 +105,7 @@ class GeoImage(imageo.image.Image):
             else:
                 dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
-    def _geotiff_save(self, filename, compression = 6, tags = {}):
+    def _geotiff_save(self, filename, compression=6, tags={}, gdal_options=[]):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
         argument is a dict of tags to include in the image (as metadata).
@@ -119,7 +119,7 @@ class GeoImage(imageo.image.Image):
         LOG.debug("Saving to GeoTiff.")
 
         #options = ["TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256"]
-        options = []
+        #options = []
 
         #if compression != 0:
         #    options.append("COMPRESS=DEFLATE")
@@ -133,14 +133,14 @@ class GeoImage(imageo.image.Image):
                                        self.height, 
                                        1, 
                                        gdal.GDT_Byte,
-                                       options)
+                                       gdal_options)
             else:
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        2, 
                                        gdal.GDT_Byte,
-                                       options)
+                                       gdal_options)
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
         elif(self.mode == "RGB"):
             ensure_dir(filename)
@@ -150,14 +150,14 @@ class GeoImage(imageo.image.Image):
                                        self.height, 
                                        3, 
                                        gdal.GDT_Byte,
-                                       options)
+                                       gdal_options)
             else:
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        4, 
                                        gdal.GDT_Byte,
-                                       options)
+                                       gdal_options)
 
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
 
@@ -168,7 +168,7 @@ class GeoImage(imageo.image.Image):
                                    self.height, 
                                    4, 
                                    gdal.GDT_Byte,
-                                   options)
+                                   gdal_options)
 
             self._gdal_write_channels(dst_ds, channels, channels[3], fill_value)
         else:
