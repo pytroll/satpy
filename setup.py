@@ -63,7 +63,7 @@ except:
 NAME = 'mpop'
 
 setup(name=NAME,
-      version='0.5.0b1',
+      version='0.6.0a1',
       description='Meteorological post processing package',
       author='Adam Dybbroe, Martin Raspaud',
       author_email='martin.raspaud@smhi.se',

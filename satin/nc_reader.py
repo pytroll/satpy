@@ -1,8 +1,36 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2010.
+
+# SMHI,
+# Folkborgsvägen 1,
+# Norrköping, 
+# Sweden
+
+# Author(s):
+ 
+#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
+
+# This file is part of mpop.
+
+# mpop is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+
+# mpop is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# mpop.  If not, see <http://www.gnu.org/licenses/>.
 """Very simple netcdf reader for mpop.
 """
 from netCDF4 import Dataset
 import datetime
 import saturn.runner
+import numpy as np
 
 def load_from_nc4(filename):
     """Load data from a netcdf4 file.
@@ -14,7 +42,10 @@ def load_from_nc4(filename):
                                     rootgrp.Service)
     time_slot = datetime.datetime.strptime(rootgrp.Time,
                                            "%Y-%m-%d %H:%M:%S UTC")
-    area_id = rootgrp.Area_Name
+    if rootgrp.Area_Name == "":
+        area_id = None
+    else:
+        area_id = rootgrp.Area_Name
 
     scene = klass(time_slot=time_slot, area_id=area_id)
 
@@ -22,16 +53,26 @@ def load_from_nc4(filename):
         
         var = rootgrp.variables[var_name]
 
-        scene[var.short_name] = var[:,:].astype(var.dtype)
-
-        if not hasattr(scene[var.short_name], 'info'):
-            scene[var.short_name].info = {}
-        scene[var.short_name].info['var_data'] = scene[var.short_name].data
-        scene[var.short_name].info['var_name'] = var_name
-        scene[var.short_name].info['var_dim_names'] = var.dimensions
+        data = var[:, :].astype(var.dtype)
+        if hasattr(var, "valid_range"):
+            scene[var.standard_name] = np.ma.masked_outside(data,
+                                                            var.valid_range[0],
+                                                            var.valid_range[1])
+        else:
+            scene[var.standard_name] = data
+        
+        if not hasattr(scene[var.standard_name], 'info'):
+            scene[var.standard_name].info = {}
+        scene[var.standard_name].info['var_data'] = \
+                                                  scene[var.standard_name].data
+        scene[var.standard_name].info['var_name'] = var_name
+        scene[var.standard_name].info['var_dim_names'] = var.dimensions
+        if var.Area_Name == "":
+            scene[var.standard_name].area_id = None
+        else:
+            scene[var.standard_name].area_id = var.Area_Name
         for attr in var.ncattrs():
-            scene[var.short_name].info[attr] = getattr(var, attr)
-
+            scene[var.standard_name].info[attr] = getattr(var, attr)
     
     if not hasattr(scene, 'info'):
         scene.info = {}
@@ -45,8 +86,3 @@ def load_from_nc4(filename):
     return scene
 
 
-if __name__ == '__main__':
-    
-    g = load_from_nc4('tester.nc')
-    l = g.project("euro4")
-    l.vis06().show()
