@@ -87,6 +87,19 @@ class VisirScene(SatelliteInstrumentScene):
             
     airmass.prerequisites = set([6.7, 7.3, 9.7, 10.8])
 
+    def channel_image(self, channel):
+        """Make a black and white image of the *channel*.
+        """
+        self.check_channels(channel)
+
+        img = geo_image.GeoImage(self[channel].data,
+                                 self.area_id,
+                                 self.time_slot,
+                                 fill_value = 0,
+                                 mode = "L")
+        img.enhance(stretch="crude")
+        return img
+    
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
         """
