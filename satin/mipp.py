@@ -33,6 +33,7 @@ from satin import CONFIG_PATH
 import xrit.sat
 from satin.logger import LOG
 import os
+import numpy as np
 
 def load(satscene):
     """Read data from file and load it into *satscene*.
@@ -72,6 +73,48 @@ def load_mviri(satscene, options):
        "00_7" in satscene.channels_to_load):
         satscene.area_id = None
 
+def load_seviri(satscene, options):
+    """Read seviri data from file and load it into *instrument_instance*.
+    """
+    os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
+
+    LOG.debug("Channels to load from seviri: %s"%satscene.channels_to_load)
+    satscene.info = {}
+    satscene.info["Platform"] = satscene.satname
+    satscene.info["Number"] = satscene.number
+    satscene.info["Variant"] = satscene.variant
+    for chn in satscene.channels_to_load:
+        metadata, data = xrit.sat.load_meteosat09(satscene.time_slot,
+                                                  chn,
+                                                  mask = True,
+                                                  calibrate = True)()
+        satscene[chn].info = {'var_name' : chn,
+                              'var_data' : data,
+                              'valid_range' : np.array([data.min(), data.max()]),
+                              'var_dim_names': ('x', 'y')}
+
+        satscene[chn] = data
+
+        if chn == "HRV":
+            satscene[chn].area_id = "HR" + satscene.area_id
+        else:
+            satscene[chn].area_id = satscene.area_id
+
+    for key in metadata.__dict__:
+        if (not isinstance(metadata.__dict__[key],
+                           (int, long, float, complex, str, np.ndarray)) or
+            isinstance(metadata.__dict__[key], bool)):
+            satscene.info[key] = str(metadata.__dict__[key])
+        else:
+            satscene.info[key] = metadata.__dict__[key]
+
+            
+        
+    if(len(satscene.channels_to_load) > 1 and
+       "HRV" in satscene.channels_to_load):
+        satscene.area_id = None
+
 CASES = {
-    "mviri": load_mviri
+    "mviri": load_mviri,
+    "seviri": load_seviri
     }
