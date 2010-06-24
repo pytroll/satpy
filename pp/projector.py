@@ -60,7 +60,7 @@ class Projector(object):
     area_file = os.path.join(CONFIG_PATH, "areas.def")
 
     def __init__(self, in_area_id, out_area_id,
-                 in_latlons = None, precompute = False):
+                 in_latlons=None, precompute=False, mode="quick"):
         try:
             self.in_area = utils.parse_area_file(self.area_file,
                                                  in_area_id)[0]
@@ -70,8 +70,7 @@ class Projector(object):
                 self._lon = in_latlons[1]
                 self._swath = True
             else:
-                raise utils.AreaNotFound("Area " + in_area_id + " not found. "
-                                         "Input area must be defined in " +
+                raise utils.AreaNotFound("Input area must be defined in " +
                                          self.area_file + " or "
                                          "longitudes/latitudes must be "
                                          "provided.")
@@ -106,10 +105,16 @@ class Projector(object):
                              valid_index=valid_index,
                              index_array=index_array)
             else:
-                ridx, cidx = \
-                    utils.generate_nearest_neighbour_linesample_arrays(self.in_area,
-                                                                       self.out_area,
-                                                                       50000)
+                if mode == "nearest":
+                    ridx, cidx = \
+                        utils.generate_nearest_neighbour_linesample_arrays(self.in_area,
+                                                                           self.out_area,
+                                                                           50000)
+                else:
+                    ridx, cidx = \
+                        utils.generate_quick_linesample_arrays(self.in_area,
+                        self.out_area)
+                                                    
                 self._cache = {}
                 self._cache['row_idx'] = ridx
                 self._cache['col_idx'] = cidx
