@@ -112,8 +112,8 @@ class Channel(GenericChannel):
 
         if(not isinstance(wavelength_range, (tuple, list, set)) or
              not isinstance(wavelength_range[0], float) or
-             not isinstance(wavelength_range[0], float) or
-             not isinstance(wavelength_range[0], float)):
+             not isinstance(wavelength_range[1], float) or
+             not isinstance(wavelength_range[2], float)):
             raise TypeError("Wavelength_range should be a triplet of floats.")
         elif(len(wavelength_range) != 3 or
              not (wavelength_range[0] <= wavelength_range[1]) or
