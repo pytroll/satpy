@@ -35,6 +35,9 @@ import getopt
 import pp.satellites
 from pp.channel import NotLoadedError
 from saturn.tasklist import TaskList
+from ConfigParser import ConfigParser
+import os
+from pp import CONFIG_PATH
 
 LOG = logging.getLogger("runner")
 
@@ -52,7 +55,50 @@ def get_class(satellite, number, variant):
                    hasattr(eval(module_name+"."+j), "variant") and
                    variant == eval(module_name+"."+j+".variant")):
                     return eval(module_name+"."+j)
-    return None
+    return build_class(satellite, number, variant)
+
+def build_instrument(name, ch_list):
+    from pp.instruments.visir import VisirScene
+    class Instrument(VisirScene):
+        """Generic instrument, built on the fly.
+        """
+        channel_list = ch_list
+        instrument_name = name
+    return Instrument
+                     
+def build_class(satellite, num, var):
+    """Build a class for the given satellite on the fly, using a config file.
+    """
+
+    fullname = var + satellite + num
+    
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+    instruments = eval(conf.get("satellite", "instruments"))
+    sat_classes = []
+    for instrument in instruments:
+        ch_list = []
+        for section in conf.sections():
+            if(not section.endswith("level1") and
+               not section.endswith("level2") and
+               section.startswith(instrument)):
+                ch_list += [[eval(conf.get(section, "name")),
+                             eval(conf.get(section, "frequency")),
+                             eval(conf.get(section, "resolution"))]]
+                                 
+        instrument_class = build_instrument(instrument, ch_list)
+        
+        class Satellite(instrument_class):
+            """Generic satellite, built on the fly.
+            """
+            satname = satellite
+            number = num
+            variant = var
+            
+        sat_classes += [Satellite]
+    if len(sat_classes) == 1:
+        return sat_classes[0]
+    return sat_classes
 
 def usage(scriptname):
     """Print usefull information for running the script.
