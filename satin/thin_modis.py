@@ -182,8 +182,14 @@ def get_lat_lon_thin_modis(satscene, options):
     filename = os.path.join(options["dir"], filename)
 
     data = SD(filename)
-    lat = data.select("Latitude").get()
-    lon = data.select("Longitude").get()
+    lat = data.select("Latitude")
+    fill_value = lat.attributes()["_FillValue"]
+    lat = np.ma.masked_equal(lat.get(), fill_value)
+    lon = data.select("Longitude")
+    fill_value = lon.attributes()["_FillValue"]
+    lon = np.ma.masked_equal(lon.get(), fill_value)
+
+    
 
     return lat, lon
 
