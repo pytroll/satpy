@@ -702,6 +702,7 @@ def read(fdes):
             lons[cnt, 0] = res["EARTH_LOCATION_FIRST"][1]
             lons[cnt, -1] = res["EARTH_LOCATION_LAST"][1]
 
+            # FIXME: this is wrong around tricky places (e.g. poles)
             xnew = np.arange(scanlength)
             tck = interpolate.splrep(samples, lats[cnt, :], s=0)
             llats[cnt, :] = interpolate.splev(xnew, tck, der=0)
