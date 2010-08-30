@@ -108,7 +108,7 @@ class Channel(GenericChannel):
             raise ValueError("Cannot define a channel with neither name "
                              "nor wavelength range.")
 
-        if not isinstance(resolution, int):
+        if not isinstance(resolution, (int, float)):
             raise TypeError("Resolution must be an integer number of meters.")
         
         self.resolution = resolution
