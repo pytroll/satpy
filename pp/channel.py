@@ -52,6 +52,9 @@ class GenericChannel(object):
     #: ID of the area on which the channel is defined.
     area_id = None
 
+    #: Metadata information
+    info = {}
+    
     def __init__(self, name = None):
         object.__init__(self)
 

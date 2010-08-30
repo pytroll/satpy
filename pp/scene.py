@@ -65,6 +65,9 @@ class SatelliteScene(object):
     #: Area on which the scene is defined.
     area_id = None
 
+    #: Metadata information
+    info = {}
+    
     def __init__(self, time_slot = None, area_id = None, orbit = None):
 
         if(time_slot is not None and
