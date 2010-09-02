@@ -91,11 +91,6 @@ class TestChannel(unittest.TestCase):
                           name = "newchan",
                           resolution = "a")
         
-        numb = np.random.uniform(100000)
-        self.assertRaises(TypeError, Channel,
-                          name = "newchan",
-                          resolution = numb)
-
         # Wavelength
 
         numbs = [np.random.uniform(100),
