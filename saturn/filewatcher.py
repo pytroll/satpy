@@ -110,13 +110,16 @@ class FileWatcher(Process):
 
 
 class FileProcessor(Process):
-    """Execute *fun* on filenames provided by from *file_queue*.
+    """Execute *fun* on filenames provided by from *file_queue*. If *refresh*
+    is a positive number, run *fun* every given number of seconds with None as
+    argument.
     """
-    def __init__(self, file_queue, fun):
+    def __init__(self, file_queue, fun, refresh=None):
         Process.__init__(self)
         self.queue = file_queue
         self.fun = fun
         self.running = True
+        self.refresh = refresh
         
     def run(self):
         """Execute the given function on files from the file queue.
@@ -130,8 +133,12 @@ class FileProcessor(Process):
         signal.signal(signal.SIGTERM, stop)
 
         while self.running:
-            filename = self.queue.get()
-            LOG.debug("processing %s"%filename)
+            try:
+                filename = self.queue.get(block=True, timeout=self.refresh)
+                LOG.debug("processing %s"%filename)
+            except Empty:
+                filename = None
+                LOG.debug("refreshing.")
             try:
                 self.fun(filename)
             except:
