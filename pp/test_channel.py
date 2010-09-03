@@ -195,33 +195,33 @@ class TestChannel(unittest.TestCase):
         """Comparison of channels.
         """
         
-        self.chan = GenericChannel(name = "newchan")
-        self.chan2 = GenericChannel(name = "mychan")
+        self.chan = Channel(name = "newchan")
+        self.chan2 = Channel(name = "mychan")
 
         self.assertTrue(self.chan > self.chan2)
 
-        self.chan = GenericChannel(name = "newchan")
+        self.chan = Channel(name = "newchan")
         self.chan2 = "mychan"
         
         self.assertTrue(self.chan > self.chan2)
 
-        self.chan = GenericChannel(name = "newchan")
-        self.chan2 = GenericChannel(name = "newchan")
+        self.chan = Channel(name = "newchan")
+        self.chan2 = Channel(name = "newchan")
 
         self.assert_(self.chan == self.chan2)
 
-        self.chan = GenericChannel()
-        self.chan2 = GenericChannel(name = "newchan")
+        self.chan = Channel()
+        self.chan2 = Channel(name = "newchan")
 
         self.assert_(self.chan < self.chan2)
 
-        self.chan = GenericChannel(name = "newchan")
-        self.chan2 = GenericChannel(name = "_mychan")
+        self.chan = Channel(name = "newchan")
+        self.chan2 = Channel(name = "_mychan")
 
         self.assert_(self.chan < self.chan2)
 
-        self.chan = GenericChannel(name = "_newchan")
-        self.chan2 = GenericChannel(name = "mychan")
+        self.chan = Channel(name = "_newchan")
+        self.chan2 = Channel(name = "mychan")
 
         self.assert_(self.chan > self.chan2)
 
