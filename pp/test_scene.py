@@ -481,12 +481,12 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                                        dtype = int))
 
         
-        self.scene.project(area_id2)
+        res = self.scene.project(area_id2)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertEquals(res[11.5].shape, (3, 3))
         
-        self.scene.project(area_id2, channels=[0.7])
+        res = self.scene.project(area_id2, channels=[0.7])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 6.4)
         self.assertRaises(KeyError, res.__getitem__, 11.5)
