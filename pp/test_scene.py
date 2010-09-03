@@ -442,13 +442,27 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
                                       mask = np.array(np.random.rand(3, 3) * 2,
                                                       dtype = int))
-        self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
-                                       mask = np.array(np.random.rand(3, 3) * 2,
-                                                       dtype = int))
-
+        self.scene[6.4].area_id = area_id
         
-        self.scene.project(area_id2)
-        self.scene.project(area_id2, channels=[0.7])
+        res = self.scene.project(area_id2)
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertEquals(res[6.4].shape, (3, 3))
+        self.assertRaises(KeyError, res.__getitem__, 11.5)
+
+        res = self.scene.project(area_id2, channels=[0.7])
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertRaises(KeyError, res.__getitem__, 6.4)
+        self.assertRaises(KeyError, res.__getitem__, 11.5)
+
+
+
+        res = self.scene.project(area_id2, channels=[area_id])
+        self.assertRaises(KeyError, res.__getitem__, 0.7)
+        self.assertRaises(KeyError, res.__getitem__, 6.4)
+        self.assertRaises(KeyError, res.__getitem__, 11.5)
+
+
+
 
         # case of a grid
 
@@ -468,7 +482,14 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         
         self.scene.project(area_id2)
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertEquals(res[6.4].shape, (3, 3))
+        self.assertEquals(res[11.5].shape, (3, 3))
+        
         self.scene.project(area_id2, channels=[0.7])
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertRaises(KeyError, res.__getitem__, 6.4)
+        self.assertRaises(KeyError, res.__getitem__, 11.5)
 
 
         
@@ -488,10 +509,18 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                        mask = np.array(np.random.rand(3, 3) * 2,
                                                        dtype = int))
 
+        self.scene[6.4].area_id = area_id
         
-        self.scene.project(area_id)
-        self.scene.project(area_id, channels=[0.7])
-
+        res = self.scene.project(area_id)
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertEquals(res[6.4].shape, (3, 3))
+        self.assertEquals(res[11.5].shape, (3, 3))
+        
+        res = self.scene.project(area_id, channels=[0.7])
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertEquals(res[6.4].shape, (3, 3))
+        self.assertEquals(res[11.5].shape, (3, 3))
+        
         
     def test_load(self):
         """Loading channels into a scene.
