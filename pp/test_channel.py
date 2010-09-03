@@ -210,7 +210,7 @@ class TestChannel(unittest.TestCase):
 
         self.assert_(self.chan == self.chan2)
 
-        self.chan = Channel()
+        self.chan = Channel(wavelength_range=(1., 2., 3.))
         self.chan2 = Channel(name = "newchan")
 
         self.assert_(self.chan < self.chan2)
