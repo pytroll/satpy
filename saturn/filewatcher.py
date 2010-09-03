@@ -29,6 +29,7 @@
 """
 
 from multiprocessing import Process
+from Queue import Empty
 import datetime
 import glob
 import time
@@ -57,8 +58,6 @@ class FileWatcher(Process):
         """Run the file watcher.
         """
 
-        previous_file = ""
-
         def stop(*args):
             """Stops a running process.
             """
@@ -67,46 +66,44 @@ class FileWatcher(Process):
             
         signal.signal(signal.SIGTERM, stop)
 
+        filelist = set()
+        
         while self.running:
-            while True and self.running:
-                filelist = glob.glob(self.template)
-                filelist.sort()
+            if isinstance(self.template, (list, tuple)):
+                new_filelist = []
+                for template in self.template:
+                    new_filelist += glob.glob(template)
+                new_filelist = set(new_filelist)
+            else:
+                new_filelist = set(glob.glob(self.template))
+            files_to_process = list(new_filelist - filelist)
+            filelist = new_filelist
 
-                try:
-                    filelist = filelist[filelist.index(previous_file) + 1:]
-                except (IndexError, ValueError):
-                    pass
+            files_to_process.sort()
 
-                if(len(filelist) != 0 and filelist[-1] != previous_file):
-                    sleep_time = 8
-                    break
+            if len(files_to_process) != 0:
+                sleep_time = 8
+                times = []
+                for i in files_to_process:
+                    LOG.debug("queueing %s..."%i)
+                    self.queue.put(i)
+                    times.append(os.stat(i).st_ctime)
+                times.sort()
 
+                since_creation = datetime.timedelta(seconds=time.time() -
+                                                    times[-1])
+                if(self.frequency > since_creation):
+                    to_wait = self.frequency - since_creation
+
+                    LOG.info("Waiting at least "+str(to_wait)+" for next file")
+                    time.sleep(to_wait.seconds +
+                               to_wait.microseconds / 1000000.0)
+            else:
                 LOG.info("no new file has come, waiting %s secs"
                          %str(sleep_time))
                 time.sleep(sleep_time)
                 if sleep_time < 60:
                     sleep_time *= 2
-                
-
-            for i in filelist:
-                LOG.debug("queueing %s..."%i)
-                self.queue.put(i)
-                previous_file = i
-                
-            if previous_file:
-                last_stat = os.stat(previous_file)
-
-                since_creation = datetime.timedelta(seconds=time.time() -
-                                                    last_stat.st_ctime)
-
-                to_wait = self.frequency - since_creation
-            elif self.running:
-                to_wait = datetime.timedelta(seconds=0)
-            else:
-                to_wait = ZERO
-            if to_wait > ZERO:
-                LOG.info("Waiting at least "+str(to_wait)+" for next file")
-                time.sleep(to_wait.seconds + to_wait.microseconds / 1000000.0)
 
 
 class FileProcessor(Process):
