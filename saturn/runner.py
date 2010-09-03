@@ -213,14 +213,14 @@ class SequentialRunner(object):
     """Runs scenes in a sequential order, as opposed to parallelized running.
     """
 
-    def __init__(self, satellite, number, variant, tasklist, precompute=False):
+    def __init__(self, satellite, tasklist, precompute=False):
         if isinstance(tasklist, str):
             tasklist = TaskList(tasklist)
         self.tasklist = tasklist
         self.data = None
-        self.satellite = satellite
-        self.number = number
-        self.variant = variant
+        self.satellite = satellite[0]
+        self.number = satellite[1]
+        self.variant = satellite[2]
         self.klass = get_class(self.satellite, self.number, self.variant)
         self.precompute = precompute
             
@@ -262,7 +262,7 @@ class SequentialRunner(object):
             del local_data
         
 if __name__ == "__main__":
-    SR = SequentialRunner("metop", "02", "global",
+    SR = SequentialRunner(["metop", "02", "global"],
                           "/local_disk/usr/src/mpop/etc/meteosat09_products.py")
     SR.run_from_cmd()
     
