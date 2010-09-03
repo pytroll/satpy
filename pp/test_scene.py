@@ -608,6 +608,31 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         """Loading channels into a scene.
         """
 
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+
+        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+            """Dummy satinst class.
+            """
+            instrument_name = random_string(8)
+            channel_list = channels
+
+        self.scene = SatelliteInstrumentScene2()
+
+        self.assertRaises(TypeError, self.scene.load, "00_7")
+
+        self.scene.load(["00_7"])
+        self.assertEquals(set(["00_7"]), self.scene.channels_to_load)
+
+        self.scene = SatelliteInstrumentScene2()
+        self.scene.load()
+        self.assertEquals(set(["00_7", "06_4", "11_5"]),
+                          self.scene.channels_to_load)
+
+        self.scene.load(["CTTH"])
+        
+
     def test_get_lat_lon(self):
         """Getting lats and lons of a scene.
         """
