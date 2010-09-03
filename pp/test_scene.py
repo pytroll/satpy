@@ -454,6 +454,10 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertRaises(KeyError, res.__getitem__, 6.4)
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
+        res = self.scene.project(area_id2, channels=[0.7, 11.5])
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertRaises(KeyError, res.__getitem__, 6.4)
+        self.assertRaises(KeyError, res.__getitem__, 11.5)
 
 
         res = self.scene.project(area_id2, channels=[area_id])
@@ -461,6 +465,8 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertRaises(KeyError, res.__getitem__, 6.4)
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
+        self.assertRaises(TypeError, self.scene.project,
+                          area_id2, channels=11.5)
 
 
 
@@ -491,7 +497,12 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertRaises(KeyError, res.__getitem__, 6.4)
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
+        self.scene[6.4].area_id = area_id2
 
+        res = self.scene.project(area_id2)
+        self.assertEquals(res[0.7].shape, (3, 3))
+        self.assertEquals(res[6.4].shape, (3, 3))
+        self.assertEquals(res[11.5].shape, (3, 3))
         
         # case of self projection
 
