@@ -104,7 +104,7 @@ class TestChannel(unittest.TestCase):
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(self.chan.data is None)
 
-        self.assertRaises(ValueError, Channel,
+        self.assertRaises(TypeError, Channel,
                           wavelength_range = numbs[0:1])
 
         numbs.sort(reverse = True)
