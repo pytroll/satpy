@@ -36,7 +36,6 @@ import numpy as np
 from pp.channel import Channel, NotLoadedError
 from pp.logger import LOG
 import copy
-from pp.projector import Projector
 import ConfigParser
 import os.path
 from pp import CONFIG_PATH
@@ -248,6 +247,13 @@ class SatelliteInstrumentScene(SatelliteScene):
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
         """
+        # Lazy import in case pyresample is missing
+        try:
+            from pp.projector import Projector
+        except ImportError:
+            LOG.error("Cannot load reprojection module. "
+                      "Is pyresample/pyproj missing ?")
+            return self
         
         _channels = set([])
 
