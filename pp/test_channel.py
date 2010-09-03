@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Module for testing the pp.channel module.
 """
 
@@ -33,7 +35,12 @@ class TestGenericChannel(unittest.TestCase):
         self.chan = GenericChannel(name = "newchan")
         self.chan2 = GenericChannel(name = "mychan")
 
-        self.assert_(self.chan > self.chan2)
+        self.assertTrue(self.chan > self.chan2)
+
+        self.chan = GenericChannel(name = "newchan")
+        self.chan2 = "mychan"
+        
+        self.assertTrue(self.chan > self.chan2)
 
         self.chan = GenericChannel(name = "newchan")
         self.chan2 = GenericChannel(name = "newchan")
@@ -49,6 +56,11 @@ class TestGenericChannel(unittest.TestCase):
         self.chan2 = GenericChannel(name = "_mychan")
 
         self.assert_(self.chan < self.chan2)
+
+        self.chan = GenericChannel(name = "_newchan")
+        self.chan2 = GenericChannel(name = "mychan")
+
+        self.assert_(self.chan > self.chan2)
 
 
 class TestChannel(unittest.TestCase):
@@ -183,20 +195,35 @@ class TestChannel(unittest.TestCase):
         """Comparison of channels.
         """
         
-        self.chan = Channel(name = "newchan")
-        self.chan2 = Channel(name = "mychan")
+        self.chan = GenericChannel(name = "newchan")
+        self.chan2 = GenericChannel(name = "mychan")
 
-        self.assert_(self.chan > self.chan2)
+        self.assertTrue(self.chan > self.chan2)
 
-        self.chan = Channel(name = "newchan")
-        self.chan2 = Channel(name = "newchan")
+        self.chan = GenericChannel(name = "newchan")
+        self.chan2 = "mychan"
+        
+        self.assertTrue(self.chan > self.chan2)
+
+        self.chan = GenericChannel(name = "newchan")
+        self.chan2 = GenericChannel(name = "newchan")
 
         self.assert_(self.chan == self.chan2)
+
+        self.chan = GenericChannel()
+        self.chan2 = GenericChannel(name = "newchan")
+
+        self.assert_(self.chan < self.chan2)
 
         self.chan = GenericChannel(name = "newchan")
         self.chan2 = GenericChannel(name = "_mychan")
 
         self.assert_(self.chan < self.chan2)
+
+        self.chan = GenericChannel(name = "_newchan")
+        self.chan2 = GenericChannel(name = "mychan")
+
+        self.assert_(self.chan > self.chan2)
 
         self.chan = Channel(name = random_string(4),
                             wavelength_range = (1., 2., 3.))
@@ -211,6 +238,26 @@ class TestChannel(unittest.TestCase):
                              wavelength_range = (4., 5., 6.))
 
         self.assert_(self.chan > self.chan2)
+
+
+    def test_str(self):
+        """String output for a channel.
+        """
+        self.chan = Channel(name="newchan",
+                            wavelength_range=(1., 2., 3.),
+                            resolution=1000)
+        self.assertEqual(str(self.chan),
+                         "'newchan: (1.000,2.000,3.000)μm, resolution 1000m,"
+                         " not loaded'")
+
+        self.chan.data = np.random.rand(3, 3)
+
+        
+        self.assertEqual(str(self.chan),
+                         "'newchan: (1.000,2.000,3.000)μm, "
+                         "shape (3, 3), "
+                         "resolution 1000m'")
+        
 
     def test_is_loaded(self):
         """Check load status of a channel.
@@ -276,9 +323,9 @@ class TestChannel(unittest.TestCase):
                           self.chan.check_range,
                           [np.random.uniform()])
 
-    def test_project(self):
-        """Project a channel.
-        """
+#    def test_project(self):
+#        """Project a channel.
+#        """
         # from pp.coverage import SatProjCov
 #         from pp.scene import SatelliteInstrumentScene
         
