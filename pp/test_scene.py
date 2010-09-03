@@ -1,11 +1,62 @@
 """Unit tests for scene.py.
 """
+
+import ConfigParser
+import pp.projector
+import string
+
+def random_string(length, choices = string.letters):
+    """Generates a random string with elements from *set* of the specified
+    *length*.
+    """
+    import random
+    return "".join([random.choice(choices)
+                    for i in range(length)])
+
+DUMMY_STRING = "test_plugin"
+
+def patch_ConfigParser():
+    class FakeConfigParser:
+        def read(self, *args, **kwargs):
+            pass
+
+        def get(self, *args, **kwargs):
+            return DUMMY_STRING
+        
+    ConfigParser._ConfigParser = ConfigParser.ConfigParser
+    ConfigParser.ConfigParser = FakeConfigParser
+
+def unpatch_ConfigParser():
+    ConfigParser.ConfigParser = ConfigParser._ConfigParser
+    delattr(ConfigParser, "_ConfigParser")
+
+
+def patch_projector():
+    class FakeProjector:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def project_array(self, arg):
+            return arg
+
+    pp.projector._Projector = pp.projector.Projector
+    pp.projector.Projector = FakeProjector
+
+def unpatch_projector():
+    pp.projector.Projector = pp.projector._Projector
+    delattr(pp.projector, "_Projector")
+
+
+
 import unittest
 from pp.scene import SatelliteScene, SatelliteInstrumentScene
 from pp.channel import NotLoadedError
 import datetime
-import string
 import numpy as np
+
+from nose.tools import *
+
+
 
 class TestSatelliteScene(unittest.TestCase):
     """Class for testing the SatelliteScene class.
@@ -115,14 +166,24 @@ class TestSatelliteScene(unittest.TestCase):
 
         self.scene.satname = random_string(int(np.random.uniform(9)) + 1)
         self.scene.number = random_string(int(np.random.uniform(9)) + 1)
+        self.scene.variant = random_string(int(np.random.uniform(9)) + 1)
         self.assertEquals(self.scene.fullname,
-                          self.scene.satname + self.scene.number)
+                          self.scene.variant +
+                          self.scene.satname +
+                          self.scene.number)
         
 class TestSatelliteInstrumentScene(unittest.TestCase):
     """Class for testing the SatelliteInstrumentScene class.
     """
 
     scene = None
+
+    def setUp(self):
+        """Patch foreign modules.
+        """
+        patch_ConfigParser()
+        patch_projector()
+
     def test_init(self):
         """Creation of a satellite instrument scene.
         """
@@ -357,15 +418,122 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
     def test_project(self):
         """Projecting a scene.
         """
-        pass
-    
-def random_string(length, choices = string.letters):
-    """Generates a random string with elements from *set* of the specified
-    *length*.
-    """
-    import random
-    return "".join([random.choice(choices)
-                    for i in range(length)])
+        area_id = random_string(8)
+        area_id2 = random_string(8)
+        # scene with 3 channels
+
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+
+        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+            instrument_name = random_string(8)
+            channel_list = channels
+
+        # case of a swath
+
+        self.scene = SatelliteInstrumentScene2(area_id=None)
+
+        # With data
+        
+        self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
+                                       mask = np.array(np.random.rand(3, 3) * 2,
+                                                       dtype = int))
+
+        
+        self.scene.project(area_id2)
+        self.scene.project(area_id2, channels=[0.7])
+
+        # case of a grid
+
+        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+
+        # With data
+        
+        self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
+                                       mask = np.array(np.random.rand(3, 3) * 2,
+                                                       dtype = int))
+
+        
+        self.scene.project(area_id2)
+        self.scene.project(area_id2, channels=[0.7])
+
+
+        
+        # case of self projection
+
+        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+
+        # With data
+        
+        self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
+                                      mask = np.array(np.random.rand(3, 3) * 2,
+                                                      dtype = int))
+        self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
+                                       mask = np.array(np.random.rand(3, 3) * 2,
+                                                       dtype = int))
+
+        
+        self.scene.project(area_id)
+        self.scene.project(area_id, channels=[0.7])
+
+        
+    def test_load(self):
+        """Loading channels into a scene.
+        """
+
+    def test_get_lat_lon(self):
+        """Getting lats and lons of a scene.
+        """
+        area_id = random_string(8)
+        # scene with 3 channels
+
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+
+        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+            instrument_name = random_string(8)
+            channel_list = channels
+
+        # case of a swath
+
+        self.scene = SatelliteInstrumentScene2(area_id=None)
+
+        (lat, lon) = self.scene.get_lat_lon(1000)
+
+        self.assertTrue(lat is not None)
+        self.assertTrue(lon is not None)
+
+        # case of a swath
+
+        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+
+        (lat, lon) = self.scene.get_lat_lon(1000)
+
+        self.assertTrue(lat is not None)
+        self.assertTrue(lon is not None)
+
+    def tearDown(self):
+        """Unpatch foreign modules.
+        """
+        unpatch_ConfigParser()
+        unpatch_projector()
 
 if __name__ == '__main__':
     unittest.main()
