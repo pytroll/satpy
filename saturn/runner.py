@@ -57,12 +57,16 @@ def get_class(satellite, number, variant):
                     return eval(module_name+"."+j)
     return build_class(satellite, number, variant)
 
-def build_instrument(name, ch_list):
+def build_instrument(name, channels):
+    """Automatically generate an instrument class from its *name* and
+    *channels*.
+    """
+
     from pp.instruments.visir import VisirScene
     class Instrument(VisirScene):
         """Generic instrument, built on the fly.
         """
-        channel_list = ch_list
+        channel_list = channels
         instrument_name = name
     return Instrument
                      
@@ -187,7 +191,7 @@ def parse_options():
             console.setLevel(logging.DEBUG)
             logging.getLogger('').addHandler(console)
         elif opt in ("-h", "--help"):
-            usage()
+            usage(sys.argv[0])
             sys.exit()
         elif opt in ("-d", "--date"):
             time_slots.append(datetime.datetime.strptime(arg, "%Y%m%d%H%M"))
