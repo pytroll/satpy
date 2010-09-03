@@ -75,7 +75,7 @@ class Meteosat09SeviriScene(SeviriScene):
                 self.channels.append(
                     satin.msg_ctth.ctth_channel(self.time_slot, self.area_id))
                 # This is made necessary by the MSG string terminator bug
-                self["CTTH"].region_name = self[3000].area_id
+                self["CTTH"].region_name = self[3000].area_id or self.area_id
                 
             if("CloudType" in channels and
                "CloudType" not in self.channels):
@@ -84,7 +84,7 @@ class Meteosat09SeviriScene(SeviriScene):
                     satin.msg_ctype.cloudtype_channel(self.time_slot,
                                                       self.area_id))
                 # This is made necessary by the MSG string terminator bug
-                self["CloudType"].region_name = self[3000].area_id
+                self["CloudType"].region_name = self[3000].area_id or self.area_id
 
 
         if do_correct:
