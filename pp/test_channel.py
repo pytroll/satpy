@@ -22,7 +22,10 @@ class TestGenericChannel(unittest.TestCase):
         """
         self.chan = GenericChannel(name = "newchan")
         self.assertEqual(self.chan.name, "newchan")
-
+        
+        numb = int(np.random.uniform(100000))
+        self.assertRaises(TypeError, GenericChannel, name = numb)
+        
         self.chan = GenericChannel()
         self.assert_(self.chan.name is None)
 
