@@ -165,6 +165,9 @@ class SatelliteInstrumentScene(SatelliteScene):
     def __str__(self):
         return "\n".join([str(chn) for chn in self.channels])
 
+    def __iter__(self):
+        return self.channels.__iter__()
+
 
 
     def load(self, channels = None):
