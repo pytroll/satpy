@@ -204,6 +204,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             reader_module = __import__(reader, globals(), locals(), ['load'])
             reader_module.load(self)
         except ImportError:
+            LOG.exception("ImportError while loading the reader")
             raise ImportError("No "+reader+" reader found.")
 
 
@@ -220,7 +221,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         reader_name = conf.get(self.instrument_name + "-level2", 'format')
         reader = "satin." + reader_name
         try:
-            reader_module = __import__(reader, globals(), locals(), ['load'])
+            reader_module = __import__(reader,
+                                       globals(), locals(),
+                                       ['get_lat_lon'])
             return reader_module.get_lat_lon(self, resolution)
         except ImportError:
             raise ImportError("No "+reader+" reader found.")
