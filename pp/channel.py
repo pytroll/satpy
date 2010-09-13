@@ -199,7 +199,10 @@ class Channel(GenericChannel):
         
         data = ((self._data - self._data.min()) * 255.0 /
                 (self._data.max() - self._data.min()))
-        img = pil.fromarray(np.array(data.filled(0), np.uint8))
+        if isinstance(data, np.ma.core.MaskedArray):
+            img = pil.fromarray(np.array(data.filled(0), np.uint8))
+        else:
+            img = pil.fromarray(np.array(data, np.uint8))
         img.show()
 
     def project(self, coverage_instance):
