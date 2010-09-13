@@ -12,7 +12,7 @@ def random_string(length, choices = string.letters):
     import random
     return "".join([random.choice(choices)
                     for i in range(length)])
-
+EPSILON = 0.0001
 DUMMY_STRING = "test_plugin"
 
 def patch_configparser():
@@ -657,8 +657,11 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertTrue(lat is not None)
         self.assertTrue(lon is not None)
+        
+        numb = np.random.uniform(100000)
+        self.assertRaises(TypeError, self.scene.get_lat_lon, numb)
 
-        # case of a swath
+        # case of a grid
 
         self.scene = SatelliteInstrumentScene2(area_id=area_id)
 
@@ -666,6 +669,11 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertTrue(lat is not None)
         self.assertTrue(lon is not None)
+
+        numb = np.random.uniform(100000)
+        self.assertRaises(TypeError, self.scene.get_lat_lon, numb)
+
+        
 
     def test_assemble_swaths(self):
         """Assembling swaths in a single satscene object.
@@ -719,37 +727,43 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         data1 = self.scene[0.7].data
         data2 = scene2[0.7].data
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol=EPSILON))
 
         data0 = big_scene[0.7].data.mask
         data1 = self.scene[0.7].data.mask
         data2 = scene2[0.7].data.mask
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol=EPSILON))
 
         data0 = big_scene[6.4].data
         data1 = self.scene[6.4].data
         data2 = np.ma.masked_all_like(data1)
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol=EPSILON))
 
         data0 = big_scene[6.4].data.mask
         data1 = self.scene[6.4].data.mask
         data2 = data2.mask
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol=EPSILON))
 
         data0 = big_scene[11.5].data
         data2 = scene2[11.5].data
         data1 = np.ma.masked_all_like(data2)
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol=EPSILON))
 
         data0 = big_scene[11.5].data.mask
         data1 = data1.mask
         data2 = scene2[11.5].data.mask
 
-        self.assertTrue(np.all(data0 == np.ma.concatenate((data1, data2))))
+        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+                                       rtol = EPSILON))
 
         
 
