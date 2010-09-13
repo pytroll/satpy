@@ -28,8 +28,6 @@ class TestGenericChannel(unittest.TestCase):
         
         self.chan = GenericChannel()
         self.assert_(self.chan.name is None)
-
-        self.assertRaises(TypeError, GenericChannel, name = 1)
         
     def test_cmp(self):
         """Comparison of generic channels.
