@@ -32,77 +32,11 @@ import datetime
 import sys
 import logging
 import getopt
-import pp.satellites
 from pp.channel import NotLoadedError
 from saturn.tasklist import TaskList
-from ConfigParser import ConfigParser
-import os
-from pp import CONFIG_PATH
+from pp.satellites import get_satellite_class
 
 LOG = logging.getLogger("runner")
-
-def get_class(satellite, number, variant):
-    """Get the class for a given satellite.
-    """
-    for i in dir(pp.satellites):
-        module_name = "pp.satellites."+i
-        for j in dir(eval(module_name)):
-            if(hasattr(eval(module_name+"."+j), "satname") and
-               hasattr(eval(module_name+"."+j), "number") and
-               satellite == eval(module_name+"."+j+".satname") and
-               number == eval(module_name+"."+j+".number")):
-                if(variant is not None and
-                   hasattr(eval(module_name+"."+j), "variant") and
-                   variant == eval(module_name+"."+j+".variant")):
-                    return eval(module_name+"."+j)
-    return build_class(satellite, number, variant)
-
-def build_instrument(name, channels):
-    """Automatically generate an instrument class from its *name* and
-    *channels*.
-    """
-
-    from pp.instruments.visir import VisirScene
-    class Instrument(VisirScene):
-        """Generic instrument, built on the fly.
-        """
-        channel_list = channels
-        instrument_name = name
-    return Instrument
-                     
-def build_class(satellite, num, var):
-    """Build a class for the given satellite on the fly, using a config file.
-    """
-
-    fullname = var + satellite + num
-    
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
-    instruments = eval(conf.get("satellite", "instruments"))
-    sat_classes = []
-    for instrument in instruments:
-        ch_list = []
-        for section in conf.sections():
-            if(not section.endswith("level1") and
-               not section.endswith("level2") and
-               section.startswith(instrument)):
-                ch_list += [[eval(conf.get(section, "name")),
-                             eval(conf.get(section, "frequency")),
-                             eval(conf.get(section, "resolution"))]]
-                                 
-        instrument_class = build_instrument(instrument, ch_list)
-        
-        class Satellite(instrument_class):
-            """Generic satellite, built on the fly.
-            """
-            satname = satellite
-            number = num
-            variant = var
-            
-        sat_classes += [Satellite]
-    if len(sat_classes) == 1:
-        return sat_classes[0]
-    return sat_classes
 
 def usage(scriptname):
     """Print usefull information for running the script.
@@ -221,7 +155,9 @@ class SequentialRunner(object):
         self.satellite = satellite[0]
         self.number = satellite[1]
         self.variant = satellite[2]
-        self.klass = get_class(self.satellite, self.number, self.variant)
+        self.klass = get_satellite_class(self.satellite,
+                                         self.number,
+                                         self.variant)
         self.precompute = precompute
             
     def run_from_cmd(self):
