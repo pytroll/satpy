@@ -25,10 +25,11 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Tasklist class.
+"""Tasklist class and helper function.
 """
 
 from saturn.filelist import FileList
+from saturn import CONFIG_PATH
 
 
 class TaskList(dict):
@@ -130,3 +131,31 @@ class TaskList(dict):
 
 
         return new_tasklist
+
+def get_product_list(satscene):
+    """Returns the tasklist corresponding to the satellite described in
+    *satscene*, which can be a scene object, a list or a tuple. If the
+    corresponding file could not be found, the function returns more generic
+    tasklists (variant and name based, then only variant based), or None if no
+    file can be found.
+
+    NB: the product files are looked for in the CONFIG_PATH directory.
+    """
+    
+    if isinstance(satscene, (list, tuple)):
+        if len(satscene) != 3:
+            raise ValueError("Satscene must be a triplet (variant, name, "
+                             "number) or a scene object.")
+        components = satscene
+    else:           
+        components = [satscene.variant, satscene.satname, satscene.number]
+
+    import os.path
+
+    for i in range(len(components)):
+        pathname = os.path.join(CONFIG_PATH,
+                                "".join(components[:len(components)-i]))
+        if os.path.exists(pathname+"_products.py"):
+            return TaskList(pathname+"_products.py")
+
+    return None
