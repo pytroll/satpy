@@ -72,9 +72,13 @@ def load_avhrr(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than one l1b file matching!")
     elif len(file_list) == 0:
-        raise IOError("No l1b file matching!")
+        raise IOError("No l1b file matching!: "+
+                      satscene.time_slot.strftime(filename))
 
     
+    filename = file_list[0]
+
+    LOG.debug("Loading from " + filename)
     
     avh = avhrr.avhrr(filename)
     avh.get_unprojected()
