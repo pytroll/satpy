@@ -12,6 +12,9 @@ The mpop package is organized as follows:
 * the :mod:`pp` directory contains the different instruments and satellites
   implementations.
 
+* the :mod:`runner` directory contains tools for batch producing satellite
+  images.
+
 Writing a new input plugin
 ==========================
 
@@ -26,6 +29,12 @@ An input plugin has to implement the two following functions:
 Here is the example for the aapp1b reader plugin:
 
 .. literalinclude:: ../../satin/aapp1b.py
+   :linenos:
+
+Here is the example for the aapp1b reader plugin:
+
+.. literalinclude:: ../../../mpop-smhi/etc/noaa17.cfg
+   :language: ini
    :linenos:
 
 Adding an instrument

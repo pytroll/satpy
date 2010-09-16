@@ -2,118 +2,74 @@
  Installation instructions
 ===========================
 
-Getting the files
-=================
+Getting the files and installing them
+=====================================
 
-Getting files from Git repository
----------------------------------
+First you need to get the files from github::
 
-This is probably the best way if you plan to hack the package::
-
+  cd /path/to/my/source/directory/
   git clone git://github.com/mraspaud/mpop.git
 
-After this you will be in the master branch. This is what is in production at
-the moment. You might be fine with this, but if you want to be up-to-date,
-there are two more branches you have to be aware of: *test* and *unstable*.
-
-*test* receives bugfixes during freezing periods, while *unstable* has all the
-latest great features, but is, as it's name suggests, potentially unstable.
-
-To retrieve these branches from the repository, just do::
-
-  git checkout -b test origin/test
-
-and/or::
-
-  git checkout -b unstable origin/unstable
-
-Now that you got the source files, you can proceed to the configuration
-section.
-
-Getting files from a tarball
-----------------------------
-
-If you are in good terms with us, you might have gotten a tarball source
-distribution. You then only need to depackage it::
-
+You can also retreive a tarball from there if you prefer, then run::
+  
   tar zxvf tarball.tar.gz
+
+Then you need to install mpop on you computer::
+
+  cd mpop
+  python setup.py install [--prefix=/my/custom/installation/directory]
+
+You can also install it in develop mode to make it easier to hack::
+
+  python setup.py develop [--prefix=/my/custom/installation/directory]
+
 
 Configuration
 =============
 
-Main configuration
-------------------
-
-Several files define the configuration of MPPP.
-
-First have a look at `setup.cfg` in the root directory. It should contain the
-following lines::
-
-  [install]
-  prefix = /local_disk/opt/MPoP/current
-
-  [numpy]
-  numpy_inc = /usr/lib64/python2.5/site-packages/numpy/core/include
-
-`prefix` defines the directory to install to. It is the directory that will
-then be in your `PYTHONPATH` and that contains the compiled libs.
-
-`numpy_inc` is the location of your numpy C headers. This is needed for the
-Meteosat plugin only.
-
-Then look at the `etc/offline.profile` file. Set up the first `PYTHONPATH` to
-reflect your prefix, the second section to reflect your ACPG installation and
-the third section to reflect your AHAMAP installation. The third section is
-just needed for the Noaa plugin.
-
-Plugin configurations
+Environment variables
 ---------------------
 
-Meteosat 09 plugin
-******************
+Environment variables which are needed for mpop are the `PYTHONPATH` of course,
+and the `PPP_CONFIG_DIR`, which is the directory where the configuration files
+are to be found. If the latter is not defined, the `etc` directory of the mpop
+installation is used.
 
-The `msg_dirs` section of the `etc/meteosat09.cfg` file has to reflect your MSG
-installation.
+Input data directories
+----------------------
 
-Noaa 17 plugin
-**************
+The input data directories are setup in the satellite configuration files,
+which can be found in the `PPP_CONFIG_DIR` directory (some template files are
+provided with mpop in the `etc` directory):
 
-The `dir` variable in the `etc/noaa17.cfg` file has to be set to the PPS
-directory containing level 1B data.
+.. code-block:: ini
 
-Installing
-==========
+   [seviri-level1]
+   format = 'xrit/MSG'
+   dir='/data/geo_in'
+   filename='H-000-MSG?__-MSG?________-%(channel)s-%(segment)s-%Y%m%d%H%M-__'
+   filename_pro='H-000-MSG?__-MSG?________-_________-%(segment)s-%Y%m%d%H%M-__'
+   filename_epi='H-000-MSG?__-MSG?________-_________-%(segment)s-%Y%m%d%H%M-__'
+        
 
-Just run::
+   [seviri-level2]
+   format='mipp'
 
-  python setup.py install
 
-or if you want to specify a different prefix::
+The different levels indicate different steps of the reading. The `level2`
+section gives at least the plugin to read the data with. In some cases, the
+data is first read from another level, as is this case with HRIT/LRIT data when
+we use mipp_: there we use the `level1` section.
 
-  python setup.py install --prefix=/my/path/
+The data location is generally dealt in to parts: the directory and the
+filename. There can also be additional filenames depending on the reader
+plugin: here, mipp needs also the filename for prologue and epilogue files.
 
-Then don’t forget to source the `etc/offline.profile` file before you start
-playing.
+Note that the section starts with the name of the instrument. This is important
+in the case where several instruments are available for the same satellite.
+Note also that the filename can contain wildcards (`*` and `?`) and optional
+values (here channel, segment, and time markers). It is up to the input plugin
+to handle these constructs if needed.
 
-Happy hacking !
 
-Distributing
-============
-
-After you hack the hell out of MPPP, you might want to package it and sell it
-to make money. We can tell you how to do the first part.
-
-To build a source tarball, and output it to the `dist` directory::
-
-  python setup.py sdist
-
-To build a binary tarball, and output it to the `dist` directory::
-
-  python setup.py bdist
-
-To build rpms, and output them to the `dist` directory::
-
-  python setup.py bdist_rpm
-
-Don’t forget to send us a bottle of wine or two if you become rich with this :)
-
+.. _mipp: http://www.github.com/loerum/mipp
