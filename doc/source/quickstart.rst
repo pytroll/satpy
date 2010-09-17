@@ -18,7 +18,7 @@ Ok, let's get it on::
     >>> import datetime
     >>> time_slot = datetime.datetime(2009, 10, 8, 14, 30)
     >>> global_data = (get_satellite_class("meteosat", "09")
-    ...                (area_id="EuropeCanary", time_slot=time_slot))
+    ...                (area="EuropeCanary", time_slot=time_slot))
     >>> global_data.load([0.6, 0.8, 10.8])
     >>> print global_data
     'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
@@ -76,7 +76,7 @@ result in an error::
     >>> img = global_data.natural()
     Traceback (most recent call last):
       ...
-    NotLoadedError: Required channel 1.6 not loaded, aborting.
+    NotLoadedError: Required channel 1.63 not loaded, aborting.
 
 So it means that we have to load the missing channel first. To do this we could
 enter the channels list to load manually, as we did for the overview, but we
@@ -107,22 +107,22 @@ Retrieving channels
 Retrieving channels is dead easy. From the center wavelength::
 
    >>> print global_data[0.6]
-   'VIS06: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
+   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
 
 or from the channel name::
 
-   >>> print global_data["VIS06"]
-   'VIS06: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
+   >>> print global_data["VIS006"]
+   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
 
 or from the resolution::
  
    >>> print global_data[3000]
-   'VIS06: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
+   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000m'
 
 or more than one at the time::
 
    >>> print global_data[3000, 0.8]
-   'VIS08: (0.740,0.810,0.880)μm, shape (1200, 3000), resolution 3000m'
+   'VIS008: (0.740,0.810,0.880)μm, shape (1200, 3000), resolution 3000m'
 
 The printed lines consists of the following values:
 
@@ -168,12 +168,12 @@ Building custom composites makes use of the :mod:`imageo` module. For example,
 building an overview composite can be done manually with::
 
     >>> from imageo.geo_image import GeoImage
-    >>> img = geo_image.GeoImage((global_data[0.6].data, 
-    ...                           global_data[0.8].data, 
-    ...                           global_data[10.8].data),
-    ...                          "EuropeCanary",
-    ...                          time_slot,
-    ...                          mode = "RGB")
+    >>> img = GeoImage((global_data[0.6].data, 
+    ...                 global_data[0.8].data, 
+    ...                 -global_data[10.8].data),
+    ...                 "EuropeCanary",
+    ...                 time_slot,
+    ...                 mode = "RGB")
     >>> img.enhance(stretch="crude")
     >>> img.enhance(gamma=1.7)
 
