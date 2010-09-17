@@ -6,6 +6,7 @@
  
 #   Kristian Rune Larssen <krl@dmi.dk>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
 
@@ -22,7 +23,7 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 
-""" mpop writer interface
+"""mpop netcdf4 writer interface.
 """
 
 __revision__ = 0.1 
@@ -106,77 +107,107 @@ def find_info(info_list, tag):
             tag_info_objects.append(m)
     return tag_info_objects
 
+def dtype(element):
+    """
+        Return the dtype of an array or the type of the element.
+    """
+
+    if hasattr(element, "dtype"):
+        return element.dtype
+    else:
+        return type(element)
+    
+def shape(element):
+    """
+        Return the shape of an array or empty tuple if not an array.
+    """
+
+    if hasattr(element, "shape"):
+        return element.shape
+    else:
+        return ()
 
 def netcdf_cf_writer( filename, root_object ):
     """ Write data to file to netcdf file. """
     import netCDF4
     from netCDF4 import Dataset
 
-    rootgrp = Dataset(filename, 'w', format='NETCDF4_CLASSIC')
-    info_list = []
-    variable_dispenser( root_object, info_list )
-    
-    # find available dimensions
-    ##dims = find_tag( info_list , 'var_dims' )
-    dim_names = find_tag( info_list , 'var_dim_names' )
+    #rootgrp = Dataset(filename, 'w', format='NETCDF4_CLASSIC')
+    rootgrp = Dataset(filename, 'w')
+    try:
+        info_list = []
+        variable_dispenser( root_object, info_list )
 
-    # go through all cases of 'var_callback' and create objects which are
-    # linked to by the 'var_data' keyword. This ensures that data are only read
-    # in when needed.
+        # find available dimensions
+        dim_names = find_tag( info_list , 'var_dim_names' )
 
-    cb_infos = find_info(info_list, 'var_callback')
-    
-    for info in cb_infos:
-        # execute the callback functors
-        info['var_data'] = info['var_callback']()
+        # go through all cases of 'var_callback' and create objects which are
+        # linked to by the 'var_data' keyword. This ensures that data are only read
+        # in when needed.
 
-    var_data = find_tag(info_list , 'var_data')
-    
-    # create dimensions in NetCDF file, dimension lenghts are base on array
-    # sizes
-    used_dim_names = {}
-    for names, values in zip(dim_names, [ v.shape for v in var_data ] ):
-        for dim_name, dim_size in zip(names, values):
+        cb_infos = find_info(info_list, 'var_callback')
 
-            # ensure unique dimension names
-            if dim_name in used_dim_names:
-                if dim_size != used_dim_names[dim_name]:
-                    raise WriterDimensionError("Dimension name already in use")
-                else:
-                    continue
+        for info in cb_infos:
+            # execute the callback functors
+            info['var_data'] = info['var_callback']()
 
-            rootgrp.createDimension(dim_name, dim_size)
-            used_dim_names[dim_name] = dim_size
-   
-    # create variables
+        var_data = find_tag(info_list , 'var_data')
 
+        # create dimensions in NetCDF file, dimension lenghts are base on array
+        # sizes
+        used_dim_names = {}
+        for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
+            # case of a scalar
+            if len(names) == 0:
+                continue
+            for dim_name, dim_size in zip(names, values):
 
-    var_names = find_tag(info_list , 'var_name')
+                # ensure unique dimension names
+                if dim_name in used_dim_names:
+                    if dim_size != used_dim_names[dim_name]:
+                        print dim_size, used_dim_names[dim_name]
+                        raise WriterDimensionError("Dimension name already in use")
+                    else:
+                        continue
 
-    nc_vars = []
-    for name, vtype, dim_name in zip(var_names, [vt.dtype for vt in var_data ], dim_names ):
-        nc_vars.append(rootgrp.createVariable(name, vtype, dim_name))
+                rootgrp.createDimension(dim_name, dim_size)
+                used_dim_names[dim_name] = dim_size
 
-    # insert attributes, search through info objects and create global
-    # attributes and attributes for each variable.
-    for mi in info_list:
-        if 'var_name' in mi:
-            # handle variable attributes
-            nc_var = rootgrp.variables[mi['var_name']]
-            for k, v in attribute_dispenser(mi):
-                setattr( nc_var, k, v )
-        else:
-            # handle global attributes
-            for k, v in attribute_dispenser(mi):
-                setattr( rootgrp, k, v )
+        # create variables
 
 
-    # insert data 
+        var_names = find_tag(info_list , 'var_name')
 
-    for vname, vdata in zip(nc_vars, var_data):
-        vname[:] = vdata
+        nc_vars = []
 
-    rootgrp.close()
+        for name, vtype, dim_name in zip(var_names, [dtype(vt) for vt in var_data ], dim_names ):
+
+            # in the case of arrays containing strings:
+            if str(vtype) == "object":
+                vtype = str
+
+            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name))
+
+        # insert attributes, search through info objects and create global
+        # attributes and attributes for each variable.
+        for mi in info_list:
+            if 'var_name' in mi:
+                # handle variable attributes
+                nc_var = rootgrp.variables[mi['var_name']]
+                for k, v in attribute_dispenser(mi):
+                    setattr( nc_var, k, v )
+            else:
+                # handle global attributes
+                for k, v in attribute_dispenser(mi):
+                    setattr( rootgrp, k, v )
+
+
+        # insert data 
+
+        for vname, vdata in zip(nc_vars, var_data):
+            vname[:] = vdata
+    finally:
+        rootgrp.close()
     
 
 if __name__ == '__main__':
