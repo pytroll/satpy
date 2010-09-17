@@ -12,6 +12,8 @@ RGB products for meteorological remote sensing. As such it can create RGB
 composites directly from satellite instrument channels, or take advantage of
 precomputed PGEs.
 
+Get to the project_ page, with source and downloads.
+
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins. In the base distribution, we provide support for
 Meteosat 7, 8, 9, MTSAT1R, MTSAT2, GOES 11, GOES 12, GOES 13 through the use of
@@ -20,7 +22,8 @@ ahamap.
 
 Reprojection of data is also available through the use of pyresample_.
 
-.. _mipp: http://github.com/loerum/mipp.git
+.. _project: http://github.com/mraspaud/mpop
+.. _mipp: http://github.com/loerum/mipp
 .. _pyresample: http://pyresample.googlecode.com
 
 .. toctree::
@@ -30,11 +33,8 @@ Reprojection of data is also available through the use of pyresample_.
    quickstart
    pp
    input
-   runner
-   organization
-   satellites_h
-   rs_images
-
+   image
+   saturn
 
 Indices and tables
 ==================

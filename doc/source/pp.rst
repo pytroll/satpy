@@ -3,34 +3,152 @@
 ===========================================
 
 The :mod:`pp` package is the heart of mpop: here are defined the core classes
-which the user will need to build satellite composites.
+which the user will then need to build satellite composites.
 
 Conventions about satellite names
 =================================
 
 Throughout the document, we will use the following conventions: 
-* *satellite name* will designate the name of the platform, e.g. "noaa" in
+
+- *satellite name* will designate the name of the platform, e.g. "noaa" in
    satellite "noaa 19"
-* *satellite number* will refer to the number of the satellite in the series,
+
+- *satellite number* will refer to the number of the satellite in the series,
    e.g. "19" for satellite "noaa 19"
-* *variant* will be used to differentiate the same data (from the same
+
+- *variant* will be used to differentiate the same data (from the same
    satellite and instrument) coming in different flavours. For example, we use
    variant to distinguish data coming from the satellite metop 02 from direct
    readout, regional coverage or global coverage.
 
-Creating custom images
-======================
+Creating a scene object
+=======================
+
+Creating a scene object can be done in two ways: call the constructor of the
+class you want to use directly (for example
+:meth:`pp.satellites.Meteosat09SeviriScene`) or use the
+:func:`pp.satellites.get_satellite_class` function first to retrieve the class,
+from which to call the constructor. The latter is recommended, since it is
+easier to use than checking out the name of a given class, but it also calling
+the :func:`pp.satellites.build_satellite_class` function to build a new
+satellite class on the fly from configuration files if they exist.
+
+The reader is refered to the documentation of the
+:meth:`pp.scene.SatelliteInstrumentScene` for a description of the input
+arguments.
+
+Such a scene object is roughly a container for :class:`pp.channel.Channel`
+objects, which hold the actual data and information for each band.
+
+Loading the data
+================
+
+Loading the data is done through the
+:meth:`pp.scene.SatelliteInstrumentScene.load` method. Calling it effectively
+loads the data from disk into memory, so it can take a while depending on the
+volume of data to load and the performance of the host computer. The channels
+listed as arguments become loaded, and cannot be reloaded: a subsequent call to
+the method will not reload the data from disk.
+
+Re-projecting data
+==================
+
+Once the data is loaded, one might need to re-project the data. The scene
+objects can be projected onto other areas if the pyresample_ software is
+installed, thanks to the :meth:`pp.scene.SatelliteInstrumentScene.project`
+method. As input, this method takes either a Definition object (see
+pyresample's documentation) or string identificator for the area. In the latter
+case, the referenced region has to be defined in the `areas.def` file located
+in the directory pointed by the `PPP_CONFIG_DIR` environment variables.
+
+For more information about the internals of the projection process, take a look
+at the :mod:`pp.projector` module.
+
+.. _pyresample: http://googlecode.com/p/pyresample
 
 
+Image composites
+================
+
+Methods building image composites are distributed in different modules, taking
+advantage of the hierarchical structure offered by OOP.
+
+The image composites common to all visir instruments are defined in the
+:mod:`pp.instruments.visir` module. Some instrument modules, like
+:mod:`pp.instruments.avhrr` or :mod:`pp.instruments.seviri` overload these
+methods to adapt better for the instrument at hand.
+
+For instructions on how to write a new composites, see :ref:`geographic-images`.
 
 
 Adding a new satellite: configuration file
 ==========================================
 
-bli bli
+A satellite configuration file looks like the following (here meteosat 7, mviri
+instrument):
+
+.. literalinclude:: ../../../mpop-smhi/etc/meteosat07.cfg
+   :language: ini
+   :linenos:
+
+The configuration file must hold a `satellite` section, the list of channels
+for the needed instruments (here `mviri-n` sections), and how to read the
+data in mipp (`mviri-level1`) and how to read it in mpop (`mviri-level2`).
+
+Using this template we can define new satellite and instruments.
 
 Adding a new satellite: python code
 ===================================
 
-blo blo
+Another way of adding satellites and instruments to mpop is to write the
+correponding python code.
 
+Here are example of such code:
+
+.. literalinclude:: ../../pp/instruments/mviri.py
+   :language: python
+   :linenos:
+
+.. literalinclude:: ../../pp/satellites/meteosat07.py
+   :language: python
+   :linenos:
+
+
+
+The :mod:`pp` API
+=================
+
+Satellite scenes
+----------------
+
+.. automodule:: pp.scene
+   :members:
+   :undoc-members:
+
+Instrument channels
+-------------------
+
+.. automodule:: pp.channel
+   :members:
+   :undoc-members:
+
+The VisIr instrument class
+--------------------------
+
+.. automodule:: pp.instruments.visir
+   :members:
+   :undoc-members:
+
+Projection facility
+-------------------
+
+.. automodule:: pp.projector
+   :members:
+   :undoc-members:
+
+Satellite class loader
+----------------------
+
+.. automodule:: pp.satellites
+   :members:
+   :undoc-members:
