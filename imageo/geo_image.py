@@ -36,8 +36,7 @@ import numpy as np
 import imageo.image
 from pyresample import utils
 from pp.utils import ensure_dir
-from osgeo import gdal
-import osr
+from osgeo import gdal, osr
 from imageo.logger import LOG
 
 from imageo import CONFIG_PATH
