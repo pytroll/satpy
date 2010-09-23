@@ -106,7 +106,8 @@ class MsgCloudType(GenericChannel):
         self.cloudtype = None
         self.processing_flags = None
         self.cloudphase = None
-
+        self.shape = None
+        
     def __repr__(self):
         return ("'%s: shape %s, resolution %sm'"%
                 (self.name, 
@@ -183,6 +184,8 @@ class MsgCloudType(GenericChannel):
         self.cloudtype.num_of_lines = node.data()
         node = node_list.getNode("/CT/N_COLS")
         self.cloudtype.num_of_columns = node.data()
+        self.shape = (self.cloudtype.num_of_lines,
+                      self.cloudtype.num_of_columns)
         node = node_list.getNode("/CT/PRODUCT")
         self.cloudtype.product = node.data()
         node = node_list.getNode("/CT/ID")
@@ -273,6 +276,7 @@ class MsgCloudType(GenericChannel):
             coverage.project_array(self.processing_flags.data)
         
         retv.region_name = dest_area
+        retv.area = region
         retv.projection_name = region.proj_id
         retv.pcs_def = region.proj4_string
         
@@ -280,8 +284,8 @@ class MsgCloudType(GenericChannel):
         retv.num_of_lines = region.y_size
         retv.xscale = region.pixel_size_x
         retv.yscale = region.pixel_size_y
-        ll_lonlat = pps_gisdata.xy2lonlat(dest_area, 0, region.y_size)
-        ur_lonlat = pps_gisdata.xy2lonlat(dest_area, region.x_size, 0)
+        ll_lonlat = region.get_lonlat(0, region.y_size)
+        ur_lonlat = region.get_lonlat(region.x_size, 0)
         retv.ll_lon = ll_lonlat[0]
         retv.ll_lat = ll_lonlat[1]
         retv.ur_lon = ur_lonlat[0]
@@ -309,6 +313,8 @@ class MsgCloudType(GenericChannel):
         retv.processing_flags.num_of_columns = region.x_size
         retv.processing_flags.num_of_lines = region.y_size    
         
+        self.shape = region.shape
+
         retv.filled = True
         retv.resolution = self.resolution
         
@@ -489,10 +495,15 @@ def pps_luts():
 
     return ctype_lut, phase_lut, quality_lut
 
-def cloudtype_channel(time_slot, area_name):
+def cloudtype_channel(time_slot, the_area):
     """Create and return a cloudtype channel.
     """
     time_string = time_slot.strftime("%Y%m%d%H%M")
+
+    try:
+        area_name = the_area.area_id
+    except AttributeError:
+        area_name = the_area
 
     prefix = ("SAFNWC_MSG?_CT___%s_%s"%(time_string, area_name))
 
@@ -521,7 +532,7 @@ def cloudtype_channel(time_slot, area_name):
         LOG.info("Read MSG CT file: %s"%msgctype_filename)
         ctype = MsgCloudType(resolution = 3000)
         ctype.read_msg_ctype(msgctype_filename)
-        LOG.debug("MSG CT area: %s"%ctype.region_name)
+        ctype.region_name = area_name
         return ctype
     else:
         LOG.error("No MSG CT input file found!")

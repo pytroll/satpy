@@ -192,6 +192,8 @@ class MsgCTTH(GenericChannel):
         self.temperature.offset = a_node.data()
         a_node = a_node_list.getNode("/CTTH_TEMPER/N_LINES")
         self.temperature.num_of_lines = a_node.data()
+        self.shape = (self.temperature.num_of_lines,
+                      self.temperature.num_of_columns)
         a_node = a_node_list.getNode("/CTTH_TEMPER/N_COLS")
         self.temperature.num_of_columns = a_node.data()
         a_node = a_node_list.getNode("/CTTH_TEMPER/PRODUCT")
@@ -283,6 +285,7 @@ class MsgCTTH(GenericChannel):
         retv.processing_flags.data = \
             coverage.project_array(self.processing_flags.data)
 
+        retv.area = dest_area
         retv.region_name = dest_area_id
         retv.projection_name = dest_area.proj_id
         retv.num_of_columns = dest_area.x_size
@@ -313,6 +316,8 @@ class MsgCTTH(GenericChannel):
              self.processing_flags.scaling_factor
         retv.processing_flags.num_of_columns = dest_area.x_size
         retv.processing_flags.num_of_lines = dest_area.y_size    
+
+        self.shape = dest_area.shape
 
         retv.name = self.name
         retv.resolution = self.resolution
@@ -529,10 +534,15 @@ def convert_procflags2pps(data):
     
     return retv.astype('h')
 
-def ctth_channel(time_slot, area_name):
+def ctth_channel(time_slot, the_area):
     """Create and return a ctth channel.
     """
     time_string = time_slot.strftime("%Y%m%d%H%M")
+
+    try:
+        area_name = the_area.area_id
+    except AttributeError:
+        area_name = the_area
 
     prefix = ("SAFNWC_MSG?_CTTH_%s_%s"%(time_string, area_name))
 
@@ -560,8 +570,8 @@ def ctth_channel(time_slot, area_name):
         LOG.info("Read MSG CTTH file: %s"%msgctth_filename)
         ctth = MsgCTTH(resolution = 3000)
         ctth.read_msgCtth(msgctth_filename)
-        LOG.debug("MSG CTTH area: %s"%ctth.region_name)
+        ctth.region_name = area_name
         return ctth
     else:
-        LOG.error("No MSG CT input file found!")
-        raise RuntimeError("No input CTTH file.")
+        LOG.error("No MSG CTTH input file found!")
+        raise IOError("No input CTTH file.")

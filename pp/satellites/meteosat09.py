@@ -53,38 +53,43 @@ class Meteosat09SeviriScene(SeviriScene):
 
         do_correct = channels is not None and "_IR39Corr" in channels
 
+        channels_to_load = set(channels)
 
         if do_correct:
             for chn in self.co2corr.prerequisites:
-                channels |= set([self[chn].name])
+                channels_to_load |= set([self[chn].name])
 
-        SeviriScene.load(self, channels)
+        channels_to_load -= set(["_IR39Corr", "CTTH", "CloudType"])
+
+        SeviriScene.load(self, channels_to_load)
 
         if channels is not None:
             if "_IR39Corr" in channels:
-                area_id = self[3000].area_id
+                area = self[3000].area
                 self.channels.append(
                     Channel(name="_IR39Corr",
                             wavelength_range=(3.48, 3.92, 4.36),
                             resolution=3000))
-                self["_IR39Corr"].area_id = area_id
+                self["_IR39Corr"].area = area
                 
             if("CTTH" in channels and
                "CTTH" not in self.channels):
                 import satin.msg_ctth
                 self.channels.append(
-                    satin.msg_ctth.ctth_channel(self.time_slot, self.area_id))
-                # This is made necessary by the MSG string terminator bug
-                self["CTTH"].region_name = self[3000].area_id or self.area_id
+                    satin.msg_ctth.ctth_channel(self.time_slot, self.area))
                 
             if("CloudType" in channels and
                "CloudType" not in self.channels):
                 import satin.msg_ctype
                 self.channels.append(
                     satin.msg_ctype.cloudtype_channel(self.time_slot,
-                                                      self.area_id))
+                                                      self.area))
                 # This is made necessary by the MSG string terminator bug
-                self["CloudType"].region_name = self[3000].area_id or self.area_id
+                try:
+                    area_id = self.area.area_id
+                except AttributeError:
+                    area_id = self.area
+                self["CloudType"].region_name = area_id
 
 
         if do_correct:
@@ -100,7 +105,7 @@ class Meteosat09SeviriScene(SeviriScene):
         palette = imageo.palettes.cms_modified()
 
         img = geo_image.GeoImage(ch1,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0),
                                  mode = "P",
@@ -131,7 +136,7 @@ class Meteosat09SeviriScene(SeviriScene):
                              clouds)
         
         img = geo_image.GeoImage(clouds,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "P",
@@ -171,7 +176,7 @@ class Meteosat09SeviriScene(SeviriScene):
         clouds = np.ma.where(ctype <= 4, ctype, clouds)
 
         img = geo_image.GeoImage(clouds,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "P",
@@ -254,7 +259,7 @@ class Meteosat09SeviriScene(SeviriScene):
         palette = imageo.palettes.ctth_height()
 
         img = geo_image.GeoImage(ctth_data.astype(np.uint8),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "P",

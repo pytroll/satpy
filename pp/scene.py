@@ -43,7 +43,7 @@ import datetime
 
 class SatelliteScene(object):
     """This is the satellite scene class. It is a capture of the satellite
-    (channels) data at given *time_slot* and *area*.
+    (channels) data at given *time_slot* and *area_id*/*area*.
     """
 
     #: Name of the satellite
@@ -61,13 +61,16 @@ class SatelliteScene(object):
     #: Orbit number of the satellite
     orbit = None
 
-    #: Area on which the scene is defined.
+    #: Name of the area on which the scene is defined.
     area_id = None
+
+    #: Area on which the scene is defined.
+    area_def = None
 
     #: Metadata information
     info = {}
     
-    def __init__(self, time_slot = None, area_id = None, orbit = None):
+    def __init__(self, time_slot=None, area_id=None, area=None, orbit=None):
 
         if(time_slot is not None and
            not isinstance(time_slot, datetime.datetime)):
@@ -76,13 +79,19 @@ class SatelliteScene(object):
         self.time_slot = time_slot
 
         
-        if(area_id is not None and
-           not isinstance(area_id, str)):
-            raise TypeError("Area must be a string.")
+        if(area_id is not None):
+            from warnings import warn
+            warn("The *area_id* attribute is deprecated."
+                 "Please use *area* instead.",
+                 DeprecationWarning)
+            if(not isinstance(area_id, str)):
+                raise TypeError("Area must be a string.")
+
+        self.area = area_id
+
+        if area is not None:
+            self.area = area
         
-        self.area_id = area_id
-
-
         if(orbit is not None and
            not isinstance(orbit, str)):
             raise TypeError("Orbit must be a string.")
@@ -101,9 +110,43 @@ class SatelliteScene(object):
         """
         return self.variant + self.satname + self.number
 
+    def get_area(self):
+        """Getter for area.
+        """
+        return self.area_def or self.area_id
+
+    def set_area(self, area):
+        """Setter for area.
+        """
+        if (area is None):
+            self.area_def = None
+            self.area_id = None
+        elif(isinstance(area, str)):
+            self.area_id = area
+            self.area_def = None
+        else:
+            try:
+                dummy = area.area_extent
+                dummy = area.x_size
+                dummy = area.y_size
+                dummy = area.proj_id
+                dummy = area.proj_dict
+                self.area_def = area
+                self.area_id = None
+            except AttributeError:
+                raise TypeError("Malformed area argument. "
+                                "Should be a string or an area object.")
+
+    area = property(get_area, set_area)
+
 class SatelliteInstrumentScene(SatelliteScene):
     """This is the satellite instrument class. It is an abstract channel
-    container.
+    container, from which all concrete satellite scenes should be derived.
+
+    The constructor accepts as optional arguments the *time_slot* of the scene,
+    the *area* on which the scene is defined (this can be use for slicing of
+    big datasets, or can be set automatically when loading), and *orbit* which
+    is a string giving the orbit number.
     """
     channels = []
     channel_list = []
@@ -111,14 +154,14 @@ class SatelliteInstrumentScene(SatelliteScene):
     #. Instrument name
     instrument_name = None
 
-    def __init__(self, time_slot = None, area_id = None, orbit = None):
-        SatelliteScene.__init__(self, time_slot, area_id, orbit)
+    def __init__(self, time_slot=None, area_id=None, area=None, orbit=None):
+        SatelliteScene.__init__(self, time_slot, area_id, area, orbit)
         self.channels = []
         
         for name, w_range, resolution in self.channel_list:
-            self.channels.append(Channel(name = name,
-                                         wavelength_range = w_range,
-                                         resolution = resolution))
+            self.channels.append(Channel(name=name,
+                                         wavelength_range=w_range,
+                                         resolution=resolution))
         self.channels_to_load = set([])
 
     def __getitem__(self, key, aslist = False):
@@ -278,12 +321,10 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
 
-        if self.area_id == dest_area:
-            return self
 
         res = copy.copy(self)
-        res.area_id = dest_area
-        res.info["Area_Name"] = dest_area
+        
+        res.area = dest_area
         res.channels = []
 
         if not _channels <= self.loaded_channels():
@@ -294,43 +335,57 @@ class SatelliteInstrumentScene(SatelliteScene):
         cov = {}
 
         for chn in _channels:
-            if chn.area_id is None:
-                if self.area_id is None:
+            if chn.area is None:
+                if self.area is None:
                     area_name = ("swath_" + self.fullname + "_" +
-                                 str(self.time_slot))
-                    chn.area_id = area_name
+                                 str(self.time_slot) + "_"
+                                 + str(chn.shape))
+                    chn.area = area_name
                 else:
-                    chn.area_id = self.area_id
+                    try:
+                        from pyresample.geometry import AreaDefinition
+                        chn.area = AreaDefinition(
+                            self.area.area_id + str(chn.shape),
+                            self.area.name,
+                            self.area.proj_id,
+                            self.area.proj_dict,
+                            chn.shape[1],
+                            chn.shape[0],
+                            self.area.area_extent,
+                            self.area.nprocs)
+
+                    except (AttributeError, ImportError):
+                        chn.area = self.area + str(chn.shape)
+                        
                     
-            if chn.area_id == dest_area:
+            if chn.area == dest_area:
                 res.channels.append(chn)
             else:
-                if chn.area_id not in cov:
-                    if chn.area_id.startswith("swath_"):
-                        cov[chn.area_id] = \
-                            Projector(chn.area_id,
+                if chn.area not in cov:
+                    if(isinstance(chn.area, str) and
+                       chn.area.startswith("swath_")):
+                        cov[chn.area] = \
+                            Projector(chn.area,
                                       dest_area,
                                       self.get_lat_lon(chn.resolution),
                                       precompute=precompute,
                                       mode=mode)
                     else:
-                        cov[chn.area_id] = Projector(chn.area_id,
-                                                     dest_area,
-                                                     precompute=precompute,
-                                                     mode=mode)
+                        cov[chn.area] = Projector(chn.area,
+                                                  dest_area,
+                                                  precompute=precompute,
+                                                  mode=mode)
                 try:
-                    res.channels.append(chn.project(cov[chn.area_id]))
-                    res.channels[-1].area_id =  None
-                    res.channels[-1].info["Area_Name"] =  ""
+                    res.channels.append(chn.project(cov[chn.area]))
                 except NotLoadedError:
                     LOG.warning("Channel "+str(chn.name)+" not loaded,"
                                 "thus not projected.")
 
         return res
-            
-                
+
 def assemble_swaths(swath_list):
-    """Assemble the scene objects listed in *swath_list* into one.
+    """Assemble the scene objects listed in *swath_list* and returns the
+    resulting scene object.
     """
     channels = set([])
     for swt in swath_list:
@@ -338,10 +393,10 @@ def assemble_swaths(swath_list):
     
     new_swath = copy.deepcopy(swath_list[0])
     loaded_channels = set([chn.name for chn in new_swath.loaded_channels()])
-    dummy = np.ma.masked_all_like(list(new_swath.loaded_channels())[0].data)
+    all_mask = np.ma.masked_all_like(list(new_swath.loaded_channels())[0].data)
     
     for chn in channels - loaded_channels:
-        new_swath[chn] = dummy
+        new_swath[chn] = all_mask
         
     for swt in swath_list[1:]:
         for chn in new_swath.loaded_channels():
@@ -349,7 +404,7 @@ def assemble_swaths(swath_list):
                 chn.data = np.ma.concatenate((chn.data,
                                               swt[chn.name].data))
             else:
-                chn.data = np.ma.concatenate((chn.data, dummy))
+                chn.data = np.ma.concatenate((chn.data, all_mask))
                 
         new_swath.lon = np.ma.concatenate((new_swath.lon,
                                            swt.lon))

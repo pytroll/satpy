@@ -52,6 +52,9 @@ class GenericChannel(object):
     #: ID of the area on which the channel is defined.
     area_id = None
 
+    #: Area on which the channel is defined.
+    area_def = None
+
     #: Metadata information
     info = {}
     
@@ -78,6 +81,33 @@ class GenericChannel(object):
         else:
             return cmp(self.name, ch2.name)
         
+
+    def get_area(self):
+        """Getter for area.
+        """
+        return self.area_def or self.area_id
+
+    def set_area(self, area):
+        """Setter for area.
+        """
+        if (area is None):
+            self.area_def = None
+            self.area_id = None
+        elif(isinstance(area, str)):
+            self.area_id = area
+        else:
+            try:
+                dummy = area.area_extent
+                dummy = area.x_size
+                dummy = area.y_size
+                dummy = area.proj_id
+                dummy = area.proj_dict
+                self.area_def = area
+            except AttributeError:
+                raise ValueError("Malformed area argument. "
+                                 "Should be a string or an area object.")
+
+    area = property(get_area, set_area)
 
 class Channel(GenericChannel):
     """This is the satellite channel class. It defines satellite channels as a
@@ -212,6 +242,7 @@ class Channel(GenericChannel):
         See also the :mod:`pp.coverage` module.
         """
         res = copy.copy(self)
+        res.area = coverage_instance.out_area
         res.data = None
         if self.is_loaded():
             LOG.info("Projecting channel %s (%fμm)..."
