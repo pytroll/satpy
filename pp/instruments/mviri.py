@@ -52,7 +52,7 @@ class MviriScene(VisirScene):
         ch3 = -self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -70,7 +70,7 @@ class MviriScene(VisirScene):
         self.check_channels(10.8)
 
         img = geo_image.GeoImage(self[10.8].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L")

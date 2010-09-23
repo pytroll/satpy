@@ -99,7 +99,7 @@ class SeviriScene(VisirScene):
         ch3 = -self[12.0].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -120,7 +120,7 @@ class SeviriScene(VisirScene):
         ch3 = self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -147,7 +147,7 @@ class SeviriScene(VisirScene):
         ch3 = -self[10.8].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -156,7 +156,7 @@ class SeviriScene(VisirScene):
         img.enhance(gamma = [1.6, 1.6, 1.1])
         
         luminance = geo_image.GeoImage((self["HRV"].data),
-                                       self.area_id,
+                                       self.area,
                                        self.time_slot,
                                        crange = (0,100),
                                        mode = "L")
@@ -176,7 +176,7 @@ class SeviriScene(VisirScene):
         self.check_channels("HRV")
 
         img = geo_image.GeoImage(self["HRV"].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L")

@@ -44,7 +44,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = -self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -76,7 +76,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = self[6.7].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -93,7 +93,7 @@ class VisirScene(SatelliteInstrumentScene):
         self.check_channels(channel)
 
         img = geo_image.GeoImage(self[channel].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L")
@@ -106,7 +106,7 @@ class VisirScene(SatelliteInstrumentScene):
         self.check_channels(0.635)
 
         img = geo_image.GeoImage(self[0.635].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L")
@@ -121,7 +121,7 @@ class VisirScene(SatelliteInstrumentScene):
         self.check_channels(10.8)
 
         img = geo_image.GeoImage(self[10.8].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L",
@@ -136,7 +136,7 @@ class VisirScene(SatelliteInstrumentScene):
         self.check_channels(6.7)
 
         img =  geo_image.GeoImage(self[6.7].data,
-                                  self.area_id,
+                                  self.area,
                                   self.time_slot,
                                   fill_value = 0,
                                   mode = "L")
@@ -150,7 +150,7 @@ class VisirScene(SatelliteInstrumentScene):
         self.check_channels(7.3)
 
         img = geo_image.GeoImage(self[7.3].data,
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = 0,
                                  mode = "L")
@@ -169,7 +169,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = self[0.635].check_range()
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -196,7 +196,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = -self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -218,7 +218,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = -self[10.8].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")
@@ -239,7 +239,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = self[1.63].check_range() - self[0.635].check_range()
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -264,7 +264,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch2 = self[10.8].data - self[8.7].data
         ch3 = self[10.8].data
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -288,7 +288,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch2 = self[10.8].data - self[8.7].data
         ch3 = self[10.8].data
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -310,7 +310,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch2 = self[10.8].data - self[8.7].data
         ch3 = self[10.8].data
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -334,7 +334,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB",
@@ -359,7 +359,7 @@ class VisirScene(SatelliteInstrumentScene):
         ch3 = -self[12.0].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area_id,
+                                 self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
                                  mode = "RGB")

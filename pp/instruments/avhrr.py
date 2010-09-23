@@ -60,7 +60,7 @@ class AvhrrScene(VisirScene):
             ch1b = -self[3.75].data
 
             imgb = geo_image.GeoImage((ch1b, ch2, ch3),
-                                      self.area_id,
+                                      self.area,
                                       self.time_slot,
                                       fill_value = (0, 0, 0),
                                       mode = "RGB")
@@ -74,7 +74,7 @@ class AvhrrScene(VisirScene):
             self.check_channels(1.63)
             ch1a = self[1.63].data
             imga = geo_image.GeoImage((ch1a, ch2, ch3),
-                                      self.area_id,
+                                      self.area,
                                       self.time_slot,
                                       fill_value = (0, 0, 0),
                                       mode = "RGB")
