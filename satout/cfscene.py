@@ -46,17 +46,22 @@ class CFScene(object):
     
     def __init__(self, scene):
         self.info = scene.info.copy()
-        if "time" in self.info:
-            self.time = InfoObject()
-            self.time.data = date2num(scene.info["time"],
-                                      TIME_UNITS)
-            self.time.info = {"var_name": "time",
-                              "var_data": self.time.data,
-                              "var_dim_names": (),
-                              "long_name": "Nominal time of the image",
-                              "standard_name": "time",
-                              "units": TIME_UNITS} 
-            del self.info["time"]
+
+        # Other global attributes
+        self.info["Conventions"] = "CF-1.4"
+        self.info["platform_name"] = scene.satname
+        self.info["platform_number"] = scene.number
+        self.info["service"] = scene.variant
+        
+        self.time = InfoObject()
+        self.time.data = date2num(scene.time_slot,
+                                  TIME_UNITS)
+        self.time.info = {"var_name": "time",
+                          "var_data": self.time.data,
+                          "var_dim_names": (),
+                          "long_name": "Nominal time of the image",
+                          "standard_name": "time",
+                          "units": TIME_UNITS} 
 
         resolutions = []
         for chn in scene:
@@ -68,9 +73,10 @@ class CFScene(object):
             scale = CF_FLOAT_TYPE((chn.data.max() - offset) * 1.0 /
                                   (np.iinfo(CF_DATA_TYPE).max))
             fill_value = np.iinfo(CF_DATA_TYPE).min
-            
             data = ((chn.data - offset) / scale).astype(CF_DATA_TYPE)
-            data.fill_value = fill_value
+            valid_min = data.min()
+            valid_max = data.max()
+            data = data.filled(fill_value)
             
             str_res = str(chn.resolution) + "m"
 
@@ -78,7 +84,7 @@ class CFScene(object):
                 band = getattr(self, "band" + str_res)
 
                 # data
-                band.data = np.ma.dstack((band.data, data))
+                band.data = np.dstack((band.data, data))
                 band.info["var_data"] = band.data
                 
                 # bandname
@@ -133,7 +139,7 @@ class CFScene(object):
                                                'x'+str_res,
                                                "band"+str_res),
                              "standard_name": "band_data",
-                             "valid_range": np.array([data.min(), data.max()]),
+                             "valid_range": np.array([valid_min, valid_max]),
                              "resolution": chn.resolution}
 
 

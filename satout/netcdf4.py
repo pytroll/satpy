@@ -28,7 +28,12 @@
 
 __revision__ = 0.1 
 
+from satout.cfscene import CFScene
 
+def save(scene, filename):
+    """Saves the scene as a NetCDF4 file, with CF conventions.
+    """
+    return netcdf_cf_writer(filename, CFScene(scene))
 
 
 class WriterDimensionError(Exception):
@@ -57,10 +62,10 @@ def variable_dispenser( root_object, object_list ):
         # elements with the 'info' attribute defined
         try:
             # test for info attribute on list elements
-            for o in obj:
+            for under_obj in obj:
                 try:
-                    o.info
-                    variable_dispenser(o, object_list)
+                    under_obj.info
+                    variable_dispenser(under_obj, object_list)
                 except AttributeError:
                     pass
         except TypeError:
@@ -89,22 +94,22 @@ def find_tag(info_list , tag):
         Returns list of matching values.
     """
     tag_data = []
-    for m in info_list: 
+    for info in info_list: 
         try:
-            tag_data.append(m[tag])
+            tag_data.append(info[tag])
         except KeyError:
             pass
     return tag_data
 
 def find_info(info_list, tag):
     """ 
-        Iterates through info objects to find specific tag
-        Return list of matching info objects
+        Iterates through info objects to find specific tag.
+        Return list of matching info objects.
     """
     tag_info_objects = []
-    for m in info_list: 
-        if 'var_callback' in m:
-            tag_info_objects.append(m)
+    for info in info_list: 
+        if tag in info:
+            tag_info_objects.append(info)
     return tag_info_objects
 
 def dtype(element):
@@ -127,12 +132,10 @@ def shape(element):
     else:
         return ()
 
-def netcdf_cf_writer( filename, root_object ):
+def netcdf_cf_writer(filename, root_object):
     """ Write data to file to netcdf file. """
-    import netCDF4
     from netCDF4 import Dataset
 
-    #rootgrp = Dataset(filename, 'w', format='NETCDF4_CLASSIC')
     rootgrp = Dataset(filename, 'w')
     try:
         info_list = []
@@ -142,8 +145,8 @@ def netcdf_cf_writer( filename, root_object ):
         dim_names = find_tag( info_list , 'var_dim_names' )
 
         # go through all cases of 'var_callback' and create objects which are
-        # linked to by the 'var_data' keyword. This ensures that data are only read
-        # in when needed.
+        # linked to by the 'var_data' keyword. This ensures that data are only
+        # read in when needed.
 
         cb_infos = find_info(info_list, 'var_callback')
 
@@ -166,7 +169,8 @@ def netcdf_cf_writer( filename, root_object ):
                 if dim_name in used_dim_names:
                     if dim_size != used_dim_names[dim_name]:
                         print dim_size, used_dim_names[dim_name]
-                        raise WriterDimensionError("Dimension name already in use")
+                        raise WriterDimensionError("Dimension name "
+                                                   "already in use")
                     else:
                         continue
 
@@ -180,7 +184,9 @@ def netcdf_cf_writer( filename, root_object ):
 
         nc_vars = []
 
-        for name, vtype, dim_name in zip(var_names, [dtype(vt) for vt in var_data ], dim_names ):
+        for name, vtype, dim_name in zip(var_names,
+                                         [dtype(vt) for vt in var_data ],
+                                         dim_names ):
 
             # in the case of arrays containing strings:
             if str(vtype) == "object":
@@ -190,16 +196,16 @@ def netcdf_cf_writer( filename, root_object ):
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.
-        for mi in info_list:
-            if 'var_name' in mi:
+        for info in info_list:
+            if 'var_name' in info:
                 # handle variable attributes
-                nc_var = rootgrp.variables[mi['var_name']]
-                for k, v in attribute_dispenser(mi):
-                    setattr( nc_var, k, v )
+                nc_var = rootgrp.variables[info['var_name']]
+                for j, k in attribute_dispenser(info):
+                    setattr( nc_var, j, k)
             else:
                 # handle global attributes
-                for k, v in attribute_dispenser(mi):
-                    setattr( rootgrp, k, v )
+                for j, k in attribute_dispenser(info):
+                    setattr( rootgrp, j, k)
 
 
         # insert data 
@@ -214,9 +220,9 @@ if __name__ == '__main__':
     from pp.satellites.meteosat09 import Meteosat09SeviriScene
     import datetime
 
-    t = datetime.datetime(2009, 10, 8, 14, 30)
-    g = Meteosat09SeviriScene(area_id="EuropeCanary", time_slot=t)
-    g.load([0.6, 10.8])
+    TIME = datetime.datetime(2009, 10, 8, 14, 30)
+    GLOB = Meteosat09SeviriScene(area_id="EuropeCanary", time_slot=TIME)
+    GLOB.load([0.6, 10.8])
 
-    rootgrp = netcdf_cf_writer( 'tester.nc', g )
+    save(GLOB, 'tester.nc')
 
