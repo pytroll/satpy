@@ -126,10 +126,11 @@ class Channel(GenericChannel):
     wavelength_range = None
 
     def __init__(self,
-                 name = None,
-                 resolution = 0, 
-                 wavelength_range = (-np.inf, -np.inf, -np.inf), 
-                 data = None):
+                 name=None,
+                 resolution=0, 
+                 wavelength_range=(-np.inf, -np.inf, -np.inf), 
+                 data=None,
+                 calibration_unit=None):
 
         GenericChannel.__init__(self, name)
 
@@ -156,6 +157,20 @@ class Channel(GenericChannel):
         self.wavelength_range = wavelength_range
         
         self.data = data
+
+        self.info = {
+            'var_name' : name,
+            'var_data' : self.data,
+            'var_dim_names': ('x'+str(resolution),
+                              'y'+str(resolution)),
+            'bandname' : name,
+            'units': calibration_unit or ""
+            }
+
+        if data is not None:
+            self.info['valid_range'] = np.array([data.min(),
+                                                 data.max()]),
+
 
     def __cmp__(self, ch2, key = 0):
         if(isinstance(ch2, str)):
@@ -267,6 +282,10 @@ class Channel(GenericChannel):
         if (data is None or
             isinstance(data, (np.ndarray, np.ma.core.MaskedArray))):
             self._data = data
+            if data is not None:
+                self.info['valid_range'] = np.array([data.min(),
+                                                     data.max()]),
+
         else:
             raise TypeError("Data must be a numpy (masked) array.")
 
