@@ -89,8 +89,6 @@ class CFScene(object):
                 
                 # bandname
                 bandname = getattr(self, "bandname" + str_res)
-                #bandname.data = np.concatenate((bandname.data,
-                #                                np.array([chn.name])))
                 bandname.data = np.concatenate((bandname.data,
                                                 np.array([chn.name])))
                 bandname.info["var_data"] = bandname.data
