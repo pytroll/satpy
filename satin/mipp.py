@@ -25,7 +25,7 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to Eumetcast level 1.5 format. Uses the MIPP reader.
+"""Interface to Eumetcast level 1.5 HRIT/LRIT format. Uses the MIPP reader.
 """
 
 
@@ -78,26 +78,30 @@ def load_generic(satscene, options):
     try:
         from pyresample import utils, geometry
     
-        if not satscene.area_def and satscene.area_id:
-            area_file = os.path.join(CONFIG_PATH, "areas.def")
-            satscene.area_def = utils.parse_area_file(area_file,
-                                                      satscene.area_id)[0]
+        if not satscene.area_def:
+            if satscene.area_id:
+                area_file = os.path.join(CONFIG_PATH, "areas.def")
+                satscene.area_def = utils.parse_area_file(area_file,
+                                                          satscene.area_id)[0]
 
-            if(satscene.area_def.proj_dict["proj"] != "geos" or
-               satscene.area_def.proj_dict["lon_0"] != "0.0"):
-                raise ValueError("Slicing area must be in geos0.0 projection.")
+                if(satscene.area_def.proj_dict["proj"] != "geos" or
+                   satscene.area_def.proj_dict["lon_0"] != "0.0"):
+                    raise ValueError("Slicing area must be in geos0.0 projection.")
         
 
-            ll_x, ll_y, ur_x, ur_y = satscene.area_def.area_extent
+                ll_x, ll_y, ur_x, ur_y = satscene.area_def.area_extent
+            else:
+                entire = True
         else:
-            entire = True
+            ll_x, ll_y, ur_x, ur_y = satscene.area_def.area_extent
         
     except ImportError:
         LOG.warning("Pyresample not found, has to load entire data !")
         entire = True
-    
     for chn in satscene.channels_to_load:
         for option, value in options.items():
+            if not option.startswith(satscene.instrument_name):
+                continue
             try:
                 for item in value:
                     if item[0] == "name":
@@ -168,28 +172,26 @@ def load_generic(satscene, options):
                 for param in proj_params:
                     key, val = param.split("=")
                     proj_dict[key] = val
-                    xres = metadata.pixel_size[1]
-                    yres = metadata.pixel_size[0]
-                    mid_x_area_extent = (xsize * xres) / 2.0
-                    mid_y_area_extent = (ysize * yres) / 2.0
-                    area_extent = (col_start * xres - mid_x_area_extent,
-                                   line_start * yres - mid_y_area_extent,
-                                   col_end * xres - mid_x_area_extent,
-                                   line_end * xres - mid_y_area_extent)
-                    satscene[chn].area = geometry.AreaDefinition(
-                        satscene.satname + satscene.instrument_name +
-                        str(col_start) + str(col_end) +
-                        str(line_start) + str(line_end) +
-                        str(data.shape),
-                        "On-the-fly area",
-                        proj_dict["proj"],
-                        proj_dict,
-                        data.shape[1],
-                        data.shape[0],
-                        area_extent)
+                xres = metadata.pixel_size[1]
+                yres = metadata.pixel_size[0]
+                mid_x_area_extent = (xsize * xres) / 2.0
+                mid_y_area_extent = (ysize * yres) / 2.0
+                area_extent = (col_start * xres - mid_x_area_extent,
+                               line_start * yres - mid_y_area_extent,
+                               col_end * xres - mid_x_area_extent,
+                               line_end * xres - mid_y_area_extent)
+                satscene[chn].area = geometry.AreaDefinition(
+                    satscene.satname + satscene.instrument_name +
+                    str(col_start) + str(col_end) +
+                    str(line_start) + str(line_end) +
+                    str(data.shape),
+                    "On-the-fly area",
+                    proj_dict["proj"],
+                    proj_dict,
+                    data.shape[1],
+                    data.shape[0],
+                    area_extent)
 
                 
-CASES = {
-#    "mviri": load_mviri,
-#    "seviri": load_seviri
-    }
+CASES = {}
+
