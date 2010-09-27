@@ -81,7 +81,9 @@ def build_satellite_class(satellite, num, var=""):
     """Build a class for the given satellite (defined by the three strings
     *satellite*, *num*, and *var*) on the fly, using a config file. The
     function returns as many classes as there are instruments defined in the
-    configuration files.
+    configuration files. They inherit from the corresponding instrument class,
+    which is also created on the fly is no predefined module for this
+    instrument is available.
     """
 
     fullname = var + satellite + num

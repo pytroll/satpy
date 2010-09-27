@@ -25,11 +25,11 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""This module defines satellite scenes. They are defined as generic classes,
-to be inherited when needed.
+"""The :mod:`pp.scene` module defines satellite scenes. They are defined as generic
+classes, to be inherited when needed.
 
-A scene is a set of :mod:`pp.channel`s for a given time, and sometimes also for
-a given area.
+A scene is a set of :mod:`pp.channel` objects for a given time, and sometimes
+also for a given area.
 """
 
 import numpy as np
@@ -215,8 +215,9 @@ class SatelliteInstrumentScene(SatelliteScene):
 
     def load(self, channels = None):
         """Load instrument data into the *channels*. *Channels* is a list or a
-        tuple containing channels we will load data into. If None, all channels
-        are loaded.
+        tuple containing channels we will load data into, designated by there
+        center wavelength (float), resolution (integer) or name (string). If
+        None, all channels are loaded.
         """
         if channels is None:
             for chn in self.channel_list:
