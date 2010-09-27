@@ -279,6 +279,23 @@ class SatelliteInstrumentScene(SatelliteScene):
         except ImportError:
             raise ImportError("No "+reader+" reader found.")
 
+    def save(self, filename, to_format="netcdf4"):
+        """Saves the current scene into a file of format *to_format*. Supported
+        formats are:
+        
+        - *netcdf4*: NetCDF4 with CF conventions.
+        """
+
+        writer = "satout." + to_format
+        try:
+            writer_module = __import__(writer, globals(), locals(), ["save"])
+        except ImportError, err:
+            raise ImportError("Cannot load "+writer+" writer: "+str(err))
+
+        return writer_module.save(self, filename)
+        
+        
+
     def check_channels(self, *channels):
         """Check if the *channels* are loaded, raise an error otherwise.
         """
