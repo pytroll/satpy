@@ -179,19 +179,26 @@ class GeoImage(imageo.image.Image):
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution
 
-        area_file = os.path.join(CONFIG_PATH, "areas.def")
-        area = utils.parse_area_file(area_file, self.area_id)[0]
+        try:
+            area_file = os.path.join(CONFIG_PATH, "areas.def")
+            area = utils.parse_area_file(area_file, self.area_id)[0]
+        except utils.AreaNotFound:
+            area = self.area_id
 
-        adfgeotransform = [area.area_extent[0], area.pixel_size_x, 0,
-                           area.area_extent[3], 0, -area.pixel_size_y]
+        try:
+            adfgeotransform = [area.area_extent[0], area.pixel_size_x, 0,
+                               area.area_extent[3], 0, -area.pixel_size_y]
+            dst_ds.SetGeoTransform(adfgeotransform)
+            srs = osr.SpatialReference()
+            srs.SetProjCS(area.proj_id)
+            
+            srs.ImportFromProj4(area.proj4_string)
+            srs.SetWellKnownGeogCS('WGS84')
+            dst_ds.SetProjection(srs.ExportToWkt())
+        except AttributeError:
+            LOG.exception("Could not load geographic data, invalid area")
+            
 
-        dst_ds.SetGeoTransform(adfgeotransform)
-        srs = osr.SpatialReference()
-        srs.SetProjCS(area.proj_id)
-
-        srs.ImportFromProj4(area.proj4_string)
-        srs.SetWellKnownGeogCS('WGS84')
-        dst_ds.SetProjection(srs.ExportToWkt())
 
         tags.update({'TIFFTAG_DATETIME':
                      self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
@@ -220,14 +227,19 @@ class GeoImage(imageo.image.Image):
         coast_file = os.path.join(coast_dir, conf.get('coasts', 'coast_file'))
 
         arr = np.zeros(self.channels[0].shape, np.uint8)
-        
+
+        LOG.debug("Adding overlay: " + str(self.area_id))
+        if not isinstance(self.area_id, str):
+            area_id = self.area_id.area_id
+        else:
+            area_id = self.area_id
         LOG.info("Add coastlines and political borders to image. "
-                 "Area = %s"%(self.area_id))
-        rimg = acpgimage.image(self.area_id)
+                 "Area = %s"%(area_id))
+        rimg = acpgimage.image(area_id)
         rimg.info["nodata"] = 255
         rimg.data = arr
         area_overlayfile = ("%s/coastlines_%s.asc"
-                            %(coast_dir, self.area_id))
+                            %(coast_dir, area_id))
         LOG.info("Read overlay. Try find something prepared on the area...")
         try:
             overlay = _acpgpilext.read_overlay(area_overlayfile)
