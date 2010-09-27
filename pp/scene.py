@@ -213,7 +213,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
 
-    def load(self, channels = None):
+    def load(self, channels=None, reload=False):
         """Load instrument data into the *channels*. *Channels* is a list or a
         tuple containing channels we will load data into, designated by there
         center wavelength (float), resolution (integer) or name (string). If
@@ -233,6 +233,13 @@ class SatelliteInstrumentScene(SatelliteScene):
         else:
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
+
+        if not reload:
+            self.channels_to_load -= set([chn.name
+                                          for chn in self.loaded_channels()])
+
+        if len(self.channels_to_load) == 0:
+            return
 
         conf = ConfigParser.ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
