@@ -54,6 +54,7 @@ def patch_projector():
         """Dummy Projector class.
         """
         def __init__(self, *args, **kwargs):
+            self.out_area = None
             pass
 
         def project_array(self, arg):
@@ -100,7 +101,7 @@ class TestSatelliteScene(unittest.TestCase):
         self.assertEquals(self.scene.number, "")
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.orbit is None)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
 
@@ -113,7 +114,7 @@ class TestSatelliteScene(unittest.TestCase):
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.time_slot, time_slot)
         self.assert_(self.scene.orbit is None)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
 
@@ -133,14 +134,14 @@ class TestSatelliteScene(unittest.TestCase):
                           SatelliteScene,
                           time_slot = [])
 
-        # area_id
+        # area
 
-        area_id = random_string(int(np.random.uniform(9)) + 1)
+        area = random_string(int(np.random.uniform(9)) + 1)
 
-        self.scene = SatelliteScene(area_id = area_id)
+        self.scene = SatelliteScene(area=area)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
-        self.assertEquals(self.scene.area_id, area_id)
+        self.assertEquals(self.scene.area, area)
         self.assert_(self.scene.orbit is None)
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.lat is None)
@@ -148,15 +149,15 @@ class TestSatelliteScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          area_id = np.random.uniform(1000))
+                          area = np.random.uniform(1000))
         
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          area_id = int(np.random.uniform(1000)))
+                          area = int(np.random.uniform(1000)))
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          area_id = [])
+                          area = [])
 
 
         
@@ -168,7 +169,7 @@ class TestSatelliteScene(unittest.TestCase):
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.orbit, orbit)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
@@ -222,14 +223,14 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
             """Dummy satinst class.
             """
             channel_list = channels
-        # area_id
+        # area
 
-        area_id = random_string(int(np.random.uniform(9)) + 1)
+        area = random_string(int(np.random.uniform(9)) + 1)
 
-        self.scene = SatelliteInstrumentScene2(area_id = area_id)
+        self.scene = SatelliteInstrumentScene2(area=area)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
-        self.assertEquals(self.scene.area_id, area_id)
+        self.assertEquals(self.scene.area, area)
         self.assert_(self.scene.orbit is None)
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.lat is None)
@@ -243,15 +244,15 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          area_id = np.random.uniform(1000))
+                          area = np.random.uniform(1000))
         
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          area_id = int(np.random.uniform(1000)))
+                          area = int(np.random.uniform(1000)))
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          area_id = [])
+                          area = [])
 
 
 
@@ -278,7 +279,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.orbit, orbit)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
@@ -323,7 +324,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.time_slot, time_slot)
         self.assert_(self.scene.orbit is None)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
         self.assert_(self.scene.instrument_name is None)
@@ -369,7 +370,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.number, "")
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.orbit is None)
-        self.assert_(self.scene.area_id is None)
+        self.assert_(self.scene.area is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
         self.assert_(self.scene.instrument_name is None)
@@ -496,8 +497,8 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
     def test_project(self):
         """Projecting a scene.
         """
-        area_id = random_string(8)
-        area_id2 = random_string(8)
+        area = random_string(8)
+        area2 = random_string(8)
         # scene with 3 channels
 
         channels = [["00_7", (0.5, 0.7, 0.9), 2500],
@@ -512,7 +513,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         # case of a swath
 
-        self.scene = SatelliteInstrumentScene2(area_id=None)
+        self.scene = SatelliteInstrumentScene2(area=None)
 
         # With data
         
@@ -522,33 +523,33 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
                                       mask = np.array(np.random.rand(3, 3) * 2,
                                                       dtype = int))
-        self.scene[6.4].area_id = area_id
+        self.scene[6.4].area = area
         
-        res = self.scene.project(area_id2)
+        res = self.scene.project(area2)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
-        res = self.scene.project(area_id2, channels=[0.7])
+        res = self.scene.project(area2, channels=[0.7])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 6.4)
 
-        res = self.scene.project(area_id2, channels=[0.7, 11.5])
+        res = self.scene.project(area2, channels=[0.7, 11.5])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
 
-        res = self.scene.project(area_id2, channels=[area_id])
+        res = self.scene.project(area2, channels=[])
         self.assertRaises(KeyError, res.__getitem__, 0.7)
 
         self.assertRaises(TypeError, self.scene.project,
-                          area_id2, channels=11.5)
+                          area2, channels=11.5)
 
 
 
         # case of a grid
 
-        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+        self.scene = SatelliteInstrumentScene2(area=area)
 
         # With data
         
@@ -563,21 +564,21 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                                        dtype = int))
 
         
-        res = self.scene.project(area_id2)
+        res = self.scene.project(area2)
         self.assertEquals(res[11.5].shape, (3, 3))
         
-        res = self.scene.project(area_id2, channels=[0.7])
+        res = self.scene.project(area2, channels=[0.7])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 6.4)
 
-        self.scene[6.4].area_id = area_id2
+        self.scene[6.4].area = area2
 
-        res = self.scene.project(area_id2)
+        res = self.scene.project(area2)
         self.assertEquals(res[0.7].shape, (3, 3))
         
         # case of self projection
 
-        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+        self.scene = SatelliteInstrumentScene2(area=area)
 
         # With data
         
@@ -591,14 +592,14 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                        mask = np.array(np.random.rand(3, 3) * 2,
                                                        dtype = int))
 
-        self.scene[6.4].area_id = area_id
+        self.scene[6.4].area = area
         
-        res = self.scene.project(area_id)
+        res = self.scene.project(area)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertEquals(res[11.5].shape, (3, 3))
         
-        res = self.scene.project(area_id, channels=[0.7])
+        res = self.scene.project(area, channels=None)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertEquals(res[11.5].shape, (3, 3))
@@ -636,7 +637,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
     def test_get_lat_lon(self):
         """Getting lats and lons of a scene.
         """
-        area_id = random_string(8)
+        area = random_string(8)
         # scene with 3 channels
 
         channels = [["00_7", (0.5, 0.7, 0.9), 2500],
@@ -651,7 +652,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         # case of a swath
 
-        self.scene = SatelliteInstrumentScene2(area_id=None)
+        self.scene = SatelliteInstrumentScene2(area=None)
 
         (lat, lon) = self.scene.get_lat_lon(1000)
 
@@ -663,7 +664,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         # case of a grid
 
-        self.scene = SatelliteInstrumentScene2(area_id=area_id)
+        self.scene = SatelliteInstrumentScene2(area=area)
 
         (lat, lon) = self.scene.get_lat_lon(1000)
 
