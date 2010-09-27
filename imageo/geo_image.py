@@ -65,7 +65,7 @@ class GeoImage(imageo.image.Image):
         super(GeoImage, self).__init__(channels, mode, crange,
                                       fill_value, palette)
 
-    def save(self, filename, compression=6, tags={}, gdal_options=[]):
+    def save(self, filename, compression=0, tags=None, gdal_options=None):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -104,7 +104,8 @@ class GeoImage(imageo.image.Image):
             else:
                 dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
-    def _geotiff_save(self, filename, compression=6, tags={}, gdal_options=[]):
+    def _geotiff_save(self, filename, compression=6,
+                      tags=None, gdal_options=None):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
         argument is a dict of tags to include in the image (as metadata).
@@ -117,12 +118,17 @@ class GeoImage(imageo.image.Image):
 
         LOG.debug("Saving to GeoTiff.")
 
+        if tags is None:
+            tags = {}
+        if gdal_options is None:
+            gdal_options = []
+
         #options = ["TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256"]
         #options = []
 
-        #if compression != 0:
-        #    options.append("COMPRESS=DEFLATE")
-        #    options.append("ZLEVEL=" + str(compression))
+        if compression != 0:
+            gdal_options.append("COMPRESS=DEFLATE")
+            gdal_options.append("ZLEVEL=" + str(compression))
 
         if(self.mode == "L"):
             ensure_dir(filename)
