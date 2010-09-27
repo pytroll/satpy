@@ -40,6 +40,10 @@ def ensure_dir(filename):
     if len(directory) and not os.path.isdir(directory):
         os.makedirs(directory)
 
+def debug_on():
+    """Turn debugging logging on.
+    """
+    logging_on(logging.DEBUG)
 
 def logging_on(level = logging.INFO):
     """Turn logging on.
