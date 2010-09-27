@@ -24,7 +24,8 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Load relevant modules.
+"""pp.satellites is the module englobes all satellite specific modules. In
+itself, it hold the mighty :meth:`pp.satellites.get_satellite_class` method.
 """
 
 import pp.satellites.meteosat07
