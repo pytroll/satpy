@@ -1,4 +1,0 @@
-[avhrr]
-format=aapp1b
-dir=/local_disk/data/satellite
-filename=noaa%(number)s_%Y%m%d_%H%M_%(orbit)s/hrpt_noaa%(number)s_%Y%m%d_%H%M_%(orbit)s.l1b

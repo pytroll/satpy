@@ -1,4 +1,44 @@
-[mviri]
-format=mipp
-dir=/local_disk/data/satellite/met7
-filename=L-000-MTP___-MET7________-%(channel)s_057E-%(segment)s-%Y%m%d%H%M-__
+#
+# Level 1.5 configuration file for Meteosat-7
+#
+# An item like:
+#   name = value
+# is read in python like:
+#   try:
+#       name = eval(value)
+#   except NameError:
+#       name = str(value)
+#
+
+[satellite]
+satname = 'meteosat'
+number = '07'
+instruments = ('mviri',)
+projection = 'geos(57.0)'
+
+[mviri-level2]
+format = 'mipp'
+
+[mviri-level1]
+format = 'xrit/MTP'
+#dir = '/data/prod/satellit/meteosat7'
+dir = '/local_disk/data/satellite/met7'
+filename = 'L-000-MTP___-MET7________-%(channel)s_057E-%(segment)s-%Y%m%d%H%M-__'
+
+[mviri-1]
+name = '00_7'
+frequency = (0.5, 0.7, 0.9)
+resolution = 2248.49
+size = (5000, 5000)
+
+[mviri-2]
+name = '06_4'
+frequency = (5.7, 6.4, 7.1)
+resolution = 4496.98
+size = (2500, 2500)
+
+[mviri-3]
+name = '11_5'
+frequency = (10.5, 11.5, 12.5)
+resolution = 4496.98
+size = (2500, 2500)
