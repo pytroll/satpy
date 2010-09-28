@@ -1,0 +1,197 @@
+REGION: afghanistan {
+	NAME:		Afghanistan
+	PCS_ID:		merc
+	PCS_DEF:	proj=merc,lat_ts=35,a=6370997.0,lon_0=67.5,lat_0=35
+	XSIZE:		1600
+	YSIZE:		1600
+	AREA_EXTENT:	(-1600000.0, 1600000.0, 1600000.0, 4800000.0)
+};
+
+REGION: EuropeCanary {
+        NAME:          Northern globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
+        #PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
+        XSIZE:         3000
+        YSIZE:         1200
+        AREA_EXTENT:   (-4821642.8,1968262.4,4179557.2,5568742.4)
+};
+
+REGION: AfHorn {
+        NAME:          Eastern globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
+        #PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
+        XSIZE:         1100
+        YSIZE:         1600
+        AREA_EXTENT:   (2268302.4, -1329177.2, 5568742.4, 3471462.8)
+};
+
+REGION: afhorn {
+        NAME:           Africa horn 3km resolution
+        PCS_ID:         merc50
+        PCS_DEF:        proj=merc,ellps=bessel,lon_0=50.0
+        XSIZE:          1622
+        YSIZE:          1622
+        AREA_EXTENT:    (-2432000.0,-1130348.139543,2432000.0,3733651.860457)
+};
+
+REGION: met09globe {
+        NAME:          Cropped globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
+        #PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         3620
+        YSIZE:         3620
+        AREA_EXTENT:   (-5430724.0, -5430724.0, 5430724.0, 5430724.0)
+};
+
+REGION: met09globeFull {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
+        #PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         3712
+        YSIZE:         3712
+        AREA_EXTENT:   (-5568742.4, -5568742.4, 5568742.4, 5568742.4)
+};
+
+REGION: met07globe {
+        NAME:          Full globe IODC image 57 degrees
+        PCS_ID:        geos57
+        PCS_DEF:       proj=geos, lon_0=57.0, a=6378140.00, b=6356755.0, h=35785831.0
+        # PCS_DEF:       proj=geos, lon_0=57.0, a=6378169.0, b=6356584.0, h=35785831.0, rf=295.49
+        XSIZE:         2500
+        YSIZE:         2500
+        AREA_EXTENT:   (-5621225.237846375, -5621225.237846375, 5621225.237846375, 5621225.237846375)
+};
+
+REGION: germ {
+	NAME:		Germany
+	PCS_ID:		ps50n1
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=5,lat_ts=50,a=6378144.0,b=6356759.0
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-155100.436345,-4441495.37946,868899.563655,-3417495.37946)
+};
+
+REGION: euro4 {
+	NAME:		Euro 4km area - Europe
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
+};
+
+REGION: scan {
+	NAME:		Scandinavia
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		512
+	YSIZE:		512
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2102234.8425892727)
+};
+
+REGION: scan2 {
+	NAME:		Scandinavia - 2km area
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2102234.8425892727)
+};
+
+REGION: scan1 {
+	NAME:		Scandinavia - 1km area
+	PCS_ID:		ps60n
+	PCS_DEF:	proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60
+	XSIZE:		2048
+	YSIZE:		2088
+	AREA_EXTENT:	(-1268854.1266382949, -4150234.8425892727, 779145.8733617051, -2062234.8425892727)
+};
+
+REGION: mesanX {
+	NAME:		Mesan-X rotated lon/lat 1.8km
+	PCS_ID:		mesan
+	PCS_DEF:        proj=ob_tran,o_proj=eqc,o_lat_p=30,o_lon_p=10,lon_0=-10,a=6371000.0
+	XSIZE:	        1476
+	YSIZE:		1608
+	AREA_EXTENT:	(1067435.7598983962, -1278764.8903419089, 3791765.9965939857, 1690140.6680267097)
+};
+
+REGION: baws {
+	NAME:           BAWS
+	PCS_ID:         baws
+	PCS_DEF:        proj=aea,ellps=bessel,lon_0=14,lat_1=60,lat_2=60
+	XSIZE:          1400
+	YSIZE:          1400
+	AREA_EXTENT:    (-475617, 5324430, 924383, 6724430)
+};
+
+REGION: eurotv {
+        NAME:           Europe TV -  6.2x5.0km
+        PCS_ID:         eurotv
+        PCS_DEF:        proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+        XSIZE:          1024
+        YSIZE:          1024
+        AREA_EXTENT:    (-3503748.8201907813, -6589593.1340587894, 2842567.6359087573, -1499856.5846593212)
+};
+
+REGION: eurotv4n {
+        NAME:           Europe TV4 -  4.1x4.1km
+        PCS_ID:         eurotv4n
+        PCS_DEF:        proj=stere,ellps=bessel,lat_0=90,lon_0=14,lat_ts=60,a=6378144.0,b=6356759.0
+        XSIZE:          2048
+        YSIZE:          1152
+        AREA_EXTENT:    (-5103428.6786669521, -6772478.6005340703, 3293371.3213330479, -2049278.6005340703)
+};
+
+REGION: eurol {
+        NAME:           Euro 3.0km area - Europe
+        PCS_ID:         ps60wgs84
+        PCS_DEF:        proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+        XSIZE:          2560
+        YSIZE:          2048
+        AREA_EXTENT:    (-3780000.0, -7644000.0, 3900000.0, -1500000.0)
+};
+
+REGION: scanl {
+	NAME:		Scandinavia - Large
+	PCS_ID:		ps60wgs84
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		2900
+	YSIZE:		2900
+	AREA_EXTENT:	(-900000.0, -4500000.0,2000000.0, -1600000.0)
+
+};
+
+REGION: euron1 {
+	NAME:		Northern Europe - 1km
+	PCS_ID:		ps60wgs84
+	PCS_DEF:	proj=stere,ellps=WGS84,lat_0=90,lon_0=0,lat_ts=60
+	XSIZE:		3072
+	YSIZE:		3072
+	AREA_EXTENT:	(-1000000.0, -4500000.0, 2072000.0, -1428000.0)
+
+};
+
+REGION: nsea {
+        NAME:		North Baltic Sea
+	PCS_ID: 	merc
+	PCS_DEF:	proj=merc,ellps=WGS84,lat_ts=0,lon_0=15
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:    (-322789.07638000086, 7784901.986829306, 1725210.9236199991, 9832901.9868293069)
+};
+
+REGION: ssea {
+        NAME:		South Baltic Sea
+	PCS_ID: 	merc
+	PCS_DEF:	proj=merc,ellps=WGS84,lat_ts=0,lon_0=15
+	XSIZE:		1024
+	YSIZE:		1024
+	AREA_EXTENT:    (-801407.36204689811, 7003690.6636438016, 1246592.6379531019, 9051690.6636438016)
+};
+
+
