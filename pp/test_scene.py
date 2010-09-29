@@ -60,13 +60,7 @@ def patch_projector():
         def project_array(self, arg):
             """Dummy project_array method.
             """
-            self = self
             return arg
-
-        def dummy(self):
-            """Dummy method to get pylint happy.
-            """
-            self = self
 
     pp.projector._Projector = pp.projector.Projector
     pp.projector.Projector = FakeProjector

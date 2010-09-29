@@ -20,14 +20,14 @@ class TestGenericChannel(unittest.TestCase):
     def test_init(self):
         """Creation of a generic channel.
         """
-        self.chan = GenericChannel(name = "newchan")
+        self.chan = GenericChannel(name="newchan")
         self.assertEqual(self.chan.name, "newchan")
         
         numb = int(np.random.uniform(100000))
-        self.assertRaises(TypeError, GenericChannel, name = numb)
+        self.assertRaises(TypeError, GenericChannel, name=numb)
         
         self.chan = GenericChannel()
-        self.assert_(self.chan.name is None)
+        self.assertTrue(self.chan.name is None)
         
     def test_cmp(self):
         """Comparison of generic channels.
@@ -336,7 +336,7 @@ class TestChannel(unittest.TestCase):
 #         self.chan = Channel(name = "newchan", data = data)
 #         self.chan.project(cov)
 
-def random_string(length, choices = string.letters):
+def random_string(length, choices=string.letters):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """

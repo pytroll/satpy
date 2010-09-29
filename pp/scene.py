@@ -31,15 +31,17 @@ classes, to be inherited when needed.
 A scene is a set of :mod:`pp.channel` objects for a given time, and sometimes
 also for a given area.
 """
+import ConfigParser
+import copy
+import datetime
+import os.path
 
 import numpy as np
+
+from pp import CONFIG_PATH
 from pp.channel import Channel, NotLoadedError
 from pp.logger import LOG
-import copy
-import ConfigParser
-import os.path
-from pp import CONFIG_PATH
-import datetime
+
 
 class SatelliteScene(object):
     """This is the satellite scene class. It is a capture of the satellite
