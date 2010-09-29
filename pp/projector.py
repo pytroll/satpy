@@ -45,8 +45,8 @@ from pp.logger import LOG
 class Projector(object):
     """This class define projector objects. They contain the mapping
     information necessary for projection purposes. For efficiency reasons,
-    generated projectors are saved to disk for later reuse. The *recompute*
-    flag can be used to regenerate the saved projector arrays.
+    generated projectors can be saved to disk for later reuse. Use the
+    :meth:`save` method for this.
     """
     
     in_area = None
@@ -59,7 +59,11 @@ class Projector(object):
     area_file = os.path.join(CONFIG_PATH, "areas.def")
 
     def __init__(self, in_area, out_area,
-                 in_latlons=None, precompute=False, mode="quick"):
+                 in_latlons=None, mode="quick"):
+
+        # TODO:
+        # - Rework so that in_area and out_area can be lonlats.
+        # - Add a recompute flag ?
 
         self.mode = mode
 
@@ -133,14 +137,6 @@ class Projector(object):
                 self._cache['valid_output_index'] = valid_output_index
                 self._cache['index_array'] = index_array
 
-                if(precompute):
-                    LOG.info("Saving projection from %s to %s..."
-                             %(in_id, out_id))
-                    np.savez(self._filename,
-                             valid_index=valid_index,
-                             valid_output_index=valid_output_index,
-                             index_array=index_array)
-
             elif self.mode == "quick":
                 ridx, cidx = \
                       utils.generate_quick_linesample_arrays(self.in_area,
@@ -150,15 +146,19 @@ class Projector(object):
                 self._cache['row_idx'] = ridx
                 self._cache['col_idx'] = cidx
 
-                if(precompute):
-                    LOG.info("Saving projection from %s to %s..."
-                             %(in_id, out_id))
-                    np.savez(self._filename, row_idx=ridx, col_idx=cidx)
             else:
                 raise ValueError("Unrecognised mode " + str(mode) + ".") 
             
         else:
             self._cache = np.load(self._filename)
+
+    def save(self):
+        """Save the precomputation to disk.
+        """
+        LOG.info("Saving projection to " +
+                 self._filename)
+        if not os.path.exists(self._filename):
+            np.savez(self._filename, **self._cache)
         
         
     def project_array(self, data):

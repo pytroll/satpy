@@ -395,13 +395,13 @@ class SatelliteInstrumentScene(SatelliteScene):
                             Projector(chn.area,
                                       dest_area,
                                       self.get_lat_lon(chn.resolution),
-                                      precompute=precompute,
                                       mode=mode)
                     else:
                         cov[chn.area] = Projector(chn.area,
                                                   dest_area,
-                                                  precompute=precompute,
                                                   mode=mode)
+                    if precompute:
+                        cov[chn.area].save()
                 try:
                     res.channels.append(chn.project(cov[chn.area]))
                 except NotLoadedError:
