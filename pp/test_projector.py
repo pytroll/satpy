@@ -1,11 +1,134 @@
-"""Test module for pp.coverage.
+"""Test module for pp.projector.
 """
-
-import unittest
-from pp.projector import Projector
 import string
+import unittest
+
 import numpy as np
-from pyresample.utils import AreaNotFound
+from pyresample import geometry, utils, kd_tree, image
+
+from pp.projector import Projector
+
+
+class FakeAreaDefinition:
+    """Fake AreaDefinition.
+    """
+    def __init__(self, *args):
+        self.args = args
+        self.shape = None
+        self.area_id = random_string(20)
+
+class FakeSwathDefinition:
+    """Fake SwathDefinition.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.area_id = random_string(20)
+
+
+class FakeImageContainer:
+    """Fake ImageContainer
+    """
+    def __init__(self, data, *args, **kwargs):
+        self.data = data
+
+    def get_array_from_linesample(self, *args):
+        """Fake method.
+        """
+        return self.data + 1
+
+def patch_geometry():
+    """Patching the geometry module
+    """
+    geometry.OldAreaDefinition = geometry.AreaDefinition
+    geometry.AreaDefinition = FakeAreaDefinition
+    geometry.OldSwathDefinition = geometry.SwathDefinition
+    geometry.SwathDefinition = FakeSwathDefinition
+
+def unpatch_geometry():
+    """Unpatching the geometry module.
+    """
+    geometry.AreaDefinition = geometry.OldAreaDefinition
+    delattr(geometry, "OldAreaDefinition")
+    geometry.SwathDefinition = geometry.OldSwathDefinition
+    delattr(geometry, "OldSwathDefinition")
+
+
+def patch_kd_tree():
+
+    def fake_get_neighbour_info(*args, **kwargs):
+        """Fake function.
+        """
+        return (np.random.standard_normal((3, 1)),
+                np.random.standard_normal((3, 1)),
+                np.random.standard_normal((3, 1)),
+                np.random.standard_normal((3, 1)))
+
+    def fake_gsfni(typ, area, data, *args, **kwargs):
+        """Fake function.
+        """
+        return data - 1
+
+    kd_tree.old_get_neighbour_info = kd_tree.get_neighbour_info
+    kd_tree.get_neighbour_info = fake_get_neighbour_info
+    kd_tree.old_gsfni = kd_tree.get_sample_from_neighbour_info
+    kd_tree.get_sample_from_neighbour_info = fake_gsfni
+    
+def unpatch_kd_tree():
+
+    kd_tree.get_neighbour_info = kd_tree.old_get_neighbour_info
+    delattr(kd_tree, "old_get_neighbour_info")
+    kd_tree.get_sample_from_neighbour_info = kd_tree.old_gsfni
+    delattr(kd_tree, "old_gsfni")
+    
+
+def patch_utils():
+    """Patching the utils module.
+    """
+
+    def fake_parse_area_file(filename, area):
+        """Fake function.
+        """
+        del filename
+        if area == "raise" or not isinstance(area, str):
+            raise utils.AreaNotFound("This area is not to be found")
+        else:
+            return [geometry.AreaDefinition(area)]
+        
+    def fake_generate_quick_linesample_arrays(*args):
+        """Fake function.
+        """
+        del args
+        return (np.random.standard_normal((3, 1)),
+                np.random.standard_normal((3, 1)))
+
+    utils.old_parse_area_file = utils.parse_area_file
+    utils.parse_area_file = fake_parse_area_file
+    utils.old_generate_quick_linesample_arrays = \
+                       utils.generate_quick_linesample_arrays
+    utils.generate_quick_linesample_arrays = \
+                       fake_generate_quick_linesample_arrays
+    
+def unpatch_utils():
+    """Unpatching the utils module.
+    """
+    utils.parse_area_file = utils.old_parse_area_file
+    delattr(utils, "old_parse_area_file")
+    utils.generate_quick_linesample_arrays = \
+          utils.old_generate_quick_linesample_arrays
+    delattr(utils, "old_generate_quick_linesample_arrays")
+    
+
+def patch_image():
+    """Patching the pyresample.image module.
+    """
+    image.OldImageContainer = image.ImageContainer
+    image.ImageContainer = FakeImageContainer
+
+def unpatch_image():
+    """Unpatching the pyresample.image module.
+    """
+    image.ImageContainer = image.OldImageContainer
+    delattr(image, "OldImageContainer")
 
 class TestProjector(unittest.TestCase):
     """Class for testing the Projector class.
@@ -13,57 +136,118 @@ class TestProjector(unittest.TestCase):
 
     proj = None
 
+    def setUp(self):
+        """Apply patches
+        """
+        patch_geometry()
+        patch_utils()
+        patch_kd_tree()
+        patch_image()
+        
     def test_init(self):
         """Creation of coverage.
         """
 
+        # in case of wrong number of arguments
+        
         self.assertRaises(TypeError, Projector)
+        self.assertRaises(TypeError, Projector, random_string(20))
 
-        self.proj = Projector("scan", "euro")
 
-        self.assertEquals(self.proj.in_area.area_id, "scan")
-        self.assertEquals(self.proj.out_area.area_id, "euro")
+        # in case of string arguments
+
+        in_area_id = random_string(20)
+        out_area_id = random_string(20)
+        self.proj = Projector(in_area_id, out_area_id)
+        self.assertTrue(isinstance(self.proj.in_area, geometry.AreaDefinition))
+        self.assertEquals(self.proj.in_area.args[0], in_area_id)
+        self.assertEquals(self.proj.out_area.args[0], out_area_id)
 
         
-        self.assertRaises(TypeError, Projector, random_string(20))
-        self.assertRaises(AreaNotFound,
+        # in case of undefined areas
+        
+        self.assertRaises(utils.AreaNotFound,
+                          Projector,
+                          "raise",
+                          random_string(20))
+        self.assertRaises(utils.AreaNotFound,
                           Projector,
                           random_string(20),
-                          random_string(20))
+                          "raise")
+
+        # in case of geometry objects as input
+
+        in_area = geometry.AreaDefinition()
+        self.proj = Projector(in_area, out_area_id)
+        self.assertEquals(self.proj.in_area, in_area)
+
+        in_area = geometry.SwathDefinition()
+        self.proj = Projector(in_area, out_area_id)
+        self.assertEquals(self.proj.in_area, in_area)
+
+        out_area = geometry.AreaDefinition()
+        self.proj = Projector(in_area_id, out_area)
+        self.assertEquals(self.proj.out_area, out_area)
+
+        # in case of lon/lat is input
         
-#     def test_project_array(self):
-#         """Projection of an array.
-#         """
-#         self.proj = Projector("scan", "euro", precompute = True)
+        self.proj = Projector("raise", out_area_id, ([1, 2, 3], [1, 2, 3]))
+        self.assertTrue(isinstance(self.proj.in_area, geometry.SwathDefinition))
 
-#         in_array = np.ones((512, 512))
 
-#         res = self.proj.project_array(in_array)
+        # in case of wrong mode
 
-#         comp = np.zeros((512, 512))
-#         comp[78:334, 181:437] = 1
+        self.assertRaises(ValueError,
+                          Projector,
+                          random_string(20),
+                          random_string(20),
+                          mode=random_string(20))
 
-#         self.assert_(np.all(comp == res))
+        # quick mode cache
+
+        self.assertTrue(self.proj._cache['row_idx'] is not None)
+        self.assertTrue(self.proj._cache['col_idx'] is not None)
+
+        # nearest mode cache
+
+        self.proj = Projector(in_area_id, out_area_id, mode="nearest")
+        self.assertTrue(self.proj._cache['valid_index'] is not None)
+        self.assertTrue(self.proj._cache['valid_output_index'] is not None)
+        self.assertTrue(self.proj._cache['index_array'] is not None)
+
+
+    def test_project_array(self):
+        """Test the project_array function.
+        """
+        in_area_id = random_string(20)
+        out_area_id = random_string(20)
+
+        # test computation skip if equal areas
+        in_area = geometry.AreaDefinition()
+        self.proj = Projector(in_area, in_area)
+        self.assertEquals(self.proj.in_area, self.proj.out_area)
+        data = np.random.standard_normal((3, 1))
+        self.assertTrue(np.all(data == self.proj.project_array(data)))
+
+        # test quick
+        self.proj = Projector(in_area_id, out_area_id)
+        self.assertTrue(np.allclose(data, self.proj.project_array(data) - 1))
         
-#         self.proj = Projector("scan", "euro", precompute = False)
-
-#         in_array = np.ones((512, 512))
-
-#         res = self.proj.project_array(in_array)
-
-#         comp = np.zeros((512, 512))
-#         comp[78:334, 181:437] = 1
-
-#         self.assert_(np.all(comp == res))
-
-#         in_array = np.ma.ones((512, 512))
-
-#         res = self.proj.project_array(in_array)
-
-#         self.assert_(isinstance(res, np.ma.core.MaskedArray))
+        # test nearest
+        self.proj = Projector(in_area_id, out_area_id, mode="nearest")
+        self.assertTrue(np.allclose(data.ravel(),
+                                    self.proj.project_array(data) + 1))
         
 
 
+    def tearDown(self):
+        """Unpatch things.
+        """
+        unpatch_utils()
+        unpatch_geometry()
+        unpatch_kd_tree()
+        unpatch_image()
+        
 def random_string(length, choices = string.letters):
     """Generates a random string with elements from *set* of the specified
     *length*.
