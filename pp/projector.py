@@ -104,9 +104,10 @@ class Projector(object):
         if self.in_area == self.out_area:
             return
 
-        folder = "/var/tmp"
-        filename = ("%s2%s%s.npz"%(in_id, out_id, mode))
-        self._filename = os.path.join(folder, filename)
+        filename = (in_id + "2" + out_id + "_" + mode + ".npz")
+
+        # FIXME: the directory should be configurable.
+        self._filename = os.path.join("/var/tmp", filename)
 
         if(not os.path.exists(self._filename)):
             LOG.info("Computing projection from %s to %s..."

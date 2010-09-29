@@ -31,6 +31,9 @@
 from pp.scene import SatelliteInstrumentScene
 import imageo.geo_image as geo_image
 
+#pylint: disable-msg=W0612
+# remove warnings for unused prerequisites
+
 class VisirScene(SatelliteInstrumentScene):
     """Generic RGB building methods for VISIR instruments.
     """
@@ -53,7 +56,7 @@ class VisirScene(SatelliteInstrumentScene):
         img.enhance(gamma = 1.6)
 
         return img
-    
+
     overview.prerequisites = set([0.635, 0.85, 10.8])
 
     def airmass(self):
@@ -369,3 +372,6 @@ class VisirScene(SatelliteInstrumentScene):
         return img
 
     cloudtop.prerequisites = set([3.75, 10.8, 12.0])
+    
+#pylint: enable-msg=W0612
+

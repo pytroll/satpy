@@ -1,17 +1,52 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2009.
+
+# SMHI,
+# Folkborgsvägen 1,
+# Norrköping, 
+# Sweden
+
+# Author(s):
+ 
+#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
+
+# This file is part of mpop.
+
+# mpop is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# mpop is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with mpop.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the imageo.image module.
 """
-
+import random
 import unittest
-import imageo.image as image
+
 import numpy as np
+
+import imageo.image as image
+
 
 EPSILON = 0.0001
 
-def all(iterable):
-    for element in iterable:
-        if not element:
-            return False
-    return True
+# Support for python <2.5
+try:
+    all
+except NameError:
+    def all(iterable):
+        for element in iterable:
+            if not element:
+                return False
+        return True
 
 class TestEmptyImage(unittest.TestCase):
     """Class for testing the pp.image module
@@ -49,8 +84,6 @@ class TestEmptyImage(unittest.TestCase):
     def test_convert(self):
         """Convert an empty image.
         """
-        import random
-        import string
         for mode1 in self.modes:
             for mode2 in self.modes:
                 self.img.convert(mode1)
@@ -60,8 +93,7 @@ class TestEmptyImage(unittest.TestCase):
                 self.assertEqual(self.img.mode, mode2)
                 self.assertEqual(self.img.channels, [])
         while True:
-            randstr = random_string(string.letters,
-                                    random.choice(range(1,7)))
+            randstr = random_string(random.choice(range(1, 7)))
             if randstr not in self.modes:
                 break
         self.assertRaises(ValueError, self.img.convert, randstr)
@@ -69,8 +101,6 @@ class TestEmptyImage(unittest.TestCase):
     def test_stretch(self):
         """Stretch an empty image
         """
-        import random
-        import string
         oldmode = self.img.mode
         for mode in self.modes:
             self.img.convert(mode)
@@ -88,8 +118,7 @@ class TestEmptyImage(unittest.TestCase):
 
             # Generate a random string
             while True:
-                testmode = random_string(string.letters,
-                                         random.choice(range(1,7)))
+                testmode = random_string(random.choice(range(1, 7)))
                 if testmode not in self.modes:
                     break
             
@@ -229,16 +258,13 @@ class TestImageCreation(unittest.TestCase):
     def test_creation(self):
         """Creation of an image.
         """
-        import string
-        import random
 
         self.assertRaises(TypeError, image.Image,
                           channels = random.randint(1,1000))
         self.assertRaises(TypeError, image.Image,
                           channels = random.random())
         self.assertRaises(TypeError, image.Image,
-                          channels = random_string(string.letters,
-                                                   random.randint(1,10)))
+                          channels = random_string(random.randint(1,10)))
         
         chs = [np.random.rand(random.randint(1, 10), random.randint(1, 10)),
                np.random.rand(random.randint(1, 10), random.randint(1, 10)),
@@ -315,7 +341,6 @@ class TestRegularImage(unittest.TestCase):
     def setUp(self):
         """Setup the test.
         """
-        import random
         import os
         import tempfile
         one_channel = np.random.rand(random.randint(1, 10),
@@ -378,8 +403,6 @@ class TestRegularImage(unittest.TestCase):
     def test_convert(self):
         """Convert an image.
         """
-        import random
-        import string
         i = 0
         for mode1 in self.modes:
             j = 0
@@ -410,8 +433,7 @@ class TestRegularImage(unittest.TestCase):
                 j = j + 1
             i = i + 1
         while True:
-            randstr = random_string(string.letters,
-                                    random.choice(range(1,7)))
+            randstr = random_string(random.choice(range(1, 7)))
             if randstr not in self.modes:
                 break
         self.assertRaises(ValueError, self.img.convert, randstr)
@@ -419,8 +441,6 @@ class TestRegularImage(unittest.TestCase):
     def test_stretch(self):
         """Stretch an image.
         """
-        import random
-        import string
         oldmode = self.img.mode
 
         for mode in "L":
@@ -448,8 +468,7 @@ class TestRegularImage(unittest.TestCase):
 
             # Generate a random string
             while True:
-                testmode = random_string(string.letters,
-                                         random.choice(range(1,7)))
+                testmode = random_string(random.choice(range(1, 7)))
                 if testmode not in self.modes:
                     break
             
@@ -717,14 +736,15 @@ class TestNoDataImage(unittest.TestCase):
         self.img.stretch("histogram")
         self.assert_(self.img.channels[0].shape == (2, 3))
 
-def random_string(choices, length):
+def random_string(length,
+                  choices="abcdefghijklmnopqrstuvwxyz"
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """
-    import random
     return "".join([random.choice(choices)
-                    for i in range(length)])
-    
+                    for dummy in range(length)])
+
 
 if __name__ == '__main__':
     unittest.main()

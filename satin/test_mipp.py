@@ -27,30 +27,32 @@
 
 """Test module for mipp plugin.
 """
-
-import unittest
 import ConfigParser
-import pp.scene
 import datetime
-import xrit.sat
-import string
-import satin.mipp
 import random
-import datetime
+import unittest
+
 import numpy as np
+import xrit.sat
+
+import pp.scene
+import satin.mipp
 
 
-def random_string(length, choices = string.letters):
+def random_string(length,
+                  choices="abcdefghijklmnopqrstuvwxyz"
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """
     return "".join([random.choice(choices)
-                    for i in range(length)])
+                    for dummy_itr in range(length)])
 
-channels = [random_string(3)
-            for i in range(int(random.random() * 40))]
-instrument_name = random_string(10)
+CHANNELS = [random_string(3)
+            for dummy_j in range(int(random.random() * 40))]
+INSTRUMENT_NAME = random_string(10)
 
+DUMMY_STRING = random_string(10)
 
 def patch_configparser():
     """Patch to fake ConfigParser.
@@ -75,30 +77,34 @@ def patch_configparser():
             return DUMMY_STRING
 
         def sections(self):
+            """Dummy sections function.
+            """
             self = self
-            return [instrument_name + "-" + str(i)
-                    for i, chn in enumerate(channels)]
+            return [INSTRUMENT_NAME + "-" + str(j)
+                    for j, dummy in enumerate(CHANNELS)]
         
         
         def items(self, arg):
+            """Dummy items function.
+            """
             self = self
             try:
                 chn_nb = arg[arg.find("-") + 1:]
-                return [("name", "'" + channels[int(chn_nb)] + "'"),
+                return [("name", "'" + CHANNELS[int(chn_nb)] + "'"),
                         ("size", str((int(random.random() * 1000),
                                       int(random.random() * 1000)))),
                         ("resolution", str(int(random.random() * 1000)))]
             except ValueError:
                 return []
         
-    ConfigParser._ConfigParser = ConfigParser.ConfigParser
+    ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 
 def unpatch_configparser():
     """Unpatch fake ConfigParser.
     """
-    ConfigParser.ConfigParser = ConfigParser._ConfigParser
-    delattr(ConfigParser, "_ConfigParser")
+    ConfigParser.ConfigParser = ConfigParser.OldConfigParser
+    delattr(ConfigParser, "OldConfigParser")
 
 
 def patch_satellite():
@@ -116,14 +122,15 @@ def patch_satellite():
         """
 
         def __init__(self, *args, **kwargs):
+            del args, kwargs
             self.fullname = random_string(10)
             self.satname = random_string(10)
             self.number = random_string(2)
-            self.instrument_name = instrument_name
-            self.channels_to_load = [channels[int(random.random() *
-                                                  len(channels))]
-                                     for i in range(int(random.random() *
-                                                        len(channels)))]
+            self.instrument_name = INSTRUMENT_NAME
+            self.channels_to_load = [CHANNELS[int(random.random() *
+                                                  len(CHANNELS))]
+                                     for dummy_i in range(int(random.random() *
+                                                              len(CHANNELS)))]
             self.time_slot = (datetime.timedelta(seconds=int(random.random() *
                                                              9999999999)) +
                               datetime.datetime(1970, 1, 1))
@@ -138,14 +145,14 @@ def patch_satellite():
         
         def __setitem__(self, key, data):
             self.channels[key] = FakeChannel(data)
-    pp.scene._SatelliteInstrumentScene = pp.scene.SatelliteInstrumentScene
+    pp.scene.OldSatelliteInstrumentScene = pp.scene.SatelliteInstrumentScene
     pp.scene.SatelliteInstrumentScene = FakeSatelliteInstrumentScene
 
 def unpatch_satellite():
     """Unpatch the SatelliteInstrumentScene.
     """
-    pp.scene.SatelliteInstrumentScene = pp.scene._SatelliteInstrumentScene
-    delattr(pp.scene, "_SatelliteInstrumentScene")
+    pp.scene.SatelliteInstrumentScene = pp.scene.OldSatelliteInstrumentScene
+    delattr(pp.scene, "OldSatelliteInstrumentScene")
 
 
 def patch_mipp():
@@ -154,6 +161,7 @@ def patch_mipp():
     
     class FakeMetadata:
         def __init__(self, *args, **kwargs):
+            del args, kwargs
             self.calibration_unit = random_string(1)
             self.proj4_params = "proj=uie a=4646"
             self.pixel_size = (random.random() * 5642,
@@ -162,7 +170,7 @@ def patch_mipp():
         """Fake slicer for mipp.
         """
         def __getitem__(self, key):
-            return FakeMetadata(), np.random.standard_normal((3,3))
+            return FakeMetadata(), np.random.standard_normal((3, 3))
     
     def fake_load(*args, **kwargs):
         """Fake satellite loading function.
@@ -170,14 +178,14 @@ def patch_mipp():
         del args, kwargs
         return FakeSlicer()
     
-    xrit.sat._load = xrit.sat.load
+    xrit.sat.old_load = xrit.sat.load
     xrit.sat.load = fake_load
 
 def unpatch_mipp():
     """Unpatch the SatelliteInstrumentScene.
     """
-    xrit.sat.load = xrit.sat._load
-    delattr(xrit.sat, "_load")
+    xrit.sat.load = xrit.sat.old_load
+    delattr(xrit.sat, "old_load")
 
 
 class TestMipp(unittest.TestCase):
@@ -197,9 +205,9 @@ class TestMipp(unittest.TestCase):
         satscene = pp.scene.SatelliteInstrumentScene()
         satin.mipp.load(satscene)
         print satscene.area_def
-        for chn in channels:
+        for chn in CHANNELS:
             if chn in satscene.channels_to_load:
-                self.assertEquals(satscene.channels[chn].data.shape, (3,3))
+                self.assertEquals(satscene.channels[chn].data.shape, (3, 3))
             else:
                 self.assertFalse(chn in satscene.channels)
         

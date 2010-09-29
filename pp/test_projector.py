@@ -1,6 +1,34 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2009.
+
+# SMHI,
+# Folkborgsvägen 1,
+# Norrköping, 
+# Sweden
+
+# Author(s):
+ 
+#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
+
+# This file is part of mpop.
+
+# mpop is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# mpop is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with mpop.  If not, see <http://www.gnu.org/licenses/>.
+
 """Test module for pp.projector.
 """
-import string
 import unittest
 
 import numpy as np
@@ -22,6 +50,9 @@ class FakeSwathDefinition:
     """
 
     def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.shape = None
         self.area_id = random_string(20)
 
 
@@ -29,11 +60,13 @@ class FakeImageContainer:
     """Fake ImageContainer
     """
     def __init__(self, data, *args, **kwargs):
+        del args, kwargs
         self.data = data
 
     def get_array_from_linesample(self, *args):
         """Fake method.
         """
+        del args
         return self.data + 1
 
 def patch_geometry():
@@ -54,10 +87,12 @@ def unpatch_geometry():
 
 
 def patch_kd_tree():
-
+    """Patching the kd_tree module.
+    """
     def fake_get_neighbour_info(*args, **kwargs):
         """Fake function.
         """
+        del args, kwargs
         return (np.random.standard_normal((3, 1)),
                 np.random.standard_normal((3, 1)),
                 np.random.standard_normal((3, 1)),
@@ -66,6 +101,7 @@ def patch_kd_tree():
     def fake_gsfni(typ, area, data, *args, **kwargs):
         """Fake function.
         """
+        del typ, area, args, kwargs
         return data - 1
 
     kd_tree.old_get_neighbour_info = kd_tree.get_neighbour_info
@@ -74,6 +110,8 @@ def patch_kd_tree():
     kd_tree.get_sample_from_neighbour_info = fake_gsfni
     
 def unpatch_kd_tree():
+    """Unpatching the kd_tree module.
+    """
 
     kd_tree.get_neighbour_info = kd_tree.old_get_neighbour_info
     delattr(kd_tree, "old_get_neighbour_info")
@@ -94,7 +132,7 @@ def patch_utils():
         else:
             return [geometry.AreaDefinition(area)]
         
-    def fake_generate_quick_linesample_arrays(*args):
+    def fake_gqla(*args):
         """Fake function.
         """
         del args
@@ -106,7 +144,7 @@ def patch_utils():
     utils.old_generate_quick_linesample_arrays = \
                        utils.generate_quick_linesample_arrays
     utils.generate_quick_linesample_arrays = \
-                       fake_generate_quick_linesample_arrays
+                       fake_gqla
     
 def unpatch_utils():
     """Unpatching the utils module.
@@ -204,16 +242,17 @@ class TestProjector(unittest.TestCase):
                           mode=random_string(20))
 
         # quick mode cache
-
-        self.assertTrue(self.proj._cache['row_idx'] is not None)
-        self.assertTrue(self.proj._cache['col_idx'] is not None)
+        cache = getattr(self.proj, "_cache")
+        self.assertTrue(cache['row_idx'] is not None)
+        self.assertTrue(cache['col_idx'] is not None)
 
         # nearest mode cache
 
         self.proj = Projector(in_area_id, out_area_id, mode="nearest")
-        self.assertTrue(self.proj._cache['valid_index'] is not None)
-        self.assertTrue(self.proj._cache['valid_output_index'] is not None)
-        self.assertTrue(self.proj._cache['index_array'] is not None)
+        cache = getattr(self.proj, "_cache")
+        self.assertTrue(cache['valid_index'] is not None)
+        self.assertTrue(cache['valid_output_index'] is not None)
+        self.assertTrue(cache['index_array'] is not None)
 
 
     def test_project_array(self):
@@ -248,13 +287,15 @@ class TestProjector(unittest.TestCase):
         unpatch_kd_tree()
         unpatch_image()
         
-def random_string(length, choices = string.letters):
+def random_string(length,
+                  choices="abcdefghijklmnopqrstuvwxyz"
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """
     import random
     return "".join([random.choice(choices)
-                    for i in range(length)])
+                    for dummy in range(length)])
 
 if __name__ == '__main__':
     unittest.main()
