@@ -77,27 +77,34 @@ def load_generic(satscene, options):
 
     try:
         from pyresample import utils, geometry
-    
-        if not satscene.area_def:
-            if satscene.area_id:
+
+        if satscene.area is None:
+            entire = True
+        else:
+            if not satscene.area_def:
                 area_file = os.path.join(CONFIG_PATH, "areas.def")
                 satscene.area_def = utils.parse_area_file(area_file,
                                                           satscene.area_id)[0]
 
                 if(satscene.area_def.proj_dict["proj"] != "geos" or
                    satscene.area_def.proj_dict["lon_0"] != "0.0"):
-                    raise ValueError("Slicing area must be in geos0.0 projection.")
-        
-
-                ll_x, ll_y, ur_x, ur_y = satscene.area_def.area_extent
-            else:
-                entire = True
-        else:
-            ll_x, ll_y, ur_x, ur_y = satscene.area_def.area_extent
+                    raise ValueError("Slicing area must be in "
+                                     "geos0.0 projection.")
+                
+            xsize = satscene.area_def.x_size
+            ysize = satscene.area_def.y_size
+            ll_x = satscene.area_def.projection_x_coords[0, 0]
+            ll_y = satscene.area_def.projection_y_coords[ysize - 1, 0]
+            ur_x = satscene.area_def.projection_x_coords[0, xsize - 1]
+            ur_y = satscene.area_def.projection_y_coords[0, 0]
         
     except ImportError:
         LOG.warning("Pyresample not found, has to load entire data !")
         entire = True
+
+    xsize = None
+    ysize = None
+
     for chn in satscene.channels_to_load:
         for option, value in options.items():
             if not option.startswith(satscene.instrument_name):
@@ -132,20 +139,22 @@ def load_generic(satscene, options):
             col_start, line_start, col_end, line_end = (0, 0, xsize, ysize)
 
         try:
-            metadata, data = xrit.sat.load(satscene.fullname,
-                                           satscene.time_slot,
-                                           chn,
-                                           mask=True,
-                                           calibrate=True)[line_start:line_end,
-                                                           col_start:col_end]
+            metadata, data = (xrit.sat.load(satscene.fullname,
+                                            satscene.time_slot,
+                                            chn,
+                                            mask=True,
+                                            calibrate=True)
+                              [line_start:line_end + 1,
+                               col_start:col_end + 1])
         except CalibrationError:
             LOG.warning("Loading non calibrated data since calibration failed.")
-            metadata, data = xrit.sat.load(satscene.fullname,
-                                           satscene.time_slot,
-                                           chn,
-                                           mask=True,
-                                           calibrate=False)[line_start:line_end,
-                                                           col_start:col_end]
+            metadata, data = (xrit.sat.load(satscene.fullname,
+                                            satscene.time_slot,
+                                            chn,
+                                            mask=True,
+                                            calibrate=False)
+                              [line_start:line_end + 1,
+                               col_start:col_end + 1])
             
         satscene[chn] = data
 

@@ -11,20 +11,21 @@ REGION: EuropeCanary {
         NAME:          Northern globe MSG image 0 degrees
         PCS_ID:        geos0
         PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
-        #PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
         XSIZE:         3000
         YSIZE:         1200
-        AREA_EXTENT:   (-4821642.8,1968262.4,4179557.2,5568742.4)
+        AREA_EXTENT:   (-4823148.08905083,1969764.67835886,4178061.40840017,5570248.47733926)
 };
+
+
 
 REGION: AfHorn {
         NAME:          Eastern globe MSG image 0 degrees
         PCS_ID:        geos0
         PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
-        #PCS_DEF:       proj=geos,lon_0=0.0,a=6378144.0,b=6356759.0,h=35785831.0, rf=295.49
         XSIZE:         1100
         YSIZE:         1600
-        AREA_EXTENT:   (2268302.4, -1329177.2, 5568742.4, 3471462.8)
+        AREA_EXTENT:   (2266804.5917747435,-1330678.8040398397,5567248.074173444,3469966.2612673608)
+
 };
 
 REGION: afhorn {
@@ -43,7 +44,7 @@ REGION: met09globe {
         #PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
         XSIZE:         3620
         YSIZE:         3620
-        AREA_EXTENT:   (-5430724.0, -5430724.0, 5430724.0, 5430724.0)
+        AREA_EXTENT:   (-5430729.7301287707,-5430729.7301287707,5430729.7301287707,5430729.7301287707)
 };
 
 REGION: met09globeFull {
@@ -53,7 +54,7 @@ REGION: met09globeFull {
         #PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
         XSIZE:         3712
         YSIZE:         3712
-        AREA_EXTENT:   (-5568742.4, -5568742.4, 5568742.4, 5568742.4)
+        AREA_EXTENT:   (-5568748.2757563526,-5568748.2757563526,5568748.2757563526,5568748.2757563526)
 };
 
 REGION: met07globe {
