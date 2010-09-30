@@ -1,7 +1,10 @@
 This is the Meteorological Post-Processing Package (MPoP). 
 
-The documentation is in the `doc` directory and can be build with sphinx (it
-has to be installed) using::
+A recent build of the documentation is available at
+http://mraspaud.github.com/mpop/.
+
+Otherwise, the documentation is in the `doc` directory and can be build with
+sphinx (it has to be installed) using::
 
    make html
 
