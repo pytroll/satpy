@@ -66,6 +66,17 @@ at the :mod:`pp.projector` module.
 
 .. _pyresample: http://googlecode.com/p/pyresample
 
+Geo-localisation of the data
+============================
+
+Once the data is loaded, each channel should have an `area` attribute
+containing a pyresample_ area object, if the pyresample_ package is
+available. These area objects should implement the :meth:`get_lonlats` method,
+returning the longitudes and latitudes of the channel data.  For more
+information on this matter, the reader is then referred to the documentation_ of
+the aforementioned package.
+
+.. _documentation: http://pyresample.googlecode.com/svn/trunk/docs/build/html/index.html
 
 Image composites
 ================
