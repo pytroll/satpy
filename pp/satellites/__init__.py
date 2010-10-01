@@ -28,16 +28,7 @@
 itself, it hold the mighty :meth:`pp.satellites.get_satellite_class` method.
 """
 
-import pp.satellites.meteosat07
 import pp.satellites.meteosat09
-import pp.satellites.noaa15
-import pp.satellites.noaa17
-import pp.satellites.noaa18
-import pp.satellites.noaa19
-import pp.satellites.metop02
-import pp.satellites.globalmetop02
-import pp.satellites.earsmetop02
-import pp.satellites.aqua
 import pp.satellites
 
 from pp import CONFIG_PATH

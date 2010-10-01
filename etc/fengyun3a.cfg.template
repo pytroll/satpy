@@ -1,0 +1,108 @@
+[satellite]
+satname = 'fengyun'
+number = '3a'
+instruments = ('mersi',)
+
+[modis-level2]
+format=fy3_mersi_aggr1km
+dir=/data/prod/satellit/fy3a
+
+[mersi-1]
+name = '1'
+frequency = (0.420, 0.4700, 0.520)
+resolution = 1000
+
+[mersi-2]
+name = '2'
+frequency = (0.500, 0.5500, 0.600)
+resolution = 1000
+
+[mersi-3]
+name = '3'
+frequency = (0.600, 0.6500, 0.700)
+resolution = 1000
+
+[mersi-4]
+name = '4'
+frequency = (0.815, 0.8650, 0.915)
+resolution = 1000
+
+[mersi-5]
+name = '5'
+frequency = (8.750, 11.2500, 13.750)
+resolution = 1000
+
+[mersi-6]
+name = '6'
+frequency = (0.392, 0.4120, 0.432)
+resolution = 1000
+
+[mersi-7]
+name = '7'
+frequency = (0.423, 0.4430, 0.463)
+resolution = 1000
+
+[mersi-8]
+name = '8'
+frequency = (0.470, 0.4900, 0.510)
+resolution = 1000
+
+[mersi-9]
+name = '9'
+frequency = (0.500, 0.5200, 0.540)
+resolution = 1000
+
+[mersi-10]
+name = '10'
+frequency = (0.545, 0.5650, 0.585)
+resolution = 1000
+
+[mersi-11]
+name = '11'
+frequency = (0.630, 0.6500, 0.670)
+resolution = 1000
+
+[mersi-12]
+name = '12'
+frequency = (0.665, 0.6850, 0.705)
+resolution = 1000
+
+[mersi-13]
+name = '13'
+frequency = (0.745, 0.7650, 0.785)
+resolution = 1000
+
+[mersi-14]
+name = '14'
+frequency = (0.845, 0.8650, 0.885)
+resolution = 1000
+
+[mersi-15]
+name = '15'
+frequency = (0.885, 0.9050, 0.925)
+resolution = 1000
+
+[mersi-16]
+name = '16'
+frequency = (0.920, 0.9400, 0.960)
+resolution = 1000
+
+[mersi-17]
+name = '17'
+frequency = (0.960, 0.9800, 1.000)
+resolution = 1000
+
+[mersi-18]
+name = '18'
+frequency = (0.983, 1.0300, 1.050)
+resolution = 1000
+
+[mersi-19]
+name = '19'
+frequency = (1.590, 1.6400, 1.690)
+resolution = 1000
+
+[mersi-20]
+name = '20'
+frequency = (2.080, 2.1300, 2.180)
+resolution = 1000
