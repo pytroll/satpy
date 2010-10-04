@@ -57,6 +57,8 @@ class GeoImage(imageo.image.Image):
     """
     area_id = None
     time_slot = None
+    tags = {}
+    gdal_options = {}
 
     def __init__(self, channels, area_id, time_slot, 
                  mode = "L", crange = None, fill_value = None, palette = None):
@@ -118,17 +120,18 @@ class GeoImage(imageo.image.Image):
 
         LOG.debug("Saving to GeoTiff.")
 
-        if tags is None:
-            tags = {}
-        if gdal_options is None:
-            gdal_options = []
+        if tags is not None:
+            self.tags.update(tags)
+        if gdal_options is not None:
+            self.gdal_options.update(gdal_options)
 
+        g_opts = ["=".join(i) for i in self.gdal_options.items()]
         #options = ["TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256"]
         #options = []
 
         if compression != 0:
-            gdal_options.append("COMPRESS=DEFLATE")
-            gdal_options.append("ZLEVEL=" + str(compression))
+            g_opts.append("COMPRESS=DEFLATE")
+            g_opts.append("ZLEVEL=" + str(compression))
 
         if(self.mode == "L"):
             ensure_dir(filename)
@@ -138,14 +141,14 @@ class GeoImage(imageo.image.Image):
                                        self.height, 
                                        1, 
                                        gdal.GDT_Byte,
-                                       gdal_options)
+                                       g_opts)
             else:
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        2, 
                                        gdal.GDT_Byte,
-                                       gdal_options)
+                                       g_opts)
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
         elif(self.mode == "RGB"):
             ensure_dir(filename)
@@ -155,14 +158,14 @@ class GeoImage(imageo.image.Image):
                                        self.height, 
                                        3, 
                                        gdal.GDT_Byte,
-                                       gdal_options)
+                                       g_opts)
             else:
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        4, 
                                        gdal.GDT_Byte,
-                                       gdal_options)
+                                       g_opts)
 
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
 
@@ -173,7 +176,7 @@ class GeoImage(imageo.image.Image):
                                    self.height, 
                                    4, 
                                    gdal.GDT_Byte,
-                                   gdal_options)
+                                   g_opts)
 
             self._gdal_write_channels(dst_ds, channels, channels[3], fill_value)
         else:
@@ -206,10 +209,10 @@ class GeoImage(imageo.image.Image):
             
 
 
-        tags.update({'TIFFTAG_DATETIME':
-                     self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
+        self.tags.update({'TIFFTAG_DATETIME':
+                          self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
 
-        dst_ds.SetMetadata(tags, '')
+        dst_ds.SetMetadata(self.tags, '')
         
         # Close the dataset
         
