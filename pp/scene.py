@@ -265,6 +265,13 @@ class SatelliteInstrumentScene(SatelliteScene):
         """Get the latitude and longitude grids of the current region for the
         given *resolution*.
         """
+
+        from warnings import warn
+        warn("The `get_lat_lon` function is deprecated."
+             "Please use the area's `get_lon_lats` method instead.",
+             DeprecationWarning)
+
+        
         if not isinstance(resolution, int):
             raise TypeError("Resolution must be an integer number of meters.")
 
@@ -327,8 +334,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         try:
             from pp.projector import Projector
         except ImportError:
-            LOG.error("Cannot load reprojection module. "
-                      "Is pyresample/pyproj missing ?")
+            LOG.exception("Cannot load reprojection module. "
+                          "Is pyresample/pyproj missing ?")
             return self
         
         _channels = set([])
@@ -405,7 +412,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 try:
                     res.channels.append(chn.project(cov[chn.area]))
                 except NotLoadedError:
-                    LOG.warning("Channel "+str(chn.name)+" not loaded,"
+                    LOG.warning("Channel "+str(chn.name)+" not loaded, "
                                 "thus not projected.")
 
         return res
