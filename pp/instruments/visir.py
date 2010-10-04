@@ -27,14 +27,13 @@
 
 """This module defines the generic VISIR instrument class.
 """
-
-from pp.scene import SatelliteInstrumentScene
-import imageo.geo_image as geo_image
+from imageo import geo_image
+import pp.scene
 
 #pylint: disable-msg=W0612
 # remove warnings for unused prerequisites
 
-class VisirScene(SatelliteInstrumentScene):
+class VisirScene(pp.scene.SatelliteInstrumentScene):
     """Generic RGB building methods for VISIR instruments.
     """
     def overview(self):
