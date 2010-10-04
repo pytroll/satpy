@@ -202,7 +202,6 @@ class GeoImage(imageo.image.Image):
             srs.SetProjCS(area.proj_id)
             
             srs.ImportFromProj4(area.proj4_string)
-            srs.SetWellKnownGeogCS('WGS84')
             dst_ds.SetProjection(srs.ExportToWkt())
         except AttributeError:
             LOG.exception("Could not load geographic data, invalid area")
