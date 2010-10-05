@@ -27,10 +27,12 @@
 
 """Module for testing the :mod:`pp.instruments.visir` module.
 """
+import random
 import unittest
 
 import numpy as np
 
+import pp.instruments.visir
 import pp.scene
 from imageo import geo_image
 
@@ -66,15 +68,21 @@ def patch_scene():
 
         def __getitem__(self, key):
             return FakeChannel(key)
-
+    import pp.scene
     pp.scene.OldSatelliteInstrumentScene = pp.scene.SatelliteInstrumentScene
     pp.scene.SatelliteInstrumentScene = FakeSatscene
+    reload(pp)
+    reload(pp.instruments)
+    reload(pp.instruments.visir)
 
 def unpatch_scene():
     """Unpatch the :mod:`pp.scene` module.
     """
     pp.scene.SatelliteInstrumentScene = pp.scene.OldSatelliteInstrumentScene
     delattr(pp.scene, "OldSatelliteInstrumentScene")
+    reload(pp)
+    reload(pp.instruments)
+    reload(pp.instruments.visir)
 
 def patch_geo_image():
     """Patch the :mod:`imageo.geo_image` module to avoid using it in these
@@ -110,12 +118,16 @@ class TestComposites(unittest.TestCase):
         """
         patch_geo_image()
         patch_scene()
-        try:
-            reload(pp.instruments.visir)
-        except NameError:
-            import pp.instruments.visir
         self.scene = pp.instruments.visir.VisirScene()
 
+    def test_channel_image(self):
+        """Test channel_image.
+        """
+        chn = random.random()
+        img = self.scene.channel_image(chn)
+        self.assertEquals(chn, img.args[0])
+        self.assertEquals(img.kwargs["stretch"], "crude")
+        
     def test_overview(self):
         """Test overview.
         """
