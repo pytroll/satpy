@@ -53,6 +53,7 @@ def patch_scene():
     class FakeSatscene:
         """Fake SatelliteInstrumentScene.
         """
+        __version__ = "fake"
         def __init__(self):
             self.channels = None
             self.area = None
@@ -109,25 +110,26 @@ class TestComposites(unittest.TestCase):
         """
         patch_geo_image()
         patch_scene()
+        try:
+            reload(pp.instruments.visir)
+        except NameError:
+            import pp.instruments.visir
+        self.scene = pp.instruments.visir.VisirScene()
 
     def test_overview(self):
         """Test overview.
         """
-        from pp.instruments.visir import VisirScene
-        self.scene = VisirScene()
         img = self.scene.overview()
         self.assertEquals(img.kwargs["mode"], "RGB")
         self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
         self.assertEquals(img.args[0], (0.635, 0.85, -10.8))
         self.assertEquals(img.kwargs["stretch"], "crude")
         self.assertEquals(img.kwargs["gamma"], 1.6)
-        self.assertEquals(VisirScene.overview.prerequisites,
+        self.assertEquals(self.scene.overview.prerequisites,
                           set([0.635, 0.85, 10.8]))
     def test_airmass(self):
         """Test airmass.
         """
-        from pp.instruments.visir import VisirScene
-        self.scene = VisirScene()
         img = self.scene.airmass()
         self.assertEquals(img.kwargs["mode"], "RGB")
         self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
@@ -136,7 +138,7 @@ class TestComposites(unittest.TestCase):
         self.assertEquals(img.kwargs["crange"], ((-25, 0),
                                                  (-40, 5),
                                                  (243, 208)))
-        self.assertEquals(VisirScene.airmass.prerequisites, set([6.7, 7.3,
+        self.assertEquals(self.scene.airmass.prerequisites, set([6.7, 7.3,
                                                                  9.7, 10.8]))
 
 
