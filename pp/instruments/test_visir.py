@@ -68,7 +68,6 @@ def patch_scene():
 
         def __getitem__(self, key):
             return FakeChannel(key)
-    import pp.scene
     pp.scene.OldSatelliteInstrumentScene = pp.scene.SatelliteInstrumentScene
     pp.scene.SatelliteInstrumentScene = FakeSatscene
     reload(pp)

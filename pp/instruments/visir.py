@@ -30,12 +30,25 @@
 from imageo import geo_image
 import pp.scene
 
-#pylint: disable-msg=W0612
+#pylint: disable=W0612
 # remove warnings for unused prerequisites
 
 class VisirScene(pp.scene.SatelliteInstrumentScene):
     """Generic RGB building methods for VISIR instruments.
     """
+    def channel_image(self, channel):
+        """Make a black and white image of the *channel*.
+        """
+        self.check_channels(channel)
+
+        img = geo_image.GeoImage(self[channel].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L")
+        img.enhance(stretch="crude")
+        return img
+
     def overview(self):
         """Make an overview RGB image composite.
         """
@@ -48,11 +61,11 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
         
-        img.enhance(stretch = "crude")
-        img.enhance(gamma = 1.6)
+        img.enhance(stretch="crude")
+        img.enhance(gamma=1.6)
 
         return img
 
@@ -80,40 +93,20 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-25, 0),
-                                           (-40, 5),
-                                           (243, 208)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-25, 0),
+                                         (-40, 5),
+                                         (243, 208)))
         return img
             
     airmass.prerequisites = set([6.7, 7.3, 9.7, 10.8])
 
-    def channel_image(self, channel):
-        """Make a black and white image of the *channel*.
-        """
-        self.check_channels(channel)
 
-        img = geo_image.GeoImage(self[channel].data,
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L")
-        img.enhance(stretch="crude")
-        return img
-    
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
         """
-        self.check_channels(0.635)
-
-        img = geo_image.GeoImage(self[0.635].data,
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L")
-        img.enhance(stretch="crude")
-        return img
+        return self.channel_image(0.6)
 
     vis06.prerequisites = set([0.635])
 
@@ -125,10 +118,10 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage(self[10.8].data,
                                  self.area,
                                  self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L",
-                                 crange = (-70 + 273.15, 57.5 + 273.15))
-        img.enhance(inverse = True)
+                                 fill_value=0,
+                                 mode="L",
+                                 crange=(-70 + 273.15, 57.5 + 273.15))
+        img.enhance(inverse=True)
         return img
 
     ir108.prerequisites = set([10.8])
@@ -140,8 +133,8 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img =  geo_image.GeoImage(self[6.7].data,
                                   self.area,
                                   self.time_slot,
-                                  fill_value = 0,
-                                  mode = "L")
+                                  fill_value=0,
+                                  mode="L")
         img.enhance(inverse = True, stretch = "linear")
         return img
     
@@ -154,8 +147,8 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage(self[7.3].data,
                                  self.area,
                                  self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L")
+                                 fill_value=0,
+                                 mode="L")
         img.enhance(inverse = True, stretch = "linear")
         return img
 
@@ -173,15 +166,15 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((0, 90),
-                                           (0, 90),
-                                           (0, 90)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((0, 90),
+                                         (0, 90),
+                                         (0, 90)))
 
 
 
-        img.enhance(gamma = 1.8)
+        img.enhance(gamma=1.8)
 
         return img
     
@@ -200,8 +193,8 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
 
         img.enhance(stretch = "crude")
         img.enhance(gamma = 1.6)
@@ -222,8 +215,8 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
 
         img.enhance(stretch = "crude")
         
@@ -243,14 +236,12 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-30, 0),
-                                           (0, 55),
-                                           (-70, 20)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-30, 0),
+                                         (0, 55),
+                                         (-70, 20)))
 
-        img.clip()
-        img.enhance(stretch = "crude")
 
         return img
 
@@ -268,13 +259,13 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-4, 2),
-                                           (0, 15),
-                                           (261, 289)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 15),
+                                         (261, 289)))
 
-        img.enhance(gamma = (1.0, 2.5, 1.0))
+        img.enhance(gamma=(1.0, 2.5, 1.0))
         
         return img
 
@@ -292,11 +283,11 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-4, 2),
-                                           (-4, 5),
-                                           (243, 303)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (-4, 5),
+                                         (243, 303)))
 
         return img
 
@@ -314,13 +305,13 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-4, 2),
-                                           (0, 6),
-                                           (243, 283)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 6),
+                                         (243, 283)))
 
-        img.enhance(gamma = (1.0, 2.0, 1.0))
+        img.enhance(gamma=(1.0, 2.0, 1.0))
         
         return img
 
@@ -338,14 +329,13 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-4, 2),
-                                           (0, 6),
-                                           (243, 293)))
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 6),
+                                         (243, 293)))
         
-        img.enhance(gamma = (1.0, 2.0, 1.0))
-        img.clip()
+        img.enhance(gamma=(1.0, 2.0, 1.0))
 
         return img
 
@@ -363,14 +353,14 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
 
-        img.enhance(stretch = (0.005, 0.005))
+        img.enhance(stretch=(0.005, 0.005))
 
         return img
 
     cloudtop.prerequisites = set([3.75, 10.8, 12.0])
     
-#pylint: enable-msg=W0612
+#pylint: enable=W0612
 
