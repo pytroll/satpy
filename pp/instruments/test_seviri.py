@@ -59,11 +59,13 @@ def patch_scene_mask():
             self.channels = {}
             self.area = None
             self.time_slot = None
-        
+            self.error = []
         def check_channels(self, *args):
             """Dummy check_channels function.
             """
-            pass
+            for chn in args:
+                if chn in self.error:
+                    raise RuntimeError()
 
         def __getitem__(self, key):
             if key not in self.channels:
@@ -262,6 +264,10 @@ class TestCo2Corr(unittest.TestCase):
             t4_co2corr = 0
         solution = t4_co2corr ** 0.25
         self.assertEquals(res, solution)
+
+        self.scene.error = [3.75]
+        res = self.scene.co2corr()
+        self.assertTrue(res is None)
 
     def tearDown(self):
         unpatch_scene()

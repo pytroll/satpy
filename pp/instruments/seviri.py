@@ -27,11 +27,12 @@
 
 """This modules describes the seviri instrument.
 """
-
 import numpy as np
-from pp.instruments.visir import VisirScene
+
 import imageo.geo_image as geo_image
+from pp.instruments.visir import VisirScene
 from pp.logger import LOG
+
 
 SEVIRI = [["VIS006", (0.56, 0.635, 0.71), 3000],
           ["VIS008", (0.74, 0.81, 0.88), 3000],
@@ -66,7 +67,7 @@ class SeviriScene(VisirScene):
           
         """
         try:
-            self.check_channels(3.9, 10.8, 13.4)
+            self.check_channels(3.75, 10.8, 13.4)
         except RuntimeError:
             LOG.warning("CO2 correction not performed, channel data missing.")
             return
@@ -87,7 +88,7 @@ class SeviriScene(VisirScene):
         
         return t4_co2corr
 
-    co2corr.prerequisites = set([3.9, 10.8, 13.4])
+    co2corr.prerequisites = set([3.75, 10.8, 13.4])
 
     def cloudtop(self):
         """Make a Cloudtop RGB image composite from Seviri channels.
