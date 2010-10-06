@@ -62,10 +62,10 @@ class AvhrrScene(VisirScene):
             imgb = geo_image.GeoImage((ch1b, ch2, ch3),
                                       self.area,
                                       self.time_slot,
-                                      fill_value = (0, 0, 0),
-                                      mode = "RGB")
+                                      fill_value=(0, 0, 0),
+                                      mode="RGB")
             
-            imgb.enhance(stretch = (0.005, 0.005))
+            imgb.enhance(stretch=(0.005, 0.005))
 
         except (NotLoadedError, KeyError):
             imgb = None
@@ -76,10 +76,10 @@ class AvhrrScene(VisirScene):
             imga = geo_image.GeoImage((ch1a, ch2, ch3),
                                       self.area,
                                       self.time_slot,
-                                      fill_value = (0, 0, 0),
-                                      mode = "RGB")
+                                      fill_value=(0, 0, 0),
+                                      mode="RGB")
 
-            imga.enhance(stretch = (0.005, 0.005))
+            imga.enhance(stretch=(0.005, 0.005))
 
         except (NotLoadedError, KeyError):
             imga = None

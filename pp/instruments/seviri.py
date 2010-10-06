@@ -101,10 +101,10 @@ class SeviriScene(VisirScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
 
-        img.enhance(stretch = (0.005, 0.005))
+        img.enhance(stretch=(0.005, 0.005))
 
         return img
     
@@ -123,13 +123,12 @@ class SeviriScene(VisirScene):
                                  self.area,
                                  self.time_slot,
                                  fill_value = (0, 0, 0),
-                                 mode = "RGB",
-                                 crange = ((-4, 2),
-                                           (0, 6),
-                                           (243, 293)))
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 6),
+                                         (243, 293)))
         
         img.enhance(gamma = (1.0, 2.0, 1.0))
-        img.clip()
 
         return img
 
@@ -140,34 +139,34 @@ class SeviriScene(VisirScene):
         """Make a High Resolution Overview RGB image composite from Seviri
         channels.
         """
-        self.check_channels(0.6, 0.8, 10.8, "HRV")
+        self.check_channels(0.635, 0.85, 10.8, "HRV")
 
-        ch1 = self[0.6].check_range()
-        ch2 = self[0.8].check_range()
+        ch1 = self[0.635].check_range()
+        ch2 = self[0.85].check_range()
         ch3 = -self[10.8].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
 
-        img.enhance(stretch = "crude")
-        img.enhance(gamma = [1.6, 1.6, 1.1])
+        img.enhance(stretch="crude")
+        img.enhance(gamma=[1.6, 1.6, 1.1])
         
         luminance = geo_image.GeoImage((self["HRV"].data),
                                        self.area,
                                        self.time_slot,
-                                       crange = (0,100),
-                                       mode = "L")
+                                       crange=(0, 100),
+                                       mode="L")
 
-        luminance.enhance(gamma = 2.0)
+        luminance.enhance(gamma=2.0)
 
         img.replace_luminance(luminance.channels[0])
         
         return img
 
-    hr_overview.prerequisites = set(["HRV", 0.6, 0.8, 10.8])
+    hr_overview.prerequisites = set(["HRV", 0.635, 0.85, 10.8])
 
     def hr_visual(self):
         """Make a High Resolution visual BW image composite from Seviri
@@ -178,8 +177,8 @@ class SeviriScene(VisirScene):
         img = geo_image.GeoImage(self["HRV"].data,
                                  self.area,
                                  self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L")
+                                 fill_value=0,
+                                 mode="L")
         img.enhance(stretch="crude")
         return img
 

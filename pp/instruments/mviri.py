@@ -27,15 +27,15 @@
 
 """This modules describes the mviri instrument.
 """
-
-from pp.instruments.visir import VisirScene
 from imageo import geo_image
+import pp.instruments.visir
+
 
 MVIRI = [["00_7", (0.5, 0.7, 0.9), 2500],
          ["06_4", (5.7, 6.4, 7.1), 5000],
          ["11_5", (10.5, 11.5, 12.5), 5000]]
 
-class MviriScene(VisirScene):
+class MviriScene(pp.instruments.visir.VisirScene):
     """This class sets up the Seviri instrument channel list.
     """
     channel_list = MVIRI
@@ -54,8 +54,8 @@ class MviriScene(VisirScene):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = (0, 0, 0),
-                                 mode = "RGB")
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
         
         img.enhance(stretch = "crude")
         img.enhance(gamma = 1.6)
@@ -72,11 +72,11 @@ class MviriScene(VisirScene):
         img = geo_image.GeoImage(self[10.8].data,
                                  self.area,
                                  self.time_slot,
-                                 fill_value = 0,
-                                 mode = "L")
+                                 fill_value=0,
+                                 mode="L")
         
-        img.enhance(inverse = True)
-        img.enhance(stretch = "crude")
+        img.enhance(inverse=True)
+        img.enhance(stretch="crude")
 
         return img
 
