@@ -58,6 +58,7 @@ def patch_scene():
             self.channels = None
             self.area = None
             self.time_slot = None
+            self.error = []
         
         def check_channels(self, *args):
             """Dummy check_channels function.
@@ -65,6 +66,8 @@ def patch_scene():
             self.channels = args
 
         def __getitem__(self, key):
+            if key in self.error:
+                raise KeyError()
             return FakeChannel(key)
     pp.instruments.visir.OldVisirScene = pp.instruments.visir.VisirScene
     pp.instruments.visir.VisirScene = FakeSatscene
@@ -135,6 +138,10 @@ class TestComposites(unittest.TestCase):
         self.assertTrue("gamma" not in img.kwargs)
         #self.assertEquals(self.scene.overview.prerequisites,
         #                  set([10.8, 12.0]))
+
+        self.scene.error = (3.75, 1.63)
+        img = self.scene.cloudtop()
+        self.assertTrue(img is None)
 
 
     def tearDown(self):
