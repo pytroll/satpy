@@ -56,29 +56,28 @@ def get_satellite_class(satellite, number, variant=""):
                     return eval(module_name+"."+j)
     return build_satellite_class(satellite, number, variant)
 
-def build_instrument(name, channels):
-    """Automatically generate an instrument class from its *name* and
-    *channels*.
+def build_instrument(instrument_name, channel_list):
+    """Automatically generate an instrument class from its *instrument_name* and
+    *channel_list*.
     """
 
     from pp.instruments.visir import VisirScene
-    class Instrument(VisirScene):
-        """Generic instrument, built on the fly.
-        """
-        channel_list = channels
-        instrument_name = name
-    return Instrument
+    instrument_class = type(instrument_name.capitalize() + "Scene",
+                            (VisirScene,),
+                            {"channel_list": channel_list,
+                             "instrument_name": instrument_name})
+    return instrument_class
                      
-def build_satellite_class(satellite, num, var=""):
+def build_satellite_class(satellite, number, variant=""):
     """Build a class for the given satellite (defined by the three strings
-    *satellite*, *num*, and *var*) on the fly, using a config file. The
+    *satellite*, *number*, and *variant*) on the fly, using a config file. The
     function returns as many classes as there are instruments defined in the
     configuration files. They inherit from the corresponding instrument class,
     which is also created on the fly is no predefined module for this
     instrument is available.
     """
 
-    fullname = var + satellite + num
+    fullname = variant + satellite + number
     
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
@@ -86,8 +85,8 @@ def build_satellite_class(satellite, num, var=""):
     sat_classes = []
     for instrument in instruments:
         try:
-            mod = __import__("pp.instruments." +
-                             instrument, globals(), locals(),
+            mod = __import__("pp.instruments." + instrument,
+                             globals(), locals(),
                              [instrument.capitalize() + 'Scene'])
             instrument_class = getattr(mod, instrument.capitalize() + 'Scene')
         except ImportError:
@@ -102,15 +101,18 @@ def build_satellite_class(satellite, num, var=""):
                                  eval(conf.get(section, "resolution"))]]
                                  
             instrument_class = build_instrument(instrument, ch_list)
-        
-        class Satellite(instrument_class):
-            """Generic satellite, built on the fly.
-            """
-            satname = satellite
-            number = num
-            variant = var
+
+        sat_class = type(variant.capitalize() +
+                         satellite.capitalize() +
+                         number.capitalize() +
+                         instrument.capitalize() +
+                         "Scene",
+                         (instrument_class,),
+                         {"satname": satellite,
+                          "number": number,
+                          "variant": variant})
             
-        sat_classes += [Satellite]
+        sat_classes += [sat_class]
         
     if len(sat_classes) == 1:
         return sat_classes[0]
