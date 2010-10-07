@@ -215,12 +215,18 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
 
-    def load(self, channels=None, reload=False):
+    def load(self, channels=None, load_again=False):
         """Load instrument data into the *channels*. *Channels* is a list or a
         tuple containing channels we will load data into, designated by there
         center wavelength (float), resolution (integer) or name (string). If
         None, all channels are loaded.
+
+        The *load_again* boolean flag allows to reload the channels even they
+        have already been loaded, to mirror changes on disk for example. This
+        is false by default.
         """
+
+        # Set up the list of channels to load.
         if channels is None:
             for chn in self.channel_list:
                 self.channels_to_load |= set([chn[0]])
@@ -236,13 +242,15 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
 
-        if not reload:
+        if not load_again:
             self.channels_to_load -= set([chn.name
                                           for chn in self.loaded_channels()])
 
         if len(self.channels_to_load) == 0:
             return
 
+        
+        # find the plugin to use from the config file
         conf = ConfigParser.ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
 
@@ -252,6 +260,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         except NameError:
             reader_name = str(reader_name)
             
+        # read the data
         reader = "satin."+reader_name
         try:
             reader_module = __import__(reader, globals(), locals(), ['load'])

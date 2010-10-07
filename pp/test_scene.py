@@ -1,17 +1,25 @@
 """Unit tests for scene.py.
 """
-
 import ConfigParser
-import pp.projector
-import string
+import datetime
+import unittest
 
-def random_string(length, choices = string.letters):
+import numpy as np
+
+import pp.projector
+from pp.channel import NotLoadedError
+from pp.scene import SatelliteScene, SatelliteInstrumentScene
+
+
+def random_string(length,
+                  choices="abcdefghijklmnopqrstuvwxyz"
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """
-    import random
     return "".join([random.choice(choices)
-                    for i in range(length)])
+                    for dummy_itr in range(length)])
+
 EPSILON = 0.0001
 DUMMY_STRING = "test_plugin"
 
@@ -37,14 +45,14 @@ def patch_configparser():
             self = self
             return DUMMY_STRING
         
-    ConfigParser._ConfigParser = ConfigParser.ConfigParser
+    ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 
 def unpatch_configparser():
     """Unpatch fake ConfigParser.
     """
-    ConfigParser.ConfigParser = ConfigParser._ConfigParser
-    delattr(ConfigParser, "_ConfigParser")
+    ConfigParser.ConfigParser = ConfigParser.OldConfigParser
+    delattr(ConfigParser, "OldConfigParser")
 
 
 def patch_projector():
@@ -54,30 +62,25 @@ def patch_projector():
         """Dummy Projector class.
         """
         def __init__(self, *args, **kwargs):
+            del args, kwargs
             self.out_area = None
-            pass
 
         def project_array(self, arg):
             """Dummy project_array method.
             """
             return arg
 
-    pp.projector._Projector = pp.projector.Projector
+    pp.projector.OldProjector = pp.projector.Projector
     pp.projector.Projector = FakeProjector
 
 def unpatch_projector():
     """Unpatch fake projector
     """
-    pp.projector.Projector = pp.projector._Projector
-    delattr(pp.projector, "_Projector")
+    pp.projector.Projector = pp.projector.OldProjector
+    delattr(pp.projector, "OldProjector")
 
 
 
-import unittest
-from pp.scene import SatelliteScene, SatelliteInstrumentScene
-from pp.channel import NotLoadedError
-import datetime
-import numpy as np
 
 
 class TestSatelliteScene(unittest.TestCase):
