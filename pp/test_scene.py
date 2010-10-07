@@ -2,6 +2,7 @@
 """
 import ConfigParser
 import datetime
+import random
 import unittest
 
 import numpy as np
