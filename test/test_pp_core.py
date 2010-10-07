@@ -34,6 +34,7 @@ import ConfigParser
 import random
 import unittest
 
+import numpy as np
 from pyresample import geometry, utils, kd_tree, image
 
 import pp.scene
@@ -190,16 +191,16 @@ def patch_configparser():
             """
             del args, kwargs
             self = self
-            return DUMMY_STRING
+            return "test_plugin"
         
-    ConfigParser._ConfigParser = ConfigParser.ConfigParser
+    ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 
 def unpatch_configparser():
     """Unpatch fake ConfigParser.
     """
-    ConfigParser.ConfigParser = ConfigParser._ConfigParser
-    delattr(ConfigParser, "_ConfigParser")
+    ConfigParser.ConfigParser = ConfigParser.OldConfigParser
+    delattr(ConfigParser, "OldConfigParser")
 
 
 def random_string(length,
