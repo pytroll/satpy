@@ -32,7 +32,7 @@ import unittest
 import pp.instruments.avhrr
 import pp.scene
 from imageo import geo_image
-
+import pp.instruments.visir
 
 def patch_scene():
     """Patch the :mod:`pp.scene` module to avoid using it in these tests.
