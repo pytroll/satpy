@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010.
 
@@ -41,8 +42,11 @@ LOG = logging.getLogger("pp.satellites")
 def get_satellite_class(satellite, number, variant=""):
     """Get the class for a given satellite, defined by the three strings
     *satellite*, *number*, and *variant*. If no class is found, an attempt is
-    made to build the class from a corresponding configuration file.
+    made to build the class from a corresponding configuration file, see
+    :func:`build_satellite_class`. Several classes can be returned if a given
+    satellite has several instruments.
     """
+    classes = []
     for i in dir(pp.satellites):
         module_name = "pp.satellites."+i
         for j in dir(eval(module_name)):
@@ -50,11 +54,16 @@ def get_satellite_class(satellite, number, variant=""):
                hasattr(eval(module_name+"."+j), "number") and
                satellite == eval(module_name+"."+j+".satname") and
                number == eval(module_name+"."+j+".number")):
-                if(variant is not None and
-                   hasattr(eval(module_name+"."+j), "variant") and
+                if(hasattr(eval(module_name+"."+j), "variant") and
                    variant == eval(module_name+"."+j+".variant")):
-                    return eval(module_name+"."+j)
-    return build_satellite_class(satellite, number, variant)
+                    classes += [eval(module_name+"."+j)]
+    if classes != []:
+        if len(classes) == 1:
+            return classes[0]
+        else:
+            return classes
+    else:
+        return build_satellite_class(satellite, number, variant)
 
 def build_instrument(instrument_name, channel_list):
     """Automatically generate an instrument class from its *instrument_name* and
