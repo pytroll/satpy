@@ -83,7 +83,9 @@ class Projector(object):
                                                         lats=in_latlons[1])
                 in_id = in_area
             else:
-                raise utils.AreaNotFound("Input area must be defined in " +
+                raise utils.AreaNotFound("Input area " +
+                                         str(in_area) +
+                                         " must be defined in " +
                                          self.area_file + ", be an area object"
                                          " or longitudes/latitudes must be "
                                          "provided.")
@@ -100,7 +102,9 @@ class Projector(object):
                 self.out_area = out_area
                 out_id = out_area.area_id
             else:
-                raise utils.AreaNotFound("Output area must be defined in " +
+                raise utils.AreaNotFound("Output area " +
+                                         str(out_area) +
+                                         " must be defined in " +
                                          self.area_file + " or "
                                          "be an area object.")
 
