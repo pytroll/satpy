@@ -156,12 +156,13 @@ class Projector(object):
         else:
             self._cache = np.load(self._filename)
 
-    def save(self):
-        """Save the precomputation to disk.
+    def save(self, resave=False):
+        """Save the precomputation to disk, and overwrite existing file in case
+        *resave* is true.
         """
-        LOG.info("Saving projection to " +
-                 self._filename)
-        if not os.path.exists(self._filename):
+        if (not os.path.exists(self._filename)) or resave:
+            LOG.info("Saving projection to " +
+                     self._filename)
             np.savez(self._filename, **self._cache)
         
         
