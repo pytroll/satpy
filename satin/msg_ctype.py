@@ -29,18 +29,18 @@
 
 """Module to handle cloudtype data.
 """
-import pps_gisdata # From NWCSAF/PPS - ACPG
-
-import epshdf # From NWCSAF/PPS - ACPG
-import area
-from pp.channel import GenericChannel
-import numpy
-
-import logging
 import ConfigParser
 import glob
-from satin import CONFIG_PATH
+import logging
 import os.path
+
+import area
+import epshdf # From NWCSAF/PPS - ACPG
+import numpy
+
+from pp.channel import GenericChannel
+from satin import CONFIG_PATH
+
 
 CONF = ConfigParser.ConfigParser()
 CONF.read(os.path.join(CONFIG_PATH, "meteosat09.cfg"))

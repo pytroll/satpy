@@ -31,16 +31,18 @@
 """
 #
 #
-import epshdf
-import area
-import numpy
-from pp.channel import GenericChannel
-
-import logging
 import ConfigParser
 import glob
-from satin import CONFIG_PATH
+import logging
 import os.path
+
+import area
+import epshdf
+import numpy
+
+from pp.channel import GenericChannel
+from satin import CONFIG_PATH
+
 
 CONF = ConfigParser.ConfigParser()
 CONF.read(os.path.join(CONFIG_PATH, "meteosat09.cfg"))
