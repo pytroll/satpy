@@ -6,7 +6,6 @@ projection='geos(0.0)'
 
 [seviri-level1]
 format = 'xrit/MSG'
-#dir='/data/24/saf/geo_in'
 dir='/local_disk/usr/src/msg/import/SEVIRI_data.20091008'
 filename='H-000-MSG?__-MSG?________-%(channel)s-%(segment)s-%Y%m%d%H%M-__'
 filename_pro='H-000-MSG?__-MSG?________-_________-%(segment)s-%Y%m%d%H%M-__'
@@ -101,8 +100,8 @@ msg_dir=/local_disk/opt/MSG/current
 msg_inc=%(msg_dir)s/include
 msg_lib=%(msg_dir)s/bin
 msg_bin=%(msg_dir)s/bin
-ctype_dir=%(msg_dir)s/export/PGE02
-ctth_dir=%(msg_dir)s/export/PGE03
+ctype_dir=/local_disk/data/test/geo_data/pge.200910081430
+ctth_dir=/local_disk/data/test/geo_data/pge.200910081430
 
 [test]
 msg_dir=/local_disk/opt/MSG/current
