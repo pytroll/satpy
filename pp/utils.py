@@ -32,6 +32,16 @@
 
 import logging
 
+
+class NullHandler(logging.Handler):
+    """Empty handler.
+    """
+    def emit(self, record):
+        """Record a message.
+        """
+        pass
+    
+
 def ensure_dir(filename):
     """Checks if the dir of f exists, otherwise create it.
     """
@@ -59,4 +69,15 @@ def logging_on(level = logging.INFO):
 def logging_off():
     """Turn logging off.
     """
-    logging.getLogger('').handlers = []
+    logging.getLogger('').handlers = [NullHandler()]
+    
+def get_logger(name):
+    """Return logger with null handle
+    """
+    
+    log = logging.getLogger(name)
+    log.addHandler(NullHandler())
+    return log
+
+#Default level is warning
+logging_on(logging.WARNING)

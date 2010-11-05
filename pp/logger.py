@@ -28,25 +28,10 @@
 """Basic logging facility.
 """
 
-import logging
+import pp.utils
 
-class NullHandler(logging.Handler):
-    """Empty handler.
-    """
-    def emit(self, record):
-        """Record a message.
-        """
-        pass
 
-LOG = logging.getLogger("pp")
-LOG.setLevel(logging.DEBUG)
-LOG.addHandler(NullHandler())
+LOG = pp.utils.get_logger("pp")
 
-# Enable logging to console
-
-#LOG.setLevel(logging.DEBUG)
-#CONSOLE_HANDLER = logging.StreamHandler()
-#CONSOLE_HANDLER.setLevel(logging.DEBUG)
-#LOG.addHandler(CONSOLE_HANDLER)
 
 

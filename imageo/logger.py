@@ -28,24 +28,12 @@
 """Basic logging facility.
 """
 
-import logging
+import pp.utils
 
-class NullHandler(logging.Handler):
-    """Empty handler.
-    """
-    def emit(self, record):
-        """Record a message.
-        """
-        pass
 
-LOG = logging.getLogger("imageo")
-LOG.addHandler(NullHandler())
+LOG = pp.utils.get_logger("imageo")
 
-# Enable logging to console
 
-#LOG.setLevel(logging.DEBUG)
-#CONSOLE_HANDLER = logging.StreamHandler()
-#CONSOLE_HANDLER.setLevel(logging.DEBUG)
-#LOG.addHandler(CONSOLE_HANDLER)
+
 
 
