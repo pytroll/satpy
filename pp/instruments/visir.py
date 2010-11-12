@@ -36,7 +36,7 @@ import pp.scene
 class VisirScene(pp.scene.SatelliteInstrumentScene):
     """Generic RGB building methods for VISIR instruments.
     """
-    def channel_image(self, channel):
+    def channel_image(self, channel, fill_value=0):
         """Make a black and white image of the *channel*.
         """
         self.check_channels(channel)
@@ -44,7 +44,7 @@ class VisirScene(pp.scene.SatelliteInstrumentScene):
         img = geo_image.GeoImage(self[channel].data,
                                  self.area,
                                  self.time_slot,
-                                 fill_value=0,
+                                 fill_value=fill_value,
                                  mode="L")
         img.enhance(stretch="crude")
         return img
