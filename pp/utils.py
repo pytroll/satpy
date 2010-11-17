@@ -11,6 +11,7 @@
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   Esben S. Nielsen <esn@dmi.dk>
 
 # This file is part of mpop.
 

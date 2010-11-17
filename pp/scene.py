@@ -10,6 +10,7 @@
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Esben S. Nielsen <esn@dmi.dk>
 
 # This file is part of mpop.
 
