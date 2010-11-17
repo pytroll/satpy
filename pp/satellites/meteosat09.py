@@ -44,7 +44,7 @@ class Meteosat09SeviriScene(SeviriScene):
     satname = "meteosat"
     number = "09"
 
-    def load(self, channels = None):
+    def load(self, channels=None, load_again=False):
         """Load data into the *channels*. *Channels* is a list or a tuple
         containing channels we will load data into. If None, all channels are
         loaded.
@@ -61,7 +61,7 @@ class Meteosat09SeviriScene(SeviriScene):
 
         channels_to_load -= set(["_IR39Corr", "CTTH", "CloudType"])
 
-        SeviriScene.load(self, channels_to_load)
+        SeviriScene.load(self, channels_to_load, load_again)
 
         if channels is not None:
             if "_IR39Corr" in channels:
