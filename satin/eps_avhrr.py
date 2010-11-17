@@ -235,8 +235,15 @@ def read_giadr(fdes, grh, metadata):
         return read_giadr_radiance(fdes, grh, metadata)
     elif grh["RECORD_SUBCLASS"] == 2:
         return read_giadr_analog(fdes, grh, metadata)
+    elif grh["RECORD_SUBCLASS"] == 99:
+        fdes.read(grh["RECORD_SIZE"] - 20)
+        return
     else:
-        raise ValueError("Undefined subclass...")
+        raise ValueError("Undefined subclass " +
+                         str(grh["RECORD_SUBCLASS"]) +
+                         ", version "+
+                         str(grh["RECORD_SUBCLASS_VERSION"]) +
+                         "...")
         
 
 def read_giadr_radiance(fdes, grh, metadata):
