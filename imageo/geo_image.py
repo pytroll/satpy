@@ -34,9 +34,7 @@ import Image as pil
 import numpy as np
 
 import imageo.image
-from pyresample import utils
 from pp.utils import ensure_dir
-from osgeo import gdal, osr
 from imageo.logger import LOG
 
 from imageo import CONFIG_PATH
@@ -114,6 +112,8 @@ class GeoImage(imageo.image.Image):
         
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
+        from osgeo import gdal, osr
+        
         raster = gdal.GetDriverByName("GTiff")
                     
         channels, fill_value = self._finalize()
@@ -189,6 +189,8 @@ class GeoImage(imageo.image.Image):
         # resolution
 
         try:
+            from pyresample import utils
+            
             area_file = os.path.join(CONFIG_PATH, "areas.def")
             area = utils.parse_area_file(area_file, self.area_id)[0]
         except utils.AreaNotFound:

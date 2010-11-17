@@ -30,10 +30,10 @@ __revision__ = 0.1
 
 from satout.cfscene import CFScene
 
-def save(scene, filename):
+def save(scene, filename, compression=True):
     """Saves the scene as a NetCDF4 file, with CF conventions.
     """
-    return netcdf_cf_writer(filename, CFScene(scene))
+    return netcdf_cf_writer(filename, CFScene(scene), compression=compression)
 
 
 class WriterDimensionError(Exception):
@@ -132,7 +132,7 @@ def shape(element):
     else:
         return ()
 
-def netcdf_cf_writer(filename, root_object):
+def netcdf_cf_writer(filename, root_object, compression=True):
     """ Write data to file to netcdf file. """
     from netCDF4 import Dataset
 
@@ -192,7 +192,7 @@ def netcdf_cf_writer(filename, root_object):
             if str(vtype) == "object":
                 vtype = str
 
-            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name))
+            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name, zlib=compression))
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.

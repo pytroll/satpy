@@ -144,7 +144,7 @@ def load_generic(satscene, options, calibrate=True):
             
         else:
 
-            col_start, line_start, col_end, line_end = (0, 0, xsize, ysize)
+            col_start, line_start, col_end, line_end = (0, 0, xsize - 1, ysize - 1)
 
         try:
             metadata, data = (xrit.sat.load(satscene.fullname,
