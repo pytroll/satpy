@@ -38,14 +38,17 @@ import os
 import numpy as np
 import datetime
 
-def load(satscene):
-    """Read data from file and load it into *satscene*.
+def load(satscene, calibrate=True):
+    """Read data from file and load it into *satscene*. The *calibrate*
+    argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
+    radiances only).
     """    
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-level2"):
         options[option] = value
+
     for section in conf.sections():
         if(section.startswith(satscene.instrument_name) and
            not (section == "satellite") and
@@ -53,9 +56,11 @@ def load(satscene):
            not section.endswith("-level1") and
            not section.endswith("-granules")):
             options[section] = conf.items(section)
-    CASES.get(satscene.instrument_name, load_generic)(satscene, options)
+    CASES.get(satscene.instrument_name, load_generic)(satscene,
+                                                      options,
+                                                      calibrate)
 
-def load_generic(satscene, options):
+def load_generic(satscene, options, calibrate=True):
     """Read seviri data from file and load it into *instrument_instance*.
     """
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
@@ -75,6 +80,8 @@ def load_generic(satscene, options):
 
     entire = False
 
+
+    # Slicing
     try:
         from pyresample import utils, geometry
 
@@ -105,6 +112,7 @@ def load_generic(satscene, options):
     xsize = None
     ysize = None
 
+    # Loading
     for chn in satscene.channels_to_load:
         for option, value in options.items():
             if not option.startswith(satscene.instrument_name):
@@ -143,7 +151,7 @@ def load_generic(satscene, options):
                                             satscene.time_slot,
                                             chn,
                                             mask=True,
-                                            calibrate=True)
+                                            calibrate=calibrate)
                               [line_start:line_end + 1,
                                col_start:col_end + 1])
         except CalibrationError:
@@ -160,7 +168,7 @@ def load_generic(satscene, options):
 
         satscene[chn].info['units'] = metadata.calibration_unit
 
-
+        # Setting up area
         if isinstance(satscene.area, str):
             satscene[chn].area = satscene.area
         else:

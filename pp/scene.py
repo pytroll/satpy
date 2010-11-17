@@ -215,7 +215,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
 
-    def load(self, channels=None, load_again=False):
+    def load(self, channels=None, load_again=False, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
         tuple containing channels we will load data into, designated by there
         center wavelength (float), resolution (integer) or name (string). If
@@ -224,6 +224,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         The *load_again* boolean flag allows to reload the channels even they
         have already been loaded, to mirror changes on disk for example. This
         is false by default.
+
+        The other keyword arguments are passed as is to the reader
+        plugin. Check the corresponding documentation for more details.
         """
 
         # Set up the list of channels to load.
@@ -264,7 +267,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         reader = "satin."+reader_name
         try:
             reader_module = __import__(reader, globals(), locals(), ['load'])
-            reader_module.load(self)
+            reader_module.load(self, **kwargs)
         except ImportError:
             LOG.exception("ImportError while loading the reader")
             raise ImportError("No "+reader+" reader found.")
