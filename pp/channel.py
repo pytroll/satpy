@@ -300,3 +300,36 @@ class Channel(GenericChannel):
             return None
         else:
             return self.data.shape
+
+
+    # Arithmetic operations on channels.
+
+    def __mul__(self, other):
+        return Channel(name="new", data=self.data * other)
+
+    def __rmul__(self, other):
+        return Channel(name="new", data=self.data * other)
+
+    def __add__(self, other):
+        return Channel(name="new", data=self.data + other)
+
+    def __radd__(self, other):
+        return Channel(name="new", data=self.data + other)
+
+    def __sub__(self, other):
+        return Channel(name="new", data=self.data - other)
+
+    def __rsub__(self, other):
+        return Channel(name="new", data=self.data - other)
+
+    def __div__(self, other):
+        return Channel(name="new", data=self.data / other)
+
+    def __rdiv__(self, other):
+        return Channel(name="new", data=self.data / other)
+
+    def __neg__(self):
+        return Channel(name="new", data=-self.data)
+
+    def __abs__(self):
+        return Channel(name="new", data=abs(self.data))
