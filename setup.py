@@ -57,7 +57,8 @@ try:
                                     NUMPY_INC],
                       libraries=['nwclib','msg','m'],
                       library_dirs=[MSG_LIB])]
-except:
+except Exception, e:
+    print e
     EXTS = []
     
 NAME = 'mpop'
