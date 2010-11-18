@@ -4,13 +4,6 @@
 
 The satellite interface is the core of the postprocessing package.
 
-The :mod:`scene` module
-=======================
-
-.. automodule:: pp.scene
-   :members:
-   :undoc-members:
-
 The :mod:`visir` module
 =======================
 
