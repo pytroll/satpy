@@ -14,7 +14,7 @@ First example
 
 Ok, let's get it on::
 
-    >>> from pp.satellites import get_satellite_class
+    >>> from mpop.satellites import get_satellite_class
     >>> import datetime
     >>> time_slot = datetime.datetime(2009, 10, 8, 14, 30)
     >>> global_data = (get_satellite_class("meteosat", "09")
@@ -61,7 +61,7 @@ Once the channels are loaded, we generate an overview RGB composite image, and
 save it as a png image. Instead of :meth:`save`, one could also use
 :meth:`show` if the only purpose is to display the image on screen.
 
-Available composites are listed in the :mod:`pp.satellites.visir` module
+Available composites are listed in the :mod:`mpop.satellites.visir` module
 in the mpop documentation.
 
 We want more !

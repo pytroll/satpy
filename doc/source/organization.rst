@@ -4,15 +4,21 @@
 
 The mpop package is organized as follows:
 
-* the :mod:`satin` directory contains the input plugins to the different data
-  formats. Available plugins include aapp1b, mipp, and msg_hrit.
+* the :mod:`mpop` directory contains the core modules of mpop.
 
-* the :mod:`imageo` directory contains the image object and handling modules.
+* the :mod:`mpop.satin` directory contains the input plugins to the different
+  data formats. Available plugins include aapp1b, mipp, and msg_hrit.
 
-* the :mod:`pp` directory contains the different instruments and satellites
+* the :mod:`mpop.imageo` directory contains the image object and handling
+  modules.
+
+* the :mod:`mpop.satellites` directory contains the different satellites
   implementations.
 
-* the :mod:`runner` directory contains tools for batch producing satellite
+* the :mod:`mpop.instruments` directory contains the different instruments
+  implementations.
+
+* the :mod:`mpop.saturn` directory contains tools for batch producing satellite
   images.
 
 Writing a new input plugin
@@ -40,21 +46,21 @@ Here is the example for the aapp1b reader plugin:
 Adding an instrument
 ====================
 
-In :mod:`pp.instrument` directory, one has to add a channel list and an
+In :mod:`mpop.instrument` directory, one has to add a channel list and an
 instrument name in a child class from visir. For example, for the AVHRR
 instrument:
 
-.. literalinclude:: ../../pp/instruments/avhrr.py
+.. literalinclude:: ../../mpop/instruments/avhrr.py
    :linenos:
 
 Adding a satellite
 ==================
 
-In the :mod:`pp.satellite` directory, add the definition of the satellite as a
+In the :mod:`mpop.satellite` directory, add the definition of the satellite as a
 child class of the instrument of interest. For example here is the noaa17
 satellite definition:
 
-.. literalinclude:: ../../pp/satellites/noaa17.py
+.. literalinclude:: ../../mpop/satellites/noaa17.py
    :linenos:
 
 

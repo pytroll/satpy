@@ -4,24 +4,24 @@
 
 The satellite interface is the core of the postprocessing package.
 
-The :mod:`visir` module
-=======================
+The :mod:`mpop.instruments.visir` module
+========================================
 
-.. automodule:: pp.instruments.visir
+.. automodule:: mpop.instruments.visir
    :members:
    :undoc-members:
 
-Projecting: the :mod:`projector` module
+Projecting: the :mod:`mpop.projector` module
 =======================================
 
-.. automodule:: pp.projector
+.. automodule:: mpop.projector
    :members:
    :undoc-members:
 
 The Seviri instrument
 =====================
 
-.. automodule:: pp.instruments.seviri
+.. automodule:: mpop.instruments.seviri
    :members:
    :undoc-members:
 

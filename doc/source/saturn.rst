@@ -5,27 +5,27 @@ Tools for batch production
 Running stuff
 -------------
 
-.. automodule:: saturn.runner
+.. automodule:: mpop.saturn.runner
    :members:
    :undoc-members:
 
 Handling tasks
 --------------
 
-.. automodule:: saturn.tasklist
+.. automodule:: mpop.saturn.tasklist
    :members:
    :undoc-members:
 
 Monitoring and processing incoming files
 ----------------------------------------
 
-.. automodule:: saturn.filewatcher
+.. automodule:: mpop.saturn.filewatcher
    :members:
    :undoc-members:
 
 Earth geometry
 --------------
 
-.. automodule:: saturn.assemble_segments
+.. automodule:: mpop.saturn.assemble_segments
    :members:
    :undoc-members:

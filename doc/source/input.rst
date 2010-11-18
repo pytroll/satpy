@@ -1,6 +1,6 @@
-=========================================
- Input plugins: the :mod:`satin` package
-=========================================
+==============================================
+ Input plugins: the :mod:`mpop.satin` package
+==============================================
 
 Available plugins
 =================
@@ -15,7 +15,7 @@ The available input plugins are:
 Adding a new plugin
 ===================
 
-The interface of any reader plugin must comprise the :func:`load` function and
+The interface of any reader plugin must include the :func:`load` function and
 optionally the :func:`get_lon_lat` function.
 
 * :func:`load`: loads the calibrated data into the channels.

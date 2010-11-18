@@ -8,7 +8,7 @@
    image
    geo_image
 
-.. automodule:: imageo.palettes
+.. automodule:: mpop.imageo.palettes
    :members:
    :undoc-members:
 
