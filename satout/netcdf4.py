@@ -7,6 +7,7 @@
 #   Kristian Rune Larssen <krl@dmi.dk>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Esben S. Nielsen <esn@dmi.dk>
 
 # This file is part of mpop.
 
