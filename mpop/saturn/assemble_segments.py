@@ -33,48 +33,62 @@ import numpy as np
 
 EPSILON = 0.0000001
             
-R = 1
-
-
-class SimpleCoord(object):
-    """Dummy coordinate class.
-    """
-    pass
-
-
-class Coordinate(SimpleCoord):
+class Coordinate(object):
     """Point on earth in terms of lat and lon.
     """
     lat = None
     lon = None
+    x__ = None
+    y__ = None
+    z__ = None
     
-    def __init__(self, lat, lon):
-        SimpleCoord.__init__(self)
-        self.lat = math.radians(lat)
-        self.lon = math.radians(lon)
+    def __init__(self, lat=None, lon=None,
+                 x__=None, y__=None, z__=None, R=1):
 
-    def to_cart(self):
+        self.R = R
+
+        if lat is not None and lon is not None:
+            self.lat = math.radians(lat)
+            self.lon = math.radians(lon)
+            self._update_cart()
+        else:
+            self.x__ = x__
+            self.y__ = y__
+            self.z__ = z__
+            self._update_lonlat()
+
+    def _update_cart(self):
         """Convert lon/lat to cartesian coordinates.
         """
 
-        x__ = math.cos(self.lat) * math.cos(self.lon)
-        y__ = math.cos(self.lat) * math.sin(self.lon)
-        z__ = math.sin(self.lat)
+        self.x__ = math.cos(self.lat) * math.cos(self.lon)
+        self.y__ = math.cos(self.lat) * math.sin(self.lon)
+        self.z__ = math.sin(self.lat)
         
-        return Cartesian(x__, y__, z__)
 
-    def __cmp__(self, other):
+    def _update_lonlat(self):
+        """Convert cartesian to lon/lat.
+        """
+        
+        self.lat = math.degrees(math.asin(self.z__ / self.R))
+        self.lon = math.degrees(math.atan2(self.y__, self.x__))
+        
+    def __ne__(self, other):
         if(abs(self.lat - other.lat) < EPSILON and
            abs(self.lon - other.lon) < EPSILON):
             return 0
         else:
             return 1
 
+    def __eq__(self, other):
+        return not self.__ne__(other)
+
     def __str__(self):
         return str((math.degrees(self.lat), math.degrees(self.lon)))
     
     def __repr__(self):
         return str((math.degrees(self.lat), math.degrees(self.lon)))
+
     def cross2cart(self, point):
         """Compute the cross product, and convert to cartesian coordinates
         (assuming radius 1).
@@ -85,14 +99,14 @@ class Coordinate(SimpleCoord):
         lat2 = point.lat
         lon2 = point.lon
 
-        res = Cartesian(
-            math.sin(lat1 - lat2) * math.sin((lon1 + lon2) / 2) *
-            math.cos((lon1 - lon2) / 2) - math.sin(lat1 + lat2) *
-            math.cos((lon1 + lon2) / 2) * math.sin((lon1 - lon2) / 2),
-            math.sin(lat1 - lat2) * math.cos((lon1 + lon2) / 2) *
-            math.cos((lon1 - lon2) / 2) + math.sin(lat1 + lat2) *
-            math.sin((lon1 + lon2) / 2) * math.sin((lon1 - lon2) / 2),
-            math.cos(lat1) * math.cos(lat2) * math.sin(lon1 - lon2))
+        res = Coordinate(
+            x__=(math.sin(lat1 - lat2) * math.sin((lon1 + lon2) / 2) *
+                 math.cos((lon1 - lon2) / 2) - math.sin(lat1 + lat2) *
+                 math.cos((lon1 + lon2) / 2) * math.sin((lon1 - lon2) / 2)),
+            y__=(math.sin(lat1 - lat2) * math.cos((lon1 + lon2) / 2) *
+                 math.cos((lon1 - lon2) / 2) + math.sin(lat1 + lat2) *
+                 math.sin((lon1 + lon2) / 2) * math.sin((lon1 - lon2) / 2)),
+            z__=(math.cos(lat1) * math.cos(lat2) * math.sin(lon1 - lon2)))
 
         return res
 
@@ -108,29 +122,6 @@ class Coordinate(SimpleCoord):
                math.cos(self.lat) * math.cos(point.lat) * math.cos(dlambda))
 
         return math.atan2(math.sqrt(num), den)
-
-class Cartesian(SimpleCoord):
-    """Point or vector defined by cartesian coordinates.
-    """
-    x__ = None
-    y__ = None
-    z__ = None
-
-    def __init__(self, x__, y__, z__):
-        SimpleCoord.__init__(self)
-        self.x__ = x__
-        self.y__ = y__
-        self.z__ = z__
-        
-
-    def to_coord(self):
-        """Convert cartesian to lon/lat.
-        """
-        
-        lat = math.degrees(math.asin(self.z__ / R))
-        lon = math.degrees(math.atan2(self.y__, self.x__))
-
-        return Coordinate(lat, lon)
 
     def norm(self):
         """Return the norm of the vector.
@@ -155,7 +146,7 @@ class Cartesian(SimpleCoord):
         y__ = self.z__ * point.x__ - self.x__ * point.z__
         z__ = self.x__ * point.y__ - self.y__ * point.x__
         
-        return Cartesian(x__, y__, z__)
+        return Coordinate(x__=x__, y__=y__, z__=z__)
 
     def dot(self, point):
         """dot product with another vector.
@@ -164,9 +155,6 @@ class Cartesian(SimpleCoord):
                 self.y__ * point.y__ +
                 self.z__ * point.z__)
 
-    def __str__(self):
-        return str((self.x__, self.y__, self.z__))
-    
 class Arc(object):
     """An arc of the great circle between two points.
     """
@@ -189,11 +177,14 @@ class Arc(object):
         
         return math.acos(val)
                            
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if(self.start == other.start and self.end == other.end):
-            return 0
-        return 1
-        
+            return 1
+        return 0
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return str((str(self.start), str(self.end)))
 
@@ -219,8 +210,8 @@ class Arc(object):
         else:
             raise ValueError("No common point in angle computation.")
 
-        ua_ = a__.to_cart().cross(b__.to_cart())
-        ub_ = a__.to_cart().cross(c__.to_cart())
+        ua_ = a__.cross(b__)
+        ub_ = a__.cross(c__)
 
         val =  ua_.dot(ub_) / (ua_.norm() * ub_.norm())
         if abs(val - 1) < EPSILON:
@@ -231,7 +222,7 @@ class Arc(object):
             angle = math.acos(val)    
 
         n__ = ua_.normalize()
-        if n__.dot(c__.to_cart()) > 0:
+        if n__.dot(c__) > 0:
             return -angle
         else:
             return angle
@@ -454,7 +445,8 @@ def polygon(area_corners, segment_corners):
             b__ = b2_
             boundaries, other_boundaries = other_boundaries, boundaries
     return poly[:-1]
-                
+
+R = 1
 
 def get_area(corners):
     """Get the area of the convex area defined by *corners*.
