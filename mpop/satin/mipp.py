@@ -143,7 +143,9 @@ def load_generic(satscene, options, calibrate=True):
             col_end = int(np.round(-(ll_x / xres) + xsize / 2))
             col_start = int(np.round(-(ur_x / xres) + xsize / 2))
             line_end = int(np.round((ur_y / yres) + ysize / 2))
-            
+            LOG.debug("Requesting lines " + str(line_start) + " to " +
+                      str(line_end) + ", cols " + str(col_start) + " to " +
+                      str(col_end))
         else:
 
             col_start, line_start, col_end, line_end = (0, 0, xsize - 1, ysize - 1)
