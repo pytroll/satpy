@@ -26,9 +26,9 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 """Integration testing of
- - :mod:`pp.scene`
- - :mod:`pp.channel`
- - :mod:`pp.projector`
+ - :mod:`mpop.scene`
+ - :mod:`mpop.channel`
+ - :mod:`mpop.projector`
 """
 import ConfigParser
 import random
@@ -37,7 +37,7 @@ import unittest
 import numpy as np
 from pyresample import geometry, utils, kd_tree, image
 
-import pp.scene
+import mpop.scene
 
 
 class FakeAreaDefinition:
@@ -220,7 +220,7 @@ class TestPPCore(unittest.TestCase):
         """Apply patches.
         """
 
-        self.scene = pp.scene.SatelliteInstrumentScene()
+        self.scene = mpop.scene.SatelliteInstrumentScene()
         patch_geometry()
         patch_utils()
         patch_kd_tree()
@@ -234,7 +234,7 @@ class TestPPCore(unittest.TestCase):
                     ["06_4", (5.7, 6.4, 7.1), 5000],
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
         
-        class Satscene(pp.scene.SatelliteInstrumentScene):
+        class Satscene(mpop.scene.SatelliteInstrumentScene):
             """Adding a channel list.
             """
             instrument_name = random_string(8)
@@ -242,7 +242,7 @@ class TestPPCore(unittest.TestCase):
 
         self.scene = Satscene()
         for i, chn in enumerate(self.scene.channels):
-            self.assertTrue(isinstance(chn, pp.channel.Channel))
+            self.assertTrue(isinstance(chn, mpop.channel.Channel))
             self.assertEquals(chn.name, channels[i][0])
             self.assertEquals(chn.wavelength_range, channels[i][1])
             self.assertEquals(chn.resolution, channels[i][2])
@@ -254,7 +254,7 @@ class TestPPCore(unittest.TestCase):
                     ["06_4", (5.7, 6.4, 7.1), 5000],
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
         
-        class Satscene(pp.scene.SatelliteInstrumentScene):
+        class Satscene(mpop.scene.SatelliteInstrumentScene):
             """Adding a channel list.
             """
             instrument_name = random_string(8)
