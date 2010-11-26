@@ -7,6 +7,7 @@
 #   Kristian Rune Larssen <krl@dmi.dk>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Esben S. Nielsen <esn@dmi.dk>
 
 # This file is part of mpop.
 
@@ -28,7 +29,7 @@ conversion of mpop scene to cf conventions.
 
 import numpy as np
 from netCDF4 import date2num
-CF_DATA_TYPE = np.int16
+#CF_DATA_TYPE = np.int16
 CF_FLOAT_TYPE = np.float64
 TIME_UNITS = "seconds since 1970-01-01 00:00:00"
 
@@ -44,9 +45,10 @@ class CFScene(object):
     """
     info = {}
     
-    def __init__(self, scene):
+    def __init__(self, scene, data_type):
         self.info = scene.info.copy()
-
+        CF_DATA_TYPE = data_type
+        
         # Other global attributes
         self.info["Conventions"] = "CF-1.4"
         self.info["satellite_name"] = scene.satname
@@ -72,19 +74,22 @@ class CFScene(object):
             if not chn.is_loaded():
                 continue
 
-            offset = CF_FLOAT_TYPE((chn.data.max() - chn.data.min()) / 2.0 +
-                                   chn.data.min())
-            scale = CF_FLOAT_TYPE((chn.data.max() - offset) * 1.0 /
-                                  (np.iinfo(CF_DATA_TYPE).max))
+            offset = (((chn.data.max() * (np.iinfo(CF_DATA_TYPE).min + 1)) - 
+                      (np.iinfo(CF_DATA_TYPE).max * chn.data.min())) / 
+                      (np.iinfo(CF_DATA_TYPE).min - np.iinfo(CF_DATA_TYPE).max + 1))
+            
+            scale = (chn.data.min() - offset) / (np.iinfo(CF_DATA_TYPE).min + 1)
             fill_value = np.iinfo(CF_DATA_TYPE).min
             data = ((chn.data - offset) / scale).astype(CF_DATA_TYPE)
             valid_min = data.min()
             valid_max = data.max()
             data = data.filled(fill_value)
+            data = data.astype(data_type)
             
             str_res = str(chn.resolution) + "m"
 
             if chn.resolution in resolutions:
+                # resolution has been used before
                 band = getattr(self, "band" + str_res)
 
                 # data
@@ -129,6 +134,7 @@ class CFScene(object):
                 nwl.info["var_data"] = nwl.data
 
             else:
+                # first encounter of this resolution
                 resolutions += [chn.resolution]
                 
                 # data

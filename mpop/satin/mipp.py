@@ -136,13 +136,14 @@ def load_generic(satscene, options, calibrate=True):
 
         if not entire:
 
-            xres = resolution
-            yres = resolution
-
-            line_start = int(np.round((ll_y / yres) + ysize / 2))
-            col_end = int(np.round(-(ll_x / xres) + xsize / 2))
-            col_start = int(np.round(-(ur_x / xres) + xsize / 2))
-            line_end = int(np.round((ur_y / yres) + ysize / 2))
+            xres = float(resolution)
+            yres = float(resolution)
+            
+            line_start = (ysize - 1) - int((-ll_y / yres) + (ysize / 2.0))            
+            col_start = (xsize - 1) - int((ur_x / xres) + (xsize / 2.0))
+            line_end = (ysize - 1) - int((-ur_y / yres) + (ysize / 2.0))
+            col_end = (xsize - 1) - int((ll_x / xres) + (xsize / 2.0))
+            
             LOG.debug("Requesting lines " + str(line_start) + " to " +
                       str(line_end) + ", cols " + str(col_start) + " to " +
                       str(col_end))
@@ -157,7 +158,7 @@ def load_generic(satscene, options, calibrate=True):
                                             mask=True,
                                             calibrate=calibrate)
                               [line_start:line_end + 1,
-                               col_start:col_end + 1])
+                               col_start:col_end + 1])            
         except CalibrationError:
             LOG.warning("Loading non calibrated data since calibration failed.")
             metadata, data = (xrit.sat.load(satscene.fullname,

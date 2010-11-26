@@ -29,12 +29,15 @@
 
 __revision__ = 0.1 
 
+import numpy as np
+
 from mpop.satout.cfscene import CFScene
 
-def save(scene, filename, compression=True):
+
+def save(scene, filename, compression=True, data_type=np.int16):
     """Saves the scene as a NetCDF4 file, with CF conventions.
     """
-    return netcdf_cf_writer(filename, CFScene(scene), compression=compression)
+    return netcdf_cf_writer(filename, CFScene(scene, data_type), compression=compression)
 
 
 class WriterDimensionError(Exception):
