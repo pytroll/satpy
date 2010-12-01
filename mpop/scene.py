@@ -43,12 +43,9 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 
-
-class SatelliteScene(object):
-    """This is the satellite scene class. It is a capture of the satellite
-    (channels) data at given *time_slot* and *area_id*/*area*.
+class Satellite(object):
+    """This is the satellite class. It contains information on the satellite.
     """
-
     #: Name of the satellite
     satname = ""
 
@@ -57,6 +54,23 @@ class SatelliteScene(object):
     
     #: Variant of the satellite (often the communication channel it comes from)
     variant = ""
+
+    def __init__(self, satname, number, variant):
+        self.satname = satname
+        self.number = number
+        self.variant = variant
+
+    @property
+    def fullname(self):
+        """Full name of the satellite, that is platform name and number
+        (eg "metop02").
+        """
+        return self.variant + self.satname + self.number
+
+class SatelliteScene(Satellite):
+    """This is the satellite scene class. It is a capture of the satellite
+    (channels) data at given *time_slot* and *area_id*/*area*.
+    """
 
     #: Time of the snapshot
     time_slot = None
@@ -105,13 +119,6 @@ class SatelliteScene(object):
         self.lat = None
         self.lon = None
 
-
-    @property
-    def fullname(self):
-        """Full name of the satellite, that is platform name and number
-        (eg"metop02").
-        """
-        return self.variant + self.satname + self.number
 
     def get_area(self):
         """Getter for area.
@@ -274,6 +281,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise ImportError("No "+reader+" reader found.")
 
 
+
     def get_lat_lon(self, resolution):
         """Get the latitude and longitude grids of the current region for the
         given *resolution*.
@@ -281,7 +289,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         from warnings import warn
         warn("The `get_lat_lon` function is deprecated."
-             "Please use the area's `get_lon_lats` method instead.",
+             "Please use the area's `get_lonlats` method instead.",
              DeprecationWarning)
 
         
@@ -315,8 +323,30 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise ImportError("Cannot load "+writer+" writer: "+str(err))
 
         return writer_module.save(self, filename, compression=compression)
+
+    def unload(self, channels=None):
+        """Unloads *channels* from
+        memory. :meth:`mpop.scene.SatelliteInstrumentScene.load` must be called
+        again to reload the data.
+        """
+        for chn in channels:
+            try:
+                self[chn].data = None
+            except AttributeError:
+                LOG.warning("Can't unload channel" + str(chn))
         
         
+    def add_to_history(self, message):
+        """Adds a message to history info.
+        """
+        import datetime
+        timestr = datetime.datetime.utcnow().isoformat()
+        timed_message = str(timestr + " - " + message)
+        if not self.info.get("history", ""):
+            self.info["history"] = timed_message
+        else:
+            self.info["history"] += "\n" + timed_message
+            
 
     def check_channels(self, *channels):
         """Check if the *channels* are loaded, raise an error otherwise.

@@ -34,6 +34,7 @@ from mpop.satout.cfscene import CFScene
 def save(scene, filename, compression=True):
     """Saves the scene as a NetCDF4 file, with CF conventions.
     """
+    scene.add_to_history("Saved as netcdf4/cf by mpop")
     return netcdf_cf_writer(filename, CFScene(scene), compression=compression)
 
 

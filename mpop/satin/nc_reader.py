@@ -33,19 +33,18 @@
 # - handle other units than "m" for coordinates
 # - handle units for data
 # - pluginize
-
 import datetime
-import logging
 from ConfigParser import NoSectionError
 
 import numpy as np
-from netCDF4 import Dataset
+from netCDF4 import Dataset, num2date
 
 from mpop.instruments.visir import VisirScene
 from mpop.satellites import get_satellite_class
+from mpop.utils import get_logger
+from mpop.satout.cfscene import TIME_UNITS
 
-
-LOG = logging.getLogger("nc4/cf reader")
+LOG = get_logger("netcdf4/cf reader")
 
 # To be complete, get from appendix F of cf conventions
 MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
@@ -67,20 +66,24 @@ def load_from_nc4(filename):
 
     time_slot = rootgrp.variables["time"].getValue()[0]
 
-    time_slot = (datetime.timedelta(seconds=time_slot) +
-                 datetime.datetime(1970,1,1))
+    time_slot = num2date(time_slot, TIME_UNITS)
     area = None
 
+    if not isinstance(rootgrp.satellite_number, str):
+        satellite_number = "%02d" % rootgrp.satellite_number
+    else:
+        satellite_number = rootgrp.satellite_number
+
     try:
-        klass = get_satellite_class(rootgrp.platform_name,
-                                    rootgrp.platform_number,
+        klass = get_satellite_class(rootgrp.satellite_name,
+                                    satellite_number,
                                     rootgrp.service)
         scene = klass(time_slot=time_slot, area=area)
     except NoSectionError:
         klass = VisirScene
         scene = klass(time_slot=time_slot, area=area)
-        scene.satname = rootgrp.platform_name
-        scene.number = rootgrp.platform_number
+        scene.satname = rootgrp.satellite_name
+        scene.number = satellite_number
         scene.service = rootgrp.service
 
 
@@ -107,6 +110,8 @@ def load_from_nc4(filename):
                     #FIXME complete this
                     #scene[name].info
                 except KeyError:
+                    # build the channel on the fly
+
                     from mpop.channel import Channel
                     wv_var = rootgrp.variables["nominal_wavelength"+str_res]
                     wb_var = rootgrp.variables[getattr(wv_var, "bounds")]
@@ -120,7 +125,6 @@ def load_from_nc4(filename):
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     
-                    # build the channel on the fly
 
             try:
                 area_var = getattr(var,"grid_mapping")
@@ -194,40 +198,7 @@ def load_from_nc4(filename):
             
     for attr in rootgrp.ncattrs():
         scene.info[attr] = getattr(rootgrp, attr)
-
-
-
-                         
-
-#         data = var[:, :].astype(var.dtype)
-#         if hasattr(var, "valid_range"):
-#             scene[var.standard_name] = np.ma.masked_outside(data,
-#                                                             var.valid_range[0],
-#                                                             var.valid_range[1])
-#         else:
-#             scene[var.standard_name] = data
-        
-#         if not hasattr(scene[var.standard_name], 'info'):
-#             scene[var.standard_name].info = {}
-#         scene[var.standard_name].info['var_data'] = \
-#                                                   scene[var.standard_name].data
-#         scene[var.standard_name].info['var_name'] = var_name
-#         scene[var.standard_name].info['var_dim_names'] = var.dimensions
-#         if var.area_name == "":
-#             scene[var.standard_name].area_id = None
-#         else:
-#             scene[var.standard_name].area_id = var.area_name
-#         for attr in var.ncattrs():
-#             scene[var.standard_name].info[attr] = getattr(var, attr)
-    
-#     if not hasattr(scene, 'info'):
-#         scene.info = {}
-        
-#     for attr in rootgrp.ncattrs():
-#         scene.info[attr] = getattr(rootgrp, attr)
-
-#     scene.info['var_children'] = []
-#     rootgrp.close()
+    scene.add_to_history("Loaded from netcdf4/cf by mpop")
 
     return scene
 

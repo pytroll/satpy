@@ -75,8 +75,7 @@ def load_generic(satscene, options, calibrate=True):
                               satscene.instrument_name.capitalize() +
                               " instrument.")
     satscene.info["institution"] = "Original data disseminated by EumetCast."
-    satscene.info["history"] = (str(datetime.datetime.now().isoformat()) +
-                                " - original data read by mipp/mpop.")
+    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
 
