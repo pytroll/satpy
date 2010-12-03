@@ -66,7 +66,7 @@ class GeoImage(mpop.imageo.image.Image):
         super(GeoImage, self).__init__(channels, mode, crange,
                                       fill_value, palette)
 
-    def save(self, filename, compression=0, tags=None, gdal_options=None):
+    def save(self, filename, compression=0, tags=None, gdal_options=None, format=None):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -78,11 +78,12 @@ class GeoImage(mpop.imageo.image.Image):
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         file_tuple = os.path.splitext(filename)
+        format = format or file_tuple[1][1:]
 
-        if(file_tuple[1] == ".tif"):
-            self._geotiff_save(filename, compression, tags, gdal_options)
+        if format.lower() in ('tif', 'tiff'):
+            self.geotiff_save(filename, compression, tags, gdal_options)
         else:
-            super(GeoImage, self).save(filename, compression)
+            super(GeoImage, self).save(filename, compression, format=format)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
@@ -105,11 +106,15 @@ class GeoImage(mpop.imageo.image.Image):
             else:
                 dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
-    def _geotiff_save(self, filename, compression=6,
-                      tags=None, gdal_options=None):
+    def geotiff_save(self, filename, compression=6,
+                     tags=None, gdal_options=None, 
+                     geotransform=None, spatialref=None):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
         argument is a dict of tags to include in the image (as metadata).
+        By default it uses the 'area' instance to generate geotransform and spatialref
+        information, this can be overwritte by the arguments *geotransform* and
+        *spatialref*.
         
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
@@ -187,29 +192,35 @@ class GeoImage(mpop.imageo.image.Image):
 
                 
         # Create raster GeoTransform based on upper left corner and pixel
-        # resolution
+        # resolution ... if not overwritten by argument geotranform.
 
-        try:
-            from pyresample import utils
+        if geotransform:
+            dst_ds.SetGeoTransform(geotransform)
+            if spatialref:
+                if not isinstance(spatialref, str):
+                    spatialref = spatialref.ExportToWkt()
+                dst_ds.SetProjection(spatialref)
+        else:
+            try:
+                from pyresample import utils
             
-            area_file = os.path.join(CONFIG_PATH, "areas.def")
-            area = utils.parse_area_file(area_file, self.area_id)[0]
-        except utils.AreaNotFound:
-            area = self.area_id
+                area_file = os.path.join(CONFIG_PATH, "areas.def")
+                area = utils.parse_area_file(area_file, self.area_id)[0]
+            except utils.AreaNotFound:
+                area = self.area_id
 
-        try:
-            adfgeotransform = [area.area_extent[0], area.pixel_size_x, 0,
-                               area.area_extent[3], 0, -area.pixel_size_y]
-            dst_ds.SetGeoTransform(adfgeotransform)
-            srs = osr.SpatialReference()
-            srs.SetProjCS(area.proj_id)
-            
-            srs.ImportFromProj4(area.proj4_string)
-            dst_ds.SetProjection(srs.ExportToWkt())
-        except AttributeError:
-            LOG.exception("Could not load geographic data, invalid area")
-            
 
+            try:
+                adfgeotransform = [area.area_extent[0], area.pixel_size_x, 0,
+                                   area.area_extent[3], 0, -area.pixel_size_y]
+                dst_ds.SetGeoTransform(adfgeotransform)
+                srs = osr.SpatialReference()
+                srs.SetProjCS(area.proj_id)            
+                srs.ImportFromProj4(area.proj4_string)
+                srs = srs.ExportToWkt()
+                dst_ds.SetProjection(srs)
+            except AttributeError:
+                LOG.exception("Could not load geographic data, invalid area")            
 
         self.tags.update({'TIFFTAG_DATETIME':
                           self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})

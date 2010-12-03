@@ -279,17 +279,17 @@ class Image(object):
 
         return img
 
-    def save(self, filename, compression = 6):
+    def save(self, filename, compression = 6, format = None):
         """Save the image to the given *filename*.
         """
         cases = {"pic": self.terragon_save,
                  "des": self.terragon_save,
                  "lut": self.terragon_save}
 
-        fileext =  os.path.splitext(filename)[1][1:4]
-        cases.get(fileext, self.pil_save)(filename, compression)
+        fileext = os.path.splitext(filename)[1][1:4]
+        cases.get(fileext, self.pil_save)(filename, compression, format)
 
-    def pil_save(self, filename, compression = 6):
+    def pil_save(self, filename, compression = 6, format = None):
         """Save the image to the given *filename* using PIL. For now, the
         compression level [0-9] is ignored, due to PIL's lack of support. See
         also :meth:`save`.
@@ -305,16 +305,18 @@ class Image(object):
         cases = {"jpg": "jpeg",
                  "tif": "tiff"}
 
-        fileext =  os.path.splitext(filename)[1][1:4]
-        fileformat = cases.get(fileext, fileext)
+        format = format or os.path.splitext(filename)[1][1:4]
+        format = format.lower()
+        format = cases.get(format, format)
 
-        self.pil_image().save(filename, fileformat)
+        self.pil_image().save(filename, format)
                     
-    def terragon_save(self, filename, compression):
+    def terragon_save(self, filename, compression = None, format = None):
         """Save the image to the given *filename* in terragon format.
         """
-        # Terragon does not support compression option.
+        # Terragon does not support compression or format option.
         del compression
+        del format
 
         if(self.mode != "L"):
             raise ValueError("Cannot save mode %s to terragon, use mode L"
