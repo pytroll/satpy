@@ -99,12 +99,8 @@ def load_generic(satscene, options, calibrate=True):
                     raise ValueError("Slicing area must be in "
                                      "geos0.0 projection.")
                 
-            xsize = satscene.area_def.x_size
-            ysize = satscene.area_def.y_size
-            ll_x = satscene.area_def.projection_x_coords[0, 0]
-            ll_y = satscene.area_def.projection_y_coords[ysize - 1, 0]
-            ur_x = satscene.area_def.projection_x_coords[0, xsize - 1]
-            ur_y = satscene.area_def.projection_y_coords[0, 0]
+            area_xres = satscene.area_def.pixel_size_x
+            area_yres = satscene.area_def.pixel_size_y
         
     except ImportError:
         LOG.warning("Pyresample not found, has to load entire data !")
@@ -128,6 +124,25 @@ def load_generic(satscene, options, calibrate=True):
                         resolution = eval(item[1])
                 if chn == name:
                     ysize, xsize = size
+                    if resolution != area_xres:
+                        LOG.warning("Area resolution not corresponding to channel. Adapting area.")
+                        area_def = geometry.AreaDefinition(
+                            satscene.area.area_id,
+                            satscene.area.name,
+                            satscene.area.proj_id,
+                            satscene.area.proj_dict,
+                            np.round(satscene.area.x_size * area_xres / resolution),
+                            np.round(satscene.area.y_size * area_yres / resolution),
+                            satscene.area.area_extent,
+                            satscene.area.nprocs)
+                    else:
+                        area_def = satscene.area_def
+                    area_x_size = area_def.x_size
+                    area_y_size = area_def.y_size
+                    ll_x = area_def.projection_x_coords[0, 0]
+                    ll_y = area_def.projection_y_coords[area_y_size - 1, 0]
+                    ur_x = area_def.projection_x_coords[0, area_x_size - 1]
+                    ur_y = area_def.projection_y_coords[0, 0]
                     break
             except (KeyError, TypeError):
                 continue
@@ -137,12 +152,12 @@ def load_generic(satscene, options, calibrate=True):
 
             xres = float(resolution)
             yres = float(resolution)
-            
-            line_start = (ysize - 1) - int((-ll_y / yres) + (ysize / 2.0))            
-            col_start = (xsize - 1) - int((ur_x / xres) + (xsize / 2.0))
-            line_end = (ysize - 1) - int((-ur_y / yres) + (ysize / 2.0))
-            col_end = (xsize - 1) - int((ll_x / xres) + (xsize / 2.0))
-            
+
+            line_start = (ysize - 1) - int((ur_y / yres) + ysize / 2.0)
+            line_end = (ysize - 1) - int((ll_y / yres) + ysize / 2.0)
+            col_start = int((ll_x / xres) + xsize / 2.0)
+            col_end = int((ur_x / xres) + xsize / 2.0)
+
             LOG.debug("Requesting lines " + str(line_start) + " to " +
                       str(line_end) + ", cols " + str(col_start) + " to " +
                       str(col_end))
