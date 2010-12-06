@@ -124,25 +124,26 @@ def load_generic(satscene, options, calibrate=True):
                         resolution = eval(item[1])
                 if chn == name:
                     ysize, xsize = size
-                    if resolution != area_xres:
-                        LOG.warning("Area resolution not corresponding to channel. Adapting area.")
-                        area_def = geometry.AreaDefinition(
-                            satscene.area.area_id,
-                            satscene.area.name,
-                            satscene.area.proj_id,
-                            satscene.area.proj_dict,
-                            np.round(satscene.area.x_size * area_xres / resolution),
-                            np.round(satscene.area.y_size * area_yres / resolution),
-                            satscene.area.area_extent,
-                            satscene.area.nprocs)
-                    else:
-                        area_def = satscene.area_def
-                    area_x_size = area_def.x_size
-                    area_y_size = area_def.y_size
-                    ll_x = area_def.projection_x_coords[0, 0]
-                    ll_y = area_def.projection_y_coords[area_y_size - 1, 0]
-                    ur_x = area_def.projection_x_coords[0, area_x_size - 1]
-                    ur_y = area_def.projection_y_coords[0, 0]
+                    if not entire:
+                        if resolution != area_xres:
+                            LOG.warning("Area resolution not corresponding to channel. Adapting area.")
+                            area_def = geometry.AreaDefinition(
+                                satscene.area.area_id,
+                                satscene.area.name,
+                                satscene.area.proj_id,
+                                satscene.area.proj_dict,
+                                np.round(satscene.area.x_size * area_xres / resolution),
+                                np.round(satscene.area.y_size * area_yres / resolution),
+                                satscene.area.area_extent,
+                                satscene.area.nprocs)
+                        else:
+                            area_def = satscene.area_def
+                        area_x_size = area_def.x_size
+                        area_y_size = area_def.y_size
+                        ll_x = area_def.projection_x_coords[0, 0]
+                        ll_y = area_def.projection_y_coords[area_y_size - 1, 0]
+                        ur_x = area_def.projection_x_coords[0, area_x_size - 1]
+                        ur_y = area_def.projection_y_coords[0, 0]
                     break
             except (KeyError, TypeError):
                 continue

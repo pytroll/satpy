@@ -140,6 +140,9 @@ def patch_satellite():
             self.area = None
             self.channels = {}
 
+        def add_to_history(self, *args):
+            pass
+
         def __getitem__(self, key):
             return self.channels[key]
         
