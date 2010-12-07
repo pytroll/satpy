@@ -94,10 +94,10 @@ def load_generic(satscene, options, calibrate=True):
                 satscene.area_def = utils.parse_area_file(area_file,
                                                           satscene.area_id)[0]
 
-                if(satscene.area_def.proj_dict["proj"] != "geos" or
-                   satscene.area_def.proj_dict["lon_0"] != "0.0"):
-                    raise ValueError("Slicing area must be in "
-                                     "geos0.0 projection.")
+            if(satscene.area_def.proj_dict["proj"] != "geos" or
+               satscene.area_def.proj_dict["lon_0"] != "0.0"):
+                raise ValueError("Slicing area must be in "
+                                 "geos0.0 projection.")
                 
             area_xres = satscene.area_def.pixel_size_x
             area_yres = satscene.area_def.pixel_size_y
@@ -229,6 +229,124 @@ def load_generic(satscene, options, calibrate=True):
                     data.shape[0],
                     area_extent)
 
-                
-CASES = {}
+
+def load_seviri(satscene, options, calibrate=True):
+    """Read seviri data from file and load it into *satscene*.
+    """
+    os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
+
+    LOG.debug("Channels to load from seviri: %s"%satscene.channels_to_load)
+    
+    # Compulsory global attribudes
+    satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
+                              " satellite, " +
+                              satscene.instrument_name.capitalize() +
+                              " instrument.")
+    satscene.info["institution"] = "Original data disseminated by EumetCast."
+    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
+    satscene.info["references"] = "No reference."
+    satscene.info["comments"] = "No comment."
+
+    if satscene.area:
+        from pyresample import utils, geometry
+        if not satscene.area_def:
+            area_file = os.path.join(CONFIG_PATH, "areas.def")
+            satscene.area = utils.parse_area_file(area_file,
+                                                          satscene.area_id)[0]
+        area_extent = satscene.area.area_extent
+
+        if(satscene.area_def.proj_dict["proj"] != "geos" or
+           satscene.area_def.proj_dict["lon_0"] != "0.0"):
+            raise ValueError("Slicing area must be in "
+                             "geos0.0 projection.")
+    else:
+        area_extent = (-5567248.074173444, -5570248.4773392612,
+                        5570248.4773392612, 5567248.074173444)
+    
+    for chn in satscene.channels_to_load:    
+        if chn == "HRV":
+            px_size = 3000.403165817 / 3
+
+            # The lonlat (0,0) is placed in the middle of pixel (5570,5570)
+            # 0-based, counted from the top left (line col system)
+            
+            col_start = int(np.round(area_extent[0] / px_size + 5570 + 0.5))
+            line_end = int(np.round(area_extent[1] / -px_size + 5570 - 0.5))
+            col_end = int(np.round(area_extent[2] / px_size + 5570 - 0.5))
+            line_start = int(np.round(area_extent[3] / -px_size + 5570 + 0.5))
+        else:
+            px_size = 3000.403165817
+
+            # The lonlat (0,0) is placed in the middle of pixel (1856,1856)
+            # 0-based, counted from the top left (line col system)
+
+            col_start = int(np.round(area_extent[0] / px_size + 1856 + 0.5))
+            line_end = int(np.round(area_extent[1] / -px_size + 1856 - 0.5))
+            col_end = int(np.round(area_extent[2] / px_size + 1856 - 0.5))
+            line_start = int(np.round(area_extent[3] / -px_size + 1856 + 0.5))
+
+        try:
+            metadata, data = (xrit.sat.load(satscene.fullname,
+                                            satscene.time_slot,
+                                            chn,
+                                            mask=True,
+                                            calibrate=calibrate)
+                              [line_start:line_end + 1,
+                               col_start:col_end + 1])            
+        except CalibrationError:
+            LOG.warning("Loading non calibrated data since calibration failed.")
+            metadata, data = (xrit.sat.load(satscene.fullname,
+                                            satscene.time_slot,
+                                            chn,
+                                            mask=True,
+                                            calibrate=False)
+                              [line_start:line_end + 1,
+                               col_start:col_end + 1])
+
+        satscene[chn] = data
+
+        satscene[chn].info['units'] = metadata.calibration_unit
+        
+        # Setting up area
+        if isinstance(satscene.area, str):
+            satscene[chn].area = satscene.area
+        else:
+            try:
+                satscene[chn].area = geometry.AreaDefinition(
+                    satscene.area.area_id + str(data.shape),
+                    satscene.area.name,
+                    satscene.area.proj_id,
+                    satscene.area.proj_dict,
+                    data.shape[1],
+                    data.shape[0],
+                    satscene.area.area_extent,
+                    satscene.area.nprocs)
+            except AttributeError:
+                # Build an area on the fly from the mipp metadata
+                proj_params = getattr(metadata, "proj4_params").split(" ")
+                proj_dict = {}
+                for param in proj_params:
+                    key, val = param.split("=")
+                    proj_dict[key] = val
+                xres = metadata.pixel_size[1]
+                yres = metadata.pixel_size[0]
+                mid_x_area_extent = (xsize * xres) / 2.0
+                mid_y_area_extent = (ysize * yres) / 2.0
+                area_extent = (col_start * xres - mid_x_area_extent,
+                               line_start * yres - mid_y_area_extent,
+                               col_end * xres - mid_x_area_extent,
+                               line_end * xres - mid_y_area_extent)
+                satscene[chn].area = geometry.AreaDefinition(
+                    satscene.satname + satscene.instrument_name +
+                    str(col_start) + str(col_end) +
+                    str(line_start) + str(line_end) +
+                    str(data.shape),
+                    "On-the-fly area",
+                    proj_dict["proj"],
+                    proj_dict,
+                    data.shape[1],
+                    data.shape[0],
+                    area_extent)
+
+CASES = {"seviri": load_seviri}
 
