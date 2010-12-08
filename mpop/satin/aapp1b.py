@@ -120,9 +120,31 @@ def load_avhrr(satscene, options):
         else:
             LOG.warning("Channel "+str(chn)+" not available, not loaded.")
 
-    satscene.lat = instrument_data.latdata / math.pi * 180
-    satscene.lon = instrument_data.londata / math.pi * 180
+    # Compulsory global attribudes
+    satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
+                              " satellite, " +
+                              satscene.instrument_name.capitalize() +
+                              " instrument.")
+    satscene.info["institution"] = "Original data disseminated by EumetCast."
+    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
+    satscene.info["references"] = "No reference."
+    satscene.info["comments"] = "No comment."
 
+    lons = instrument_data.londata / math.pi * 180
+    lats = instrument_data.latdata / math.pi * 180
+
+    print lons.shape
+
+    try:
+        from pyresample import geometry
+        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+
+    except ImportError:
+        satscene.area = None
+        satscene.lat = lats
+        satscene.lon = lons
+
+    
 
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.

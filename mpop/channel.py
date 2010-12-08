@@ -106,8 +106,14 @@ class GenericChannel(object):
                 dummy = area.proj_dict
                 self.area_def = area
             except AttributeError:
-                raise ValueError("Malformed area argument. "
-                                 "Should be a string or an area object.")
+                try:
+                    dummy = area.lons
+                    dummy = area.lats
+                    self.area_def = area
+                    self.area_id = None
+                except AttributeError:
+                    raise TypeError("Malformed area argument. "
+                                    "Should be a string or an area object.")
 
     area = property(get_area, set_area)
 

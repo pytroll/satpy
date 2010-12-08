@@ -144,8 +144,14 @@ class SatelliteScene(Satellite):
                 self.area_def = area
                 self.area_id = None
             except AttributeError:
-                raise TypeError("Malformed area argument. "
-                                "Should be a string or an area object.")
+                try:
+                    dummy = area.lons
+                    dummy = area.lats
+                    self.area_def = area
+                    self.area_id = None
+                except AttributeError:
+                    raise TypeError("Malformed area argument. "
+                                    "Should be a string or an area object.")
 
     area = property(get_area, set_area)
 
@@ -300,6 +306,10 @@ class SatelliteInstrumentScene(SatelliteScene):
         conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
 
         reader_name = conf.get(self.instrument_name + "-level2", 'format')
+        try:
+            reader_name = eval(reader_name)
+        except NameError:
+            reader_name = str(reader_name)
         reader = "mpop.satin." + reader_name
         try:
             reader_module = __import__(reader,
@@ -433,9 +443,19 @@ class SatelliteInstrumentScene(SatelliteScene):
                             self.area.area_extent,
                             self.area.nprocs)
 
-                    except (AttributeError, ImportError):
-                        chn.area = self.area + str(chn.shape)
-                        
+                    except AttributeError:
+                        try:
+                            dummy = self.area.lons
+                            dummy = self.area.lats
+                            chn.area = self.area
+                            area_name = ("swath_" + self.fullname + "_" +
+                                         str(self.time_slot) + "_"
+                                         + str(chn.shape))
+                            chn.area.area_id = area_name
+                        except AttributeError:
+                            chn.area = self.area + str(chn.shape)
+                    except ImportError:
+                        chn.area = self.area + str(chn.shape) 
                     
             if chn.area == dest_area:
                 res.channels.append(chn)

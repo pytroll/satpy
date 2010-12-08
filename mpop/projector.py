@@ -73,9 +73,12 @@ class Projector(object):
                                                  in_area)[0]
             in_id = in_area
         except utils.AreaNotFound:
-            if isinstance(in_area, (geometry.AreaDefinition,
-                                    geometry.SwathDefinition)):
+            if isinstance(in_area, geometry.AreaDefinition):
                 self.in_area = in_area
+                in_id = in_area.area_id
+            elif isinstance(in_area, geometry.SwathDefinition):
+                self.in_area = in_area
+                self._swath = True
                 in_id = in_area.area_id
             elif in_latlons is not None:
                 self._swath = True
