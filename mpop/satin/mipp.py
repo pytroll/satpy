@@ -84,15 +84,14 @@ def load_generic(satscene, options, calibrate=True):
 
     # Slicing
     try:
-        from pyresample import utils, geometry
+        from pyresample import geometry
+        from mpop.projector import get_area_def
 
         if satscene.area is None:
             entire = True
         else:
             if not satscene.area_def:
-                area_file = os.path.join(CONFIG_PATH, "areas.def")
-                satscene.area_def = utils.parse_area_file(area_file,
-                                                          satscene.area_id)[0]
+                satscene.area_def = get_area_def(satscene.area_id)
 
             if(satscene.area_def.proj_dict["proj"] != "geos" or
                satscene.area_def.proj_dict["lon_0"] != "0.0"):
@@ -132,8 +131,10 @@ def load_generic(satscene, options, calibrate=True):
                                 satscene.area.name,
                                 satscene.area.proj_id,
                                 satscene.area.proj_dict,
-                                np.round(satscene.area.x_size * area_xres / resolution),
-                                np.round(satscene.area.y_size * area_yres / resolution),
+                                np.round(satscene.area.x_size * area_xres /
+                                         resolution),
+                                np.round(satscene.area.y_size * area_yres /
+                                         resolution),
                                 satscene.area.area_extent,
                                 satscene.area.nprocs)
                         else:
@@ -248,11 +249,10 @@ def load_seviri(satscene, options, calibrate=True):
     satscene.info["comments"] = "No comment."
 
     if satscene.area:
-        from pyresample import utils, geometry
+        from pyresample import geometry
+        from mpop.projector import get_area_def
         if not satscene.area_def:
-            area_file = os.path.join(CONFIG_PATH, "areas.def")
-            satscene.area = utils.parse_area_file(area_file,
-                                                          satscene.area_id)[0]
+            satscene.area = get_area_def(satscene.area_id)
         area_extent = satscene.area.area_extent
 
         if(satscene.area_def.proj_dict["proj"] != "geos" or

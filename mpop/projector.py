@@ -34,6 +34,7 @@ satellite projection to an area of interest in polar projection for
 example.
 """
 import os
+from ConfigParser import ConfigParser
 
 import numpy as np
 from pyresample import image, utils, geometry, kd_tree
@@ -41,6 +42,18 @@ from pyresample import image, utils, geometry, kd_tree
 from mpop import CONFIG_PATH
 from mpop.logger import LOG
 
+CONF = ConfigParser()
+CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or CONFIG_PATH,
+                         CONF.get("projector", "area_file"))
+
+def get_area_def(area):
+    """Get the definition of *area* from file. The file is defined to use is to
+    be placed in the $PPP_CONFIG_DIR directory, and its name is defined in
+    mpop's configuration file.
+    """
+    return utils.parse_area_file(AREA_FILE, area)[0]
 
 class Projector(object):
     """This class define projector objects. They contain the mapping
@@ -56,8 +69,6 @@ class Projector(object):
     _filename = None
     mode = "quick"
     
-    area_file = os.path.join(CONFIG_PATH, "areas.def")
-
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode="quick"):
 
@@ -69,8 +80,7 @@ class Projector(object):
 
         # Setting up the input area
         try:
-            self.in_area = utils.parse_area_file(self.area_file,
-                                                 in_area)[0]
+            self.in_area = get_area_def(in_area)
             in_id = in_area
         except utils.AreaNotFound:
             if isinstance(in_area, geometry.AreaDefinition):
@@ -89,15 +99,14 @@ class Projector(object):
                 raise utils.AreaNotFound("Input area " +
                                          str(in_area) +
                                          " must be defined in " +
-                                         self.area_file + ", be an area object"
+                                         AREA_FILE + ", be an area object"
                                          " or longitudes/latitudes must be "
                                          "provided.")
 
 
         # Setting up the output area
         try:
-            self.out_area = utils.parse_area_file(self.area_file,
-                                                  out_area)[0]
+            self.out_area = get_area_def(out_area)
             out_id = out_area
         except utils.AreaNotFound:
             if isinstance(out_area, (geometry.AreaDefinition,
@@ -108,7 +117,7 @@ class Projector(object):
                 raise utils.AreaNotFound("Output area " +
                                          str(out_area) +
                                          " must be defined in " +
-                                         self.area_file + " or "
+                                         AREA_FILE + " or "
                                          "be an area object.")
 
         

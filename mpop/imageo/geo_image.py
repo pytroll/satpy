@@ -202,10 +202,9 @@ class GeoImage(mpop.imageo.image.Image):
                 dst_ds.SetProjection(spatialref)
         else:
             try:
-                from pyresample import utils
+                from mpop.projector import get_area_def
             
-                area_file = os.path.join(CONFIG_PATH, "areas.def")
-                area = utils.parse_area_file(area_file, self.area_id)[0]
+                area = get_area_def(self.area_id)
             except utils.AreaNotFound:
                 area = self.area_id
 
