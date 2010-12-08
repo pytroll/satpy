@@ -155,10 +155,10 @@ def get_lat_lon(satscene, resolution):
     """Read data from file and load it into *satscene*.
     """    
     conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname() + ".cfg"))
+    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
-    for option, value in conf.items(satscene.instrument_name, raw = True):
-        options[option] = value
+    #for option, value in conf.items(satscene.instrument_name, raw = True):
+    #    options[option] = value
     return LAT_LON_CASES[satscene.instrument_name](satscene,
                                                    resolution,
                                                    options)
