@@ -34,7 +34,7 @@ satellite projection to an area of interest in polar projection for
 example.
 """
 import os
-from ConfigParser import ConfigParser
+import ConfigParser
 
 import numpy as np
 from pyresample import image, utils, geometry, kd_tree
@@ -42,11 +42,16 @@ from pyresample import image, utils, geometry, kd_tree
 from mpop import CONFIG_PATH
 from mpop.logger import LOG
 
-CONF = ConfigParser()
+CONF = ConfigParser.ConfigParser()
 CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
-AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or CONFIG_PATH,
-                         CONF.get("projector", "area_file"))
+try:
+    AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or CONFIG_PATH,
+                             CONF.get("projector", "area_file"))
+except ConfigParser.NoSectionError:
+    AREA_FILE = ""
+    LOG.warning("Couldn't find the mpop.cfg file. "
+                "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
 def get_area_def(area):
     """Get the definition of *area* from file. The file is defined to use is to
@@ -127,7 +132,14 @@ class Projector(object):
         filename = (in_id + "2" + out_id + "_" + mode + ".npz")
 
         # FIXME: the directory should be configurable.
-        self._filename = os.path.join("/var/tmp", filename)
+        projections_directory = "/var/tmp"
+        try:
+            projections_directory = CONF.get("projector",
+                                             "projections_directory")
+        except ConfigParser.NoSectionError:
+            pass
+        
+        self._filename = os.path.join(projections_directory, filename)
 
         if(not os.path.exists(self._filename)):
             LOG.info("Computing projection from %s to %s..."

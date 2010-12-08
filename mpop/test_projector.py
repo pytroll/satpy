@@ -29,6 +29,7 @@
 
 """Test module for mpop.projector.
 """
+import ConfigParser
 import unittest
 
 import numpy as np
@@ -168,6 +169,38 @@ def unpatch_image():
     image.ImageContainer = image.OldImageContainer
     delattr(image, "OldImageContainer")
 
+def patch_configparser():
+    """Patch to fake ConfigParser.
+    """
+    class FakeConfigParser:
+        """Dummy ConfigParser class.
+        """
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def read(self, *args, **kwargs):
+            """Dummy read method
+            """
+            del args, kwargs
+            self = self
+
+        def get(self, *args, **kwargs):
+            """Dummy get method
+            """
+            del args, kwargs
+            self = self
+            return "abc"
+        
+    ConfigParser.OldConfigParser = ConfigParser.ConfigParser
+    ConfigParser.ConfigParser = FakeConfigParser
+
+def unpatch_configparser():
+    """Unpatch fake ConfigParser.
+    """
+    ConfigParser.ConfigParser = ConfigParser.OldConfigParser
+    delattr(ConfigParser, "OldConfigParser")
+
+
 class TestProjector(unittest.TestCase):
     """Class for testing the Projector class.
     """
@@ -181,6 +214,7 @@ class TestProjector(unittest.TestCase):
         patch_utils()
         patch_kd_tree()
         patch_image()
+        patch_configparser()
         
     def test_init(self):
         """Creation of coverage.
@@ -286,6 +320,7 @@ class TestProjector(unittest.TestCase):
         unpatch_geometry()
         unpatch_kd_tree()
         unpatch_image()
+        unpatch_configparser()
         
 def random_string(length,
                   choices="abcdefghijklmnopqrstuvwxyz"
