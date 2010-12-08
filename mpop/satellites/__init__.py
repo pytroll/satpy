@@ -32,6 +32,7 @@ import os.path
 from ConfigParser import ConfigParser
 
 import mpop.utils
+import mpop.satellites.meteosat09
 from mpop import CONFIG_PATH
 
 

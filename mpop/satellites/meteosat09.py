@@ -240,7 +240,27 @@ class Meteosat09SeviriScene(SeviriScene):
 
     pge02e.prerequisites = set(["CloudType", 0.6, 0.8, 10.8])    
 
+    def pge02f(self):
+        """Same as :meth:`pge02b` with transparent cloud-free areas.
+        """
+        self.check_channels(10.8, "CloudType")
 
+        ctype = self["CloudType"].cloudtype.data
+
+        img = self.pge02b()
+        img.convert("RGB")
+        
+        img.fill_value = None
+        
+        alpha = np.ma.where(ctype < 5, 0.0, 1.0)
+        alpha = np.ma.where(ctype == 15, 0.5, alpha)
+        alpha = np.ma.where(ctype == 19, 0.5, alpha)
+
+        img.putalpha(alpha)
+        
+        return img
+        
+    pge02f.prerequisites = set(["CloudType", 10.8])
 
     def pge03(self):
         """Make an RGB composite of the CTTH.
