@@ -87,7 +87,7 @@ class Projector(object):
         try:
             self.in_area = get_area_def(in_area)
             in_id = in_area
-        except utils.AreaNotFound:
+        except (utils.AreaNotFound, AttributeError):
             if isinstance(in_area, geometry.AreaDefinition):
                 self.in_area = in_area
                 in_id = in_area.area_id
@@ -113,7 +113,7 @@ class Projector(object):
         try:
             self.out_area = get_area_def(out_area)
             out_id = out_area
-        except utils.AreaNotFound:
+        except (utils.AreaNotFound, AttributeError):
             if isinstance(out_area, (geometry.AreaDefinition,
                                     geometry.SwathDefinition)):
                 self.out_area = out_area
@@ -125,13 +125,11 @@ class Projector(object):
                                          AREA_FILE + " or "
                                          "be an area object.")
 
-        
         if self.in_area == self.out_area:
             return
 
         filename = (in_id + "2" + out_id + "_" + mode + ".npz")
 
-        # FIXME: the directory should be configurable.
         projections_directory = "/var/tmp"
         try:
             projections_directory = CONF.get("projector",

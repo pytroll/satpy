@@ -202,10 +202,11 @@ class GeoImage(mpop.imageo.image.Image):
                 dst_ds.SetProjection(spatialref)
         else:
             try:
+                from pyresample import utils
                 from mpop.projector import get_area_def
             
                 area = get_area_def(self.area_id)
-            except utils.AreaNotFound:
+            except (utils.AreaNotFound, AttributeError):
                 area = self.area_id
 
 
@@ -219,7 +220,7 @@ class GeoImage(mpop.imageo.image.Image):
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
-                LOG.exception("Could not load geographic data, invalid area")            
+                LOG.exception("Could not load geographic data, invalid area")
 
         self.tags.update({'TIFFTAG_DATETIME':
                           self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
