@@ -286,7 +286,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             LOG.exception("ImportError while loading the reader")
             raise ImportError("No "+reader+" reader found.")
 
-
+        self.channels_to_load = set()
 
     def get_lat_lon(self, resolution):
         """Get the latitude and longitude grids of the current region for the
