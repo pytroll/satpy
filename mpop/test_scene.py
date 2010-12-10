@@ -519,6 +519,9 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                        mask = np.array(np.random.rand(3, 3) * 2,
                                                        dtype = int))
 
+        self.assertEquals(set([chn.name for chn in self.scene.loaded_channels()]),
+                          set(["00_7", "06_4", "11_5"]))
+
     def test_project(self):
         """Projecting a scene.
         """
@@ -649,11 +652,11 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertRaises(TypeError, self.scene.load, "00_7")
 
         self.scene.load(["00_7"])
-        self.assertEquals(set(["00_7"]), self.scene.channels_to_load)
+        self.assertEquals(set(), self.scene.channels_to_load)
 
         self.scene = SatelliteInstrumentScene2()
         self.scene.load()
-        self.assertEquals(set(["00_7", "06_4", "11_5"]),
+        self.assertEquals(set(),
                           self.scene.channels_to_load)
 
         self.scene.load(["CTTH"])
