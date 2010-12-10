@@ -244,6 +244,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
 
         # Set up the list of channels to load.
+        other_channels_to_load = set()
         if channels is None:
             for chn in self.channel_list:
                 self.channels_to_load |= set([chn[0]])
@@ -253,8 +254,9 @@ class SatelliteInstrumentScene(SatelliteScene):
                 try:
                     self.channels_to_load |= set([self[chn].name])
                 except KeyError:
-                    LOG.warning("Channel "+str(chn)+" not found,"
-                                " will not load from raw data.")
+                    other_channels_to_load |= set([str(chn)])
+                    LOG.debug("Channel "+str(chn)+" not found in "
+                              "channel list")
         else:
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
@@ -263,7 +265,8 @@ class SatelliteInstrumentScene(SatelliteScene):
             self.channels_to_load -= set([chn.name
                                           for chn in self.loaded_channels()])
 
-        if len(self.channels_to_load) == 0:
+        if(len(self.channels_to_load) == 0 and
+           len(other_channels_to_load) == 0):
             return
 
         
@@ -288,6 +291,32 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         self.channels_to_load = set()
 
+        if not other_channels_to_load:
+            return
+
+        self.channels_to_load = other_channels_to_load
+        
+        # find the plugin to use from the config file
+        conf = ConfigParser.ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
+
+        reader_name = conf.get(self.instrument_name + "-level3", 'format')
+        try:
+            reader_name = eval(reader_name)
+        except NameError:
+            reader_name = str(reader_name)
+            
+        # read the data
+        reader = "mpop.satin."+reader_name
+        try:
+            reader_module = __import__(reader, globals(), locals(), ['load'])
+            reader_module.load(self, **kwargs)
+        except ImportError:
+            LOG.exception("ImportError while loading the reader")
+            raise ImportError("No "+reader+" reader found.")
+            
+        self.channels_to_load = set()
+        
     def get_lat_lon(self, resolution):
         """Get the latitude and longitude grids of the current region for the
         given *resolution*.
@@ -387,7 +416,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         # Lazy import in case pyresample is missing
         try:
-            from mpop.projector import Projector
+            from mpop.projector import Projector, get_area_def
         except ImportError:
             LOG.exception("Cannot load reprojection module. "
                           "Is pyresample/pyproj missing ?")
@@ -412,6 +441,9 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
         res = copy.copy(self)
+
+        if isinstance(dest_area, str):
+            dest_area = get_area_def(dest_area)
         
         res.area = dest_area
         res.channels = []

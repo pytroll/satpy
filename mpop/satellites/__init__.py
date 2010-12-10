@@ -102,6 +102,7 @@ def build_satellite_class(satellite, number, variant=""):
             for section in conf.sections():
                 if(not section.endswith("level1") and
                    not section.endswith("level2") and
+                   not section.endswith("level3") and
                    not section.endswith("granules") and
                    section.startswith(instrument)):
                     ch_list += [[eval(conf.get(section, "name")),

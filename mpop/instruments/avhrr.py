@@ -30,7 +30,10 @@
 from mpop.channel import NotLoadedError
 from mpop.imageo import geo_image
 from mpop.instruments.visir import VisirScene
+from mpop.utils import get_logger
+import numpy as np
 
+LOG = get_logger("mpop/avhrr")
 
 AVHRR = [["1", (0.58, 0.635, 0.68), 1090],
          ["2", (0.725, 0.81, 1.00), 1090],
@@ -92,3 +95,123 @@ class AvhrrScene(VisirScene):
             return (imgb or imga)
             
     cloudtop.prerequisites = set([1.63, 3.75, 10.8, 12.0])
+
+    def pge02b(self):
+        """Make a Cloudtype RGB image composite, depicting low clouds, land and
+        sea with palette colors, and the rest as in the IR 10.8 channel.
+        """
+        self.check_channels(10.8, "CloudType")
+
+        ctype = self["CloudType"].cloudtype
+        clouds = self[10.8].data
+
+        palette = mpop.imageo.palettes.vv_legend()
+        clouds = mpop.imageo.image_processing.crude_stretch(clouds)
+        clouds = mpop.imageo.image_processing.gamma_correction(clouds, 1.6)
+        clouds = 1 - clouds
+        clouds = (clouds * 248 + 7).astype(np.uint8)
+        clouds = np.ma.where(ctype <= 2, ctype, clouds)
+        clouds = np.ma.where(np.logical_and(4 < ctype,
+                                            ctype < 9),
+                             ctype - 2,
+                             clouds)
+        
+        img = geo_image.GeoImage(clouds,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value = (0, 0, 0),
+                                 mode = "P",
+                                 palette = palette)
+
+        return img
+
+    pge02b.prerequisites = set(["CloudType", 10.8])
+
+
+
+    def load(self, channels=None, load_again=False, **kwargs):
+        """Load data into the *channels*. *Channels* is a list or a tuple
+        containing channels we will load data into. If None, all channels are
+        loaded.
+        """
+        LOG.info("Loading channels...")
+
+        if channels is not None:
+            channels_to_load = set(channels)
+            channels_to_load -= set(["CTTH", "CloudType"])
+        else:
+            channels_to_load = None
+            
+        VisirScene.load(self, channels_to_load, load_again, **kwargs)
+
+
+
+        if channels is not None:
+            if("CTTH" in channels and
+               "CTTH" not in self.channels):
+                import mpop.satin.msg_ctth
+                self.channels.append(
+                    mpop.satin.msg_ctth.ctth_channel(self.time_slot, self.area))
+                
+            if("CloudType" in channels and
+               "CloudType" not in self.channels):
+                import ConfigParser
+                import os.path
+                from mpop import CONFIG_PATH
+                conf = ConfigParser.ConfigParser()
+                conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
+                directory = conf.get(self.instrument_name+"-level3", "dir")
+                filename = conf.get(self.instrument_name+"-level3", "filename",
+                                    raw=True)
+                pathname = os.path.join(directory, filename)
+                area_name = self.area_id or self.area.area_id
+                filename = (self.time_slot.strftime(pathname)
+                            %{"orbit": self.orbit,
+                              "number": self.number,
+                              "area": area_name})
+                import epshdf
+                ct_chan = PpsCloudType()
+                ct_chan.copy(epshdf.read_cloudtype(filename))
+                self.channels.append(ct_chan)
+
+                self["CloudType"].area = self.area
+
+
+        LOG.info("Loading channels done.")
+
+import mpop.channel
+
+class PpsCloudType(mpop.channel.GenericChannel):
+    def __init__(self):
+        mpop.channel.GenericChannel.__init__(self, "CloudType")
+        self.region = None
+        self.des = ""
+        self.cloudtype_des = ""
+        self.qualityflag_des = ""
+        self.phaseflag_des = ""
+        self.sec_1970 = 0
+        self.satellite_id = ""
+        self.cloudtype_lut = []
+        self.qualityflag_lut = []
+        self.phaseflag_lut = []
+        self.cloudtype = None
+        self.qualityflag = None
+        self.phaseflag = None
+
+    def copy(self, other):
+        self.region = other.region
+        self.des = other.des
+        self.cloudtype_des = other.cloudtype_des
+        self.qualityflag_des = other.qualityflag_des
+        self.phaseflag_des = other.phaseflag_des
+        self.sec_1970 = other.sec_1970
+        self.satellite_id = other.satellite_id
+        self.cloudtype_lut = other.cloudtype_lut
+        self.qualityflag_lut = other.qualityflag_lut
+        self.phaseflag_lut = other.phaseflag_lut
+        self.cloudtype = other.cloudtype
+        self.qualityflag = other.qualityflag
+        self.phaseflag = other.phaseflag
+        
+    def is_loaded(self):
+        return self.cloudtype is not None
