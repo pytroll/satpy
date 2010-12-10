@@ -58,8 +58,9 @@ objects can be projected onto other areas if the pyresample_ software is
 installed, thanks to the :meth:`mpop.scene.SatelliteInstrumentScene.project`
 method. As input, this method takes either a Definition object (see
 pyresample's documentation) or string identificator for the area. In the latter
-case, the referenced region has to be defined in the `areas.def` file located
-in the directory pointed by the `PPP_CONFIG_DIR` environment variables.
+case, the referenced region has to be defined in the area file. The name and
+location of this file is defined in the `mpop.cfg` configuration file, itself
+located in the directory pointed by the `PPP_CONFIG_DIR` environment variable.
 
 For more information about the internals of the projection process, take a look
 at the :mod:`mpop.projector` module.
