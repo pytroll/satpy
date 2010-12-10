@@ -333,7 +333,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         except ImportError, err:
             raise ImportError("Cannot load "+writer+" writer: "+str(err))
 
-        return writer_module.save(self, filename, compression=compressione, 
+        return writer_module.save(self, filename, compression=compression, 
                                   data_type=data_type)
 
     def unload(self, channels=None):
