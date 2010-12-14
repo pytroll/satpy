@@ -26,8 +26,8 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The :mod:`mpop.scene` module defines satellite scenes. They are defined as generic
-classes, to be inherited when needed.
+"""The :mod:`mpop.scene` module defines satellite scenes. They are defined as
+generic classes, to be inherited when needed.
 
 A scene is a set of :mod:`mpop.channel` objects for a given time, and sometimes
 also for a given area.
@@ -47,19 +47,11 @@ from mpop.logger import LOG
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
     """
-    #: Name of the satellite
-    satname = ""
 
-    #: Number of the satellite
-    number = ""
-    
-    #: Variant of the satellite (often the communication channel it comes from)
-    variant = ""
-
-    def __init__(self, satname, number, variant):
-        self.satname = satname
-        self.number = number
-        self.variant = variant
+    def __init__(self, (satname, number, variant)=(None, None, None)):
+        self.satname = satname or ""
+        self.number = number or ""
+        self.variant = variant or ""
 
     @property
     def fullname(self):
@@ -86,29 +78,20 @@ class SatelliteScene(Satellite):
     (channels) data at given *time_slot* and *area_id*/*area*.
     """
 
-    #: Time of the snapshot
-    time_slot = None
+    def __init__(self, time_slot=None, area_id=None, area=None,
+                 orbit=None, satellite=(None, None, None)):
 
-    #: Orbit number of the satellite
-    orbit = None
-
-    #: Name of the area on which the scene is defined.
-    area_id = None
-
-    #: Area on which the scene is defined.
-    area_def = None
-
-    #: Metadata information
-    info = {}
-    
-    def __init__(self, time_slot=None, area_id=None, area=None, orbit=None):
-
+        Satellite.__init__(self, satellite)
+        
         if(time_slot is not None and
            not isinstance(time_slot, datetime.datetime)):
             raise TypeError("Time_slot must be a datetime.datetime instance.")
         
         self.time_slot = time_slot
 
+
+        self.area_id = None
+        self.area_def = None
         
         if(area_id is not None):
             from warnings import warn
@@ -130,6 +113,8 @@ class SatelliteScene(Satellite):
         self.orbit = orbit
 
 
+        self.info = {}
+        
         self.lat = None
         self.lon = None
 
@@ -178,20 +163,42 @@ class SatelliteInstrumentScene(SatelliteScene):
     big datasets, or can be set automatically when loading), and *orbit* which
     is a string giving the orbit number.
     """
-    channels = []
     channel_list = []
 
-    #. Instrument name
-    instrument_name = None
-
-    def __init__(self, time_slot=None, area_id=None, area=None, orbit=None):
-        SatelliteScene.__init__(self, time_slot, area_id, area, orbit)
-        self.channels = []
+    def __init__(self, time_slot=None, area_id=None, area=None,
+                 orbit=None, satellite=(None, None, None), instrument=None):
         
-        for name, w_range, resolution in self.channel_list:
-            self.channels.append(Channel(name=name,
-                                         wavelength_range=w_range,
-                                         resolution=resolution))
+        SatelliteScene.__init__(self, time_slot, area_id, area,
+                                orbit, satellite)
+        
+        try:
+            self.instrument_name = instrument or self.instrument_name
+        except AttributeError:
+            self.instrument_name = None
+            
+        self.channels = []
+
+        try:
+            conf = ConfigParser.ConfigParser()
+            conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
+            for section in conf.sections():
+                if(not section.endswith("level1") and
+                   not section.endswith("level2") and
+                   not section.endswith("level3") and
+                   not section.endswith("granules") and
+                   section.startswith(self.instrument_name)):
+                    name = eval(conf.get(section, "name"))
+                    w_range = eval(conf.get(section, "frequency"))
+                    resolution = eval(conf.get(section, "resolution"))
+                    self.channels.append(Channel(name=name,
+                                                 wavelength_range=w_range,
+                                                 resolution=resolution))
+        except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+            for name, w_range, resolution in self.channel_list:
+                self.channels.append(Channel(name=name,
+                                             wavelength_range=w_range,
+                                             resolution=resolution))
+
         self.channels_to_load = set([])
 
     def __getitem__(self, key, aslist = False):
@@ -211,7 +218,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         elif(isinstance(key, int)):
             channels = [chn for chn in self.channels
-                        if chn.resolution == key]
+                        if int(np.round(chn.resolution)) == key]
             channels = sorted(channels)
 
         elif(isinstance(key, (tuple, list))):
@@ -259,8 +266,8 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         # Set up the list of channels to load.
         if channels is None:
-            for chn in self.channel_list:
-                self.channels_to_load |= set([chn[0]])
+            for chn in self.channels:
+                self.channels_to_load |= set([chn.name])
 
         elif(isinstance(channels, (list, tuple, set))):
             for chn in channels:
@@ -365,7 +372,6 @@ class SatelliteInstrumentScene(SatelliteScene):
     def add_to_history(self, message):
         """Adds a message to history info.
         """
-        import datetime
         timestr = datetime.datetime.utcnow().isoformat()
         timed_message = str(timestr + " - " + message)
         if not self.info.get("history", ""):

@@ -43,6 +43,7 @@ class Meteosat09SeviriScene(SeviriScene):
     """
     satname = "meteosat"
     number = "09"
+    variant = ""
 
     def load(self, channels=None, load_again=False, **kwargs):
         """Load data into the *channels*. *Channels* is a list or a tuple

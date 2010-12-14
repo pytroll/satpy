@@ -162,3 +162,103 @@ def get_custom_composites(name):
     except AttributeError:
         return []
         
+
+
+def get_sat_instr_compositer((satellite, number, variant), instrument):
+    """Get the compositer class for a given satellite, defined by the three
+    strings *satellite*, *number*, and *variant*, and *instrument*. The class
+    is then filled with custom composites if there are any (see
+    :func:`get_custom_composites`). If no class is found, an attempt is made to
+    build the class from a corresponding configuration file, see
+    :func:`build_sat_instr_compositer`.
+    """
+
+    module_name = variant + satellite + number
+    class_name = (variant.capitalize() + satellite.capitalize() +
+                  number.capitalize() + instrument.capitalize())
+
+    try:
+        module = __import__(module_name, globals(), locals(), [class_name])
+        klass = getattr(module, class_name)
+        for k in get_custom_composites(variant + satellite +
+                                       number + instrument):
+            klass.add_method(k)
+        return klass
+    except (ImportError, AttributeError):
+        return build_sat_instr_compositer((satellite, number,
+                                                      variant),
+                                          instrument)
+        
+
+def build_instrument_compositer(instrument_name):
+    """Automatically generate an instrument compositer class from its
+    *instrument_name*. The class is then filled with custom composites if there
+    are any (see :func:`get_custom_composites`)
+    """
+
+    from mpop.instruments.visir import VisirCompositer
+    instrument_class = type(instrument_name.capitalize() + "Compositer",
+                            (VisirCompositer,),
+                            {"instrument_name": instrument_name})
+    for i in get_custom_composites(instrument_name):
+        instrument_class.add_method(i)
+        
+    return instrument_class
+                     
+def build_sat_instr_compositer((satellite, number, variant), instrument):
+    """Build a compositer class for the given satellite (defined by the three
+    strings *satellite*, *number*, and *variant*) and *instrument* on the fly,
+    using data from a corresponding config file. They inherit from the
+    corresponding instrument class, which is also created on the fly is no
+    predefined module (containing a compositer) for this instrument is
+    available (see :func:`build_instrument_compositer`).
+    """
+
+    fullname = variant + satellite + number
+    
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+
+    try:
+        mod = __import__("mpop.instruments." + instrument,
+                         globals(), locals(),
+                         [instrument.capitalize() + 'Compositer'])
+        instrument_class = getattr(mod, instrument.capitalize() + 'Compositer')
+        for i in get_custom_composites(instrument):
+            instrument_class.add_method(i)
+
+    except (ImportError, AttributeError):
+        instrument_class = build_instrument_compositer(instrument)
+                
+    sat_class = type(variant.capitalize() +
+                     satellite.capitalize() +
+                     number.capitalize() +
+                     instrument.capitalize() +
+                     "Compositer",
+                     (instrument_class,),
+                     {})
+
+    for i in get_custom_composites(variant + satellite +
+                                   number + instrument):
+        sat_class.add_method(i)
+            
+    return sat_class
+
+
+class GeostationnaryFactory(object):
+    """Factory for geostationnary satellite scenes.
+    """
+
+
+    @staticmethod
+    def create_scene(satellite, instrument, area, time_slot):
+        """Create a compound satellite scene.
+        """
+        instrument_scene = SatelliteInstrumentScene(satellite=satellite,
+                                                    instrument=instrument,
+                                                    area=area,
+                                                    time_slot=time_slot)
+        compositer = get_sat_instr_compositer(satellite, instrument)
+        if compositer is not None:
+            instrument_scene.image = compositer(instrument_scene)
+        return instrument_scene 
