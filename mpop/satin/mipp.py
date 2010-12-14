@@ -270,7 +270,7 @@ def load_seviri(satscene, options, calibrate=True):
                                   chn,
                                   mask=True,
                                   calibrate=calibrate)
-            metadata, data = image.area_extent(area_extent)
+            metadata, data = image(area_extent)
         except CalibrationError:
             LOG.warning("Loading non calibrated data since calibration failed.")
             image = xrit.sat.load(satscene.fullname,
@@ -278,7 +278,7 @@ def load_seviri(satscene, options, calibrate=True):
                                   chn,
                                   mask=True,
                                   calibrate=False)
-            metadata, data = image.area_extent(area_extent)
+            metadata, data = image(area_extent)
 
 
         satscene[chn] = data
@@ -297,7 +297,7 @@ def load_seviri(satscene, options, calibrate=True):
                     satscene.area.proj_dict,
                     data.shape[1],
                     data.shape[0],
-                    metadata.actual_area_extent,
+                    metadata.area_extent,
                     satscene.area.nprocs)
             except AttributeError:
                 # Build an area on the fly from the mipp metadata
@@ -308,14 +308,14 @@ def load_seviri(satscene, options, calibrate=True):
                     proj_dict[key] = val
                 satscene[chn].area = geometry.AreaDefinition(
                     satscene.satname + satscene.instrument_name +
-                    str(metadata.actual_area_extent) +
+                    str(metadata.area_extent) +
                     str(data.shape),
                     "On-the-fly area",
                     proj_dict["proj"],
                     proj_dict,
                     data.shape[1],
                     data.shape[0],
-                    metadata.actual_area_extent)
+                    metadata.area_extent)
 
 CASES = {"seviri": load_seviri}
 
