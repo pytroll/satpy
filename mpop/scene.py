@@ -357,7 +357,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         return writer_module.save(self, filename, compression=compression, 
                                   data_type=data_type)
 
-    def unload(self, channels=None):
+    def unload(self, *channels):
         """Unloads *channels* from
         memory. :meth:`mpop.scene.SatelliteInstrumentScene.load` must be called
         again to reload the data.
