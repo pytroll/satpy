@@ -29,10 +29,13 @@
 
 """Setup file for mpop.
 """
+import ConfigParser
+import os.path
 
 from setuptools import setup, Extension
-import os.path
-import ConfigParser
+
+from version import get_git_version
+
 
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
@@ -64,9 +67,9 @@ except Exception, e:
 NAME = 'mpop'
 
 setup(name=NAME,
-      version='0.10.0alpha1',
+      version=get_git_version(),
       description='Meteorological post processing package',
-      author='Adam Dybbroe, Martin Raspaud',
+      author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo'],
