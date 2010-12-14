@@ -64,7 +64,7 @@ except Exception, e:
 NAME = 'mpop'
 
 setup(name=NAME,
-      version='0.9.0',
+      version='0.10.0alpha1',
       description='Meteorological post processing package',
       author='Adam Dybbroe, Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
@@ -85,6 +85,6 @@ setup(name=NAME,
       zip_safe=False,
       ext_modules = EXTS,
       requires=['acpg (>=2.03)',
-                'numpy (>=1.2.0)',
-                'pyresample (>=0.3)']
+                'numpy (>=1.4.1)',
+                'pyresample (>=0.7.1)']
       )
