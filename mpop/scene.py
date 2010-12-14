@@ -167,7 +167,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
     def __init__(self, time_slot=None, area_id=None, area=None,
                  orbit=None, satellite=(None, None, None), instrument=None):
-        
+
         SatelliteScene.__init__(self, time_slot, area_id, area,
                                 orbit, satellite)
         
