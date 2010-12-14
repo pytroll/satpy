@@ -263,45 +263,23 @@ def load_seviri(satscene, options, calibrate=True):
         area_extent = (-5567248.074173444, -5570248.4773392612,
                         5570248.4773392612, 5567248.074173444)
     
-    for chn in satscene.channels_to_load:    
-        if chn == "HRV":
-            px_size = 3000.403165817 / 3
-
-            # The lonlat (0,0) is placed in the middle of pixel (5570,5570)
-            # 0-based, counted from the top left (line col system)
-            
-            col_start = int(np.round(area_extent[0] / px_size + 5570 + 0.5))
-            line_end = int(np.round(area_extent[1] / -px_size + 5570 - 0.5))
-            col_end = int(np.round(area_extent[2] / px_size + 5570 - 0.5))
-            line_start = int(np.round(area_extent[3] / -px_size + 5570 + 0.5))
-        else:
-            px_size = 3000.403165817
-
-            # The lonlat (0,0) is placed in the middle of pixel (1856,1856)
-            # 0-based, counted from the top left (line col system)
-
-            col_start = int(np.round(area_extent[0] / px_size + 1856 + 0.5))
-            line_end = int(np.round(area_extent[1] / -px_size + 1856 - 0.5))
-            col_end = int(np.round(area_extent[2] / px_size + 1856 - 0.5))
-            line_start = int(np.round(area_extent[3] / -px_size + 1856 + 0.5))
-
+    for chn in satscene.channels_to_load:
         try:
-            metadata, data = (xrit.sat.load(satscene.fullname,
-                                            satscene.time_slot,
-                                            chn,
-                                            mask=True,
-                                            calibrate=calibrate)
-                              [line_start:line_end + 1,
-                               col_start:col_end + 1])            
+            image = xrit.sat.load(satscene.fullname,
+                                  satscene.time_slot,
+                                  chn,
+                                  mask=True,
+                                  calibrate=calibrate)
+            metadata, data = image(area_extent)
         except CalibrationError:
             LOG.warning("Loading non calibrated data since calibration failed.")
-            metadata, data = (xrit.sat.load(satscene.fullname,
-                                            satscene.time_slot,
-                                            chn,
-                                            mask=True,
-                                            calibrate=False)
-                              [line_start:line_end + 1,
-                               col_start:col_end + 1])
+            image = xrit.sat.load(satscene.fullname,
+                                  satscene.time_slot,
+                                  chn,
+                                  mask=True,
+                                  calibrate=False)
+            metadata, data = image(area_extent)
+
 
         satscene[chn] = data
 
@@ -319,7 +297,7 @@ def load_seviri(satscene, options, calibrate=True):
                     satscene.area.proj_dict,
                     data.shape[1],
                     data.shape[0],
-                    satscene.area.area_extent,
+                    metadata.area_extent,
                     satscene.area.nprocs)
             except AttributeError:
                 # Build an area on the fly from the mipp metadata
@@ -328,25 +306,16 @@ def load_seviri(satscene, options, calibrate=True):
                 for param in proj_params:
                     key, val = param.split("=")
                     proj_dict[key] = val
-                xres = metadata.pixel_size[1]
-                yres = metadata.pixel_size[0]
-                mid_x_area_extent = (xsize * xres) / 2.0
-                mid_y_area_extent = (ysize * yres) / 2.0
-                area_extent = (col_start * xres - mid_x_area_extent,
-                               line_start * yres - mid_y_area_extent,
-                               col_end * xres - mid_x_area_extent,
-                               line_end * xres - mid_y_area_extent)
                 satscene[chn].area = geometry.AreaDefinition(
                     satscene.satname + satscene.instrument_name +
-                    str(col_start) + str(col_end) +
-                    str(line_start) + str(line_end) +
+                    str(metadata.area_extent) +
                     str(data.shape),
                     "On-the-fly area",
                     proj_dict["proj"],
                     proj_dict,
                     data.shape[1],
                     data.shape[0],
-                    area_extent)
+                    metadata.area_extent)
 
 CASES = {"seviri": load_seviri}
 

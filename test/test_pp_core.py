@@ -193,6 +193,11 @@ def patch_configparser():
             self = self
             return "test_plugin"
         
+        def sections(self):
+            """Dummy sections method
+            """
+            raise ConfigParser.NoSectionError("Dummy sections.")
+
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 

@@ -29,12 +29,12 @@
 itself, it hold the mighty :meth:`mpop.satellites.get_satellite_class` method.
 """
 import os.path
-from ConfigParser import ConfigParser
+from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 
 import mpop.utils
 import mpop.satellites.meteosat09
 from mpop import CONFIG_PATH
-
+from mpop.scene import SatelliteInstrumentScene
 
 LOG = mpop.utils.get_logger("satellites")
 
@@ -56,6 +56,10 @@ def get_satellite_class(satellite, number, variant=""):
                 if(hasattr(eval(module_name+"."+j), "variant") and
                    variant == eval(module_name+"."+j+".variant")):
                     classes += [eval(module_name+"."+j)]
+                    instrument = classes[-1].instrument_name
+                    for k in get_custom_composites(variant + satellite +
+                                                   number + instrument):
+                        classes[-1].add_method(k)
     if classes != []:
         if len(classes) == 1:
             return classes[0]
@@ -74,6 +78,9 @@ def build_instrument(instrument_name, channel_list):
                             (VisirScene,),
                             {"channel_list": channel_list,
                              "instrument_name": instrument_name})
+    for i in get_custom_composites(instrument_name):
+        instrument_class.add_method(i)
+        
     return instrument_class
                      
 def build_satellite_class(satellite, number, variant=""):
@@ -97,6 +104,9 @@ def build_satellite_class(satellite, number, variant=""):
                              globals(), locals(),
                              [instrument.capitalize() + 'Scene'])
             instrument_class = getattr(mod, instrument.capitalize() + 'Scene')
+            for i in get_custom_composites(instrument):
+                instrument_class.add_method(i)
+
         except ImportError:
             ch_list = []
             for section in conf.sections():
@@ -120,9 +130,136 @@ def build_satellite_class(satellite, number, variant=""):
                          {"satname": satellite,
                           "number": number,
                           "variant": variant})
+
+        for i in get_custom_composites(variant + satellite +
+                                       number + instrument):
+            sat_class.add_method(i)
+
             
         sat_classes += [sat_class]
         
     if len(sat_classes) == 1:
         return sat_classes[0]
     return sat_classes
+
+def get_custom_composites(name):
+    """Get the home made methods for building composites for a given satellite
+    or instrument *name*.
+    """
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+    try:
+        module_name = conf.get("composites", "module")
+    except (NoSectionError, NoOptionError):
+        return []
+
+    try:
+        module = __import__(module_name, globals(), locals(), [name])
+    except ImportError:
+        return []
+
+    try:
+        return getattr(module, name)
+    except AttributeError:
+        return []
+        
+
+
+def get_sat_instr_compositer((satellite, number, variant), instrument):
+    """Get the compositer class for a given satellite, defined by the three
+    strings *satellite*, *number*, and *variant*, and *instrument*. The class
+    is then filled with custom composites if there are any (see
+    :func:`get_custom_composites`). If no class is found, an attempt is made to
+    build the class from a corresponding configuration file, see
+    :func:`build_sat_instr_compositer`.
+    """
+
+    module_name = variant + satellite + number
+    class_name = (variant.capitalize() + satellite.capitalize() +
+                  number.capitalize() + instrument.capitalize())
+
+    try:
+        module = __import__(module_name, globals(), locals(), [class_name])
+        klass = getattr(module, class_name)
+        for k in get_custom_composites(variant + satellite +
+                                       number + instrument):
+            klass.add_method(k)
+        return klass
+    except (ImportError, AttributeError):
+        return build_sat_instr_compositer((satellite, number,
+                                                      variant),
+                                          instrument)
+        
+
+def build_instrument_compositer(instrument_name):
+    """Automatically generate an instrument compositer class from its
+    *instrument_name*. The class is then filled with custom composites if there
+    are any (see :func:`get_custom_composites`)
+    """
+
+    from mpop.instruments.visir import VisirCompositer
+    instrument_class = type(instrument_name.capitalize() + "Compositer",
+                            (VisirCompositer,),
+                            {"instrument_name": instrument_name})
+    for i in get_custom_composites(instrument_name):
+        instrument_class.add_method(i)
+        
+    return instrument_class
+                     
+def build_sat_instr_compositer((satellite, number, variant), instrument):
+    """Build a compositer class for the given satellite (defined by the three
+    strings *satellite*, *number*, and *variant*) and *instrument* on the fly,
+    using data from a corresponding config file. They inherit from the
+    corresponding instrument class, which is also created on the fly is no
+    predefined module (containing a compositer) for this instrument is
+    available (see :func:`build_instrument_compositer`).
+    """
+
+    fullname = variant + satellite + number
+    
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+
+    try:
+        mod = __import__("mpop.instruments." + instrument,
+                         globals(), locals(),
+                         [instrument.capitalize() + 'Compositer'])
+        instrument_class = getattr(mod, instrument.capitalize() + 'Compositer')
+        for i in get_custom_composites(instrument):
+            instrument_class.add_method(i)
+
+    except (ImportError, AttributeError):
+        instrument_class = build_instrument_compositer(instrument)
+                
+    sat_class = type(variant.capitalize() +
+                     satellite.capitalize() +
+                     number.capitalize() +
+                     instrument.capitalize() +
+                     "Compositer",
+                     (instrument_class,),
+                     {})
+
+    for i in get_custom_composites(variant + satellite +
+                                   number + instrument):
+        sat_class.add_method(i)
+            
+    return sat_class
+
+
+class GeostationnaryFactory(object):
+    """Factory for geostationnary satellite scenes.
+    """
+
+
+    @staticmethod
+    def create_scene(satellite, instrument, area, time_slot):
+        """Create a compound satellite scene.
+        """
+        instrument_scene = SatelliteInstrumentScene(satellite=satellite,
+                                                    instrument=instrument,
+                                                    area=area,
+                                                    time_slot=time_slot)
+        compositer = get_sat_instr_compositer(satellite, instrument)
+        if compositer is not None:
+            instrument_scene.image = compositer(instrument_scene)
+        return instrument_scene 

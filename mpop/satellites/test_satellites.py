@@ -86,8 +86,9 @@ def patch_configparser():
                 return str(int(random.random() * 50000 + 1))
             if args[1] == "frequency":
                 return str(random.random())
+            if args[1] == "module":
+                return random_string(8)
             
-        
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 

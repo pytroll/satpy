@@ -31,7 +31,6 @@
 from mpop.saturn.filelist import FileList
 from mpop import CONFIG_PATH
 
-
 class TaskList(dict):
     """Defines a tasklist.
     """

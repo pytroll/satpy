@@ -190,6 +190,11 @@ def patch_configparser():
             del args, kwargs
             self = self
             return "abc"
+
+        def sections(self):
+            """Dummy sections method
+            """
+            raise ConfigParser.NoSectionError("Dummy sections.")
         
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser

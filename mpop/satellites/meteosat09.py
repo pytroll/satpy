@@ -41,9 +41,18 @@ class Meteosat09SeviriScene(SeviriScene):
     instrument. It's constructor accepts the same arguments as
     :class:`mpop.scene.SatelliteScene`.
     """
+
     satname = "meteosat"
     number = "09"
+    variant = ""
 
+    def __init__(self, time_slot=None, area=None):
+
+        SeviriScene.__init__(self, time_slot=time_slot, area=area,
+                             satellite=(self.satname,
+                                        self.number,
+                                        self.variant))
+        
     def load(self, channels=None, load_again=False, **kwargs):
         """Load data into the *channels*. *Channels* is a list or a tuple
         containing channels we will load data into. If None, all channels are

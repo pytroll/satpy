@@ -30,7 +30,7 @@
 """
 import mpop.scene
 from mpop.imageo import geo_image
-
+from mpop.compositer import Compositer
 
 #pylint: disable=W0612
 # remove warnings for unused prerequisites
@@ -366,3 +366,17 @@ class VisirScene(mpop.scene.SatelliteInstrumentScene):
     
 #pylint: enable=W0612
 
+class VisirCompositer(Compositer):
+
+    def channel_image(self, channel, fill_value=0):
+        """Make a black and white image of the *channel*.
+        """
+        self.check_channels(channel)
+
+        img = geo_image.GeoImage(self[channel].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=fill_value,
+                                 mode="L")
+        img.enhance(stretch="crude")
+        return img
