@@ -36,6 +36,7 @@ import ConfigParser
 import copy
 import datetime
 import os.path
+import types
 
 import numpy as np
 
@@ -66,6 +67,19 @@ class Satellite(object):
         (eg "metop02").
         """
         return self.variant + self.satname + self.number
+
+    @classmethod
+    def remove_attribute(cls, name):
+        """Remove an attribute from the class.
+        """
+        return delattr(cls, name)
+
+    @classmethod
+    def add_method(cls, func):
+        """Add a method to the class.
+        """
+        return setattr(cls, func.__name__, types.MethodType(func, cls))
+
 
 class SatelliteScene(Satellite):
     """This is the satellite scene class. It is a capture of the satellite
