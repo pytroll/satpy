@@ -245,8 +245,8 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     return sat_class
 
 
-class GeostationnaryFactory(object):
-    """Factory for geostationnary satellite scenes.
+class GeostationaryFactory(object):
+    """Factory for geostationary satellite scenes.
     """
 
 
