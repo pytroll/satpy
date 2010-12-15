@@ -99,6 +99,25 @@ def load_avhrr(satscene, options):
     
     mpop.satin.aapp1b.load(satscene)
 
+def convert_to_1b():
+    """Convert hrpt file to level 1b.
+    """
+    (handle, tempname) = tempfile.mkstemp(prefix="hrpt_decommuted",
+                                          dir=WORKING_DIR)
+
+    os.close(handle)
+    del handle
+    decommutation(filename, tempname, satscene, options)
+    calibration_navigation(tempname, satscene, options)
+
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+    new_dir = conf.get(satscene.instrument_name + "-level2", "dir")
+    new_name = conf.get(satscene.instrument_name + "-level2", "filename")
+    pathname = os.path.join(new_dir, satscene.time_slot.strftime(new_name))
+    LOG.debug("Saving to "+pathname)
+    shutil.move(tempname, pathname)
+
 def calibration_navigation(filename, satscene, options):
     """Perform calibration on *filename*
     """
@@ -188,6 +207,54 @@ def decommutation(filename_from, filename_to, satscene, options):
     shutil.move(os.path.join(WORKING_DIR, "hrpt.l1b"), filename_to)
     LOG.debug("Decommutation done")
 
+def concatenate(granules):
+    """Concatenate hrpt files.
+    """
+    filenames = [os.path.join(granule.directory, granule.file_name)
+                 for granule in granules]
+    
+    arg_string = " ".join(filenames)
+    
+    if filenames[0].endswith(".bz2"):
+        cat_cmd = "bzcat"
+    else:
+        cat_cmd = "cat"
+
+
+    conffile = os.path.join(CONFIG_PATH, granules[0].fullname + ".cfg")
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, conffile))
+    
+    directory = conf.get('avhrr-level1','dir')
+    filename = conf.get('avhrr-level1','filename')
+    filename = granules[0].time_slot.strftime(filename)
+    
+    output_name = os.path.join(directory, filename)
+    cmd = cat_cmd + " " + arg_string + " > " + output_name
+    LOG.debug(cmd)
+    proc = subprocess.Popen(cmd, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    if out:
+        LOG.debug(out)
+    if err:
+        LOG.error(err)
+
+
+    new_dir = conf.get(granules[0].instrument_name + "-level2", "dir")
+    new_name = conf.get(granules[0].instrument_name + "-level2", "filename")
+    pathname = os.path.join(new_dir, granules[0].time_slot.strftime(new_name))
+
+    convert_to_1b(output_name, pathname, granules[0].time_slot,
+                  conf.get('avhrr-level1','shortname'))
+    klass = get_satellite_class(granules[0].satname,
+                                granules[0].number,
+                                granules[0].variant)
+    scene = klass(time_slot=granules[0].time_slot)
+
+    return scene
+
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.
     """
@@ -201,6 +268,51 @@ def get_lat_lon_avhrr(satscene, options):
     del options
     
     return satscene.lat, satscene.lon
+
+def get_lonlat(satscene, row, col):
+    """Read lat and lon.
+    """
+
+    return LONLAT_CASES[satscene.instrument_name](satscene, row, col)
+
+def get_lonlat_avhrr(satscene, row, col):
+    """Read longitude and latitude for a given pixel.
+    """
+    # Needs the SATID AAPP env variable to be set to find satid.txt...
+
+    from mpop.saturn import pyaapp
+    import math
+    import datetime
+    t_start = satscene.time_slot
+    epoch = datetime.datetime(1950, 1, 1)
+    t50_start = (t_start - epoch)
+    jday_start = t50_start.seconds / (3600.0 *24) + t50_start.days
+    jday_end = jday_start
+    if(satscene.satname == "metop"):
+        satname = "M02"
+    else:
+        satname = satscene.satname + satscene.number
+
+    if satscene.time_slot.hour == 0 and satscene.time_slot.minute == 0:
+        satpos_time = satscene.time_slot - datetime.timedelta(minutes=1)
+    else:
+        satpos_time = satscene.time_slot
+        
+    satpos_file = ("/data/24/saf/pps/import/ANC_data/source/satpos_"+
+                   satname+"_"+
+                   satpos_time.strftime("%Y%m%d")+".txt")
+
+    pyaapp.read_satpos_file(jday_start, jday_end,
+                            satscene.satname+" "+str(int(satscene.number)),
+                            satpos_file)
+    att = pyaapp.prepare_attitude(int(satscene.number), 0, 0, 0)
+    lonlat = pyaapp.linepixel2lonlat(int(satscene.number), row, col, att,
+                                     jday_start, jday_end)[1:3]
+    return (lonlat[0] * 180.0 / math.pi, lonlat[1] * 180.0 / math.pi)
+
+LONLAT_CASES = {
+    "avhrr": get_lonlat_avhrr
+    }
 
 
 LL_CASES = {
