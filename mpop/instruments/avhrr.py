@@ -179,39 +179,3 @@ class AvhrrScene(VisirScene):
 
         LOG.info("Loading channels done.")
 
-import mpop.channel
-
-class PpsCloudType(mpop.channel.GenericChannel):
-    def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CloudType")
-        self.region = None
-        self.des = ""
-        self.cloudtype_des = ""
-        self.qualityflag_des = ""
-        self.phaseflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.cloudtype_lut = []
-        self.qualityflag_lut = []
-        self.phaseflag_lut = []
-        self.cloudtype = None
-        self.qualityflag = None
-        self.phaseflag = None
-
-    def copy(self, other):
-        self.region = other.region
-        self.des = other.des
-        self.cloudtype_des = other.cloudtype_des
-        self.qualityflag_des = other.qualityflag_des
-        self.phaseflag_des = other.phaseflag_des
-        self.sec_1970 = other.sec_1970
-        self.satellite_id = other.satellite_id
-        self.cloudtype_lut = other.cloudtype_lut
-        self.qualityflag_lut = other.qualityflag_lut
-        self.phaseflag_lut = other.phaseflag_lut
-        self.cloudtype = other.cloudtype
-        self.qualityflag = other.qualityflag
-        self.phaseflag = other.phaseflag
-        
-    def is_loaded(self):
-        return self.cloudtype is not None
