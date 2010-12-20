@@ -40,7 +40,7 @@ from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 
 
-def load(satscene, calibrate=True):
+def load(satscene, calibrate=True, area_extent=None):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
@@ -59,7 +59,8 @@ def load(satscene, calibrate=True):
             options[section] = conf.items(section)
     CASES.get(satscene.instrument_name, load_generic)(satscene,
                                                       options,
-                                                      calibrate)
+                                                      calibrate,
+                                                      area_extent)
 
 def load_generic(satscene, options, calibrate=True, area_extent=None):
     """Read seviri data from file and load it into *satscene*.
