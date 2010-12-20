@@ -312,6 +312,12 @@ class Channel(GenericChannel):
 
     # Arithmetic operations on channels.
 
+    def __pow__(self, other):
+        return Channel(name="new", data=self.data ** other)
+
+    def __rpow__(self, other):
+        return Channel(name="new", data=self.data ** other)
+
     def __mul__(self, other):
         return Channel(name="new", data=self.data * other)
 
