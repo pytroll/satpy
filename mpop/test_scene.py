@@ -76,6 +76,7 @@ def patch_configparser():
         def sections(self):
             """Dummy sections method
             """
+            #return ["satellite", "udlptou-4"]
             raise ConfigParser.NoSectionError("Dummy sections.")
 
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
@@ -103,18 +104,21 @@ def patch_projector():
             """
             return arg
 
+    def fake_get_area_def(area):
+        return area
+
     mpop.projector.OldProjector = mpop.projector.Projector
     mpop.projector.Projector = FakeProjector
+    mpop.projector.old_get_area_def = mpop.projector.get_area_def
+    mpop.projector.get_area_def = fake_get_area_def
 
 def unpatch_projector():
     """Unpatch fake projector
     """
     mpop.projector.Projector = mpop.projector.OldProjector
     delattr(mpop.projector, "OldProjector")
-
-
-
-
+    mpop.projector.get_area_def = mpop.projector.old_get_area_def
+    delattr(mpop.projector, "old_get_area_def")
 
 class TestSatelliteScene(unittest.TestCase):
     """Class for testing the SatelliteScene class.

@@ -32,7 +32,6 @@ import random
 import unittest
 
 import mpop.instruments.visir
-import mpop.satellites.meteosat09
 
 
 INSTRUMENTS = ()
@@ -202,10 +201,6 @@ class TestSatellites(unittest.TestCase):
     def test_get_satellite_class(self):
         """Test the :func:`mpop.satellites.get_satellite_class` function.
         """
-        klass = mpop.satellites.get_satellite_class("meteosat", "09")
-        self.assertEquals(klass, mpop.satellites.meteosat09.Meteosat09SeviriScene)
-
-
         global INSTRUMENTS
 
         inst = random_string(10)
