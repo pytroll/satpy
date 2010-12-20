@@ -316,7 +316,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         """Converts the NWCSAF/MSG Cloud Type to the PPS format,
         in order to have consistency in output format between PPS and MSG.
         """
-        retv = PpsCloudType
+        retv = PpsCloudType()
         retv.region = epshdf.SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
@@ -336,7 +336,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.phaseflag_des = 'MSG SEVIRI Cloud phase flags'
 
         retv.cloudtype = self.cloudtype
-        retv.cloudphase = self.cloudphase
+        retv.phaseflag = self.cloudphase
         retv.qualityflag = ctype_procflags2pps(self.processing_flags.data)
 
         return retv
@@ -566,7 +566,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
     def convert2pps(self):
         """Convert the current CTTH channel to pps format.
         """
-        retv = epshdf.CloudTop()
+        retv = epshdf.PpsCTTH()
         retv.region = epshdf.SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
