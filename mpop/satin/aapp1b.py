@@ -133,12 +133,9 @@ def load_avhrr(satscene, options):
     lons = instrument_data.londata / math.pi * 180
     lats = instrument_data.latdata / math.pi * 180
 
-    print lons.shape
-
     try:
         from pyresample import geometry
         satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
-
     except ImportError:
         satscene.area = None
         satscene.lat = lats

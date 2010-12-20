@@ -90,9 +90,43 @@ class SeviriScene(VisirScene):
 
     co2corr.prerequisites = set([3.75, 10.8, 13.4])
 
+    def co2corr_chan(self):
+        """CO2 correction of the brightness temperature of the MSG 3.9um
+        channel, adding it as a channel::
+
+        .. math::
+        
+          T4_CO2corr = (BT(IR3.9)^4 + Rcorr)^0.25
+          Rcorr = BT(IR10.8)^4 - (BT(IR10.8)-dt_CO2)^4
+          dt_CO2 = (BT(IR10.8)-BT(IR13.4))/4.0
+
+          
+        """
+
+        if "_IR39Corr" in self:
+            return
+        
+        self.check_channels(3.75, 10.8, 13.4)
+
+        dt_co2 = (self[10.8] - self[13.4]) / 4.0
+        rcorr = self[10.8] ** 4 - (self[10.8] - dt_co2) ** 4
+        t4_co2corr = self[3.9] ** 4 + rcorr
+        t4_co2corr.data = np.ma.where(t4_co2corr.data > 0.0, t4_co2corr.data, 0)
+        t4_co2corr = t4_co2corr ** 0.25
+
+        t4_co2corr.name = "_IR39Corr"
+        t4_co2corr.area = self[3.9].area
+        t4_co2corr.wavelength_range = self[3.9].wavelength_range
+        t4_co2corr.resolution = self[3.9].resolution
+        
+        self.channels.append(t4_co2corr)
+
+    co2corr_chan.prerequisites = set([3.75, 10.8, 13.4])
+
     def cloudtop(self):
         """Make a Cloudtop RGB image composite from Seviri channels.
         """
+        self.co2corr_chan()
         self.check_channels("_IR39Corr", 10.8, 12.0)
 
         ch1 = -self["_IR39Corr"].data
@@ -109,11 +143,12 @@ class SeviriScene(VisirScene):
 
         return img
     
-    cloudtop.prerequisites = set(["_IR39Corr", 10.8, 12.0])
+    cloudtop.prerequisites = co2corr_chan.prerequisites | set([10.8, 12.0])
 
     def night_fog(self):
         """Make a Night Fog RGB image composite from Seviri channels.
         """
+        self.co2corr_chan()
         self.check_channels("_IR39Corr", 10.8, 12.0)
 
         ch1 = self[12.0].data - self[10.8].data
@@ -133,54 +168,4 @@ class SeviriScene(VisirScene):
 
         return img
 
-    night_fog.prerequisites = set(["_IR39Corr", 10.8, 12.0])
-
-
-    def hr_overview(self):
-        """Make a High Resolution Overview RGB image composite from Seviri
-        channels.
-        """
-        self.check_channels(0.635, 0.85, 10.8, "HRV")
-
-        ch1 = self[0.635].check_range()
-        ch2 = self[0.85].check_range()
-        ch3 = -self[10.8].data
-
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB")
-
-        img.enhance(stretch="crude")
-        img.enhance(gamma=[1.6, 1.6, 1.1])
-        
-        luminance = geo_image.GeoImage((self["HRV"].data),
-                                       self.area,
-                                       self.time_slot,
-                                       crange=(0, 100),
-                                       mode="L")
-
-        luminance.enhance(gamma=2.0)
-
-        img.replace_luminance(luminance.channels[0])
-        
-        return img
-
-    hr_overview.prerequisites = set(["HRV", 0.635, 0.85, 10.8])
-
-    def hr_visual(self):
-        """Make a High Resolution visual BW image composite from Seviri
-        channels.
-        """
-        self.check_channels("HRV")
-
-        img = geo_image.GeoImage(self["HRV"].data,
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=0,
-                                 mode="L")
-        img.enhance(stretch="crude")
-        return img
-
-    hr_visual.prerequisites = set(["HRV"])
+    night_fog.prerequisites = co2corr_chan.prerequisites | set([10.8, 12.0])
