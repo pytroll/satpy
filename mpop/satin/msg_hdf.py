@@ -605,7 +605,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.pressure = ((self.pressure - retv.p_intercept) /
                          retv.p_gain).filled(retv.p_nodata).astype('B')
 
-        retv.cloudiness = self.cloudiness
+        retv.cloudiness = self.cloudiness.astype('B')
         retv.c_nodata = 255 # Is this correct? FIXME
 
         retv.processingflag = ctth_procflags2pps(self.processing_flags)
