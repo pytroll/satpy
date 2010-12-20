@@ -43,10 +43,15 @@ import mpop.scene
 class FakeAreaDefinition:
     """Fake AreaDefinition.
     """
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.args = args
         self.shape = None
-        self.area_id = random_string(20)
+        self.area_id = args[0]
+        self.x_size = random.random()
+        self.y_size = random.random()
+        self.proj_id = random_string(20)
+        self.proj_dict = random_string(20)
+        self.area_extent = random_string(20)
 
 class FakeSwathDefinition:
     """Fake SwathDefinition.
@@ -271,7 +276,7 @@ class TestPPCore(unittest.TestCase):
 
         new_scene = self.scene.project(area2)
 
-        self.assertEquals(new_scene.area, area2)
+        self.assertEquals(new_scene.area.area_id, area2)
 
         for chn in new_scene.channels:
             self.assertEquals(chn.area, area2)

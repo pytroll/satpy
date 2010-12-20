@@ -477,6 +477,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         if isinstance(dest_area, str):
             dest_area = get_area_def(dest_area)
+
         
         res.area = dest_area
         res.channels = []
