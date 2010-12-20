@@ -303,11 +303,16 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         # find the plugin to use from the config file
         conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
+        try:
+            conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
 
-        levels = [section for section in conf.sections()
-                  if section.startswith(self.instrument_name+"-level")]
-
+            levels = [section for section in conf.sections()
+                      if section.startswith(self.instrument_name+"-level")]
+        except ConfigParser.NoSectionError:
+            LOG.warning("Can't load data, no config file for " + self.fullname)
+            self.channels_to_load = set()
+            return
+        
         levels.sort()
 
         if levels[0] == self.instrument_name+"-level1":
