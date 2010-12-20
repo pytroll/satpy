@@ -92,13 +92,17 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     
     for chn in satscene.channels_to_load:
         if from_area:
-            metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
-                                     chn, only_metadata=True)
-            if(satscene.area_def.proj_dict["proj"] != "geos" or
-               satscene.area_def.proj_dict["lon_0"] != metadata.sublon):
-                raise ValueError("Slicing area must be in "
-                                 "geos projection, and lon_0 should match the"
-                                 " satellite's position.")
+            try:
+                metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
+                                         chn, only_metadata=True)
+                if(satscene.area_def.proj_dict["proj"] != "geos" or
+                   float(satscene.area_def.proj_dict["lon_0"]) != metadata.sublon):
+                    raise ValueError("Slicing area must be in "
+                                     "geos projection, and lon_0 should match the"
+                                     " satellite's position.")
+            except SatReaderError:
+                # if channel can't be found, go on with next channel
+                continue
         try:
             image = xrit.sat.load(satscene.fullname,
                                   satscene.time_slot,
