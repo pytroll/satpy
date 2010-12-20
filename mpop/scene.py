@@ -49,9 +49,18 @@ class Satellite(object):
     """
 
     def __init__(self, (satname, number, variant)=(None, None, None)):
-        self.satname = satname or ""
-        self.number = number or ""
-        self.variant = variant or ""
+        try:
+            self.satname = satname or "" or self.satname
+        except AttributeError:
+            self.satname = satname or ""
+        try:
+            self.number = number or "" or self.number
+        except AttributeError:
+            self.number = number or ""
+        try:
+            self.variant = variant or "" or self.variant
+        except AttributeError:
+            self.variant = variant or ""
 
     @property
     def fullname(self):
@@ -70,7 +79,13 @@ class Satellite(object):
     def add_method(cls, func):
         """Add a method to the class.
         """
-        return setattr(cls, func.__name__, types.MethodType(func, cls))
+        return setattr(cls, func.__name__, func)
+
+    def add_method_to_instance(self, func):
+        """Add a method to the instance.
+        """
+        return setattr(self, func.__name__,
+                       types.MethodType(func, self.__class__))
 
 
 class SatelliteScene(Satellite):
@@ -250,7 +265,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
 
-    def load(self, channels=None, load_again=False, **kwargs):
+    def load(self, channels=None, load_again=False, area_extent=None, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
         tuple containing channels we will load data into, designated by there
         center wavelength (float), resolution (integer) or name (string). If
@@ -272,9 +287,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         elif(isinstance(channels, (list, tuple, set))):
             for chn in channels:
                 try:
-                    self.channels_to_load |= set(self[chn].name)
+                    self.channels_to_load |= set([self[chn].name])
                 except KeyError:
-                    self.channels_to_load |= set(chn)
+                    self.channels_to_load |= set([chn])
 
         else:
             raise TypeError("Channels must be a list/"
@@ -294,15 +309,12 @@ class SatelliteInstrumentScene(SatelliteScene):
                   if section.startswith(self.instrument_name+"-level")]
 
         levels.sort()
+
         if levels[0] == self.instrument_name+"-level1":
             levels = levels[1:]
-        
+
         for level in levels:
 
-            loaded_channels = [chn.name for chn in self.loaded_channels()]
-            self.channels_to_load = [chn for chn in self.channels_to_load
-                                     if not chn in loaded_channels]
-            
             if len(self.channels_to_load) == 0:
                 return
 
@@ -318,10 +330,15 @@ class SatelliteInstrumentScene(SatelliteScene):
             try:
                 reader_module = __import__(reader, globals(),
                                            locals(), ['load'])
+                kwargs["area_extent"] = area_extent
                 reader_module.load(self, **kwargs)
             except ImportError:
                 LOG.exception("ImportError while loading the reader")
                 raise ImportError("No "+reader+" reader found.")
+
+            loaded_channels = [chn.name for chn in self.loaded_channels()]
+            self.channels_to_load = set([chn for chn in self.channels_to_load
+                                         if not chn in loaded_channels])
 
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "
