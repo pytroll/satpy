@@ -79,9 +79,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
 
-    if area_extent:
-        from_area = False
-    elif satscene.area:
+    from_area = False
+
+    if area_extent is None and satscene.area is not None:
         from pyresample import geometry
         from mpop.projector import get_area_def
         if not satscene.area_def:
@@ -134,16 +134,21 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         for param in proj_params:
             key, val = param.split("=")
             proj_dict[key] = val
-        satscene[chn].area = geometry.AreaDefinition(
-            satscene.satname + satscene.instrument_name +
-            str(metadata.area_extent) +
-            str(data.shape),
-            "On-the-fly area",
-            proj_dict["proj"],
-            proj_dict,
-            data.shape[1],
-            data.shape[0],
-            metadata.area_extent)
+            
+        try:
+            from pyresample import geometry
+            satscene[chn].area = geometry.AreaDefinition(
+                satscene.satname + satscene.instrument_name +
+                str(metadata.area_extent) +
+                str(data.shape),
+                "On-the-fly area",
+                proj_dict["proj"],
+                proj_dict,
+                data.shape[1],
+                data.shape[0],
+                metadata.area_extent)
+        except ImportError:
+            LOG.warning("Could not build area, pyresample missing...")
 
 CASES = {}
 
