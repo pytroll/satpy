@@ -335,8 +335,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.qualityflag_des = 'MSG SEVIRI bitwise quality/processing flags'
         retv.phaseflag_des = 'MSG SEVIRI Cloud phase flags'
 
-        retv.cloudtype = self.cloudtype
-        retv.phaseflag = self.cloudphase
+        retv.cloudtype = self.cloudtype.astype('B')
+        retv.phaseflag = self.cloudphase.astype('B')
         retv.qualityflag = ctype_procflags2pps(self.processing_flags.data)
 
         return retv
@@ -566,7 +566,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
     def convert2pps(self):
         """Convert the current CTTH channel to pps format.
         """
-        retv = epshdf.PpsCTTH()
+        retv = PpsCTTH()
         retv.region = epshdf.SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
@@ -985,7 +985,7 @@ class NordRadCType(object):
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.DATASET_ID, "/image1/data")
         node.setArrayValue(1, [msgctype.num_of_columns, msgctype.num_of_lines],
-                           msgctype.cloudtype, "uchar", -1)
+                           msgctype.cloudtype.astype('B'), "uchar", -1)
         node_list.addNode(node)
 
         node = _pyhl.node(_pyhl.GROUP_ID, "/image1/what")
