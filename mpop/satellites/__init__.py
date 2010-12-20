@@ -32,7 +32,6 @@ import os.path
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 
 import mpop.utils
-import mpop.satellites.meteosat09
 from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
@@ -110,9 +109,7 @@ def build_satellite_class(satellite, number, variant=""):
         except ImportError:
             ch_list = []
             for section in conf.sections():
-                if(not section.endswith("level1") and
-                   not section.endswith("level2") and
-                   not section.endswith("level3") and
+                if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(instrument)):
                     ch_list += [[eval(conf.get(section, "name")),

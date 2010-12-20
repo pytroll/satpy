@@ -181,10 +181,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         try:
             conf = ConfigParser.ConfigParser()
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
+
             for section in conf.sections():
-                if(not section.endswith("level1") and
-                   not section.endswith("level2") and
-                   not section.endswith("level3") and
+                if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
                     name = eval(conf.get(section, "name"))
@@ -193,6 +192,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
+
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
             for name, w_range, resolution in self.channel_list:
                 self.channels.append(Channel(name=name,
