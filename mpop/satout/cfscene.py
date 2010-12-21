@@ -74,11 +74,10 @@ class CFScene(object):
             if not chn.is_loaded():
                 continue
 
-            offset = (((chn.data.max() * (np.iinfo(CF_DATA_TYPE).min + 1)) - 
-                      (np.iinfo(CF_DATA_TYPE).max * chn.data.min())) / 
-                      (np.iinfo(CF_DATA_TYPE).min - np.iinfo(CF_DATA_TYPE).max + 1))
+            scale = ((chn.data.max() - chn.data.min()) / 
+                    (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
+            offset = chn.data.max() - (np.iinfo(CF_DATA_TYPE).max * scale)
             
-            scale = (chn.data.min() - offset) / (np.iinfo(CF_DATA_TYPE).min + 1)
             fill_value = np.iinfo(CF_DATA_TYPE).min
             data = ((chn.data - offset) / scale).astype(CF_DATA_TYPE)
             valid_min = data.min()
