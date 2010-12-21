@@ -44,6 +44,7 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 
+
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
     """
@@ -164,8 +165,9 @@ class SatelliteScene(Satellite):
                     self.area_def = area
                     self.area_id = None
                 except AttributeError:
-                    raise TypeError("Malformed area argument. "
-                                    "Should be a string or an area object.")
+                    raise TypeError(("Malformed area argument. "
+                                    "Should be a string or an area object. "
+                                    "Not %s") % type(area))
 
     area = property(get_area, set_area)
 
@@ -545,7 +547,11 @@ class SatelliteInstrumentScene(SatelliteScene):
                 except NotLoadedError:
                     LOG.warning("Channel "+str(chn.name)+" not loaded, "
                                 "thus not projected.")
-
+        
+        # Compose with image object
+        if res._CompositerClass is not None:
+            res.image = res._CompositerClass(res)
+        
         return res
 
 def assemble_swaths(swath_list):

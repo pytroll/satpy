@@ -249,14 +249,21 @@ class GeostationaryFactory(object):
 
 
     @staticmethod
-    def create_scene(satellite, instrument, area, time_slot):
+    def create_scene(satname, satnumber, instrument, time_slot, area=None, 
+                     variant=''):
         """Create a compound satellite scene.
         """
+        
+        satellite = (satname, satnumber, variant)
+        
         instrument_scene = SatelliteInstrumentScene(satellite=satellite,
                                                     instrument=instrument,
                                                     area=area,
                                                     time_slot=time_slot)
+        
         compositer = get_sat_instr_compositer(satellite, instrument)
+        instrument_scene._CompositerClass = compositer
+        
         if compositer is not None:
             instrument_scene.image = compositer(instrument_scene)
         return instrument_scene 
