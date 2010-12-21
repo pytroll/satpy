@@ -297,11 +297,14 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
 
+        loaded_channels = [chn.name for chn in self.loaded_channels()]
         if load_again:
-            loaded_channels = [chn.name for chn in self.loaded_channels()]
             for chn in self.channels_to_load:
                 if chn in loaded_channels:
                     self.unload(chn)
+        else:
+            for chn in loaded_channels:
+                self.channels_to_load -= set([chn])
 
         # find the plugin to use from the config file
         conf = ConfigParser.ConfigParser()
@@ -325,7 +328,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             if len(self.channels_to_load) == 0:
                 return
 
-        
             reader_name = conf.get(level, 'format')
             try:
                 reader_name = eval(reader_name)
