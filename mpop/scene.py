@@ -549,8 +549,11 @@ class SatelliteInstrumentScene(SatelliteScene):
                                 "thus not projected.")
         
         # Compose with image object
-        if res._CompositerClass is not None:
-            res.image = res._CompositerClass(res)
+        try:
+            if res._CompositerClass is not None:
+                res.image = res._CompositerClass(res)
+        except AttributeError:
+            pass
         
         return res
 
