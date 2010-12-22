@@ -204,13 +204,18 @@ class SequentialRunner(object):
         """
         if tasklist is None:
             tasklist = self.tasklist
+        metadata = {}
+            
         area_name = self.data.area_id or self.data.area_def.area_id
         tasks, dummy = tasklist.split(area_name)
         for product, flist in tasks[area_name].items():
             fun = getattr(self.data, product)
             flist = flist.put_date(self.data.time_slot)
+
             if self.data.orbit is not None:
-                flist = flist.put_metadata({"orbit": int(self.data.orbit)})
+                metadata["orbit"] = int(self.data.orbit)
+            metadata["satellite"] = self.data.fullname
+            flist = flist.put_metadata(metadata)
             try:
                 LOG.debug("Doing "+product+".")
                 img = fun()
@@ -221,7 +226,5 @@ class SequentialRunner(object):
                 LOG.info("Skipping "+product) 
         
 if __name__ == "__main__":
-    SR = SequentialRunner(["metop", "02", "global"],
-                          "/local_disk/usr/src/mpop/etc/meteosat09_products.py")
-    SR.run_from_cmd()
+    pass
     

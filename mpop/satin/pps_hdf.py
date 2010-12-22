@@ -33,6 +33,9 @@ import ConfigParser
 import os.path
 from mpop import CONFIG_PATH
 import mpop.channel
+from mpop.utils import get_logger
+
+LOG = get_logger('satin/pps_hdf')
 
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self):
@@ -150,12 +153,17 @@ def load(scene, **kwargs):
 
     del kwargs
 
+    if("CTTH" not in scene.channels_to_load and
+       "CloudType" not in scene.channels_to_load):
+        return
+    
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
     directory = conf.get(scene.instrument_name+"-level3", "dir")
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
     pathname = os.path.join(directory, filename)
+
     area_name = scene.area_id or scene.area.area_id
     
     if "CTTH" in scene.channels_to_load:
