@@ -53,12 +53,12 @@ except ConfigParser.NoSectionError:
     LOG.warning("Couldn't find the mpop.cfg file. "
                 "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
-def get_area_def(area):
-    """Get the definition of *area* from file. The file is defined to use is to
+def get_area_def(area_name):
+    """Get the definition of *area_name* from file. The file is defined to use is to
     be placed in the $PPP_CONFIG_DIR directory, and its name is defined in
     mpop's configuration file.
     """
-    return utils.parse_area_file(AREA_FILE, area)[0]
+    return utils.parse_area_file(AREA_FILE, area_name)[0]
 
 class Projector(object):
     """This class define projector objects. They contain the mapping

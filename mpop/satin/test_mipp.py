@@ -169,10 +169,16 @@ def patch_mipp():
             self.proj4_params = "proj=uie a=4646"
             self.pixel_size = (random.random() * 5642,
                                random.random() * 5642)
+            self.area_extent = (random.random() * 5642000,
+                                random.random() * 5642000,
+                                random.random() * 5642000,
+                                random.random() * 5642000)
     class FakeSlicer(object):
         """Fake slicer for mipp.
         """
         def __getitem__(self, key):
+            return FakeMetadata(), np.random.standard_normal((3, 3))
+        def __call__(self, *args):
             return FakeMetadata(), np.random.standard_normal((3, 3))
     
     def fake_load(*args, **kwargs):

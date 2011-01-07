@@ -182,7 +182,8 @@ class SequentialRunner(object):
             tasklist = self.tasklist
         for area, productlist in tasklist.items():
             prerequisites = tasklist.get_prerequisites(self.klass, area)
-            local_data = self.data.project(area, prerequisites, self.precompute)
+            local_data = self.data.project(area, prerequisites, self.precompute,
+                                           mode="nearest")
             for product, flist in productlist.items():
                 fun = getattr(local_data, product)
                 flist = flist.put_date(local_data.time_slot)
@@ -197,9 +198,33 @@ class SequentialRunner(object):
                     LOG.warning("Error in "+product+": "+str(err))
                     LOG.info("Skipping "+product)
             del local_data
+
+    def run_from_local_data(self, tasklist=None):
+        """Run on given local data (already projected).
+        """
+        if tasklist is None:
+            tasklist = self.tasklist
+        metadata = {}
+            
+        area_name = self.data.area_id or self.data.area_def.area_id
+        tasks, dummy = tasklist.split(area_name)
+        for product, flist in tasks[area_name].items():
+            fun = getattr(self.data, product)
+            flist = flist.put_date(self.data.time_slot)
+
+            if self.data.orbit is not None:
+                metadata["orbit"] = int(self.data.orbit)
+            metadata["satellite"] = self.data.fullname
+            flist = flist.put_metadata(metadata)
+            try:
+                LOG.debug("Doing "+product+".")
+                img = fun()
+                flist.save_object(img)
+                del img
+            except (NotLoadedError, KeyError), err:
+                LOG.warning("Error in "+product+": "+str(err))
+                LOG.info("Skipping "+product) 
         
 if __name__ == "__main__":
-    SR = SequentialRunner(["metop", "02", "global"],
-                          "/local_disk/usr/src/mpop/etc/meteosat09_products.py")
-    SR.run_from_cmd()
+    pass
     

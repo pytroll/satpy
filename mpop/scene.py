@@ -44,14 +44,24 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 
+
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
     """
 
     def __init__(self, (satname, number, variant)=(None, None, None)):
-        self.satname = satname or ""
-        self.number = number or ""
-        self.variant = variant or ""
+        try:
+            self.satname = satname or "" or self.satname
+        except AttributeError:
+            self.satname = satname or ""
+        try:
+            self.number = number or "" or self.number
+        except AttributeError:
+            self.number = number or ""
+        try:
+            self.variant = variant or "" or self.variant
+        except AttributeError:
+            self.variant = variant or ""
 
     @property
     def fullname(self):
@@ -70,7 +80,13 @@ class Satellite(object):
     def add_method(cls, func):
         """Add a method to the class.
         """
-        return setattr(cls, func.__name__, types.MethodType(func, cls))
+        return setattr(cls, func.__name__, func)
+
+    def add_method_to_instance(self, func):
+        """Add a method to the instance.
+        """
+        return setattr(self, func.__name__,
+                       types.MethodType(func, self.__class__))
 
 
 class SatelliteScene(Satellite):
@@ -149,8 +165,9 @@ class SatelliteScene(Satellite):
                     self.area_def = area
                     self.area_id = None
                 except AttributeError:
-                    raise TypeError("Malformed area argument. "
-                                    "Should be a string or an area object.")
+                    raise TypeError(("Malformed area argument. "
+                                    "Should be a string or an area object. "
+                                    "Not %s") % type(area))
 
     area = property(get_area, set_area)
 
@@ -181,10 +198,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         try:
             conf = ConfigParser.ConfigParser()
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
+
             for section in conf.sections():
-                if(not section.endswith("level1") and
-                   not section.endswith("level2") and
-                   not section.endswith("level3") and
+                if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
                     name = eval(conf.get(section, "name"))
@@ -193,6 +209,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
+
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
             for name, w_range, resolution in self.channel_list:
                 self.channels.append(Channel(name=name,
@@ -250,7 +267,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
 
-    def load(self, channels=None, load_again=False, **kwargs):
+    def load(self, channels=None, load_again=False, area_extent=None, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
         tuple containing channels we will load data into, designated by there
         center wavelength (float), resolution (integer) or name (string). If
@@ -274,38 +291,67 @@ class SatelliteInstrumentScene(SatelliteScene):
                 try:
                     self.channels_to_load |= set([self[chn].name])
                 except KeyError:
-                    LOG.warning("Channel "+str(chn)+" not found,"
-                                " will not load from raw data.")
+                    self.channels_to_load |= set([chn])
+
         else:
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
 
-        if not load_again:
-            self.channels_to_load -= set([chn.name
-                                          for chn in self.loaded_channels()])
+        loaded_channels = [chn.name for chn in self.loaded_channels()]
+        if load_again:
+            for chn in self.channels_to_load:
+                if chn in loaded_channels:
+                    self.unload(chn)
+        else:
+            for chn in loaded_channels:
+                self.channels_to_load -= set([chn])
 
-        if len(self.channels_to_load) == 0:
-            return
-
-        
         # find the plugin to use from the config file
         conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
+        try:
+            conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
 
-        reader_name = conf.get(self.instrument_name + "-level2", 'format')
-        try:
-            reader_name = eval(reader_name)
-        except NameError:
-            reader_name = str(reader_name)
+            levels = [section for section in conf.sections()
+                      if section.startswith(self.instrument_name+"-level")]
+        except ConfigParser.NoSectionError:
+            LOG.warning("Can't load data, no config file for " + self.fullname)
+            self.channels_to_load = set()
+            return
+        
+        levels.sort()
+
+        if levels[0] == self.instrument_name+"-level1":
+            levels = levels[1:]
+
+        for level in levels:
+
+            if len(self.channels_to_load) == 0:
+                return
+
+            reader_name = conf.get(level, 'format')
+            try:
+                reader_name = eval(reader_name)
+            except NameError:
+                reader_name = str(reader_name)
             
-        # read the data
-        reader = "mpop.satin."+reader_name
-        try:
-            reader_module = __import__(reader, globals(), locals(), ['load'])
-            reader_module.load(self, **kwargs)
-        except ImportError:
-            LOG.exception("ImportError while loading the reader")
-            raise ImportError("No "+reader+" reader found.")
+            # read the data
+            reader = "mpop.satin."+reader_name
+            try:
+                reader_module = __import__(reader, globals(),
+                                           locals(), ['load'])
+                kwargs["area_extent"] = area_extent
+                reader_module.load(self, **kwargs)
+            except ImportError:
+                LOG.exception("ImportError while loading the reader")
+                raise ImportError("No "+reader+" reader found.")
+
+            loaded_channels = [chn.name for chn in self.loaded_channels()]
+            self.channels_to_load = set([chn for chn in self.channels_to_load
+                                         if not chn in loaded_channels])
+
+        if len(self.channels_to_load) > 0:
+            LOG.warning("Unable to import channels "
+                        + str(self.channels_to_load))
 
         self.channels_to_load = set()
 
@@ -407,7 +453,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         # Lazy import in case pyresample is missing
         try:
-            from mpop.projector import Projector
+            from mpop.projector import Projector, get_area_def
         except ImportError:
             LOG.exception("Cannot load reprojection module. "
                           "Is pyresample/pyproj missing ?")
@@ -432,6 +478,10 @@ class SatelliteInstrumentScene(SatelliteScene):
 
 
         res = copy.copy(self)
+
+        if isinstance(dest_area, str):
+            dest_area = get_area_def(dest_area)
+
         
         res.area = dest_area
         res.channels = []
@@ -499,7 +549,14 @@ class SatelliteInstrumentScene(SatelliteScene):
                 except NotLoadedError:
                     LOG.warning("Channel "+str(chn.name)+" not loaded, "
                                 "thus not projected.")
-
+        
+        # Compose with image object
+        try:
+            if res._CompositerClass is not None:
+                res.image = res._CompositerClass(res)
+        except AttributeError:
+            pass
+        
         return res
 
 def assemble_swaths(swath_list):

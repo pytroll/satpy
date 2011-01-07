@@ -32,7 +32,6 @@ import os.path
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 
 import mpop.utils
-import mpop.satellites.meteosat09
 from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
@@ -110,8 +109,7 @@ def build_satellite_class(satellite, number, variant=""):
         except ImportError:
             ch_list = []
             for section in conf.sections():
-                if(not section.endswith("level1") and
-                   not section.endswith("level2") and
+                if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(instrument)):
                     ch_list += [[eval(conf.get(section, "name")),
@@ -245,20 +243,27 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     return sat_class
 
 
-class GeostationnaryFactory(object):
-    """Factory for geostationnary satellite scenes.
+class GeostationaryFactory(object):
+    """Factory for geostationary satellite scenes.
     """
 
 
     @staticmethod
-    def create_scene(satellite, instrument, area, time_slot):
+    def create_scene(satname, satnumber, instrument, time_slot, area=None, 
+                     variant=''):
         """Create a compound satellite scene.
         """
+        
+        satellite = (satname, satnumber, variant)
+        
         instrument_scene = SatelliteInstrumentScene(satellite=satellite,
                                                     instrument=instrument,
                                                     area=area,
                                                     time_slot=time_slot)
+        
         compositer = get_sat_instr_compositer(satellite, instrument)
+        instrument_scene._CompositerClass = compositer
+        
         if compositer is not None:
             instrument_scene.image = compositer(instrument_scene)
         return instrument_scene 

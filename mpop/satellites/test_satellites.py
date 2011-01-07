@@ -32,7 +32,6 @@ import random
 import unittest
 
 import mpop.instruments.visir
-import mpop.satellites.meteosat09
 
 
 INSTRUMENTS = ()
@@ -180,32 +179,23 @@ class TestSatellites(unittest.TestCase):
         """
         global INSTRUMENTS
         inst = random_string(10)
-        INSTRUMENTS = ("avhrr", inst)
+        INSTRUMENTS = (inst, )
         satname = random_string(10)
         satnumber = random_string(10)
         satvar = random_string(10)
-        classes = mpop.satellites.build_satellite_class(satname,
+        myclass = mpop.satellites.build_satellite_class(satname,
                                                       satnumber,
                                                       satvar)
-        self.assertEquals(len(classes), len(INSTRUMENTS))
-        for i in classes:
-            self.assertEquals(i.satname, satname)
-            self.assertEquals(i.number, satnumber)
-            self.assertEquals(i.variant, satvar)
-            if i.instrument_name == "avhrr":
-                self.assertEquals(i.mro()[1], mpop.instruments.avhrr.AvhrrScene)
-            else:
-                self.assertEquals(i.mro()[1].__name__,
-                                  inst.capitalize() +
-                                  "Scene")
+        self.assertEquals(myclass.satname, satname)
+        self.assertEquals(myclass.number, satnumber)
+        self.assertEquals(myclass.variant, satvar)
+        self.assertEquals(myclass.mro()[1].__name__,
+                          inst.capitalize() +
+                          "Scene")
             
     def test_get_satellite_class(self):
         """Test the :func:`mpop.satellites.get_satellite_class` function.
         """
-        klass = mpop.satellites.get_satellite_class("meteosat", "09")
-        self.assertEquals(klass, mpop.satellites.meteosat09.Meteosat09SeviriScene)
-
-
         global INSTRUMENTS
 
         inst = random_string(10)

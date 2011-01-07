@@ -42,9 +42,10 @@ from mpop.satin.logger import LOG
 
 EPSILON = 0.001
 
-def load(satscene):
+def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
-    """    
+    """
+    del args, kwargs
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -59,6 +60,12 @@ def load_avhrr(satscene, options):
     
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
+
+    for chn in satscene.channels_to_load:
+        if chn in ["1", "2", "3A", "3B", "4", "5"]:
+            break
+        return
+
     values = {"orbit": satscene.orbit,
               "satname": satscene.satname,
               "number": satscene.number,
@@ -133,12 +140,9 @@ def load_avhrr(satscene, options):
     lons = instrument_data.londata / math.pi * 180
     lats = instrument_data.latdata / math.pi * 180
 
-    print lons.shape
-
     try:
         from pyresample import geometry
         satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
-
     except ImportError:
         satscene.area = None
         satscene.lat = lats

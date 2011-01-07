@@ -122,17 +122,16 @@ class Image(object):
         if isinstance(channels, (tuple, list)):
             if _areinstances(channels, (np.ma.core.MaskedArray, np.ndarray,
                                         list, tuple)):
-                i = 0
-                for chn in channels:
+                for i, chn in enumerate(channels):
                     if color_range is not None:
                         color_min = color_range[i][0]
                         color_max = color_range[i][1]
                     else:
                         color_min = 0.0
                         color_max = 1.0
+
                     self.channels.append((np.ma.array(chn) - color_min) * 1.0 / 
                                          (color_max - color_min))
-                    i = i + 1
 
                     self.shape = self.channels[-1].shape
                     if self.shape != self.channels[0].shape:
