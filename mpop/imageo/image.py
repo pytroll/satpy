@@ -838,32 +838,36 @@ class Image(object):
                                             (1.0 / gamma_list[i]),
                                             self.channels[i])
         
-    def stretch(self, stretch = "no"):
+    def stretch(self, stretch = "no", **kwarg):
         """Apply stretching to the current image. The value of *stretch* sets
         the type of stretching applied. The values "histogram", "linear",
         "crude" (or "crude-stretch") perform respectively histogram
         equalization, contrast stretching (with 5% cutoff on both sides), and
-        contrast stretching without cutoff. If a tuple or a list of two values
-        is given as input, then a contrast stretching is performed with the
-        values as cutoff. These values should be normalized in the range
-        [0.0,1.0].
+        contrast stretching without cutoff. The value "logarithmic" or "log"
+        will do a logarithmic enhancement towards white. If a tuple or a list
+        of two values is given as input, then a contrast stretching is performed
+        with the values as cutoff. These values should be normalized in the
+        range [0.0,1.0].
         """
         if((isinstance(stretch, tuple) or
             isinstance(stretch,list))):
             if len(stretch) == 2:
                 for i in range(len(self.channels)):
-                    self.stretch_linear(i, cutoffs = stretch)
+                    self.stretch_linear(i, cutoffs = stretch, **kwarg)
             else:
                 raise ValueError("Stretch tuple must have exactly two elements")
         elif stretch == "linear":
             for i in range(len(self.channels)):
-                self.stretch_linear(i)
+                self.stretch_linear(i, **kwarg)
         elif stretch == "histogram":
             for i in range(len(self.channels)):
-                self.stretch_hist_equalize(i)
+                self.stretch_hist_equalize(i, **kwarg)
         elif(stretch in ["crude", "crude-stretch"]):
             for i in range(len(self.channels)):
-                self.crude_stretch(i)
+                self.crude_stretch(i, **kwarg)
+        elif(stretch in ["log", "logarithmic"]):
+            for i in range(len(self.channels)):
+                self.stretch_logarithmic(i, **kwarg)
         elif(stretch == "no"):
             return
         elif isinstance(stretch, str):
@@ -920,6 +924,23 @@ class Image(object):
         res[~res.mask] = np.interp(carr, bins[:-1], cdf)
 
         self.channels[ch_nb] = res
+
+
+    def stretch_logarithmic(self, ch_nb, factor=100.):
+        """Move data into range [1:factor] and do a normalized logarithmic
+        enhancement.
+        """
+        LOG.debug("Perform a logarithmic contrast stretch.")
+        crange=(0., 1.0)
+
+        arr = self.channels[ch_nb]
+        b = float(crange[1] - crange[0])/np.log(factor)
+        c = float(crange[0])
+        slope = (factor-1.)/float(arr.max() - arr.min())
+        arr = 1. + (arr - arr.min())*slope
+        arr = c + b*np.log(arr)
+        self.channels[ch_nb] = arr
+
 
     def stretch_linear(self, ch_nb, cutoffs=(0.005, 0.005)):
         """Stretch linearly the contrast of the current image on channel
