@@ -29,6 +29,7 @@
 itself, it hold the mighty :meth:`mpop.satellites.get_satellite_class` method.
 """
 import os.path
+import weakref
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 
 import mpop.utils
@@ -265,5 +266,6 @@ class GeostationaryFactory(object):
         instrument_scene._CompositerClass = compositer
         
         if compositer is not None:
-            instrument_scene.image = compositer(instrument_scene)
+            # Pass weak ref to compositor to allow garbage collection            
+            instrument_scene.image = compositer(weakref.proxy(instrument_scene))
         return instrument_scene 

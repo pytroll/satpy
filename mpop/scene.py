@@ -37,6 +37,7 @@ import copy
 import datetime
 import os.path
 import types
+import weakref
 
 import numpy as np
 
@@ -44,6 +45,16 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 
+try:
+    # Work around for on demand import of pyresample. pyresample depends 
+    # on scipy.spatial which memory leaks on multiple imports
+    is_pyresample_loaded = False
+    from pyresample.geometry import AreaDefinition
+    from mpop.projector import Projector, get_area_def
+    is_pyresample_loaded = True
+except ImportError:
+    LOG.warning("pyresample missing. Can only work in satellite projection")
+    
 
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
@@ -451,12 +462,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
         """
-        # Lazy import in case pyresample is missing
-        try:
-            from mpop.projector import Projector, get_area_def
-        except ImportError:
-            LOG.exception("Cannot load reprojection module. "
-                          "Is pyresample/pyproj missing ?")
+        
+        if not is_pyresample_loaded:
+            # Not much point in proceeding then 
             return self
         
         _channels = set([])
@@ -501,30 +509,30 @@ class SatelliteInstrumentScene(SatelliteScene):
                                  + str(chn.shape))
                     chn.area = area_name
                 else:
-                    try:
-                        from pyresample.geometry import AreaDefinition
-                        chn.area = AreaDefinition(
-                            self.area.area_id + str(chn.shape),
-                            self.area.name,
-                            self.area.proj_id,
-                            self.area.proj_dict,
-                            chn.shape[1],
-                            chn.shape[0],
-                            self.area.area_extent,
-                            self.area.nprocs)
-
-                    except AttributeError:
-                        try:
-                            dummy = self.area.lons
-                            dummy = self.area.lats
-                            chn.area = self.area
-                            area_name = ("swath_" + self.fullname + "_" +
-                                         str(self.time_slot) + "_"
-                                         + str(chn.shape))
-                            chn.area.area_id = area_name
+                    if is_pyresample_loaded:
+                        try:                            
+                            chn.area = AreaDefinition(
+                                self.area.area_id + str(chn.shape),
+                                self.area.name,
+                                self.area.proj_id,
+                                self.area.proj_dict,
+                                chn.shape[1],
+                                chn.shape[0],
+                                self.area.area_extent,
+                                self.area.nprocs)
+    
                         except AttributeError:
-                            chn.area = self.area + str(chn.shape)
-                    except ImportError:
+                            try:
+                                dummy = self.area.lons
+                                dummy = self.area.lats
+                                chn.area = self.area
+                                area_name = ("swath_" + self.fullname + "_" +
+                                             str(self.time_slot) + "_"
+                                             + str(chn.shape))
+                                chn.area.area_id = area_name
+                            except AttributeError:
+                                chn.area = self.area + str(chn.shape)
+                    else:
                         chn.area = self.area + str(chn.shape) 
                     
             if chn.area == dest_area:
@@ -553,7 +561,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         # Compose with image object
         try:
             if res._CompositerClass is not None:
-                res.image = res._CompositerClass(res)
+                # Pass weak ref to compositor to allow garbage collection
+                res.image = res._CompositerClass(weakref.proxy(res))
         except AttributeError:
             pass
         
