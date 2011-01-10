@@ -83,7 +83,6 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     from_area = False
 
     if area_extent is None and satscene.area is not None:
-        from pyresample import geometry
         from mpop.projector import get_area_def
         if not satscene.area_def:
             satscene.area = get_area_def(satscene.area_id)
