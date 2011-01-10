@@ -178,6 +178,8 @@ class TestEmptyImage(unittest.TestCase):
             self.img.convert(mode)
             if mode == "YCbCrA":
                 self.assertRaises(ValueError, self.img.pil_image)
+            elif mode == "YCbCr":
+                continue
             else:
                 pilimg = self.img.pil_image()
                 self.assertEqual(pilimg.size, (0, 0))

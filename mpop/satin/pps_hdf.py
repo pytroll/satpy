@@ -28,12 +28,14 @@
 
 """Plugin for reading PPS's cloud products hdf files.
 """
-
 import ConfigParser
+import datetime
 import os.path
-from mpop import CONFIG_PATH
+
 import mpop.channel
+from mpop import CONFIG_PATH
 from mpop.utils import get_logger
+
 
 LOG = get_logger('satin/pps_hdf')
 
@@ -165,27 +167,49 @@ def load(scene, **kwargs):
     pathname = os.path.join(directory, filename)
 
     area_name = scene.area_id or scene.area.area_id
+
+    times = [scene.time_slot,
+             scene.time_slot + datetime.timedelta(minutes=1),
+             scene.time_slot - datetime.timedelta(minutes=1)]
     
     if "CTTH" in scene.channels_to_load:
-        filename = (scene.time_slot.strftime(pathname)
-                    %{"orbit": scene.orbit,
-                      "number": scene.number,
-                      "area": area_name,
-                      "product": "ctth"})
-        ct_chan = PpsCTTH()
-        ct_chan.read(filename)
-        ct_chan.area = scene.area
-        scene.channels.append(ct_chan)
+        for time_slot in times:
+            filename = (time_slot.strftime(pathname)
+                        %{"orbit": scene.orbit,
+                          "number": scene.number,
+                          "area": area_name,
+                          "satellite": scene.fullname,
+                          "product": "ctth"})
+            if not os.path.exists(filename):
+                LOG.info("Can't find " + filename)
+            else:
+                break
+        if not os.path.exists(filename):
+            LOG.info("Can't find any CTTH file, skipping")
+        else:
+            ct_chan = PpsCTTH()
+            ct_chan.read(filename)
+            ct_chan.area = scene.area
+            scene.channels.append(ct_chan)
 
     if "CloudType" in scene.channels_to_load:
-        filename = (scene.time_slot.strftime(pathname)
-                    %{"orbit": scene.orbit,
-                      "number": scene.number,
-                      "area": area_name,
-                      "product": "cloudtype"})
-        ct_chan = PpsCloudType()
-        ct_chan.read(filename)
-        ct_chan.area = scene.area
-        scene.channels.append(ct_chan)
+        for time_slot in times:
+            filename = (time_slot.strftime(pathname)
+                        %{"orbit": scene.orbit,
+                          "number": scene.number,
+                          "area": area_name,
+                          "satellite": scene.fullname,
+                          "product": "cloudtype"})
+            if not os.path.exists(filename):
+                LOG.info("Can't find " + filename)
+            else:
+                break
+        if not os.path.exists(filename):
+            LOG.info("Can't find any Cloudtype file, skipping")
+        else:
+            ct_chan = PpsCloudType()
+            ct_chan.read(filename)
+            ct_chan.area = scene.area
+            scene.channels.append(ct_chan)
 
     LOG.info("Loading channels done.")

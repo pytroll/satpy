@@ -70,25 +70,26 @@ def load_avhrr(satscene, options):
               "satname": satscene.satname,
               "number": satscene.number,
               "instrument": satscene.instrument_name,
-              "fullname": satscene.fullname
+              "satellite": satscene.fullname
               }
-    filename = os.path.join(
-        options["dir"],
-        (satscene.time_slot.strftime(options["filename"])%values))
 
-    file_list = glob.glob(satscene.time_slot.strftime(filename))
+    filename = os.path.join(satscene.time_slot.strftime(options["dir"])%values,
+                            satscene.time_slot.strftime(options["filename"])
+                            %values)
+
+    file_list = glob.glob(filename)
 
     if len(file_list) > 1:
         raise IOError("More than one l1b file matching!")
     elif len(file_list) == 0:
         raise IOError("No l1b file matching!: "+
-                      satscene.time_slot.strftime(filename))
+                      filename)
 
     
     filename = file_list[0]
 
     LOG.debug("Loading from " + filename)
-    
+
     avh = avhrr.avhrr(filename)
     avh.get_unprojected()
     instrument_data = avh.build_raw()

@@ -37,6 +37,7 @@ import copy
 import datetime
 import os.path
 import types
+import weakref
 
 import numpy as np
 
@@ -44,6 +45,16 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 
+try:
+    # Work around for on demand import of pyresample. pyresample depends 
+    # on scipy.spatial which memory leaks on multiple imports
+    is_pyresample_loaded = False
+    from pyresample.geometry import AreaDefinition
+    import mpop.projector
+    is_pyresample_loaded = True
+except ImportError:
+    LOG.warning("pyresample missing. Can only work in satellite projection")
+    
 
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
@@ -302,6 +313,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             for chn in self.channels_to_load:
                 if chn in loaded_channels:
                     self.unload(chn)
+                    loaded_channels = []
         else:
             for chn in loaded_channels:
                 self.channels_to_load -= set([chn])
@@ -324,16 +336,17 @@ class SatelliteInstrumentScene(SatelliteScene):
             levels = levels[1:]
 
         for level in levels:
-
             if len(self.channels_to_load) == 0:
                 return
 
+            LOG.debug("Looking for sources in section "+level)
             reader_name = conf.get(level, 'format')
             try:
                 reader_name = eval(reader_name)
             except NameError:
                 reader_name = str(reader_name)
-            
+            LOG.debug("Will try to use plugin mpop.satin."+reader_name)
+
             # read the data
             reader = "mpop.satin."+reader_name
             try:
@@ -342,13 +355,13 @@ class SatelliteInstrumentScene(SatelliteScene):
                 kwargs["area_extent"] = area_extent
                 reader_module.load(self, **kwargs)
             except ImportError:
-                LOG.exception("ImportError while loading the reader")
-                raise ImportError("No "+reader+" reader found.")
-
+                LOG.exception("ImportError while loading "+reader+".")
+                continue
             loaded_channels = [chn.name for chn in self.loaded_channels()]
             self.channels_to_load = set([chn for chn in self.channels_to_load
                                          if not chn in loaded_channels])
-
+            LOG.debug("Successfully loaded: "+str(loaded_channels))
+            
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "
                         + str(self.channels_to_load))
@@ -451,12 +464,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
         """
-        # Lazy import in case pyresample is missing
-        try:
-            from mpop.projector import Projector, get_area_def
-        except ImportError:
-            LOG.exception("Cannot load reprojection module. "
-                          "Is pyresample/pyproj missing ?")
+        
+        if not is_pyresample_loaded:
+            # Not much point in proceeding then 
             return self
         
         _channels = set([])
@@ -480,7 +490,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         res = copy.copy(self)
 
         if isinstance(dest_area, str):
-            dest_area = get_area_def(dest_area)
+            dest_area = mpop.projector.get_area_def(dest_area)
 
         
         res.area = dest_area
@@ -501,32 +511,32 @@ class SatelliteInstrumentScene(SatelliteScene):
                                  + str(chn.shape))
                     chn.area = area_name
                 else:
-                    try:
-                        from pyresample.geometry import AreaDefinition
-                        chn.area = AreaDefinition(
-                            self.area.area_id + str(chn.shape),
-                            self.area.name,
-                            self.area.proj_id,
-                            self.area.proj_dict,
-                            chn.shape[1],
-                            chn.shape[0],
-                            self.area.area_extent,
-                            self.area.nprocs)
-
-                    except AttributeError:
-                        try:
-                            dummy = self.area.lons
-                            dummy = self.area.lats
-                            chn.area = self.area
-                            area_name = ("swath_" + self.fullname + "_" +
-                                         str(self.time_slot) + "_"
-                                         + str(chn.shape))
-                            chn.area.area_id = area_name
+                    if is_pyresample_loaded:
+                        try:                            
+                            chn.area = AreaDefinition(
+                                self.area.area_id + str(chn.shape),
+                                self.area.name,
+                                self.area.proj_id,
+                                self.area.proj_dict,
+                                chn.shape[1],
+                                chn.shape[0],
+                                self.area.area_extent,
+                                self.area.nprocs)
+    
                         except AttributeError:
-                            chn.area = self.area + str(chn.shape)
-                    except ImportError:
+                            try:
+                                dummy = self.area.lons
+                                dummy = self.area.lats
+                                chn.area = self.area
+                                area_name = ("swath_" + self.fullname + "_" +
+                                             str(self.time_slot) + "_"
+                                             + str(chn.shape))
+                                chn.area.area_id = area_name
+                            except AttributeError:
+                                chn.area = self.area + str(chn.shape)
+                    else:
                         chn.area = self.area + str(chn.shape) 
-                    
+
             if chn.area == dest_area:
                 res.channels.append(chn)
             else:
@@ -534,16 +544,20 @@ class SatelliteInstrumentScene(SatelliteScene):
                     if(isinstance(chn.area, str) and
                        chn.area.startswith("swath_")):
                         cov[chn.area] = \
-                            Projector(chn.area,
-                                      dest_area,
-                                      self.get_lat_lon(chn.resolution),
-                                      mode=mode)
+                            mpop.projector.Projector(
+                            chn.area,
+                            dest_area,
+                            self.get_lat_lon(chn.resolution),
+                            mode=mode)
                     else:
-                        cov[chn.area] = Projector(chn.area,
-                                                  dest_area,
-                                                  mode=mode)
+                        cov[chn.area] = mpop.projector.Projector(chn.area,
+                                                                 dest_area,
+                                                                 mode=mode)
                     if precompute:
-                        cov[chn.area].save()
+                        try:
+                            cov[chn.area].save()
+                        except IOError:
+                            LOG.exception("Could not save projection.")
                 try:
                     res.channels.append(chn.project(cov[chn.area]))
                 except NotLoadedError:
@@ -553,7 +567,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         # Compose with image object
         try:
             if res._CompositerClass is not None:
-                res.image = res._CompositerClass(res)
+                # Pass weak ref to compositor to allow garbage collection
+                res.image = res._CompositerClass(weakref.proxy(res))
         except AttributeError:
             pass
         

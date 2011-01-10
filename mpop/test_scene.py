@@ -119,7 +119,7 @@ def unpatch_projector():
     delattr(mpop.projector, "OldProjector")
     mpop.projector.get_area_def = mpop.projector.old_get_area_def
     delattr(mpop.projector, "old_get_area_def")
-
+    
 class TestSatelliteScene(unittest.TestCase):
     """Class for testing the SatelliteScene class.
     """

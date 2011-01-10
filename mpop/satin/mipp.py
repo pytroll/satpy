@@ -39,6 +39,16 @@ from xrit import CalibrationError, SatReaderError
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 
+try:
+    # Work around for on demand import of pyresample. pyresample depends 
+    # on scipy.spatial which memory leaks on multiple imports
+    is_pyresample_loaded = False
+    from pyresample import geometry
+    from mpop.projector import get_area_def
+    is_pyresample_loaded = True
+except ImportError:
+    LOG.warning("pyresample missing. Can only work in satellite projection")
+    
 
 def load(satscene, calibrate=True, area_extent=None):
     """Read data from file and load it into *satscene*. The *calibrate*
@@ -83,8 +93,6 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     from_area = False
 
     if area_extent is None and satscene.area is not None:
-        from pyresample import geometry
-        from mpop.projector import get_area_def
         if not satscene.area_def:
             satscene.area = get_area_def(satscene.area_id)
         area_extent = satscene.area.area_extent
@@ -140,8 +148,8 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             key, val = param.split("=")
             proj_dict[key] = val
             
-        try:
-            from pyresample import geometry
+        if is_pyresample_loaded:
+            # Build area_def on-the-fly
             satscene[chn].area = geometry.AreaDefinition(
                 satscene.satname + satscene.instrument_name +
                 str(metadata.area_extent) +
@@ -152,8 +160,8 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                 data.shape[1],
                 data.shape[0],
                 metadata.area_extent)
-        except ImportError:
-            LOG.warning("Could not build area, pyresample missing...")
+        else:
+            LOG.info("Could not build area, pyresample missing...")
 
 CASES = {}
 
