@@ -127,12 +127,6 @@ class Channel(GenericChannel):
     of the channel, and *data* is the data it should hold.
     """
 
-    _data = None
-
-    #: Operationnal wavelength range of the channel, in micrometers.
-    #: This is a triplet containing min-, central-, and max-wavelength.
-    wavelength_range = None
-
     def __init__(self,
                  name=None,
                  resolution=0, 
@@ -141,6 +135,11 @@ class Channel(GenericChannel):
                  calibration_unit=None):
 
         GenericChannel.__init__(self, name)
+
+        self._data = None
+        self.wavelength_range = None
+
+
 
         if(name is None and
            wavelength_range == (-np.inf, -np.inf, -np.inf)):
@@ -165,20 +164,6 @@ class Channel(GenericChannel):
         self.wavelength_range = wavelength_range
         
         self.data = data
-
-        self.info = {
-            'var_name' : name,
-            'var_data' : self.data,
-            'var_dim_names': ('x'+str(resolution),
-                              'y'+str(resolution)),
-            'bandname' : name,
-            'units': calibration_unit or ""
-            }
-
-        if data is not None:
-            self.info['valid_range'] = np.array([data.min(),
-                                                 data.max()]),
-
 
     def __cmp__(self, ch2, key = 0):
         if(isinstance(ch2, str)):
@@ -287,13 +272,11 @@ class Channel(GenericChannel):
     def set_data(self, data):
         """Setter for channel data.
         """
-        if (data is None or
-            isinstance(data, (np.ndarray, np.ma.core.MaskedArray))):
+        if data is None:
+            del self._data
+            self._data = None
+        elif isinstance(data, (np.ndarray, np.ma.core.MaskedArray)):
             self._data = data
-            if data is not None:
-                self.info['valid_range'] = np.array([data.min(),
-                                                     data.max()]),
-
         else:
             raise TypeError("Data must be a numpy (masked) array.")
 

@@ -89,7 +89,7 @@ class FileList(list):
 
                 ensure_dir(filename)
                 handle2, tmpfilename2 = tempfile.mkstemp(extkey,
-                                                         "msgpp_tmp",
+                                                         "mpop_tmp",
                                                          path2)
                 os.fsync(handle2)
                 try:
@@ -117,7 +117,9 @@ class FileList(list):
                         os.rename(tmpfilename2, filename)
                     except (IOError, OSError):
                         LOG.exception("No way...")
-
+                LOG.debug("Done saving "+filename)
+                
             os.rename(tmpfilename, files_by_ext[extkey][0])
             os.fsync(handle)
             os.close(handle)
+            LOG.debug("Done saving "+files_by_ext[extkey][0])

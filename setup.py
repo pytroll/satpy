@@ -87,7 +87,7 @@ setup(name=NAME,
                     'doc/source/rs_images.rst'])],
       zip_safe=False,
       ext_modules = EXTS,
-      requires=['acpg (>=2.03)',
-                'numpy (>=1.4.1)',
-                'pyresample (>=0.7.1)']
+      requires=['numpy (>=1.4.1)',
+                'pyresample (>=0.7.1)',
+                'mipp']
       )
