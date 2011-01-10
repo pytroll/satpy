@@ -302,6 +302,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             for chn in self.channels_to_load:
                 if chn in loaded_channels:
                     self.unload(chn)
+                    loaded_channels = []
         else:
             for chn in loaded_channels:
                 self.channels_to_load -= set([chn])
@@ -324,16 +325,17 @@ class SatelliteInstrumentScene(SatelliteScene):
             levels = levels[1:]
 
         for level in levels:
-
             if len(self.channels_to_load) == 0:
                 return
 
+            LOG.debug("Looking for sources in section "+level)
             reader_name = conf.get(level, 'format')
             try:
                 reader_name = eval(reader_name)
             except NameError:
                 reader_name = str(reader_name)
-            
+            LOG.debug("Will try to use plugin mpop.satin."+reader_name)
+
             # read the data
             reader = "mpop.satin."+reader_name
             try:
@@ -342,13 +344,13 @@ class SatelliteInstrumentScene(SatelliteScene):
                 kwargs["area_extent"] = area_extent
                 reader_module.load(self, **kwargs)
             except ImportError:
-                LOG.exception("ImportError while loading the reader")
-                raise ImportError("No "+reader+" reader found.")
-
+                LOG.exception("ImportError while loading "+reader+".")
+                continue
             loaded_channels = [chn.name for chn in self.loaded_channels()]
             self.channels_to_load = set([chn for chn in self.channels_to_load
                                          if not chn in loaded_channels])
-
+            LOG.debug("Successfully loaded: "+str(loaded_channels))
+            
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "
                         + str(self.channels_to_load))
