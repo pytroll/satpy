@@ -50,7 +50,7 @@ try:
     # on scipy.spatial which memory leaks on multiple imports
     is_pyresample_loaded = False
     from pyresample.geometry import AreaDefinition
-    from mpop.projector import Projector, get_area_def
+    import mpop.projector
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
@@ -490,7 +490,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         res = copy.copy(self)
 
         if isinstance(dest_area, str):
-            dest_area = get_area_def(dest_area)
+            dest_area = mpop.projector.get_area_def(dest_area)
 
         
         res.area = dest_area
@@ -536,7 +536,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                                 chn.area = self.area + str(chn.shape)
                     else:
                         chn.area = self.area + str(chn.shape) 
-                    
+
             if chn.area == dest_area:
                 res.channels.append(chn)
             else:
@@ -544,16 +544,20 @@ class SatelliteInstrumentScene(SatelliteScene):
                     if(isinstance(chn.area, str) and
                        chn.area.startswith("swath_")):
                         cov[chn.area] = \
-                            Projector(chn.area,
-                                      dest_area,
-                                      self.get_lat_lon(chn.resolution),
-                                      mode=mode)
+                            mpop.projector.Projector(
+                            chn.area,
+                            dest_area,
+                            self.get_lat_lon(chn.resolution),
+                            mode=mode)
                     else:
-                        cov[chn.area] = Projector(chn.area,
-                                                  dest_area,
-                                                  mode=mode)
+                        cov[chn.area] = mpop.projector.Projector(chn.area,
+                                                                 dest_area,
+                                                                 mode=mode)
                     if precompute:
-                        cov[chn.area].save()
+                        try:
+                            cov[chn.area].save()
+                        except IOError:
+                            LOG.exception("Could not save projection.")
                 try:
                     res.channels.append(chn.project(cov[chn.area]))
                 except NotLoadedError:

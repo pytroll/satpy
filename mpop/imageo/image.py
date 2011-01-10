@@ -938,7 +938,7 @@ class Image(object):
         arr = self.channels[ch_nb]
 
         carr = arr.compressed()
-        hist, bins = np.histogram(carr, nwidth, new = True)
+        hist, bins = np.histogram(carr, nwidth)
 
         ndim = carr.size
 

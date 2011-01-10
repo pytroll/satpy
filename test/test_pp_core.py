@@ -275,7 +275,6 @@ class TestPPCore(unittest.TestCase):
         area2 = random_string(8)
 
         new_scene = self.scene.project(area2)
-
         self.assertEquals(new_scene.area.area_id, area2)
 
         for chn in new_scene.channels:
@@ -291,3 +290,7 @@ class TestPPCore(unittest.TestCase):
         unpatch_kd_tree()
         unpatch_image()
         unpatch_configparser()
+
+
+if __name__ == '__main__':
+    unittest.main()
