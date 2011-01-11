@@ -33,13 +33,17 @@ import os.path
 from mpop import CONFIG_PATH
 import mpop.channel
 import numpy as np
-import epshdf
+
 import glob
 from mpop.utils import get_logger
 from mpop.projector import get_area_def
 
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6
+
+def pcs_def_from_region(region):
+    items = region.proj_dict.items()
+    return ' '.join([ t[0] + '=' + t[1] for t in items])   
 
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self):
@@ -61,6 +65,7 @@ class PpsCloudType(mpop.channel.GenericChannel):
     def save(self, filename):
         """Save to *filename*.
         """
+        import epshdf
         epshdf.write_cloudtype(filename, self, COMPRESS_LVL)
 
 class PpsCTTH(mpop.channel.GenericChannel):
@@ -99,6 +104,7 @@ class PpsCTTH(mpop.channel.GenericChannel):
     def save(self, filename):
         """Save to *filename*.
         """
+        import epshdf
         epshdf.write_cloudtop(filename, self, COMPRESS_LVL)
 
 # ----------------------------------------
@@ -236,9 +242,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
                           + self.cloudtype.offset)
         self.cloudphase = (self.cloudphase.data * self.cloudphase.scaling_factor
                           + self.cloudphase.offset)
-        self.processing_flags = (self.processing_flags.data *
-                                 self.processing_flags.scaling_factor
-                                 + self.processing_flags.offset).astype("B")
+        self.processing_flags = self.processing_flags.data
 
         self.area = get_area_def(self.region_name)
         
@@ -292,7 +296,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.region_name = dest_area
         retv.area = region
         retv.projection_name = region.proj_id
-        retv.pcs_def = region.proj4_string
+        
+        retv.pcs_def = pcs_def_from_region(region)
         
         retv.num_of_columns = region.x_size
         retv.num_of_lines = region.y_size
@@ -316,6 +321,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         """Converts the NWCSAF/MSG Cloud Type to the PPS format,
         in order to have consistency in output format between PPS and MSG.
         """
+        import epshdf
         retv = PpsCloudType()
         retv.region = epshdf.SafRegion()
         retv.region.xsize = self.num_of_columns
@@ -323,7 +329,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.region.id = self.region_name
         retv.region.pcs_id = self.projection_name
         
-        retv.region.pcs_def = self.area.proj4_string
+        retv.region.pcs_def = pcs_def_from_region(self.area)
         retv.region.area_extent = self.area.area_extent
         retv.satellite_id = self.satid
 
@@ -337,7 +343,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         retv.cloudtype = self.cloudtype.astype('B')
         retv.phaseflag = self.cloudphase.astype('B')
-        retv.qualityflag = ctype_procflags2pps(self.processing_flags.data)
+        retv.qualityflag = ctype_procflags2pps(self.processing_flags)
 
         return retv
 
@@ -444,9 +450,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.cloudiness.product = h5f.root.CTTH_EFFECT.attrs["PRODUCT"]
         self.cloudiness.id = h5f.root.CTTH_EFFECT.attrs["ID"]
         
-        self.cloudiness = (np.ma.masked_equal(self.cloudiness.data, 0) *
-                           self.cloudiness.scaling_factor +
-                           self.cloudiness.offset)
+        self.cloudiness = np.ma.masked_equal(self.cloudiness.data, 0)
         # ------------------------
     
         # The CTTH temperature data
@@ -511,9 +515,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.processing_flags.id = h5f.root.CTTH_QUALITY.attrs["ID"]
 
         self.processing_flags = \
-            (np.ma.masked_equal(self.processing_flags.data, 0) *
-             self.processing_flags.scaling_factor +
-             self.processing_flags.offset).astype('B')
+             np.ma.masked_equal(self.processing_flags.data, 0)
 
         h5f.close()
         
@@ -566,13 +568,14 @@ class MsgCTTH(mpop.channel.GenericChannel):
     def convert2pps(self):
         """Convert the current CTTH channel to pps format.
         """
+        import epshdf
         retv = PpsCTTH()
         retv.region = epshdf.SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
         retv.region.id = self.region_name
         retv.region.pcs_id = self.projection_name
-        retv.region.pcs_def = self.area.proj4_string
+        retv.region.pcs_def = pcs_def_from_region(self.area)
         retv.region.area_extent = self.area.area_extent
         retv.satellite_id = self.satid
 
@@ -1079,7 +1082,8 @@ def load(scene, **kwargs):
         print filename
         ct_chan = MsgCTTH()
         ct_chan.read(get_best_product(filename))
-        ct_chan.satid = scene.satname + scene.number
+        ct_chan.satid = (scene.satname.capitalize() +
+                         str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
 
@@ -1090,7 +1094,8 @@ def load(scene, **kwargs):
                       "product": "CT___"})
         ct_chan = MsgCloudType()
         ct_chan.read(get_best_product(filename))
-        ct_chan.satid = scene.satname + scene.number
+        ct_chan.satid = (scene.satname.capitalize() +
+                         str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
 
