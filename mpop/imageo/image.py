@@ -930,6 +930,12 @@ class Image(object):
         enhancement.
         """
         LOG.debug("Perform a logarithmic contrast stretch.")
+        if ((self.channels[ch_nb].size ==
+             np.ma.count_masked(self.channels[ch_nb])) or
+            (self.channels[ch_nb].min() == self.channels[ch_nb].max())):
+            LOG.warning("Nothing to stretch !")
+            return
+
         crange=(0., 1.0)
 
         arr = self.channels[ch_nb]
