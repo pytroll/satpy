@@ -187,8 +187,10 @@ class SequentialRunner(object):
             for product, flist in productlist.items():
                 fun = getattr(local_data, product)
                 flist = flist.put_date(local_data.time_slot)
+                metadata = {"area": area}
                 if local_data.orbit is not None:
-                    flist = flist.put_metadata({"orbit": int(local_data.orbit)})
+                    metadata["orbit"] = int(local_data.orbit)
+                flist = flist.put_metadata(metadata)
                 try:
                     LOG.debug("Doing "+product+".")
                     img = fun()
@@ -199,7 +201,7 @@ class SequentialRunner(object):
                     LOG.info("Skipping "+product)
             del local_data
 
-    def run_from_local_data(self, tasklist=None):
+    def run_from_local_data(self, tasklist=None, extra_tags=None):
         """Run on given local data (already projected).
         """
         if tasklist is None:
@@ -215,10 +217,13 @@ class SequentialRunner(object):
             if self.data.orbit is not None:
                 metadata["orbit"] = int(self.data.orbit)
             metadata["satellite"] = self.data.fullname
+            metadata["area"] = area_name
             flist = flist.put_metadata(metadata)
             try:
                 LOG.debug("Doing "+product+".")
                 img = fun()
+                if extra_tags:
+                    img.tags.update(extra_tags)
                 flist.save_object(img)
                 del img
             except (NotLoadedError, KeyError), err:
