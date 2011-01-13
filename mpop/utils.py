@@ -33,6 +33,14 @@
 
 import logging
 
+def ensure_dir(filename):
+    """Checks if the dir of f exists, otherwise create it.
+    """
+    import os
+    directory = os.path.dirname(filename)
+    if len(directory) and not os.path.isdir(directory):
+        os.makedirs(directory)
+
 
 class NullHandler(logging.Handler):
     """Empty handler.
@@ -42,30 +50,30 @@ class NullHandler(logging.Handler):
         """
         pass
     
-
-def ensure_dir(filename):
-    """Checks if the dir of f exists, otherwise create it.
-    """
-    import os
-    directory = os.path.dirname(filename)
-    if len(directory) and not os.path.isdir(directory):
-        os.makedirs(directory)
-
 def debug_on():
     """Turn debugging logging on.
     """
     logging_on(logging.DEBUG)
 
+_is_logging_on = False
 def logging_on(level = logging.INFO):
     """Turn logging on.
     """
-    console = logging.StreamHandler()
-    console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
-                                           " %(name)s] %(message)s",
-                                           '%Y-%m-%d %H:%M:%S'))
-    console.setLevel(level)
-    logging.getLogger('').addHandler(console)
-    logging.getLogger('').setLevel(level)
+    global _is_logging_on
+
+    if not _is_logging_on:
+        console = logging.StreamHandler()
+        console.setFormatter(logging.Formatter("[%(levelname)s: %(asctime)s :"
+                                               " %(name)s] %(message)s",
+                                               '%Y-%m-%d %H:%M:%S'))
+        console.setLevel(level)
+        logging.getLogger('').addHandler(console)
+        _is_logging_on = True
+
+    log = logging.getLogger('')
+    log.setLevel(level)
+    for h in log.handlers:
+        h.setLevel(level)
 
 def logging_off():
     """Turn logging off.
@@ -77,7 +85,8 @@ def get_logger(name):
     """
     
     log = logging.getLogger(name)
-    log.addHandler(NullHandler())
+    if not log.handlers:
+        log.addHandler(NullHandler())
     return log
 
 #Default level is warning

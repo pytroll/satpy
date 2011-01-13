@@ -177,7 +177,8 @@ class Projector(object):
                 raise ValueError("Unrecognised mode " + str(mode) + ".") 
             
         else:
-            self._cache = np.load(self._filename)
+            self._cache = {}
+            self._file_cache = np.load(self._filename)
 
     def save(self, resave=False):
         """Save the precomputation to disk, and overwrite existing file in case
@@ -197,7 +198,13 @@ class Projector(object):
             return data
 
         if self.mode == "nearest":
-
+            
+            if not 'valid_index' in self._cache:
+                self._cache['valid_index'] = self._file_cache['valid_index']
+                self._cache['valid_output_index'] = \
+                                        self._file_cache['valid_output_index']
+                self._cache['index_array'] = self._file_cache['index_array']
+                
             valid_index, valid_output_index, index_array = \
                          (self._cache['valid_index'],
                           self._cache['valid_output_index'],
@@ -212,6 +219,11 @@ class Projector(object):
                                                          fill_value = None)
 
         elif self.mode == "quick":
+            
+            if not 'row_idx' in self._cache:
+                 self._cache['row_idx'] = self._file_cache['row_idx']
+                 self._cache['col_idx'] = self._file_cache['col_idx']
+                 
             row_idx, col_idx = self._cache['row_idx'], self._cache['col_idx']
             img = image.ImageContainer(data, self.in_area, fill_value=None)
             res = np.ma.array(img.get_array_from_linesample(row_idx, col_idx),

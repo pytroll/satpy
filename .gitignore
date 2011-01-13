@@ -1,2 +1,4 @@
+build
 doc/build
 *.so
+RELEASE-VERSION

@@ -219,8 +219,10 @@ class Channel(GenericChannel):
         if not isinstance(min_range, (float, int)):
             raise TypeError("Min_range must be a single number.")
 
-        if(isinstance(self._data.max(), np.ma.core.MaskedArray)):
-            return self._data
+        
+        if isinstance(self._data, np.ma.core.MaskedArray):
+            if self._data.mask.all():
+                return self._data
         
         if((self._data.max() - self._data.min()) < min_range):
             return np.ma.zeros(self.shape)

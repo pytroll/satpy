@@ -540,26 +540,33 @@ class SatelliteInstrumentScene(SatelliteScene):
             if chn.area == dest_area:
                 res.channels.append(chn)
             else:
-                if chn.area not in cov:
+                if isinstance(chn.area, str):
+                    area_id = chn.area
+                else:
+                    area_id = chn.area.area_id
+                
+                if area_id not in cov:
                     if(isinstance(chn.area, str) and
                        chn.area.startswith("swath_")):
-                        cov[chn.area] = \
+
+                        cov[area_id] = \
                             mpop.projector.Projector(
                             chn.area,
                             dest_area,
                             self.get_lat_lon(chn.resolution),
                             mode=mode)
                     else:
-                        cov[chn.area] = mpop.projector.Projector(chn.area,
-                                                                 dest_area,
-                                                                 mode=mode)
+                        cov[area_id] = mpop.projector.Projector(chn.area,
+                                                                dest_area,
+                                                                mode=mode)
                     if precompute:
                         try:
-                            cov[chn.area].save()
+                            cov[area_id].save()
                         except IOError:
                             LOG.exception("Could not save projection.")
+
                 try:
-                    res.channels.append(chn.project(cov[chn.area]))
+                    res.channels.append(chn.project(cov[area_id]))
                 except NotLoadedError:
                     LOG.warning("Channel "+str(chn.name)+" not loaded, "
                                 "thus not projected.")

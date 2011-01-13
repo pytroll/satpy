@@ -11,6 +11,7 @@
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   Esben S. Nielsen <esn@dmi.dk>
 
 # This file is part of the mpop.
 
@@ -129,9 +130,9 @@ class Image(object):
                     else:
                         color_min = 0.0
                         color_max = 1.0
-
-                    self.channels.append((np.ma.array(chn) - color_min) * 1.0 / 
-                                         (color_max - color_min))
+                    
+                    # Add data to image object as a channel
+                    self._add_channel(chn, color_min, color_max)
 
                     self.shape = self.channels[-1].shape
                     if self.shape != self.channels[0].shape:
@@ -152,14 +153,29 @@ class Image(object):
             else:
                 color_min = 0.0
                 color_max = 1.0
-            self.channels.append((np.ma.array(channels) - color_min) * 1.0 / 
-                                 (color_max - color_min))
+            
+            # Add data to image object as a channel
+            self._add_channel(channels, color_min, color_max)
 
         else:
             self.shape = (0, 0)
             self.width = 0
             self.height = 0
 
+    def _add_channel(self, chn, color_min, color_max):
+        """Adds a channel to the image object
+        """
+        
+        if isinstance(chn, np.ma.core.MaskedArray):
+            chn_data = chn.data
+            chn_mask = chn.mask
+        else:
+            chn_data = np.array(chn)
+            chn_mask = False
+        scaled = ((chn_data - color_min) * 
+                  1.0 / (color_max - color_min))
+        self.channels.append(np.ma.array(scaled, mask=chn_mask))
+    
     def _finalize(self):
         """Finalize the image, that is put it in RGB mode, and set the channels
         in 8bit format ([0,255] range).
@@ -171,7 +187,12 @@ class Image(object):
             self.convert("RGBA")
 
         for chn in self.channels:
-            channels.append(np.ma.array(chn.clip(0, 1) * 255,
+            if isinstance(chn, np.ma.core.MaskedArray):
+                final_data = chn.data.clip(0, 1) * 255
+            else:
+                final_data = chn.clip(0, 1) * 255
+                
+            channels.append(np.ma.array(final_data,
                                         np.uint8,
                                         mask = chn.mask))
         if self.fill_value is not None:
@@ -930,6 +951,12 @@ class Image(object):
         enhancement.
         """
         LOG.debug("Perform a logarithmic contrast stretch.")
+        if ((self.channels[ch_nb].size ==
+             np.ma.count_masked(self.channels[ch_nb])) or
+            (self.channels[ch_nb].min() == self.channels[ch_nb].max())):
+            LOG.warning("Nothing to stretch !")
+            return
+
         crange=(0., 1.0)
 
         arr = self.channels[ch_nb]
@@ -1000,11 +1027,12 @@ class Image(object):
         if(max_stretch is None):
             max_stretch = self.channels[ch_nb].max()
 
-        if((not isinstance(max_stretch, np.ma.core.MaskedArray)) and
-           (not isinstance(min_stretch, np.ma.core.MaskedArray)) and
-           max_stretch - min_stretch > 0): 
-            self.channels[ch_nb] = ((self.channels[ch_nb] - min_stretch) * 1.0 /
+        if((not self.channels[ch_nb].mask.all()) and
+            max_stretch - min_stretch > 0):    
+            stretched = ((self.channels[ch_nb].data - min_stretch) * 1.0 /
                                     (max_stretch - min_stretch))
+            self.channels[ch_nb] = np.ma.array(stretched, 
+                                               mask=self.channels[ch_nb].mask)
         else:
             LOG.warning("Nothing to stretch !")
 
