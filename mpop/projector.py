@@ -46,7 +46,8 @@ CONF = ConfigParser.ConfigParser()
 CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
 try:
-    AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or CONFIG_PATH,
+    AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or
+                             CONFIG_PATH,
                              CONF.get("projector", "area_file"))
 except ConfigParser.NoSectionError:
     AREA_FILE = ""
@@ -54,9 +55,9 @@ except ConfigParser.NoSectionError:
                 "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
 def get_area_def(area_name):
-    """Get the definition of *area_name* from file. The file is defined to use is to
-    be placed in the $PPP_CONFIG_DIR directory, and its name is defined in
-    mpop's configuration file.
+    """Get the definition of *area_name* from file. The file is defined to use
+    is to be placed in the $PPP_CONFIG_DIR directory, and its name is defined
+    in mpop's configuration file.
     """
     return utils.parse_area_file(AREA_FILE, area_name)[0]
 
@@ -73,7 +74,7 @@ class Projector(object):
     _cache = None
     _filename = None
     mode = "quick"
-    
+
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode="quick"):
 
