@@ -401,6 +401,32 @@ class VisirCompositer(Compositer):
 
     overview.prerequisites = set([0.635, 0.85, 10.8])
 
+    def natural(self):
+        """Make a Natural Colors RGB image composite.
+        """
+        self.check_channels(0.635, 0.85, 1.63)
+        
+        ch1 = self[1.63].check_range()
+        ch2 = self[0.85].check_range()
+        ch3 = self[0.635].check_range()
+
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((0, 90),
+                                         (0, 90),
+                                         (0, 90)))
+
+
+
+        img.enhance(gamma=1.8)
+
+        return img
+    
+    natural.prerequisites = set([0.635, 0.85, 1.63])
+
     def airmass(self):
         """Make an airmass RGB image composite.
         
