@@ -31,8 +31,49 @@
 """Module defining various utilities.
 """
 
+import re
+import ConfigParser
+
 import logging
 
+
+class OrderedConfigParser(object):
+    """Intercepts read and stores ordered section names.
+    Cannot use inheritance and super as ConfigParser use old style classes.
+    """
+
+    def __init__(self, *args, **kwargs):        
+        self.config_parser = ConfigParser.ConfigParser(*args, **kwargs)
+    
+    def __getattr__(self, name):
+        return getattr(self.config_parser, name)
+
+    def read(self, filename):
+        """Reads config file
+        """
+        
+        try:
+            conf_file = open(filename, 'r')
+            config = conf_file.read()
+            config_keys = re.findall(r'\[\w+-*\w*\]', config)
+            self.section_keys = [key[1:-1] for key in config_keys]
+        except IOError, e:        
+            # Pass if file not found
+            if e.errno != 2:
+                raise
+            
+        return self.config_parser.read(filename)
+
+    def sections(self):
+        """Get sections from config file
+        """
+        
+        try:
+            return self.section_keys
+        except:
+            return self.config_parser.sections()
+    
+    
 def ensure_dir(filename):
     """Checks if the dir of f exists, otherwise create it.
     """

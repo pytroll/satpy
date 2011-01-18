@@ -45,9 +45,12 @@ class CFScene(object):
     """
     info = {}
     
-    def __init__(self, scene, data_type):
+    def __init__(self, scene, dtype=np.int16):
+        if not issubclass(dtype, np.integer):
+            raise TypeError('Only integer saving allowed for CF data')
+        
         self.info = scene.info.copy()
-        CF_DATA_TYPE = data_type
+        CF_DATA_TYPE = dtype
         
         # Other global attributes
         self.info["Conventions"] = "CF-1.4"
@@ -74,16 +77,19 @@ class CFScene(object):
             if not chn.is_loaded():
                 continue
 
-            scale = ((chn.data.max() - chn.data.min()) / 
+            chn_max = chn.data.max()
+            chn_min = chn.data.min()
+           
+            scale = ((chn_max - chn_min) / 
                     (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
-            offset = chn.data.max() - (np.iinfo(CF_DATA_TYPE).max * scale)
-            
+            offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
+             
             fill_value = np.iinfo(CF_DATA_TYPE).min
-            data = ((chn.data - offset) / scale).astype(CF_DATA_TYPE)
-            valid_min = data.min()
-            valid_max = data.max()
-            data = data.filled(fill_value)
-            data = data.astype(data_type)
+            valid_min = int((chn_min - offset) / scale)            
+            valid_max = int((chn_max - offset) / scale)
+            
+            data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
+            data[chn.data.mask] = fill_value            
             
             str_res = str(chn.resolution) + "m"
 
