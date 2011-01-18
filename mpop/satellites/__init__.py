@@ -255,17 +255,46 @@ class GeostationaryFactory(object):
         """Create a compound satellite scene.
         """
         
+        return GenericFactory.create_scene(satname, satnumber, instrument,
+                                           time_slot, None, area, variant)
+
+class PolarFactory(object):
+    """Factory for polar satellite scenes.
+    """
+
+
+    @staticmethod
+    def create_scene(satname, satnumber, instrument, time_slot, orbit,
+                     area=None, variant=''):
+        """Create a compound satellite scene.
+        """
+        
+        return GenericFactory.create_scene(satname, satnumber, instrument,
+                                           time_slot, orbit, area, variant)
+
+class GenericFactory(object):
+    """Factory for generic satellite scenes.
+    """
+
+
+    @staticmethod
+    def create_scene(satname, satnumber, instrument, time_slot, orbit,
+                     area=None, variant=''):
+        """Create a compound satellite scene.
+        """
+        
         satellite = (satname, satnumber, variant)
         
         instrument_scene = SatelliteInstrumentScene(satellite=satellite,
                                                     instrument=instrument,
                                                     area=area,
+                                                    orbit=orbit,
                                                     time_slot=time_slot)
         
         compositer = get_sat_instr_compositer(satellite, instrument)
         instrument_scene._CompositerClass = compositer
         
         if compositer is not None:
-            # Pass weak ref to compositor to allow garbage collection            
+            # Pass weak ref to compositor to allow garbage collection
             instrument_scene.image = compositer(weakref.proxy(instrument_scene))
         return instrument_scene 
