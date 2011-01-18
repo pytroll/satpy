@@ -1079,7 +1079,6 @@ def load(scene, **kwargs):
                     %{"number": "03",
                       "area": area_name,
                       "product": "CTTH_"})
-        print filename
         ct_chan = MsgCTTH()
         ct_chan.read(get_best_product(filename))
         ct_chan.satid = (scene.satname.capitalize() +
