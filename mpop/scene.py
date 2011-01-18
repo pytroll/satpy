@@ -210,7 +210,6 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         try:
             conf = OrderedConfigParser()
-            #conf = ConfigParser.ConfigParser()
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
 
             for section in conf.sections():
