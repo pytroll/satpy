@@ -121,14 +121,9 @@ Here are example of such code:
    :language: python
    :linenos:
 
-.. literalinclude:: ../../mpop/satellites/meteosat07.py
-   :language: python
-   :linenos:
-
-
 
 The :mod:`mpop` API
-=================
+===================
 
 Satellite scenes
 ----------------
