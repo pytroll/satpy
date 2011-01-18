@@ -30,6 +30,8 @@
 from satellite channels.
 """
 
+import types
+
 class Compositer(object):
     def __init__(self, scene):
         self._data_holder = scene
@@ -42,3 +44,21 @@ class Compositer(object):
 
     def check_channels(self, *args):
         self._data_holder.check_channels(*args)
+
+    @classmethod
+    def remove_attribute(cls, name):
+        """Remove an attribute from the class.
+        """
+        return delattr(cls, name)
+
+    @classmethod
+    def add_method(cls, func):
+        """Add a method to the class.
+        """
+        return setattr(cls, func.__name__, func)
+
+    def add_method_to_instance(self, func):
+        """Add a method to the instance.
+        """
+        return setattr(self, func.__name__,
+                       types.MethodType(func, self.__class__))
