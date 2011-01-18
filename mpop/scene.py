@@ -288,6 +288,10 @@ class SatelliteInstrumentScene(SatelliteScene):
         have already been loaded, to mirror changes on disk for example. This
         is false by default.
 
+        The *area_extent* keyword lets you specify which part of the data to
+        load. Given as a 4-element sequence, it defines the area extent to load
+        in satellite projection.
+
         The other keyword arguments are passed as is to the reader
         plugin. Check the corresponding documentation for more details.
         """

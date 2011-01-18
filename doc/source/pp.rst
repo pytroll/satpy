@@ -24,14 +24,8 @@ Throughout the document, we will use the following conventions:
 Creating a scene object
 =======================
 
-Creating a scene object can be done in two ways: call the constructor of the
-class you want to use directly (for example
-:meth:`mpop.satellites.Meteosat09SeviriScene`) or use the
-:func:`mpop.satellites.get_satellite_class` function first to retrieve the class,
-from which to call the constructor. The latter is recommended, since it is
-easier to use than checking out the name of a given class, but it also calling
-the :func:`mpop.satellites.build_satellite_class` function to build a new
-satellite class on the fly from configuration files if they exist.
+Creating a scene object can be done calling the `create_scene` function of a
+factory, (for example :meth:`mpop.satellites.GenericFactory.create_scene`).
 
 The reader is refered to the documentation of the
 :meth:`mpop.scene.SatelliteInstrumentScene` for a description of the input
