@@ -44,6 +44,8 @@ import numpy as np
 from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
+from mpop.utils import OrderedConfigParser
+
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
@@ -207,7 +209,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         self.channels = []
 
         try:
-            conf = ConfigParser.ConfigParser()
+            conf = OrderedConfigParser()
+            #conf = ConfigParser.ConfigParser()
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
 
             for section in conf.sections():
@@ -400,7 +403,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise ImportError("No "+reader+" reader found.")
 
     def save(self, filename, to_format="netcdf4", compression=True, 
-             data_type=np.int16):
+             dtype=np.int16):
         """Saves the current scene into a file of format *to_format*. Supported
         formats are:
         
@@ -414,7 +417,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise ImportError("Cannot load "+writer+" writer: "+str(err))
 
         return writer_module.save(self, filename, compression=compression, 
-                                  data_type=data_type)
+                                  dtype=dtype)
 
     def unload(self, *channels):
         """Unloads *channels* from
