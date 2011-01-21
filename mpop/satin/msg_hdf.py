@@ -303,12 +303,16 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.num_of_lines = region.y_size
         retv.xscale = region.pixel_size_x
         retv.yscale = region.pixel_size_y
-        ll_lonlat = region.get_lonlat(0, region.y_size)
-        ur_lonlat = region.get_lonlat(region.x_size, 0)
-        retv.ll_lon = ll_lonlat[0]
-        retv.ll_lat = ll_lonlat[1]
-        retv.ur_lon = ur_lonlat[0]
-        retv.ur_lat = ur_lonlat[1]
+
+        import pyproj
+        prj = pyproj.Proj(region.proj4_string)
+        aex = region.area_extent
+        lonur, latur = prj(aex[2], aex[3], inverse=True)
+        lonll, latll = prj(aex[0], aex[1], inverse=True)
+        retv.ll_lon = lonll
+        retv.ll_lat = latll
+        retv.ur_lon = lonur
+        retv.ur_lat = latur
         
         self.shape = region.shape
 
@@ -949,7 +953,7 @@ class NordRadCType(object):
         node = _pyhl.node(_pyhl.GROUP_ID, "/where")
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.ATTRIBUTE_ID, "/where/projdef")
-        node.setScalarValue(-1, msgctype.pcs_def, "string", -1)
+        node.setScalarValue(-1, msgctype.area.proj4_string, "string", -1)
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.ATTRIBUTE_ID, "/where/xsize")
         node.setScalarValue(-1, msgctype.num_of_columns, "int", -1)
