@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010-2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,7 +37,7 @@ from pyhdf.SD import SD
 from mpop import CONFIG_PATH
 
 
-def load(satscene):
+def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
     """    
     conf = ConfigParser()
@@ -132,7 +132,7 @@ def calibrate_tb(subdata, uncertainty):
 def load_thin_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
     """
-    filename = satscene.time_slot.strftime("thin_MOD021KM.P2010%j.%H%M.hdf")
+    filename = satscene.time_slot.strftime("thin_MOD021KM.P%Y%j.%H%M.hdf")
     filename = os.path.join(options["dir"], filename)
     
     data = SD(filename)
@@ -177,7 +177,7 @@ def get_lat_lon(satscene, resolution):
 def get_lat_lon_thin_modis(satscene, options):
     """Read lat and lon.
     """
-    filename = satscene.time_slot.strftime("thin_MOD03.P2010%j.%H%M.hdf")
+    filename = satscene.time_slot.strftime("thin_MOD03.P%Y%j.%H%M.hdf")
     filename = os.path.join(options["dir"], filename)
 
     data = SD(filename)
