@@ -506,7 +506,8 @@ class SatelliteInstrumentScene(SatelliteScene):
             LOG.warning("Cannot project nonloaded channels: %s."
                         %(_channels - self.loaded_channels()))
             LOG.info("Will project the other channels though.")
-
+            _channels = _channels and self.loaded_channels()
+        
         cov = {}
 
         for chn in _channels:
