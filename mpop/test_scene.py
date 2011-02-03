@@ -670,49 +670,6 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.scene.load(["CTTH"])
         
-
-    def test_get_lat_lon(self):
-        """Getting lats and lons of a scene.
-        """
-        area = random_string(8)
-        # scene with 3 channels
-
-        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
-                    ["06_4", (5.7, 6.4, 7.1), 5000],
-                    ["11_5", (10.5, 11.5, 12.5), 5000]]
-
-        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
-            """Dummy satinst class.
-            """
-            instrument_name = random_string(8)
-            channel_list = channels
-
-        # case of a swath
-
-        self.scene = SatelliteInstrumentScene2(area=None)
-
-        (lat, lon) = self.scene.get_lat_lon(1000)
-
-        self.assertTrue(lat is not None)
-        self.assertTrue(lon is not None)
-        
-        numb = np.random.uniform(100000)
-        self.assertRaises(TypeError, self.scene.get_lat_lon, numb)
-
-        # case of a grid
-
-        self.scene = SatelliteInstrumentScene2(area=area)
-
-        (lat, lon) = self.scene.get_lat_lon(1000)
-
-        self.assertTrue(lat is not None)
-        self.assertTrue(lon is not None)
-
-        numb = np.random.uniform(100000)
-        self.assertRaises(TypeError, self.scene.get_lat_lon, numb)
-
-        
-
     def test_assemble_swaths(self):
         """Assembling swaths in a single satscene object.
         """
