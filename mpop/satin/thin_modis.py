@@ -27,6 +27,8 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 """Interface to Modis level 1b format send through Eumetcast.
+http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
+http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&view=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 import os.path
 from ConfigParser import ConfigParser

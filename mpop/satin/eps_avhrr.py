@@ -753,8 +753,7 @@ def load_avhrr(satscene, options):
     
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
-    values = {"orbit": satscene.orbit,
-              "INSTRUMENT": satscene.instrument_name[:4].upper(),
+    values = {"INSTRUMENT": satscene.instrument_name[:4].upper(),
               "FNAME": satscene.satname[0].upper() + satscene.number
               }
     filename = os.path.join(
@@ -791,6 +790,13 @@ def load_avhrr(satscene, options):
 
     satscene.orbit = str(int(orbit) + 1)
 
+def get_lonlat(satscene, row, col):
+    try:
+        if satscene.lat is None or satscene.lon is None:
+            load(satscene)
+    except AttributeError:
+        load(satscene)
+    return satscene.lon[row, col], satscene.lat[row, col]
 
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.

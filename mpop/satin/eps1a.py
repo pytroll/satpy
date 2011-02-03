@@ -176,6 +176,17 @@ def decommutation(filename_from, filename_to):
     LOG.debug("Decommutation done")
 
 
+def get_orbit(time_slot, shortname):
+    import pysdh2orbnum
+    formated_date = time_slot.strftime("%d/%m/%y %H:%M:%S.000")
+    satpos_file = os.path.join(SATPOS_DIR,
+                               "satpos_" + shortname +
+                               time_slot.strftime("_%Y%m%d") +
+                               ".txt")
+    return str(pysdh2orbnum.sdh2orbnum(shortname,
+                                       formated_date,
+                                       satpos_file))
+
 def concatenate(granules):
     """Concatenate eps1a granules.
     """
@@ -228,13 +239,15 @@ def concatenate(granules):
     new_dir = conf.get(granules[0].instrument_name + "-level2", "dir")
     new_name = conf.get(granules[0].instrument_name + "-level2", "filename")
     pathname = os.path.join(new_dir, granules[0].time_slot.strftime(new_name))
-
+    shortname = conf.get('avhrr-level1','shortname')
+    orbit = get_orbit(granules[0].time_slot, shortname)
+    
     convert_to_1b(output_name, pathname, granules[0].time_slot,
                   conf.get('avhrr-level1','shortname'))
     klass = get_satellite_class(granules[0].satname,
                                 granules[0].number,
                                 granules[0].variant)
-    scene = klass(time_slot=granules[0].time_slot)
+    scene = klass(time_slot=granules[0].time_slot, orbit=orbit)
 
     return scene
 
