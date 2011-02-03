@@ -31,7 +31,7 @@
 """
 import ConfigParser
 import os.path
-
+from mpop import CONFIG_PATH
 from setuptools import setup, Extension
 
 from version import get_git_version
@@ -44,9 +44,9 @@ try:
     MODE = os.getenv("SMHI_MODE")
     if MODE is None:
         MODE = "offline"
-    
+    MODE="msg_dirs"
     CONF = ConfigParser.ConfigParser()
-    CONF.read(os.path.join(BASE_PATH, "etc", "meteosat09.cfg"))
+    CONF.read(os.path.join(CONFIG_PATH, "meteosat09.cfg"))
     
     MSG_LIB = CONF.get(MODE, 'msg_lib')
     MSG_INC = CONF.get(MODE, 'msg_inc')
@@ -54,8 +54,8 @@ try:
     CONF.read(os.path.join(BASE_PATH, "setup.cfg"))
     NUMPY_INC = CONF.get('numpy', 'numpy_inc')
 
-    EXTS = [Extension('satin.pynwclib',
-                      ['satin/pynwclib.c'],
+    EXTS = [Extension('mpop.satin.pynwclib',
+                      ['mpop/satin/pynwclib.c'],
                       include_dirs=[MSG_INC,
                                     NUMPY_INC],
                       libraries=['nwclib','msg','m'],
