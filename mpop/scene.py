@@ -374,37 +374,6 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         self.channels_to_load = set()
 
-    def get_lat_lon(self, resolution):
-        """Get the latitude and longitude grids of the current region for the
-        given *resolution*.
-        """
-
-        from warnings import warn
-        warn("The `get_lat_lon` function is deprecated."
-             "Please use the area's `get_lonlats` method instead.",
-             DeprecationWarning)
-
-        
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution must be an integer number of meters.")
-
-        conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
-
-        reader_name = conf.get(self.instrument_name + "-level2", 'format')
-        try:
-            reader_name = eval(reader_name)
-        except NameError:
-            reader_name = str(reader_name)
-        reader = "mpop.satin." + reader_name
-        try:
-            reader_module = __import__(reader,
-                                       globals(), locals(),
-                                       ['get_lat_lon'])
-            return reader_module.get_lat_lon(self, resolution)
-        except ImportError:
-            raise ImportError("No "+reader+" reader found.")
-
     def save(self, filename, to_format="netcdf4", compression=True, 
              dtype=np.int16):
         """Saves the current scene into a file of format *to_format*. Supported
@@ -553,19 +522,9 @@ class SatelliteInstrumentScene(SatelliteScene):
                     area_id = chn.area.area_id
                 
                 if area_id not in cov:
-                    if(isinstance(chn.area, str) and
-                       chn.area.startswith("swath_")):
-
-                        cov[area_id] = \
-                            mpop.projector.Projector(
-                            chn.area,
-                            dest_area,
-                            self.get_lat_lon(chn.resolution),
-                            mode=mode)
-                    else:
-                        cov[area_id] = mpop.projector.Projector(chn.area,
-                                                                dest_area,
-                                                                mode=mode)
+                    cov[area_id] = mpop.projector.Projector(chn.area,
+                                                            dest_area,
+                                                            mode=mode)
                     if precompute:
                         try:
                             cov[area_id].save()

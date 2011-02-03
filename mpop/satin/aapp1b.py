@@ -154,25 +154,6 @@ def load_avhrr(satscene, options):
 
     
 
-def get_lat_lon(satscene, resolution):
-    """Read lat and lon.
-    """
-    del resolution
-    
-    return LAT_LON_CASES[satscene.instrument_name](satscene, None)
-
-def get_lat_lon_avhrr(satscene, options):
-    """Read lat and lon.
-    """
-    del options
-    
-    return satscene.lat, satscene.lon
-
-
-LAT_LON_CASES = {
-    "avhrr": get_lat_lon_avhrr
-    }
-
 CASES = {
     "avhrr": load_avhrr
     }
