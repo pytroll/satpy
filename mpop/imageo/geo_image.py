@@ -54,15 +54,14 @@ class GeoImage(mpop.imageo.image.Image):
 
     See also :class:`image.Image` for more information.
     """
-    area_id = None
-    time_slot = None
-    tags = {}
-    gdal_options = {}
 
     def __init__(self, channels, area_id, time_slot, 
                  mode = "L", crange = None, fill_value = None, palette = None):
         self.area_id = area_id
         self.time_slot = time_slot
+        self.tags = {}
+        self.gdal_options = {}
+
         super(GeoImage, self).__init__(channels, mode, crange,
                                       fill_value, palette)
 
