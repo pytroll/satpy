@@ -358,7 +358,13 @@ class SatelliteInstrumentScene(SatelliteScene):
             try:
                 reader_module = __import__(reader, globals(),
                                            locals(), ['load'])
-                kwargs["area_extent"] = area_extent
+                if area_extent is not None:
+                    if(isinstance(area_extent, (tuple, list)) and
+                       len(area_extent == 4)):
+                        kwargs["area_extent"] = area_extent
+                    else:
+                        raise ValueError("Area extent must be a sequence of "
+                                         "four numbers.")
                 reader_module.load(self, **kwargs)
             except ImportError:
                 LOG.exception("ImportError while loading "+reader+".")
