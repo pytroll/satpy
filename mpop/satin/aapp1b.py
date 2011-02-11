@@ -116,17 +116,16 @@ def load_avhrr(satscene, options):
             chn_array = np.ma.masked_inside(chn_array,
                                             missing_data - EPSILON,
                                             missing_data + EPSILON)
-
             no_data = instrument_data.info["nodata"]
             chn_array = np.ma.masked_inside(chn_array,
                                             no_data - EPSILON,
                                             no_data + EPSILON)
 
             satscene[chn] = chn_array
-            satscene[chn].data =  np.ma.masked_less_equal(satscene[chn].data *
-                                                          gain +
-                                                          intercept,
-                                                          0)
+            satscene[chn].data =  np.ma.masked_less(satscene[chn].data *
+                                                    gain +
+                                                    intercept,
+                                                    0)
 
         else:
             LOG.warning("Channel "+str(chn)+" not available, not loaded.")
