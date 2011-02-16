@@ -91,7 +91,7 @@ class CFScene(object):
             data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
             data[chn.data.mask] = fill_value            
             
-            str_res = str(chn.resolution) + "m"
+            str_res = str(int(chn.resolution)) + "m"
 
             if chn.resolution in resolutions:
                 # resolution has been used before
