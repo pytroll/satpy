@@ -360,7 +360,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                                            locals(), ['load'])
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
-                       len(area_extent == 4)):
+                       len(area_extent) == 4):
                         kwargs["area_extent"] = area_extent
                     else:
                         raise ValueError("Area extent must be a sequence of "
