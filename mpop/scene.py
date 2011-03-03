@@ -561,6 +561,47 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
+def assemble_segments(segments):
+    """Assemble the scene objects listed in *segment_list* and returns the
+    resulting scene object.
+    """
+    channels = set([])
+    for seg in segments:
+        channels |= set([chn.name for chn in seg.loaded_channels()])
+
+    seg = segments[0]
+    new_scene = type(seg)(time_slot=seg.time_slot, orbit=seg.orbit)
+    
+    for seg in segments:
+        for chn in channels:
+            if not seg[chn].is_loaded():
+                # this makes the assumption that all channels have the same
+                # shape.
+                seg[chn.name] = np.ma.masked_all_like(
+                    list(seg.loaded_channels())[0].data)
+
+    for chn in channels:
+        new_scene[chn] = np.ma.concatenate([seg[chn].data for seg in segments])
+
+    try:
+        lons = np.ma.concatenate([seg.area.lons[:] for seg in segments])
+        lats = np.ma.concatenate([seg.area.lats[:] for seg in segments])
+        new_scene.area = SwathDefinition(lons=lons, lats=lats)
+        for chn in channels:
+            try:
+                lons = np.ma.concatenate([seg[chn].area.lons[:]
+                                          for seg in segments])
+                lats = np.ma.concatenate([seg[chn].area.lats[:]
+                                          for seg in segments])
+                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                new_scene[chn].area_id = segments[0][chn].area_id
+            except AttributeError:
+                pass
+    except AttributeError:
+        pass
+
+    return new_scene
+
 def assemble_swaths(swath_list):
     """Assemble the scene objects listed in *swath_list* and returns the
     resulting scene object.
