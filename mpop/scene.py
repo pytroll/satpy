@@ -51,7 +51,7 @@ try:
     # Work around for on demand import of pyresample. pyresample depends 
     # on scipy.spatial which memory leaks on multiple imports
     is_pyresample_loaded = False
-    from pyresample.geometry import AreaDefinition
+    from pyresample.geometry import AreaDefinition, SwathDefinition
     import mpop.projector
     is_pyresample_loaded = True
 except ImportError:
@@ -260,7 +260,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 dummy_instance.channels = channels
                 channels = dummy_instance.__getitem__(key[1:], aslist = True)
         else:
-            raise TypeError("Malformed key.")
+            raise TypeError("Malformed key: " + str(key))
 
         if len(channels) == 0:
             raise KeyError("No channel corresponding to "+str(key)+".")
@@ -517,7 +517,15 @@ class SatelliteInstrumentScene(SatelliteScene):
                             except AttributeError:
                                 chn.area = self.area + str(chn.shape)
                     else:
-                        chn.area = self.area + str(chn.shape) 
+                        chn.area = self.area + str(chn.shape)
+            else: #chn.area is not None
+                if is_pyresample_loaded and isinstance(chn.area,
+                                                       SwathDefinition):
+                    area_name = ("swath_" + self.fullname + "_" +
+                                 str(self.time_slot) + "_"
+                                 + str(chn.shape) + "_"
+                                 + str(chn.name))
+                    chn.area.area_id = area_name
 
             if chn.area == dest_area:
                 res.channels.append(chn)
@@ -525,7 +533,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 if isinstance(chn.area, str):
                     area_id = chn.area
                 else:
-                    area_id = chn.area.area_id
+                    area_id = chn.area_id or chn.area.area_id
                 
                 if area_id not in cov:
                     cov[area_id] = mpop.projector.Projector(chn.area,
