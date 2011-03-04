@@ -116,7 +116,7 @@ class Projector(object):
             out_id = out_area
         except (utils.AreaNotFound, AttributeError):
             if isinstance(out_area, (geometry.AreaDefinition,
-                                    geometry.SwathDefinition)):
+                                     geometry.SwathDefinition)):
                 self.out_area = out_area
                 out_id = out_area.area_id
             else:
