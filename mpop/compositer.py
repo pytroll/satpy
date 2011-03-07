@@ -36,7 +36,7 @@ class Compositer(object):
     def __init__(self, scene):
         self._data_holder = scene
         self.area = self._data_holder.area
-        self.time_slot = self._data_holder.area
+        self.time_slot = self._data_holder.time_slot
         
 
     def __getitem__(self, *args, **kwargs):
