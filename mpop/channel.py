@@ -258,9 +258,7 @@ class Channel(GenericChannel):
             LOG.info("Projecting channel %s (%fμm)..."
                      %(self.name, self.wavelength_range[1]))
             data = coverage_instance.project_array(self._data)
-            if(isinstance(data, np.ma.core.MaskedArray) and
-               data.count() > 0):
-                res.data = data
+            res.data = data
             return res
         else:
             raise NotLoadedError("Can't project, channel %s (%fμm) not loaded."
