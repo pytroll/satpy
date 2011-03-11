@@ -38,15 +38,11 @@ from ConfigParser import ConfigParser
 from mpop.utils import ensure_dir
 import mpop.satin.aapp1b
 from mpop.satellites import get_satellite_class
+from mpop import CONFIG_PATH
 
 WORKING_DIR = "/tmp"
 SATPOS_DIR = "/data/24/saf/pps/opt/AAPP/data/satpos"
 
-BASE_PATH = os.path.sep.join(os.path.dirname(
-    os.path.realpath(__file__)).split(os.path.sep)[:-1])
-
-CONFIG_PATH = (os.environ.get('PPP_CONFIG_DIR', '') or
-               os.path.join(BASE_PATH, 'etc'))
 
 LOG = logging.getLogger("hrpt loader")
 

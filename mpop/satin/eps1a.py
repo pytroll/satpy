@@ -37,6 +37,7 @@ from ConfigParser import ConfigParser
 
 import mpop.satin.aapp1b
 from mpop.satellites import get_satellite_class
+from mpop import CONFIG_PATH
 
 WORKING_DIR = "/tmp"
 
@@ -44,12 +45,6 @@ WORKING_DIR = "/tmp"
 KAI_EXEC = "/local_disk/usr/src/kai-1.8.new/src/kai"
 EUGENE_HOME = "/local_disk/usr/src/eugene-4.3.new/"
 SATPOS_DIR = "/data/24/saf/pps/opt/AAPP/data/satpos"
-
-BASE_PATH = os.path.sep.join(os.path.dirname(
-    os.path.realpath(__file__)).split(os.path.sep)[:-1])
-
-CONFIG_PATH = (os.environ.get('PPP_CONFIG_DIR', '') or
-               os.path.join(BASE_PATH, 'etc'))
 
 LOG = logging.getLogger("eps1a loader")
 
