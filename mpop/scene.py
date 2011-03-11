@@ -597,15 +597,22 @@ def assemble_segments(segments):
         lats = np.ma.concatenate([seg.area.lats[:] for seg in segments])
         new_scene.area = SwathDefinition(lons=lons, lats=lats)
         for chn in channels:
-            try:
-                lons = np.ma.concatenate([seg[chn].area.lons[:]
-                                          for seg in segments])
-                lats = np.ma.concatenate([seg[chn].area.lats[:]
-                                          for seg in segments])
-                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
-                new_scene[chn].area_id = segments[0][chn].area_id
-            except AttributeError:
-                pass
+            if any([seg[chn].area for seg in segments]):
+                try:
+                    lon_arrays = []
+                    lat_arrays = []
+                    for seg in segments:
+                        if seg[chn].area is not None:
+                            lon_arrays.append(seg[chn].area.lons[:])
+                            lat_arrays.append(seg[chn].area.lats[:])
+                        else:
+                            lon_arrays.append(seg.area.lons[:])
+                            lat_arrays.append(seg.area.lats[:])
+                    lons = np.ma.concatenate(lon_arrays)
+                    lats = np.ma.concatenate(lat_arrays)
+                    new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                except AttributeError:
+                    pass
     except AttributeError:
         pass
 
