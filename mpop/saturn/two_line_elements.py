@@ -66,13 +66,23 @@ class Tle(object):
         if satellite:
             tles_dict = {}
 
-            for f in ["resource.txt", "weather.txt"]:
-
-                tles = urllib2.urlopen("http://celestrak.com/NORAD/elements/" + f).readlines()
-                tles = [item.strip() for item in tles]
-
+            import glob
+            filelist = glob.glob("/data/24/saf/polar_in/tle2/tle-*.txt")
+            if len(filelist) > 0:
+                filelist.sort()
+                tlef = open(filelist[-1])
+                tles = [item.strip() for item in tlef]
+                tlef.close()
                 for i in xrange(0,len(tles)-2,3):
                     tles_dict[tles[i]] = tles[i+1]+"\n"+tles[i+2]
+            else:
+                for f in ["resource.txt", "weather.txt"]:
+                    
+                    tles = urllib2.urlopen("http://celestrak.com/NORAD/elements/" + f).readlines()
+                    tles = [item.strip() for item in tles]
+
+                    for i in xrange(0,len(tles)-2,3):
+                        tles_dict[tles[i]] = tles[i+1]+"\n"+tles[i+2]
 
             self._read_tle(tles_dict[satellite.upper()])
             self._preprocess()
