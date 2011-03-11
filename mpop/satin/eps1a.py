@@ -214,7 +214,7 @@ def get_orbit(time_slot, shortname):
                                        formated_date,
                                        satpos_file))
 
-def concatenate(granules):
+def concatenate(granules, channels=None):
     """Concatenate eps1a granules.
     """
     if granules[0].file_type.startswith("bzipped"):
@@ -275,6 +275,7 @@ def concatenate(granules):
                                 granules[0].number,
                                 granules[0].variant)
     scene = klass(time_slot=granules[0].time_slot, orbit=orbit)
+    scene.load(channels)
 
     return scene
 

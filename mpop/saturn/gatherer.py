@@ -307,7 +307,8 @@ class SegmentedSwath(Satellite):
         return "swath " + str(granules) + " on area " + self.area.area_id
 
     def concatenate(self, channels=None):
-        """Concatenate the granules into a swath. Returns a satellite scene.
+        """Concatenate the granules into a swath. Returns a loaded satellite
+        scene.
         """
         self.granules.sort()
         conffile = (self.granules[0].variant +
@@ -343,7 +344,7 @@ class SegmentedSwath(Satellite):
                               str(reader_name))
                 raise ImportError("No "+reader+" reader found.")
 
-            scene = reader_module.concatenate(self.granules)
+            scene = reader_module.concatenate(self.granules, channels)
             
         except NoSectionError:
             #concatenate loaded granules.

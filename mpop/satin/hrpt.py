@@ -273,7 +273,7 @@ def get_orbit(time_slot, shortname):
                                        satpos_file))
 
 
-def concatenate(granules):
+def concatenate(granules, channels=None):
     """Concatenate hrpt files.
     """
     filenames = [os.path.join(granule.directory, granule.file_name)
@@ -327,6 +327,7 @@ def concatenate(granules):
     scene = klass(time_slot=granules[0].time_slot,
                   orbit=get_orbit(granules[0].time_slot, shortname))
 
+    scene.load(channels)
     return scene
 
 def get_lat_lon(satscene, resolution):
