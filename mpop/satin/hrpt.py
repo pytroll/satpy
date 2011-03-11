@@ -110,9 +110,11 @@ def convert_to_1b(in_filename, out_filename,
 
     os.close(handle)
     del handle
+    LOG.debug("Decommuting...")
     decommutation(in_filename, tempname,
                   time_slot_start, time_slot_end,
                   shortname)
+    LOG.debug("Calibrating, navigating...")
     calibration_navigation(tempname, time_slot_start, shortname)
 
     conf = ConfigParser()
@@ -264,6 +266,7 @@ def concatenate(granules):
     if err:
         LOG.error(err)
 
+    LOG.debug("Done concatenating level0 files.")
 
     new_dir = conf.get(granules[0].instrument_name + "-level2", "dir")
     new_name = conf.get(granules[0].instrument_name + "-level2", "filename")

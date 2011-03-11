@@ -216,7 +216,7 @@ class Projector(object):
                                                          valid_index,
                                                          valid_output_index,
                                                          index_array,
-                                                         fill_value = None)
+                                                         fill_value=None)
 
         elif self.mode == "quick":
             

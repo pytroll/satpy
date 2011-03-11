@@ -352,7 +352,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 reader_name = eval(reader_name)
             except NameError:
                 reader_name = str(reader_name)
-            LOG.debug("Will try to use plugin mpop.satin."+reader_name)
+            LOG.debug("Using plugin mpop.satin."+reader_name)
 
             # read the data
             reader = "mpop.satin."+reader_name

@@ -214,7 +214,6 @@ class Granule(SatelliteInstrumentScene):
         except NoSectionError:
             reader_name = conf.get(self.instrument_name + "-level2", 'format')
         reader = "mpop.satin." + reader_name
-        LOG.debug("Using "+reader+" to read data.")
         try:
             reader_module = __import__(reader,
                                        globals(), locals(),
