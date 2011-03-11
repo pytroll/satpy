@@ -96,6 +96,7 @@ def load_avhrr(satscene, options):
     shutil.move(tempname, pathname)
     
     mpop.satin.aapp1b.load(satscene)
+    os.remove(pathname)
 
 def convert_to_1b(in_filename, out_filename,
                   time_slot_start, time_slot_end,
@@ -259,6 +260,7 @@ def decommutation(filename_from, filename_to,
         LOG.error(err)
 
     shutil.move(os.path.join(WORKING_DIR, "hrpt.l1b"), filename_to)
+    os.remove(tempname)
     LOG.debug("Decommutation done")
 
 def get_orbit(time_slot, shortname):
@@ -289,7 +291,7 @@ def concatenate(granules, channels=None):
 
     conffile = os.path.join(CONFIG_PATH, granules[0].fullname + ".cfg")
     conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, conffile))
+    conf.read(conffile)
     
     directory = conf.get('avhrr-level1','dir')
     filename = conf.get('avhrr-level1','filename')
@@ -328,6 +330,7 @@ def concatenate(granules, channels=None):
                   orbit=get_orbit(granules[0].time_slot, shortname))
 
     scene.load(channels)
+    os.remove(pathname)
     return scene
 
 def get_lat_lon(satscene, resolution):

@@ -86,6 +86,7 @@ def load_avhrr(satscene, options):
 
     convert_to_1b(filename, pathname, satscene.time_slot, options["shortname"])
     mpop.satin.aapp1b.load(satscene)
+    os.remove(pathname)
 
 def convert_to_1b(in_file, out_file, start_time, shortname):
     """Convert concatenated file to level 1b.
@@ -270,13 +271,14 @@ def concatenate(granules, channels=None):
     orbit = get_orbit(granules[0].time_slot, shortname)
     
     convert_to_1b(output_name, pathname, granules[0].time_slot,
-                  conf.get('avhrr-level1','shortname'))
+                  shortname)
+    os.remove(output_name)
     klass = get_satellite_class(granules[0].satname,
                                 granules[0].number,
                                 granules[0].variant)
     scene = klass(time_slot=granules[0].time_slot, orbit=orbit)
     scene.load(channels)
-
+    os.remove(pathname)
     return scene
 
 def get_lat_lon(satscene, resolution):
