@@ -65,13 +65,18 @@ class GeoImage(mpop.imageo.image.Image):
         super(GeoImage, self).__init__(channels, mode, crange,
                                       fill_value, palette)
 
-    def save(self, filename, compression=0, tags=None, gdal_options=None, format=None):
+    def save(self, filename, compression=6,
+             tags=None, gdal_options=None,
+             format=None, blocksize=256):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
         :meth:`image.Image.save`, :meth:`image.Image.double_save`, and
         :meth:`image.Image.secure_save`.  The *tags* argument is a dict of tags
-        to include in the image (as metadata).
+        to include in the image (as metadata), and the *gdal_options* holds
+        options for the gdal saving driver. A *blocksize* other than 0 will
+        result in a tiled image (if possible), with tiles of size equal to
+        *blocksize*.
         
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
@@ -80,7 +85,8 @@ class GeoImage(mpop.imageo.image.Image):
         format = format or file_tuple[1][1:]
 
         if format.lower() in ('tif', 'tiff'):
-            self.geotiff_save(filename, compression, tags, gdal_options)
+            self.geotiff_save(filename, compression, tags,
+                              gdal_options, blocksize)
         else:
             super(GeoImage, self).save(filename, compression, format=format)
 
@@ -106,8 +112,8 @@ class GeoImage(mpop.imageo.image.Image):
                 dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
     def geotiff_save(self, filename, compression=6,
-                     tags=None, gdal_options=None, 
-                     geotransform=None, spatialref=None):
+                     tags=None, gdal_options=None,
+                     blocksize=0, geotransform=None, spatialref=None):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
         argument is a dict of tags to include in the image (as metadata).
@@ -131,12 +137,16 @@ class GeoImage(mpop.imageo.image.Image):
             self.gdal_options.update(gdal_options)
 
         g_opts = ["=".join(i) for i in self.gdal_options.items()]
-        #options = ["TILED=YES", "BLOCKXSIZE=256", "BLOCKYSIZE=256"]
-        #options = []
 
         if compression != 0:
             g_opts.append("COMPRESS=DEFLATE")
             g_opts.append("ZLEVEL=" + str(compression))
+
+        if blocksize != 0:
+            g_opts.append("TILED=YES")
+            g_opts.append("BLOCKXSIZE=" + str(blocksize))
+            g_opts.append("BLOCKYSIZE=" + str(blocksize))
+            
 
         if(self.mode == "L"):
             ensure_dir(filename)
