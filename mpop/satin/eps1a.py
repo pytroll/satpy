@@ -41,10 +41,8 @@ from mpop import CONFIG_PATH
 
 WORKING_DIR = "/tmp"
 
-# TODO: change this !!!!
-KAI_EXEC = "/local_disk/usr/src/kai-1.8.new/src/kai"
-EUGENE_HOME = "/local_disk/usr/src/eugene-4.3.new/"
-SATPOS_DIR = "/data/24/saf/pps/opt/AAPP/data/satpos"
+SATPOS_DIR = os.path.sep.join(os.environ["AAPP_PREFIX"].split(os.path.sep)[:-1])
+SATPOS_DIR = os.path.join(SATPOS_DIR, "data", "satpos")
 
 LOG = logging.getLogger("eps1a loader")
 
@@ -252,8 +250,8 @@ def concatenate(granules):
     output_name = os.path.join(directory, filename)
 
     arg_string = " ".join(new_names)
-    os.environ['EUGENE_HOME'] = EUGENE_HOME
-    cmd = KAI_EXEC + " -i " + arg_string + " -o " + output_name
+
+    cmd = "$KAI/kai -i " + arg_string + " -o " + output_name
     proc = subprocess.Popen(cmd, shell=True)
     (out, err) = proc.communicate()
     if out:

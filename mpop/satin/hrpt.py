@@ -41,8 +41,9 @@ from mpop.satellites import get_satellite_class
 from mpop import CONFIG_PATH
 
 WORKING_DIR = "/tmp"
-SATPOS_DIR = "/data/24/saf/pps/opt/AAPP/data/satpos"
 
+SATPOS_DIR = os.path.sep.join(os.environ["AAPP_PREFIX"].split(os.path.sep)[:-1])
+SATPOS_DIR = os.path.join(SATPOS_DIR, "data", "satpos")
 
 LOG = logging.getLogger("hrpt loader")
 
