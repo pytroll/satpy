@@ -310,7 +310,7 @@ def get_lonlat_avhrr(satscene, row, col):
     """
     # Needs the SATID AAPP env variable to be set to find satid.txt...
 
-    from mpop.saturn import pyaapp
+    import pyaapp
     import math
     import datetime
     t_start = satscene.time_slot
