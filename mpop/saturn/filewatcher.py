@@ -81,7 +81,12 @@ class FileWatcher(Process):
             files_to_process = list(new_filelist - filelist)
             filelist = new_filelist
 
-            files_to_process.sort()
+            files_dict = {}
+            for fil in files_to_process:
+                files_dict[fil] = os.path.getmtime(fil)
+
+            files_to_process.sort(lambda x, y: cmp(files_dict[x],
+                                                  files_dict[y]))
 
             if len(files_to_process) != 0:
                 sleep_time = 8
