@@ -160,8 +160,52 @@ def calibration_navigation(filename, time_slot, shortname):
     if err:
         LOG.error(err)    
 
+    anacl1 = ("cd /tmp;" +
+              "$ANA_PATH/bin/ana_lmk_loc -D " + filename)
+
+    LOG.debug("Running " + anacl1)
+    proc = subprocess.Popen(anacl1, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    if out:
+        LOG.debug(out)
+    if err:
+        LOG.error(err)    
     
-    
+    anacl2 = ("cd /tmp;" +
+              "$ANA_PATH/bin/ana_estatt -s " + shortname +
+              " -d " + time_slot.strftime("%Y%m%d") +
+              " -h " + time_slot.strftime("%H%M") + " -n " +
+              orbit_number)
+
+    LOG.debug("Running " + anacl2)
+    proc = subprocess.Popen(anacl2, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    if out:
+        LOG.debug(out)
+    if err:
+        LOG.error(err)
+        
+    avhrcl2 = ("cd /tmp;" +
+              "$AAPP_PREFIX/AAPP/bin/avhrcl -l -s " +
+              shortname + " -d " +
+              time_slot.strftime("%Y%m%d") + " -h " +
+              time_slot.strftime("%H%M") + " -n " +
+              orbit_number + " " +
+              filename)
+    LOG.debug("Running " + avhrcl2)
+    proc = subprocess.Popen(avhrcl2, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    (out, err) = proc.communicate()
+    if out:
+        LOG.debug(out)
+    if err:
+        LOG.error(err)
+        
 def decommutation(filename_from, filename_to,
                   time_slot_start, time_slot_end,
                   shortname):
