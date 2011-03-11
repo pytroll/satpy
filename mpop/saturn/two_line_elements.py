@@ -25,7 +25,7 @@ Eclipse Depth: -1.1299921383153
 """
 import datetime
 import pprint
-
+import sys
 import numpy as np
 
 
@@ -49,6 +49,15 @@ TLE = """1 27424U 02022A   11045.03153664  .00000197  00000-0  53804-4 0  8714
 2 27424  98.2146 347.6229 0001550  78.4076 281.7310 14.57100380467139"""
 
 import urllib2
+
+if sys.version_info < (2, 5):
+    import time
+    def strptime(string, fmt=None):
+        """This function is available in the datetime module only
+        from Python >= 2.5.
+        """
+        
+        return datetime.datetime(*time.strptime(string, fmt)[:6])
 
 class Tle(object):
 
@@ -85,7 +94,7 @@ class Tle(object):
         self.tle["id_launch_piece"] = tlist[2][5:]
         self.tle["epoch_year"] = int(tlist[3][:2])
         self.tle["epoch_day"] = float(tlist[3][2:])
-        self.tle["epoch"] = (datetime.datetime.strptime(tlist[3][:2], "%y") +
+        self.tle["epoch"] = (strptime(tlist[3][:2], "%y") +
                         datetime.timedelta(days=float(tlist[3][2:]) - 1))
         self.tle["mean_motion_derivative"] = float(tlist[4])
         self.tle["mean_motion_sec_derivative"] = _read_tle_decimal(tlist[5])

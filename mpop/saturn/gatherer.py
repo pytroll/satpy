@@ -33,7 +33,7 @@ import os.path
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
 from fnmatch import fnmatch
 import numpy as np
-import pyresample.utils
+import sys
 
 import mpop.utils
 from mpop import CONFIG_PATH
@@ -47,6 +47,18 @@ DEFAULT_GRANULARITY = datetime.timedelta(minutes=5)
 
 LOG = mpop.utils.get_logger("gatherer")
 
+if sys.version_info < (2, 5):
+    import time
+    def strptime(string, fmt=None):
+        """This function is available in the datetime module only
+        from Python >= 2.5.
+        """
+
+        return datetime.datetime(*time.strptime(string, fmt)[:6])
+else:
+    strptime = datetime.datetime.strptime
+
+    
 def globify(filename):
     """Replace datetime string variable with ?'s.
     """
@@ -142,9 +154,8 @@ class Granule(SatelliteInstrumentScene):
                             self.file_name = the_name
 
                             pos1, pos2 = beginning(self.file_template)
-                            time_slot = datetime.datetime.strptime(
-                                self.file_name[:pos2],
-                                self.file_template[:pos1])
+                            time_slot = strptime(self.file_name[:pos2],
+                                                 self.file_template[:pos1])
         
                             SatelliteInstrumentScene.__init__(
                                 self,

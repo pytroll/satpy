@@ -38,6 +38,7 @@ import datetime
 import os.path
 import types
 import weakref
+import sys
 
 import numpy as np
 
@@ -560,6 +561,14 @@ class SatelliteInstrumentScene(SatelliteScene):
             pass
         
         return res
+
+if sys.version_info < (2, 5):
+    def any(iterable):
+        for element in iterable:
+            if element:
+                return True
+        return False
+
 
 def assemble_segments(segments):
     """Assemble the scene objects listed in *segment_list* and returns the
