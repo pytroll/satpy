@@ -53,8 +53,9 @@ def load(satscene, *args, **kwargs):
 
 def calibrate_refl(subdata, uncertainty):
     uncertainty_array = uncertainty.get()
-    array = np.ma.MaskedArray(subdata.get(),
-                              mask=(uncertainty_array >= 15))
+    #array = np.ma.MaskedArray(subdata.get(),
+    #                          mask=(uncertainty_array >= 15))
+    array = subdata.get()
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
                                  valid_range[0],
@@ -69,8 +70,9 @@ def calibrate_refl(subdata, uncertainty):
 
 def calibrate_tb(subdata, uncertainty):
     uncertainty_array = uncertainty.get()
-    array = np.ma.MaskedArray(subdata.get(),
-                              mask=(uncertainty_array >= 15))
+    #array = np.ma.MaskedArray(subdata.get(),
+    #                          mask=(uncertainty_array >= 15))
+    array = subdata.get()
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
                                  valid_range[0],
@@ -147,7 +149,6 @@ def load_thin_modis(satscene, options):
     for dataset in datasets:
         subdata = data.select(dataset)
         band_names = subdata.attributes()["band_names"].split(",")
-        valid_range = subdata.attributes()["valid_range"]
         if len(satscene.channels_to_load & set(band_names)) > 0:
             uncertainty = data.select(dataset+"_Uncert_Indexes")
             if dataset == 'EV_1KM_Emissive':
@@ -156,12 +157,7 @@ def load_thin_modis(satscene, options):
                 array = calibrate_refl(subdata, uncertainty)
             for (i, band) in enumerate(band_names):
                 if band in satscene.channels_to_load:
-                    banddata = np.ma.masked_outside(array[i],
-                                                    valid_range[0],
-                                                    valid_range[1],
-                                                    copy = False)
-            
-                    satscene[band] = banddata
+                    satscene[band] = array[i]
 
     mda = data.attributes()["CoreMetadata.0"]
     orbit_idx = mda.index("ORBITNUMBER")
@@ -176,7 +172,11 @@ def load_thin_modis(satscene, options):
         for band in ["6", "27"]:
             if not satscene[band].is_loaded() or satscene[band].data.mask.all():
                 continue
-            indices = satscene[band].data.mask.sum(1) < 1354
+            width = satscene[band].data.shape[1]
+            height = satscene[band].data.shape[0]
+            indices = satscene[band].data.mask.sum(1) < width
+            if indices.sum() == height:
+                continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
                 lons=satscene.area.lons[indices,:],
