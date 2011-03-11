@@ -159,6 +159,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.cloudphase = None
         self.shape = None
         self.satid = ""
+        self.qc_straylight = -1
         
     def __str__(self):
         return ("'%s: shape %s, resolution %sm'"%
@@ -252,9 +253,13 @@ class MsgCloudType(mpop.channel.GenericChannel):
     def save(self, filename):
         """Save the current cloudtype object to hdf *filename*, in pps format.
         """
+        import tables
         ctype = self.convert2pps()
         LOG.info("Saving CType hdf file...")
         ctype.save(filename)
+        h5f = tables.openFile(filename, mode="a")
+        h5f.root._v_attrs["straylight_contaminated"] = self.qc_straylight
+        h5f.close()
         LOG.info("Saving CType hdf file done !")
 
     
@@ -293,6 +298,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.processing_flags = \
             coverage.project_array(self.processing_flags)
         
+        retv.qc_straylight = self.qc_straylight
         retv.region_name = dest_area
         retv.area = region
         retv.projection_name = region.proj_id
