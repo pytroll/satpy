@@ -459,8 +459,10 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.cloudiness.num_of_columns = h5f.root.CTTH_EFFECT.attrs["N_COLS"]
         self.cloudiness.product = h5f.root.CTTH_EFFECT.attrs["PRODUCT"]
         self.cloudiness.id = h5f.root.CTTH_EFFECT.attrs["ID"]
-        
+
+        self.cloudiness.data = np.ma.masked_equal(self.cloudiness.data, 255)
         self.cloudiness = np.ma.masked_equal(self.cloudiness.data, 0)
+        
         # ------------------------
     
         # The CTTH temperature data
@@ -490,6 +492,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.pressure.product = h5f.root.CTTH_PRESS.attrs["PRODUCT"]
         self.pressure.id = h5f.root.CTTH_PRESS.attrs["ID"]
         
+        self.pressure.data = np.ma.masked_equal(self.pressure.data, 255)
         self.pressure = (np.ma.masked_equal(self.pressure.data, 0) *
                          self.pressure.scaling_factor +
                          self.pressure.offset)
@@ -505,6 +508,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.height.product = h5f.root.CTTH_HEIGHT.attrs["PRODUCT"]
         self.height.id = h5f.root.CTTH_HEIGHT.attrs["ID"]
         
+        self.height.data = np.ma.masked_equal(self.height.data, 255)
         self.height = (np.ma.masked_equal(self.height.data, 0) *
                        self.height.scaling_factor +
                        self.height.offset)
