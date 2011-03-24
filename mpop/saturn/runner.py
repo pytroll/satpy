@@ -160,7 +160,13 @@ class SequentialRunner(object):
                                          self.number,
                                          self.variant)
         self.precompute = precompute
-            
+        self.running = True
+
+    def stop(self):
+        """Stops the runner.
+        """
+        self.running = False
+
     def run_from_cmd(self):
         """Batch run mpop.
         """
@@ -182,6 +188,9 @@ class SequentialRunner(object):
             tasklist = self.tasklist
         for area, productlist in tasklist.items():
             prerequisites = tasklist.get_prerequisites(self.klass, area)
+            if not self.running:
+                LOG.info("Running interrupted")
+                return
             local_data = self.data.project(area, prerequisites, self.precompute,
                                            mode="nearest")
             for product, flist in productlist.items():
@@ -193,6 +202,10 @@ class SequentialRunner(object):
                 flist = flist.put_metadata(metadata)
                 try:
                     LOG.debug("Doing "+product+".")
+                    if not self.running:
+                        del local_data
+                        LOG.info("Running interrupted")
+                        return
                     img = fun()
                     flist.save_object(img)
                     del img
