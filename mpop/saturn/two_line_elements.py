@@ -58,7 +58,8 @@ if sys.version_info < (2, 5):
         """
         
         return datetime.datetime(*time.strptime(string, fmt)[:6])
-
+else:
+    strptime = datetime.datetime.strptime
 class Tle(object):
 
     def __init__(self, tle=None, satellite=None):
