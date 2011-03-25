@@ -64,9 +64,10 @@ class FileWatcher(Thread):
         self.cond.release()
         LOG.debug("Termination request received in FileWatcher")
 
-    def wait(self):
+    def wait(self, secs):
         if self.running:
-            self.cond.wait()
+            self.cond.wait(secs)
+            
     def run(self):
         """Run the file watcher.
         """
