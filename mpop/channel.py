@@ -57,15 +57,13 @@ class GenericChannel(object):
     #: Area on which the channel is defined.
     area_def = None
 
-    #: Metadata information
-    info = {}
-    
     def __init__(self, name = None):
         object.__init__(self)
 
         if name is not None and not isinstance(name, str):
             raise TypeError("Channel name must be a string, or None")
         self.name = name
+        self.info = {}
 
     def __cmp__(self, ch2):
         if(isinstance(ch2, str)):
