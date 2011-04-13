@@ -1,4 +1,6 @@
 build
 doc/build
 *.so
+*.pyc
+*~
 RELEASE-VERSION
