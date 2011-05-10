@@ -66,6 +66,10 @@ class Projector(object):
     information necessary for projection purposes. For efficiency reasons,
     generated projectors can be saved to disk for later reuse. Use the
     :meth:`save` method for this.
+
+    To define a projector object, on has to specify *in_area* and *out_area*,
+    and can also input the *in_lonlats* or the *mode* ('quick' which works only
+    if both in- and out-areas are AreaDefinitions, or 'nearest').
     """
     
     in_area = None
@@ -76,13 +80,11 @@ class Projector(object):
     mode = "quick"
 
     def __init__(self, in_area, out_area,
-                 in_latlons=None, mode="quick"):
+                 in_latlons=None, mode=None):
 
         # TODO:
         # - Rework so that in_area and out_area can be lonlats.
         # - Add a recompute flag ?
-
-        self.mode = mode
 
         # Setting up the input area
         try:
@@ -128,6 +130,18 @@ class Projector(object):
 
         if self.in_area == self.out_area:
             return
+
+        # choosing the right mode if necessary
+        if(mode is None):
+            if (isinstance(in_area, geometry.AreaDefinition) and
+                isinstance(out_area, geometry.AreaDefinition)):
+                self.mode = "quick"
+            else:
+                self.mode = "nearest"
+        else:
+            self.mode = mode
+
+
 
         filename = (in_id + "2" + out_id + "_" + mode + ".npz")
 
