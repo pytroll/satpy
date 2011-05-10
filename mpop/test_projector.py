@@ -281,6 +281,7 @@ class TestProjector(unittest.TestCase):
                           mode=random_string(20))
 
         # quick mode cache
+        self.proj = Projector(in_area_id, out_area_id, mode="quick")
         cache = getattr(self.proj, "_cache")
         self.assertTrue(cache['row_idx'] is not None)
         self.assertTrue(cache['col_idx'] is not None)
@@ -308,7 +309,7 @@ class TestProjector(unittest.TestCase):
         self.assertTrue(np.all(data == self.proj.project_array(data)))
 
         # test quick
-        self.proj = Projector(in_area_id, out_area_id)
+        self.proj = Projector(in_area_id, out_area_id, mode="quick")
         self.assertTrue(np.allclose(data, self.proj.project_array(data) - 1))
         
         # test nearest
