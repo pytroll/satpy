@@ -143,7 +143,7 @@ class Projector(object):
 
 
 
-        filename = (in_id + "2" + out_id + "_" + mode + ".npz")
+        filename = (in_id + "2" + out_id + "_" + self.mode + ".npz")
 
         projections_directory = "/var/tmp"
         try:
@@ -188,7 +188,7 @@ class Projector(object):
                 self._cache['col_idx'] = cidx
 
             else:
-                raise ValueError("Unrecognised mode " + str(mode) + ".") 
+                raise ValueError("Unrecognised mode " + str(self.mode) + ".") 
             
         else:
             self._cache = {}
