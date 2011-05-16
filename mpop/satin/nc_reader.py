@@ -48,14 +48,22 @@ LOG = get_logger("netcdf4/cf reader")
 
 # To be complete, get from appendix F of cf conventions
 MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
-                      'latitude_projection_of_origin': "lat_0",
-                      'longitude_projection_of_origin': "lon_0",
+                      #'standard_parallel': ["lat_1", "lat_2"],
+                      'standard_parallel1': "lat_1",
+                      'standard_parallel2': "lat_2",
+                      'latitude_of_projection_origin': "lat_0",
+                      'longitude_of_projection_origin': "lon_0",
+                      'longitude_of_central_meridian': "lon_0",
                       'perspective_point_height': "h",
+                      'false_easting': "x_0",
+                      'false_northing': "y_0",
                       'semi_major_axis': "a",
                       'semi_minor_axis': "b"
                       }
+
 # To be completed, get from appendix F of cf conventions
-PROJNAME = {"vertical_perspective": "near_sided_perspective"
+PROJNAME = {"vertical_perspective": "near_sided_perspective",
+            "albers_conical_equal_area": "albers_conical_equal_area" # ??? - Ad 2011-05-15
     }
 
 
@@ -69,31 +77,44 @@ def load_from_nc4(filename):
     time_slot = num2date(time_slot, TIME_UNITS)
     area = None
 
+    #print "Satellite number: <%s>" % rootgrp.satellite_number
+    #print "type: ", type(rootgrp.satellite_number)
     if not isinstance(rootgrp.satellite_number, str):
         satellite_number = "%02d" % rootgrp.satellite_number
     else:
-        satellite_number = rootgrp.satellite_number
+        satellite_number = str(rootgrp.satellite_number)
+
+    #print "type: ", type(rootgrp.service)
+    service = str(rootgrp.service)
+    #print "type: ", type(service)
+
+    #print "type: ", type(rootgrp.satellite_name)
+    satellite_name = str(rootgrp.satellite_name)
+    #print "type: ", type(satellite_name)
 
     try:
-        klass = get_satellite_class(rootgrp.satellite_name,
+        klass = get_satellite_class(satellite_name,
                                     satellite_number,
-                                    rootgrp.service)
+                                    service)
         scene = klass(time_slot=time_slot, area=area)
     except NoSectionError:
         klass = VisirScene
         scene = klass(time_slot=time_slot, area=area)
-        scene.satname = rootgrp.satellite_name
+        scene.satname = satellite_name
         scene.number = satellite_number
-        scene.service = rootgrp.service
+        scene.service = service
 
 
     for var_name, var in rootgrp.variables.items():
+        #print var_name, var
 
         if var_name.startswith("band_data"):
             resolution = var.resolution
             str_res = str(resolution) + "m"
             
             names = rootgrp.variables["bandname"+str_res][:]
+
+            #print "names: ",names
 
             data = var[:, :, :].astype(var.dtype)
 

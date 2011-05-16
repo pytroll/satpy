@@ -161,8 +161,8 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         var_data = find_tag(info_list , 'var_data')
 
-        # create dimensions in NetCDF file, dimension lenghts are base on array
-        # sizes
+        # create dimensions in NetCDF file, dimension lengths are based on
+        # array sizes
         used_dim_names = {}
         for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
             # case of a scalar

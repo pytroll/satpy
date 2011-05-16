@@ -29,6 +29,9 @@ conversion of mpop scene to cf conventions.
 
 import numpy as np
 from netCDF4 import date2num
+
+from mpop.channel import Channel
+
 #CF_DATA_TYPE = np.int16
 CF_FLOAT_TYPE = np.float64
 TIME_UNITS = "seconds since 1970-01-01 00:00:00"
@@ -74,7 +77,14 @@ class CFScene(object):
 
         resolutions = []
         for chn in scene:
+            #print "CHN: ",chn
             if not chn.is_loaded():
+                continue
+            
+            #print type(chn)
+            if not isinstance(chn, Channel):
+                setattr(self, chn.name, chn)
+                #print "INFO: ", chn.info
                 continue
 
             chn_max = chn.data.max()
@@ -124,7 +134,7 @@ class CFScene(object):
                 units.data = np.concatenate((units.data,
                                              np.array([chn.info["units"]])))
                 units.info["var_data"] = units.data
-
+                
                 # wavelength bounds
                 bwl = getattr(self, "wl_bnds" + str_res)
                 bwl.data = np.vstack((bwl.data,
@@ -300,7 +310,8 @@ def proj2cf(proj_dict):
 
     cases = {"geos": geos2cf,
              "stere": stere2cf,
-             "merc": merc2cf}
+             "merc": merc2cf,
+             "aea": aea2cf}
 
     return cases[proj_dict["proj"]](proj_dict)
 
@@ -309,8 +320,8 @@ def geos2cf(proj_dict):
     """
 
     return {"grid_mapping_name": "vertical_perspective",
-            "latitude_projection_of_origin": 0.0,
-            "longitude_projection_of_origin": eval(proj_dict["lon_0"]),
+            "latitude_of_projection_origin": 0.0,
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
             "semi_major_axis": eval(proj_dict["a"]),
             "semi_minor_axis": eval(proj_dict["b"]),
             "perspective_point_height": eval(proj_dict["h"])
@@ -327,3 +338,42 @@ def merc2cf(proj_dict):
     """
 
     raise NotImplementedError
+
+def aea2cf(proj_dict):
+    """Return the cf grid mapping from a Albers Equal Area proj dict.
+    """
+
+    #standard_parallels = []
+    #for item in ['lat_1', 'lat_2']:
+    #    if item in proj_dict:
+    #        standard_parallels.append(eval(proj_dict[item]))
+    standard_parallel1 = eval(proj_dict['lat_1'])
+    if 'lat_2' in proj_dict:
+        standard_parallel2 = eval(proj_dict['lat_2'])
+    else:
+        standard_parallel2 = None
+        
+    lat_0 = 0.0
+    if 'lat_0' in proj_dict:
+        lat_0 = eval(proj_dict['lat_0'])
+
+    x_0 = 0.0
+    if 'x_0' in proj_dict:
+        x_0 = eval(proj_dict['x_0'])
+
+    y_0 = 0.0
+    if 'y_0' in proj_dict:
+        y_0 = eval(proj_dict['y_0'])
+    
+    retv = {"grid_mapping_name": "albers_conical_equal_area",
+            "standard_parallel1": standard_parallel1,
+            "latitude_of_projection_origin": lat_0,
+            "longitude_of_central_meridian": eval(proj_dict["lon_0"]),
+            "false_easting": x_0,
+            "false_northing": y_0
+            }
+    if standard_parallel2:
+        retv['standard_parallel2'] = standard_parallel2
+
+    return retv
+

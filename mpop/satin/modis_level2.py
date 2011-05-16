@@ -40,6 +40,10 @@ from mpop.satin.logger import LOG
 import mpop.channel
 #from mpop.projector import get_area_def
 
+EOS_SATELLITE = {'aqua': 'eos2', 
+                 'modisa': 'eos2', 
+                 'terra': 'eos1'}
+
 SCAN_LINE_ATTRS = ['year', 'day', 'msec', 
                    'slat', 'slon', 'clat', 'clon',
                    'elat', 'elon', 'csol_z'
@@ -83,13 +87,17 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         self.resolution = resolution
 
         self.info = {}
+        self._eoshdf_info = {}
         self.shape = None
+        self.satid = ""
+        self.orbit = None
+        self.attr = None
 
-        self.scanline_attrs = {}
-        self.data = {}
+        #self.scanline_attrs = {}
+        self.data = None
+
         self.starttime = None
         self.endtime = None
-        self.satid = ""
         
     def __str__(self):
         return ("'%s: shape %s, resolution %sm'"%
@@ -114,7 +122,31 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         # Common Attributes, Data Time,
         # Data Structure and Scene Coordinates
         for key in root.attributes().keys():
-            self.info[key] = root.attributes()[key]
+            self._eoshdf_info[key] = root.attributes()[key]
+
+        # Start Time - datetime object
+        starttime = datetime.datetime.strptime(self._eoshdf_info['Start Time'][0:13], 
+                                               "%Y%j%H%M%S")
+        msec = float(self._eoshdf_info['Start Time'][13:16])/1000.
+        self.starttime = starttime + datetime.timedelta(seconds=msec)
+    
+        # End Time - datetime object
+        endtime = datetime.datetime.strptime(self._eoshdf_info['End Time'][0:13], 
+                                             "%Y%j%H%M%S")
+        msec = float(self._eoshdf_info['End Time'][13:16])/1000.
+        self.endtime = endtime + datetime.timedelta(seconds=msec)
+
+        # What is the leading 'H' doing here?
+        sensor_name = self._eoshdf_info['Sensor Name'][1:-1].lower()
+        try:
+            self.satid = EOS_SATELLITE[sensor_name]
+        except KeyError:
+            LOG.error("Failed setting the satellite id - sat-name = ", 
+                      sensor_name)
+            
+        self.orbit = self._eoshdf_info['Orbit Number']
+        self.shape = (self._eoshdf_info['Number of Scan Control Points'],
+                      self._eoshdf_info['Number of Pixel Control Points'])
 
         #try:
         if 1:
@@ -122,24 +154,49 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
             attr = value.attributes()
             data = value.get()
 
+            self.attr = attr
             band = data
             nodata = attr['bad_value_scaled']
-            mask = np.equal(band, nodata)
-            self.data[self.name] = np.ma.masked_where(mask, band) * \
-                attr['slope'] + attr['intercept']
+            self.data = (np.ma.masked_equal(band, nodata) * 
+                         attr['slope'] + attr['intercept'])
             
             value.endaccess()
-
         #except:
         #    pass
 
         root.end()
-        self.filled = True
+        self.filled= True
 
 
-def load(satscene, *args, **kwargs):
-    """Read data from file and load it into *satscene*.
+    def project(self, coverage):
+        """Remaps the Modis EOS-HDF level2 ocean products to cartographic
+        map-projection on a user defined area.
+        """
+        LOG.info("Projecting product %s..."%(self.name))
+        print("Inside project...")
+
+        retv = ModisEosHdfLevel2(self.name)        
+        retv.data = coverage.project_array(self.data)
+        retv.area = coverage.out_area
+        retv.shape = retv.data.shape
+        retv.resolution = self.resolution
+        retv.info = self.info
+        retv.filled = True
+        valid_min = retv.data.min()
+        valid_max = retv.data.max()
+        retv.info['valid_range'] = np.array([valid_min, valid_max])
+        retv.info['var_data'] = retv.data
+
+        return retv
+
+
+def load(satscene, **kwargs):
+    """Read data from file and load it into *satscene*.  Load data into the
+    *channels*. *Channels* is a list or a tuple containing channels we will
+    load data into. If None, all channels are loaded.
     """    
+    del kwargs
+
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -147,125 +204,92 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
 
-    for prodname in satscene.channels_to_load:
-        if prodname in GEO_PHYS_PRODUCTS:
-            # Special loader for products:
-            print "Call special product loader!"
-            load_modis_lvl2_product(satscene, prodname, options)
-                    
-    CASES[satscene.instrument_name](satscene, options)
-
-
-def load_modis_lvl2_product(satscene, prodname, options):
-    """Read modis level2 products from file and load it into *satscene*.
-    """
     pathname = os.path.join(options["dir"], options['filename'])    
     filename = satscene.time_slot.strftime(pathname)
     
-    prod_chan = ModisEosHdfLevel2(prodname)
-    prod_chan.read(filename)
-    prod_chan.satid = satscene.satname.capitalize()
-    prod_chan.resolution = 1000.0
-    prod_chan.shape = prod_chan.data[prodname].data.shape
-
-    #lat, lon = get_lat_lon(satscene, None)
-    #from pyresample import geometry
-    #satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
-    #orbit = 99999
-
-    satscene.channels.append(prod_chan)
+    for prodname in GEO_PHYS_PRODUCTS:
+        if prodname in satscene.channels_to_load:
             
-    LOG.info("Loading modis lvl2 product done.")
+            prod_chan = ModisEosHdfLevel2(prodname)
+            prod_chan.read(filename)
+            prod_chan.satid = satscene.satname.capitalize()
+            prod_chan.resolution = 1000.0
+            prod_chan.shape = prod_chan.data.shape
 
+            # All this for the netCDF writer:
+            prod_chan.info['var_name'] = prodname
+            prod_chan.info['var_data'] = prod_chan.data
+            resolution_str = str(int(prod_chan.resolution))+'m'
+            prod_chan.info['var_dim_names'] = ('y'+resolution_str,
+                                               'x'+resolution_str)
+            prod_chan.info['long_name'] = prod_chan.attr['long_name'][:-1]
+            valid_min = np.min(prod_chan.data)
+            valid_max = np.max(prod_chan.data)
+            prod_chan.info['valid_range'] = np.array([valid_min, valid_max])
+            prod_chan.info['resolution'] = prod_chan.resolution
 
+            satscene.channels.append(prod_chan)
+            if prodname in CHANNELS:
+                satscene[prodname].info['units'] = '%'
+            else:
+                satscene[prodname].info['units'] = ''
 
-def load_modis_lvl2(satscene, options):
-    """Read modis level2 data from file and load it into *satscene*.
-    """
-    pathname = os.path.join(options["dir"], options['filename'])    
-    filename = satscene.time_slot.strftime(pathname)
-    
-    print "FILE: ",filename
-    eoshdf = SD(filename)
+            LOG.info("Loading modis lvl2 product done")
 
-    # Get all the Attributes:
-    # Common Attributes, Data Time,
-    # Data Structure and Scene Coordinates
-    info = {}
-    for key in eoshdf.attributes().keys():
-        info[key] = eoshdf.attributes()[key]
-
-    datasets = CHANNELS
-    
-    scanline_attrs = {}
-    data = {}
-
-    dsets = eoshdf.datasets()
-    selected_dsets = []
-    for bandname in dsets.keys():            
-        if datasets and bandname not in datasets and \
-                (bandname not in SCAN_LINE_ATTRS and bandname not in LONLAT):
-            continue
-
-        if bandname not in satscene.channels_to_load:
-            continue
-
-        print "Dataset to load: ", bandname
-
-        value = eoshdf.select(bandname)
-        selected_dsets.append(value)
-
-        # Get the Scan-Line Attributes:
-        if bandname in SCAN_LINE_ATTRS:
-            scanline_attrs[bandname] = {}
-            scanline_attrs[bandname]['attr'] = value.attributes()
-            scanline_attrs[bandname]['data'] = value.get()
-        elif not datasets and bandname not in LONLAT:
-            # Get all datasets
-            data[bandname] = {}
-            data[bandname]['attr'] = value.attributes()
-            data[bandname]['data'] = value.get()
-        elif bandname in datasets:
-            # Get only the selected datasets
-            data[bandname] = {}
-            data[bandname]['attr'] = value.attributes()
-            data[bandname]['data'] = value.get()
-
+    # Check if there are any bands to load:
+    channels_to_load = False
+    for bandname in CHANNELS:
         if bandname in satscene.channels_to_load:
-            band = data[bandname]['data']
-            nodata = data[bandname]['attr']['bad_value_scaled']
-            mask = np.equal(band, nodata)
-            satscene[bandname] = np.ma.masked_where(mask, band) * \
-                data[bandname]['attr']['slope'] + \
-                data[bandname]['attr']['intercept']
+            channels_to_load = True
+            break
 
-    # Start Time - datetime object
-    starttime = datetime.datetime.strptime(info['Start Time'][0:13], 
-                                           "%Y%j%H%M%S")
-    msec = float(info['Start Time'][13:16])/1000.
-    starttime = starttime + datetime.timedelta(seconds=msec)
-    
-    # End Time - datetime object
-    endtime = datetime.datetime.strptime(info['End Time'][0:13], 
-                                         "%Y%j%H%M%S")
-    msec = float(info['End Time'][13:16])/1000.
-    endtime = endtime + datetime.timedelta(seconds=msec)
+    if channels_to_load:
+        print "FILE: ", filename
+        eoshdf = SD(filename)
+        # Get all the Attributes:
+        # Common Attributes, Data Time,
+        # Data Structure and Scene Coordinates
+        info = {}
+        for key in eoshdf.attributes().keys():
+            info[key] = eoshdf.attributes()[key]
+
+        dsets = eoshdf.datasets()
+        selected_dsets = []
+
+        for bandname in CHANNELS:
+            if (bandname in satscene.channels_to_load and
+                bandname in dsets):
+
+                value = eoshdf.select(bandname)
+                selected_dsets.append(value)
         
-    #shape = data['longitude']['data'].shape
-    #orbit = 99999
+                # Get only the selected datasets
+                attr = value.attributes()
+                band = value.get()
+
+                nodata = attr['bad_value_scaled']
+                mask = np.equal(band, nodata)
+                satscene[bandname] = (np.ma.masked_where(mask, band) * 
+                                      attr['slope'] + attr['intercept'])
+
+                satscene[bandname].info['units'] = '%'
+
+        for dset in selected_dsets:
+            dset.endaccess()  
+
+        LOG.info("Loading modis lvl2 Remote Sensing Reflectances done")
+        eoshdf.end()
+
 
     lat, lon = get_lat_lon(satscene, None)
 
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
-    for dset in selected_dsets:
-        dset.endaccess()
-        
-    eoshdf.end()
+    print "Variant: ", satscene.variant 
+    satscene.variant = 'regional' # Temporary fix!
 
     LOG.info("Loading modis data done.")
-
 
 def get_lonlat(satscene, row, col):
     """Estimate lon and lat.
@@ -276,7 +300,8 @@ def get_lonlat(satscene, row, col):
 
         lon = longitude[row, col]
         lat = latitude[row, col]
-        if longitude.mask[row, col] == False and latitude.mask[row, col] == False:
+        if (longitude.mask[row, col] == False and 
+            latitude.mask[row, col] == False):
             estimate = False
     except TypeError:
         pass
@@ -301,14 +326,8 @@ def get_lat_lon(satscene, resolution):
                                     raw = True):
         options[option] = value
         
-    return LAT_LON_CASES[satscene.instrument_name](satscene, options)
-
-def get_lat_lon_modis_lvl2(satscene, options):
-    """Read lat and lon.
-    """
     pathname = os.path.join(options["dir"], options['filename'])    
     filename = satscene.time_slot.strftime(pathname)
-    #print "lonlat - FILE: ",filename
 
     root = SD(filename)
     lon = root.select('longitude')
@@ -317,14 +336,3 @@ def get_lat_lon_modis_lvl2(satscene, options):
     latitude = lat.get()
 
     return latitude, longitude
-
-# -----------------------------------------------------------------------
-
-CASES = {
-    "modis": load_modis_lvl2
-    }
-
-LAT_LON_CASES = {
-    "modis": get_lat_lon_modis_lvl2
-    }
-
