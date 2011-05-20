@@ -115,7 +115,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         from pyhdf.SD import SD
         import datetime
 
-        print "*** >>> Read the hdf-eos file!"
+        LOG.info("*** >>> Read the hdf-eos file!")
         root = SD(filename)
     
         # Get all the Attributes:
@@ -148,6 +148,8 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         self.shape = (self._eoshdf_info['Number of Scan Control Points'],
                       self._eoshdf_info['Number of Pixel Control Points'])
 
+        print "Orbit = ",self.orbit
+
         #try:
         if 1:
             value = root.select(self.name)
@@ -173,13 +175,13 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         map-projection on a user defined area.
         """
         LOG.info("Projecting product %s..."%(self.name))
-        print("Inside project...")
-
         retv = ModisEosHdfLevel2(self.name)        
         retv.data = coverage.project_array(self.data)
         retv.area = coverage.out_area
         retv.shape = retv.data.shape
         retv.resolution = self.resolution
+        retv.orbit = self.orbit
+        retv.satid = self.satid
         retv.info = self.info
         retv.filled = True
         valid_min = retv.data.min()
@@ -206,7 +208,8 @@ def load(satscene, **kwargs):
 
     pathname = os.path.join(options["dir"], options['filename'])    
     filename = satscene.time_slot.strftime(pathname)
-    
+
+    globalinfo = {}
     for prodname in GEO_PHYS_PRODUCTS:
         if prodname in satscene.channels_to_load:
             
@@ -215,6 +218,9 @@ def load(satscene, **kwargs):
             prod_chan.satid = satscene.satname.capitalize()
             prod_chan.resolution = 1000.0
             prod_chan.shape = prod_chan.data.shape
+
+            for key in prod_chan._eoshdf_info:
+                globalinfo[key] = prod_chan._eoshdf_info[key]
 
             # All this for the netCDF writer:
             prod_chan.info['var_name'] = prodname
@@ -236,6 +242,8 @@ def load(satscene, **kwargs):
 
             LOG.info("Loading modis lvl2 product done")
 
+    #print "INFO: ",globalinfo
+
     # Check if there are any bands to load:
     channels_to_load = False
     for bandname in CHANNELS:
@@ -244,7 +252,6 @@ def load(satscene, **kwargs):
             break
 
     if channels_to_load:
-        print "FILE: ", filename
         eoshdf = SD(filename)
         # Get all the Attributes:
         # Common Attributes, Data Time,
@@ -252,6 +259,8 @@ def load(satscene, **kwargs):
         info = {}
         for key in eoshdf.attributes().keys():
             info[key] = eoshdf.attributes()[key]
+            if key not in globalinfo:
+                globalinfo[key] = info[key]
 
         dsets = eoshdf.datasets()
         selected_dsets = []
@@ -280,16 +289,21 @@ def load(satscene, **kwargs):
         LOG.info("Loading modis lvl2 Remote Sensing Reflectances done")
         eoshdf.end()
 
+    #print "INFO: ",globalinfo
 
     lat, lon = get_lat_lon(satscene, None)
 
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    satscene.orbit = globalinfo['Orbit Number']
+    if satscene.orbit == -1:
+        LOG.info("Orbit number equals -1 in eos-hdf file. " +
+                 "Setting it to 99999!")
+        satscene.orbit = 99999
 
-    print "Variant: ", satscene.variant 
-    satscene.variant = 'regional' # Temporary fix!
-
+    LOG.info("Variant: " + satscene.variant)
     LOG.info("Loading modis data done.")
+
 
 def get_lonlat(satscene, row, col):
     """Estimate lon and lat.
