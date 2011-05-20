@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -33,7 +33,7 @@
 # - handle other units than "m" for coordinates
 # - handle units for data
 # - pluginize
-import datetime
+
 from ConfigParser import NoSectionError
 
 import numpy as np
@@ -48,9 +48,7 @@ LOG = get_logger("netcdf4/cf reader")
 
 # To be complete, get from appendix F of cf conventions
 MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
-                      #'standard_parallel': ["lat_1", "lat_2"],
-                      'standard_parallel1': "lat_1",
-                      'standard_parallel2': "lat_2",
+                      'standard_parallel': ["lat_1", "lat_2"],
                       'latitude_of_projection_origin': "lat_0",
                       'longitude_of_projection_origin': "lon_0",
                       'longitude_of_central_meridian': "lon_0",
@@ -58,12 +56,16 @@ MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
                       'false_easting': "x_0",
                       'false_northing': "y_0",
                       'semi_major_axis': "a",
-                      'semi_minor_axis': "b"
+                      'semi_minor_axis': "b",
+                      'inverse_flattening': "rf",
+                      'ellipsoid': "ellps", # not in CF conventions...
                       }
 
 # To be completed, get from appendix F of cf conventions
-PROJNAME = {"vertical_perspective": "near_sided_perspective",
-            "albers_conical_equal_area": "albers_conical_equal_area" # ??? - Ad 2011-05-15
+PROJNAME = {"vertical_perspective": "nsper",
+            "albers_conical_equal_area": "aea",
+            "azimuthal_equidistant": "aeqd",
+            
     }
 
 
@@ -75,46 +77,38 @@ def load_from_nc4(filename):
     time_slot = rootgrp.variables["time"].getValue()[0]
 
     time_slot = num2date(time_slot, TIME_UNITS)
-    area = None
 
-    #print "Satellite number: <%s>" % rootgrp.satellite_number
-    #print "type: ", type(rootgrp.satellite_number)
     if not isinstance(rootgrp.satellite_number, str):
         satellite_number = "%02d" % rootgrp.satellite_number
     else:
         satellite_number = str(rootgrp.satellite_number)
 
-    #print "type: ", type(rootgrp.service)
     service = str(rootgrp.service)
-    #print "type: ", type(service)
 
-    #print "type: ", type(rootgrp.satellite_name)
     satellite_name = str(rootgrp.satellite_name)
-    #print "type: ", type(satellite_name)
+
 
     try:
         klass = get_satellite_class(satellite_name,
                                     satellite_number,
                                     service)
-        scene = klass(time_slot=time_slot, area=area)
+        scene = klass(time_slot=time_slot)
     except NoSectionError:
         klass = VisirScene
-        scene = klass(time_slot=time_slot, area=area)
+        scene = klass(time_slot=time_slot)
         scene.satname = satellite_name
         scene.number = satellite_number
         scene.service = service
 
 
     for var_name, var in rootgrp.variables.items():
-        #print var_name, var
+        area = None
 
         if var_name.startswith("band_data"):
             resolution = var.resolution
-            str_res = str(resolution) + "m"
+            str_res = str(int(resolution)) + "m"
             
             names = rootgrp.variables["bandname"+str_res][:]
-
-            #print "names: ",names
 
             data = var[:, :, :].astype(var.dtype)
 
@@ -122,30 +116,6 @@ def load_from_nc4(filename):
                                         var.valid_range[0],
                                         var.valid_range[1])
 
-                                        
-            for i, name in enumerate(names):
-                try:
-                    scene[name] = (data[:, :, i] *
-                                   rootgrp.variables["scale"+str_res][i] +
-                                   rootgrp.variables["offset"+str_res][i])
-                    #FIXME complete this
-                    #scene[name].info
-                except KeyError:
-                    # build the channel on the fly
-
-                    from mpop.channel import Channel
-                    wv_var = rootgrp.variables["nominal_wavelength"+str_res]
-                    wb_var = rootgrp.variables[getattr(wv_var, "bounds")]
-                    minmax = wb_var[i]
-                    scene.channels.append(Channel(name,
-                                                  resolution,
-                                                  (minmax[0],
-                                                   wv_var[i][0],
-                                                   minmax[1])))
-                    scene[name] = (data[:, :, i] *
-                                   rootgrp.variables["scale"+str_res][i] +
-                                   rootgrp.variables["offset"+str_res][i])
-                    
 
             try:
                 area_var = getattr(var,"grid_mapping")
@@ -156,6 +126,12 @@ def load_from_nc4(filename):
                         the_attr = getattr(area_var, attr)
                         if projattr == "proj":
                             proj4_dict[projattr] = PROJNAME[the_attr]
+                        elif(isinstance(projattr, (list, tuple))):
+                            try:
+                                for i, subattr in enumerate(the_attr):
+                                    proj4_dict[projattr[i]] = subattr
+                            except TypeError:
+                                proj4_dict[projattr[0]] = the_attr
                         else:
                             proj4_dict[projattr] = the_attr
                     except AttributeError:
@@ -217,6 +193,33 @@ def load_from_nc4(filename):
             except AttributeError:
                 LOG.debug("No lon/lat found.")
             
+            for i, name in enumerate(names):
+                try:
+                    scene[name] = (data[:, :, i] *
+                                   rootgrp.variables["scale"+str_res][i] +
+                                   rootgrp.variables["offset"+str_res][i])
+                    #FIXME complete this
+                    #scene[name].info
+                except KeyError:
+                    # build the channel on the fly
+
+                    from mpop.channel import Channel
+                    wv_var = rootgrp.variables["nominal_wavelength"+str_res]
+                    wb_var = rootgrp.variables[getattr(wv_var, "bounds")]
+                    minmax = wb_var[i]
+                    scene.channels.append(Channel(name,
+                                                  resolution,
+                                                  (minmax[0],
+                                                   wv_var[i][0],
+                                                   minmax[1])))
+                    scene[name] = (data[:, :, i] *
+                                   rootgrp.variables["scale"+str_res][i] +
+                                   rootgrp.variables["offset"+str_res][i])
+                    
+                if area is not None:
+                    scene[name].area = area
+        area = None
+
     for attr in rootgrp.ncattrs():
         scene.info[attr] = getattr(rootgrp, attr)
     scene.add_to_history("Loaded from netcdf4/cf by mpop")

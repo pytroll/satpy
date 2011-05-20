@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # Author(s):
  
@@ -295,9 +295,6 @@ class CFScene(object):
 
                 setattr(self, "band" + str_res, band)
                 
-
-
-
 def proj2cf(proj_dict):
     """Return the cf grid mapping from a proj dict.
 
@@ -347,11 +344,11 @@ def aea2cf(proj_dict):
     #for item in ['lat_1', 'lat_2']:
     #    if item in proj_dict:
     #        standard_parallels.append(eval(proj_dict[item]))
-    standard_parallel1 = eval(proj_dict['lat_1'])
     if 'lat_2' in proj_dict:
-        standard_parallel2 = eval(proj_dict['lat_2'])
+        standard_parallel = [eval(proj_dict['lat_1']),
+                             eval(proj_dict['lat_2'])]
     else:
-        standard_parallel2 = None
+        standard_parallel = [eval(proj_dict['lat_1'])]
         
     lat_0 = 0.0
     if 'lat_0' in proj_dict:
@@ -366,14 +363,48 @@ def aea2cf(proj_dict):
         y_0 = eval(proj_dict['y_0'])
     
     retv = {"grid_mapping_name": "albers_conical_equal_area",
-            "standard_parallel1": standard_parallel1,
+            "standard_parallel": standard_parallel,
             "latitude_of_projection_origin": lat_0,
             "longitude_of_central_meridian": eval(proj_dict["lon_0"]),
             "false_easting": x_0,
             "false_northing": y_0
             }
-    if standard_parallel2:
-        retv['standard_parallel2'] = standard_parallel2
+
+    retv = build_dict("albers_conical_equal_area",
+                      proj_dict,
+                      standard_parallel=["lat_1", "lat_2"],
+                      latitude_of_projection_origin="lat_0",
+                      longitude_of_central_meridian="lon_0",
+                      false_easting="x_0",
+                      false_northing="y_0")
 
     return retv
 
+def build_dict(proj_name, proj_dict, **kwargs):
+    new_dict = {}
+    new_dict["grid_mapping_name"] = proj_name
+    for key, val in kwargs.items():
+        if isinstance(val, (list, tuple)):
+            new_dict[key] = [eval(proj_dict[x]) for x in val if x in proj_dict]
+        elif val in proj_dict:
+            new_dict[key] = eval(proj_dict[val])
+    # add a, b, rf and/or ellps
+    if "a" in proj_dict:
+        new_dict["semi_major_axis"] = eval(proj_dict["a"])
+    if "b" in proj_dict:
+        new_dict["semi_minor_axis"] = eval(proj_dict["b"])
+    if "rf" in proj_dict:
+        new_dict["inverse_flattening"] = eval(proj_dict["rf"])
+    if "ellps" in proj_dict:
+        new_dict["ellipsoid"] = proj_dict["ellps"]
+            
+    return new_dict
+
+def aeqd2cf(proj_dict):
+    return build_dict("azimuthal_equidistant",
+                      proj_dict,
+                      standard_parallel=["lat_1", "lat_2"],
+                      latitude_of_projection_origin="lat_0",
+                      longitude_of_central_meridian="lon_0",
+                      false_easting="x_0",
+                      false_northing="y_0")
