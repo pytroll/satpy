@@ -167,7 +167,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         self.shape = (self._eoshdf_info['Number of Scan Control Points'],
                       self._eoshdf_info['Number of Pixel Control Points'])
 
-        print "Orbit = ",self.orbit
+        LOG.info("Orbit = " + str(self.orbit))
 
         #try:
         if 1:
