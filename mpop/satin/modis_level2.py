@@ -28,6 +28,7 @@
 """Plugin for reading AQUA MODIS level 2 EOS HDF files downloaded from NASA FTP import
 """
 
+import sys
 import os.path
 from ConfigParser import ConfigParser
 
@@ -77,6 +78,19 @@ NAVIGATION_TILT =  ['tilt', 'cntl_pt_cols', 'cntl_pt_rows']
 # Geo-location - Longitude,latitude:
 LONLAT = ['longitude', 'latitude']
 
+# ------------------------------------------------------------------------    
+if sys.version_info < (2, 5):
+    import time
+    def strptime(string, fmt=None):
+        """This function is available in the datetime module only
+        from Python >= 2.5.
+        """
+
+        return datetime.datetime(*time.strptime(string, fmt)[:6])
+else:
+    strptime = datetime.datetime.strptime
+
+
 
 class ModisEosHdfLevel2(mpop.channel.GenericChannel):
     """NASA EOS-HDF Modis data struct"""
@@ -116,7 +130,12 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         import datetime
 
         LOG.info("*** >>> Read the hdf-eos file!")
-        root = SD(filename)
+        
+        if os.path.exists(filename):
+            root = SD(filename)
+        else:
+            LOG.info("No such file: " + str(filename))
+            raise IOError("File %s does not exist!" % (filename))
     
         # Get all the Attributes:
         # Common Attributes, Data Time,
@@ -125,14 +144,14 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
             self._eoshdf_info[key] = root.attributes()[key]
 
         # Start Time - datetime object
-        starttime = datetime.datetime.strptime(self._eoshdf_info['Start Time'][0:13], 
-                                               "%Y%j%H%M%S")
+        starttime = strptime(self._eoshdf_info['Start Time'][0:13], 
+                             "%Y%j%H%M%S")
         msec = float(self._eoshdf_info['Start Time'][13:16])/1000.
         self.starttime = starttime + datetime.timedelta(seconds=msec)
     
         # End Time - datetime object
-        endtime = datetime.datetime.strptime(self._eoshdf_info['End Time'][0:13], 
-                                             "%Y%j%H%M%S")
+        endtime = strptime(self._eoshdf_info['End Time'][0:13], 
+                           "%Y%j%H%M%S")
         msec = float(self._eoshdf_info['End Time'][13:16])/1000.
         self.endtime = endtime + datetime.timedelta(seconds=msec)
 

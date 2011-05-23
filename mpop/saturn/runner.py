@@ -36,7 +36,6 @@ from mpop.channel import NotLoadedError
 from mpop.satellites import get_satellite_class
 from mpop.saturn.tasklist import TaskList
 
-
 LOG = logging.getLogger("runner")
 
 def usage(scriptname):
@@ -215,7 +214,7 @@ class SequentialRunner(object):
                     img = fun()
                     flist.save_object(img)
                     del img
-                except (NotLoadedError, KeyError), err:
+                except (NotLoadedError, KeyError, ValueError), err:
                     LOG.warning("Error in "+product+": "+str(err))
                     LOG.info("Skipping "+product)
             del local_data
