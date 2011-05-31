@@ -822,7 +822,7 @@ class Image(object):
         
     def gamma(self, gamma = 1.0):
         """Apply gamma correction to the channels of the image. If *gamma* is a
-        tuple, then is should have as many elements as the channels of the
+        tuple, then it should have as many elements as the channels of the
         image, and the gamma correction is applied elementwise. If *gamma* is a
         number, the same gamma correction is applied on every channel, if there
         are several channels in the image. The behaviour of :func:`gamma` is
