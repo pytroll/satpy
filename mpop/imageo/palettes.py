@@ -29,6 +29,11 @@
 
 """Palette holder module.
 """
+
+import logging
+LOG = logging.getLogger("palettes")
+
+
 def tv_legend():
     """Palette for TV.
     """
