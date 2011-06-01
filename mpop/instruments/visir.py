@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -28,14 +28,14 @@
 
 """This module defines the generic VISIR instrument class.
 """
-import mpop.scene
+from mpop.scene import SatelliteInstrumentScene
 from mpop.imageo import geo_image
 from mpop.compositer import Compositer
 
 #pylint: disable=W0612
 # remove warnings for unused prerequisites
 
-class VisirScene(mpop.scene.SatelliteInstrumentScene):
+class VisirScene(SatelliteInstrumentScene):
     """Generic RGB building methods for VISIR instruments.
     """
     def channel_image(self, channel, fill_value=0):

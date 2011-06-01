@@ -33,9 +33,11 @@ class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
     inherited by other classes.
     """
+    pass
 
 class Reader(Plugin):
-    """Reader plugins. They should have a *pformat* attribute, and implement the *load* method.
+    """Reader plugins. They should have a *pformat* attribute, and implement
+    the *load* method.
     """
     ptype = "reader"
     def __init__(self, scene):
@@ -80,22 +82,6 @@ class Writer(Plugin):
         raise NotImplementedError
 
 
-for directory in ["plugins"]:
-    plug_dir = os.path.join(BASE_PATH, "mpop", directory)
-    sys.path.append(plug_dir)
-    for name in os.listdir(plug_dir):
-        if name.endswith(".py") and not name.startswith("__"):
-            modulename = name[:-3]
-            try:
-                module = __import__(modulename)
-                LOG.info("Imported plugin file "+
-                         os.path.join(directory, name)+
-                         ".")
-            except ImportError, exc:
-                LOG.warning("Could not read plugin file "+
-                            os.path.join(directory, name)+
-                            ": "+str(exc))
-                
 def get_plugin_types():
     """Get the list of available plugin types.
     """
@@ -120,3 +106,39 @@ def get_plugin_formats(ptype):
     """Get the different formats for plugins of a given *ptype*.
     """
     return [x.pformat for x in _get_plugin_type(ptype).__subclasses__()]
+
+
+def load_plugins(directory):
+    """Load all the plugins from *directory*.
+    """
+    sys.path.append(directory)
+    for name in os.listdir(directory):
+        if name.endswith(".py") and not name.startswith("__"):
+            modulename = name[:-3]
+            try:
+                __import__(modulename)
+                LOG.info("Imported plugin file "+
+                         os.path.join(directory, name)+
+                         ".")
+            except ImportError, exc:
+                LOG.warning("Could not read plugin file "+
+                            os.path.join(directory, name)+
+                            ": "+str(exc))
+
+# Load plugins on module import
+
+import ConfigParser
+from mpop import CONFIG_PATH
+
+CONF = ConfigParser.ConfigParser()
+CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+DIRECTORIES = [x.strip() for x in CONF.get("plugins", "dir").split(",")]
+
+for plugin_dir in DIRECTORIES:
+    if os.path.split(plugin_dir)[0] == '':
+        load_plugins(os.path.join(BASE_PATH, "mpop", plugin_dir))
+    else:
+        load_plugins(plugin_dir)
+
+                

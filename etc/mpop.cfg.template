@@ -1,9 +1,10 @@
 [projector]
-
 area_file=areas.def
 area_directory=
 projections_directory=/var/tmp
 
 [composites]
-
 module=mpop.smhi_composites
+
+[plugins]
+dir=plugins, satin, satout
