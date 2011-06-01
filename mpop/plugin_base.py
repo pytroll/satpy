@@ -24,6 +24,7 @@
 """
 import os.path
 import sys
+import weakref
 
 from mpop import BASE_PATH
 from.logger import LOG
@@ -44,7 +45,7 @@ class Reader(Plugin):
         - `scene`: the scene to fill.
         """
         Plugin.__init__(self)
-        self._scene = scene
+        self._scene = weakref.proxy(scene)
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.
@@ -68,7 +69,7 @@ class Writer(Plugin):
         - `filename`: the place to save it.
         """
         Plugin.__init__(self)
-        self._scene = scene
+        self._scene = weakref.proxy(scene)
 
     def save(self, filename):
         """Saves the scene to a given *filename*.
@@ -95,13 +96,27 @@ for directory in ["plugins"]:
                             os.path.join(directory, name)+
                             ": "+str(exc))
                 
-def get_plugin_type(ptype):
-    for x in Plugin.__subclasses__():
-        if x.ptype == ptype:
-            return x
+def get_plugin_types():
+    """Get the list of available plugin types.
+    """
+    return [x.ptype for x in Plugin.__subclasses__()]
+
+def _get_plugin_type(ptype):
+    """Get the class of a given plugin type.
+    """
+    for k in Plugin.__subclasses__():
+        if k.ptype == ptype:
+            return k
 
 def get_plugin(ptype, pformat):
-    ptype_class = get_plugin_type(ptype)
-    for x in ptype_class.__subclasses__():
-        if x.pformat == pformat:
-            return x
+    """Get the class of a plugin, given its *ptype* and *pformat*.
+    """
+    ptype_class = _get_plugin_type(ptype)
+    for k in ptype_class.__subclasses__():
+        if k.pformat == pformat:
+            return k
+
+def get_plugin_formats(ptype):
+    """Get the different formats for plugins of a given *ptype*.
+    """
+    return [x.pformat for x in _get_plugin_type(ptype).__subclasses__()]
