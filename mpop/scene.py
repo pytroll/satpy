@@ -214,6 +214,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
 
             for section in conf.sections():
+                # load channels from config file
                 if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
@@ -223,6 +224,14 @@ class SatelliteInstrumentScene(SatelliteScene):
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
+                # set up reader proxies
+                if((section[:-1].endswith("level") or
+                    section.endswith("granules")) and
+                   section.startswith(self.instrument_name)):
+                    fmt = eval(conf.get(section, "format"))
+                    plugin = get_plugin("reader", fmt)
+                    if plugin is not None:
+                        setattr(self, fmt + "_reader", plugin(self))
 
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
             for name, w_range, resolution in self.channel_list:
@@ -353,7 +362,8 @@ class SatelliteInstrumentScene(SatelliteScene):
             except NameError:
                 data_format = str(data_format)
 
-            plugin_class = get_plugin("reader", data_format)
+            loader = getattr(self, data_format + "_reader")
+            plugin_class = loader.__class__
             LOG.debug("Using plugin "+str(plugin_class))
 
             # read the data
@@ -365,8 +375,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 else:
                     raise ValueError("Area extent must be a sequence of "
                                      "four numbers.")
-            print self.channels_to_load
-            loader = plugin_class(self)
+
             loader.load(self.channels_to_load, **kwargs)
             
             loaded_channels = [chn.name for chn in self.loaded_channels()]
