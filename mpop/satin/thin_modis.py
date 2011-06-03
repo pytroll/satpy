@@ -137,9 +137,9 @@ def calibrate_tb(subdata, uncertainty):
 def load_thin_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
     """
-    if satscene.satellite == "aqua":
+    if satscene.satname == "aqua":
         filename = satscene.time_slot.strftime("thin_MYD021KM.A%Y%j.%H%M.005.*NRT.hdf")
-    elif(satscene.satellite == "terra"):
+    elif(satscene.satname == "terra"):
         filename = satscene.time_slot.strftime("thin_MOD021KM.A%Y%j.%H%M.005.*NRT.hdf")
     filenames = glob.glob(os.path.join(options["dir"], filename))
     if len(filenames) != 1:
@@ -213,9 +213,9 @@ def get_lat_lon(satscene, resolution):
 def get_lat_lon_thin_modis(satscene, options):
     """Read lat and lon.
     """
-    if satscene.satellite == "aqua":
+    if satscene.satname == "aqua":
         filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
-    elif(satscene.satellite == "terra"):
+    elif(satscene.satname == "terra"):
         filename = satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
     filenames = glob.glob(os.path.join(options["dir"], filename))
     if len(filenames) != 1:
@@ -243,9 +243,9 @@ def get_lonlat(satscene, row, col):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     path = conf.get("modis-level2", "dir")
 
-    if satscene.satellite == "aqua":
+    if satscene.satname == "aqua":
         filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
-    elif(satscene.satellite == "terra"):
+    elif(satscene.satname == "terra"):
         filename = satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
     filenames = glob.glob(os.path.join(path, filename))
     if len(filenames) != 1:
