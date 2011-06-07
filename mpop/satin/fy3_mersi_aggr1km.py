@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -34,6 +34,17 @@ import _pyhl
 import numpy as np
 
 from mpop import BASE_PATH
+from mpop.plugin_base import Reader
+
+class FY3Reader(Reader):
+    """Plugin for reading FY3 format.
+    """
+    pformat = "fy3_mersi_aggr1km"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 
 def load(satscene):

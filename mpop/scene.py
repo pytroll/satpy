@@ -232,7 +232,6 @@ class SatelliteInstrumentScene(SatelliteScene):
                         fmt = eval(conf.get(section, "format"))
                     except NameError:
                         fmt = conf.get(section, "format")
-
                     plugin = get_plugin("reader", fmt)
                     if plugin is not None:
                         setattr(self, fmt + "_reader", plugin(self))
