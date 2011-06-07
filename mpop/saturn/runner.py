@@ -36,7 +36,6 @@ from mpop.channel import NotLoadedError
 from mpop.satellites import get_satellite_class
 from mpop.saturn.tasklist import TaskList
 
-
 LOG = logging.getLogger("runner")
 
 def usage(scriptname):
@@ -156,6 +155,7 @@ class SequentialRunner(object):
         self.satellite = satellite[0]
         self.number = satellite[1]
         self.variant = satellite[2]
+
         self.klass = get_satellite_class(self.satellite,
                                          self.number,
                                          self.variant)
@@ -197,8 +197,13 @@ class SequentialRunner(object):
                 fun = getattr(local_data, product)
                 flist = flist.put_date(local_data.time_slot)
                 metadata = {"area": area}
+                LOG.info("Orbit = " + str(local_data.orbit))
                 if local_data.orbit is not None:
                     metadata["orbit"] = int(local_data.orbit)
+                LOG.info("Instrument Name = " + str(local_data.instrument_name))
+                if local_data.instrument_name is not None:
+                    metadata["instrument_name"] = str(local_data.instrument_name)
+
                 flist = flist.put_metadata(metadata)
                 try:
                     LOG.debug("Doing "+product+".")
@@ -209,7 +214,7 @@ class SequentialRunner(object):
                     img = fun()
                     flist.save_object(img)
                     del img
-                except (NotLoadedError, KeyError), err:
+                except (NotLoadedError, KeyError, ValueError), err:
                     LOG.warning("Error in "+product+": "+str(err))
                     LOG.info("Skipping "+product)
             del local_data
@@ -229,6 +234,9 @@ class SequentialRunner(object):
 
             if self.data.orbit is not None:
                 metadata["orbit"] = int(self.data.orbit)
+            LOG.info("Instrument Name = " + str(self.data.instrument_name))
+            if self.data.instrument_name is not None:
+                metadata["instrument_name"] = str(self.data.instrument_name)
             metadata["satellite"] = self.data.fullname
             metadata["area"] = area_name
             flist = flist.put_metadata(metadata)

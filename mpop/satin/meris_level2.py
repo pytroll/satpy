@@ -73,7 +73,6 @@ import mpop.channel
 
 from mpop.plugin_base import Reader
 
-
 EARTH_RADIUS = 6371000.0
 
 CHANNELS = ['band-1',
