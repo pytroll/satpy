@@ -27,7 +27,7 @@ import sys
 import weakref
 
 from mpop import BASE_PATH
-from.logger import LOG
+from logger import LOG
 
 class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
