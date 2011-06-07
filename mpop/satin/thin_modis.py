@@ -31,6 +31,7 @@ http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
 http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&view=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 import os.path
+import glob
 from ConfigParser import ConfigParser
 
 import numpy as np
@@ -38,6 +39,17 @@ from pyhdf.SD import SD
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
+from mpop.plugin_base import Reader
+
+class ThinModisReader(Reader):
+    """Plugin for reading thinned Modis format.
+    """
+    pformat = "thin_modis"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -136,8 +148,15 @@ def calibrate_tb(subdata, uncertainty):
 def load_thin_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
     """
-    filename = satscene.time_slot.strftime("thin_MYD021KM.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
+    if satscene.satname == "aqua":
+        filename = satscene.time_slot.strftime("thin_MYD021KM.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = satscene.time_slot.strftime("thin_MOD021KM.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(options["dir"], filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(options["dir"], filename))
+    filename = filenames[0]
     
     data = SD(filename)
 
@@ -205,8 +224,15 @@ def get_lat_lon(satscene, resolution):
 def get_lat_lon_thin_modis(satscene, options):
     """Read lat and lon.
     """
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
+    if satscene.satname == "aqua":
+        filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(options["dir"], filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(options["dir"], filename))
+    filename = filenames[0]
 
     data = SD(filename)
     lat = data.select("Latitude")
@@ -227,8 +253,16 @@ def get_lonlat(satscene, row, col):
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     path = conf.get("modis-level2", "dir")
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(path, filename)
+
+    if satscene.satname == "aqua":
+        filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(path, filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(path, filename))
+    filename = filenames[0]
     
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):

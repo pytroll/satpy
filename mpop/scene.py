@@ -46,7 +46,7 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 from mpop.utils import OrderedConfigParser
-
+from mpop.plugin_base import get_plugin
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
@@ -214,6 +214,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
 
             for section in conf.sections():
+                # load channels from config file
                 if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
@@ -223,6 +224,17 @@ class SatelliteInstrumentScene(SatelliteScene):
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
+                # set up reader proxies
+                if((section[:-1].endswith("level") or
+                    section.endswith("granules")) and
+                   section.startswith(self.instrument_name)):
+                    try:
+                        fmt = eval(conf.get(section, "format"))
+                    except NameError:
+                        fmt = conf.get(section, "format")
+                    plugin = get_plugin("reader", fmt)
+                    if plugin is not None:
+                        setattr(self, fmt + "_reader", plugin(self))
 
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
             for name, w_range, resolution in self.channel_list:
@@ -347,29 +359,28 @@ class SatelliteInstrumentScene(SatelliteScene):
                 return
 
             LOG.debug("Looking for sources in section "+level)
-            reader_name = conf.get(level, 'format')
+            data_format = conf.get(level, 'format')
             try:
-                reader_name = eval(reader_name)
+                data_format = eval(data_format)
             except NameError:
-                reader_name = str(reader_name)
-            LOG.debug("Using plugin mpop.satin."+reader_name)
+                data_format = str(data_format)
+
+            loader = getattr(self, data_format + "_reader")
+            plugin_class = loader.__class__
+            LOG.debug("Using plugin "+str(plugin_class))
 
             # read the data
-            reader = "mpop.satin."+reader_name
-            try:
-                reader_module = __import__(reader, globals(),
-                                           locals(), ['load'])
-                if area_extent is not None:
-                    if(isinstance(area_extent, (tuple, list)) and
-                       len(area_extent) == 4):
-                        kwargs["area_extent"] = area_extent
-                    else:
-                        raise ValueError("Area extent must be a sequence of "
-                                         "four numbers.")
-                reader_module.load(self, **kwargs)
-            except ImportError:
-                LOG.exception("ImportError while loading "+reader+".")
-                continue
+
+            if area_extent is not None:
+                if(isinstance(area_extent, (tuple, list)) and
+                   len(area_extent) == 4):
+                    kwargs["area_extent"] = area_extent
+                else:
+                    raise ValueError("Area extent must be a sequence of "
+                                     "four numbers.")
+
+            loader.load(self.channels_to_load, **kwargs)
+            
             loaded_channels = [chn.name for chn in self.loaded_channels()]
             self.channels_to_load = set([chn for chn in self.channels_to_load
                                          if not chn in loaded_channels])

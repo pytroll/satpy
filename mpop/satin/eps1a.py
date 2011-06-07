@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -38,6 +38,17 @@ from ConfigParser import ConfigParser
 import mpop.satin.aapp1b
 from mpop.satellites import get_satellite_class
 from mpop import CONFIG_PATH
+from mpop.plugin_base import Reader
+
+class Eps1aReader(Reader):
+    """Plugin for reading EPS 1A format.
+    """
+    pformat = "eps1a"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 WORKING_DIR = "/tmp"
 
