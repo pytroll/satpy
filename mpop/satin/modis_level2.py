@@ -38,7 +38,17 @@ from pyhdf.SD import SD
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 import mpop.channel
-#from mpop.projector import get_area_def
+from mpop.plugin_base import Reader
+
+class ModisLevel2Reader(Reader):
+    """Plugin for reading modis level2 format.
+    """
+    pformat = "modis_level2"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 EOS_SATELLITE = {'aqua': 'eos2', 
                  'modisa': 'eos2', 

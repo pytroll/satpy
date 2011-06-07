@@ -38,6 +38,17 @@ from pyhdf.SD import SD
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
+from mpop.plugin_base import Reader
+
+class ThinModisReader(Reader):
+    """Plugin for reading thinned Modis format.
+    """
+    pformat = "thin_modis"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.

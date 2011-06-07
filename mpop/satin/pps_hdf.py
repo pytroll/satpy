@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -35,7 +35,17 @@ import os.path
 import mpop.channel
 from mpop import CONFIG_PATH
 from mpop.utils import get_logger
+from mpop.plugin_base import Reader
 
+class PpsHdfReader(Reader):
+    """Plugin for reading PPS hdf format.
+    """
+    pformat = "pps_hdf"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 LOG = get_logger('satin/pps_hdf')
 
@@ -147,13 +157,13 @@ class PpsCTTH(mpop.channel.GenericChannel):
         import epshdf
         self.copy(epshdf.read_cloudtop(filename))
 
-def load(scene, **kwargs):
+def load(scene, *args, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
     containing channels we will load data into. If None, all channels are
     loaded.
     """
 
-    del kwargs
+    del args, kwargs
 
     if("CTTH" not in scene.channels_to_load and
        "CloudType" not in scene.channels_to_load):
