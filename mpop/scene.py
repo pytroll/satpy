@@ -228,7 +228,11 @@ class SatelliteInstrumentScene(SatelliteScene):
                 if((section[:-1].endswith("level") or
                     section.endswith("granules")) and
                    section.startswith(self.instrument_name)):
-                    fmt = eval(conf.get(section, "format"))
+                    try:
+                        fmt = eval(conf.get(section, "format"))
+                    except NameError:
+                        fmt = conf.get(section, "format")
+
                     plugin = get_plugin("reader", fmt)
                     if plugin is not None:
                         setattr(self, fmt + "_reader", plugin(self))
