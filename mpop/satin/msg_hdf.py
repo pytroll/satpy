@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,6 +37,17 @@ import numpy as np
 import glob
 from mpop.utils import get_logger
 from mpop.projector import get_area_def
+from mpop.plugin_base import Reader
+
+class MsgHdfReader(Reader):
+    """Plugin for reading MSG HDF format.
+    """
+    pformat = "msg_hdf"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6

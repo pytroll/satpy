@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -41,7 +41,19 @@ import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
+from mpop.plugin_base import Reader
 
+class Eps1bReader(Reader):
+    """Plugin for reading Eps 1b format.
+    """
+    pformat = "eps_avhrr"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
+
+        
 RECORD_CLASS = ["Reserved", "MPHR", "SPHR",
                 "IPR", "GEADR", "GIADR",
                 "VEADR", "VIADR", "MDR"]

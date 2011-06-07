@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -39,6 +39,17 @@ from mpop.utils import ensure_dir
 import mpop.satin.aapp1b
 from mpop.satellites import get_satellite_class
 from mpop import CONFIG_PATH
+from mpop.plugin_base import Reader
+
+class HRPTReader(Reader):
+    """Plugin for reading HRPT format.
+    """
+    pformat = "hrpt"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 WORKING_DIR = "/tmp"
 
