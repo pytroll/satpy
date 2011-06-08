@@ -1082,13 +1082,13 @@ def get_best_product(filename):
     return msg_filename
 
     
-def load(scene, **kwargs):
+def load(scene, *args, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
     containing channels we will load data into. If None, all channels are
     loaded.
     """
 
-    del kwargs
+    del args, kwargs
 
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
