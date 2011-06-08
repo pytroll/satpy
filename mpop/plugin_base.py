@@ -120,7 +120,7 @@ def load_plugins(directory):
                 LOG.info("Imported plugin file "+
                          os.path.join(directory, name)+
                          ".")
-            except ImportError, exc:
+            except Exception, exc:
                 LOG.warning("Could not read plugin file "+
                             os.path.join(directory, name)+
                             ": "+str(exc))
