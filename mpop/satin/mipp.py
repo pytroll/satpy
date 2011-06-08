@@ -102,7 +102,7 @@ class MippReader(Reader):
                 self._scene.area = get_area_def(self._scene.area_id)
             area_extent = self._scene.area.area_extent
             from_area = True
-        print channels_to_load
+
         for chn in channels_to_load:
             if from_area:
                 try:
