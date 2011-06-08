@@ -71,6 +71,7 @@ from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 import mpop.channel
 
+from mpop.plugin_base import Reader
 
 EARTH_RADIUS = 6371000.0
 
@@ -103,6 +104,147 @@ if sys.version_info < (2, 5):
 else:
     strptime = datetime.datetime.strptime
 
+
+class MerisReader(Reader):
+    """Reader for MERIS level2 data"""
+    pformat = 'meris_level2'
+    def __init__(self,  *args, **kwargs):
+        Reader.__init__(self, *args, **kwargs)
+
+        self.is_compressed = False
+        self.compression = None # Supports only gzip compression
+
+        self.gads = None
+        self.satid = ""
+        self.orbit = None
+        self.info = {}
+
+        conf = ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, self._scene.fullname + ".cfg"))
+        options = {}
+        for option, value in conf.items(self._scene.instrument_name+"-level3",
+                                        raw = True):
+            options[option] = value
+
+        if "filename" not in options:
+            raise IOError("No filename given, cannot load.")
+        if "dir" not in options:
+            raise IOError("No directory given, cannot load.")
+
+        #MER_FRS_2PNPDE20101217_094256_000001993097_00295_45999_5414.N1.gz
+        #filename = MER_FRS_2PNPDE%Y%m%d_%H%M*.N1.gz
+
+        pathname = os.path.join(options["dir"], options['filename'])    
+        print "Path = ", pathname
+        LOG.debug("Looking for file %s" % self._scene.time_slot.strftime(pathname))
+        file_list = glob.glob(self._scene.time_slot.strftime(pathname))
+        print self._scene.time_slot.strftime(pathname)
+
+        if len(file_list) > 1:
+            raise IOError("More than one MERIS file matching!")
+        elif len(file_list) == 0:
+            raise IOError("No MERIS file matching!")
+
+        self.filename = file_list[0]
+        if self.filename and is_file_gzipped(self.filename):
+            self.is_compressed = True
+            self.compression = "gzip"
+        
+        LOG.info('File = ' + self.filename)
+        LOG.info('Is compressed = ' + str(self.is_compressed))
+
+
+    def load(self, *args, **kwargs):
+        """load data"""
+        del args
+        load(self._scene, **kwargs)
+
+    def get_gross_area(self):
+        """Build a gross area of the MERIS scene based on its corners.
+        """
+        from pyresample.geometry import SwathDefinition
+
+        # Get lon,lat of the four corner points.
+        # Read the header:
+        if not 'SPH_FIRST_FIRST_LONG' in self.info:
+            self.read_header()
+
+        fflon = self.info['SPH_FIRST_FIRST_LONG']
+        fllon = self.info['SPH_FIRST_LAST_LONG']
+        lflon = self.info['SPH_LAST_FIRST_LONG']
+        lllon = self.info['SPH_LAST_LAST_LONG']
+
+        fflat = self.info['SPH_FIRST_FIRST_LAT']
+        fllat = self.info['SPH_FIRST_LAST_LAT']
+        lflat = self.info['SPH_LAST_FIRST_LAT']
+        lllat = self.info['SPH_LAST_LAST_LAT']
+
+        top_left = fllon, fllat
+        top_right = fflon, fflat
+        bottom_left = lllon, lllat
+        bottom_right = lflon, lflat
+
+        LOG.info("Coreners: ")
+        LOG.info("top-left: %f,%f" % (top_left[0], top_left[1]))
+        LOG.info("top-right: %f,%f" % (top_right[0], top_right[1]))
+        LOG.info("bottom-left: %f,%f" % (bottom_left[0], bottom_left[1]))
+        LOG.info("bottom-right: %f,%f" % (bottom_right[0], bottom_right[1]))
+
+        lons = np.array([[top_left[0], top_right[0]],
+                         [bottom_left[0], bottom_right[0]]])
+        lats = np.array([[top_left[1], top_right[1]],
+                         [bottom_left[1], bottom_right[1]]])
+
+        return SwathDefinition(lons, lats)
+        
+
+    def read_header(self):
+        """Read the ascii header without using gdal.
+        Supposed to be faster, especially if the file is compressed"""
+        import gzip
+
+        # For calibration:
+        self.gads = GADS_ScalingFactorsAndOFfsets(self.filename)
+        self.gads.get_products_scaling_factors()
+
+        try:
+            if self.is_compressed and self.compression == 'gzip':
+                infile = gzip.open(self.filename, 'rb')
+            else:
+                infile = open(self.filename, 'rb')
+
+            prefix = 'MPH_'
+            for line in infile:
+                if 'SPH_' in line:
+                    prefix = 'SPH_'
+                if 'DS_NAME' in line:
+                    break
+                if '=' in line:
+                    items = line.split('=')
+                    key = prefix + items[0].strip()
+                    if 'LAT' in line or 'LONG' in line:
+                        val = items[1].strip()
+                    else:
+                        try:
+                            val = items[1].strip(('<samples>' + 
+                                                  '<%>' + 
+                                                  '<bytes>\n'))
+                        except ValueError:
+                            val = items[1].strip()
+                    #print key, val
+                    if 'LAT' in line or 'LONG' in line:
+                        # Fix the lon and lat values properly:
+                        val = get_lonlat_value(val)
+                    if key not in self.info:
+                        self.info[key] = val
+        except Exception, exc:
+            errmsg = `exc.__str__()`
+            LOG.error("Failed extracting ascii header from file")
+            LOG.error("Error = %s" % errmsg)
+            raise exc
+
+        if not self.orbit:
+            self.orbit = int(self.info['MPH_ABS_ORBIT'])
 
 
 # ------------------------------------------------------------------------    
