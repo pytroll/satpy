@@ -139,6 +139,8 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         from pyhdf.SD import SD
         import datetime
 
+        del kwargs
+
         LOG.info("*** >>> Read the hdf-eos file!")
         
         if os.path.exists(filename):
@@ -196,7 +198,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         #    pass
 
         root.end()
-        self.filled= True
+        self.filled = True
 
 
     def project(self, coverage):
