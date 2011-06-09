@@ -585,12 +585,17 @@ def assemble_segments(segments):
     """Assemble the scene objects listed in *segment_list* and returns the
     resulting scene object.
     """
+    from mpop.satellites import GenericFactory
+    
     channels = set([])
     for seg in segments:
         channels |= set([chn.name for chn in seg.loaded_channels()])
 
     seg = segments[0]
-    new_scene = type(seg)(time_slot=seg.time_slot, orbit=seg.orbit)
+    
+    new_scene = GenericFactory.create_scene(seg.satname, seg.number,
+                                            seg.instrument_name, seg.time_slot,
+                                            seg.orbit, variant=seg.variant)
     
     for seg in segments:
         for chn in channels:
