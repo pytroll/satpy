@@ -1097,7 +1097,10 @@ def load(scene, *args, **kwargs):
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
     pathname = os.path.join(directory, filename)
-    area_name = scene.area_id or scene.area.area_id
+    try:
+        area_name = scene.area_id or scene.area.area_id
+    except AttributeError:
+        LOG.info("No area_id defined for this scene, can't load msg hdf's")
     
     if "CTTH" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
