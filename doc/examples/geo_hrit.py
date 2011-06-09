@@ -54,9 +54,25 @@ from mpop.satellites import GeostationaryFactory
 import sys
 from datetime import datetime
 
+if sys.version_info < (2, 5):
+    import time
+    def strptime(string, fmt=None):
+        """This function is available in the datetime module only
+        from Python >= 2.5.
+        """
+
+        return datetime(*time.strptime(string, fmt)[:6])
+
+else:
+    strptime = datetime.strptime
+
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "Usage: " + sys.argv[0] + " time_string"
+        sys.exit()
+
     time_string = sys.argv[1]
-    time_slot = datetime.strptime(time_string, "%Y%m%d%H%M")
+    time_slot = strptime(time_string, "%Y%m%d%H%M")
     global_data = GeostationaryFactory.create_scene("meteosat", "09",
                                                     "seviri", time_slot)
 
