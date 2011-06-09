@@ -26,6 +26,7 @@ import sys
 from datetime import timedelta, datetime
 import glob
 import os
+import time
 
 from mpop.saturn.gatherer import Granule, Gatherer
 
@@ -40,8 +41,13 @@ def get_files_newer_than(directory, time_stamp):
 
 
 if __name__ == '__main__':
-
+    if len(sys.argv) < 3:
+        print "Usage: " + sys.argv[0] + " directory wait_for_more"
+        sys.exit()
+        
     directory = sys.argv[1]
+    # if we wait for files in the directory forever or not
+    wait_for_more = eval(sys.argv[2])
 
     areas = ["euro4", "scan2"]
 
@@ -50,9 +56,14 @@ if __name__ == '__main__':
     time_stamp = datetime(1970, 1, 1)
     
     while True:
+
+        # Scanning directory
+        
         new_time_stamp = datetime.now()
         filenames = get_files_newer_than(directory, time_stamp)
         time_stamp = new_time_stamp
+
+        # Adding files to the gatherer
         
         for filename in filenames:
             granule = Granule(filename)
@@ -63,6 +74,8 @@ if __name__ == '__main__':
                                     number=granule.number,
                                     variant=granule.variant)
             gatherer.add(granule)
+
+        # Build finished swath and process them.
             
         for swath in gatherer.finished_swaths:
             global_data = swath.concatenate()
@@ -71,9 +84,16 @@ if __name__ == '__main__':
 
             time_string = global_data.time_slot.strftime("%Y%m%d%H%M")
 
+            area_id = swath.area.area_id
+            
             img = local_data.image.overview()
-            img.save("overview_" + swath.area + "_" + time_string + ".png")
+            img.save("overview_" + area_id + "_" + time_string + ".png")
 
-            img = local_data.image.cloudtop()
-            img.save("cloudtop_" + swath.area + "_" + time_string + ".png")
+            img = local_data.image.natural()
+            img.save("natural_" + area_id + "_" + time_string + ".png")
+
+        if not wait_for_more:
+            break
         
+        # wait 60 seconds before restarting
+        time.sleep(60)
