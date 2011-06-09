@@ -610,7 +610,7 @@ def assemble_segments(segments):
             if not seg[chn].is_loaded():
                 # this makes the assumption that all channels have the same
                 # shape.
-                seg[chn.name] = np.ma.masked_all_like(
+                seg[chn] = np.ma.masked_all_like(
                     list(seg.loaded_channels())[0].data)
 
     for chn in channels:
