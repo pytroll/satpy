@@ -224,6 +224,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
+
                 # set up reader proxies
                 if((section[:-1].endswith("level") or
                     section.endswith("granules")) and
@@ -640,33 +641,3 @@ def assemble_segments(segments):
         pass
 
     return new_scene
-
-def assemble_swaths(swath_list):
-    """Assemble the scene objects listed in *swath_list* and returns the
-    resulting scene object.
-    """
-    channels = set([])
-    for swt in swath_list:
-        channels |= set([chn.name for chn in swt.loaded_channels()])
-    
-    new_swath = copy.deepcopy(swath_list[0])
-    loaded_channels = set([chn.name for chn in new_swath.loaded_channels()])
-    all_mask = np.ma.masked_all_like(list(new_swath.loaded_channels())[0].data)
-    
-    for chn in channels - loaded_channels:
-        new_swath[chn] = all_mask
-        
-    for swt in swath_list[1:]:
-        for chn in new_swath.loaded_channels():
-            if swt[chn.name].is_loaded():
-                chn.data = np.ma.concatenate((chn.data,
-                                              swt[chn.name].data))
-            else:
-                chn.data = np.ma.concatenate((chn.data, all_mask))
-                
-        new_swath.lon = np.ma.concatenate((new_swath.lon,
-                                           swt.lon))
-        new_swath.lat = np.ma.concatenate((new_swath.lat,
-                                           swt.lat))
-
-    return new_swath
