@@ -748,9 +748,10 @@ CASES = {"MPHR": read_mphr,
 
 EPSILON = 0.001
 
-def load(satscene):
+def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
-    """    
+    """
+    del args, kwargs
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -799,6 +800,9 @@ def load_avhrr(satscene, options):
 
     satscene.lat = lats
     satscene.lon = lons
+
+    from pyresample import geometry
+    satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
 
     satscene.orbit = str(int(orbit) + 1)
 
