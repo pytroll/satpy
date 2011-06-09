@@ -70,7 +70,7 @@ if __name__ == '__main__':
             if gatherer is None:
                 gatherer = Gatherer(areas_of_interest=areas,
                                     timeliness=timedelta(minutes=150),
-                                    satellite=granule.satname,
+                                    satname=granule.satname,
                                     number=granule.number,
                                     variant=granule.variant)
             gatherer.add(granule)
