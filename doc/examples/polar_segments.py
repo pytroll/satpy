@@ -21,6 +21,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Minimal script for assembling and processing segmented polar data.
+
+We take the case of level 1b data (calibrated and geolocalized) from noaa 19,
+as output from AAPP.
+
+- Install mpop and pyresample
+- Don't forget to set up the PPP_CONFIG_DIR variable to point to your
+  configuration files.
+- Edit the gdsmetop02.cfg configuration file (a template is provided in case
+  you don't have one) with your data directory:
+  
+  .. code-block:: ini
+  
+   [avhrr-granules]
+   type=eps_avhrr
+   granularity=60
+   full_scan_period=0.1667
+   scan_width=2048
+   dir=/data/prod/satellit/ears/avhrr
+   filename=AVHR_xxx_1B_M02_%Y%m%d%H%M*
+
+
+- Here is a minimal script that monitors a directory and builds composites:
 """
 import sys
 from datetime import timedelta, datetime
