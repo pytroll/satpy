@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -38,7 +38,6 @@ import sys
 import mpop.utils
 from mpop import CONFIG_PATH
 from mpop.scene import Satellite, SatelliteInstrumentScene
-from mpop.satellites import get_satellite_class
 from mpop.projector import get_area_def
 
 DEFAULT_TIMELINESS = datetime.timedelta(minutes=5)
@@ -348,10 +347,13 @@ class SegmentedSwath(Satellite):
             
         except NoSectionError:
             #concatenate loaded granules.
-            klass = get_satellite_class(self.granules[0].satname,
-                                        self.granules[0].number,
-                                        self.granules[0].variant)
-            scenes = [klass(time_slot=granule.time_slot)
+            scenes = [GenericFactory.create_scene(granule.satname,
+                                                  granule.number,
+                                                  granule.instument_name,
+                                                  granule.time_slot,
+                                                  None,
+                                                  None,
+                                                  granule.variant)
                       for granule in self.granules]
             for granule in scenes:
                 granule.load(channels)

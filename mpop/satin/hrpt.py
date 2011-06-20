@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,8 +37,10 @@ from ConfigParser import ConfigParser
 
 from mpop.utils import ensure_dir
 import mpop.satin.aapp1b
-from mpop.satellites import get_satellite_class
 from mpop import CONFIG_PATH
+
+from mpop.satellites import PolarFactory 
+
 
 WORKING_DIR = "/tmp"
 
@@ -323,11 +325,14 @@ def concatenate(granules, channels=None):
                   get_orbit(granules[0].time_slot,
                             shortname))
     os.remove(output_name)
-    klass = get_satellite_class(granules[0].satname,
-                                granules[0].number,
-                                granules[0].variant)
-    scene = klass(time_slot=granules[0].time_slot,
-                  orbit=get_orbit(granules[0].time_slot, shortname))
+
+    scene = PolarFactory.create_scene(granules[0].satname,
+                                      granules[0].number,
+                                      granules[0].instrument_name,
+                                      granules[0].time_slot,
+                                      get_orbit(granules[0].time_slot,
+                                                shortname),
+                                      variant=granules[0].variant)
 
     scene.load(channels)
     os.remove(pathname)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -32,7 +32,7 @@ import random
 import unittest
 
 import mpop.instruments.visir
-
+import mpop.satellites
 
 INSTRUMENTS = ()
 
@@ -133,16 +133,16 @@ def patch_scene():
             if key in self.error:
                 raise KeyError()
             return FakeChannel(key)
-    mpop.instruments.visir.OldVisirScene = mpop.instruments.visir.VisirScene
-    mpop.instruments.visir.VisirScene = FakeSatscene
+    mpop.instruments.visir.OldVisirCompositer = mpop.instruments.visir.VisirCompositer
+    mpop.instruments.visir.VisirCompositer = FakeSatscene
     reload(mpop.satellites)
     
 
 def unpatch_scene():
     """Unpatch the :mod:`mpop.scene` module.
     """
-    mpop.instruments.visir.VisirScene = mpop.instruments.visir.OldVisirScene
-    delattr(mpop.instruments.visir, "OldVisirScene")
+    mpop.instruments.visir.VisirCompositer = mpop.instruments.visir.OldVisirCompositer
+    delattr(mpop.instruments.visir, "OldVisirCompositer")
     reload(mpop)
     reload(mpop.instruments)
     reload(mpop.instruments.visir)
@@ -163,16 +163,16 @@ class TestSatellites(unittest.TestCase):
         """Test the :func:`mpop.satellites.build_instrument` function.
         """
         name = random_string(10)
-        ch_list = [random_string(10), random_string(12)]
-        inst = mpop.satellites.build_instrument(name, ch_list)
+        #ch_list = [random_string(10), random_string(12)]
+        inst = mpop.satellites.build_instrument_compositer(name)
 
         # Test that the patches are applied
         self.assertEquals(inst.__version__, "fake")
 
         
-        self.assertEquals(inst.channel_list, ch_list)
+        #self.assertEquals(inst.channel_list, ch_list)
         self.assertEquals(inst.instrument_name, name)
-        self.assertEquals(inst.mro()[1], mpop.instruments.visir.VisirScene)
+        self.assertEquals(inst.mro()[1], mpop.instruments.visir.VisirCompositer)
 
     def test_build_satellite_class(self):
         """Test the :func:`mpop.satellites.build_satellite_class` function.
@@ -183,15 +183,16 @@ class TestSatellites(unittest.TestCase):
         satname = random_string(10)
         satnumber = random_string(10)
         satvar = random_string(10)
-        myclass = mpop.satellites.build_satellite_class(satname,
-                                                      satnumber,
-                                                      satvar)
-        self.assertEquals(myclass.satname, satname)
-        self.assertEquals(myclass.number, satnumber)
-        self.assertEquals(myclass.variant, satvar)
+        myclass = mpop.satellites.build_sat_instr_compositer((satname,
+                                                              satnumber,
+                                                              satvar),
+                                                             inst)
+        #self.assertEquals(myclass.satname, satname)
+        #self.assertEquals(myclass.number, satnumber)
+        #self.assertEquals(myclass.variant, satvar)
         self.assertEquals(myclass.mro()[1].__name__,
                           inst.capitalize() +
-                          "Scene")
+                          "Compositer")
             
     def test_get_satellite_class(self):
         """Test the :func:`mpop.satellites.get_satellite_class` function.
@@ -203,18 +204,23 @@ class TestSatellites(unittest.TestCase):
         satname = random_string(11)
         satnumber = random_string(10)
         satvar = random_string(10)
-        klass = mpop.satellites.get_satellite_class(satname, satnumber, satvar)
-        for i in klass:
-            self.assertTrue(i.mro()[0].__name__.startswith(
-                satvar.capitalize() + satname.capitalize() +
-                satnumber.capitalize()))
+        klass = mpop.satellites.get_sat_instr_compositer((satname,
+                                                          satnumber,
+                                                          satvar),
+                                                         inst)
+        self.assertTrue(klass.mro()[0].__name__.startswith(
+            satvar.capitalize() + satname.capitalize() +
+            satnumber.capitalize()))
 
 
         INSTRUMENTS = (inst,)
         satname = random_string(11)
         satnumber = random_string(10)
         satvar = random_string(10)
-        klass = mpop.satellites.get_satellite_class(satname, satnumber, satvar)
+        klass = mpop.satellites.get_sat_instr_compositer((satname,
+                                                          satnumber,
+                                                          satvar),
+                                                         inst)
         pklass = klass.mro()[0]
         self.assertTrue(pklass.__name__.startswith(
             satvar.capitalize() + satname.capitalize() +

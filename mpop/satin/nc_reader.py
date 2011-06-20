@@ -39,8 +39,8 @@ from ConfigParser import NoSectionError
 import numpy as np
 from netCDF4 import Dataset, num2date
 
-from mpop.instruments.visir import VisirScene
-from mpop.satellites import get_satellite_class
+from mpop.instruments.visir import VisirCompositer
+from mpop.satellites import GenericFactory
 from mpop.utils import get_logger
 from mpop.satout.cfscene import TIME_UNITS
 
@@ -86,16 +86,23 @@ def load_from_nc4(filename):
     service = str(rootgrp.service)
 
     satellite_name = str(rootgrp.satellite_name)
-
+    instrument_name = str(rootgrp.instrument_name)
 
     try:
-        klass = get_satellite_class(satellite_name,
-                                    satellite_number,
-                                    service)
-        scene = klass(time_slot=time_slot)
+        orbit = str(rootgrp.orbit)
+    except AttributeError:
+        orbit = None
+
+    try:
+        scene = GenericFactory.create_scene(satellite_name,
+                                            satellite_number,
+                                            instrument_name,
+                                            time_slot,
+                                            orbit,
+                                            None,
+                                            service)
     except NoSectionError:
-        klass = VisirScene
-        scene = klass(time_slot=time_slot)
+        scene = VisirCompositer(time_slot=time_slot)
         scene.satname = satellite_name
         scene.number = satellite_number
         scene.service = service
