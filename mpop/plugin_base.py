@@ -20,12 +20,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Plugin handling.
+"""The :mod:`mpop.plugin_base` module defines the plugin API.
 """
 import os.path
 import sys
 import weakref
+import ConfigParser
+import traceback
 
+from mpop import CONFIG_PATH
 from mpop import BASE_PATH
 from mpop.satin.logger import LOG
 
@@ -37,7 +40,7 @@ class Plugin(object):
 
 class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
-    the *load* method.
+    the *load* method. This is an abstract class to be inherited.
     """
     ptype = "reader"
     def __init__(self, scene):
@@ -51,15 +54,13 @@ class Reader(Plugin):
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.
-        
-        Arguments:
-        - `channels_to_load`:
         """
         raise NotImplementedError
 
 
 class Writer(Plugin):
-    """Writer plugins. They must implement the *save* method.
+    """Writer plugins. They must implement the *save* method. This is an
+    abstract class to be inherited.
     """
     ptype = "writer"
     
@@ -75,9 +76,6 @@ class Writer(Plugin):
 
     def save(self, filename):
         """Saves the scene to a given *filename*.
-        
-        Arguments:
-        - `filename`:
         """
         raise NotImplementedError
 
@@ -108,12 +106,14 @@ def get_plugin_formats(ptype):
     return [x.pformat for x in _get_plugin_type(ptype).__subclasses__()]
 
 
-def load_plugins(directory):
+def load_plugins_from_dir(directory):
     """Load all the plugins from *directory*.
     """
     sys.path.append(directory)
     for name in os.listdir(directory):
-        if name.endswith(".py") and not name.startswith("__"):
+        if (name.endswith(".py") and
+            (not name.startswith("__") and
+             not name.startswith("test_"))):
             modulename = name[:-3]
             try:
                 __import__(modulename)
@@ -124,21 +124,22 @@ def load_plugins(directory):
                 LOG.warning("Could not read plugin file "+
                             os.path.join(directory, name)+
                             ": "+str(exc))
+                LOG.debug(traceback.format_exc())
 
 # Load plugins on module import
 
-import ConfigParser
-from mpop import CONFIG_PATH
+def load_plugins():
+    """Read all plugins available from directories in *mpop.cfg*
+    """
+    conf = ConfigParser.ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
-CONF = ConfigParser.ConfigParser()
-CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+    directories = [x.strip() for x in conf.get("plugins", "dir").split(",")]
 
-DIRECTORIES = [x.strip() for x in CONF.get("plugins", "dir").split(",")]
-
-for plugin_dir in DIRECTORIES:
-    if os.path.split(plugin_dir)[0] == '':
-        load_plugins(os.path.join(BASE_PATH, "mpop", plugin_dir))
-    else:
-        load_plugins(plugin_dir)
+    for plugin_dir in directories:
+        if os.path.split(plugin_dir)[0] == '':
+            load_plugins_from_dir(os.path.join(BASE_PATH, "mpop", plugin_dir))
+        else:
+            load_plugins_from_dir(plugin_dir)
 
                 

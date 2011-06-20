@@ -46,7 +46,7 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 from mpop.utils import OrderedConfigParser
-from mpop.plugin_base import get_plugin
+from mpop.plugin_base import get_plugin, load_plugins
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
@@ -208,6 +208,8 @@ class SatelliteInstrumentScene(SatelliteScene):
             self.instrument_name = None
             
         self.channels = []
+
+        load_plugins()
 
         try:
             conf = OrderedConfigParser()
