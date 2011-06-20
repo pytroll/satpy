@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -33,8 +33,9 @@ import logging
 import sys
 
 from mpop.channel import NotLoadedError
-from mpop.satellites import get_satellite_class
+from mpop.satellites import get_sat_instr_compositer
 from mpop.saturn.tasklist import TaskList
+from mpop.satellites import GenericFactory
 
 LOG = logging.getLogger("runner")
 
@@ -147,7 +148,7 @@ class SequentialRunner(object):
     """Runs scenes in a sequential order, as opposed to parallelized running.
     """
 
-    def __init__(self, satellite, tasklist, precompute=False):
+    def __init__(self, satellite, instrument, tasklist, precompute=False):
         if isinstance(tasklist, str):
             tasklist = TaskList(tasklist)
         self.tasklist = tasklist
@@ -155,10 +156,12 @@ class SequentialRunner(object):
         self.satellite = satellite[0]
         self.number = satellite[1]
         self.variant = satellite[2]
+        self.instrument = instrument 
 
-        self.klass = get_satellite_class(self.satellite,
-                                         self.number,
-                                         self.variant)
+        self.klass = get_sat_instr_compositer((self.satellite,
+                                               self.number,
+                                               self.variant),
+                                              self.instrument)
         self.precompute = precompute
         self.running = True
 
@@ -175,7 +178,12 @@ class SequentialRunner(object):
         tasklist = self.tasklist.shape(self.klass, mode, areas, composites)
         
         for time_slot in time_slots:
-            self.data = self.klass(time_slot=time_slot)
+            self.data = GenericFactory.create_scene(self.satellite,
+                                                    self.number,
+                                                    self.instrument,
+                                                    time_slot,
+                                                    orbit=None,
+                                                    variant=self.variant)
             prerequisites = tasklist.get_prerequisites(self.klass)
             self.data.load(prerequisites)
             self.run_from_data(tasklist)
@@ -194,7 +202,7 @@ class SequentialRunner(object):
             local_data = self.data.project(area, prerequisites, self.precompute,
                                            mode="nearest")
             for product, flist in productlist.items():
-                fun = getattr(local_data, product)
+                fun = getattr(local_data.image, product)
                 flist = flist.put_date(local_data.time_slot)
                 metadata = {"area": area}
                 LOG.info("Orbit = " + str(local_data.orbit))
@@ -229,7 +237,7 @@ class SequentialRunner(object):
         area_name = self.data.area_id or self.data.area_def.area_id
         tasks, dummy = tasklist.split(area_name)
         for product, flist in tasks[area_name].items():
-            fun = getattr(self.data, product)
+            fun = getattr(self.data.image, product)
             flist = flist.put_date(self.data.time_slot)
 
             if self.data.orbit is not None:
