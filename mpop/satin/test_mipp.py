@@ -34,6 +34,7 @@ import unittest
 
 import numpy as np
 import xrit.sat
+import pyresample.geometry
 
 import mpop.satin.mipp
 import mpop.scene
@@ -85,6 +86,8 @@ def patch_configparser():
                             random.random()+2))
             elif args[1] == "format":
                 return "mipp"
+            elif args[1] == "dir":
+                return "satin, satout"
             else:
                 return DUMMY_STRING
 
@@ -209,6 +212,20 @@ def unpatch_mipp():
     delattr(xrit.sat, "old_load")
 
 
+def patch_pyresample():
+
+    def FakeAreaDef(*args, **kwargs):
+        del args, kwargs
+        return ""
+    
+    pyresample.geometry.OldAreaDefinition = pyresample.geometry.AreaDefinition
+    pyresample.geometry.AreaDefinition = FakeAreaDef
+
+def unpatch_pyresample():
+    pyresample.geometry.AreaDefinition = pyresample.geometry.OldAreaDefinition
+    delattr(pyresample.geometry, "OldAreaDefinition")
+
+
 class TestMipp(unittest.TestCase):
     """Class for testing the mipp loader.
     """
@@ -219,6 +236,7 @@ class TestMipp(unittest.TestCase):
         patch_configparser()
         patch_satellite()
         patch_mipp()
+        patch_pyresample()
         
     def test_load(self):
         """Test the loading function.
@@ -238,5 +256,6 @@ class TestMipp(unittest.TestCase):
         unpatch_configparser()
         unpatch_satellite()
         unpatch_mipp()
+        unpatch_pyresample()
 if __name__ == '__main__':
     unittest.main()
