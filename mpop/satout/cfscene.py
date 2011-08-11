@@ -28,6 +28,7 @@ conversion of mpop scene to cf conventions.
 """
 
 import numpy as np
+import numpy.ma as ma
 from netCDF4 import date2num
 
 from mpop.channel import Channel
@@ -87,19 +88,27 @@ class CFScene(object):
                 #print "INFO: ", chn.info
                 continue
 
-            chn_max = chn.data.max()
-            chn_min = chn.data.min()
-           
-            scale = ((chn_max - chn_min) / 
-                    (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
-            offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
-             
             fill_value = np.iinfo(CF_DATA_TYPE).min
-            valid_min = int((chn_min - offset) / scale)            
-            valid_max = int((chn_max - offset) / scale)
-            
-            data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
-            data[chn.data.mask] = fill_value            
+            if ma.count_masked(chn.data) == chn.data.size:
+                # All data is masked
+                data = np.ones(chn.data.shape, dtype=CF_DATA_TYPE) * fill_value
+                valid_min = fill_value
+                valid_max = fill_value
+                scale = 1
+                offset = 0
+            else:
+                chn_max = chn.data.max()
+                chn_min = chn.data.min()
+               
+                scale = ((chn_max - chn_min) / 
+                        (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
+                offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
+                                 
+                valid_min = int((chn_min - offset) / scale)            
+                valid_max = int((chn_max - offset) / scale)
+                
+                data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
+                data[chn.data.mask] = fill_value         
             
             str_res = str(int(chn.resolution)) + "m"
 
