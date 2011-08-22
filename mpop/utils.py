@@ -132,20 +132,13 @@ def get_logger(name):
     return log
 
 # Read default log level from mpop's config file
-_str2loglevel = {"DEBUG": logging.DEBUG,
-                 "INFO": logging.INFO,
-                 "WARNING": logging.WARNING,
-                 "ERROR": logging.ERROR,
-                 "FATAL": logging.FATAL,
-                 "CRITICAL": logging.CRITICAL}
-
 _config = ConfigParser.ConfigParser()
 _config.read(os.path.join(CONFIG_PATH, 'mpop.cfg'))
 try:
     default_loglevel = _config.get('general', 'loglevel')
 except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
     default_loglevel = 'WARNING'
-default_loglevel = _str2loglevel[default_loglevel.upper()]
+default_loglevel = getattr(logging, default_loglevel.upper())
 del _config
 
 logging_on(default_loglevel)
