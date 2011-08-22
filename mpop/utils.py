@@ -31,11 +31,12 @@
 """Module defining various utilities.
 """
 
+import os
 import re
 import ConfigParser
-
 import logging
 
+from mpop import CONFIG_PATH
 
 class OrderedConfigParser(object):
     """Intercepts read and stores ordered section names.
@@ -97,7 +98,7 @@ def debug_on():
     logging_on(logging.DEBUG)
 
 _is_logging_on = False
-def logging_on(level = logging.INFO):
+def logging_on(level=logging.INFO):
     """Turn logging on.
     """
     global _is_logging_on
@@ -130,5 +131,21 @@ def get_logger(name):
         log.addHandler(NullHandler())
     return log
 
-#Default level is warning
-logging_on(logging.WARNING)
+# Read default log level from mpop's config file
+_str2loglevel = {"DEBUG": logging.DEBUG,
+                 "INFO": logging.INFO,
+                 "WARNING": logging.WARNING,
+                 "ERROR": logging.ERROR,
+                 "FATAL": logging.FATAL,
+                 "CRITICAL": logging.CRITICAL}
+
+_config = ConfigParser.ConfigParser()
+_config.read(os.path.join(CONFIG_PATH, 'mpop.cfg'))
+try:
+    default_loglevel = _config.get('general', 'loglevel')
+except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+    default_loglevel = 'WARNING'
+default_loglevel = _str2loglevel[default_loglevel.upper()]
+del _config
+
+logging_on(default_loglevel)
