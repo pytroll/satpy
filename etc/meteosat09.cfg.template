@@ -3,6 +3,7 @@ satname = 'meteosat'
 projection = 'geos(0.0)'
 number = '09'
 instruments = ('seviri',)
+proj4_params = 'proj=geos lon_0=0.00 lat_0=0.00 a=6378169.00 b=6356583.80 h=35785831.00'
 
 [seviri-level1]
 filename_epi = 'H-000-MSG?__-MSG?________-_________-%(segment)s-%Y%m%d%H%M-__'
@@ -13,6 +14,11 @@ dir = '/local_disk/usr/src/msg/import/SEVIRI_data.20091008'
 
 [seviri-level2]
 format = 'mipp'
+
+[seviri-level3]
+filename = SAFNWC_MSG?_%(product)s%Y%m%d%H%M_%(area)s
+dir = /home/a001673/usr/src/msg/export/PGE%(number)s
+format = 'msg_hdf'
 
 [seviri-1]
 frequency = (0.56, 0.635, 0.71)
@@ -85,38 +91,6 @@ frequency = (0.5, 0.7, 0.9)
 resolution = 1000.134348869
 name = 'HRV'
 size = (11136, 11136)
-
-[utv]
-ctype_dir = /local_disk/data/test/geo_data/pge.200910081430
-ctth_dir = /local_disk/data/test/geo_data/pge.200910081430
-msg_inc = %(msg_dir)s/include
-msg_lib = %(msg_dir)s/bin
-msg_bin = %(msg_dir)s/bin
-msg_dir = /local_disk/opt/MSG/current
-
-[test]
-ctype_dir = %(msg_dir)s/export/PGE02
-ctth_dir = %(msg_dir)s/export/PGE03
-msg_inc = %(msg_dir)s/include
-msg_lib = %(msg_dir)s/bin
-msg_bin = %(msg_dir)s/bin
-msg_dir = /local_disk/opt/MSG/current
-
-[offline]
-ctype_dir = %(msg_dir)s/export/PGE02
-ctth_dir = %(msg_dir)s/export/PGE03
-msg_inc = %(msg_dir)s/include
-msg_lib = %(msg_dir)s/bin
-msg_bin = %(msg_dir)s/bin
-msg_dir = /local_disk/usr/src/msg
-
-[prod]
-ctype_dir = %(msg_dir)s/export/PGE02
-ctth_dir = %(msg_dir)s/export/PGE03
-msg_inc = %(msg_dir)s/include
-msg_lib = %(msg_dir)s/bin
-msg_bin = %(msg_dir)s/bin
-msg_dir = /local_disk/opt/MSG/current
 
 
 
