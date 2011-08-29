@@ -88,6 +88,15 @@ REGION: euro4 {
 	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
 };
 
+REGION: MSGHRVN {
+        NAME:          High resolution northern quarter globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         11136
+        YSIZE:         2784
+        AREA_EXTENT:   (-5568742.4, 2655354.0, 5568742.4, 5439725.2)
+};
+
 REGION: scan {
 	NAME:		Scandinavia
 	PCS_ID:		ps60n
@@ -206,3 +215,13 @@ REGION: euro {
 	YSIZE:		512
 	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
 };
+
+REGION: euro_north {
+        NAME:          Europe 3km/pixel
+        PCS_ID:        euro_north
+        PCS_DEF:       proj=stere,lon_0=8.00,lat_0=50.00,lat_ts=50.00,ellps=WGS84
+        XSIZE:         800
+        YSIZE:         870
+        AREA_EXTENT:   (-1370912.16,-909970.17,1029087.84,1700029.83)
+};
+
