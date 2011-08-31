@@ -436,12 +436,19 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode="quick"):
+    def project(self, dest_area, channels=None, precompute=False, mode=None):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
         if None, all channels are projected and copied over to the return
         snapshot.
+
+        If *precompute* is set to true, the projecting data is saved on disk
+        for reusage. *mode* sets the mode to project in: 'quick' which works
+        between cartographic projections, and, as its denomination indicates,
+        is quick (but lower quality), and 'nearest' which uses nearest
+        neighbour for best projection. A *mode* set to None uses 'quick' when
+        possible, 'nearest' otherwise.
 
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
