@@ -218,8 +218,14 @@ class SatelliteInstrumentScene(SatelliteScene):
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
                     name = eval(conf.get(section, "name"))
-                    w_range = eval(conf.get(section, "frequency"))
-                    resolution = eval(conf.get(section, "resolution"))
+                    try:
+                        w_range = eval(conf.get(section, "frequency"))
+                    except ConfigParser.NoOptionError:
+                        w_range = (-np.inf, -np.inf, -np.inf)
+                    try:
+                        resolution = eval(conf.get(section, "resolution"))
+                    except ConfigParser.NoOptionError:
+                        resolution = 0
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
