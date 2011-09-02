@@ -271,16 +271,16 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", data = data)
         self.assert_(self.chan.is_loaded())
 
-    def test_asimage(self):
+    def test_as_image(self):
         """Check the geo_image version of the channel.
         """
         data = np.random.rand(3, 3)
         
         self.chan = Channel(name="newchan", data=data)
-        img = self.chan.asimage(False)
+        img = self.chan.as_image(False)
         self.assert_(np.allclose(img.channels[0], data))
         self.assertEqual(img.mode, "L")
-        img = self.chan.asimage(True)
+        img = self.chan.as_image(True)
         self.assertEqual(img.channels[0].max(), 1)
         self.assertEqual(img.channels[0].min(), 0)
 

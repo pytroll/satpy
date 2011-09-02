@@ -243,7 +243,7 @@ class Channel(GenericChannel):
             img = pil.fromarray(np.array(data, np.uint8))
         img.show()
 
-    def asimage(self, stretched=True):
+    def as_image(self, stretched=True):
         """Return the channel as a :class:`mpop.imageo.geo_image.GeoImage`
         object. The *stretched* argument set to False allows the data to remain
         untouched (as opposed to crude stretched by default to obtain the same
