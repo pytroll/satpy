@@ -442,7 +442,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None):
+    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -455,6 +455,11 @@ class SatelliteInstrumentScene(SatelliteScene):
         is quick (but lower quality), and 'nearest' which uses nearest
         neighbour for best projection. A *mode* set to None uses 'quick' when
         possible, 'nearest' otherwise.
+
+        *radius* defines the radius of influence for neighbour search in
+         'nearest' mode. Setting it to None, or omitting it will fallback to
+         default values (5 times the channel resolution) or 10km if the
+         resolution is not available.
 
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
@@ -550,9 +555,15 @@ class SatelliteInstrumentScene(SatelliteScene):
                     area_id = chn.area_id or chn.area.area_id
                 
                 if area_id not in cov:
+                    if radius is None:
+                        if chn.resolution > 0:
+                            radius = 5 * chn.resolution
+                        else:
+                            radius = 10000
                     cov[area_id] = mpop.projector.Projector(chn.area,
                                                             dest_area,
-                                                            mode=mode)
+                                                            mode=mode,
+                                                            radius)
                     if precompute:
                         try:
                             cov[area_id].save()
