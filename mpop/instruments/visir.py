@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2011.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -28,7 +23,6 @@
 
 """This module defines the generic VISIR instrument class.
 """
-import mpop.scene
 from mpop.imageo import geo_image
 from mpop.compositer import Compositer
 
@@ -181,33 +175,6 @@ class VisirCompositer(Compositer):
 
     wv_low.prerequisites = set([7.3])
         
-    def natural(self):
-        """Make a Natural Colors RGB image composite.
-        """
-        self.check_channels(0.635, 0.85, 1.63)
-        
-        ch1 = self[1.63].check_range()
-        ch2 = self[0.85].check_range()
-        ch3 = self[0.635].check_range()
-
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB",
-                                 crange=((0, 90),
-                                         (0, 90),
-                                         (0, 90)))
-
-
-
-        img.enhance(gamma=1.8)
-
-        return img
-    
-    natural.prerequisites = set([0.635, 0.85, 1.63])
-    
-
     def green_snow(self):
         """Make a Green Snow RGB image composite.
         """

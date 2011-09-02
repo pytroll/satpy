@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
+# Copyright (c) 2010, 2011.
 
 # Author(s):
  
