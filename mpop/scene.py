@@ -600,6 +600,20 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
+    def append(self, scene):
+        """Append data from another *scene* to this one
+        """
+        
+        for chn in self.loaded_channels():
+            chn.data = np.ma.concatenate((chn.data, scene[chn.name].data))
+        if self.lon is not None:
+            self.lon = np.ma.concatenate((self.lon, scene.lon))
+        if self.lat is not None:
+            self.lat = np.ma.concatenate((self.lat, scene.lat))
+        if self.area is not None:
+            self.area.append(scene.area)
+            
+            
 if sys.version_info < (2, 5):
     def any(iterable):
         for element in iterable:
