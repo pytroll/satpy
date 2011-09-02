@@ -31,14 +31,10 @@ import mpop.instruments.visir
 from mpop.imageo import geo_image
 
 
-MVIRI = [["00_7", (0.5, 0.7, 0.9), 2500],
-         ["06_4", (5.7, 6.4, 7.1), 5000],
-         ["11_5", (10.5, 11.5, 12.5), 5000]]
-
-class MviriScene(mpop.instruments.visir.VisirScene):
+class MviriCompositer(mpop.instruments.visir.VisirCompositer):
     """This class sets up the Seviri instrument channel list.
     """
-    channel_list = MVIRI
+
     instrument_name = "mviri"
     
 

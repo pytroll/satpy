@@ -30,28 +30,14 @@
 import numpy as np
 
 import mpop.imageo.geo_image as geo_image
-from mpop.instruments.visir import VisirScene
+from mpop.instruments.visir import VisirCompositer
 from mpop.logger import LOG
 
 
-SEVIRI = [["VIS006", (0.56, 0.635, 0.71), 3000],
-          ["VIS008", (0.74, 0.81, 0.88), 3000],
-          ["IR_016", (1.50, 1.64, 1.78), 3000],
-          ["IR_039", (3.48, 3.92, 4.36), 3000],
-          ["WV_062", (5.35, 6.25, 7.15), 3000],
-          ["WV_073", (6.85, 7.35, 7.85), 3000],
-          ["IR_087", (8.30, 8.70, 9.10), 3000],
-          ["IR_097", (9.38, 9.66, 9.94), 3000],
-          ["IR_108", (9.80, 10.80, 11.80), 3000],
-          ["IR_120", (11.00, 12.00, 13.00), 3000],
-          ["IR_134", (12.40, 13.40, 14.40), 3000],
-          ["HRV", (0.50, 0.70, 0.90), 1000]]
-
-class SeviriScene(VisirScene):
+class SeviriCompositer(VisirCompositer):
     """This class sets up the Seviri instrument channel list.
     """
 
-    channel_list = SEVIRI
     instrument_name = "seviri"
 
     def co2corr(self):
@@ -103,7 +89,7 @@ class SeviriScene(VisirScene):
           
         """
 
-        if "_IR39Corr" in self:
+        if "_IR39Corr" in [chn.name for chn in self._data_holder.channels]:
             return
         
         self.check_channels(3.75, 10.8, 13.4)
@@ -119,7 +105,7 @@ class SeviriScene(VisirScene):
         t4_co2corr.wavelength_range = self[3.9].wavelength_range
         t4_co2corr.resolution = self[3.9].resolution
         
-        self.channels.append(t4_co2corr)
+        self._data_holder.channels.append(t4_co2corr)
 
     co2corr_chan.prerequisites = set([3.75, 10.8, 13.4])
 
