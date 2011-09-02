@@ -69,18 +69,20 @@ class Projector(object):
 
     To define a projector object, on has to specify *in_area* and *out_area*,
     and can also input the *in_lonlats* or the *mode* ('quick' which works only
-    if both in- and out-areas are AreaDefinitions, or 'nearest').
+    if both in- and out-areas are AreaDefinitions, or 'nearest'). *radius*
+    defines the radius of influence for nearest neighbour search in 'nearest'
+    mode.
     """
     
     in_area = None
     out_area = None
-    _swath = False
     _cache = None
     _filename = None
     mode = "quick"
 
     def __init__(self, in_area, out_area,
-                 in_latlons=None, mode=None):
+                 in_latlons=None, mode=None,
+                 radius=10000):
 
         # TODO:
         # - Rework so that in_area and out_area can be lonlats.
@@ -96,10 +98,8 @@ class Projector(object):
                 in_id = in_area.area_id
             elif isinstance(in_area, geometry.SwathDefinition):
                 self.in_area = in_area
-                self._swath = True
                 in_id = in_area.area_id
             elif in_latlons is not None:
-                self._swath = True
                 self.in_area = geometry.SwathDefinition(lons=in_latlons[0],
                                                         lats=in_latlons[1])
                 in_id = in_area
@@ -160,13 +160,6 @@ class Projector(object):
 
 
             if self.mode == "nearest":
-                # FIXME: these value should be dynamically computed, or in a
-                # configuration file.
-                if self._swath:
-                    radius = 5000
-                else:
-                    radius = 50000
-
                 valid_index, valid_output_index, index_array, distance_array = \
                              kd_tree.get_neighbour_info(self.in_area,
                                                         self.out_area,

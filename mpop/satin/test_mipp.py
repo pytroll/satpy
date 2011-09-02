@@ -178,7 +178,7 @@ def patch_mipp():
         def __init__(self, *args, **kwargs):
             del args, kwargs
             self.calibration_unit = random_string(1)
-            self.proj4_params = "proj=uie a=4646"
+            self.proj4_params = "proj=geos h=45684"
             self.pixel_size = (random.random() * 5642,
                                random.random() * 5642)
             self.area_extent = (random.random() * 5642000,

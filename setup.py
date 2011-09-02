@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -84,7 +84,10 @@ setup(name=NAME,
                     'doc/source/image.rst',
                     'doc/source/pp.rst',
                     'doc/source/saturn.rst',
-                    'doc/source/input.rst'])],
+                    'doc/source/input.rst',
+                    'doc/examples/geo_hrit.py',
+                    'doc/examples/polar_aapp1b.py',
+                    'doc/examples/polar_segments.py'])],
       zip_safe=False,
       ext_modules = EXTS,
       requires=['numpy (>=1.4.1)',

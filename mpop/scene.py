@@ -213,8 +213,14 @@ class SatelliteInstrumentScene(SatelliteScene):
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
                     name = eval(conf.get(section, "name"))
-                    w_range = eval(conf.get(section, "frequency"))
-                    resolution = eval(conf.get(section, "resolution"))
+                    try:
+                        w_range = eval(conf.get(section, "frequency"))
+                    except ConfigParser.NoOptionError:
+                        w_range = (-np.inf, -np.inf, -np.inf)
+                    try:
+                        resolution = eval(conf.get(section, "resolution"))
+                    except ConfigParser.NoOptionError:
+                        resolution = 0
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
@@ -324,7 +330,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         conf = ConfigParser.ConfigParser()
         try:
             conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
-
+            if len(conf.sections()) == 0:
+                raise ConfigParser.NoSectionError(("Config file did "
+                                                    "not make sense"))
             levels = [section for section in conf.sections()
                       if section.startswith(self.instrument_name+"-level")]
         except ConfigParser.NoSectionError:
@@ -336,6 +344,11 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         if levels[0] == self.instrument_name+"-level1":
             levels = levels[1:]
+
+        if len(levels) == 0:
+            raise ConfigParser.NoSectionError(
+                self.instrument_name+"-levelN (N>1) to tell me how to"+
+                " read data... Not reading anything.")
 
         for level in levels:
             if len(self.channels_to_load) == 0:
@@ -352,8 +365,15 @@ class SatelliteInstrumentScene(SatelliteScene):
             # read the data
             reader = "mpop.satin."+reader_name
             try:
-                reader_module = __import__(reader, globals(),
-                                           locals(), ['load'])
+                try:
+                    # Look for builtin reader
+                    reader_module = __import__(reader, globals(),
+                                               locals(), ['load'])
+                except ImportError:
+                    # Look for custom reader
+                    reader_module = __import__(reader_name, globals(),
+                                               locals(), ['load'])
+                                               
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
                        len(area_extent) == 4):
@@ -431,12 +451,24 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode="quick"):
+    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
         if None, all channels are projected and copied over to the return
         snapshot.
+
+        If *precompute* is set to true, the projecting data is saved on disk
+        for reusage. *mode* sets the mode to project in: 'quick' which works
+        between cartographic projections, and, as its denomination indicates,
+        is quick (but lower quality), and 'nearest' which uses nearest
+        neighbour for best projection. A *mode* set to None uses 'quick' when
+        possible, 'nearest' otherwise.
+
+        *radius* defines the radius of influence for neighbour search in
+         'nearest' mode. Setting it to None, or omitting it will fallback to
+         default values (5 times the channel resolution) or 10km if the
+         resolution is not available.
 
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
@@ -532,9 +564,15 @@ class SatelliteInstrumentScene(SatelliteScene):
                     area_id = chn.area_id or chn.area.area_id
                 
                 if area_id not in cov:
+                    if radius is None:
+                        if chn.resolution > 0:
+                            radius = 5 * chn.resolution
+                        else:
+                            radius = 10000
                     cov[area_id] = mpop.projector.Projector(chn.area,
                                                             dest_area,
-                                                            mode=mode)
+                                                            mode=mode,
+                                                            radius=radius)
                     if precompute:
                         try:
                             cov[area_id].save()
@@ -557,6 +595,20 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
+    def append(self, scene):
+        """Append data from another *scene* to this one
+        """
+        
+        for chn in self.loaded_channels():
+            chn.data = np.ma.concatenate((chn.data, scene[chn.name].data))
+        if self.lon is not None:
+            self.lon = np.ma.concatenate((self.lon, scene.lon))
+        if self.lat is not None:
+            self.lat = np.ma.concatenate((self.lat, scene.lat))
+        if self.area is not None:
+            self.area.append(scene.area)
+            
+            
 if sys.version_info < (2, 5):
     def any(iterable):
         for element in iterable:
