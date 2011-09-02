@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -264,7 +264,7 @@ class PolarFactory(object):
 
 
     @staticmethod
-    def create_scene(satname, satnumber, instrument, time_slot, orbit,
+    def create_scene(satname, satnumber, instrument, time_slot, orbit=None,
                      area=None, variant=''):
         """Create a compound satellite scene.
         """
