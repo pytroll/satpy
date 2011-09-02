@@ -563,7 +563,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     cov[area_id] = mpop.projector.Projector(chn.area,
                                                             dest_area,
                                                             mode=mode,
-                                                            radius)
+                                                            radius=radius)
                     if precompute:
                         try:
                             cov[area_id].save()
