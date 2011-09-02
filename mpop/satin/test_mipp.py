@@ -75,8 +75,10 @@ def patch_configparser():
             """
             del kwargs
             self = self
+            sec = args[0]
             if args[1] in ["name"]:
-                return "'"+random_string(10)+"'"
+                num = int(sec[len(INSTRUMENT_NAME) + 1:])
+                return "'"+CHANNELS[num]+"'"
             elif args[1] in ["resolution"]:
                 return str(random.randint(1,10000))
             elif args[1] in ["frequency"]:
@@ -92,8 +94,9 @@ def patch_configparser():
             """Dummy sections function.
             """
             self = self
-            return [INSTRUMENT_NAME + "-" + str(j)
+            secs = [INSTRUMENT_NAME+"-level2"] + [INSTRUMENT_NAME + "-" + str(j)
                     for j, dummy in enumerate(CHANNELS)]
+            return secs
         
         
         def items(self, arg):
@@ -223,14 +226,17 @@ class TestMipp(unittest.TestCase):
     def test_load(self):
         """Test the loading function.
         """
-        satscene = GeostationaryFactory.create_scene("meteosat", "09", "seviri", None)
-        satscene.mipp_reader.load([satscene.channels[random.randint(1, 10)].name])
-        print satscene.area_def
+        channels = ["VIS006", 'VIS008', 'IR_016', 'IR_039', 'WV_062', 'WV_073',
+                    'IR_087', 'IR_097', 'IR_108', 'IR_120', 'IR_134', 'HRV']
+        satscene = GeostationaryFactory.create_scene("meteosat", "09", INSTRUMENT_NAME, None)
+        channels_to_load = [CHANNELS[random.randint(0, len(CHANNELS)-1)]]
+        #print CHANNELS
+        print channels_to_load
+        print [x.name for x in satscene.channels]
+        satscene.load(channels_to_load)
         for chn in CHANNELS:
             if chn in satscene.channels_to_load:
                 self.assertEquals(satscene.channels[chn].data.shape, (3, 3))
-            else:
-                self.assertFalse(chn in satscene.channels)
         
     def tearDown(self):
         """Unpatch foreign modules.

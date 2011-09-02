@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
+# Copyright (c) 2010, 2011.
 
 # Author(s):
  
@@ -65,8 +60,8 @@ def patch_scene():
 
         def __getitem__(self, key):
             return FakeChannel(key)
-    mpop.instruments.visir.OldVisirScene = mpop.instruments.visir.VisirScene
-    mpop.instruments.visir.VisirScene = FakeSatscene
+    mpop.instruments.visir.OldVisirCompositer = mpop.instruments.visir.VisirCompositer
+    mpop.instruments.visir.VisirCompositer = FakeSatscene
     reload(mpop)
     reload(mpop.instruments)
     reload(mpop.instruments.mviri)
@@ -74,8 +69,8 @@ def patch_scene():
 def unpatch_scene():
     """Unpatch the :mod:`mpop.scene` module.
     """
-    mpop.instruments.visir.VisirScene = mpop.instruments.visir.OldVisirScene
-    delattr(mpop.instruments.visir, "OldVisirScene")
+    mpop.instruments.visir.VisirCompositer = mpop.instruments.visir.OldVisirCompositer
+    delattr(mpop.instruments.visir, "OldVisirCompositer")
     reload(mpop)
     reload(mpop.instruments)
     reload(mpop.instruments.visir)
@@ -120,7 +115,7 @@ class TestComposites(unittest.TestCase):
         """
         patch_geo_image()
         patch_scene()
-        self.scene = mpop.instruments.mviri.MviriScene()
+        self.scene = mpop.instruments.mviri.MviriCompositer()
 
     def test_overview(self):
         """Test overview.
