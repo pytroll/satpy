@@ -350,6 +350,11 @@ class SatelliteInstrumentScene(SatelliteScene):
         if levels[0] == self.instrument_name+"-level1":
             levels = levels[1:]
 
+        if len(levels) == 0:
+            raise ConfigParser.NoSectionError(
+                self.instrument_name+"-levelN (N>1) to tell me how to"+
+                " read data... Not reading anything.")
+
         for level in levels:
             if len(self.channels_to_load) == 0:
                 return
