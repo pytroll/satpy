@@ -37,6 +37,7 @@ import xrit.sat
 
 import mpop.satin.mipp
 import mpop.scene
+from mpop.satellites import GeostationaryFactory
 
 
 def random_string(length,
@@ -72,9 +73,20 @@ def patch_configparser():
         def get(self, *args, **kwargs):
             """Dummy get method
             """
-            del args, kwargs
+            del kwargs
             self = self
-            return DUMMY_STRING
+            if args[1] in ["name"]:
+                return "'"+random_string(10)+"'"
+            elif args[1] in ["resolution"]:
+                return str(random.randint(1,10000))
+            elif args[1] in ["frequency"]:
+                return str((random.random(),
+                            random.random()+1,
+                            random.random()+2))
+            elif args[1] == "format":
+                return "mipp"
+            else:
+                return DUMMY_STRING
 
         def sections(self):
             """Dummy sections function.
@@ -211,8 +223,8 @@ class TestMipp(unittest.TestCase):
     def test_load(self):
         """Test the loading function.
         """
-        satscene = mpop.scene.SatelliteInstrumentScene()
-        mpop.satin.mipp.load(satscene)
+        satscene = GeostationaryFactory.create_scene("meteosat", "09", "seviri", None)
+        satscene.mipp_reader.load([satscene.channels[random.randint(1, 10)].name])
         print satscene.area_def
         for chn in CHANNELS:
             if chn in satscene.channels_to_load:

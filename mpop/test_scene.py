@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -670,95 +670,97 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.scene.load(["CTTH"])
         
-    def test_assemble_swaths(self):
-        """Assembling swaths in a single satscene object.
-        """
-        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
-                    ["06_4", (5.7, 6.4, 7.1), 5000],
-                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+    # def test_assemble_segments(self):
+    #     """Assembling segments in a single satscene object.
+    #     """
+    #     channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+    #                 ["06_4", (5.7, 6.4, 7.1), 5000],
+    #                 ["11_5", (10.5, 11.5, 12.5), 5000]]
 
-        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
-            """Dummy satinst class.
-            """
-            instrument_name = random_string(8)
-            channel_list = channels
+    #     class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+    #         """Dummy satinst class.
+    #         """
+    #         satname = random_string(8)
+    #         number = random_string(8)
+    #         instrument_name = random_string(8)
+    #         channel_list = channels
 
-        self.scene = SatelliteInstrumentScene2()
-        scene2 = SatelliteInstrumentScene2()
+    #     self.scene = SatelliteInstrumentScene2()
+    #     scene2 = SatelliteInstrumentScene2()
 
-        self.scene.lon = np.ma.array(np.random.rand(3, 3),
-                                     mask = np.array(np.random.rand(3, 3) * 2,
-                                                     dtype = int))
+    #     self.scene.lon = np.ma.array(np.random.rand(3, 3),
+    #                                  mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                  dtype = int))
 
-        self.scene.lat = np.ma.array(np.random.rand(3, 3),
-                                     mask = np.array(np.random.rand(3, 3) * 2,
-                                                     dtype = int))
+    #     self.scene.lat = np.ma.array(np.random.rand(3, 3),
+    #                                  mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                  dtype = int))
 
-        self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
-        self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+    #     self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
+    #                                   mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                   dtype = int))
+    #     self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
+    #                                   mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                   dtype = int))
 
-        scene2.lon = np.ma.array(np.random.rand(3, 3),
-                                     mask = np.array(np.random.rand(3, 3) * 2,
-                                                     dtype = int))
+    #     scene2.lon = np.ma.array(np.random.rand(3, 3),
+    #                                  mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                  dtype = int))
 
-        scene2.lat = np.ma.array(np.random.rand(3, 3),
-                                     mask = np.array(np.random.rand(3, 3) * 2,
-                                                     dtype = int))
+    #     scene2.lat = np.ma.array(np.random.rand(3, 3),
+    #                                  mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                  dtype = int))
 
-        scene2[0.7] = np.ma.array(np.random.rand(3, 3),
-                                  mask = np.array(np.random.rand(3, 3) * 2,
-                                                  dtype = int))
-        scene2[11.5] = np.ma.array(np.random.rand(3, 3),
-                                   mask = np.array(np.random.rand(3, 3) * 2,
-                                                   dtype = int))
+    #     scene2[0.7] = np.ma.array(np.random.rand(3, 3),
+    #                               mask = np.array(np.random.rand(3, 3) * 2,
+    #                                               dtype = int))
+    #     scene2[11.5] = np.ma.array(np.random.rand(3, 3),
+    #                                mask = np.array(np.random.rand(3, 3) * 2,
+    #                                                dtype = int))
 
-        big_scene = mpop.scene.assemble_swaths([self.scene, scene2])
+    #     big_scene = mpop.scene.assemble_segments([self.scene, scene2])
 
-        data0 = big_scene[0.7].data
-        data1 = self.scene[0.7].data
-        data2 = scene2[0.7].data
+    #     data0 = big_scene[0.7].data
+    #     data1 = self.scene[0.7].data
+    #     data2 = scene2[0.7].data
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol=EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol=EPSILON))
 
-        data0 = big_scene[0.7].data.mask
-        data1 = self.scene[0.7].data.mask
-        data2 = scene2[0.7].data.mask
+    #     data0 = big_scene[0.7].data.mask
+    #     data1 = self.scene[0.7].data.mask
+    #     data2 = scene2[0.7].data.mask
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol=EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol=EPSILON))
 
-        data0 = big_scene[6.4].data
-        data1 = self.scene[6.4].data
-        data2 = np.ma.masked_all_like(data1)
+    #     data0 = big_scene[6.4].data
+    #     data1 = self.scene[6.4].data
+    #     data2 = np.ma.masked_all_like(data1)
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol=EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol=EPSILON))
 
-        data0 = big_scene[6.4].data.mask
-        data1 = self.scene[6.4].data.mask
-        data2 = data2.mask
+    #     data0 = big_scene[6.4].data.mask
+    #     data1 = self.scene[6.4].data.mask
+    #     data2 = data2.mask
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol=EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol=EPSILON))
 
-        data0 = big_scene[11.5].data
-        data2 = scene2[11.5].data
-        data1 = np.ma.masked_all_like(data2)
+    #     data0 = big_scene[11.5].data
+    #     data2 = scene2[11.5].data
+    #     data1 = np.ma.masked_all_like(data2)
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol=EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol=EPSILON))
 
-        data0 = big_scene[11.5].data.mask
-        data1 = data1.mask
-        data2 = scene2[11.5].data.mask
+    #     data0 = big_scene[11.5].data.mask
+    #     data1 = data1.mask
+    #     data2 = scene2[11.5].data.mask
 
-        self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
-                                       rtol = EPSILON))
+    #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
+    #                                    rtol = EPSILON))
 
         
 

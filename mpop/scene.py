@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2011.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -626,19 +621,24 @@ def assemble_segments(segments):
     """Assemble the scene objects listed in *segment_list* and returns the
     resulting scene object.
     """
+    from mpop.satellites import GenericFactory
+    
     channels = set([])
     for seg in segments:
         channels |= set([chn.name for chn in seg.loaded_channels()])
 
     seg = segments[0]
-    new_scene = type(seg)(time_slot=seg.time_slot, orbit=seg.orbit)
+    
+    new_scene = GenericFactory.create_scene(seg.satname, seg.number,
+                                            seg.instrument_name, seg.time_slot,
+                                            seg.orbit, variant=seg.variant)
     
     for seg in segments:
         for chn in channels:
             if not seg[chn].is_loaded():
                 # this makes the assumption that all channels have the same
                 # shape.
-                seg[chn.name] = np.ma.masked_all_like(
+                seg[chn] = np.ma.masked_all_like(
                     list(seg.loaded_channels())[0].data)
 
     for chn in channels:
@@ -669,33 +669,3 @@ def assemble_segments(segments):
         pass
 
     return new_scene
-
-def assemble_swaths(swath_list):
-    """Assemble the scene objects listed in *swath_list* and returns the
-    resulting scene object.
-    """
-    channels = set([])
-    for swt in swath_list:
-        channels |= set([chn.name for chn in swt.loaded_channels()])
-    
-    new_swath = copy.deepcopy(swath_list[0])
-    loaded_channels = set([chn.name for chn in new_swath.loaded_channels()])
-    all_mask = np.ma.masked_all_like(list(new_swath.loaded_channels())[0].data)
-    
-    for chn in channels - loaded_channels:
-        new_swath[chn] = all_mask
-        
-    for swt in swath_list[1:]:
-        for chn in new_swath.loaded_channels():
-            if swt[chn.name].is_loaded():
-                chn.data = np.ma.concatenate((chn.data,
-                                              swt[chn.name].data))
-            else:
-                chn.data = np.ma.concatenate((chn.data, all_mask))
-                
-        new_swath.lon = np.ma.concatenate((new_swath.lon,
-                                           swt.lon))
-        new_swath.lat = np.ma.concatenate((new_swath.lat,
-                                           swt.lat))
-
-    return new_swath

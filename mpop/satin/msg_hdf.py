@@ -184,6 +184,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
 
         h5f = tables.openFile(filename)
+        # pylint: disable-msg=W0212
         self.package = h5f.root._v_attrs["PACKAGE"]
         self.saf = h5f.root._v_attrs["SAF"]
         self.product_name = h5f.root._v_attrs["PRODUCT_NAME"]
@@ -203,6 +204,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.sgs_product_quality = h5f.root._v_attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.root._v_attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.root._v_attrs["PRODUCT_ALGORITHM_VERSION"]
+        # pylint: enable-msg=W0212
         # ------------------------
     
         # The cloudtype data
@@ -429,6 +431,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         h5f = tables.openFile(filename)
         
         # The header
+        # pylint: disable-msg=W0212
         self.package = h5f.root._v_attrs["PACKAGE"]
         self.saf = h5f.root._v_attrs["SAF"]
         self.product_name = h5f.root._v_attrs["PRODUCT_NAME"]
@@ -448,6 +451,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.sgs_product_quality = h5f.root._v_attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.root._v_attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.root._v_attrs["PRODUCT_ALGORITHM_VERSION"]
+        # pylint: enable-msg=W0212
         # ------------------------
     
         # The CTTH cloudiness data
@@ -485,7 +489,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
     
         # The CTTH pressure data
         self.pressure.data = h5f.root.CTTH_PRESS[:, :]
-        self.pressure.scaling_factor = h5f.root.CTTH_PRESS.attrs["SCALING_FACTOR"]
+        self.pressure.scaling_factor = \
+                                     h5f.root.CTTH_PRESS.attrs["SCALING_FACTOR"]
         self.pressure.offset = h5f.root.CTTH_PRESS.attrs["OFFSET"]
         self.pressure.num_of_lines = h5f.root.CTTH_PRESS.attrs["N_LINES"]
         self.pressure.num_of_columns = h5f.root.CTTH_PRESS.attrs["N_COLS"]
@@ -501,7 +506,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
     
         # The CTTH height data
         self.height.data = h5f.root.CTTH_HEIGHT[:, :]
-        self.height.scaling_factor = h5f.root.CTTH_HEIGHT.attrs["SCALING_FACTOR"]
+        self.height.scaling_factor = \
+                                   h5f.root.CTTH_HEIGHT.attrs["SCALING_FACTOR"]
         self.height.offset = h5f.root.CTTH_HEIGHT.attrs["OFFSET"]
         self.height.num_of_lines = h5f.root.CTTH_HEIGHT.attrs["N_LINES"]
         self.height.num_of_columns = h5f.root.CTTH_HEIGHT.attrs["N_COLS"]
@@ -640,6 +646,8 @@ def get_bit_from_flags(arr, nbit):
 
 
 def ctth_procflags2pps(data):
+    """Convert ctth processing flags from MSG to PPS format.
+    """
 
     ones = np.ones(data.shape,"h")
 
