@@ -335,7 +335,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         conf = ConfigParser.ConfigParser()
         try:
             conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
-
+            if len(conf.sections()) == 0:
+                raise ConfigParser.NoSectionError(("Config file did "
+                                                    "not make sense"))
             levels = [section for section in conf.sections()
                       if section.startswith(self.instrument_name+"-level")]
         except ConfigParser.NoSectionError:
@@ -363,8 +365,15 @@ class SatelliteInstrumentScene(SatelliteScene):
             # read the data
             reader = "mpop.satin."+reader_name
             try:
-                reader_module = __import__(reader, globals(),
-                                           locals(), ['load'])
+                try:
+                    # Look for builtin reader
+                    reader_module = __import__(reader, globals(),
+                                               locals(), ['load'])
+                except ImportError:
+                    # Look for custom reader
+                    reader_module = __import__(reader_name, globals(),
+                                               locals(), ['load'])
+                                               
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
                        len(area_extent) == 4):
