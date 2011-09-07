@@ -272,7 +272,14 @@ class SatelliteInstrumentScene(SatelliteScene):
             return channels[0]
 
     def __setitem__(self, key, data):
-        self[key].data = data
+        if isinstance(data, Channel):
+            self.channels.append(Channel(name=key,
+                                     wavelength_range=data.wavelength_range,
+                                     resolution=data.resolution))
+            self[key].data = data.data
+        else:    
+            self[key].data = data
+
 
     def __str__(self):
         return "\n".join([str(chn) for chn in self.channels])
