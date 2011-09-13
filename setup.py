@@ -67,7 +67,7 @@ except Exception, e:
 NAME = 'mpop'
 
 setup(name=NAME,
-      version=get_git_version(),
+      version="0.11.0",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
