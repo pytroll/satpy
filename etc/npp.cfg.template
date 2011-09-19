@@ -1,0 +1,107 @@
+[satellite]
+satname = npp
+variant = 
+#number = 1
+instruments = ('viirs',)
+
+[viirs-level2]
+# SVDNB_npp_d20100906_t2105098_e2106344_b00012_c20110707160525242376_noaa_ops.h5
+filename = SV???_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_ops.h5
+dir = /local_disk/laptop/NPP_NPOESS/SampleData/NPP_NCT4_SAMPLE_PRODUCTS
+format = viirs_sdr
+
+[viirs-m01]
+frequency = (402, 412, 422)
+resolution = 750
+name = 'M01'
+size = (3200,)
+
+[viirs-m02]
+frequency = (436, 445, 454)
+resolution = 750
+name = 'M02'
+size = (3200,)
+
+[viirs-m03]
+frequency = (478, 488, 498)
+resolution = 750
+name = 'M03'
+size = (3200,)
+
+[viirs-m04]
+frequency = (545, 555, 565)
+resolution = 750
+name = 'M04'
+size = (3200,)
+
+[viirs-m05]
+frequency = (662, 672, 682)
+resolution = 750
+name = 'M05'
+size = (3200,)
+
+[viirs-m06]
+frequency = (739, 746, 754)
+resolution = 750
+name = 'M06'
+size = (3200,)
+
+[viirs-m07]
+frequency = (846, 865, 885)
+resolution = 750
+name = 'M07'
+size = (3200,)
+
+[viirs-m08]
+frequency = (1230, 1240, 1250)
+resolution = 750
+name = 'M08'
+size = (3200,)
+
+[viirs-m09]
+frequency = (1371, 1378, 1386)
+resolution = 750
+name = 'M09'
+size = (3200,)
+
+[viirs-m10]
+frequency = (1580, 1610, 1640)
+resolution = 750
+name = 'M10'
+size = (3200,)
+
+[viirs-m11]
+frequency = (2225, 2250, 2275)
+resolution = 750
+name = 'M11'
+size = (3200,)
+
+[viirs-m12]
+frequency = (3610, 3700, 3790)
+resolution = 750
+name = 'M12'
+size = (3200,)
+
+[viirs-m13]
+frequency = (3973, 4050, 4128)
+resolution = 750
+name = 'M13'
+size = (3200,)
+
+[viirs-m14]
+frequency = (8400, 8550, 8700)
+resolution = 750
+name = 'M14'
+size = (3200,)
+
+[viirs-m15]
+frequency = (10263, 10763, 11263)
+resolution = 750
+name = 'M15'
+size = (3200,)
+
+[viirs-m16]
+frequency = (11538, 12013, 12489)
+resolution = 750
+name = 'M16'
+size = (3200,)
