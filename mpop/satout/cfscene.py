@@ -291,7 +291,7 @@ class CFScene(object):
                     except AttributeError:
                         pass
                     
-                    lats.info = {"var_name": "lon"+str_res,
+                    lats.info = {"var_name": "lat"+str_res,
                                  "var_data": lats.data,
                                  "var_dim_names": ("y"+str_res,
                                                    "x"+str_res),
