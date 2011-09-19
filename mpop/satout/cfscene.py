@@ -101,9 +101,12 @@ class CFScene(object):
                 chn_min = chn.data.min()
                
                 scale = ((chn_max - chn_min) / 
-                        (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
+                         (np.iinfo(CF_DATA_TYPE).max -
+                          np.iinfo(CF_DATA_TYPE).min - 1))
+                # Handle the case where all data has the same value.
+                if scale == 0:
+                    scale = 1
                 offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
-                                 
                 valid_min = int((chn_min - offset) / scale)            
                 valid_max = int((chn_max - offset) / scale)
                 
