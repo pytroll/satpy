@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -107,9 +107,11 @@ def load_avhrr(satscene, options):
             if chn in ["1", "2", "3A"]:
                 gain = instrument_data.info["vis_gain"]
                 intercept = instrument_data.info["vis_intercept"]
+                units = "%"
             else:
                 gain = instrument_data.info["ir_gain"]
                 intercept = instrument_data.info["ir_intercept"]
+                units = "K"
 
             chn_array = np.ma.array(data_channels[chn])
             missing_data = instrument_data.info["missing_data"]
@@ -127,6 +129,7 @@ def load_avhrr(satscene, options):
                                                     intercept,
                                                     0)
 
+            satscene[chn].info['units'] = units
         else:
             LOG.warning("Channel "+str(chn)+" not available, not loaded.")
 

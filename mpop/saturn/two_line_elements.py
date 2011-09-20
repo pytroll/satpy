@@ -19,34 +19,13 @@
 
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Current Day Number: 11364.541666667 (10 February 2011, 13:00:00 UTC)
 
-// SGP4 test
-
-NORAD Catalog No: 25544
-Satellite Name: ISS (ZARYA)
-TLE Line 1: 1 25544U 98067A   11036.41885377  .00015023  00000-0  11493-3 0  7736
-TLE Line 2: 2 25544  51.6463 116.5688 0003364 277.8443 128.8911 15.72389581700166
-
-SDP4: 0
-Period: 91.580357527185
-Age: 5.1228128965013
-Lat: -51.62128386358
-Lon: 18.52912756499
-Alt: 367.39281472872
-Range: 10318.551827092
-Range Rate: 1.2960949888636
-Azi: 168.25676645006
-Ele: -50.891962381116
-Velocity: 7.6898969280099
-Visible: 0
-Eclipsed: 0
-Eclipse Depth: -1.1299921383153
+"""Module to compute satellite positions from TLE.
 """
 import datetime
-import pprint
 import sys
+import urllib2
+
 import numpy as np
 
 
@@ -63,13 +42,6 @@ AE = 1.0
 # earth flattening
 F = 1/298.257223563
 
-TLE = """1 25544U 98067A   11036.41885377  .00015023  00000-0  11493-3 0  7736
-2 25544  51.6463 116.5688 0003364 277.8443 128.8911 15.72389581700166"""
-
-TLE = """1 27424U 02022A   11045.03153664  .00000197  00000-0  53804-4 0  8714
-2 27424  98.2146 347.6229 0001550  78.4076 281.7310 14.57100380467139"""
-
-import urllib2
 
 if sys.version_info < (2, 5):
     import time
@@ -82,6 +54,10 @@ if sys.version_info < (2, 5):
 else:
     strptime = datetime.datetime.strptime
 class Tle(object):
+    """The TLE object holds information and methods for orbit position
+    estimation.
+    """
+
 
     def __init__(self, tle=None, satellite=None):
         self.tle = tle
@@ -95,15 +71,15 @@ class Tle(object):
                 tlef = open(filelist[-1])
                 tles = [item.strip() for item in tlef]
                 tlef.close()
-                for i in xrange(0,len(tles)-2,3):
+                for i in xrange(0, len(tles) - 2, 3):
                     tles_dict[tles[i]] = tles[i+1]+"\n"+tles[i+2]
             else:
-                for f in ["resource.txt", "weather.txt"]:
-                    
-                    tles = urllib2.urlopen("http://celestrak.com/NORAD/elements/" + f).readlines()
+                for fname in ["resource.txt", "weather.txt"]:
+                    url = "http://celestrak.com/NORAD/elements/" + fname
+                    tles = urllib2.urlopen(url).readlines()
                     tles = [item.strip() for item in tles]
 
-                    for i in xrange(0,len(tles)-2,3):
+                    for i in xrange(0, len(tles) - 2, 3):
                         tles_dict[tles[i]] = tles[i+1]+"\n"+tles[i+2]
 
             self._read_tle(tles_dict[satellite.upper()])
@@ -111,8 +87,12 @@ class Tle(object):
 
 
     def _read_tle(self, lines):
+        """Read the raw tle.
+        """
 
         def _read_tle_decimal(rep):
+            """Read tle decimal point numbers.
+            """
             num = int(rep[:-2]) * 1.0e-5
             exp = int(rep[-2:])
             return num * 10 ** exp
@@ -144,6 +124,8 @@ class Tle(object):
 
 
     def _preprocess(self):
+        """Derivate some values from raw tle.
+        """
         self.tle["inclination"] = np.deg2rad(self.tle["inclination"])
         self.tle["right_ascension"] = np.deg2rad(self.tle["right_ascension"])
         self.tle["arg_perigee"] = np.deg2rad(self.tle["arg_perigee"])
@@ -189,9 +171,12 @@ class Tle(object):
         if self.tle["right_ascension_lon"] > np.pi:
             self.tle["right_ascension_lon"] -= 2 * np.pi
 
-    def get_position(self, time):
-        # for near earth orbits, period must be < 255 minutes
+# pylint: disable-msg=C0103
 
+    def get_position(self, current_time):
+        """Get cartesian position and velocity.
+        """
+        # for near earth orbits, period must be < 255 minutes
 
         perigee = self.tle["perigee"]
         a_0pp = self.tle["semi_major_axis"]
@@ -237,8 +222,10 @@ class Tle(object):
         C_4 = (coef * n_0pp *
                ((2 * eta * (1 + e_0 * eta) + e_0/2.0 + (eta**3)/2.0) -
                 2 * k_2 * xi / (a_0pp * (1 - eta**2)) *
-                (3*(1-3*theta**2) * (1 + (3*eta**2)/2.0 - 2*e_0*eta - e_0*eta**3/2.0) +
-                 3/4.0*(1-theta**2)*(2*eta**2 - e_0*eta - e_0*eta**3)*np.cos(2*w_0))))
+                (3*(1-3*theta**2) *
+                 (1 + (3*eta**2)/2.0 - 2*e_0*eta - e_0*eta**3/2.0) +
+                 3/4.0*(1-theta**2)*
+                 (2*eta**2 - e_0*eta - e_0*eta**3)*np.cos(2*w_0))))
 
         C_5 = coef * (1 + 11/4.0 * eta * (eta + e_0) + e_0 * eta**3)
         D_2 = 4 * a_0pp * xi * C_1**2
@@ -246,7 +233,7 @@ class Tle(object):
         D_4 = 2/3.0 * a_0pp * xi**3 * (221*a_0pp + 31*s) * C_1**4
 
         # Secular effects of atmospheric drag and gravitation
-        dt = _days(time - t_0) * XMNPDA
+        dt = _days(current_time - t_0) * XMNPDA
 
         M_df = (M_0 + (1 +
                        3*k_2*(-1 + 3*theta**2)/(2*a_0pp**2 * beta_0**3) +
@@ -256,7 +243,8 @@ class Tle(object):
         w_df = (w_0 + (-3*k_2*(1 - 5*theta**2)/(2*a_0pp**2*beta_0**4) +
                        3 * k_2**2 * (7 - 114*theta**2 + 395*theta**4)/
                        (16*a_0pp*beta_0**8) +
-                       5*k_4*(3-36*theta**2+49*theta**4)/(4*a_0pp**4*beta_0**8))*
+                       5*k_4*(3-36*theta**2+49*theta**4)/
+                       (4*a_0pp**4*beta_0**8))*
                 n_0pp*dt)
         W_df = (W_0 + (-3*k_2*theta/(a_0pp**2*beta_0**4) +
                        3*k_2**2*(4*theta- 19*theta**3)/(2*a_0pp**4*beta_0**8) +
@@ -277,7 +265,8 @@ class Tle(object):
         a = a_0pp * (1 - C_1 * dt - D_2 * dt**2 - D_3 * dt**3 - D_4 * dt**4)**2
         L = M_p + w + W + n_0pp * (3/2.0 * C_1 * dt**2 +
                                    (D_2 + 2 * C_1 ** 2) * dt**3 +
-                                   1/4.0 * (3*D_3 + 12*C_1*D_2 + 10*C_1**3)*dt**4 +
+                                   1/4.0 *
+                                   (3*D_3 + 12*C_1*D_2 + 10*C_1**3)*dt**4 +
                                    1.0/5 * (3*D_4 + 12*C_1*D_3 + 6*D_2**2 +
                                             30*C_1**2*D_2 + 15*C_1**4)*dt**5)
         beta = np.sqrt(1 - e**2)
@@ -365,10 +354,13 @@ class Tle(object):
 
         return r_x, r_y, r_z, rdot_x, rdot_y, rdot_z
 
-    def get_latlonalt(self, time):
-        pos_x, pos_y, pos_z, vel_x, vel_y, vel_z = self.get_position(time)
+    def get_latlonalt(self, current_time):
+        """Get lon lat and altitude for current time
+        """
+        pos_x, pos_y, pos_z, vel_x, vel_y, vel_z = \
+               self.get_position(current_time)
         del vel_x, vel_y, vel_z
-        lon = ((np.arctan2(pos_y * XKMPER, pos_x * XKMPER) - gmst(time))
+        lon = ((np.arctan2(pos_y * XKMPER, pos_x * XKMPER) - gmst(current_time))
                % (2 * np.pi))
 
         if lon > np.pi:
@@ -385,36 +377,41 @@ class Tle(object):
             lat = np.arctan2(pos_z + c * e2 *np.sin(lat2), r)
             if abs(lat - lat2) < 1e-10:
                 break
-        alt = r / np.cos(lat)- c;
+        alt = r / np.cos(lat)- c
         alt *= XKMPER
         return lat, lon, alt
+# pylint: enable-msg=C0103
 
 
 
-def _jdays(time):
-    dt = time - datetime.datetime(2000, 1, 1, 12, 0)
-    return _days(dt)
+def _jdays(current_time):
+    """Get the julian day of *current_time*.
+    """
+    d_t = current_time - datetime.datetime(2000, 1, 1, 12, 0)
+    return _days(d_t)
 
-def _days(dt):
-    return (dt.days +
-            (dt.seconds +
-             dt.microseconds / (1000000.0)) / (24 * 3600.0))
+def _days(d_t):
+    """Get the days (floating point) from *d_t*.
+    """
+    return (d_t.days +
+            (d_t.seconds +
+             d_t.microseconds / (1000000.0)) / (24 * 3600.0))
 
-def gmst(time):
-    """Greenwich mean sidereal time, in radians.
+def gmst(current_time):
+    """Greenwich mean sidereal current_time, in radians.
     http://celestrak.com/columns/v02n02/
     """
-    now = time
+    now = current_time
     #now = datetime.datetime(1995, 10, 1, 9, 0)
     now0 = datetime.datetime(now.year, now.month, now.day)
     epoch = datetime.datetime(2000, 1, 1, 12, 0)
     du2 = _days(now - epoch)
-    du = _days(now0 - epoch)
+    d_u = _days(now0 - epoch)
 
-    dus = (du2 - du) * 86400
-    Tu = du / 36525.0
-    theta_g_0 = (24110.54841 + Tu * (8640184.812866 +
-                                     Tu * (0.093104 - Tu * 6.2 * 10e-6)))
+    dus = (du2 - d_u) * 86400
+    t_u = d_u / 36525.0
+    theta_g_0 = (24110.54841 + t_u * (8640184.812866 +
+                                      t_u * (0.093104 - t_u * 6.2 * 10e-6)))
     theta_g = (theta_g_0 + dus * 1.00273790934) % 86400
     return (theta_g / 86400.0) * 2 * np.pi
 
@@ -422,7 +419,4 @@ def gmst(time):
     
 if __name__ == "__main__":
     
-    tle = Tle(satellite="aqua")
-    import pprint
-    pprint.pprint(tle.tle)
-    print np.rad2deg(tle.get_latlonalt(tle.tle["epoch"]))
+    pass

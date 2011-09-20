@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
+# Copyright (c) 2010, 2011.
 
 # Author(s):
  
@@ -122,7 +117,8 @@ class TestComposites(unittest.TestCase):
         """
         patch_geo_image()
         patch_scene()
-        self.scene = mpop.instruments.visir.VisirScene()
+        self.scene = mpop.instruments.visir.VisirCompositer(mpop.scene.SatelliteInstrumentScene())
+        
 
     def test_channel_image(self):
         """Test channel_image.
@@ -165,60 +161,60 @@ class TestComposites(unittest.TestCase):
         #                                                         9.7, 10.8]))
 
     
-    def test_vis06(self):
-        """Test vis06.
-        """
-        img = self.scene.vis06()
-        self.assertEquals(0.6, img.args[0])
-        self.assertEquals(img.kwargs["mode"], "L")
-        self.assertEquals(img.kwargs["fill_value"], 0)
-        self.assertEquals(img.kwargs["stretch"], "crude")
-        self.assertTrue("gamma" not in img.kwargs)
-        self.assertTrue("crange" not in img.kwargs)
-        #self.assertEquals(self.scene.vis06.prerequisites,
-        #                  set([0.635]))
+    # def test_vis06(self):
+    #     """Test vis06.
+    #     """
+    #     img = self.scene.vis06()
+    #     self.assertEquals(0.6, img.args[0])
+    #     self.assertEquals(img.kwargs["mode"], "L")
+    #     self.assertEquals(img.kwargs["fill_value"], 0)
+    #     self.assertEquals(img.kwargs["stretch"], "crude")
+    #     self.assertTrue("gamma" not in img.kwargs)
+    #     self.assertTrue("crange" not in img.kwargs)
+    #     #self.assertEquals(self.scene.vis06.prerequisites,
+    #     #                  set([0.635]))
 
-    def test_ir108(self):
-        """Test ir108.
-        """
-        img = self.scene.ir108()
-        self.assertEquals(10.8, img.args[0])
-        self.assertEquals(img.kwargs["mode"], "L")
-        self.assertEquals(img.kwargs["fill_value"], 0)
-        self.assertEquals(img.kwargs["crange"], (-70 + 273.15, 57.5 + 273.15))
-        self.assertEquals(img.kwargs["inverse"], True)
-        self.assertTrue("gamma" not in img.kwargs)
-        self.assertTrue("stretch" not in img.kwargs)
-        #self.assertEquals(self.scene.ir108.prerequisites,
-        #                  set([10.8]))
+    # def test_ir108(self):
+    #     """Test ir108.
+    #     """
+    #     img = self.scene.ir108()
+    #     self.assertEquals(10.8, img.args[0])
+    #     self.assertEquals(img.kwargs["mode"], "L")
+    #     self.assertEquals(img.kwargs["fill_value"], 0)
+    #     self.assertEquals(img.kwargs["crange"], (-70 + 273.15, 57.5 + 273.15))
+    #     self.assertEquals(img.kwargs["inverse"], True)
+    #     self.assertTrue("gamma" not in img.kwargs)
+    #     self.assertTrue("stretch" not in img.kwargs)
+    #     #self.assertEquals(self.scene.ir108.prerequisites,
+    #     #                  set([10.8]))
 
-    def test_wv_high(self):
-        """Test wv_high.
-        """
-        img = self.scene.wv_high()
-        self.assertEquals(6.7, img.args[0])
-        self.assertEquals(img.kwargs["mode"], "L")
-        self.assertEquals(img.kwargs["fill_value"], 0)
-        self.assertEquals(img.kwargs["stretch"], "linear")
-        self.assertEquals(img.kwargs["inverse"], True)
-        self.assertTrue("gamma" not in img.kwargs)
-        self.assertTrue("crange" not in img.kwargs)
-        #self.assertEquals(self.scene.wv_high.prerequisites,
-        #                  set([6.7]))
+    # def test_wv_high(self):
+    #     """Test wv_high.
+    #     """
+    #     img = self.scene.wv_high()
+    #     self.assertEquals(6.7, img.args[0])
+    #     self.assertEquals(img.kwargs["mode"], "L")
+    #     self.assertEquals(img.kwargs["fill_value"], 0)
+    #     self.assertEquals(img.kwargs["stretch"], "linear")
+    #     self.assertEquals(img.kwargs["inverse"], True)
+    #     self.assertTrue("gamma" not in img.kwargs)
+    #     self.assertTrue("crange" not in img.kwargs)
+    #     #self.assertEquals(self.scene.wv_high.prerequisites,
+    #     #                  set([6.7]))
 
-    def test_wv_low(self):
-        """Test wv_low.
-        """
-        img = self.scene.wv_low()
-        self.assertEquals(7.3, img.args[0])
-        self.assertEquals(img.kwargs["mode"], "L")
-        self.assertEquals(img.kwargs["fill_value"], 0)
-        self.assertEquals(img.kwargs["stretch"], "linear")
-        self.assertEquals(img.kwargs["inverse"], True)
-        self.assertTrue("gamma" not in img.kwargs)
-        self.assertTrue("crange" not in img.kwargs)
-        #self.assertEquals(self.scene.wv_low.prerequisites,
-        #                  set([7.3]))
+    # def test_wv_low(self):
+    #     """Test wv_low.
+    #     """
+    #     img = self.scene.wv_low()
+    #     self.assertEquals(7.3, img.args[0])
+    #     self.assertEquals(img.kwargs["mode"], "L")
+    #     self.assertEquals(img.kwargs["fill_value"], 0)
+    #     self.assertEquals(img.kwargs["stretch"], "linear")
+    #     self.assertEquals(img.kwargs["inverse"], True)
+    #     self.assertTrue("gamma" not in img.kwargs)
+    #     self.assertTrue("crange" not in img.kwargs)
+    #     #self.assertEquals(self.scene.wv_low.prerequisites,
+    #     #                  set([7.3]))
 
     def test_natural(self):
         """Test natural.
@@ -236,31 +232,31 @@ class TestComposites(unittest.TestCase):
         #                  set([0.635, 0.85, 1.63]))
         
 
-    def test_green_snow(self):
-        """Test green_snow.
-        """
-        img = self.scene.green_snow()
-        self.assertEquals(img.kwargs["mode"], "RGB")
-        self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
-        self.assertEquals(img.args[0], (1.63, 0.85, -10.8))
-        self.assertEquals(img.kwargs["stretch"], "crude")
-        self.assertEquals(img.kwargs["gamma"], 1.6)
-        self.assertTrue("crange" not in img.kwargs)
-        #self.assertEquals(self.scene.green_snow.prerequisites,
-        #                  set([1.63, 0.85, 10.8]))
+    # def test_green_snow(self):
+    #     """Test green_snow.
+    #     """
+    #     img = self.scene.green_snow()
+    #     self.assertEquals(img.kwargs["mode"], "RGB")
+    #     self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
+    #     self.assertEquals(img.args[0], (1.63, 0.85, -10.8))
+    #     self.assertEquals(img.kwargs["stretch"], "crude")
+    #     self.assertEquals(img.kwargs["gamma"], 1.6)
+    #     self.assertTrue("crange" not in img.kwargs)
+    #     #self.assertEquals(self.scene.green_snow.prerequisites,
+    #     #                  set([1.63, 0.85, 10.8]))
 
-    def test_red_snow(self):
-        """Test red_snow.
-        """
-        img = self.scene.red_snow()
-        self.assertEquals(img.kwargs["mode"], "RGB")
-        self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
-        self.assertEquals(img.args[0], (0.635, 1.63, -10.8))
-        self.assertEquals(img.kwargs["stretch"], "crude")
-        self.assertTrue("crange" not in img.kwargs)
-        self.assertTrue("gamma" not in img.kwargs)
-        #self.assertEquals(self.scene.red_snow.prerequisites,
-        #                  set([1.63, 0.635, 10.8]))
+    # def test_red_snow(self):
+    #     """Test red_snow.
+    #     """
+    #     img = self.scene.red_snow()
+    #     self.assertEquals(img.kwargs["mode"], "RGB")
+    #     self.assertEquals(img.kwargs["fill_value"], (0, 0, 0))
+    #     self.assertEquals(img.args[0], (0.635, 1.63, -10.8))
+    #     self.assertEquals(img.kwargs["stretch"], "crude")
+    #     self.assertTrue("crange" not in img.kwargs)
+    #     self.assertTrue("gamma" not in img.kwargs)
+    #     #self.assertEquals(self.scene.red_snow.prerequisites,
+    #     #                  set([1.63, 0.635, 10.8]))
     
 
     def test_convection(self):

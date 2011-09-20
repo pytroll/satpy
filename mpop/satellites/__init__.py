@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,108 +37,6 @@ from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
 LOG = mpop.utils.get_logger("satellites")
-
-def get_satellite_class(satellite, number, variant=""):
-    """Get the class for a given satellite, defined by the three strings
-    *satellite*, *number*, and *variant*. If no class is found, an attempt is
-    made to build the class from a corresponding configuration file, see
-    :func:`build_satellite_class`. Several classes can be returned if a given
-    satellite has several instruments.
-    """
-    classes = []
-    for i in dir(mpop.satellites):
-        module_name = "mpop.satellites."+i
-        for j in dir(eval(module_name)):
-            if(hasattr(eval(module_name+"."+j), "satname") and
-               hasattr(eval(module_name+"."+j), "number") and
-               satellite == eval(module_name+"."+j+".satname") and
-               number == eval(module_name+"."+j+".number")):
-                if(hasattr(eval(module_name+"."+j), "variant") and
-                   variant == eval(module_name+"."+j+".variant")):
-                    classes += [eval(module_name+"."+j)]
-                    instrument = classes[-1].instrument_name
-                    for k in get_custom_composites(variant + satellite +
-                                                   number + instrument):
-                        classes[-1].add_method(k)
-    if classes != []:
-        if len(classes) == 1:
-            return classes[0]
-        else:
-            return classes
-    else:
-        return build_satellite_class(satellite, number, variant)
-
-def build_instrument(instrument_name, channel_list):
-    """Automatically generate an instrument class from its *instrument_name* and
-    *channel_list*.
-    """
-
-    from mpop.instruments.visir import VisirScene
-    instrument_class = type(instrument_name.capitalize() + "Scene",
-                            (VisirScene,),
-                            {"channel_list": channel_list,
-                             "instrument_name": instrument_name})
-    for i in get_custom_composites(instrument_name):
-        instrument_class.add_method(i)
-        
-    return instrument_class
-                     
-def build_satellite_class(satellite, number, variant=""):
-    """Build a class for the given satellite (defined by the three strings
-    *satellite*, *number*, and *variant*) on the fly, using a config file. The
-    function returns as many classes as there are instruments defined in the
-    configuration files. They inherit from the corresponding instrument class,
-    which is also created on the fly is no predefined module for this
-    instrument is available.
-    """
-
-    fullname = variant + satellite + number
-    
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
-    instruments = eval(conf.get("satellite", "instruments"))
-    sat_classes = []
-    for instrument in instruments:
-        try:
-            mod = __import__("mpop.instruments." + instrument,
-                             globals(), locals(),
-                             [instrument.capitalize() + 'Scene'])
-            instrument_class = getattr(mod, instrument.capitalize() + 'Scene')
-            for i in get_custom_composites(instrument):
-                instrument_class.add_method(i)
-
-        except ImportError:
-            ch_list = []
-            for section in conf.sections():
-                if(not section[:-1].endswith("level") and
-                   not section.endswith("granules") and
-                   section.startswith(instrument)):
-                    ch_list += [[eval(conf.get(section, "name")),
-                                 eval(conf.get(section, "frequency")),
-                                 eval(conf.get(section, "resolution"))]]
-                                 
-            instrument_class = build_instrument(instrument, ch_list)
-
-        sat_class = type(variant.capitalize() +
-                         satellite.capitalize() +
-                         number.capitalize() +
-                         instrument.capitalize() +
-                         "Scene",
-                         (instrument_class,),
-                         {"satname": satellite,
-                          "number": number,
-                          "variant": variant})
-
-        for i in get_custom_composites(variant + satellite +
-                                       number + instrument):
-            sat_class.add_method(i)
-
-            
-        sat_classes += [sat_class]
-        
-    if len(sat_classes) == 1:
-        return sat_classes[0]
-    return sat_classes
 
 def get_custom_composites(name):
     """Get the home made methods for building composites for a given satellite
@@ -264,7 +162,7 @@ class PolarFactory(object):
 
 
     @staticmethod
-    def create_scene(satname, satnumber, instrument, time_slot, orbit,
+    def create_scene(satname, satnumber, instrument, time_slot, orbit=None,
                      area=None, variant=''):
         """Create a compound satellite scene.
         """

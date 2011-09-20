@@ -243,6 +243,19 @@ class Channel(GenericChannel):
             img = pil.fromarray(np.array(data, np.uint8))
         img.show()
 
+    def as_image(self, stretched=True):
+        """Return the channel as a :class:`mpop.imageo.geo_image.GeoImage`
+        object. The *stretched* argument set to False allows the data to remain
+        untouched (as opposed to crude stretched by default to obtain the same
+        output as :meth:`show`).
+        """
+        from mpop.imageo.geo_image import GeoImage
+
+        img = GeoImage(self._data, self.area, None)
+        if stretched:
+            img.stretch("crude")
+        return img
+
     def project(self, coverage_instance):
         """Make a projected copy of the current channel using the given
         *coverage_instance*.

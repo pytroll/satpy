@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -67,7 +67,7 @@ except Exception, e:
 NAME = 'mpop'
 
 setup(name=NAME,
-      version=get_git_version(),
+      version="0.11.0",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
@@ -84,7 +84,10 @@ setup(name=NAME,
                     'doc/source/image.rst',
                     'doc/source/pp.rst',
                     'doc/source/saturn.rst',
-                    'doc/source/input.rst'])],
+                    'doc/source/input.rst',
+                    'doc/examples/geo_hrit.py',
+                    'doc/examples/polar_aapp1b.py',
+                    'doc/examples/polar_segments.py'])],
       zip_safe=False,
       ext_modules = EXTS,
       requires=['numpy (>=1.4.1)',
