@@ -163,8 +163,7 @@ class ViirsMbandData(object):
 def get_lonlat(filename):
     """Read lon,lat from hdf5 file"""
     import h5py
-    
-    print("File = " + filename)
+    print("Geo File = " + filename)
 
     h5f = h5py.File(filename, 'r')
     # Doing it a bit dirty for now - AD:
@@ -266,8 +265,16 @@ def load_viirs_sdr(satscene, options):
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
 
-    satscene.lat = lats
-    satscene.lon = lons
+    #satscene.lat = lats
+    #satscene.lon = lons
+
+    try:
+        from pyresample import geometry
+        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+    except ImportError:
+        satscene.area = None
+        satscene.lat = lats
+        satscene.lon = lons
 
 
 
