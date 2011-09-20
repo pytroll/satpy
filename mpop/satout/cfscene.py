@@ -112,7 +112,8 @@ class CFScene(object):
                 
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value         
-            
+            data = np.expand_dims(data, 0)
+
             str_res = str(int(chn.resolution)) + "m"
 
             if chn.resolution in resolutions:
@@ -120,7 +121,7 @@ class CFScene(object):
                 band = getattr(self, "band" + str_res)
 
                 # data
-                band.data = np.dstack((band.data, data))
+                band.data = np.vstack((band.data, data))
                 band.info["var_data"] = band.data
                 
                 # bandname
@@ -170,9 +171,9 @@ class CFScene(object):
                 band.data = data
                 band.info = {"var_name": "band_data"+str_res,
                              "var_data": band.data,
-                             'var_dim_names': ('y'+str_res,
-                                               'x'+str_res,
-                                               "band"+str_res),
+                             'var_dim_names': ("band"+str_res,
+                                               'y'+str_res,
+                                               'x'+str_res),
                              "standard_name": "band_data",
                              "valid_range": np.array([valid_min, valid_max]),
                              "resolution": chn.resolution}

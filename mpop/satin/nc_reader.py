@@ -202,7 +202,7 @@ def load_from_nc4(filename):
             
             for i, name in enumerate(names):
                 try:
-                    scene[name] = (data[:, :, i] *
+                    scene[name] = (data[i, :, :] *
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     #FIXME complete this
@@ -219,7 +219,7 @@ def load_from_nc4(filename):
                                                   (minmax[0],
                                                    wv_var[i][0],
                                                    minmax[1])))
-                    scene[name] = (data[:, :, i] *
+                    scene[name] = (data[i, :, :] *
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     
