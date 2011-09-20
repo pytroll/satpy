@@ -75,7 +75,7 @@ class ViirsMbandData(object):
             self.global_info[key] = h5f.attrs[key][0, 0]
             if key == 'N_GEO_Ref':
                 self.geo_filename = h5f.attrs[key][0, 0]
-
+                
         if 'Data_Products' not in h5f:
             raise IOError("No group 'All_Data' in hdf5 file: " + 
                           self.filename)
@@ -83,14 +83,15 @@ class ViirsMbandData(object):
         # Then get the band info (Data_Products attributes):
         bname = h5f['Data_Products'].keys()[0]
         for gran_aggr in h5f['Data_Products'][bname].keys():
-            for key in h5f['Data_Products'][bname][gran_aggr].attrs.keys():
-                self.band_info[key] = h5f.attrs[key][0, 0]
+            attributes = h5f['Data_Products'][bname][gran_aggr].attrs
+            for key in attributes.keys():
+                self.band_info[key] = attributes[key]
             if key == 'Band_ID':
-                self.band_id = h5f.attrs[key][0, 0]
+                self.band_id = attributes[key][0, 0]
             if key == 'AggregateBeginningOrbitNumber':
-                self.orbit_begin = h5f.attrs[key][0, 0]
+                self.orbit_begin = attributes[key][0, 0]
             if key == 'AggregateEndingOrbitNumber':
-                self.orbit_end = h5f.attrs[key][0, 0]
+                self.orbit_end = attributes[key][0, 0]
 
         self.orbit = self.orbit_begin
 
@@ -140,7 +141,7 @@ class ViirsMbandData(object):
         h5f.close()
 
 
-    def read_lonlat(self, **kwargs):
+    def read_lonlat(self, geodir, **kwargs):
         """Read the geolocation from the GMODO/GMTCO file"""
         if 'filename' in kwargs:
             # Overwriting the geo-filename:
@@ -152,13 +153,18 @@ class ViirsMbandData(object):
             print("Do nothing...")
             return
         
-        self.longitude, self.latitude = get_lonlat(self.geo_filename)
+        lon, lat = get_lonlat(os.path.join(geodir, 
+                                           self.geo_filename))
+        self.longitude = lon
+        self.latitude = lat
 
 
 # ------------------------------------------------------------------------------
 def get_lonlat(filename):
     """Read lon,lat from hdf5 file"""
     import h5py
+    
+    print("File = " + filename)
 
     h5f = h5py.File(filename, 'r')
     # Doing it a bit dirty for now - AD:
@@ -212,12 +218,14 @@ def load_viirs_sdr(satscene, options):
     for chn in satscene.channels_to_load:
         # Take only those files in the list matching the band:
         # (Filename starts with 'SV' and then the band-name)
+        #print filenames
+        #print chn
         fnames_band = [ s for s in filenames if s.find(chn) == 2 ]
         if len(fnames_band) == 0:
             continue
 
         filename_band = glob.glob(os.path.join(options["dir"], 
-                                               fnames_band))
+                                               fnames_band[0]))
         
         if len(filename_band) > 1:
             raise IOError("More than one file matching band-name %s" % chn)
@@ -231,7 +239,7 @@ def load_viirs_sdr(satscene, options):
         # We assume the same geolocation should apply to all M-bands!
         
         if not lonlat_is_loaded:
-            mband.read_lonlat()
+            mband.read_lonlat(options["dir"])
             lons = mband.longitude
             lats = mband.latitude
             lonlat_is_loaded = True
@@ -250,13 +258,16 @@ def load_viirs_sdr(satscene, options):
         satscene.info["institution"] = glob_info['institution']
 
     if 'mission_name' in glob_info:
-        satscene.add_to_history(glob_info['mission_name'][0, 0] + 
-                                " VIIRS SDR read by mpop" % 
+        satscene.add_to_history(glob_info['mission_name'] + 
+                                " VIIRS SDR read by mpop") 
     else:
         satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
 
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
+
+    satscene.lat = lats
+    satscene.lon = lons
 
 
 
