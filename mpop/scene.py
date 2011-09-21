@@ -403,8 +403,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         self.channels_to_load = set()
 
-    def save(self, filename, to_format="netcdf4", compression=True, 
-             dtype=np.int16):
+    def save(self, filename, to_format="netcdf4", **options):
         """Saves the current scene into a file of format *to_format*. Supported
         formats are:
         
@@ -417,8 +416,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         except ImportError, err:
             raise ImportError("Cannot load "+writer+" writer: "+str(err))
 
-        return writer_module.save(self, filename, compression=compression, 
-                                  dtype=dtype)
+        return writer_module.save(self, filename, **options)
 
     def unload(self, *channels):
         """Unloads *channels* from

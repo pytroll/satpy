@@ -49,7 +49,7 @@ class CFScene(object):
     """
     info = {}
     
-    def __init__(self, scene, dtype=np.int16):
+    def __init__(self, scene, dtype=np.int16, band_axis=2):
         if not issubclass(dtype, np.integer):
             raise TypeError('Only integer saving allowed for CF data')
         
@@ -112,7 +112,8 @@ class CFScene(object):
                 
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value         
-            
+            data = np.expand_dims(data, band_axis)
+
             str_res = str(int(chn.resolution)) + "m"
 
             if chn.resolution in resolutions:
@@ -120,7 +121,7 @@ class CFScene(object):
                 band = getattr(self, "band" + str_res)
 
                 # data
-                band.data = np.dstack((band.data, data))
+                band.data = np.concatenate((band.data, data), axis=band_axis)
                 band.info["var_data"] = band.data
                 
                 # bandname
@@ -168,11 +169,11 @@ class CFScene(object):
 
                 band = InfoObject()
                 band.data = data
+                dim_names = ['y'+str_res, 'x'+str_res]
+                dim_names.insert(band_axis, 'band'+str_res)
                 band.info = {"var_name": "band_data"+str_res,
                              "var_data": band.data,
-                             'var_dim_names': ('y'+str_res,
-                                               'x'+str_res,
-                                               "band"+str_res),
+                             'var_dim_names': dim_names,
                              "standard_name": "band_data",
                              "valid_range": np.array([valid_min, valid_max]),
                              "resolution": chn.resolution}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # Author(s):
  
@@ -34,11 +34,15 @@ import numpy as np
 from mpop.satout.cfscene import CFScene
 
 
-def save(scene, filename, compression=True, dtype=np.int16):
+def save(scene, filename, compression=True, dtype=np.int16, band_axis=2):
     """Saves the scene as a NetCDF4 file, with CF conventions.
+
+    *band_axis* gives the which axis to use for the band dimension. For
+     example, use band_axis=0 to get dimensions like (band, y, x).
     """
     scene.add_to_history("Saved as netcdf4/cf by mpop")
-    return netcdf_cf_writer(filename, CFScene(scene, dtype), compression=compression)
+    return netcdf_cf_writer(filename, CFScene(scene, dtype, band_axis),
+                            compression=compression)
 
 
 class WriterDimensionError(Exception):
