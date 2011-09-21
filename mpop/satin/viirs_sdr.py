@@ -235,7 +235,6 @@ def load_viirs_sdr(satscene, options):
         # Take only those files in the list matching the band:
         # (Filename starts with 'SV' and then the band-name)
         fnames_band = []
-        print "chn = ",chn
 
         try:
             fnames_band = [ s for s in filenames if s.find(chn) == 2 ]
@@ -254,8 +253,7 @@ def load_viirs_sdr(satscene, options):
 
         band = ViirsBandData(filename_band[0])
         band.read()
-        LOG.info('Band id = ' + band.band_id)
-        print band.band_id
+        LOG.debug('Band id = ' + band.band_id)
 
         if band.band_id.find('I') == 0:
             band_desc = "I"
@@ -276,8 +274,6 @@ def load_viirs_sdr(satscene, options):
         # We assume the same geolocation should apply to all M-bands!
         # ...and the same to all I-bands:
         
-        print band_desc
-        print m_lonlat_is_loaded
         if band_desc == "M" and not m_lonlat_is_loaded:
             band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
@@ -285,20 +281,12 @@ def load_viirs_sdr(satscene, options):
             m_lats = np.ma.array(band.latitude, mask=band.data.mask)
             m_lonlat_is_loaded = True
 
-        if m_lonlat_is_loaded:
-            print m_lons.shape
-            print m_lons.any()
-
         if band_desc == "I" and not i_lonlat_is_loaded:
             band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
             i_lons = np.ma.array(band.longitude, mask=band.data.mask)
             i_lats = np.ma.array(band.latitude, mask=band.data.mask)
             i_lonlat_is_loaded = True
-
-        if i_lonlat_is_loaded:
-            print i_lons.shape
-            print i_lons.any()
 
         if 'institution' not in glob_info:
             glob_info['institution'] = band.global_info['N_Dataset_Source']
@@ -327,8 +315,6 @@ def load_viirs_sdr(satscene, options):
         m_lats.any()
     except AttributeError:
         return
-
-    print "Get lon,lat..."
 
     try:
         from pyresample import geometry
