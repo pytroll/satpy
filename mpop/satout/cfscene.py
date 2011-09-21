@@ -49,7 +49,7 @@ class CFScene(object):
     """
     info = {}
     
-    def __init__(self, scene, dtype=np.int16):
+    def __init__(self, scene, dtype=np.int16, band_axis=2):
         if not issubclass(dtype, np.integer):
             raise TypeError('Only integer saving allowed for CF data')
         
@@ -101,15 +101,19 @@ class CFScene(object):
                 chn_min = chn.data.min()
                
                 scale = ((chn_max - chn_min) / 
-                        (np.iinfo(CF_DATA_TYPE).max - np.iinfo(CF_DATA_TYPE).min - 1))
+                         (np.iinfo(CF_DATA_TYPE).max -
+                          np.iinfo(CF_DATA_TYPE).min - 1))
+                # Handle the case where all data has the same value.
+                if scale == 0:
+                    scale = 1
                 offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
-                                 
                 valid_min = int((chn_min - offset) / scale)            
                 valid_max = int((chn_max - offset) / scale)
                 
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value         
-            
+            data = np.expand_dims(data, band_axis)
+
             str_res = str(int(chn.resolution)) + "m"
 
             if chn.resolution in resolutions:
@@ -117,7 +121,7 @@ class CFScene(object):
                 band = getattr(self, "band" + str_res)
 
                 # data
-                band.data = np.dstack((band.data, data))
+                band.data = np.concatenate((band.data, data), axis=band_axis)
                 band.info["var_data"] = band.data
                 
                 # bandname
@@ -165,11 +169,11 @@ class CFScene(object):
 
                 band = InfoObject()
                 band.data = data
+                dim_names = ['y'+str_res, 'x'+str_res]
+                dim_names.insert(band_axis, 'band'+str_res)
                 band.info = {"var_name": "band_data"+str_res,
                              "var_data": band.data,
-                             'var_dim_names': ('y'+str_res,
-                                               'x'+str_res,
-                                               "band"+str_res),
+                             'var_dim_names': dim_names,
                              "standard_name": "band_data",
                              "valid_range": np.array([valid_min, valid_max]),
                              "resolution": chn.resolution}
@@ -288,7 +292,7 @@ class CFScene(object):
                     except AttributeError:
                         pass
                     
-                    lats.info = {"var_name": "lon"+str_res,
+                    lats.info = {"var_name": "lat"+str_res,
                                  "var_data": lats.data,
                                  "var_dim_names": ("y"+str_res,
                                                    "x"+str_res),
