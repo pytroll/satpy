@@ -40,9 +40,10 @@ from mpop.satin.logger import LOG
 EPSILON = 0.001
 
 # ------------------------------------------------------------------------------
-class ViirsMbandData(object):
-    """Placeholder for the VIIRS M-band data.
-    Reads the SDR data - one hdf5 file for each band
+class ViirsBandData(object):
+    """Placeholder for the VIIRS M&I-band data.
+    Reads the SDR data - one hdf5 file for each band.
+    Not yet considering the Day-Night Band
     """
     def __init__(self, filename):
         self.global_info = {}
@@ -65,7 +66,7 @@ class ViirsMbandData(object):
 
 
     def read(self):
-        """Read one VIIRS M-band channel: Data and attributes (meta data)
+        """Read one VIIRS M- or I-band channel: Data and attributes (meta data)
         """
 
         h5f = h5py.File(self.filename, 'r')
@@ -86,14 +87,16 @@ class ViirsMbandData(object):
             attributes = h5f['Data_Products'][bname][gran_aggr].attrs
             for key in attributes.keys():
                 self.band_info[key] = attributes[key]
-            if key == 'Band_ID':
-                self.band_id = attributes[key][0, 0]
-            if key == 'AggregateBeginningOrbitNumber':
-                self.orbit_begin = attributes[key][0, 0]
-            if key == 'AggregateEndingOrbitNumber':
-                self.orbit_end = attributes[key][0, 0]
+                if key == 'Band_ID':
+                    self.band_id = attributes[key][0, 0]
+                if key == 'AggregateBeginningOrbitNumber':
+                    self.orbit_begin = attributes[key][0, 0]
+                if key == 'AggregateEndingOrbitNumber':
+                    self.orbit_end = attributes[key][0, 0]
 
-        self.orbit = self.orbit_begin
+        # Orbit number is here defined as identical to the 
+        # orbit number at beggining of aggregation:
+        self.orbit = self.orbit_begin 
 
         if 'All_Data' not in h5f:
             raise IOError("No group 'All_Data' in hdf5 file: %s" % self.filename)
@@ -111,12 +114,12 @@ class ViirsMbandData(object):
         refl_name = 'Reflectance'
 
         if tb_name in keys:
-            mband_data = h5f['All_Data'][bname][tb_name].value
+            band_data = h5f['All_Data'][bname][tb_name].value
             factors_name = tb_name + 'Factors'
             scale, offset = h5f['All_Data'][bname][factors_name].value
             self.units = 'K'
         elif refl_name in keys:
-            mband_data = h5f['All_Data'][bname][refl_name].value
+            band_data = h5f['All_Data'][bname][refl_name].value
             factors_name = refl_name + 'Factors'
             scale, offset = h5f['All_Data'][bname][factors_name].value
             self.units = '%'
@@ -127,7 +130,7 @@ class ViirsMbandData(object):
         self.scale = scale
         self.offset = offset
 
-        band_array = np.ma.array(mband_data)
+        band_array = np.ma.array(band_data)
         band_array = np.ma.masked_inside(band_array,
                                          self.nodata - EPSILON,
                                          self.nodata + EPSILON)
@@ -137,38 +140,45 @@ class ViirsMbandData(object):
                                        self.scale +
                                        self.offset,
                                        0)
-
         h5f.close()
 
-
     def read_lonlat(self, geodir, **kwargs):
-        """Read the geolocation from the GMODO/GMTCO file"""
+        """Read the lons and lats from the seperate geolocation file.
+        In case of M-bands: GMODO (Geoid) or GMTCO (terrain corrected).
+        In case of I-bands: GIMGO (Geoid) or GITCO (terrain corrected).
+        """
         if 'filename' in kwargs:
             # Overwriting the geo-filename:
             self.geo_filename = kwargs['filename']
 
         if not self.geo_filename:
-            print("Trying to read geo-location without knowledge of which" +
-                  "geolocation file to read it from!")
-            print("Do nothing...")
+            LOG.warning("Trying to read geo-location without" +
+                        "knowledge of which geolocation file to read it from!")
+            LOG.warning("Do nothing...")
             return
         
         lon, lat = get_lonlat(os.path.join(geodir, 
-                                           self.geo_filename))
+                                           self.geo_filename),
+                              self.band_id)
+
         self.longitude = lon
         self.latitude = lat
 
 
 # ------------------------------------------------------------------------------
-def get_lonlat(filename):
+def get_lonlat(filename, band_id):
     """Read lon,lat from hdf5 file"""
     import h5py
-    print("Geo File = " + filename)
+    LOG.debug("Geo File = " + filename)
 
     h5f = h5py.File(filename, 'r')
     # Doing it a bit dirty for now - AD:
-    lats = h5f['All_Data']['VIIRS-MOD-GEO_All']['Latitude'].value
-    lons = h5f['All_Data']['VIIRS-MOD-GEO_All']['Longitude'].value
+    if band_id.find('M') == 0:
+        lats = h5f['All_Data']['VIIRS-MOD-GEO_All']['Latitude'].value
+        lons = h5f['All_Data']['VIIRS-MOD-GEO_All']['Longitude'].value
+    elif band_id.find('I') == 0:
+        lats = h5f['All_Data']['VIIRS-IMG-GEO_All']['Latitude'].value
+        lons = h5f['All_Data']['VIIRS-IMG-GEO_All']['Longitude'].value
     
     h5f.close()
     return lons, lats
@@ -211,15 +221,28 @@ def load_viirs_sdr(satscene, options):
     elif len(file_list) == 0:
         raise IOError("No VIIRS file matching!: " + filename_tmpl)
 
-    lonlat_is_loaded = False
+    m_lats = None
+    m_lons = None
+    i_lats = None
+    i_lons = None
+
+    m_lonlat_is_loaded = False
+    i_lonlat_is_loaded = False
+    band_desc = None # I-band or M-band or Day/Night band?
     glob_info = {}
 
     for chn in satscene.channels_to_load:
         # Take only those files in the list matching the band:
         # (Filename starts with 'SV' and then the band-name)
-        #print filenames
-        #print chn
-        fnames_band = [ s for s in filenames if s.find(chn) == 2 ]
+        fnames_band = []
+        print "chn = ",chn
+
+        try:
+            fnames_band = [ s for s in filenames if s.find(chn) == 2 ]
+        except TypeError:
+            LOG.warning('Band frequency not available from VIIRS!')
+            LOG.info('Asking for channel' + str(chn) + '!')
+
         if len(fnames_band) == 0:
             continue
 
@@ -229,24 +252,58 @@ def load_viirs_sdr(satscene, options):
         if len(filename_band) > 1:
             raise IOError("More than one file matching band-name %s" % chn)
 
-        mband = ViirsMbandData(filename_band[0])
-        mband.read()
+        band = ViirsBandData(filename_band[0])
+        band.read()
+        LOG.info('Band id = ' + band.band_id)
+        print band.band_id
 
-        satscene[chn].data = mband.data
-        satscene[chn].info['units'] = mband.units
+        if band.band_id.find('I') == 0:
+            band_desc = "I"
+        elif band.band_id.find('M') == 0:
+            band_desc = "M"
+        elif band.band_id.find('D') == 0:
+            band_desc = "DNB"
+            
+        if not band_desc:
+            LOG.warning('Band name = ' + band.band_id)
+            raise AttributeError('Band description not supported!')
+
+
+        satscene[chn].data = band.data
+        satscene[chn].info['units'] = band.units
+        satscene[chn].info['band_id'] = band.band_id
 
         # We assume the same geolocation should apply to all M-bands!
+        # ...and the same to all I-bands:
         
-        if not lonlat_is_loaded:
-            mband.read_lonlat(options["dir"])
-            lons = mband.longitude
-            lats = mband.latitude
-            lonlat_is_loaded = True
+        print band_desc
+        print m_lonlat_is_loaded
+        if band_desc == "M" and not m_lonlat_is_loaded:
+            band.read_lonlat(options["dir"])
+            # Masking the geo-location using mask from an abitrary band:
+            m_lons = np.ma.array(band.longitude, mask=band.data.mask)
+            m_lats = np.ma.array(band.latitude, mask=band.data.mask)
+            m_lonlat_is_loaded = True
+
+        if m_lonlat_is_loaded:
+            print m_lons.shape
+            print m_lons.any()
+
+        if band_desc == "I" and not i_lonlat_is_loaded:
+            band.read_lonlat(options["dir"])
+            # Masking the geo-location using mask from an abitrary band:
+            i_lons = np.ma.array(band.longitude, mask=band.data.mask)
+            i_lats = np.ma.array(band.latitude, mask=band.data.mask)
+            i_lonlat_is_loaded = True
+
+        if i_lonlat_is_loaded:
+            print i_lons.shape
+            print i_lons.any()
 
         if 'institution' not in glob_info:
-            glob_info['institution'] = mband.global_info['N_Dataset_Source']
+            glob_info['institution'] = band.global_info['N_Dataset_Source']
         if 'mission_name' not in glob_info:
-            glob_info['mission_name'] = mband.global_info['Mission_Name']
+            glob_info['mission_name'] = band.global_info['Mission_Name']
 
     # Compulsory global attribudes
     satscene.info["title"] = (satscene.satname.capitalize() + 
@@ -265,17 +322,22 @@ def load_viirs_sdr(satscene, options):
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
 
-    #satscene.lat = lats
-    #satscene.lon = lons
+    try:
+        m_lons.any()
+        m_lats.any()
+    except AttributeError:
+        return
+
+    print "Get lon,lat..."
 
     try:
         from pyresample import geometry
-        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+        satscene.area = geometry.SwathDefinition(lons=m_lons, 
+                                                 lats=m_lats)
     except ImportError:
         satscene.area = None
-        satscene.lat = lats
-        satscene.lon = lons
-
+        satscene.lat = m_lats
+        satscene.lon = m_lons
 
 
 CASES = {
