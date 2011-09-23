@@ -136,9 +136,15 @@ class ViirsBandData(object):
                                          self.nodata + EPSILON)
 
         # Is it necessary to mask negatives?
-        self.data =  np.ma.masked_less(band_array *
-                                       self.scale +
-                                       self.offset,
+        # The VIIRS reflectances are between 0 and 1.
+        # mpop standard is '%'
+        if self.units == '%':
+            myscale = 100.0 # To get reflectances in percent!
+        else:
+            myscale = 1.0
+        self.data =  np.ma.masked_less(myscale * (band_array *
+                                                  self.scale +
+                                                  self.offset),
                                        0)
         h5f.close()
 
