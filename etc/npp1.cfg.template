@@ -106,33 +106,33 @@ resolution = 750
 name = 'M16'
 size = (3200,)
 
-## I-bands:
-#[viirs-i01]
-#frequency = (0.600, 0.640, 0.680)
-#resolution = 375
-#name = 'I01'
-#size = (6400,)
+# I-bands:
+[viirs-i01]
+frequency = (0.600, 0.640, 0.680)
+resolution = 375
+name = 'I01'
+size = (6400,)
 
-#[viirs-i02]
-#frequency = (0.845, 0.865, 0.884)
-#resolution = 375
-#name = 'I02'
-#size = (6400,)
+[viirs-i02]
+frequency = (0.845, 0.865, 0.884)
+resolution = 375
+name = 'I02'
+size = (6400,)
 
-#[viirs-i03]
-#frequency = (1.580, 1.610, 1.640)
-#resolution = 375
-#name = 'I03'
-#size = (6400,)
+[viirs-i03]
+frequency = (1.580, 1.610, 1.640)
+resolution = 375
+name = 'I03'
+size = (6400,)
 
-#[viirs-i04]
-#frequency = (3.580, 3.740, 3.900)
-#resolution = 375
-#name = 'I04'
-#size = (6400,)
+[viirs-i04]
+frequency = (3.580, 3.740, 3.900)
+resolution = 375
+name = 'I04'
+size = (6400,)
 
-#[viirs-i05]
-#frequency = (10.500, 11.450, 12.300)
-#resolution = 375
-#name = 'I05'
-#size = (6400,)
+[viirs-i05]
+frequency = (10.500, 11.450, 12.300)
+resolution = 375
+name = 'I05'
+size = (6400,)

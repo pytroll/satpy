@@ -288,6 +288,23 @@ def load_viirs_sdr(satscene, options):
             i_lats = np.ma.array(band.latitude, mask=band.data.mask)
             i_lonlat_is_loaded = True
 
+        if band_desc == "M":
+            lons = m_lons
+            lats = m_lats
+        elif band_desc == "I":
+            lons = i_lons
+            lats = i_lats
+            
+        try:
+            from pyresample import geometry
+            satscene[chn].area = geometry.SwathDefinition(lons=lons, 
+                                                          lats=lats)
+        except ImportError:
+            satscene[chn].area = None
+            satscene[chn].lat = lats
+            satscene[chn].lon = lons
+
+
         if 'institution' not in glob_info:
             glob_info['institution'] = band.global_info['N_Dataset_Source']
         if 'mission_name' not in glob_info:
@@ -309,21 +326,6 @@ def load_viirs_sdr(satscene, options):
 
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
-
-    try:
-        m_lons.any()
-        m_lats.any()
-    except AttributeError:
-        return
-
-    try:
-        from pyresample import geometry
-        satscene.area = geometry.SwathDefinition(lons=m_lons, 
-                                                 lats=m_lats)
-    except ImportError:
-        satscene.area = None
-        satscene.lat = m_lats
-        satscene.lon = m_lons
 
 
 CASES = {
