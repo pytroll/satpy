@@ -88,7 +88,11 @@ class ViirsBandData(object):
             for key in attributes.keys():
                 self.band_info[key] = attributes[key]
                 if key == 'Band_ID':
-                    self.band_id = attributes[key][0, 0]
+                    bid = attributes[key][0, 0]
+                    if bname.find('DNB') > 0: # and bid == 'N/A':
+                        self.band_id = 'DNB'
+                    else:
+                        self.band_id = bid
                 if key == 'AggregateBeginningOrbitNumber':
                     self.orbit_begin = attributes[key][0, 0]
                 if key == 'AggregateEndingOrbitNumber':
@@ -112,6 +116,7 @@ class ViirsBandData(object):
         # First check if we have reflectances or brightness temperatures:
         tb_name = 'BrightnessTemperature'
         refl_name = 'Reflectance'
+        rad_name = 'Radiance' # Day/Night band
 
         if tb_name in keys:
             band_data = h5f['All_Data'][bname][tb_name].value
@@ -123,6 +128,10 @@ class ViirsBandData(object):
             factors_name = refl_name + 'Factors'
             scale, offset = h5f['All_Data'][bname][factors_name].value
             self.units = '%'
+        elif refl_name not in keys and tb_name not in keys and rad_name in keys:
+            band_data = h5f['All_Data'][bname][rad_name].value
+            scale, offset = (10000., 0.) # The unit is W/sr cm-2 in the file!
+            self.units = 'W sr-1 m-2'
         else:
             raise IOError('Neither brightness temperatures nor ' + 
                           'reflectances in the SDR file!')
@@ -185,7 +194,12 @@ def get_lonlat(filename, band_id):
     elif band_id.find('I') == 0:
         lats = h5f['All_Data']['VIIRS-IMG-GEO_All']['Latitude'].value
         lons = h5f['All_Data']['VIIRS-IMG-GEO_All']['Longitude'].value
-    
+    elif band_id.find('D') == 0:
+        lats = h5f['All_Data']['VIIRS-DNB-GEO_All']['Latitude'].value
+        lons = h5f['All_Data']['VIIRS-DNB-GEO_All']['Longitude'].value
+    else:
+        raise IOError("Failed reading lon,lat: " + 
+                      "Band-id not supported = %s" % (band_id))
     h5f.close()
     return lons, lats
 
@@ -231,10 +245,11 @@ def load_viirs_sdr(satscene, options):
     m_lons = None
     i_lats = None
     i_lons = None
+    dnb_lats = None
+    dnb_lons = None
 
     m_lonlat_is_loaded = False
     i_lonlat_is_loaded = False
-    band_desc = None # I-band or M-band or Day/Night band?
     glob_info = {}
 
     for chn in satscene.channels_to_load:
@@ -261,13 +276,14 @@ def load_viirs_sdr(satscene, options):
         band.read()
         LOG.debug('Band id = ' + band.band_id)
 
+        band_desc = None # I-band or M-band or Day/Night band?
         if band.band_id.find('I') == 0:
             band_desc = "I"
         elif band.band_id.find('M') == 0:
             band_desc = "M"
         elif band.band_id.find('D') == 0:
             band_desc = "DNB"
-            
+
         if not band_desc:
             LOG.warning('Band name = ' + band.band_id)
             raise AttributeError('Band description not supported!')
@@ -294,12 +310,22 @@ def load_viirs_sdr(satscene, options):
             i_lats = np.ma.array(band.latitude, mask=band.data.mask)
             i_lonlat_is_loaded = True
 
+        if band_desc == "DNB":
+            band.read_lonlat(options["dir"])
+            # Masking the geo-location:
+            dnb_lons = np.ma.array(band.longitude, mask=band.data.mask)
+            dnb_lats = np.ma.array(band.latitude, mask=band.data.mask)
+
+
         if band_desc == "M":
             lons = m_lons
             lats = m_lats
         elif band_desc == "I":
             lons = i_lons
             lats = i_lats
+        elif band_desc == "DNB":
+            lons = dnb_lons
+            lats = dnb_lats
             
         try:
             from pyresample import geometry
