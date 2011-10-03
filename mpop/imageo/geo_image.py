@@ -244,6 +244,16 @@ class GeoImage(mpop.imageo.image.Image):
     def add_overlay(self, color = (0, 0, 0)):
         """Add coastline and political borders to image, using *color*.
         """
+        import warnings
+        warnings.warn(
+            """The GeoImage.add_overlay method is deprecated and should not be
+            used anymore. To add coastlines, borders and rivers to your images,
+            use pycoast instead:
+            http://pycoast.googlecode.com
+            """,
+            DeprecationWarning)
+
+        
         import acpgimage
         import _acpgpilext
         import pps_array2image
