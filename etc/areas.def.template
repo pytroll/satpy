@@ -243,3 +243,22 @@ REGION: ease_nh {
        AREA_EXTENT:    (-5326849.0625,-5326849.0625,5326849.0625,5326849.0625)
 };
 
+
+# VIIRS test areas:
+REGION: npp_sample_m {
+	NAME:		North America - NPP sample data - M-bands
+	PCS_ID:		laeaw12060
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=60.0,lon_0=-120.0
+	XSIZE:		1500
+	YSIZE:		1500
+	AREA_EXTENT:	(-1700000, -1400000, 1100000, 1400000)
+};
+
+REGION: npp_sample_i {
+	NAME:		North America - NPP sample data - I-bands
+	PCS_ID:		laeaw12060
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=60.0,lon_0=-120.0
+	XSIZE:		1200
+	YSIZE:		800
+	AREA_EXTENT:	(-200000, 100000, 400000, 500000)
+};
