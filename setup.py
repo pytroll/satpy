@@ -39,7 +39,6 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
 NAME = 'mpop'
-EXTS = []
 
 setup(name=NAME,
       version=get_git_version(),
@@ -64,7 +63,6 @@ setup(name=NAME,
                     'doc/examples/polar_aapp1b.py',
                     'doc/examples/polar_segments.py'])],
       zip_safe=False,
-      ext_modules = EXTS,
       requires=['numpy (>=1.4.1)',
                 'pyresample (>=0.7.1)',
                 'mipp']
