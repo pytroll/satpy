@@ -29,10 +29,8 @@
 
 """Setup file for mpop.
 """
-import ConfigParser
 import os.path
-from mpop import CONFIG_PATH
-from setuptools import setup, Extension
+from setuptools import setup
 
 from version import get_git_version
 
@@ -40,31 +38,8 @@ from version import get_git_version
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-try:
-    MODE = os.getenv("SMHI_MODE")
-    if MODE is None:
-        MODE = "offline"
-    MODE="msg_dirs"
-    CONF = ConfigParser.ConfigParser()
-    CONF.read(os.path.join(CONFIG_PATH, "meteosat09.cfg"))
-    
-    MSG_LIB = CONF.get(MODE, 'msg_lib')
-    MSG_INC = CONF.get(MODE, 'msg_inc')
-    
-    CONF.read(os.path.join(BASE_PATH, "setup.cfg"))
-    NUMPY_INC = CONF.get('numpy', 'numpy_inc')
-
-    EXTS = [Extension('mpop.satin.pynwclib',
-                      ['mpop/satin/pynwclib.c'],
-                      include_dirs=[MSG_INC,
-                                    NUMPY_INC],
-                      libraries=['nwclib','msg','m'],
-                      library_dirs=[MSG_LIB])]
-except Exception, e:
-    print e
-    EXTS = []
-    
 NAME = 'mpop'
+EXTS = []
 
 setup(name=NAME,
       version=get_git_version(),
