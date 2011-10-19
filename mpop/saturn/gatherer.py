@@ -39,6 +39,7 @@ import mpop.utils
 from mpop import CONFIG_PATH
 from mpop.scene import Satellite, SatelliteInstrumentScene
 from mpop.projector import get_area_def
+from mpop.satellites import GenericFactory
 
 DEFAULT_TIMELINESS = datetime.timedelta(minutes=5)
 DEFAULT_GRANULARITY = datetime.timedelta(minutes=5)
@@ -261,18 +262,16 @@ class SegmentedSwath(Satellite):
         except ValueError:
             LOG.warning(str(granule) + " not in " +
                         str([str(gran) for gran in self.planned_granules]))
-            import time
-            time.sleep(5)
         self.granules.append(granule)
         if self.planned_granules:
             self.timeout = self.planned_granules[-1].time_slot
         else:
             self.timeout = datetime.datetime.now()
 
-    def _compute_plan(self, time, granularity, instrument):
+    def _compute_plan(self, utc_time, granularity, instrument):
         """Compute the planned granules for the current area.
         """
-        nts = time
+        nts = utc_time
         
         new_granule = Granule(time_slot=nts, satellite=self,
                               instrument=instrument)
@@ -288,7 +287,7 @@ class SegmentedSwath(Satellite):
             else:
                 break
 
-        nts = time
+        nts = utc_time
         while True:
             nts = nts + granularity
             new_granule = Granule(time_slot=nts, satellite=self,
@@ -363,6 +362,8 @@ class SegmentedSwath(Satellite):
         
             
 class Gatherer(Satellite):
+    """The mighty gatherer class.
+    """
 
     def __init__(self, areas_of_interest,
                  timeliness=DEFAULT_TIMELINESS,
@@ -427,7 +428,7 @@ class Gatherer(Satellite):
     def __str__(self):
         return self.fullname
         
-# exemple type
+# Typical example:
 
 # when new_file:
 #     gatherer.add(Granule(new_file))
@@ -553,30 +554,31 @@ class TestGranules(unittest.TestCase):
         """Testing init function.
         """
 
-        g1 = Granule("/path/to/my/data/myfile_20101010_1010.cooltype")
+        g_1 = Granule("/path/to/my/data/myfile_20101010_1010.cooltype")
 
-        self.assertEquals(g1.satname, "metop")
-        self.assertEquals(g1.number, "02")
-        self.assertEquals(g1.variant, "regional")
-        self.assertEquals(g1.time_slot, datetime.datetime(2010, 10, 10, 10, 10))
-        self.assertEquals(g1.instrument_name, "avhrr")
+        self.assertEquals(g_1.satname, "metop")
+        self.assertEquals(g_1.number, "02")
+        self.assertEquals(g_1.variant, "regional")
+        self.assertEquals(g_1.time_slot,
+                          datetime.datetime(2010, 10, 10, 10, 10))
+        self.assertEquals(g_1.instrument_name, "avhrr")
         
         sat = Satellite("metop", "02", "regional")
-        g1 = Granule(instrument="avhrr", satellite=sat,
+        g_1 = Granule(instrument="avhrr", satellite=sat,
                      time_slot=datetime.datetime(2010, 10, 10, 10, 10))
         
-        self.assertEquals(os.path.join(g1.directory, g1.file_name),
+        self.assertEquals(os.path.join(g_1.directory, g_1.file_name),
                           "/path/to/my/data/myfile_20101010_1010.cooltype")
         
 
     def test_cmp(self):
         """test the __cmp__ function.
         """
-        g1 = Granule("/path/to/my/data/myfile_20101010_1010.cooltype")
-        g2 = Granule("/path/to/my/data/myfile_20101010_1011.cooltype")
-        self.assertTrue(g1 < g2)
-        self.assertTrue(g2 > g1)
-        self.assertTrue(g1 == g1)
+        g_1 = Granule("/path/to/my/data/myfile_20101010_1010.cooltype")
+        g_2 = Granule("/path/to/my/data/myfile_20101010_1011.cooltype")
+        self.assertTrue(g_1 < g_2)
+        self.assertTrue(g_2 > g_1)
+        self.assertTrue(g_1 == g_1)
 
 
 OldGranule = None
@@ -585,13 +587,20 @@ def patch_granule():
     """Faking Granule.
     """
     class FakeArea:
+        """Fake area class.
+        """
         def __init__(self, inside):
             self.inside = inside
             
         def overlaps(self, other):
+            """Fake overlaping function.
+            """
+            del other
             return self.inside
     
     class FakeGranule:
+        """Fake granule class.
+        """
         def __init__(self, time_slot, satellite):
             self.time_slot = time_slot
             self.satellite = satellite
@@ -602,6 +611,8 @@ def patch_granule():
 
         @property
         def gross_area(self):
+            """Approximate area of the granule.
+            """
             if(self.time_slot > 2 and
                self.time_slot < 8):
                 return FakeArea(inside=True)
@@ -619,13 +630,19 @@ def patch_granule_with_time():
     """Faking Granule.
     """
     class FakeArea:
+        """Fake area class.
+        """
         def __init__(self, inside):
             self.inside = inside
             
         def overlaps(self, other):
+            """Fake overlaping function.
+            """
             return self.inside
     
     class FakeGranule:
+        """Fake granule class.
+        """
         satname = "bli"
         number = "blu"
         variant = "bla"
@@ -639,6 +656,8 @@ def patch_granule_with_time():
 
         @property
         def gross_area(self):
+            """Approximate area of the granule.
+            """
             start_time = datetime.datetime(2010, 10, 10, 0, 2)
             end_time = datetime.datetime(2010, 10, 10, 0, 8)
             if(self.time_slot > start_time and
@@ -670,10 +689,14 @@ class TestSegmentedSwath(unittest.TestCase):
         unpatch_granule()
 
     def test_init(self):
+        """Test initialisation.
+        """
         swath = SegmentedSwath("bla", "bli", "blu", "blo")
         self.assertEquals(swath.area, "bla")
 
     def test_add(self):
+        """Test adding.
+        """
         swath = SegmentedSwath("bla", "bli", "blu", "blo")
         granule = Granule(5, "kurt")
         
@@ -736,6 +759,8 @@ class TestSegmentedSwath(unittest.TestCase):
 
 
     def test_compute_plan(self):
+        """Test planning of comming granules.
+        """
         swath = SegmentedSwath("bla", "bli", "blu", "blo")
 
         swath._compute_plan(5, 1)
@@ -744,13 +769,19 @@ class TestSegmentedSwath(unittest.TestCase):
 
 
 def patch_now():
+    """Patching the now function from datetime.
+    """
     def fakenow():
+        """Fake now function.
+        """
         return datetime.datetime(2010, 10, 10, 0, 10)
     
     datetime.datetime.oldnow = datetime.datetime.now
     datetime.datetime.now = fakenow
 
 def unpatch_now():
+    """Returning the original now.
+    """
     datetime.datetime.now = datetime.datetime.oldnow
     delattr(datetime.datetime, "oldnow")
 
@@ -765,6 +796,8 @@ class TestGatherer(unittest.TestCase):
         unpatch_granule()
         
     def test_init(self):
+        """Testing initialisation.
+        """
         gatherer = Gatherer(["bli", "blu"],
                             satname="gla", number="glo", variant="glu")
         self.assertTrue("bli" in gatherer.swaths)
@@ -773,6 +806,8 @@ class TestGatherer(unittest.TestCase):
         self.assertTrue(isinstance(gatherer.swaths["blu"], SegmentedSwath))
 
     def test_add(self):
+        """Testing adding of granules to the gatherer.
+        """
         timeliness = (datetime.datetime.utcnow() -
                       datetime.datetime(2010, 10, 9, 23, 0))
 
@@ -813,7 +848,8 @@ class TestGatherer(unittest.TestCase):
 
 
     def test_timeout(self):
-        
+        """Test the timeout.
+        """
         timeliness = (datetime.datetime.utcnow() -
                       datetime.datetime(2010, 10, 9, 23, 0))
 
