@@ -111,7 +111,7 @@ def load_from_nc4(filename):
     for var_name, var in rootgrp.variables.items():
         area = None
 
-        if var_name.startswith("band_data"):
+        if var.standard_name == "band_data":
             resolution = var.resolution
             str_res = str(int(resolution)) + "m"
             

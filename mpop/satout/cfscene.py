@@ -76,7 +76,8 @@ class CFScene(object):
                           "standard_name": "time",
                           "units": TIME_UNITS} 
 
-        resolutions = []
+        resolutions = set()
+        unit_set = set()
         for chn in scene:
             #print "CHN: ",chn
             if not chn.is_loaded():
@@ -113,10 +114,14 @@ class CFScene(object):
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value         
             data = np.expand_dims(data, band_axis)
+            if chn.info["units"] == "%":
+                uns = "reflective"
+            else:
+                uns = "emissive"
+            str_res = str(int(chn.resolution)) + "m" + uns
 
-            str_res = str(int(chn.resolution)) + "m"
-
-            if chn.resolution in resolutions:
+            if((chn.resolution in resolutions) and
+               (chn.info['units'] in unit_set)):
                 # resolution has been used before
                 band = getattr(self, "band" + str_res)
 
@@ -162,8 +167,9 @@ class CFScene(object):
                 nwl.info["var_data"] = nwl.data
 
             else:
-                # first encounter of this resolution
-                resolutions += [chn.resolution]
+                # first encounter of this resolution or unit
+                resolutions.add(chn.resolution)
+                unit_set.add(chn.info["units"])
                 
                 # data
 

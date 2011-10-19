@@ -86,8 +86,8 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                               satscene.instrument_name.capitalize() +
                               " instrument.")
     satscene.info["institution"] = "Original data disseminated by EumetCast."
-    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
-    satscene.info["references"] = "No reference."
+    satscene.add_to_history("HRIT/LRIT data read by pytroll/mipp.")
+    satscene.info["references"] = "Pytroll - http://pytroll.org"
     satscene.info["comments"] = "No comment."
 
     from_area = False
@@ -151,9 +151,12 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         if is_pyresample_loaded:
             # Build area_def on-the-fly
             satscene[chn].area = geometry.AreaDefinition(
-                satscene.satname + satscene.instrument_name +
-                str(metadata.area_extent) +
-                str(data.shape),
+                satscene.instrument_name + "_area_" +
+#                repr(metadata.area_extent[0]) +"mx" +
+#                repr(metadata.area_extent[1]) +"m" + "_ur=" +
+#                repr(metadata.area_extent[2]) +"mx" +
+#                repr(metadata.area_extent[3]) +"m" + "_size=" +
+                repr(data.shape[0]) + "x" + str(data.shape[1]),
                 "On-the-fly area",
                 proj_dict["proj"],
                 proj_dict,
