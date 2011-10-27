@@ -169,6 +169,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
         # array sizes
         used_dim_names = {}
         for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
+
             # case of a scalar
             if len(names) == 0:
                 continue
@@ -177,9 +178,9 @@ def netcdf_cf_writer(filename, root_object, compression=True):
                 # ensure unique dimension names
                 if dim_name in used_dim_names:
                     if dim_size != used_dim_names[dim_name]:
-                        print dim_size, used_dim_names[dim_name]
                         raise WriterDimensionError("Dimension name "
-                                                   "already in use")
+                                                   + dim_name +
+                                                   " already in use")
                     else:
                         continue
 
@@ -201,7 +202,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             if str(vtype) == "object":
                 vtype = str
 
-            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name, zlib=compression))
+            new_var = rootgrp.createVariable(name, vtype, dim_name,
+                                             zlib=compression) 
+            new_var.set_auto_maskandscale(False)
+            nc_vars.append(new_var)
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.
