@@ -76,8 +76,14 @@ class CFScene(object):
                           "standard_name": "time",
                           "units": TIME_UNITS} 
 
-        resolutions = set()
-        unit_set = set()
+        grid_mappings = []
+        areas = []
+        area = None
+        area_units = []
+        counter = 0
+        gm_counter = 0
+        area_counter = 0
+        
         for chn in scene:
             #print "CHN: ",chn
             if not chn.is_loaded():
@@ -112,153 +118,47 @@ class CFScene(object):
                 valid_max = int((chn_max - offset) / scale)
                 
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
-                data[chn.data.mask] = fill_value         
+                data[chn.data.mask] = fill_value
+
             data = np.expand_dims(data, band_axis)
-            if chn.info["units"] == "%":
-                uns = "reflective"
-            else:
-                uns = "emissive"
-            str_res = str(int(chn.resolution)) + "m" + uns
-
-            if((chn.resolution in resolutions) and
-               (chn.info['units'] in unit_set)):
-                # resolution has been used before
-                band = getattr(self, "band" + str_res)
-
-                # data
-                band.data = np.concatenate((band.data, data), axis=band_axis)
-                band.info["var_data"] = band.data
-                
-                # bandname
-                bandname = getattr(self, "bandname" + str_res)
-                bandname.data = np.concatenate((bandname.data,
-                                                np.array([chn.name])))
-                bandname.info["var_data"] = bandname.data
-
-                # offset
-                offset_attr = getattr(self, "offset" + str_res)
-                offset_attr.data = np.concatenate((offset_attr.data,
-                                                   np.array([offset])))
-                offset_attr.info["var_data"] = offset_attr.data
-
-                # scale
-                scale_attr = getattr(self, "scale" + str_res)
-                scale_attr.data = np.concatenate((scale_attr.data,
-                                                  np.array([scale])))
-                scale_attr.info["var_data"] = scale_attr.data
-
-                # units
-                units = getattr(self, "units" + str_res)
-                units.data = np.concatenate((units.data,
-                                             np.array([chn.info["units"]])))
-                units.info["var_data"] = units.data
-                
-                # wavelength bounds
-                bwl = getattr(self, "wl_bnds" + str_res)
-                bwl.data = np.vstack((bwl.data,
-                                      np.array([chn.wavelength_range[0],
-                                                chn.wavelength_range[2]])))
-                bwl.info["var_data"] = bwl.data
-
-                # nominal_wavelength
-                nwl = getattr(self, "nominal_wavelength" + str_res)
-                nwl.data = np.concatenate((nwl.data,
-                                           np.array([chn.wavelength_range[1]])))
-                nwl.info["var_data"] = nwl.data
-
-            else:
-                # first encounter of this resolution or unit
-                resolutions.add(chn.resolution)
-                unit_set.add(chn.info["units"])
-                
-                # data
-
-                band = InfoObject()
-                band.data = data
-                dim_names = ['y'+str_res, 'x'+str_res]
-                dim_names.insert(band_axis, 'band'+str_res)
-                band.info = {"var_name": "band_data"+str_res,
-                             "var_data": band.data,
-                             'var_dim_names': dim_names,
-                             "standard_name": "band_data",
-                             "valid_range": np.array([valid_min, valid_max]),
-                             "resolution": chn.resolution}
-
-
-                # bandname
-                
-                bandname = InfoObject()
-                bandname.data = np.array([chn.name], 'O')
-                bandname.info = {"var_name": "bandname"+str_res,
-                                 "var_data": bandname.data,
-                                 "var_dim_names": ("band"+str_res,),
-                                 "standard_name": "band_name"}
-                setattr(self, "bandname" + str_res, bandname)
-                
-                # offset
-                off_attr = InfoObject()
-                off_attr.data = np.array([offset])
-                off_attr.info = {"var_name": "offset"+str_res,
-                                 "var_data": off_attr.data,
-                                 "var_dim_names": ("band"+str_res,),
-                                 "standard_name": "linear_calibration_offset"}
-                setattr(self, "offset" + str_res, off_attr) 
-
-                # scale
-                sca_attr = InfoObject()
-                sca_attr.data = np.array([scale])
-                sca_attr.info = {"var_name": "scale"+str_res,
-                                 "var_data": sca_attr.data,
-                                 "var_dim_names": ("band"+str_res,),
-                                 "standard_name": ("linear_calibration"
-                                                   "_scale_factor")}
-                setattr(self, "scale" + str_res, sca_attr) 
-                
-                # units
-                units = InfoObject()
-                units.data = np.array([chn.info["units"]], 'O')
-                units.info = {"var_name": "units"+str_res,
-                              "var_data": units.data,
-                              "var_dim_names": ("band"+str_res,),
-                              "standard_name": "band_units"}
-                setattr(self, "units" + str_res, units)
-                
-                # wavelength bounds
-                wlbnds = InfoObject()
-                wlbnds.data = np.array([[chn.wavelength_range[0],
-                                         chn.wavelength_range[2]]])
-                wlbnds.info = {"var_name": "wl_bnds"+str_res,
-                               "var_data": wlbnds.data,
-                               "var_dim_names": ("band"+str_res, "nv")}
-                setattr(self, wlbnds.info["var_name"], wlbnds)
-                
-                # nominal_wavelength
-                nomwl = InfoObject()
-                nomwl.data = np.array([chn.wavelength_range[1]])
-                nomwl.info = {"var_name": "nominal_wavelength"+str_res,
-                              "var_data": nomwl.data,
-                              "var_dim_names": ("band"+str_res,),
-                              "standard_name": "radiation_wavelength",
-                              "units": "um",
-                              "bounds": wlbnds.info["var_name"]}
-                setattr(self, "nominal_wavelength" + str_res, nomwl)
-
-                # grid mapping or lon lats
-                
-                try:
+            
+            # it's a grid mapping
+            try:
+                if chn.area.proj_dict not in grid_mappings:
+                    # create new grid mapping
+                    grid_mappings.append(chn.area.proj_dict)
                     area = InfoObject()
                     area.data = 0
-                    area.info = {"var_name": chn.area.area_id,
+                    area.info = {"var_name": "grid_mapping_" + str(gm_counter),
                                  "var_data": area.data,
                                  "var_dim_names": ()}
                     area.info.update(proj2cf(chn.area.proj_dict))
+                    area.info.setdefault("units", "m")
                     setattr(self, area.info["var_name"], area)
+                    gm_counter += 1
+                else:
+                    # use an existing grid mapping
+                    str_gmc = str(grid_mappings.index(chn.area.proj_dict))
+                    area = InfoObject()
+                    area.data = 0
+                    area.info = {"var_name": "grid_mapping_" + str_gmc,
+                                 "var_data": area.data,
+                                 "var_dim_names": ()}
+                    area.info.update(proj2cf(chn.area.proj_dict))
+                    area.info.setdefault("units", "m")
 
+                if(chn.area in areas):
+                    str_arc = str(areas.index(chn.area))
+                    xy_names = ["y"+str_arc, "x"+str_arc]
+                else:
+                    areas.append(chn.area)
+                    str_arc = str(area_counter)
+                    area_counter += 1
                     x__ = InfoObject()
                     x__.data = chn.area.projection_x_coords[0, :]
-                    x__.info = {"var_name": "x"+str_res,
+                    x__.info = {"var_name": "x"+str_arc,
                                 "var_data": x__.data,
-                                "var_dim_names": ("x"+str_res,),
+                                "var_dim_names": ("x"+str_arc,),
                                 "units": "m",
                                 "standard_name": "projection_x_coordinate",
                                 "long_name": "x coordinate of projection"}
@@ -266,26 +166,35 @@ class CFScene(object):
 
                     y__ = InfoObject()
                     y__.data = chn.area.projection_y_coords[:, 0]
-                    y__.info = {"var_name": "y"+str_res,
+                    y__.info = {"var_name": "y"+str_arc,
                                 "var_data": y__.data,
-                                "var_dim_names": ("y"+str_res,),
+                                "var_dim_names": ("y"+str_arc,),
                                 "units": "m",
                                 "standard_name": "projection_y_coordinate",
                                 "long_name": "y coordinate of projection"}
                     setattr(self, y__.info["var_name"], y__)
                     
-                    band.info["grid_mapping"] = area.info["var_name"]
-                except AttributeError:
+                    xy_names = [y__.info["var_name"], x__.info["var_name"]]
+            except AttributeError:
+                # It's not a grid mapping, go for lons and lats
+                area = None
+                if(chn.area in areas):
+                    str_arc = str(areas.index(chn.area))
+                    coordinates = ["lon"+str_arc, "lat"+str_arc]
+                else:
+                    areas.append(chn.area)
+                    str_arc = str(area_counter)
+                    area_counter += 1
                     lons = InfoObject()
                     try:
                         lons.data = chn.area.lons[:]
                     except AttributeError:
                         pass
 
-                    lons.info = {"var_name": "lon"+str_res,
+                    lons.info = {"var_name": "lon"+str_arc,
                                  "var_data": lons.data,
-                                 "var_dim_names": ("y"+str_res,
-                                                   "x"+str_res),
+                                 "var_dim_names": ("y"+str_arc,
+                                                   "x"+str_arc),
                                  "units": "degrees east",
                                  "long_name": "longitude coordinate",
                                  "standard_name": "longitude"}
@@ -298,10 +207,10 @@ class CFScene(object):
                     except AttributeError:
                         pass
                     
-                    lats.info = {"var_name": "lat"+str_res,
+                    lats.info = {"var_name": "lat"+str_arc,
                                  "var_data": lats.data,
-                                 "var_dim_names": ("y"+str_res,
-                                                   "x"+str_res),
+                                 "var_dim_names": ("y"+str_arc,
+                                                   "x"+str_arc),
                                  "units": "degrees north",
                                  "long_name": "latitude coordinate",
                                  "standard_name": "latitude"}
@@ -309,11 +218,133 @@ class CFScene(object):
                         setattr(self, lats.info["var_name"], lats)
                     
                     if lats.data is not None and lons.data is not None:
-                        band.info["coordinates"] = (lats.info["var_name"]+" "+
-                                                    lons.info["var_name"])
+                        coordinates = (lats.info["var_name"]+" "+
+                                       lons.info["var_name"])
 
-                setattr(self, "band" + str_res, band)
+            if (chn.area, chn.info['units']) in area_units:
+                str_cnt = str(area_units.index((chn.area, chn.info['units'])))
+                # area has been used before
+                band = getattr(self, "band" + str_cnt)
+
+                # data
+                band.data = np.concatenate((band.data, data), axis=band_axis)
+                band.info["var_data"] = band.data
                 
+                # bandname
+                bandname = getattr(self, "bandname" + str_cnt)
+                bandname.data = np.concatenate((bandname.data,
+                                                np.array([chn.name])))
+                bandname.info["var_data"] = bandname.data
+
+                # offset
+                offset_attr = getattr(self, "offset" + str_cnt)
+                offset_attr.data = np.concatenate((offset_attr.data,
+                                                   np.array([offset])))
+                offset_attr.info["var_data"] = offset_attr.data
+                band.info["add_offset"] = offset_attr.data
+
+                # scale
+                scale_attr = getattr(self, "scale" + str_cnt)
+                scale_attr.data = np.concatenate((scale_attr.data,
+                                                  np.array([scale])))
+                scale_attr.info["var_data"] = scale_attr.data
+                band.info["scale_factor"] = scale_attr.data
+
+                # wavelength bounds
+                bwl = getattr(self, "wl_bnds" + str_cnt)
+                bwl.data = np.vstack((bwl.data,
+                                      np.array([chn.wavelength_range[0],
+                                                chn.wavelength_range[2]])))
+                bwl.info["var_data"] = bwl.data
+
+                # nominal_wavelength
+                nwl = getattr(self, "nominal_wavelength" + str_cnt)
+                nwl.data = np.concatenate((nwl.data,
+                                           np.array([chn.wavelength_range[1]])))
+                nwl.info["var_data"] = nwl.data
+
+
+            else:
+                # first encounter of this area and unit
+                str_cnt = str(counter)
+                counter += 1
+                area_units.append((chn.area, chn.info["units"]))
+                
+                # data
+
+                band = InfoObject()
+                band.data = data
+                dim_names = xy_names
+                dim_names.insert(band_axis, 'band'+str_cnt)
+                band.info = {"var_name": "band_data"+str_cnt,
+                             "var_data": band.data,
+                             'var_dim_names': dim_names,
+                             "standard_name": "band_data",
+                             "valid_range": np.array([valid_min, valid_max]),
+                             "units": chn.info["units"],
+                             "resolution": chn.resolution}
+
+
+                # bandname
+                
+                bandname = InfoObject()
+                bandname.data = np.array([chn.name], 'O')
+                bandname.info = {"var_name": "bandname"+str_cnt,
+                                 "var_data": bandname.data,
+                                 "var_dim_names": ("band"+str_cnt,),
+                                 "standard_name": "band_name"}
+                setattr(self, "bandname" + str_cnt, bandname)
+                
+                # offset
+                off_attr = InfoObject()
+                off_attr.data = np.array([offset])
+                off_attr.info = {"var_name": "offset"+str_cnt,
+                                 "var_data": off_attr.data,
+                                 "var_dim_names": ("band"+str_cnt,),
+                                 "standard_name": "linear_calibration_offset"}
+                setattr(self, "offset" + str_cnt, off_attr) 
+                band.info["add_offset"] = off_attr.data
+
+                # scale
+                sca_attr = InfoObject()
+                sca_attr.data = np.array([scale])
+                sca_attr.info = {"var_name": "scale"+str_cnt,
+                                 "var_data": sca_attr.data,
+                                 "var_dim_names": ("band"+str_cnt,),
+                                 "standard_name": ("linear_calibration"
+                                                   "_scale_factor")}
+                setattr(self, "scale" + str_cnt, sca_attr) 
+                band.info["scale_factor"] = sca_attr.data
+                
+                # wavelength bounds
+                wlbnds = InfoObject()
+                wlbnds.data = np.array([[chn.wavelength_range[0],
+                                         chn.wavelength_range[2]]])
+                wlbnds.info = {"var_name": "wl_bnds"+str_cnt,
+                               "var_data": wlbnds.data,
+                               "var_dim_names": ("band"+str_cnt, "nv")}
+                setattr(self, wlbnds.info["var_name"], wlbnds)
+                
+                # nominal_wavelength
+                nomwl = InfoObject()
+                nomwl.data = np.array([chn.wavelength_range[1]])
+                nomwl.info = {"var_name": "nominal_wavelength"+str_cnt,
+                              "var_data": nomwl.data,
+                              "var_dim_names": ("band"+str_cnt,),
+                              "standard_name": "radiation_wavelength",
+                              "units": "um",
+                              "bounds": wlbnds.info["var_name"]}
+                setattr(self, "nominal_wavelength" + str_cnt, nomwl)
+
+                # grid mapping or lon lats
+                if area is not None:
+                    band.info["grid_mapping"] = area.info["var_name"]
+                else:
+                    band.info["coordinates"] = coordinates
+
+                setattr(self, "band" + str_cnt, band)
+
+
 def proj2cf(proj_dict):
     """Return the cf grid mapping from a proj dict.
 
