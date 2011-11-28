@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -73,6 +73,7 @@ class FileWatcher(Thread):
         """
 
         filelist = set()
+        sleep_time = 8
         
         while self.running:
             self.cond.acquire()
@@ -111,6 +112,7 @@ class FileWatcher(Thread):
                     sleep_time = (to_wait.seconds +
                                   to_wait.microseconds / 1000000.0)
                     self.wait(sleep_time)
+                    sleep_time = 8
             elif self.running:
                 LOG.info("no new file has come, waiting %s secs"
                          %str(sleep_time))
