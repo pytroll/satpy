@@ -190,7 +190,7 @@ class SequentialRunner(object):
             self.run_from_data(tasklist)
                                 
 
-    def run_from_data(self, tasklist=None):
+    def run_from_data(self, tasklist=None, radius=None):
         """Run on given data.
         """
         if tasklist is None:
@@ -201,7 +201,7 @@ class SequentialRunner(object):
                 LOG.info("Running interrupted")
                 return
             local_data = self.data.project(area, prerequisites, self.precompute,
-                                           mode="nearest")
+                                           mode="nearest", radius=radius)
             for product, flist in productlist.items():
                 fun = getattr(local_data.image, product)
                 flist = flist.put_date(local_data.time_slot)
