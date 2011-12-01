@@ -45,6 +45,7 @@ LOG = get_logger('satin/nwcsaf_pps')
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self, resolution=None):
         mpop.channel.GenericChannel.__init__(self, "CloudType")
+
         self.filled = False
         self.name = "CloudType"
         self.resolution = resolution
@@ -111,6 +112,8 @@ class PpsCloudType(mpop.channel.GenericChannel):
         LOG.info("Projecting product %s..."%(self.name))
         retv = PpsCloudType(None)
         retv.cloudtype = coverage.project_array(self.cloudtype)
+        retv.qualityflag = coverage.project_array(self.qualityflag)
+        retv.phaseflag = coverage.project_array(self.phaseflag)
         retv.area = coverage.out_area
         retv.shape = retv.shape
         retv.resolution = self.resolution
@@ -199,14 +202,16 @@ def load(scene, **kwargs):
     lonlat_dir = conf.get(scene.instrument_name+"-level3", "lonlat_dir")
     lonlat_filename = conf.get(scene.instrument_name+"-level3", "lonlat_filename",
                                raw=True)
-    lonlat_tmpl = os.path.join(lonlat_dir, lonlat_filename)
 
+    lonlat_tmpl = os.path.join(lonlat_dir, lonlat_filename)
     area_name = "satproj"
     filename_tmpl = (scene.time_slot.strftime(lonlat_tmpl)
                      %{"orbit": scene.orbit,
                        "area": area_name,
-                       "satellite": scene.satname})
+                       "satellite": scene.satname,
+                       "number": scene.number})
     
+
     file_list = glob.glob(filename_tmpl)
     if len(file_list) > 1:
         raise IOError("More than one Geolocation file matching!")
@@ -226,6 +231,7 @@ def load(scene, **kwargs):
                          %{"orbit": scene.orbit,
                            "area": area_name,
                            "satellite": scene.satname,
+                           "number": scene.number,
                            "product": "ctth"})
     
         file_list = glob.glob(filename_tmpl)
@@ -253,6 +259,7 @@ def load(scene, **kwargs):
                          %{"orbit": scene.orbit,
                            "area": area_name,
                            "satellite": scene.satname,
+                           "number": scene.number,
                            "product": "cloudtype"})
 
         file_list = glob.glob(filename_tmpl)
@@ -301,4 +308,3 @@ def get_lonlat(filename):
 
     h5f.close()
     return lons, lats
-
