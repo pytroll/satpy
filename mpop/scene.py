@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2011.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -46,7 +41,7 @@ from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.logger import LOG
 from mpop.utils import OrderedConfigParser
-from mpop.plugin_base import get_plugin, load_plugins
+
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
@@ -209,8 +204,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             
         self.channels = []
 
-        load_plugins()
-
         try:
             conf = OrderedConfigParser()
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
@@ -221,23 +214,17 @@ class SatelliteInstrumentScene(SatelliteScene):
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
                     name = eval(conf.get(section, "name"))
-                    w_range = eval(conf.get(section, "frequency"))
-                    resolution = eval(conf.get(section, "resolution"))
+                    try:
+                        w_range = eval(conf.get(section, "frequency"))
+                    except ConfigParser.NoOptionError:
+                        w_range = (-np.inf, -np.inf, -np.inf)
+                    try:
+                        resolution = eval(conf.get(section, "resolution"))
+                    except ConfigParser.NoOptionError:
+                        resolution = 0
                     self.channels.append(Channel(name=name,
                                                  wavelength_range=w_range,
                                                  resolution=resolution))
-
-                # set up reader proxies
-                if((section[:-1].endswith("level") or
-                    section.endswith("granules")) and
-                   section.startswith(self.instrument_name)):
-                    try:
-                        fmt = eval(conf.get(section, "format"))
-                    except NameError:
-                        fmt = conf.get(section, "format")
-                    plugin = get_plugin("reader", fmt)
-                    if plugin is not None:
-                        setattr(self, fmt + "_reader", plugin(self))
 
         except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
             for name, w_range, resolution in self.channel_list:
@@ -286,7 +273,14 @@ class SatelliteInstrumentScene(SatelliteScene):
             return channels[0]
 
     def __setitem__(self, key, data):
-        self[key].data = data
+        if isinstance(data, Channel):
+            self.channels.append(Channel(name=key,
+                                     wavelength_range=data.wavelength_range,
+                                     resolution=data.resolution))
+            self[key].data = data.data
+        else:    
+            self[key].data = data
+
 
     def __str__(self):
         return "\n".join([str(chn) for chn in self.channels])
@@ -344,7 +338,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         conf = ConfigParser.ConfigParser()
         try:
             conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
-
+            if len(conf.sections()) == 0:
+                raise ConfigParser.NoSectionError(("Config file did "
+                                                    "not make sense"))
             levels = [section for section in conf.sections()
                       if section.startswith(self.instrument_name+"-level")]
         except ConfigParser.NoSectionError:
@@ -357,33 +353,46 @@ class SatelliteInstrumentScene(SatelliteScene):
         if levels[0] == self.instrument_name+"-level1":
             levels = levels[1:]
 
+        if len(levels) == 0:
+            raise ConfigParser.NoSectionError(
+                self.instrument_name+"-levelN (N>1) to tell me how to"+
+                " read data... Not reading anything.")
+
         for level in levels:
             if len(self.channels_to_load) == 0:
                 return
 
             LOG.debug("Looking for sources in section "+level)
-            data_format = conf.get(level, 'format')
+            reader_name = conf.get(level, 'format')
             try:
-                data_format = eval(data_format)
+                reader_name = eval(reader_name)
             except NameError:
-                data_format = str(data_format)
-
-            loader = getattr(self, data_format + "_reader")
-            plugin_class = loader.__class__
-            LOG.debug("Using plugin "+str(plugin_class))
+                reader_name = str(reader_name)
+            LOG.debug("Using plugin mpop.satin."+reader_name)
 
             # read the data
-
-            if area_extent is not None:
-                if(isinstance(area_extent, (tuple, list)) and
-                   len(area_extent) == 4):
-                    kwargs["area_extent"] = area_extent
-                else:
-                    raise ValueError("Area extent must be a sequence of "
-                                     "four numbers.")
-
-            loader.load(self.channels_to_load, **kwargs)
-            
+            reader = "mpop.satin."+reader_name
+            try:
+                try:
+                    # Look for builtin reader
+                    reader_module = __import__(reader, globals(),
+                                               locals(), ['load'])
+                except ImportError:
+                    # Look for custom reader
+                    reader_module = __import__(reader_name, globals(),
+                                               locals(), ['load'])
+                                               
+                if area_extent is not None:
+                    if(isinstance(area_extent, (tuple, list)) and
+                       len(area_extent) == 4):
+                        kwargs["area_extent"] = area_extent
+                    else:
+                        raise ValueError("Area extent must be a sequence of "
+                                         "four numbers.")
+                reader_module.load(self, **kwargs)
+            except ImportError:
+                LOG.exception("ImportError while loading "+reader+".")
+                continue
             loaded_channels = [chn.name for chn in self.loaded_channels()]
             self.channels_to_load = set([chn for chn in self.channels_to_load
                                          if not chn in loaded_channels])
@@ -395,8 +404,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         self.channels_to_load = set()
 
-    def save(self, filename, to_format="netcdf4", compression=True, 
-             dtype=np.int16):
+    def save(self, filename, to_format="netcdf4", **options):
         """Saves the current scene into a file of format *to_format*. Supported
         formats are:
         
@@ -409,8 +417,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         except ImportError, err:
             raise ImportError("Cannot load "+writer+" writer: "+str(err))
 
-        return writer_module.save(self, filename, compression=compression, 
-                                  dtype=dtype)
+        return writer_module.save(self, filename, **options)
 
     def unload(self, *channels):
         """Unloads *channels* from
@@ -450,7 +457,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None):
+    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -463,6 +470,11 @@ class SatelliteInstrumentScene(SatelliteScene):
         is quick (but lower quality), and 'nearest' which uses nearest
         neighbour for best projection. A *mode* set to None uses 'quick' when
         possible, 'nearest' otherwise.
+
+        *radius* defines the radius of influence for neighbour search in
+         'nearest' mode. Setting it to None, or omitting it will fallback to
+         default values (5 times the channel resolution) or 10km if the
+         resolution is not available.
 
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
@@ -558,9 +570,15 @@ class SatelliteInstrumentScene(SatelliteScene):
                     area_id = chn.area_id or chn.area.area_id
                 
                 if area_id not in cov:
+                    if radius is None:
+                        if chn.resolution > 0:
+                            radius = 5 * chn.resolution
+                        else:
+                            radius = 10000
                     cov[area_id] = mpop.projector.Projector(chn.area,
                                                             dest_area,
-                                                            mode=mode)
+                                                            mode=mode,
+                                                            radius=radius)
                     if precompute:
                         try:
                             cov[area_id].save()
@@ -583,6 +601,20 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
+    def append(self, scene):
+        """Append data from another *scene* to this one
+        """
+        
+        for chn in self.loaded_channels():
+            chn.data = np.ma.concatenate((chn.data, scene[chn.name].data))
+        if self.lon is not None:
+            self.lon = np.ma.concatenate((self.lon, scene.lon))
+        if self.lat is not None:
+            self.lat = np.ma.concatenate((self.lat, scene.lat))
+        if self.area is not None:
+            self.area.append(scene.area)
+            
+            
 if sys.version_info < (2, 5):
     def any(iterable):
         for element in iterable:

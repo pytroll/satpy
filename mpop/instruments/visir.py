@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2011.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -184,7 +179,6 @@ class VisirCompositer(Compositer):
         ch1 = self[12.0].data - self[10.8].data
         ch2 = self[10.8].data - self[8.7].data
         ch3 = self[10.8].data
-
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,

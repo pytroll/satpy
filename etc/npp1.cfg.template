@@ -1,0 +1,144 @@
+[satellite]
+satname = npp
+variant = 
+number = 1
+instruments = ('viirs',)
+
+[viirs-level2]
+# SVDNB_npp_d20100906_t2105098_e2106344_b00012_c20110707160525242376_noaa_ops.h5
+filename = SV???_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_ops.h5
+dir = /local_disk/laptop/NPP_NPOESS/SampleData/NPP_NCT4_SAMPLE_PRODUCTS
+format = viirs_sdr
+
+[viirs-m01]
+frequency = (0.402, 0.412, 0.422)
+resolution = 742
+name = 'M01'
+size = (3200,)
+
+[viirs-m02]
+frequency = (0.436, 0.445, 0.454)
+resolution = 742
+name = 'M02'
+size = (3200,)
+
+[viirs-m03]
+frequency = (0.478, 0.488, 0.498)
+resolution = 742
+name = 'M03'
+size = (3200,)
+
+[viirs-m04]
+frequency = (0.545, 0.555, 0.565)
+resolution = 742
+name = 'M04'
+size = (3200,)
+
+[viirs-m05]
+frequency = (0.662, 0.672, 0.682)
+resolution = 742
+name = 'M05'
+size = (3200,)
+
+[viirs-m06]
+frequency = (0.739, 0.746, 0.754)
+resolution = 742
+name = 'M06'
+size = (3200,)
+
+[viirs-m07]
+frequency = (0.846, 0.865, 0.885)
+resolution = 742
+name = 'M07'
+size = (3200,)
+
+[viirs-m08]
+frequency = (1.230, 1.240, 1.250)
+resolution = 742
+name = 'M08'
+size = (3200,)
+
+[viirs-m09]
+frequency = (1.371, 1.378, 1.386)
+resolution = 742
+name = 'M09'
+size = (3200,)
+
+[viirs-m10]
+frequency = (1.580, 1.610, 1.640)
+resolution = 742
+name = 'M10'
+size = (3200,)
+
+[viirs-m11]
+frequency = (2.225, 2.250, 2.275)
+resolution = 742
+name = 'M11'
+size = (3200,)
+
+[viirs-m12]
+frequency = (3.610, 3.700, 3.790)
+resolution = 742
+name = 'M12'
+size = (3200,)
+
+[viirs-m13]
+frequency = (3.973, 4.050, 4.128)
+resolution = 742
+name = 'M13'
+size = (3200,)
+
+[viirs-m14]
+frequency = (8.400, 8.550, 8.700)
+resolution = 742
+name = 'M14'
+size = (3200,)
+
+[viirs-m15]
+frequency = (10.263, 10.763, 11.263)
+resolution = 742
+name = 'M15'
+size = (3200,)
+
+[viirs-m16]
+frequency = (11.538, 12.013, 12.489)
+resolution = 742
+name = 'M16'
+size = (3200,)
+
+# I-bands:
+[viirs-i01]
+frequency = (0.600, 0.640, 0.680)
+resolution = 371
+name = 'I01'
+size = (6400,)
+
+[viirs-i02]
+frequency = (0.845, 0.865, 0.884)
+resolution = 371
+name = 'I02'
+size = (6400,)
+
+[viirs-i03]
+frequency = (1.580, 1.610, 1.640)
+resolution = 371
+name = 'I03'
+size = (6400,)
+
+[viirs-i04]
+frequency = (3.580, 3.740, 3.900)
+resolution = 371
+name = 'I04'
+size = (6400,)
+
+[viirs-i05]
+frequency = (10.500, 11.450, 12.300)
+resolution = 371
+name = 'I05'
+size = (6400,)
+
+[viirs-dnb]
+frequency = (0.500, 0.700, 0.900)
+resolution = 742
+name = 'DNB'
+size = (4064,)

@@ -88,6 +88,15 @@ REGION: euro4 {
 	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
 };
 
+REGION: MSGHRVN {
+        NAME:          High resolution northern quarter globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0.0, a=6378144.0, b=6356759.0, h=35785831.0, rf=295.49
+        XSIZE:         11136
+        YSIZE:         2784
+        AREA_EXTENT:   (-5568742.4, 2655354.0, 5568742.4, 5439725.2)
+};
+
 REGION: scan {
 	NAME:		Scandinavia
 	PCS_ID:		ps60n
@@ -205,4 +214,51 @@ REGION: euro {
 	XSIZE:		512
 	YSIZE:		512
 	AREA_EXTENT:	(-2717181.7304994687,-5571048.1403121399,1378818.2695005313,-1475048.1403121399)
+};
+
+REGION: euro_north {
+        NAME:          Europe 3km/pixel
+        PCS_ID:        euro_north
+        PCS_DEF:       proj=stere,lon_0=8.00,lat_0=50.00,lat_ts=50.00,ellps=WGS84
+        XSIZE:         800
+        YSIZE:         870
+        AREA_EXTENT:   (-1370912.16,-909970.17,1029087.84,1700029.83)
+};
+
+REGION: ease_sh {
+       NAME:           Antarctic EASE grid
+       PCS_ID:         ease_sh
+       PCS_DEF:        proj=laea, lat_0=-90, lon_0=0, a=6371228.0, units=m
+       XSIZE:          425
+       YSIZE:          425
+       AREA_EXTENT:    (-5326849.0625,-5326849.0625,5326849.0625,5326849.0625)
+};
+
+REGION: ease_nh {
+       NAME:           Arctic EASE grid
+       PCS_ID:         ease_nh
+       PCS_DEF:        proj=laea, lat_0=90, lon_0=0, a=6371228.0, units=m
+       XSIZE:          425
+       YSIZE:          425
+       AREA_EXTENT:    (-5326849.0625,-5326849.0625,5326849.0625,5326849.0625)
+};
+
+
+# VIIRS test areas:
+REGION: npp_sample_m {
+	NAME:		North America - NPP sample data - M-bands
+	PCS_ID:		laeaw12060
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=60.0,lon_0=-120.0
+	XSIZE:		1500
+	YSIZE:		1500
+	AREA_EXTENT:	(-1700000, -1400000, 1100000, 1400000)
+};
+
+REGION: npp_sample_i {
+	NAME:		North America - NPP sample data - I-bands
+	PCS_ID:		laeaw12060
+	PCS_DEF:	proj=laea,a=6370997.0,lat_0=60.0,lon_0=-120.0
+	XSIZE:		1200
+	YSIZE:		800
+	AREA_EXTENT:	(-200000, 100000, 400000, 500000)
 };

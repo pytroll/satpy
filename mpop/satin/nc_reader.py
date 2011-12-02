@@ -201,8 +201,16 @@ def load_from_nc4(filename):
                 LOG.debug("No lon/lat found.")
             
             for i, name in enumerate(names):
+                if var.dimensions[0].startswith("band"):
+                    chn_data = data[i, :, :]
+                elif var.dimensions[1].startswith("band"):
+                    chn_data = data[:, i, :]
+                elif var.dimensions[2].startswith("band"):
+                    chn_data = data[:, :, i]
+                else:
+                    raise ValueError("Invalid dimension names for band data")
                 try:
-                    scene[name] = (data[:, :, i] *
+                    scene[name] = (chn_data *
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     #FIXME complete this
@@ -219,7 +227,7 @@ def load_from_nc4(filename):
                                                   (minmax[0],
                                                    wv_var[i][0],
                                                    minmax[1])))
-                    scene[name] = (data[:, :, i] *
+                    scene[name] = (chn_data *
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     

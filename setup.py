@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2011.
+# Copyright (c) 2009, 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -29,10 +29,8 @@
 
 """Setup file for mpop.
 """
-import ConfigParser
 import os.path
-from mpop import CONFIG_PATH
-from setuptools import setup, Extension
+from setuptools import setup
 
 from version import get_git_version
 
@@ -40,8 +38,6 @@ from version import get_git_version
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-EXTS = []
-    
 NAME = 'mpop'
 
 setup(name=NAME,
@@ -67,7 +63,6 @@ setup(name=NAME,
                     'doc/examples/polar_aapp1b.py',
                     'doc/examples/polar_segments.py'])],
       zip_safe=False,
-      ext_modules = EXTS,
       requires=['numpy (>=1.4.1)',
                 'pyresample (>=0.7.1)',
                 'mipp']

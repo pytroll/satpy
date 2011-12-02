@@ -51,6 +51,9 @@ class HRPTReader(Reader):
         """
         load(self._scene, *args, **kwargs)
 
+from mpop.satellites import PolarFactory 
+
+
 WORKING_DIR = "/tmp"
 
 SATPOS_DIR = os.path.sep.join(os.environ["AAPP_PREFIX"].split(os.path.sep)[:-1])
@@ -390,9 +393,10 @@ def get_lonlat_avhrr(satscene, row, col):
     else:
         satpos_time = satscene.time_slot
         
-    satpos_file = ("/data/24/saf/pps/import/ANC_data/source/satpos_"+
-                   satname+"_"+
-                   satpos_time.strftime("%Y%m%d")+".txt")
+    satpos_file = os.path.join(SATPOS_DIR,
+                               "satpos_" + satname +
+                               satpos_time.strftime("_%Y%m%d") +
+                               ".txt")
 
     pyaapp.read_satpos_file(jday_start, jday_end,
                             satscene.satname+" "+str(int(satscene.number)),
