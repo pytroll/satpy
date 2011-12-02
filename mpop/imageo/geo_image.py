@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -99,17 +99,19 @@ class GeoImage(mpop.imageo.image.Image):
                 chn = channels[i].filled(fill_value[i])
                 dst_ds.GetRasterBand(i + 1).WriteArray(chn)
         else:
-            mask = np.zeros_like(channels[0])
+            mask = np.zeros(channels[0].shape, dtype=np.uint8)
             i = 0
             for i in range(len(channels)):
                 dst_ds.GetRasterBand(i + 1).WriteArray(channels[i].filled(i))
                 mask |= np.ma.getmaskarray(channels[i]) 
             
-            alpha = np.where(mask, 0, opacity)
-            if self.mode.endswith("A"):
-                dst_ds.GetRasterBand(i + 1).WriteArray(alpha)
-            else:
-                dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
+            try:
+                mask |= np.ma.getmaskarray(opacity)
+            except AttributeError:
+                pass
+            
+            alpha = np.where(mask, 0, opacity).astype(np.uint8)
+            dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
     def geotiff_save(self, filename, compression=6,
                      tags=None, gdal_options=None,
@@ -158,6 +160,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        gdal.GDT_Byte,
                                        g_opts)
             else:
+                g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
@@ -165,6 +168,18 @@ class GeoImage(mpop.imageo.image.Image):
                                        gdal.GDT_Byte,
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+        elif(self.mode == "LA"):
+            ensure_dir(filename)
+            g_opts.append("ALPHA=YES")
+            dst_ds = raster.Create(filename, 
+                                   self.width, 
+                                   self.height, 
+                                   2, 
+                                   gdal.GDT_Byte,
+                                   g_opts)
+            self._gdal_write_channels(dst_ds,
+                                      channels[:-1], channels[1],
+                                      fill_value)
         elif(self.mode == "RGB"):
             ensure_dir(filename)
             if fill_value is not None:
@@ -175,6 +190,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        gdal.GDT_Byte,
                                        g_opts)
             else:
+                g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
@@ -186,6 +202,7 @@ class GeoImage(mpop.imageo.image.Image):
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
+            g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename, 
                                    self.width, 
                                    self.height, 
@@ -193,7 +210,7 @@ class GeoImage(mpop.imageo.image.Image):
                                    gdal.GDT_Byte,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds, channels, channels[3], fill_value)
+            self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
                                       " %s is not implemented."%self.mode)
