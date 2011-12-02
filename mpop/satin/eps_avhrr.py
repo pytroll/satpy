@@ -41,19 +41,7 @@ import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
-from mpop.plugin_base import Reader
 
-class Eps1bReader(Reader):
-    """Plugin for reading Eps 1b format.
-    """
-    pformat = "eps_avhrr"
-
-    def load(self, *args, **kwargs):
-        """Read data from file.
-        """
-        load(self._scene, *args, **kwargs)
-
-        
 RECORD_CLASS = ["Reserved", "MPHR", "SPHR",
                 "IPR", "GEADR", "GIADR",
                 "VEADR", "VIADR", "MDR"]
@@ -730,9 +718,9 @@ def read(fdes):
             
             cnt += 1
 
-    channels = channels[:, :cnt - 1, :]
-    llats = llats[:cnt - 1, :]
-    llons = llons[:cnt - 1, :]
+    channels = channels[:, :cnt, :]
+    llats = llats[:cnt, :]
+    llons = llons[:cnt, :]
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
 
@@ -798,13 +786,17 @@ def load_avhrr(satscene, options):
     if g3b:
         satscene["3B"] = channels[3, :, :]
 
-    satscene.lat = lats
-    satscene.lon = lons
 
-    from pyresample import geometry
-    satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+    satscene.orbit = str(int(orbit))
 
-    satscene.orbit = str(int(orbit) + 1)
+    try:
+        from pyresample import geometry
+        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+    except ImportError:
+        satscene.area = None
+        satscene.lat = lats
+        satscene.lon = lons
+
 
 def get_lonlat(satscene, row, col):
     try:
