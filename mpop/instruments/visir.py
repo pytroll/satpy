@@ -38,7 +38,7 @@ class VisirCompositer(Compositer):
         self.check_channels(channel)
 
         img = geo_image.GeoImage(self[channel].data,
-                                 self.area,
+                                 self[channel].area,
                                  self.time_slot,
                                  fill_value=fill_value,
                                  mode="L")
