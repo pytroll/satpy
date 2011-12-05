@@ -190,7 +190,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        gdal.GDT_Byte,
                                        g_opts)
             else:
-                g_opts.append("ALPHA=YES")
+                #g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
@@ -202,7 +202,7 @@ class GeoImage(mpop.imageo.image.Image):
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
-            g_opts.append("ALPHA=YES")
+            #g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename, 
                                    self.width, 
                                    self.height, 
