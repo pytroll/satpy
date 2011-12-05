@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -35,9 +35,23 @@ import os.path
 import mpop.channel
 from mpop import CONFIG_PATH
 from mpop.utils import get_logger
+from mpop.plugin_base import Reader
 
+class PpsHdfReader(Reader):
+    """Plugin for reading PPS hdf format.
+    """
+    pformat = "pps_hdf"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 LOG = get_logger('satin/pps_hdf')
+
+def pcs_def_from_region(region):
+    items = region.proj_dict.items()
+    return ' '.join([ t[0] + '=' + t[1] for t in items])   
 
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self):
@@ -70,7 +84,43 @@ class PpsCloudType(mpop.channel.GenericChannel):
         self.cloudtype = other.cloudtype
         self.qualityflag = other.qualityflag
         self.phaseflag = other.phaseflag
+
+    def project(self, coverage):
+        """Remaps the cloudtype channel.
+        """
+        import epshdf
         
+        LOG.info("Projecting channel %s..."%(self.name))
+
+        retv = PpsCloudType()
+
+        area = coverage.out_area
+        retv.region = epshdf.SafRegion()
+        retv.region.xsize = area.x_size
+        retv.region.ysize = area.y_size
+        retv.region.id = area.area_id
+        retv.region.pcs_id = area.proj_id
+        retv.region.pcs_def = pcs_def_from_region(area)
+        retv.region.area_extent = area.area_extent
+
+        retv.cloudtype_des = self.cloudtype_des
+        retv.cloudtype_lut = self.cloudtype_lut
+        retv.cloudtype = coverage.project_array(self.cloudtype)
+
+        retv.qualityflag_des = self.qualityflag_des
+        retv.qualityflag_lut = self.qualityflag_lut
+        retv.qualityflag = coverage.project_array(self.qualityflag)
+
+        retv.phaseflag_des = self.phaseflag_des
+        retv.phaseflag_lut = self.phaseflag_lut
+        retv.phaseflag = coverage.project_array(self.phaseflag)
+
+        retv.des = self.des
+        retv.sec_1970 = self.sec_1970
+        retv.satellite_id = self.satellite_id
+
+        return retv
+
     def read(self, filename):
         import epshdf
         self.copy(epshdf.read_cloudtype(filename))
@@ -143,17 +193,68 @@ class PpsCTTH(mpop.channel.GenericChannel):
         self.c_nodata = other.c_nodata
         self.processingflag = other.processingflag
         
+    def project(self, coverage):
+        """Remaps the cloudtype channel.
+        """
+        import epshdf
+        
+        LOG.info("Projecting channel %s..."%(self.name))
+
+        retv = PpsCTTH()
+
+        area = coverage.out_area
+        retv.region = epshdf.SafRegion()
+        retv.region.xsize = area.x_size
+        retv.region.ysize = area.y_size
+        retv.region.id = area.area_id
+        retv.region.pcs_id = area.proj_id
+        retv.region.pcs_def = pcs_def_from_region(area)
+        retv.region.area_extent = area.area_extent
+
+        retv.ctt_des = self.ctt_des
+        retv.temperature = coverage.project_array(self.temperature)
+        retv.t_gain = self.t_gain
+        retv.t_intercept = self.t_intercept
+        retv.t_nodata = self.t_nodata
+
+        retv.ctp_des = self.ctp_des
+        retv.pressure = coverage.project_array(self.pressure)
+        retv.p_gain = self.p_gain
+        retv.p_intercept = self.p_intercept
+        retv.p_nodata = self.p_nodata
+
+        retv.cth_des = self.cth_des
+        retv.height = coverage.project_array(self.height)
+        retv.h_gain = self.h_gain
+        retv.h_intercept = self.h_intercept
+        retv.h_nodata = self.h_nodata
+
+        retv.cloudiness = coverage.project_array(self.cloudiness)
+        retv.c_nodata = self.c_nodata
+        retv.cloudiness_des = self.cloudiness_des
+
+        retv.processingflag = coverage.project_array(self.processingflag)
+        retv.processingflag_des = self.processingflag_des
+        retv.processingflag_lut = self.processingflag_lut
+
+
+        retv.des = self.des
+        retv.sec_1970 = self.sec_1970
+        retv.satellite_id = self.satellite_id
+
+        return retv
+
     def read(self, filename):
         import epshdf
         self.copy(epshdf.read_cloudtop(filename))
 
-def load(scene, **kwargs):
+def load(scene, *args, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
     containing channels we will load data into. If None, all channels are
     loaded.
     """
 
-    del kwargs
+    del args, kwargs
 
     if("CTTH" not in scene.channels_to_load and
        "CloudType" not in scene.channels_to_load):

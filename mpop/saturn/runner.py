@@ -37,7 +37,6 @@ from mpop.satellites import get_sat_instr_compositer
 from mpop.saturn.tasklist import TaskList
 from mpop.satellites import GenericFactory
 
-
 LOG = logging.getLogger("runner")
 
 def usage(scriptname):

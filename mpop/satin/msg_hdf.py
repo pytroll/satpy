@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,6 +37,17 @@ import numpy as np
 import glob
 from mpop.utils import get_logger
 from mpop.projector import get_area_def
+from mpop.plugin_base import Reader
+
+class MsgHdfReader(Reader):
+    """Plugin for reading MSG HDF format.
+    """
+    pformat = "msg_hdf"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6
@@ -1079,13 +1090,13 @@ def get_best_product(filename):
     return msg_filename
 
     
-def load(scene, **kwargs):
+def load(scene, *args, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
     containing channels we will load data into. If None, all channels are
     loaded.
     """
 
-    del kwargs
+    del args, kwargs
 
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
@@ -1094,7 +1105,10 @@ def load(scene, **kwargs):
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
     pathname = os.path.join(directory, filename)
-    area_name = scene.area_id or scene.area.area_id
+    try:
+        area_name = scene.area_id or scene.area.area_id
+    except AttributeError:
+        LOG.info("No area_id defined for this scene, can't load msg hdf's")
     
     if "CTTH" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)

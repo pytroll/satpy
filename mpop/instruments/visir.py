@@ -23,6 +23,7 @@
 
 """This module defines the generic VISIR instrument class.
 """
+from mpop.scene import SatelliteInstrumentScene
 from mpop.imageo import geo_image
 from mpop.compositer import Compositer
 
@@ -123,101 +124,6 @@ class VisirCompositer(Compositer):
             
     airmass.prerequisites = set([6.7, 7.3, 9.7, 10.8])
 
-
-    def vis06(self):
-        """Make a black and white image of the VIS 0.635um channel.
-        """
-        return self.channel_image(0.6)
-
-    vis06.prerequisites = set([0.635])
-
-    def ir108(self):
-        """Make a black and white image of the IR 10.8um channel.
-        """
-        self.check_channels(10.8)
-
-        img = geo_image.GeoImage(self[10.8].data,
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=0,
-                                 mode="L",
-                                 crange=(-70 + 273.15, 57.5 + 273.15))
-        img.enhance(inverse=True)
-        return img
-
-    ir108.prerequisites = set([10.8])
-
-    def wv_high(self):
-        """Make a black and white image of the IR 6.7um channel."""
-        self.check_channels(6.7)
-
-        img =  geo_image.GeoImage(self[6.7].data,
-                                  self.area,
-                                  self.time_slot,
-                                  fill_value=0,
-                                  mode="L")
-        img.enhance(inverse = True, stretch = "linear")
-        return img
-    
-    wv_high.prerequisites = set([6.7])
-
-    def wv_low(self):
-        """Make a black and white image of the IR 7.3um channel."""
-        self.check_channels(7.3)
-
-        img = geo_image.GeoImage(self[7.3].data,
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=0,
-                                 mode="L")
-        img.enhance(inverse = True, stretch = "linear")
-        return img
-
-    wv_low.prerequisites = set([7.3])
-        
-    def green_snow(self):
-        """Make a Green Snow RGB image composite.
-        """
-        self.check_channels(0.85, 1.63, 10.8)
-
-        ch1 = self[1.63].check_range()
-        ch2 = self[0.85].check_range()
-        ch3 = -self[10.8].data
-        
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB")
-
-        img.enhance(stretch = "crude")
-        img.enhance(gamma = 1.6)
-
-        return img
-
-    green_snow.prerequisites = set([0.85, 1.63, 10.8])
-
-    def red_snow(self):
-        """Make a Red Snow RGB image composite.
-        """
-        self.check_channels(0.635, 1.63, 10.8)        
-
-        ch1 = self[0.635].check_range()
-        ch2 = self[1.63].check_range()
-        ch3 = -self[10.8].data
-
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB")
-
-        img.enhance(stretch = "crude")
-        
-        return img
-
-    red_snow.prerequisites = set([0.635, 1.63, 10.8])
-
     def convection(self):
         """Make a Severe Convection RGB image composite.
         """
@@ -264,7 +170,6 @@ class VisirCompositer(Compositer):
         return img
 
     dust.prerequisites = set([8.7, 10.8, 12.0])
-
 
     def ash(self):
         """Make a Ash RGB image composite.

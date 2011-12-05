@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2011.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -718,9 +718,9 @@ def read(fdes):
             
             cnt += 1
 
-    channels = channels[:, :cnt - 1, :]
-    llats = llats[:cnt - 1, :]
-    llons = llons[:cnt - 1, :]
+    channels = channels[:, :cnt, :]
+    llats = llats[:cnt, :]
+    llons = llons[:cnt, :]
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
 
@@ -736,9 +736,10 @@ CASES = {"MPHR": read_mphr,
 
 EPSILON = 0.001
 
-def load(satscene):
+def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
-    """    
+    """
+    del args, kwargs
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -785,10 +786,17 @@ def load_avhrr(satscene, options):
     if g3b:
         satscene["3B"] = channels[3, :, :]
 
-    satscene.lat = lats
-    satscene.lon = lons
 
-    satscene.orbit = str(int(orbit) + 1)
+    satscene.orbit = str(int(orbit))
+
+    try:
+        from pyresample import geometry
+        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+    except ImportError:
+        satscene.area = None
+        satscene.lat = lats
+        satscene.lon = lons
+
 
 def get_lonlat(satscene, row, col):
     try:

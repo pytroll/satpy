@@ -28,6 +28,7 @@
 """Plugin for reading AQUA MODIS level 2 EOS HDF files downloaded from NASA FTP import
 """
 
+import sys
 import os.path
 from ConfigParser import ConfigParser
 
@@ -38,7 +39,17 @@ from pyhdf.SD import SD
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 import mpop.channel
-#from mpop.projector import get_area_def
+from mpop.plugin_base import Reader
+
+class ModisLevel2Reader(Reader):
+    """Plugin for reading modis level2 format.
+    """
+    pformat = "modis_level2"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 EOS_SATELLITE = {'aqua': 'eos2', 
                  'modisa': 'eos2', 
@@ -76,6 +87,19 @@ SENSOR_BAND_PARAMS = ['wavelength', 'F0', 'vcal_offset', 'vcal_gain',
 NAVIGATION_TILT =  ['tilt', 'cntl_pt_cols', 'cntl_pt_rows']
 # Geo-location - Longitude,latitude:
 LONLAT = ['longitude', 'latitude']
+
+# ------------------------------------------------------------------------    
+if sys.version_info < (2, 5):
+    import time
+    def strptime(string, fmt=None):
+        """This function is available in the datetime module only
+        from Python >= 2.5.
+        """
+
+        return datetime.datetime(*time.strptime(string, fmt)[:6])
+else:
+    strptime = datetime.datetime.strptime
+
 
 
 class ModisEosHdfLevel2(mpop.channel.GenericChannel):
@@ -115,8 +139,15 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         from pyhdf.SD import SD
         import datetime
 
-        print "*** >>> Read the hdf-eos file!"
-        root = SD(filename)
+        del kwargs
+
+        LOG.info("*** >>> Read the hdf-eos file!")
+        
+        if os.path.exists(filename):
+            root = SD(filename)
+        else:
+            LOG.info("No such file: " + str(filename))
+            raise IOError("File %s does not exist!" % (filename))
     
         # Get all the Attributes:
         # Common Attributes, Data Time,
@@ -125,14 +156,14 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
             self._eoshdf_info[key] = root.attributes()[key]
 
         # Start Time - datetime object
-        starttime = datetime.datetime.strptime(self._eoshdf_info['Start Time'][0:13], 
-                                               "%Y%j%H%M%S")
+        starttime = strptime(self._eoshdf_info['Start Time'][0:13], 
+                             "%Y%j%H%M%S")
         msec = float(self._eoshdf_info['Start Time'][13:16])/1000.
         self.starttime = starttime + datetime.timedelta(seconds=msec)
     
         # End Time - datetime object
-        endtime = datetime.datetime.strptime(self._eoshdf_info['End Time'][0:13], 
-                                             "%Y%j%H%M%S")
+        endtime = strptime(self._eoshdf_info['End Time'][0:13], 
+                           "%Y%j%H%M%S")
         msec = float(self._eoshdf_info['End Time'][13:16])/1000.
         self.endtime = endtime + datetime.timedelta(seconds=msec)
 
@@ -147,6 +178,8 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         self.orbit = self._eoshdf_info['Orbit Number']
         self.shape = (self._eoshdf_info['Number of Scan Control Points'],
                       self._eoshdf_info['Number of Pixel Control Points'])
+
+        LOG.info("Orbit = " + str(self.orbit))
 
         #try:
         if 1:
@@ -165,7 +198,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         #    pass
 
         root.end()
-        self.filled= True
+        self.filled = True
 
 
     def project(self, coverage):
@@ -173,13 +206,13 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         map-projection on a user defined area.
         """
         LOG.info("Projecting product %s..."%(self.name))
-        print("Inside project...")
-
         retv = ModisEosHdfLevel2(self.name)        
         retv.data = coverage.project_array(self.data)
         retv.area = coverage.out_area
         retv.shape = retv.data.shape
         retv.resolution = self.resolution
+        retv.orbit = self.orbit
+        retv.satid = self.satid
         retv.info = self.info
         retv.filled = True
         valid_min = retv.data.min()
@@ -206,7 +239,8 @@ def load(satscene, **kwargs):
 
     pathname = os.path.join(options["dir"], options['filename'])    
     filename = satscene.time_slot.strftime(pathname)
-    
+
+    globalinfo = {}
     for prodname in GEO_PHYS_PRODUCTS:
         if prodname in satscene.channels_to_load:
             
@@ -215,6 +249,9 @@ def load(satscene, **kwargs):
             prod_chan.satid = satscene.satname.capitalize()
             prod_chan.resolution = 1000.0
             prod_chan.shape = prod_chan.data.shape
+
+            for key in prod_chan._eoshdf_info:
+                globalinfo[key] = prod_chan._eoshdf_info[key]
 
             # All this for the netCDF writer:
             prod_chan.info['var_name'] = prodname
@@ -236,6 +273,8 @@ def load(satscene, **kwargs):
 
             LOG.info("Loading modis lvl2 product done")
 
+    #print "INFO: ",globalinfo
+
     # Check if there are any bands to load:
     channels_to_load = False
     for bandname in CHANNELS:
@@ -244,7 +283,6 @@ def load(satscene, **kwargs):
             break
 
     if channels_to_load:
-        print "FILE: ", filename
         eoshdf = SD(filename)
         # Get all the Attributes:
         # Common Attributes, Data Time,
@@ -252,6 +290,8 @@ def load(satscene, **kwargs):
         info = {}
         for key in eoshdf.attributes().keys():
             info[key] = eoshdf.attributes()[key]
+            if key not in globalinfo:
+                globalinfo[key] = info[key]
 
         dsets = eoshdf.datasets()
         selected_dsets = []
@@ -280,16 +320,21 @@ def load(satscene, **kwargs):
         LOG.info("Loading modis lvl2 Remote Sensing Reflectances done")
         eoshdf.end()
 
+    #print "INFO: ",globalinfo
 
     lat, lon = get_lat_lon(satscene, None)
 
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    satscene.orbit = globalinfo['Orbit Number']
+    if satscene.orbit == -1:
+        LOG.info("Orbit number equals -1 in eos-hdf file. " +
+                 "Setting it to 99999!")
+        satscene.orbit = 99999
 
-    print "Variant: ", satscene.variant 
-    satscene.variant = 'regional' # Temporary fix!
-
+    LOG.info("Variant: " + satscene.variant)
     LOG.info("Loading modis data done.")
+
 
 def get_lonlat(satscene, row, col):
     """Estimate lon and lat.
