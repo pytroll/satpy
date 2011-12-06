@@ -30,18 +30,72 @@
 http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
 http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&view=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
+import glob
 import os.path
 from ConfigParser import ConfigParser
 
+import math
 import numpy as np
 from pyhdf.SD import SD
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+from mpop.plugin_base import Reader
+
+#- Planck constant (Joule second)
+H__ = 6.6260755e-34
+
+#- Speed of light in vacuum (meters per second)
+C__ = 2.9979246e+8
+
+#- Boltzmann constant (Joules per Kelvin)      
+K__ = 1.380658e-23
+
+#- Derived constants      
+C_1 = 2.0 * H__ * C__ * C__
+C_2 = (H__ * C__) / K__
+
+
+#- Effective central wavenumber (inverse centimenters)
+CWN = np.array([\
+2.641775E+3, 2.505277E+3, 2.518028E+3, 2.465428E+3, \
+2.235815E+3, 2.200346E+3, 1.477967E+3, 1.362737E+3, \
+1.173190E+3, 1.027715E+3, 9.080884E+2, 8.315399E+2, \
+7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2])
+
+#- Temperature correction slope (no units)
+TCS = np.array([\
+9.993411E-1, 9.998646E-1, 9.998584E-1, 9.998682E-1, \
+9.998819E-1, 9.998845E-1, 9.994877E-1, 9.994918E-1, \
+9.995495E-1, 9.997398E-1, 9.995608E-1, 9.997256E-1, \
+9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1])
+
+#- Temperature correction intercept (Kelvin)
+TCI = np.array([\
+4.770532E-1, 9.262664E-2, 9.757996E-2, 8.929242E-2, \
+7.310901E-2, 7.060415E-2, 2.204921E-1, 2.046087E-1, \
+1.599191E-1, 8.253401E-2, 1.302699E-1, 7.181833E-2, \
+1.972608E-2, 1.913568E-2, 1.817817E-2, 1.583042E-2])
+
+# Transfer wavenumber [cm^(-1)] to wavelength [m]
+CWN = 1. / (CWN * 1e2)
+
+
+
+
+class ThinModisReader(Reader):
+    """Plugin for reading thinned Modis format.
+    """
+    pformat = "thin_modis"
+
+    def load(self, *args, **kwargs):
+        """Read data from file.
+        """
+        load(self._scene, *args, **kwargs)
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
-    """    
+    """
+    del args, kwargs
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -52,7 +106,10 @@ def load(satscene, *args, **kwargs):
 
 
 def calibrate_refl(subdata, uncertainty):
-    uncertainty_array = uncertainty.get()
+    """Calibrate visible channels.
+    """
+    del uncertainty
+    #uncertainty_array = uncertainty.get()
     #array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
     array = subdata.get()
@@ -69,7 +126,10 @@ def calibrate_refl(subdata, uncertainty):
     return array
 
 def calibrate_tb(subdata, uncertainty):
-    uncertainty_array = uncertainty.get()
+    """Calibrate IR channels.
+    """
+    del uncertainty
+    #uncertainty_array = uncertainty.get()
     #array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
     array = subdata.get()
@@ -82,62 +142,32 @@ def calibrate_tb(subdata, uncertainty):
     offsets = subdata.attributes()["radiance_offsets"]
     scales = subdata.attributes()["radiance_scales"]
 
-    #- Planck constant (Joule second)
-    h = 6.6260755e-34
-
-    #- Speed of light in vacuum (meters per second)
-    c = 2.9979246e+8
-
-    #- Boltzmann constant (Joules per Kelvin)      
-    k = 1.380658e-23
-
-    #- Derived constants      
-    c1 = 2.0 * h * c * c
-    c2 = (h * c) / k
-
-
-    #- Effective central wavenumber (inverse centimenters)
-    cwn = np.array([\
-    2.641775E+3, 2.505277E+3, 2.518028E+3, 2.465428E+3, \
-    2.235815E+3, 2.200346E+3, 1.477967E+3, 1.362737E+3, \
-    1.173190E+3, 1.027715E+3, 9.080884E+2, 8.315399E+2, \
-    7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2])
-
-    #- Temperature correction slope (no units)
-    tcs = np.array([\
-    9.993411E-1, 9.998646E-1, 9.998584E-1, 9.998682E-1, \
-    9.998819E-1, 9.998845E-1, 9.994877E-1, 9.994918E-1, \
-    9.995495E-1, 9.997398E-1, 9.995608E-1, 9.997256E-1, \
-    9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1])
-
-    #- Temperature correction intercept (Kelvin)
-    tci = np.array([\
-    4.770532E-1, 9.262664E-2, 9.757996E-2, 8.929242E-2, \
-    7.310901E-2, 7.060415E-2, 2.204921E-1, 2.046087E-1, \
-    1.599191E-1, 8.253401E-2, 1.302699E-1, 7.181833E-2, \
-    1.972608E-2, 1.913568E-2, 1.817817E-2, 1.583042E-2])
-
-    # Transfer wavenumber [cm^(-1)] to wavelength [m]
-    cwn = 1. / (cwn * 1e2)
-
     # Due to the thin modis channels selection:
     available_channels = np.array([0, 3, 6, 7, 8, 10, 11, 12])
-    cwn = cwn[available_channels]
-    tcs = tcs[available_channels]
-    tci = tci[available_channels]
+    cwn = CWN[available_channels]
+    tcs = TCS[available_channels]
+    tci = TCI[available_channels]
     
-    band_name = subdata.attributes()["band_names"].split(",")
     for i in range(len(scales)):
         tmp = (array[i, :, :] - offsets[i]) * scales[i]
-        tmp = c2 / (cwn[i] * np.ma.log(c1 / (1.e6 * tmp * cwn[i] ** 5.) + 1.))
+        tmp = C_2 / (cwn[i] * np.ma.log(C_1 / (1.e6 * tmp * cwn[i] ** 5.) + 1.))
         array[i, :, :] = (tmp - tci[i]) / tcs[i]
     return array
 
 def load_thin_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
     """
-    filename = satscene.time_slot.strftime("thin_MYD021KM.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
+    if satscene.satname == "aqua":
+        filename = \
+           satscene.time_slot.strftime("thin_MYD021KM.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = \
+           satscene.time_slot.strftime("thin_MOD021KM.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(options["dir"], filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(options["dir"], filename))
+    filename = filenames[0]
     
     data = SD(filename)
 
@@ -205,8 +235,17 @@ def get_lat_lon(satscene, resolution):
 def get_lat_lon_thin_modis(satscene, options):
     """Read lat and lon.
     """
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
+    if satscene.satname == "aqua":
+        filename = \
+               satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = \
+               satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(options["dir"], filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(options["dir"], filename))
+    filename = filenames[0]
 
     data = SD(filename)
     lat = data.select("Latitude")
@@ -227,8 +266,18 @@ def get_lonlat(satscene, row, col):
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     path = conf.get("modis-level2", "dir")
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(path, filename)
+
+    if satscene.satname == "aqua":
+        filename = \
+               satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.*NRT.hdf")
+    elif(satscene.satname == "terra"):
+        filename = \
+               satscene.time_slot.strftime("thin_MOD03.A%Y%j.%H%M.005.*NRT.hdf")
+    filenames = glob.glob(os.path.join(path, filename))
+    if len(filenames) != 1:
+        raise IOError("There should be one and only one " +
+                      os.path.join(path, filename))
+    filename = filenames[0]
     
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):
@@ -245,7 +294,8 @@ def get_lonlat(satscene, row, col):
     try:
         lon = satscene.lon[row, col]
         lat = satscene.lat[row, col]
-        if satscene.lon.mask[row, col] == False and satscene.lat.mask[row, col] == False:
+        if(satscene.lon.mask[row, col] == False and
+           satscene.lat.mask[row, col] == False):
             estimate = False
     except TypeError:
         pass
@@ -263,11 +313,11 @@ def get_lonlat(satscene, row, col):
 
     # WGS84
     # flattening
-    f = 1/298.257223563
+    f__ = 1/298.257223563
     # semi_major_axis
-    a = 6378137.0
+    a__ = 6378137.0
 
-    s, alpha12, alpha21 = vinc_dist(f, a,
+    s__, alpha12, alpha21 = vinc_dist(f__, a__,
                                     track_start[0], track_start[1],
                                     track_end[0], track_end[1])
     scanlines = satscene.granularity.seconds / satscene.span
@@ -276,12 +326,13 @@ def get_lonlat(satscene, row, col):
         if row == 0:
             track_now = track_start
         else:
-            track_now = vinc_pt(f, a, track_start[0], track_start[1], alpha12,
-                                (s * row) / scanlines)
+            track_now = vinc_pt(f__, a__,
+                                track_start[0], track_start[1], alpha12,
+                                (s__ * row) / scanlines)
         lat_now = track_now[0]
         lon_now = track_now[1]
         
-        s, alpha12, alpha21 = vinc_dist(f, a,
+        s__, alpha12, alpha21 = vinc_dist(f__, a__,
                                         lat_now, lon_now,
                                         track_end[0], track_end[1])
         fac = 1
@@ -289,22 +340,26 @@ def get_lonlat(satscene, row, col):
         if scanlines - row - 1 == 0:
             track_now = track_end
         else:
-            track_now = vinc_pt(f, a, track_end[0], track_end[1], alpha21,
-                                (s * (scanlines - row - 1)) / scanlines)
+            track_now = vinc_pt(f__, a__, track_end[0], track_end[1], alpha21,
+                                (s__ * (scanlines - row - 1)) / scanlines)
         lat_now = track_now[0]
         lon_now = track_now[1]
         
-        s, alpha12, alpha21 = vinc_dist(f, a,
+        s__, alpha12, alpha21 = vinc_dist(f__, a__,
                                         lat_now, lon_now,
                                         track_start[0], track_start[1])
         fac = -1
 
     if col < 1354/2:
-        lat, lon, alp = vinc_pt(f, a, lat_now, lon_now, alpha12 + np.pi/2 * fac,
+        lat, lon, alp = vinc_pt(f__, a__,
+                                lat_now, lon_now, alpha12 + np.pi/2 * fac,
                                 2340000.0 / 2 - (2340000.0/1354) * col)
     else:
-        lat, lon, alp = vinc_pt(f, a, lat_now, lon_now, alpha12 - np.pi/2 * fac,
+        lat, lon, alp = vinc_pt(f__, a__,
+                                lat_now, lon_now, alpha12 - np.pi/2 * fac,
                                 (2340000.0/1354) * col - 2340000.0 / 2)
+
+    del alp
 
     lon = np.rad2deg(lon)
     lat = np.rad2deg(lat)
@@ -317,82 +372,91 @@ def get_lonlat(satscene, row, col):
     return lon, lat
         
     
-import math
 
-def vinc_dist(  f,  a,  phi1,  lembda1,  phi2,  lembda2 ) :
+def vinc_dist(f__, a__, phi1, lambda1, phi2, lambda2 ) :
     """ 
 
     Returns the distance between two geographic points on the ellipsoid
     and the forward and reverse azimuths between these points.
     lats, longs and azimuths are in radians, distance in metres 
 
-    Returns ( s, alpha12,  alpha21 ) as a tuple
+    Returns ( s__, alpha12,  alpha21 ) as a__ tuple
 
     """
 
-    if (abs( phi2 - phi1 ) < 1e-8) and ( abs( lembda2 - lembda1) < 1e-8 ) :
+    if (abs( phi2 - phi1 ) < 1e-8) and ( abs( lambda2 - lambda1) < 1e-8 ) :
         return 0.0, 0.0, 0.0
 
     two_pi = 2.0*math.pi
 
-    b = a * (1.0 - f)
+    b__ = a__ * (1.0 - f__)
 
-    TanU1 = (1-f) * math.tan( phi1 )
-    TanU2 = (1-f) * math.tan( phi2 )
+    tanu1 = (1-f__) * math.tan( phi1 )
+    tanu2 = (1-f__) * math.tan( phi2 )
 
-    U1 = math.atan(TanU1)
-    U2 = math.atan(TanU2)
+    u_1 = math.atan(tanu1)
+    u_2 = math.atan(tanu2)
 
-    lembda = lembda2 - lembda1
+    lembda = lambda2 - lambda1
     last_lembda = -4000000.0                # an impossibe value
     omega = lembda
 
     # Iterate the following equations, 
-    #  until there is no significant change in lembda 
+    #  until there is no significant change in lambda 
 
-    while ( last_lembda < -3000000.0 or lembda != 0 and abs( (last_lembda - lembda)/lembda) > 1.0e-9 ) :
+    while(last_lembda < -3000000.0 or lembda != 0 and
+          abs( (last_lembda - lembda)/lembda) > 1.0e-9) :
 
-        sqr_sin_sigma = pow( math.cos(U2) * math.sin(lembda), 2) + \
-                        pow( (math.cos(U1) * math.sin(U2) - \
-                              math.sin(U1) *  math.cos(U2) * math.cos(lembda) ), 2 )
+        sqr_sin_sigma = (pow(math.cos(u_2) * math.sin(lembda), 2) + 
+                         pow((math.cos(u_1) * math.sin(u_2) -
+                              math.sin(u_1) *  math.cos(u_2) *
+                              math.cos(lembda) ), 2))
 
-        Sin_sigma = math.sqrt( sqr_sin_sigma )
+        sin_sigma = math.sqrt( sqr_sin_sigma )
         
-        Cos_sigma = math.sin(U1) * math.sin(U2) + math.cos(U1) * math.cos(U2) * math.cos(lembda)
+        cos_sigma = (math.sin(u_1) * math.sin(u_2) +
+                     math.cos(u_1) * math.cos(u_2) * math.cos(lembda))
 
-        sigma = math.atan2( Sin_sigma, Cos_sigma )
+        sigma = math.atan2(sin_sigma, cos_sigma)
 
-        Sin_alpha = math.cos(U1) * math.cos(U2) * math.sin(lembda) / math.sin(sigma)
-        alpha = math.asin( Sin_alpha )
+        sin_alpha = (math.cos(u_1) * math.cos(u_2) * math.sin(lembda) /
+                     math.sin(sigma))
+        alpha = math.asin(sin_alpha)
       
-        Cos2sigma_m = math.cos(sigma) - (2 * math.sin(U1) * math.sin(U2) / pow(math.cos(alpha), 2) )
+        cos2sigma_m = (math.cos(sigma) - (2 * math.sin(u_1) * math.sin(u_2) /
+                                          pow(math.cos(alpha), 2)))
 
-        C = (f/16) * pow(math.cos(alpha), 2) * (4 + f * (4 - 3 * pow(math.cos(alpha), 2)))
+        c__ = ((f__/16) * pow(math.cos(alpha), 2) *
+               (4 + f__ * (4 - 3 * pow(math.cos(alpha), 2))))
 
         last_lembda = lembda
         
-        lembda = omega + (1-C) * f * math.sin(alpha) * (sigma + C * math.sin(sigma) * \
-                                                        (Cos2sigma_m + C * math.cos(sigma) * (-1 + 2 * pow(Cos2sigma_m, 2) )))
+        lembda = (omega + (1-c__) * f__ * math.sin(alpha) *
+                  (sigma + c__ * math.sin(sigma) *
+                   (cos2sigma_m + c__ * math.cos(sigma) *
+                    (-1 + 2 * pow(cos2sigma_m, 2)))))
 
 
-    u2 = pow(math.cos(alpha),2) * (a*a-b*b) / (b*b)
+    u_2 = pow(math.cos(alpha), 2) * (a__*a__-b__*b__) / (b__*b__)
 
-    A = 1 + (u2/16384) * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)))
+    a_1 = 1 + (u_2/16384) * (4096 + u_2 * (-768 + u_2 * (320 - 175 * u_2)))
 
-    B = (u2/1024) * (256 + u2 * (-128+ u2 * (74 - 47 * u2)))
+    b_1 = (u_2/1024) * (256 + u_2 * (-128+ u_2 * (74 - 47 * u_2)))
 
-    delta_sigma = B * Sin_sigma * (Cos2sigma_m + (B/4) * \
-            (Cos_sigma * (-1 + 2 * pow(Cos2sigma_m, 2) ) - \
-            (B/6) * Cos2sigma_m * (-3 + 4 * sqr_sin_sigma) * \
-            (-3 + 4 * pow(Cos2sigma_m,2 ) )))
+    delta_sigma = b_1 * sin_sigma * (cos2sigma_m + (b_1/4) * \
+            (cos_sigma * (-1 + 2 * pow(cos2sigma_m, 2) ) - \
+            (b_1/6) * cos2sigma_m * (-3 + 4 * sqr_sin_sigma) * \
+            (-3 + 4 * pow(cos2sigma_m,2 ) )))
 
-    s = b * A * (sigma - delta_sigma)
+    s__ = b__ * a_1 * (sigma - delta_sigma)
 
-    alpha12 = math.atan2( (math.cos(U2) * math.sin(lembda)), \
-            (math.cos(U1) * math.sin(U2) - math.sin(U1) * math.cos(U2) * math.cos(lembda)))
+    alpha12 = math.atan2( (math.cos(u_2) * math.sin(lembda)), \
+            (math.cos(u_1) * math.sin(u_2) -
+             math.sin(u_1) * math.cos(u_2) * math.cos(lembda)))
 
-    alpha21 = math.atan2( (math.cos(U1) * math.sin(lembda)), \
-            (-math.sin(U1) * math.cos(U2) + math.cos(U1) * math.sin(U2) * math.cos(lembda)))
+    alpha21 = math.atan2( (math.cos(u_1) * math.sin(lembda)), \
+            (-math.sin(u_1) * math.cos(u_2) +
+             math.cos(u_1) * math.sin(u_2) * math.cos(lembda)))
 
     if ( alpha12 < 0.0 ) : 
         alpha12 =  alpha12 + two_pi
@@ -405,7 +469,7 @@ def vinc_dist(  f,  a,  phi1,  lembda1,  phi2,  lembda2 ) :
     if ( alpha21 > two_pi ) : 
         alpha21 = alpha21 - two_pi
             
-    return s, alpha12,  alpha21 
+    return s__, alpha12,  alpha21 
 
 # END of Vincenty's Inverse formulae 
 
@@ -421,14 +485,14 @@ def vinc_dist(  f,  a,  phi1,  lembda1,  phi2,  lembda2 ) :
 #                                                                           |
 #----------------------------------------------------------------------------
 
-def  vinc_pt( f, a, phi1, lembda1, alpha12, s ) :
+def  vinc_pt( f__, a__, phi1, lembda1, alpha12, s ) :
     """
 
     Returns the lat and long of projected point and reverse azimuth
-    given a reference point and a distance and azimuth to project.
+    given a__ reference point and a__ distance and azimuth to project.
     lats, longs and azimuths are passed in decimal degrees
 
-    Returns ( phi2,  lambda2,  alpha21 ) as a tuple 
+    Returns ( phi2,  lambda2,  alpha21 ) as a__ tuple 
 
     """
 
@@ -441,21 +505,21 @@ def  vinc_pt( f, a, phi1, lembda1, alpha12, s ) :
         alpha12 = alpha12 - two_pi
 
 
-    b = a * (1.0 - f)
+    b__ = a__ * (1.0 - f__)
 
-    TanU1 = (1-f) * math.tan(phi1)
-    U1 = math.atan( TanU1 )
-    sigma1 = math.atan2( TanU1, math.cos(alpha12) )
-    Sinalpha = math.cos(U1) * math.sin(alpha12)
-    cosalpha_sq = 1.0 - Sinalpha * Sinalpha
+    tanui = (1-f__) * math.tan(phi1)
+    u_1 = math.atan( tanui )
+    sigma1 = math.atan2( tanui, math.cos(alpha12) )
+    sinalpha = math.cos(u_1) * math.sin(alpha12)
+    cosalpha_sq = 1.0 - sinalpha * sinalpha
 
-    u2 = cosalpha_sq * (a * a - b * b ) / (b * b)
-    A = 1.0 + (u2 / 16384) * (4096 + u2 * (-768 + u2 * \
-            (320 - 175 * u2) ) )
-    B = (u2 / 1024) * (256 + u2 * (-128 + u2 * (74 - 47 * u2) ) )
+    u_2 = cosalpha_sq * (a__ * a__ - b__ * b__ ) / (b__ * b__)
+    a_1 = 1.0 + (u_2 / 16384) * (4096 + u_2 * (-768 + u_2 * \
+            (320 - 175 * u_2) ) )
+    b_1 = (u_2 / 1024) * (256 + u_2 * (-128 + u_2 * (74 - 47 * u_2) ) )
 
     # Starting with the approximation
-    sigma = (s / (b * A))
+    sigma = (s / (b__ * a_1))
 
     last_sigma = 2.0 * sigma + 2.0  # something impossible
 
@@ -468,36 +532,43 @@ def  vinc_pt( f, a, phi1, lembda1, alpha12, s ) :
 
         two_sigma_m = 2 * sigma1 + sigma
 
-        delta_sigma = B * math.sin(sigma) * ( math.cos(two_sigma_m) \
-                                              + (B/4) * (math.cos(sigma) * \
-                                                         (-1 + 2 * math.pow( math.cos(two_sigma_m), 2 ) -  \
-                                                          (B/6) * math.cos(two_sigma_m) * \
-                                                          (-3 + 4 * math.pow(math.sin(sigma), 2 )) *  \
-                                                          (-3 + 4 * math.pow( math.cos (two_sigma_m), 2 )))))
+        delta_sigma = (b_1 * math.sin(sigma) *
+                       (math.cos(two_sigma_m) 
+                        + (b_1/4) * (math.cos(sigma) * 
+                                     (-1 +
+                                      2 * math.pow( math.cos(two_sigma_m), 2) -
+                                      (b_1/6) * math.cos(two_sigma_m) *
+                                      (-3 + 4 * math.pow(math.sin(sigma), 2)) *
+                                      (-3 + 4 *
+                                       math.pow( math.cos (two_sigma_m), 2))))))
         last_sigma = sigma
-        sigma = (s / (b * A)) + delta_sigma
+        sigma = (s / (b__ * a_1)) + delta_sigma
 
 
-    phi2 = math.atan2 ( (math.sin(U1) * math.cos(sigma) + math.cos(U1) * math.sin(sigma) * math.cos(alpha12) ), \
-                        ((1-f) * math.sqrt( math.pow(Sinalpha, 2) +  \
-                                            pow(math.sin(U1) * math.sin(sigma) - math.cos(U1) * math.cos(sigma) * math.cos(alpha12), 2))))
+    phi2 = math.atan2((math.sin(u_1) * math.cos(sigma) +
+                       math.cos(u_1) * math.sin(sigma) * math.cos(alpha12)),
+                      ((1-f__) * math.sqrt(math.pow(sinalpha, 2) +
+                                           pow(math.sin(u_1) * math.sin(sigma) -
+                                               math.cos(u_1) * math.cos(sigma) *
+                                               math.cos(alpha12), 2))))
 
 
-    lembda = math.atan2( (math.sin(sigma) * math.sin(alpha12 )), (math.cos(U1) * math.cos(sigma) -  \
-                                                                  math.sin(U1) *  math.sin(sigma) * math.cos(alpha12)))
+    lembda = math.atan2((math.sin(sigma) * math.sin(alpha12)),
+                        (math.cos(u_1) * math.cos(sigma) -
+                         math.sin(u_1) *  math.sin(sigma) * math.cos(alpha12)))
 
-    C = (f/16) * cosalpha_sq * (4 + f * (4 - 3 * cosalpha_sq ))
+    c_1 = (f__/16) * cosalpha_sq * (4 + f__ * (4 - 3 * cosalpha_sq ))
 
-    omega = lembda - (1-C) * f * Sinalpha *  \
-            (sigma + C*math.sin(sigma)*(math.cos(two_sigma_m) +
-                                        C * math.cos(sigma) *
+    omega = lembda - (1-c_1) * f__ * sinalpha *  \
+            (sigma + c_1*math.sin(sigma)*(math.cos(two_sigma_m) +
+                                        c_1 * math.cos(sigma) *
                                         (-1 + 2 *
                                          math.pow(math.cos(two_sigma_m),2))))
 
     lembda2 = lembda1 + omega
 
-    alpha21 = math.atan2 ( Sinalpha, (-math.sin(U1) * math.sin(sigma) +
-                                      math.cos(U1) * math.cos(sigma) *
+    alpha21 = math.atan2 ( sinalpha, (-math.sin(u_1) * math.sin(sigma) +
+                                      math.cos(u_1) * math.cos(sigma) *
                                       math.cos(alpha12)))
 
     alpha21 = alpha21 + two_pi / 2.0
