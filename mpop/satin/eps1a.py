@@ -38,17 +38,6 @@ from mpop.satellites import PolarFactory
 import mpop.satin.aapp1b
 
 from mpop import CONFIG_PATH
-from mpop.plugin_base import Reader
-
-class Eps1aReader(Reader):
-    """Plugin for reading EPS 1A format.
-    """
-    pformat = "eps1a"
-
-    def load(self, *args, **kwargs):
-        """Read data from file.
-        """
-        load(self._scene, *args, **kwargs)
 
 WORKING_DIR = "/tmp"
 

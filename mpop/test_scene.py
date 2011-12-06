@@ -69,10 +69,8 @@ def patch_configparser():
         def get(self, *args, **kwargs):
             """Dummy get method
             """
-            del kwargs
+            del args, kwargs
             self = self
-            if args[1] == "dir":
-                return "satout"
             return DUMMY_STRING
         
         def sections(self):

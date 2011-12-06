@@ -34,7 +34,6 @@ import unittest
 
 import numpy as np
 import xrit.sat
-import pyresample.geometry
 
 import mpop.satin.mipp
 import mpop.scene
@@ -223,7 +222,7 @@ class TestMipp(unittest.TestCase):
         patch_configparser()
         patch_satellite()
         patch_mipp()
-
+        
     # def test_load(self):
     #     """Test the loading function.
     #     """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -194,12 +194,8 @@ def patch_configparser():
         def get(self, *args, **kwargs):
             """Dummy get method
             """
-            del kwargs
+            del args, kwargs
             self = self
-
-            if args[1] == "dir":
-                return "satout"
-            
             return "test_plugin"
         
         def sections(self):

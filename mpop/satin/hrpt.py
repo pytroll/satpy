@@ -38,18 +38,6 @@ from ConfigParser import ConfigParser
 from mpop.utils import ensure_dir
 import mpop.satin.aapp1b
 from mpop import CONFIG_PATH
-from mpop.plugin_base import Reader
-from mpop.satellites import PolarFactory 
-
-class HRPTReader(Reader):
-    """Plugin for reading HRPT format.
-    """
-    pformat = "hrpt"
-
-    def load(self, *args, **kwargs):
-        """Read data from file.
-        """
-        load(self._scene, *args, **kwargs)
 
 from mpop.satellites import PolarFactory 
 

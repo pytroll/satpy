@@ -209,7 +209,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
 
             for section in conf.sections():
-                # load channels from config file
                 if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
