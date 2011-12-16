@@ -34,6 +34,7 @@ import shutil
 import subprocess
 import tempfile
 from ConfigParser import ConfigParser
+import datetime
 
 from mpop.utils import ensure_dir
 import mpop.satin.aapp1b
@@ -48,6 +49,26 @@ SATPOS_DIR = os.path.sep.join(os.environ["AAPP_PREFIX"].split(os.path.sep)[:-1])
 SATPOS_DIR = os.path.join(SATPOS_DIR, "data", "satpos")
 
 LOG = logging.getLogger("hrpt loader")
+
+def get_satpos_file(satpos_time, satname):
+    """Return the current satpos file
+    """
+    satpos_file = os.path.join(SATPOS_DIR,
+                               "satpos_"+
+                               satname+"_"+
+                               satpos_time.strftime("%Y%m%d")+".txt")
+
+    if os.path.exists(satpos_file):
+	return satpos_file
+    elif satpos_time.hour < 2:
+        satpos_time -= datetime.timedelta(days=1)
+        satpos_file = os.path.join(SATPOS_DIR,
+                                   "satpos_"+
+                                   satname+"_"+
+                                   satpos_time.strftime("%Y%m%d")+".txt")
+        return satpos_file
+    else:
+        raise IOError("Missing satpos file:" + satpos_file)
 
 def load(satscene):
     """Read data from file and load it into *satscene*.
@@ -86,7 +107,12 @@ def load_avhrr(satscene, options):
 
     os.close(handle)
     del handle
-    decommutation(filename, tempname, satscene, options)
+    if(satscene.satname == "metop"):
+        satname = "M02"
+    else:
+        satname = satscene.satname + satscene.number
+        
+    decommutation(filename, tempname, satscene, options, satname)
     calibration_navigation(tempname, satscene, options)
 
     conf = ConfigParser()
@@ -133,10 +159,7 @@ def calibration_navigation(filename, time_slot, shortname):
     import pysdh2orbnum
     LOG.info("Calibrating "+filename)
     formated_date = time_slot.strftime("%d/%m/%y %H:%M:%S.000")
-    satpos_file = os.path.join(SATPOS_DIR,
-                               "satpos_" + shortname +
-                               time_slot.strftime("_%Y%m%d") +
-                               ".txt")
+    satpos_file = get_satpos_file(time_slot, shortname)
     LOG.debug(formated_date)
     LOG.debug(satpos_file)
     orbit_number = str(pysdh2orbnum.sdh2orbnum(shortname,
@@ -227,19 +250,14 @@ def decommutation(filename_from, filename_to,
     handle.write(str(time_slot_start.year) + "\n")
     handle.write("0\n")
     
-    satpos_file = os.path.join(SATPOS_DIR,
-                               "satpos_" + shortname +
-                               time_slot_start.strftime("_%Y%m%d") +
-                               ".txt")
+    satpos_file = get_satpos_file(time_slot_start, shortname)
     formated_date = time_slot_start.strftime("%d/%m/%y %H:%M:%S.000")
     orbit_start = str(pysdh2orbnum.sdh2orbnum(shortname,
                                               formated_date,
                                               satpos_file))
 
-    satpos_file = os.path.join(SATPOS_DIR,
-                               "satpos_" + shortname +
-                               time_slot_end.strftime("_%Y%m%d") +
-                               ".txt")
+    satpos_file = get_satpos_file(time_slot_end, shortname)
+
     formated_date = time_slot_end.strftime("%d/%m/%y %H:%M:%S.000")
     orbit_end = str(pysdh2orbnum.sdh2orbnum(shortname,
                                             formated_date,
@@ -268,10 +286,9 @@ def decommutation(filename_from, filename_to,
 def get_orbit(time_slot, shortname):
     import pysdh2orbnum
     formated_date = time_slot.strftime("%d/%m/%y %H:%M:%S.000")
-    satpos_file = os.path.join(SATPOS_DIR,
-                               "satpos_" + shortname +
-                               time_slot.strftime("_%Y%m%d") +
-                               ".txt")
+    
+    satpos_file = get_satpos_file(time_slot, shortname)
+    
     return str(pysdh2orbnum.sdh2orbnum(shortname,
                                        formated_date,
                                        satpos_file))
@@ -365,7 +382,7 @@ def get_lonlat_avhrr(satscene, row, col):
 
     import pyaapp
     import math
-    import datetime
+
     t_start = satscene.time_slot
     epoch = datetime.datetime(1950, 1, 1)
     t50_start = (t_start - epoch)
@@ -376,16 +393,8 @@ def get_lonlat_avhrr(satscene, row, col):
     else:
         satname = satscene.satname + satscene.number
 
-    if satscene.time_slot.hour == 0 and satscene.time_slot.minute == 0:
-        satpos_time = satscene.time_slot - datetime.timedelta(minutes=1)
-    else:
-        satpos_time = satscene.time_slot
-        
-    satpos_file = os.path.join(SATPOS_DIR,
-                               "satpos_" + satname +
-                               satpos_time.strftime("_%Y%m%d") +
-                               ".txt")
-
+    satpos_file = get_satpos_file(satscene.time_slot, satname)
+    
     pyaapp.read_satpos_file(jday_start, jday_end,
                             satscene.satname+" "+str(int(satscene.number)),
                             satpos_file)
