@@ -4,8 +4,16 @@ number = ''
 instruments = ('modis',)
 
 [modis-level2]
-format=thin_modis
-dir=/data/prod/satellit/modis/lvl1
+format=hdfeos_l1b
+#dir=/data/prod/satellit/modis/lvl1
+dir = /local_disk/data/polar_out/direct_readout/modis
+# MYD021km_A20111209_000923_2011348002204.hdf
+filename = MYD021km_A%Y%m%d_%H%M%S_*.hdf
+#filename = MYD021KM_A%Y%j_%H%M_*.hdf
+# MYD03_A20111209_000923.2011348002054.hdf
+geofile = MYD03_A%Y%m%d_%H%M%S_*.hdf
+#geofile = MOD03_A%Y%j_%H%M_*.hdf
+
 
 [modis-1]
 name = '1'
