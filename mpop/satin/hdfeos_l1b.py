@@ -10,7 +10,8 @@
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
-#   Ronald Scheirer
+#   Ronald Scheirer <ronald.scheirer@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This file is part of mpop.
 
@@ -74,7 +75,7 @@ def calibrate_refl(subdata, uncertainty):
         array[i, :, :] = (array[i, :, :] - offsets[i]) * scales[i] * 100
     return array
 
-def calibrate_tb(subdata, uncertainty):
+def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
     """Calibration for the emissive channels.
     """
     del uncertainty
@@ -129,8 +130,14 @@ def calibrate_tb(subdata, uncertainty):
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
     cwn = 1. / (cwn * 1e2)
 
-    # Due to the thin modis channels selection:
-    available_channels = np.array([0, 3, 6, 7, 8, 10, 11, 12])
+    # All channels (Direct Readout) or a subset (thinned via EUMETCast):
+    # Get the available emissive bands (band 20 is the first): 
+    #available_channels = np.array([0, 3, 6, 7, 8, 10, 11, 12])
+    # Band 26 is not emissive!
+    bands = np.where(np.less(emissive_band_numbers, 26), 
+                     emissive_band_numbers, emissive_band_numbers - 1)
+    available_channels = bands - 20 
+    #print "Available MODIS IR band numbers = ", available_channels 
     cwn = cwn[available_channels]
     tcs = tcs[available_channels]
     tci = tci[available_channels]
@@ -141,19 +148,25 @@ def calibrate_tb(subdata, uncertainty):
         array[i, :, :] = (tmp - tci[i]) / tcs[i]
     return array
 
-def load_thin_modis(satscene, options):
+def load_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
     """
-    filename = satscene.time_slot.strftime(
-        "thin_MYD021KM.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
-    
-    data = SD(filename)
+    import glob
+    filename_tmpl = satscene.time_slot.strftime(options["filename"])
+    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
 
+    if len(file_list) > 1:
+        raise IOError("More than 1 file matching!")
+    elif len(file_list) == 0:
+        raise IOError("No Aqua MODIS file matching!: " + filename_tmpl)
+
+    data = SD(file_list[0])
     datasets = ['EV_250_Aggr1km_RefSB',
                 'EV_500_Aggr1km_RefSB',
                 'EV_1KM_RefSB',
                 'EV_1KM_Emissive']
+
+    emissive_bands = data.select('Band_1KM_Emissive').get().astype('i')
 
     for dataset in datasets:
         subdata = data.select(dataset)
@@ -161,7 +174,7 @@ def load_thin_modis(satscene, options):
         if len(satscene.channels_to_load & set(band_names)) > 0:
             uncertainty = data.select(dataset+"_Uncert_Indexes")
             if dataset == 'EV_1KM_Emissive':
-                array = calibrate_tb(subdata, uncertainty)
+                array = calibrate_tb(subdata, uncertainty, emissive_bands)
             else:
                 array = calibrate_refl(subdata, uncertainty)
             for (i, band) in enumerate(band_names):
@@ -211,11 +224,20 @@ def get_lat_lon(satscene, resolution):
         
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
-def get_lat_lon_thin_modis(satscene, options):
+def get_lat_lon_modis(satscene, options):
     """Read lat and lon.
     """
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(options["dir"], filename)
+    import glob
+    filename_tmpl = satscene.time_slot.strftime(options["geofile"])
+    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
+
+    if len(file_list) > 1:
+        raise IOError("More than 1 geolocation file matching!")
+    elif len(file_list) == 0:
+        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+
+    filename = file_list[0]
+    print "Geolocation file = ", filename
 
     data = SD(filename)
     lat = data.select("Latitude")
@@ -225,20 +247,29 @@ def get_lat_lon_thin_modis(satscene, options):
     fill_value = lon.attributes()["_FillValue"]
     lon = np.ma.masked_equal(lon.get(), fill_value)
 
-    
-
     return lat, lon
 
 def get_lonlat(satscene, row, col):
     """Estimate lon and lat.
     """
+    import glob
 
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     path = conf.get("modis-level2", "dir")
-    filename = satscene.time_slot.strftime("thin_MYD03.A%Y%j.%H%M.005.NRT.hdf")
-    filename = os.path.join(path, filename)
-    
+    geofile_tmpl = conf.get("modis-level2", "geofile")
+
+    filename_tmpl = satscene.time_slot.strftime(geofile_tmpl)
+    file_list = glob.glob(os.path.join(path, filename_tmpl))
+
+    if len(file_list) > 1:
+        raise IOError("More than 1 geolocation file matching!")
+    elif len(file_list) == 0:
+        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+
+    filename = file_list[0]
+    print "Geolocation file = ",filename
+
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):
         data = SD(filename)
@@ -548,9 +579,9 @@ def  vinc_pt( f__, a__, phi1, lembda1, alpha12, s__) :
 
 
 CASES = {
-    "modis": load_thin_modis
+    "modis": load_modis
     }
 
 LAT_LON_CASES = {
-    "modis": get_lat_lon_thin_modis
+    "modis": get_lat_lon_modis
     }
