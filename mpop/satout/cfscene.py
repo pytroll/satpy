@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -85,42 +85,15 @@ class CFScene(object):
         area_counter = 0
         
         for chn in scene:
-            #print "CHN: ",chn
+
             if not chn.is_loaded():
                 continue
             
-            #print type(chn)
             if not isinstance(chn, Channel):
                 setattr(self, chn.name, chn)
-                #print "INFO: ", chn.info
                 continue
 
-            fill_value = np.iinfo(CF_DATA_TYPE).min
-            if ma.count_masked(chn.data) == chn.data.size:
-                # All data is masked
-                data = np.ones(chn.data.shape, dtype=CF_DATA_TYPE) * fill_value
-                valid_min = fill_value
-                valid_max = fill_value
-                scale = 1
-                offset = 0
-            else:
-                chn_max = chn.data.max()
-                chn_min = chn.data.min()
-               
-                scale = ((chn_max - chn_min) / 
-                         (np.iinfo(CF_DATA_TYPE).max -
-                          np.iinfo(CF_DATA_TYPE).min - 1))
-                # Handle the case where all data has the same value.
-                if scale == 0:
-                    scale = 1
-                offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
-                valid_min = int((chn_min - offset) / scale)            
-                valid_max = int((chn_max - offset) / scale)
-                
-                data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
-                data[chn.data.mask] = fill_value
-
-            data = np.expand_dims(data, band_axis)
+            data = np.ma.expand_dims(chn.data, band_axis)
             
             # it's a grid mapping
             try:
@@ -175,8 +148,9 @@ class CFScene(object):
                     setattr(self, y__.info["var_name"], y__)
                     
                     xy_names = [y__.info["var_name"], x__.info["var_name"]]
+
+            # It's not a grid mapping, go for lons and lats
             except AttributeError:
-                # It's not a grid mapping, go for lons and lats
                 area = None
                 if(chn.area in areas):
                     str_arc = str(areas.index(chn.area))
@@ -236,19 +210,19 @@ class CFScene(object):
                                                 np.array([chn.name])))
                 bandname.info["var_data"] = bandname.data
 
-                # offset
-                offset_attr = getattr(self, "offset" + str_cnt)
-                offset_attr.data = np.concatenate((offset_attr.data,
-                                                   np.array([offset])))
-                offset_attr.info["var_data"] = offset_attr.data
-                band.info["add_offset"] = offset_attr.data
+                # # offset
+                # offset_attr = getattr(self, "offset" + str_cnt)
+                # offset_attr.data = np.concatenate((offset_attr.data,
+                #                                    np.array([offset])))
+                # offset_attr.info["var_data"] = offset_attr.data
+                # band.info["add_offset"] = offset_attr.data
 
-                # scale
-                scale_attr = getattr(self, "scale" + str_cnt)
-                scale_attr.data = np.concatenate((scale_attr.data,
-                                                  np.array([scale])))
-                scale_attr.info["var_data"] = scale_attr.data
-                band.info["scale_factor"] = scale_attr.data
+                # # scale
+                # scale_attr = getattr(self, "scale" + str_cnt)
+                # scale_attr.data = np.concatenate((scale_attr.data,
+                #                                   np.array([scale])))
+                # scale_attr.info["var_data"] = scale_attr.data
+                # band.info["scale_factor"] = scale_attr.data
 
                 # wavelength bounds
                 bwl = getattr(self, "wl_bnds" + str_cnt)
@@ -280,7 +254,6 @@ class CFScene(object):
                              "var_data": band.data,
                              'var_dim_names': dim_names,
                              "standard_name": "band_data",
-                             "valid_range": np.array([valid_min, valid_max]),
                              "units": chn.info["units"],
                              "resolution": chn.resolution}
 
@@ -295,26 +268,26 @@ class CFScene(object):
                                  "standard_name": "band_name"}
                 setattr(self, "bandname" + str_cnt, bandname)
                 
-                # offset
-                off_attr = InfoObject()
-                off_attr.data = np.array([offset])
-                off_attr.info = {"var_name": "offset"+str_cnt,
-                                 "var_data": off_attr.data,
-                                 "var_dim_names": ("band"+str_cnt,),
-                                 "standard_name": "linear_calibration_offset"}
-                setattr(self, "offset" + str_cnt, off_attr) 
-                band.info["add_offset"] = off_attr.data
+                # # offset
+                # off_attr = InfoObject()
+                # off_attr.data = np.array([offset])
+                # off_attr.info = {"var_name": "offset"+str_cnt,
+                #                  "var_data": off_attr.data,
+                #                  "var_dim_names": ("band"+str_cnt,),
+                #                  "standard_name": "linear_calibration_offset"}
+                # setattr(self, "offset" + str_cnt, off_attr) 
+                # band.info["add_offset"] = off_attr.data
 
-                # scale
-                sca_attr = InfoObject()
-                sca_attr.data = np.array([scale])
-                sca_attr.info = {"var_name": "scale"+str_cnt,
-                                 "var_data": sca_attr.data,
-                                 "var_dim_names": ("band"+str_cnt,),
-                                 "standard_name": ("linear_calibration"
-                                                   "_scale_factor")}
-                setattr(self, "scale" + str_cnt, sca_attr) 
-                band.info["scale_factor"] = sca_attr.data
+                # # scale
+                # sca_attr = InfoObject()
+                # sca_attr.data = np.array([scale])
+                # sca_attr.info = {"var_name": "scale"+str_cnt,
+                #                  "var_data": sca_attr.data,
+                #                  "var_dim_names": ("band"+str_cnt,),
+                #                  "standard_name": ("linear_calibration"
+                #                                    "_scale_factor")}
+                # setattr(self, "scale" + str_cnt, sca_attr) 
+                # band.info["scale_factor"] = sca_attr.data
                 
                 # wavelength bounds
                 wlbnds = InfoObject()
@@ -344,7 +317,39 @@ class CFScene(object):
 
                 setattr(self, "band" + str_cnt, band)
 
-
+        for i, area_unit in enumerate(area_units):
+            # compute data reduction
+            fill_value = np.iinfo(CF_DATA_TYPE).min
+            band = getattr(self, "band" + str(i))
+            data = band.data
+            if ma.count_masked(data) == data.size:
+                # All data is masked
+                data = np.ones(data.shape, dtype=CF_DATA_TYPE) * fill_value
+                valid_min = fill_value
+                valid_max = fill_value
+                scale = 1
+                offset = 0
+            else:
+                chn_max = data.max()
+                chn_min = data.min()
+               
+                scale = ((chn_max - chn_min) / 
+                         (np.iinfo(CF_DATA_TYPE).max -
+                          np.iinfo(CF_DATA_TYPE).min - 1))
+                # Handle the case where all data has the same value.
+                if scale == 0:
+                    scale = 1
+                offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
+                valid_min = int((chn_min - offset) / scale)            
+                valid_max = int((chn_max - offset) / scale)
+                
+                data = ((data - offset) / scale).astype(CF_DATA_TYPE)
+                data = data.filled(fill_value)
+            band.data = data
+            band.info["add_offset"] = offset
+            band.info["scale_factor"] = scale
+            band.info["valid_range"] = np.array([valid_min, valid_max]),
+            
 def proj2cf(proj_dict):
     """Return the cf grid mapping from a proj dict.
 
@@ -366,7 +371,7 @@ def geos2cf(proj_dict):
     """Return the cf grid mapping from a geos proj dict.
     """
 
-    return {"grid_mapping_name": "vertical_perspective",
+    return {"grid_mapping_name": "geos",
             "latitude_of_projection_origin": 0.0,
             "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
             "semi_major_axis": eval(proj_dict["a"]),
