@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -669,6 +669,20 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                           self.scene.channels_to_load)
 
         self.scene.load(["CTTH"])
+
+        # ### Test the reinitialization of channels_to_load
+        # self.scene = SatelliteInstrumentScene2()
+
+        # self.assertRaises(ValueError, self.scene.load, ["00_7"], area_extent="bla")
+
+        # self.scene.load(["00_7"], area_extent="bla")
+        # self.assertEquals(set(["00_7"]), self.scene.channels_to_load)
+
+        # self.scene.load(["06_4"])
+        # self.assertEquals(len(self.scene.loaded_channels()), 1)
+        # self.assertEquals(self.scene.loaded_channels()[0].name, "06_4")
+
+        # self.scene.load(["CTTH"])
         
     # def test_assemble_segments(self):
     #     """Assembling segments in a single satscene object.
