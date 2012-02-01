@@ -7,48 +7,48 @@ instruments = ('modis',)
 format=hdfeos_l1b
 #dir=/data/prod/satellit/modis/lvl1
 dir = /local_disk/data/polar_out/direct_readout/modis
-# MYD021km_A20111209_000923_2011348002204.hdf
-filename = MYD021km_A%Y%m%d_%H%M%S_*.hdf
-#filename = MYD021KM_A%Y%j_%H%M_*.hdf
-# MYD03_A20111209_000923.2011348002054.hdf
-geofile = MYD03_A%Y%m%d_%H%M%S_*.hdf
-#geofile = MOD03_A%Y%j_%H%M_*.hdf
+
+filename250 = MYD02Qkm_A%Y%m%d_%H%M%S_*.hdf
+filename500 = MYD02Hkm_A%Y%m%d_%H%M%S_*.hdf
+filename1000 = MYD021km_A%Y%m%d_%H%M%S_*.hdf
+
+geofile1000 = MYD03_A%Y%m%d_%H%M%S_*.hdf
 
 
 [modis-1]
 name = '1'
 frequency = (0.620, 0.6450, 0.670)
-resolution = 1000
+resolution = 250
 
 [modis-2]
 name = '2'
 frequency = (0.841, 0.8585, 0.876)
-resolution = 1000
+resolution = 250
 
 [modis-3]
 name = '3'
 frequency = (0.459, 0.4690, 0.479)
-resolution = 1000
+resolution = 500
 
 [modis-4]
 name = '4'
 frequency = (0.545, 0.5550, 0.565)
-resolution = 1000
+resolution = 500
 
 [modis-5]
 name = '5'
 frequency = (1.230, 1.2400, 1.250)
-resolution = 1000
+resolution = 500
 
 [modis-6]
 name = '6'
 frequency = (1.628, 1.6400, 1.652)
-resolution = 1000
+resolution = 500
 
 [modis-7]
 name = '7'
 frequency = (2.105, 2.1300, 2.155)
-resolution = 1000
+resolution = 500
 
 [modis-8]
 name = '8'

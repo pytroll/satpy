@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2011.
+# Copyright (c) 2010-2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -42,6 +42,8 @@ from pyhdf.SD import SD
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 
+# load(["1", "11"], resolution=500)
+
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
     """
@@ -52,27 +54,31 @@ def load(satscene, *args, **kwargs):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
+    options["resolution"] = kwargs.get("resolution", 1000)
     CASES[satscene.instrument_name](satscene, options)
 
 
-def calibrate_refl(subdata, uncertainty):
+def calibrate_refl(subdata, uncertainty, indices):
     """Calibration for reflective channels.
     """
     del uncertainty
     #uncertainty_array = uncertainty.get()
     #array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
-    array = subdata.get()
+
+    # FIXME: The loading should not be done here. Moreover, only requested
+    # bands should be loaded !
+
+    array = subdata[indices, :, :]
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
                                  valid_range[0],
                                  valid_range[1],
                                  copy = False)
     array = array * 1.0
-    offsets = subdata.attributes()["reflectance_offsets"]
-    scales = subdata.attributes()["reflectance_scales"]
-    for i in range(len(scales)):
-        array[i, :, :] = (array[i, :, :] - offsets[i]) * scales[i] * 100
+    offsets = np.array(subdata.attributes()["reflectance_offsets"])[indices, :]
+    scales = np.array(subdata.attributes()["reflectance_scales"])[indices, :]
+    array = (array - offsets) * scales * 100
     return array
 
 def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
@@ -82,6 +88,11 @@ def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
     #uncertainty_array = uncertainty.get()
     #array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
+
+
+    # FIXME: The loading should not be done here. Moreover, only requested
+    # bands should be loaded !
+
     array = subdata.get()
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
@@ -150,17 +161,80 @@ def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
 
 def load_modis(satscene, options):
     """Read modis data from file and load it into *satscene*.
+
+    *resolution* parameters specifies in which resolution to load the data. If
+     the specified resolution is not available for the channel, it is NOT
+     loaded. If no resolution is specified, the 1km resolution (aggregated) is
+     used.
     """
     import glob
-    filename_tmpl = satscene.time_slot.strftime(options["filename"])
-    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
 
+    resolution = int(options["resolution"]) or 1000
+
+    filenames = {}
+    filename_tmpl = satscene.time_slot.strftime(options["filename"+
+                                                        str(resolution)])
+    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
     if len(file_list) > 1:
         raise IOError("More than 1 file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS file matching!: " + filename_tmpl)
+        raise IOError("No EOS MODIS file matching!: " + filename_tmpl)
 
-    data = SD(file_list[0])
+    cases = {250: load250,
+             500: load500,
+             1000: load1000}
+    cases[resolution](satscene, file_list[0])
+
+def load250(satscene, filename):
+    """Read modis data in 250m resolution.
+    """
+    data = SD(filename)
+    datasets = ['EV_250_RefSB']
+    
+    for dataset in datasets:
+        subdata = data.select(dataset)
+        band_names = subdata.attributes()["band_names"].split(",")
+        indices = [i for i, band in enumerate(band_names) if band in satscene.channels_to_load]
+        if len(satscene.channels_to_load & set(band_names)) > 0:
+            uncertainty = data.select(dataset+"_Uncert_Indexes")
+            array = calibrate_refl(subdata, uncertainty, indices)
+            for (i, band) in enumerate(band_names):
+                if band in satscene.channels_to_load:
+                    satscene[band] = array[i]
+
+    mda = data.attributes()["CoreMetadata.0"]
+    orbit_idx = mda.index("ORBITNUMBER")
+    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+    # TODO: add lon lats !
+
+def load500(satscene, filename):
+    """Read modis data in 250m resolution.
+    """
+    data = SD(filename)
+    datasets = ['EV_250_Aggr500_RefSB',
+                'EV_500_RefSB']
+    
+    for dataset in datasets:
+        subdata = data.select(dataset)
+        band_names = subdata.attributes()["band_names"].split(",")
+        if len(satscene.channels_to_load & set(band_names)) > 0:
+            uncertainty = data.select(dataset+"_Uncert_Indexes")
+            array = calibrate_refl(subdata, uncertainty)
+            for (i, band) in enumerate(band_names):
+                if band in satscene.channels_to_load:
+                    satscene[band] = array[i]
+
+    mda = data.attributes()["CoreMetadata.0"]
+    orbit_idx = mda.index("ORBITNUMBER")
+    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+    # TODO: add lon lats !
+
+def load1000(satscene, filename):
+    """Read modis data in 1km resolution.
+    """
+    data = SD(filename)
     datasets = ['EV_250_Aggr1km_RefSB',
                 'EV_500_Aggr1km_RefSB',
                 'EV_1KM_RefSB',
