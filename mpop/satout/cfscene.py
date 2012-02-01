@@ -57,7 +57,7 @@ class CFScene(object):
         CF_DATA_TYPE = dtype
         
         # Other global attributes
-        self.info["Conventions"] = "CF-1.4"
+        self.info["Conventions"] = "CF-1.5"
         self.info["satellite_name"] = scene.satname
         try:
             self.info["satellite_number"] = int(scene.number)
@@ -210,20 +210,6 @@ class CFScene(object):
                                                 np.array([chn.name])))
                 bandname.info["var_data"] = bandname.data
 
-                # # offset
-                # offset_attr = getattr(self, "offset" + str_cnt)
-                # offset_attr.data = np.concatenate((offset_attr.data,
-                #                                    np.array([offset])))
-                # offset_attr.info["var_data"] = offset_attr.data
-                # band.info["add_offset"] = offset_attr.data
-
-                # # scale
-                # scale_attr = getattr(self, "scale" + str_cnt)
-                # scale_attr.data = np.concatenate((scale_attr.data,
-                #                                   np.array([scale])))
-                # scale_attr.info["var_data"] = scale_attr.data
-                # band.info["scale_factor"] = scale_attr.data
-
                 # wavelength bounds
                 bwl = getattr(self, "wl_bnds" + str_cnt)
                 bwl.data = np.vstack((bwl.data,
@@ -253,7 +239,7 @@ class CFScene(object):
                 band.info = {"var_name": "band_data"+str_cnt,
                              "var_data": band.data,
                              'var_dim_names': dim_names,
-                             "standard_name": "band_data",
+                             "long_name": "Band data",
                              "units": chn.info["units"],
                              "resolution": chn.resolution}
 
@@ -262,33 +248,12 @@ class CFScene(object):
                 
                 bandname = InfoObject()
                 bandname.data = np.array([chn.name], 'O')
-                bandname.info = {"var_name": "bandname"+str_cnt,
+                bandname.info = {"var_name": "band"+str_cnt,
                                  "var_data": bandname.data,
                                  "var_dim_names": ("band"+str_cnt,),
                                  "standard_name": "band_name"}
                 setattr(self, "bandname" + str_cnt, bandname)
-                
-                # # offset
-                # off_attr = InfoObject()
-                # off_attr.data = np.array([offset])
-                # off_attr.info = {"var_name": "offset"+str_cnt,
-                #                  "var_data": off_attr.data,
-                #                  "var_dim_names": ("band"+str_cnt,),
-                #                  "standard_name": "linear_calibration_offset"}
-                # setattr(self, "offset" + str_cnt, off_attr) 
-                # band.info["add_offset"] = off_attr.data
 
-                # # scale
-                # sca_attr = InfoObject()
-                # sca_attr.data = np.array([scale])
-                # sca_attr.info = {"var_name": "scale"+str_cnt,
-                #                  "var_data": sca_attr.data,
-                #                  "var_dim_names": ("band"+str_cnt,),
-                #                  "standard_name": ("linear_calibration"
-                #                                    "_scale_factor")}
-                # setattr(self, "scale" + str_cnt, sca_attr) 
-                # band.info["scale_factor"] = sca_attr.data
-                
                 # wavelength bounds
                 wlbnds = InfoObject()
                 wlbnds.data = np.array([[chn.wavelength_range[0],
