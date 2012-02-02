@@ -158,7 +158,7 @@ def load_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS file matching!: " + filename_tmpl)
+        raise IOError("No MODIS file matching!: " + filename_tmpl)
 
     data = SD(file_list[0])
     datasets = ['EV_250_Aggr1km_RefSB',
@@ -234,7 +234,7 @@ def get_lat_lon_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
 
     filename = file_list[0]
     print "Geolocation file = ", filename
@@ -265,7 +265,7 @@ def get_lonlat(satscene, row, col):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
 
     filename = file_list[0]
     print "Geolocation file = ",filename
