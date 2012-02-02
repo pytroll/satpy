@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -1094,7 +1094,13 @@ def load(scene, **kwargs):
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
     pathname = os.path.join(directory, filename)
-    area_name = scene.area_id or scene.area.area_id
+    
+    try:
+        area_name = scene.area_id or scene.area.area_id
+    except AttributeError:
+        LOG.warning("No area available for reading msg hdf files. "
+                    "Did you specify one ?")
+        return
     
     if "CTTH" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
