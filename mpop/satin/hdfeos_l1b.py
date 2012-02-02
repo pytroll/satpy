@@ -47,7 +47,7 @@ from mpop.satin.logger import LOG
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
     """
-    del args, kwargs
+    del args
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -66,22 +66,23 @@ def calibrate_refl(subdata, uncertainty, indices):
     #array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
 
-    # FIXME: The loading should not be done here. Moreover, only requested
-    # bands should be loaded !
+    # FIXME: The loading should not be done here. 
 
-    array = subdata[indices, :, :]
+    
+    array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
                                  valid_range[0],
                                  valid_range[1],
                                  copy = False)
     array = array * 1.0
-    offsets = np.array(subdata.attributes()["reflectance_offsets"])[indices, :]
-    scales = np.array(subdata.attributes()["reflectance_scales"])[indices, :]
-    array = (array - offsets) * scales * 100
+    offsets = np.array(subdata.attributes()["reflectance_offsets"])[indices]
+    scales = np.array(subdata.attributes()["reflectance_scales"])[indices]
+    dims = (len(indices), 1, 1)
+    array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
     return array
 
-def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
+def calibrate_tb(subdata, uncertainty, indices):
     """Calibration for the emissive channels.
     """
     del uncertainty
@@ -90,18 +91,17 @@ def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
     #                          mask=(uncertainty_array >= 15))
 
 
-    # FIXME: The loading should not be done here. Moreover, only requested
-    # bands should be loaded !
-
-    array = subdata.get()
+    # FIXME: The loading should not be done here.
+    
+    array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
     valid_range = subdata.attributes()["valid_range"]
     array = np.ma.masked_outside(array,
                                  valid_range[0],
                                  valid_range[1],
                                  copy = False)
     array = array * 1.0
-    offsets = subdata.attributes()["radiance_offsets"]
-    scales = subdata.attributes()["radiance_scales"]
+    offsets = np.array(subdata.attributes()["radiance_offsets"])[indices]
+    scales = np.array(subdata.attributes()["radiance_scales"])[indices]
 
     #- Planck constant (Joule second)
     h__ = 6.6260755e-34
@@ -141,22 +141,14 @@ def calibrate_tb(subdata, uncertainty, emissive_band_numbers):
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
     cwn = 1. / (cwn * 1e2)
 
-    # All channels (Direct Readout) or a subset (thinned via EUMETCast):
-    # Get the available emissive bands (band 20 is the first): 
-    #available_channels = np.array([0, 3, 6, 7, 8, 10, 11, 12])
-    # Band 26 is not emissive!
-    bands = np.where(np.less(emissive_band_numbers, 26), 
-                     emissive_band_numbers, emissive_band_numbers - 1)
-    available_channels = bands - 20 
-    #print "Available MODIS IR band numbers = ", available_channels 
-    cwn = cwn[available_channels]
-    tcs = tcs[available_channels]
-    tci = tci[available_channels]
+    dims = (len(indices), 1, 1)
+    cwn = cwn[indices].reshape(dims)
+    tcs = tcs[indices].reshape(dims)
+    tci = tci[indices].reshape(dims)
     
-    for i in range(len(scales)):
-        tmp = (array[i, :, :] - offsets[i]) * scales[i]
-        tmp = c_2 / (cwn[i] * np.ma.log(c_1 / (1.e6 * tmp * cwn[i] ** 5.) + 1.))
-        array[i, :, :] = (tmp - tci[i]) / tcs[i]
+    tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
+    tmp = c_2 / (cwn * np.ma.log(c_1 / (1.e6 * tmp * cwn ** 5.) + 1.))
+    array = (tmp - tci) / tcs
     return array
 
 def load_modis(satscene, options):
@@ -178,109 +170,78 @@ def load_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 file matching!")
     elif len(file_list) == 0:
-        raise IOError("No EOS MODIS file matching!: " + filename_tmpl)
+        raise IOError("No EOS MODIS file matching " +
+                      filename_tmpl + " in " +
+                      options["dir"])
 
-    cases = {250: load250,
-             500: load500,
-             1000: load1000}
-    cases[resolution](satscene, file_list[0])
-
-def load250(satscene, filename):
-    """Read modis data in 250m resolution.
-    """
-    data = SD(filename)
-    datasets = ['EV_250_RefSB']
+    load_generic(satscene, file_list[0], resolution)
     
-    for dataset in datasets:
-        subdata = data.select(dataset)
-        band_names = subdata.attributes()["band_names"].split(",")
-        indices = [i for i, band in enumerate(band_names) if band in satscene.channels_to_load]
-        if len(satscene.channels_to_load & set(band_names)) > 0:
-            uncertainty = data.select(dataset+"_Uncert_Indexes")
-            array = calibrate_refl(subdata, uncertainty, indices)
-            for (i, band) in enumerate(band_names):
-                if band in satscene.channels_to_load:
-                    satscene[band] = array[i]
-
-    mda = data.attributes()["CoreMetadata.0"]
-    orbit_idx = mda.index("ORBITNUMBER")
-    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-    # TODO: add lon lats !
-
-def load500(satscene, filename):
-    """Read modis data in 250m resolution.
+def load_generic(satscene, filename, resolution):
+    """Read modis data, generic part.
     """
+
     data = SD(filename)
-    datasets = ['EV_250_Aggr500_RefSB',
-                'EV_500_RefSB']
+
+    datadict = {
+        1000: ['EV_250_Aggr1km_RefSB',
+               'EV_500_Aggr1km_RefSB',
+               'EV_1KM_RefSB',
+               'EV_1KM_Emissive'],
+        500: ['EV_250_Aggr500_RefSB',
+              'EV_500_RefSB'],
+        250: ['EV_250_RefSB']}
+
+    datasets = datadict[resolution]
+
     
-    for dataset in datasets:
-        subdata = data.select(dataset)
-        band_names = subdata.attributes()["band_names"].split(",")
-        if len(satscene.channels_to_load & set(band_names)) > 0:
-            uncertainty = data.select(dataset+"_Uncert_Indexes")
-            array = calibrate_refl(subdata, uncertainty)
-            for (i, band) in enumerate(band_names):
-                if band in satscene.channels_to_load:
-                    satscene[band] = array[i]
-
-    mda = data.attributes()["CoreMetadata.0"]
-    orbit_idx = mda.index("ORBITNUMBER")
-    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-    # TODO: add lon lats !
-
-def load1000(satscene, filename):
-    """Read modis data in 1km resolution.
-    """
-    data = SD(filename)
-    datasets = ['EV_250_Aggr1km_RefSB',
-                'EV_500_Aggr1km_RefSB',
-                'EV_1KM_RefSB',
-                'EV_1KM_Emissive']
-
-    emissive_bands = data.select('Band_1KM_Emissive').get().astype('i')
+    
+    # process by dataset, reflective and emissive datasets separately
 
     for dataset in datasets:
         subdata = data.select(dataset)
         band_names = subdata.attributes()["band_names"].split(",")
         if len(satscene.channels_to_load & set(band_names)) > 0:
+            # get the relative indices of the desired channels
+            indices = [i for i, band in enumerate(band_names)
+                       if band in satscene.channels_to_load]
             uncertainty = data.select(dataset+"_Uncert_Indexes")
-            if dataset == 'EV_1KM_Emissive':
-                array = calibrate_tb(subdata, uncertainty, emissive_bands)
+            if dataset.endswith('Emissive'):
+                array = calibrate_tb(subdata, uncertainty, indices)
             else:
-                array = calibrate_refl(subdata, uncertainty)
-            for (i, band) in enumerate(band_names):
-                if band in satscene.channels_to_load:
-                    satscene[band] = array[i]
+                array = calibrate_refl(subdata, uncertainty, indices)
+            for (i, idx) in enumerate(indices):
+                satscene[band_names[idx]] = array[i]
 
+
+    # Get the orbit number
     mda = data.attributes()["CoreMetadata.0"]
     orbit_idx = mda.index("ORBITNUMBER")
     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+    
 
-    lat, lon = get_lat_lon(satscene, None)
-    from pyresample import geometry
-    satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    # # Get the geolocation
+    # lat, lon = get_lat_lon(satscene, None)
+    # from pyresample import geometry
+    # satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
-    # trimming out dead sensor lines
-    if satscene.satname == "aqua":
-        for band in ["6", "27"]:
-            if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-                continue
-            width = satscene[band].data.shape[1]
-            height = satscene[band].data.shape[0]
-            indices = satscene[band].data.mask.sum(1) < width
-            if indices.sum() == height:
-                continue
-            satscene[band] = satscene[band].data[indices, :]
-            satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
-            satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
-                                           + str(satscene.time_slot) + "_"
-                                           + str(satscene[band].shape) + "_"
-                                           + str(band))
+    # # trimming out dead sensor lines
+    # if satscene.satname == "aqua":
+    #     for band in ["6", "27"]:
+    #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+    #             continue
+    #         width = satscene[band].data.shape[1]
+    #         height = satscene[band].data.shape[0]
+    #         indices = satscene[band].data.mask.sum(1) < width
+    #         if indices.sum() == height:
+    #             continue
+    #         satscene[band] = satscene[band].data[indices, :]
+    #         satscene[band].area = geometry.SwathDefinition(
+    #             lons=satscene.area.lons[indices,:],
+    #             lats=satscene.area.lats[indices,:])
+    #         satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
+    #                                        + str(satscene.time_slot) + "_"
+    #                                        + str(satscene[band].shape) + "_"
+    #                                        + str(band))
 
 
     
