@@ -154,7 +154,7 @@ def calibrate_tb(subdata, uncertainty, indices):
     tci = tci[indices].reshape(dims)
     
     tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
-    tmp = c_2 / (cwn * np.ma.log(c_1 / (1 * tmp * cwn ** 5) + 1))
+    tmp = c_2 / (cwn * np.ma.log(c_1 / (1000000 * tmp * cwn ** 5) + 1))
     array = (tmp - tci) / tcs
     return array
 
@@ -335,7 +335,7 @@ def get_lonlat(satscene, row, col):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
 
     filename = file_list[0]
     print "Geolocation file = ",filename
