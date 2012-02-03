@@ -33,7 +33,7 @@
 # - handle other units than "m" for coordinates
 # - handle units for data
 # - pluginize
-
+import warnings
 from ConfigParser import NoSectionError
 
 import numpy as np
@@ -41,8 +41,9 @@ from netCDF4 import Dataset, num2date
 
 from mpop.instruments.visir import VisirCompositer
 from mpop.satellites import GenericFactory
-from mpop.utils import get_logger
 from mpop.satout.cfscene import TIME_UNITS
+from mpop.utils import get_logger
+
 
 LOG = get_logger("netcdf4/cf reader")
 
@@ -69,13 +70,16 @@ PROJNAME = {"vertical_perspective": "nsper",
             
     }
 
-def new_load(filename):
-    """Load data from a netcdf4 file.
+def _load02(filename):
+    """Load data from a netcdf4 file, cf-satellite v0.2 (2012-02-03).
     """
+    
     rootgrp = Dataset(filename, 'r')
     
     # processed variables
     processed = set()
+
+    satellite_name, satellite_number = rootgrp.satellite.split("-")
 
     time_slot = rootgrp.variables["time"].getValue()[0]
     time_slot = num2date(time_slot, TIME_UNITS)
@@ -83,15 +87,13 @@ def new_load(filename):
     processed |= set(["time"])
 
 
-    if not isinstance(rootgrp.satellite_number, str):
-        satellite_number = "%02d" % rootgrp.satellite_number
-    else:
-        satellite_number = str(rootgrp.satellite_number)
 
-    service = str(rootgrp.service)
+    try:
+        service = str(rootgrp.service)
+    except AttributeError:
+        service = ""
 
-    satellite_name = str(rootgrp.satellite_name)
-    instrument_name = str(rootgrp.instrument_name)
+    instrument_name = str(rootgrp.instrument)
 
     try:
         orbit = str(rootgrp.orbit)
@@ -271,18 +273,26 @@ def new_load(filename):
     return scene
     
 def load_from_nc4(filename):
-    """Load data from a netcdf4 file.
+    """Load data from a netcdf4 file, cf-satellite v0.1
     """
+
     rootgrp = Dataset(filename, 'r')
 
-    time_slot = rootgrp.variables["time"].getValue()[0]
-
-    time_slot = num2date(time_slot, TIME_UNITS)
+    try:
+        rootgrp.satellite_number
+        warnings.warn("You are loading old style netcdf files...", DeprecationWarning)
+    except AttributeError:
+        return _load02(filename)
+    
 
     if not isinstance(rootgrp.satellite_number, str):
         satellite_number = "%02d" % rootgrp.satellite_number
     else:
         satellite_number = str(rootgrp.satellite_number)
+
+    time_slot = rootgrp.variables["time"].getValue()[0]
+
+    time_slot = num2date(time_slot, TIME_UNITS)
 
     service = str(rootgrp.service)
 
@@ -312,19 +322,10 @@ def load_from_nc4(filename):
     for var_name, var in rootgrp.variables.items():
         area = None
 
-        try:
-            varname = var.standard_name
-        except AttributeError:
-            try:
-                varname = var.long_name
-            except AttributeError:
-                raise IOError("variables need either a standard name"
-                              " or a long name")
-
-        if varname in ["band_data", "Band data"]:
+        if var_name.startswith("band_data"):
             resolution = var.resolution
             str_res = str(int(resolution)) + "m"
-
+            
             names = rootgrp.variables["bandname"+str_res][:]
 
             data = var[:, :, :].astype(var.dtype)
@@ -424,7 +425,7 @@ def load_from_nc4(filename):
                                    rootgrp.variables["scale"+str_res][i] +
                                    rootgrp.variables["offset"+str_res][i])
                     #FIXME complete this
-                    scene[name].info["units"] = var.units
+                    #scene[name].info
                 except KeyError:
                     # build the channel on the fly
 
@@ -450,5 +451,3 @@ def load_from_nc4(filename):
     scene.add_to_history("Loaded from netcdf4/cf by mpop")
 
     return scene
-
-
