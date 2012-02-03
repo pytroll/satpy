@@ -58,13 +58,10 @@ class CFScene(object):
         
         # Other global attributes
         self.info["Conventions"] = "CF-1.5"
-        self.info["satellite_name"] = scene.satname
-        try:
-            self.info["satellite_number"] = int(scene.number)
-        except ValueError:
-            self.info["satellite_number"] = str(scene.number)
-        self.info["instrument_name"] = scene.instrument_name
-        self.info["service"] = scene.variant
+        self.info["satellite"] = scene.satname + "-" + str(scene.number)
+        self.info["instrument"] = scene.instrument_name
+        if scene.variant:
+            self.info["service"] = scene.variant
         
         self.time = InfoObject()
         self.time.data = date2num(scene.time_slot,
