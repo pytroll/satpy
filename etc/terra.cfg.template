@@ -1,0 +1,196 @@
+[satellite]
+satname = 'terra'
+number = ''
+instruments = ('modis',)
+
+[modis-level2]
+format=hdfeos_l1b
+#dir=/data/prod/satellit/modis/lvl1
+dir = /data/proj/safutv/data/polar_out/direct_readout/modis
+
+filename250 = MOD02Qkm_A%y%j_%H%M%S_*.hdf
+filename500 = MOD02Hkm_A%y%j_%H%M%S_*.hdf
+filename1000 = MOD021km_A%y%j_%H%M%S_*.hdf
+
+geofile = MOD03_A%y%j_%H%M%S_*.hdf
+
+
+[modis-1]
+name = '1'
+frequency = (0.620, 0.6450, 0.670)
+resolution = 250
+
+[modis-2]
+name = '2'
+frequency = (0.841, 0.8585, 0.876)
+resolution = 250
+
+[modis-3]
+name = '3'
+frequency = (0.459, 0.4690, 0.479)
+resolution = 500
+
+[modis-4]
+name = '4'
+frequency = (0.545, 0.5550, 0.565)
+resolution = 500
+
+[modis-5]
+name = '5'
+frequency = (1.230, 1.2400, 1.250)
+resolution = 500
+
+[modis-6]
+name = '6'
+frequency = (1.628, 1.6400, 1.652)
+resolution = 500
+
+[modis-7]
+name = '7'
+frequency = (2.105, 2.1300, 2.155)
+resolution = 500
+
+[modis-8]
+name = '8'
+frequency = (0.405, 0.4125, 0.420)
+resolution = 1000
+
+[modis-9]
+name = '9'
+frequency = (0.438, 0.4430, 0.448)
+resolution = 1000
+
+[modis-10]
+name = '10'
+frequency = (0.483, 0.4880, 0.493)
+resolution = 1000
+
+[modis-11]
+name = '11'
+frequency = (0.526, 0.5310, 0.536)
+resolution = 1000
+
+[modis-12]
+name = '12'
+frequency = (0.546, 0.5510, 0.556)
+resolution = 1000
+
+[modis-13]
+name = '13'
+frequency = (0.662, 0.6670, 0.672)
+resolution = 1000
+
+[modis-14]
+name = '14'
+frequency = (0.673, 0.6780, 0.683)
+resolution = 1000
+
+[modis-15]
+name = '15'
+frequency = (0.743, 0.7480, 0.753)
+resolution = 1000
+
+[modis-16]
+name = '16'
+frequency = (0.862, 0.8695, 0.877)
+resolution = 1000
+
+[modis-17]
+name = '17'
+frequency = (0.890, 0.9050, 0.920)
+resolution = 1000
+
+[modis-18]
+name = '18'
+frequency = (0.931, 0.9360, 0.941)
+resolution = 1000
+
+[modis-19]
+name = '19'
+frequency = (0.915, 0.9400, 0.965)
+resolution = 1000
+
+[modis-20]
+name = '20'
+frequency = (3.660, 3.7500, 3.840)
+resolution = 1000
+
+[modis-21]
+name = '21'
+frequency = (3.929, 3.9590, 3.989)
+resolution = 1000
+
+[modis-22]
+name = '22'
+frequency = (3.929, 3.9590, 3.989)
+resolution = 1000
+
+[modis-23]
+name = '23'
+frequency = (4.020, 4.0500, 4.080)
+resolution = 1000
+
+[modis-24]
+name = '24'
+frequency = (4.433, 4.4655, 4.498)
+resolution = 1000
+
+[modis-25]
+name = '25'
+frequency = (4.482, 4.5155, 4.549)
+resolution = 1000
+
+[modis-26]
+name = '26'
+frequency = (1.360, 1.3750, 1.390)
+resolution = 1000
+
+[modis-27]
+name = '27'
+frequency = (6.535, 6.7150, 6.895)
+resolution = 1000
+
+[modis-28]
+name = '28'
+frequency = (7.175, 7.3250, 7.475)
+resolution = 1000
+
+[modis-29]
+name = '29'
+frequency = (8.400, 8.5500, 8.700)
+resolution = 1000
+
+[modis-30]
+name = '30'
+frequency = (9.580, 9.7300, 9.880)
+resolution = 1000
+
+[modis-31]
+name = '31'
+frequency = (10.780, 11.0300, 11.280)
+resolution = 1000
+
+[modis-32]
+name = '32'
+frequency = (11.770, 12.0200, 12.270)
+resolution = 1000
+
+[modis-33]
+name = '33'
+frequency = (13.185, 13.3350, 13.485)
+resolution = 1000
+
+[modis-34]
+name = '34'
+frequency = (13.485, 13.6350, 13.785)
+resolution = 1000
+
+[modis-35]
+name = '35'
+frequency = (13.785, 13.9350, 14.085)
+resolution = 1000
+
+[modis-36]
+name = '36'
+frequency = (14.085, 14.2350, 14.385)
+resolution = 1000

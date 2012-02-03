@@ -75,9 +75,11 @@ def calibrate_refl(subdata, uncertainty, indices):
                                  valid_range[0],
                                  valid_range[1],
                                  copy = False)
-    array = array * 1.0
-    offsets = np.array(subdata.attributes()["reflectance_offsets"])[indices]
-    scales = np.array(subdata.attributes()["reflectance_scales"])[indices]
+    array = array * np.float32(1.0)
+    offsets = np.array(subdata.attributes()["reflectance_offsets"],
+                       dtype=np.float32)[indices]
+    scales = np.array(subdata.attributes()["reflectance_scales"],
+                      dtype=np.float32)[indices]
     dims = (len(indices), 1, 1)
     array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
     return array
@@ -99,47 +101,52 @@ def calibrate_tb(subdata, uncertainty, indices):
                                  valid_range[0],
                                  valid_range[1],
                                  copy = False)
-    array = array * 1.0
-    offsets = np.array(subdata.attributes()["radiance_offsets"])[indices]
-    scales = np.array(subdata.attributes()["radiance_scales"])[indices]
+    
+    offsets = np.array(subdata.attributes()["radiance_offsets"],
+                       dtype=np.float32)[indices]
+    scales = np.array(subdata.attributes()["radiance_scales"],
+                      dtype=np.float32)[indices]
 
     #- Planck constant (Joule second)
-    h__ = 6.6260755e-34
+    h__ = np.float32(6.6260755e-34)
 
     #- Speed of light in vacuum (meters per second)
-    c__ = 2.9979246e+8
+    c__ = np.float32(2.9979246e+8)
 
     #- Boltzmann constant (Joules per Kelvin)      
-    k__ = 1.380658e-23
+    k__ = np.float32(1.380658e-23)
 
     #- Derived constants      
-    c_1 = 2.0 * h__ * c__ * c__
+    c_1 = 2 * h__ * c__ * c__
     c_2 = (h__ * c__) / k__
 
 
-    #- Effective central wavenumber (inverse centimenters)
+    #- Effective central wavenumber (inverse centimeters)
     cwn = np.array([\
     2.641775E+3, 2.505277E+3, 2.518028E+3, 2.465428E+3, \
     2.235815E+3, 2.200346E+3, 1.477967E+3, 1.362737E+3, \
     1.173190E+3, 1.027715E+3, 9.080884E+2, 8.315399E+2, \
-    7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2])
+    7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2],
+                   dtype=np.float32)
 
     #- Temperature correction slope (no units)
     tcs = np.array([\
     9.993411E-1, 9.998646E-1, 9.998584E-1, 9.998682E-1, \
     9.998819E-1, 9.998845E-1, 9.994877E-1, 9.994918E-1, \
     9.995495E-1, 9.997398E-1, 9.995608E-1, 9.997256E-1, \
-    9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1])
+    9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1],
+                   dtype=np.float32)
 
     #- Temperature correction intercept (Kelvin)
     tci = np.array([\
     4.770532E-1, 9.262664E-2, 9.757996E-2, 8.929242E-2, \
     7.310901E-2, 7.060415E-2, 2.204921E-1, 2.046087E-1, \
     1.599191E-1, 8.253401E-2, 1.302699E-1, 7.181833E-2, \
-    1.972608E-2, 1.913568E-2, 1.817817E-2, 1.583042E-2])
+    1.972608E-2, 1.913568E-2, 1.817817E-2, 1.583042E-2],
+                   dtype=np.float32)
 
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
-    cwn = 1. / (cwn * 1e2)
+    cwn = 1 / (cwn * 100)
 
     dims = (len(indices), 1, 1)
     cwn = cwn[indices].reshape(dims)
@@ -147,7 +154,7 @@ def calibrate_tb(subdata, uncertainty, indices):
     tci = tci[indices].reshape(dims)
     
     tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
-    tmp = c_2 / (cwn * np.ma.log(c_1 / (1.e6 * tmp * cwn ** 5.) + 1.))
+    tmp = c_2 / (cwn * np.ma.log(c_1 / (1 * tmp * cwn ** 5) + 1))
     array = (tmp - tci) / tcs
     return array
 
@@ -211,6 +218,8 @@ def load_generic(satscene, filename, resolution):
                 array = calibrate_refl(subdata, uncertainty, indices)
             for (i, idx) in enumerate(indices):
                 satscene[band_names[idx]] = array[i]
+                # fix the resolution to match the loaded data.
+                satscene[band_names[idx]].resolution = resolution
 
 
     # Get the orbit number
@@ -219,7 +228,11 @@ def load_generic(satscene, filename, resolution):
     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
     
 
-    # # Get the geolocation
+    # Get the geolocation
+    if resolution != 1000:
+        LOG.warning("Cannot load geolocation at this resolution (yet).")
+        return
+    
     lat, lon = get_lat_lon(satscene, None)
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
@@ -290,10 +303,11 @@ def get_lat_lon_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No Aqua MODIS geolocation file matching!: " + filename_tmpl)
+        raise IOError("No geolocation file matching " + filename_tmpl
+                      + " in " + options["dir"])
 
     filename = file_list[0]
-    print "Geolocation file = ", filename
+    LOG.debug("Geolocation file = " + filename)
 
     data = SD(filename)
     lat = data.select("Latitude")
