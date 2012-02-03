@@ -220,28 +220,49 @@ def load_generic(satscene, filename, resolution):
     
 
     # # Get the geolocation
-    # lat, lon = get_lat_lon(satscene, None)
-    # from pyresample import geometry
-    # satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    lat, lon = get_lat_lon(satscene, None)
+    from pyresample import geometry
+    satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
-    # # trimming out dead sensor lines
-    # if satscene.satname == "aqua":
-    #     for band in ["6", "27"]:
-    #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-    #             continue
-    #         width = satscene[band].data.shape[1]
-    #         height = satscene[band].data.shape[0]
-    #         indices = satscene[band].data.mask.sum(1) < width
-    #         if indices.sum() == height:
-    #             continue
-    #         satscene[band] = satscene[band].data[indices, :]
-    #         satscene[band].area = geometry.SwathDefinition(
-    #             lons=satscene.area.lons[indices,:],
-    #             lats=satscene.area.lats[indices,:])
-    #         satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
-    #                                        + str(satscene.time_slot) + "_"
-    #                                        + str(satscene[band].shape) + "_"
-    #                                        + str(band))
+    # Trimming out dead sensor lines (detectors) on aqua:
+    # (in addition channel 21 is noisy)
+    if satscene.satname == "aqua":
+        for band in ["6", "27", "36"]:
+            if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+                continue
+            width = satscene[band].data.shape[1]
+            height = satscene[band].data.shape[0]
+            indices = satscene[band].data.mask.sum(1) < width
+            if indices.sum() == height:
+                continue
+            satscene[band] = satscene[band].data[indices, :]
+            satscene[band].area = geometry.SwathDefinition(
+                lons=satscene.area.lons[indices,:],
+                lats=satscene.area.lats[indices,:])
+            satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
+                                           + str(satscene.time_slot) + "_"
+                                           + str(satscene[band].shape) + "_"
+                                           + str(band))
+
+    # Trimming out dead sensor lines (detectors) on terra:
+    # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
+    if satscene.satname == "terra":
+        for band in ["29"]:
+            if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+                continue
+            width = satscene[band].data.shape[1]
+            height = satscene[band].data.shape[0]
+            indices = satscene[band].data.mask.sum(1) < width
+            if indices.sum() == height:
+                continue
+            satscene[band] = satscene[band].data[indices, :]
+            satscene[band].area = geometry.SwathDefinition(
+                lons=satscene.area.lons[indices,:],
+                lats=satscene.area.lats[indices,:])
+            satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
+                                           + str(satscene.time_slot) + "_"
+                                           + str(satscene[band].shape) + "_"
+                                           + str(band))
 
 
     
