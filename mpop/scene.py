@@ -272,13 +272,40 @@ class SatelliteInstrumentScene(SatelliteScene):
             return channels[0]
 
     def __setitem__(self, key, data):
-        if isinstance(data, Channel):
-            self.channels.append(Channel(name=key,
-                                     wavelength_range=data.wavelength_range,
-                                     resolution=data.resolution))
+        # Add a channel if it is not already in the scene. Works only if key is
+        # a string.
+        try:
+            if key not in self:
+                kwargs = {"name": key}
+                for attr in ["wavelength_range", "resolution"]:
+                    try:
+                        kwargs[attr] = getattr(data, attr)
+                    except (AttributeError, NameError):
+                        pass
+                self.channels.append(Channel(**kwargs))
+        except AttributeError:
+            pass
+
+        # Add the data.
+        try:
             self[key].data = data.data
-        else:    
+        except AttributeError:
             self[key].data = data
+
+
+
+        # if isinstance(data, Channel):
+        #     self.channels.append(Channel(name=key,
+        #                              wavelength_range=data.wavelength_range,
+        #                              resolution=data.resolution))
+        #     self[key].data = data.data
+        # else:
+        #     try:
+        #         self[key].data = data
+        #     except KeyError:
+        #         self.channels.append(Channel(name=key))
+        #         self[key].data = data                             
+                
 
 
     def __str__(self):
