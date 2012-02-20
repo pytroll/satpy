@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2011.
+# Copyright (c) 2009, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -67,7 +67,7 @@ class GeoImage(mpop.imageo.image.Image):
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,
-             format=None, blocksize=256):
+             fformat=None, blocksize=256):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -82,13 +82,13 @@ class GeoImage(mpop.imageo.image.Image):
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         file_tuple = os.path.splitext(filename)
-        format = format or file_tuple[1][1:]
+        fformat = fformat or file_tuple[1][1:]
 
-        if format.lower() in ('tif', 'tiff'):
+        if fformat.lower() in ('tif', 'tiff'):
             self.geotiff_save(filename, compression, tags,
                               gdal_options, blocksize)
         else:
-            super(GeoImage, self).save(filename, compression, format=format)
+            super(GeoImage, self).save(filename, compression, format=fformat)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
@@ -118,10 +118,10 @@ class GeoImage(mpop.imageo.image.Image):
                      blocksize=0, geotransform=None, spatialref=None):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
-        argument is a dict of tags to include in the image (as metadata).
-        By default it uses the 'area' instance to generate geotransform and spatialref
-        information, this can be overwritte by the arguments *geotransform* and
-        *spatialref*.
+        argument is a dict of tags to include in the image (as metadata).  By
+        default it uses the 'area' instance to generate geotransform and
+        spatialref information, this can be overwritten by the arguments
+        *geotransform* and *spatialref*.
         
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
@@ -190,7 +190,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        gdal.GDT_Byte,
                                        g_opts)
             else:
-                #g_opts.append("ALPHA=YES")
+                g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
@@ -202,7 +202,7 @@ class GeoImage(mpop.imageo.image.Image):
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
-            #g_opts.append("ALPHA=YES")
+            g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename, 
                                    self.width, 
                                    self.height, 
