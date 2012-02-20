@@ -63,6 +63,7 @@ class PpsCloudType(mpop.channel.GenericChannel):
         self.qualityflag_lut = []
         self.phaseflag_lut = []
         self.cloudtype = None
+        self.data = None
         self.qualityflag = None
         self.phaseflag = None
 
@@ -82,6 +83,7 @@ class PpsCloudType(mpop.channel.GenericChannel):
         nodata = 0
         ctype = np.ma.array(h5f['cloudtype'].value)
         self.cloudtype = np.ma.masked_equal(ctype, nodata)
+        self.data = self.cloudtype
         mask = self.cloudtype.mask
 
         self.cloudtype_des = h5f['cloudtype'].attrs['description']
