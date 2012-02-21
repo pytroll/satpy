@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -121,6 +121,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                 metadata, data = image(area_extent)
             else:
                 metadata, data = image()
+
         except CalibrationError:
             LOG.warning("Loading non calibrated data since calibration failed.")
             image = xrit.sat.load(satscene.fullname,
@@ -163,5 +164,12 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         else:
             LOG.info("Could not build area, pyresample missing...")
 
+    areas = [chn.area for chn in satscene if chn.is_loaded()]
+    areas_eq = [area == areas[0] for area in areas[1:]]
+    if all(areas_eq):
+        satscene.area = areas[0]
+    else:
+        satscene.area = None
+    
 CASES = {}
 
