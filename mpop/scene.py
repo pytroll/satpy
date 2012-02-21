@@ -287,10 +287,13 @@ class SatelliteInstrumentScene(SatelliteScene):
             pass
 
         # Add the data.
-        try:
-            self[key].data = data.data
-        except AttributeError:
+        if isinstance(data, np.ma.core.MaskedArray):
             self[key].data = data
+        else:
+            try:
+                self[key].data = data.data
+            except AttributeError:
+                self[key].data = data
 
 
 
