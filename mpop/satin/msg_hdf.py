@@ -1061,6 +1061,9 @@ MSG_PGE_EXTENTIONS = ["PLAX.CTTH.0.h5", "PLAX.CLIM.0.h5", "h5"]
 def get_best_product(filename):
     """Get the best of the available products for the *filename* template.
     """
+
+    msg_filename = None
+    
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
         flist = glob.glob(match_str)

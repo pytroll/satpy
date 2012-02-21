@@ -80,16 +80,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,
                                               satscene.channels_to_load))
     
-    # Compulsory global attribudes
-    satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
-                              " satellite, " +
-                              satscene.instrument_name.capitalize() +
-                              " instrument.")
-    satscene.info["institution"] = "Original data disseminated by EumetCast."
-    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
-    satscene.info["references"] = "No reference."
-    satscene.info["comments"] = "No comment."
 
+    nb_loaded_channels = 0
+    
     from_area = False
 
     if area_extent is None and satscene.area is not None:
@@ -138,6 +131,8 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             # if channel can't be found, go on with next channel
             continue
 
+        nb_loaded_channels += 1
+
         satscene[chn] = data
 
         satscene[chn].info['units'] = metadata.calibration_unit
@@ -164,9 +159,23 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         else:
             LOG.info("Could not build area, pyresample missing...")
 
+    if nb_loaded_channels == 0:
+        return
+
+    # Compulsory global attributes
+    satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
+                              " satellite, " +
+                              satscene.instrument_name.capitalize() +
+                              " instrument.")
+    satscene.info["institution"] = "Original data disseminated by EumetCast."
+    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
+    satscene.info["references"] = "No reference."
+    satscene.info["comments"] = "No comment."
+
+
     areas = [chn.area for chn in satscene if chn.is_loaded()]
     areas_eq = [area == areas[0] for area in areas[1:]]
-    if all(areas_eq):
+    if all(areas_eq) and len(areas) > 0:
         satscene.area = areas[0]
     else:
         satscene.area = None
