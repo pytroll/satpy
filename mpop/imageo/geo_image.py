@@ -258,74 +258,73 @@ class GeoImage(mpop.imageo.image.Image):
         dst_ds = None
 
 
-    def add_overlay(self, color = (0, 0, 0)):
+    def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
         """Add coastline and political borders to image, using *color*.
+        Loses the masks !
+        
+        *resolution* is chosen automatically if None (default), otherwise it should be one of:
+        +-----+-------------------------+---------+
+        | 'f' | Full resolution         | 0.04 km | 
+        |'h'  | High resolution         | 0.2 km  |
+        |'i'  | Intermediate resolution | 1.0 km  |
+        |'l'  | Low resolution          | 5.0 km  |
+        |'c'  | Crude resolution        | 25  km  |
+        +-----+-------------------------+---------+
         """
-        import warnings
-        warnings.warn(
-            """The GeoImage.add_overlay method is deprecated and should not be
-            used anymore. To add coastlines, borders and rivers to your images,
-            use pycoast instead:
-            http://pycoast.googlecode.com
-            """,
-            DeprecationWarning)
+
 
         
-        import acpgimage
-        import _acpgpilext
-        import pps_array2image
-
-        self.convert("RGB")
+        img = self.pil_image()
 
         import ConfigParser
         conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, "geo_image.cfg"))
+        conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
-        coast_dir = CONFIG_PATH
-        coast_file = os.path.join(coast_dir, conf.get('coasts', 'coast_file'))
+        coast_dir = conf.get('shapes', 'dir')
 
-        arr = np.zeros(self.channels[0].shape, np.uint8)
+        LOG.debug("Getting area for overlay: " + str(self.area))
 
-        LOG.debug("Adding overlay: " + str(self.area_id))
-        if not isinstance(self.area_id, str):
-            area_id = self.area_id.area_id
-        else:
-            area_id = self.area_id
-        LOG.info("Add coastlines and political borders to image. "
-                 "Area = %s"%(area_id))
-        rimg = acpgimage.image(area_id)
-        rimg.info["nodata"] = 255
-        rimg.data = arr
-        area_overlayfile = ("%s/coastlines_%s.asc"
-                            %(coast_dir, area_id))
-        LOG.info("Read overlay. Try find something prepared on the area...")
-        try:
-            overlay = _acpgpilext.read_overlay(area_overlayfile)
-            LOG.info("Got overlay for area: %s."%area_overlayfile)
-        except IOError:
-            LOG.info("Didn't find an area specific overlay."
-                     " Have to read world-map...")
-            overlay = _acpgpilext.read_overlay(coast_file)
-        LOG.info("Add overlay.")
-        overlay_image = pps_array2image.add_overlay(rimg,
-                                                    overlay,
-                                                    pil.fromarray(arr),
-                                                    color = 1)
+        if self.area is None:
+            raise ValueError("Area of image is None, can't add overlay.")
 
-        val = np.ma.asarray(overlay_image)
+        from mpop.projector import get_area_def
+        if isinstance(self.area, str):
+            self.area = get_area_def(self.area) 
+        LOG.info("Add coastlines and political borders to image.")
+        LOG.debug("Area = " + str(self.area))
 
-        self.channels[0] = np.ma.where(val == 1, color[0], self.channels[0])
-        self.channels[0].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[0]))
+        if resolution is None:
+        
+            x_resolution = ((self.area.area_extent[2] -
+                             self.area.area_extent[0]) /
+                            self.area.x_size)
+            y_resolution = ((self.area.area_extent[3] -
+                             self.area.area_extent[1]) /
+                            self.area.y_size)
+            res = min(x_resolution, y_resolution)
 
-        self.channels[1] = np.ma.where(val == 1, color[1], self.channels[1])
-        self.channels[1].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[1]))
+            if res > 25000:
+                resolution = "c"
+            elif res > 5000:
+                resolution = "l"
+            elif res > 1000:
+                resolution = "i"
+            elif res > 200:
+                resolution = "h"
+            else:
+                resolution = "f"
 
-        self.channels[2] = np.ma.where(val == 1, color[2], self.channels[2])
-        self.channels[2].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[2]))
+            LOG.debug("Automagically choose resolution " + resolution)
+        
+        from pycoast import ContourWriterAGG
+        cw_ = ContourWriterAGG(coast_dir)
+        cw_.add_coastlines(img, self.area, outline=color,
+                           resolution=resolution, width=width)
+        cw_.add_borders(img, self.area, outline=color,
+                        resolution=resolution, width=width)
+
+        arr = np.array(img)
+
+        for idx in range(len(self.channels)):
+            self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
