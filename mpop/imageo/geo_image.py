@@ -40,11 +40,10 @@ from mpop import CONFIG_PATH
 from mpop.imageo.logger import LOG
 from mpop.utils import ensure_dir
 
-
 class GeoImage(mpop.imageo.image.Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
-    defined (*area_id* parameter) and *time_slot* of the snapshot.
+    defined (*area* parameter) and *time_slot* of the snapshot.
     
     The channels are considered to contain floating point values in the range
     [0.0,1.0]. In order to normalize the input data, the *crange* parameter
@@ -55,9 +54,9 @@ class GeoImage(mpop.imageo.image.Image):
     See also :class:`image.Image` for more information.
     """
 
-    def __init__(self, channels, area_id, time_slot, 
+    def __init__(self, channels, area, time_slot, 
                  mode = "L", crange = None, fill_value = None, palette = None):
-        self.area_id = area_id
+        self.area = area
         self.time_slot = time_slot
         self.tags = {}
         self.gdal_options = {}
@@ -231,9 +230,9 @@ class GeoImage(mpop.imageo.image.Image):
                 from pyresample import utils
                 from mpop.projector import get_area_def
             
-                area = get_area_def(self.area_id)
+                area = get_area_def(self.area)
             except (utils.AreaNotFound, AttributeError):
-                area = self.area_id
+                area = self.area
 
 
             try:
