@@ -48,7 +48,15 @@ try:
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
-    
+
+
+import sys
+if sys.version_info < (2, 5):
+    def all(iterable):
+        for element in iterable:
+            if not element:
+                return False
+        return True
 
 def load(satscene, calibrate=True, area_extent=None):
     """Read data from file and load it into *satscene*. The *calibrate*
