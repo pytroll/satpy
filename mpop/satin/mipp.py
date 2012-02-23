@@ -183,7 +183,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
 
     areas = [chn.area for chn in satscene if chn.is_loaded()]
     areas_eq = [area == areas[0] for area in areas[1:]]
-    if all(areas_eq) and len(areas) > 0:
+    if satscene.area is None and all(areas_eq) and len(areas) > 0:
         satscene.area = areas[0]
     else:
         satscene.area = None
