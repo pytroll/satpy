@@ -276,13 +276,17 @@ class SatelliteInstrumentScene(SatelliteScene):
         # a string.
         try:
             if key not in self:
-                kwargs = {"name": key}
-                for attr in ["wavelength_range", "resolution"]:
-                    try:
-                        kwargs[attr] = getattr(data, attr)
-                    except (AttributeError, NameError):
-                        pass
-                self.channels.append(Channel(**kwargs))
+                # if it's a blob with name and data, add it as is.
+                if hasattr(data, "name") and hasattr(data, "data"):
+                    self.channels.append(data)
+                else:
+                    kwargs = {"name": key}
+                    for attr in ["wavelength_range", "resolution"]:
+                        try:
+                            kwargs[attr] = getattr(data, attr)
+                        except (AttributeError, NameError):
+                            pass
+                    self.channels.append(Channel(**kwargs))
         except AttributeError:
             pass
 
@@ -418,6 +422,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         raise ValueError("Area extent must be a sequence of "
                                          "four numbers.")
+
                 reader_module.load(self, **kwargs)
             except ImportError:
                 LOG.exception("ImportError while loading "+reader+".")
