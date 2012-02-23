@@ -45,6 +45,39 @@ def pcs_def_from_region(region):
     items = region.proj_dict.items()
     return ' '.join([ t[0] + '=' + t[1] for t in items])   
 
+def _get_area_extent(cfac, lfac, coff, loff, numcols, numlines):
+    """Get the area extent from msg parameters.
+    """
+
+    xur = (numcols - coff) * 2**16 / (cfac * 1.0)
+    xur = np.deg2rad(xur) * 35785831.0
+    xll = (-1 - coff) * 2**16 / (cfac * 1.0)
+    xll = np.deg2rad(xll) * 35785831.0
+    xres = (xur - xll) / numcols
+    xur, xll = xur - xres/2, xll + xres/2
+    yll = (numlines - loff) * 2**16 / (-lfac * 1.0)
+    yll = np.deg2rad(yll) * 35785831.0
+    yur = (-1 - loff) * 2**16 / (-lfac * 1.0)
+    yur = np.deg2rad(yur) * 35785831.0
+    yres = (yur - yll) / numlines
+    yll, yur = yll + yres/2, yur - yres/2
+    return xll, yll, xur, yur
+
+def get_area_extent(filename):
+    """Get the area extent of the data in *filename*.
+    """
+    import tables
+    h5f = tables.openFile(filename)
+    aex = _get_area_extent(h5f.root._v_attrs["CFAC"],
+                           h5f.root._v_attrs["LFAC"],
+                           h5f.root._v_attrs["COFF"],
+                           h5f.root._v_attrs["LOFF"],
+                           h5f.root._v_attrs["NC"],
+                           h5f.root._v_attrs["NL"])
+    h5f.close()
+    return aex
+
+
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self):
         mpop.channel.GenericChannel.__init__(self, "CloudType")
@@ -171,7 +204,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         """Tells if the channel contains loaded data.
         """
         return self.filled
-        
+
 # ------------------------------------------------------------------
     def read(self, filename):
         """Reader for the NWCSAF/MSG cloudtype. Use *filename* to read data.
@@ -1058,28 +1091,28 @@ class NordRadCType(object):
 
 MSG_PGE_EXTENTIONS = ["PLAX.CTTH.0.h5", "PLAX.CLIM.0.h5", "h5"]
 
-def get_best_product(filename):
+def get_best_product(filename, area_extent):
     """Get the best of the available products for the *filename* template.
     """
 
-    msg_filename = None
-    
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
         flist = glob.glob(match_str)
-        if len(flist) > 1:
-            LOG.error("More than one matching input file: N = %d"
-                      %len(flist))
-            raise RuntimeError("Cannot choose input MSG file.")
-        elif len(flist) == 0:
+        if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
                         %ext)
         else:
             # File found:
-            LOG.info("MSG CT file found: %s"%flist[0])
-            msg_filename = flist[0]
-            break
-    return msg_filename
+            if area_extent is None:
+                LOG.warning("Didn't specify an area, taking " + flist[0])
+                return flist[0]
+            for fname in flist:
+                aex = get_area_extent(fname)
+                if np.all(np.max(np.abs(np.array(aex) -
+                                        np.array(area_extent))) < 1000):
+                    LOG.info("MSG CT file found: %s"%fname)
+                    return fname
+
 
     
 def load(scene, **kwargs):
@@ -1088,7 +1121,7 @@ def load(scene, **kwargs):
     loaded.
     """
 
-    del kwargs
+    area_extent = kwargs.get("area_extent")
 
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
@@ -1098,20 +1131,12 @@ def load(scene, **kwargs):
                         raw=True)
     pathname = os.path.join(directory, filename)
     
-    try:
-        area_name = scene.area_id or scene.area.area_id
-    except AttributeError:
-        LOG.warning("No area available for reading msg hdf files. "
-                    "Did you specify one ?")
-        return
-    
     if "CTTH" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
                     %{"number": "03",
-                      "area": area_name,
                       "product": "CTTH_"})
         ct_chan = MsgCTTH()
-        ct_chan.read(get_best_product(filename))
+        ct_chan.read(get_best_product(filename, area_extent))
         ct_chan.satid = (scene.satname.capitalize() +
                          str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
@@ -1120,10 +1145,9 @@ def load(scene, **kwargs):
     if "CloudType" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
                     %{"number": "02",
-                      "area": area_name,
                       "product": "CT___"})
         ct_chan = MsgCloudType()
-        ct_chan.read(get_best_product(filename))
+        ct_chan.read(get_best_product(filename, area_extent))
         ct_chan.satid = (scene.satname.capitalize() +
                          str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
