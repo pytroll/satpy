@@ -33,8 +33,8 @@ import datetime
 import os
 
 import numpy as np
-import xrit.sat
-from xrit import CalibrationError, SatReaderError
+from mipp import xrit
+from mipp import CalibrationError, ReaderError
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
@@ -108,7 +108,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                     raise ValueError("Slicing area must be in "
                                      "geos projection, and lon_0 should match the"
                                      " satellite's position.")
-            except SatReaderError:
+            except ReaderError:
                 # if channel can't be found, go on with next channel
                 continue
         try:
@@ -133,7 +133,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             else:
                 metadata, data = image()
 
-        except SatReaderError:
+        except ReaderError:
             # if channel can't be found, go on with next channel
             continue
 

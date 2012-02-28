@@ -18,10 +18,10 @@ projection = 'geos(57.0)'
 proj4_params = 'proj=geos lon_0=57.00 lat_0=0.00 a=6378140.00 b=6356755.00 h=35785831.00'
 
 [mviri-level2]
-format = 'mipp'
+format = 'mipp_xrit'
 
 [mviri-level1]
-format = 'xrit/MTP'
+format = 'mipp/xrit/MTP'
 #dir = '/data/prod/satellit/meteosat7'
 dir = '/local_disk/data/satellite/met7'
 filename = 'L-000-MTP___-MET7________-%(channel)s_057E-%(segment)s-%Y%m%d%H%M-__'
