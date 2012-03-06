@@ -24,7 +24,7 @@ class SarxCompositer(Compositer):
 
         LOG.info("Downsampling a factor %d and averaging "%downscaling_factor + 
                  "in a window of %dx%d"%(average_window, average_window))
-
+        
         ch = self[9.65]
 
         # If average window and downscale factor is the same
@@ -41,15 +41,25 @@ class SarxCompositer(Compositer):
         # downscale
         data = data[1::downscaling_factor, 1::downscaling_factor]
 
-        # New area
-        area = geometry.AreaDefinition(ch.area.area_id, ch.area.name,
+        # New area, and correct for integer truncation.
+        p_size_x, p_size_y = (ch.area.pixel_size_x*downscaling_factor, 
+                              ch.area.pixel_size_y*downscaling_factor)
+        area_extent = (ch.area.area_extent[0],
+                       ch.area.area_extent[1],
+                       ch.area.area_extent[0] + data.shape[1]*p_size_x,
+                       ch.area.area_extent[1] + data.shape[0]*p_size_y)
+                       
+        area = geometry.AreaDefinition(self._data_holder.satname + 
+                                       self._data_holder.instrument_name +
+                                       str(area_extent) +
+                                       str(data.shape),
+                                       "On-the-fly area",
                                        ch.area.proj_id, ch.area.proj_dict,
                                        data.shape[1], data.shape[0],
-                                       ch.area.area_extent)
+                                       area_extent)
 
-        img = GeoImage(data, area, self.time_slot,
-                       fill_value=(0,), mode='L')
-        return img
+        return GeoImage(data, area, self.time_slot,
+                        fill_value=(0,), mode='L')
 
     average.prerequisites = set([9.65,])
     
