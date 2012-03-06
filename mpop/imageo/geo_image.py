@@ -66,7 +66,7 @@ class GeoImage(mpop.imageo.image.Image):
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,
-             fformat=None, blocksize=256):
+             fformat=None, blocksize=256, **kwargs):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -85,9 +85,9 @@ class GeoImage(mpop.imageo.image.Image):
 
         if fformat.lower() in ('tif', 'tiff'):
             self.geotiff_save(filename, compression, tags,
-                              gdal_options, blocksize)
+                              gdal_options, blocksize, **kwargs)
         else:
-            super(GeoImage, self).save(filename, compression, format=fformat)
+            super(GeoImage, self).save(filename, compression, format=fformat, **kwargs)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
@@ -114,21 +114,32 @@ class GeoImage(mpop.imageo.image.Image):
 
     def geotiff_save(self, filename, compression=6,
                      tags=None, gdal_options=None,
-                     blocksize=0, geotransform=None, spatialref=None):
+                     blocksize=0, geotransform=None,
+                     spatialref=None, floating_point=False):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
         argument is a dict of tags to include in the image (as metadata).  By
         default it uses the 'area' instance to generate geotransform and
         spatialref information, this can be overwritten by the arguments
-        *geotransform* and *spatialref*.
+        *geotransform* and *spatialref*. *floating_point* allows the saving of
+        'L' mode images in floating point format if set to True.
         
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         from osgeo import gdal, osr
         
         raster = gdal.GetDriverByName("GTiff")
-                    
-        channels, fill_value = self._finalize()
+
+        if floating_point:
+            if self.mode != "L":
+                raise ValueError("Image must be in 'L' mode for floating point"
+                                 " geotif saving")
+            channels = [self.channels[0].astype(np.float64)]
+            fill_value = self.fill_value or 0
+            gformat = gdal.GDT_Float64
+        else:
+            channels, fill_value = self._finalize()
+            gformat = gdal.GDT_Byte
 
         LOG.debug("Saving to GeoTiff.")
 
@@ -156,7 +167,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width,
                                        self.height, 
                                        1, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             else:
                 g_opts.append("ALPHA=YES")
@@ -164,7 +175,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width, 
                                        self.height, 
                                        2, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
         elif(self.mode == "LA"):
@@ -174,7 +185,7 @@ class GeoImage(mpop.imageo.image.Image):
                                    self.width, 
                                    self.height, 
                                    2, 
-                                   gdal.GDT_Byte,
+                                   gformat,
                                    g_opts)
             self._gdal_write_channels(dst_ds,
                                       channels[:-1], channels[1],
@@ -186,7 +197,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width, 
                                        self.height, 
                                        3, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             else:
                 g_opts.append("ALPHA=YES")
@@ -194,7 +205,7 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width, 
                                        self.height, 
                                        4, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
 
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
@@ -206,7 +217,7 @@ class GeoImage(mpop.imageo.image.Image):
                                    self.width, 
                                    self.height, 
                                    4, 
-                                   gdal.GDT_Byte,
+                                   gformat,
                                    g_opts)
 
             self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
@@ -264,10 +275,10 @@ class GeoImage(mpop.imageo.image.Image):
         *resolution* is chosen automatically if None (default), otherwise it should be one of:
         +-----+-------------------------+---------+
         | 'f' | Full resolution         | 0.04 km | 
-        |'h'  | High resolution         | 0.2 km  |
-        |'i'  | Intermediate resolution | 1.0 km  |
-        |'l'  | Low resolution          | 5.0 km  |
-        |'c'  | Crude resolution        | 25  km  |
+        | 'h' | High resolution         | 0.2 km  |
+        | 'i' | Intermediate resolution | 1.0 km  |
+        | 'l' | Low resolution          | 5.0 km  |
+        | 'c' | Crude resolution        | 25  km  |
         +-----+-------------------------+---------+
         """
 
