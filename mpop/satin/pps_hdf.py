@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -31,6 +31,7 @@
 import ConfigParser
 import datetime
 import os.path
+from glob import glob
 
 import mpop.channel
 from mpop import CONFIG_PATH
@@ -180,9 +181,14 @@ def load(scene, **kwargs):
                           "area": area_name,
                           "satellite": scene.fullname,
                           "product": "ctth"})
-            if not os.path.exists(filename):
+            flist = glob(filename)
+            if len(flist) == 0:
                 LOG.info("Can't find " + filename)
+            elif len(flist) > 1:
+                LOG.info("Too many files matching! " + str(flist))
+                break
             else:
+                filename = flist[0]
                 break
         if not os.path.exists(filename):
             LOG.info("Can't find any CTTH file, skipping")
@@ -200,9 +206,14 @@ def load(scene, **kwargs):
                           "area": area_name,
                           "satellite": scene.fullname,
                           "product": "cloudtype"})
-            if not os.path.exists(filename):
+            flist = glob(filename)
+            if len(flist) == 0:
                 LOG.info("Can't find " + filename)
+            elif len(flist) > 1:
+                LOG.info("Too many files matching! " + str(flist))
+                break
             else:
+                filename = flist[0]
                 break
         if not os.path.exists(filename):
             LOG.info("Can't find any Cloudtype file, skipping")
