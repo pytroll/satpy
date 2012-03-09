@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -61,9 +61,9 @@ def load_avhrr(satscene, options):
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
 
-    for chn in satscene.channels_to_load:
-        if chn in ["1", "2", "3A", "3B", "4", "5"]:
-            break
+
+    chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
+    if len(chns) == 0:
         return
 
     values = {"orbit": satscene.orbit,
