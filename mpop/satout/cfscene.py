@@ -58,7 +58,7 @@ class CFScene(object):
         
         # Other global attributes
         self.info["Conventions"] = "CF-1.5"
-        self.info["satellite"] = scene.satname + "-" + str(scene.number)
+        self.info["platform"] = scene.satname + "-" + str(scene.number)
         self.info["instrument"] = scene.instrument_name
         if scene.variant:
             self.info["service"] = scene.variant
@@ -90,7 +90,27 @@ class CFScene(object):
                 setattr(self, chn.name, chn)
                 continue
 
-            data = np.ma.expand_dims(chn.data, band_axis)
+            fill_value = np.iinfo(CF_DATA_TYPE).min
+            if ma.count_masked(chn.data) == chn.data.size:
+                # All data is masked
+                data = np.ones(chn.data.shape, dtype=CF_DATA_TYPE) * fill_value
+                scale = 1
+                offset = 0
+            else:
+                chn_max = chn.data.max()
+                chn_min = chn.data.min()
+               
+                scale = ((chn_max - chn_min) /
+                         (2**np.iinfo(CF_DATA_TYPE).bits - 2.0))
+                # Handle the case where all data has the same value.
+                if scale == 0:
+                    scale = 1
+                offset = (chn_max + chn_min) / 2.0
+                
+                data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
+                data[chn.data.mask] = fill_value
+
+            data = np.ma.expand_dims(data, band_axis)
             
             # it's a grid mapping
             try:
@@ -129,9 +149,19 @@ class CFScene(object):
                     x__.info = {"var_name": "x"+str_arc,
                                 "var_data": x__.data,
                                 "var_dim_names": ("x"+str_arc,),
-                                "units": "m",
+                                "units": "rad",
                                 "standard_name": "projection_x_coordinate",
                                 "long_name": "x coordinate of projection"}
+                    if area.info["grid_mapping_name"] == "geostationary":
+                        x__.data /= float(area.info["perspective_point_height"])
+                        xpix = np.arange(len(x__.data), dtype=np.uint16)
+                        xsca = ((x__.data[-1] - x__.data[0]) /
+                            (xpix[-1] + xpix[0]))
+                        xoff = x__.data[0] - xpix[0] * xsca
+                        x__.data = xpix
+                        x__.info["var_data"] = xpix
+                        x__.info["scale_factor"] = xsca
+                        x__.info["add_offset"] = xoff
                     setattr(self, x__.info["var_name"], x__)
 
                     y__ = InfoObject()
@@ -139,9 +169,19 @@ class CFScene(object):
                     y__.info = {"var_name": "y"+str_arc,
                                 "var_data": y__.data,
                                 "var_dim_names": ("y"+str_arc,),
-                                "units": "m",
+                                "units": "rad",
                                 "standard_name": "projection_y_coordinate",
                                 "long_name": "y coordinate of projection"}
+                    if area.info["grid_mapping_name"] == "geostationary":
+                        y__.data /= float(area.info["perspective_point_height"])
+                        ypix = np.arange(len(y__.data), dtype=np.uint16)
+                        ysca = ((y__.data[-1] - y__.data[0]) /
+                            (ypix[-1] + ypix[0]))
+                        yoff = y__.data[0] - ypix[0] * ysca
+                        y__.data = ypix
+                        y__.info["var_data"] = ypix
+                        y__.info["scale_factor"] = ysca
+                        y__.info["add_offset"] = yoff
                     setattr(self, y__.info["var_name"], y__)
                     
                     xy_names = [y__.info["var_name"], x__.info["var_name"]]
@@ -207,6 +247,16 @@ class CFScene(object):
                                                 np.array([chn.name])))
                 bandname.info["var_data"] = bandname.data
 
+                # offset
+                off_attr = np.concatenate((off_attr,
+                                           np.array([offset])))
+                band.info["add_offset"] = off_attr
+
+                # scale
+                sca_attr = np.concatenate((sca_attr,
+                                           np.array([scale])))
+                band.info["scale_factor"] = sca_attr
+
                 # wavelength bounds
                 bwl = getattr(self, "wl_bnds" + str_cnt)
                 bwl.data = np.vstack((bwl.data,
@@ -233,9 +283,10 @@ class CFScene(object):
                 band.data = data
                 dim_names = xy_names
                 dim_names.insert(band_axis, 'band'+str_cnt)
-                band.info = {"var_name": "band_data"+str_cnt,
+                band.info = {"var_name": "Image"+str_cnt,
                              "var_data": band.data,
                              'var_dim_names': dim_names,
+                             "_FillValue": fill_value,
                              "long_name": "Band data",
                              "units": chn.info["units"],
                              "resolution": chn.resolution}
@@ -250,7 +301,15 @@ class CFScene(object):
                                  "var_dim_names": ("band"+str_cnt,),
                                  "standard_name": "band_name"}
                 setattr(self, "bandname" + str_cnt, bandname)
+                
+                # offset
+                off_attr = np.array([offset])
+                band.info["add_offset"] = off_attr
 
+                # scale
+                sca_attr = np.array([scale])
+                band.info["scale_factor"] = sca_attr
+                
                 # wavelength bounds
                 wlbnds = InfoObject()
                 wlbnds.data = np.array([[chn.wavelength_range[0],
@@ -283,34 +342,7 @@ class CFScene(object):
             # compute data reduction
             fill_value = np.iinfo(CF_DATA_TYPE).min
             band = getattr(self, "band" + str(i))
-            data = band.data
-            if ma.count_masked(data) == data.size:
-                # All data is masked
-                data = np.ones(data.shape, dtype=CF_DATA_TYPE) * fill_value
-                valid_min = fill_value
-                valid_max = fill_value
-                scale = 1
-                offset = 0
-            else:
-                chn_max = data.max()
-                chn_min = data.min()
-               
-                scale = ((chn_max - chn_min) / 
-                         (np.iinfo(CF_DATA_TYPE).max -
-                          np.iinfo(CF_DATA_TYPE).min - 1))
-                # Handle the case where all data has the same value.
-                if scale == 0:
-                    scale = 1
-                offset = chn_max - (np.iinfo(CF_DATA_TYPE).max * scale)
-                valid_min = int((chn_min - offset) / scale)            
-                valid_max = int((chn_max - offset) / scale)
-                
-                data = ((data - offset) / scale).astype(CF_DATA_TYPE)
-                data = data.filled(fill_value)
-            band.data = data
-            band.info["add_offset"] = offset
-            band.info["scale_factor"] = scale
-            band.info["valid_range"] = np.array([valid_min, valid_max]),
+            # band.info["valid_range"] = np.array([valid_min, valid_max]),
             
 def proj2cf(proj_dict):
     """Return the cf grid mapping from a proj dict.
@@ -333,7 +365,7 @@ def geos2cf(proj_dict):
     """Return the cf grid mapping from a geos proj dict.
     """
 
-    return {"grid_mapping_name": "geos",
+    return {"grid_mapping_name": "geostationary",
             "latitude_of_projection_origin": 0.0,
             "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
             "semi_major_axis": eval(proj_dict["a"]),

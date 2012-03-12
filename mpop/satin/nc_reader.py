@@ -64,7 +64,7 @@ MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
 
 # To be completed, get from appendix F of cf conventions
 PROJNAME = {"vertical_perspective": "nsper",
-            "geos": "geos",
+            "geostationary": "geos",
             "albers_conical_equal_area": "aea",
             "azimuthal_equidistant": "aeqd",
             
@@ -79,7 +79,7 @@ def _load02(filename):
     # processed variables
     processed = set()
 
-    satellite_name, satellite_number = rootgrp.satellite.split("-")
+    satellite_name, satellite_number = rootgrp.platform.split("-")
 
     time_slot = rootgrp.variables["time"].getValue()[0]
     time_slot = num2date(time_slot, TIME_UNITS)
@@ -136,10 +136,7 @@ def _load02(filename):
                 if dim.startswith("band"):
                     break
                 
-            data = var[:, :, :].astype(var.dtype)
-            data = np.ma.masked_outside(data,
-                                        var.valid_range[0],
-                                        var.valid_range[1])
+            data = var[:, :, :]
                 
             area = None
             try:
@@ -165,6 +162,10 @@ def _load02(filename):
                 x__ = rootgrp.variables[x_name][:]
                 y__ = rootgrp.variables[y_name][:]
 
+                if proj4_dict["proj"] == "geos":
+                    x__ *= proj4_dict["h"]
+                    y__ *= proj4_dict["h"]
+
                 x_pixel_size = abs((np.diff(x__)).mean())
                 y_pixel_size = abs((np.diff(y__)).mean())
 
@@ -187,6 +188,7 @@ def _load02(filename):
                     LOG.warning("Pyresample not found, "
                                 "cannot load area descrition")
                 processed |= set([area_var_name, x_name, y_name])
+                LOG.debug("Grid mapping found and used.")
             except AttributeError:
                 LOG.debug("No grid mapping found.")
                 
@@ -216,6 +218,7 @@ def _load02(filename):
                                     "cannot load area descrition")
                 
                 processed |= set(coordinates_vars)
+                LOG.debug("Lon/lat found and used.")
             except AttributeError:
                 LOG.debug("No lon/lat found.")         
             
@@ -239,7 +242,7 @@ def _load02(filename):
         var = rootgrp.variables[var_name]
         if not (hasattr(var, "standard_name") or
                 hasattr(var, "long_name")):
-            LOG.info("Ignored" + var_name)
+            LOG.info("Ignored " + var_name)
             continue
 
         dims = var.dimensions
@@ -330,9 +333,8 @@ def load_from_nc4(filename):
 
             data = var[:, :, :].astype(var.dtype)
 
-            data = np.ma.masked_outside(data,
-                                        var.valid_range[0],
-                                        var.valid_range[1])
+            data = np.ma.masked_equal(data,
+                                      var._FillValue)
 
 
             try:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -190,20 +190,24 @@ def netcdf_cf_writer(filename, root_object, compression=True):
         # create variables
 
 
-        var_names = find_tag(info_list , 'var_name')
-
+        #var_names = find_tag(info_list , 'var_name')
+        named_vars = find_info(info_list, 'var_name')
+        var_names = [var["var_name"] for var in named_vars]
+        var_fill_values = [var.get("_FillValue", None) for var in named_vars]
         nc_vars = []
 
-        for name, vtype, dim_name in zip(var_names,
-                                         [dtype(vt) for vt in var_data ],
-                                         dim_names ):
+        for name, vtype, dim_name, fill_value in zip(var_names,
+                                                     [dtype(vt) for vt in var_data ],
+                                                     dim_names,
+                                                     var_fill_values):
 
             # in the case of arrays containing strings:
             if str(vtype) == "object":
                 vtype = str
 
             new_var = rootgrp.createVariable(name, vtype, dim_name,
-                                             zlib=compression) 
+                                             zlib=compression,
+                                             fill_value=fill_value) 
             new_var.set_auto_maskandscale(False)
             nc_vars.append(new_var)
 
@@ -214,6 +218,8 @@ def netcdf_cf_writer(filename, root_object, compression=True):
                 # handle variable attributes
                 nc_var = rootgrp.variables[info['var_name']]
                 for j, k in attribute_dispenser(info):
+                    if j == "_FillValue":
+                        continue
                     setattr( nc_var, j, k)
             else:
                 # handle global attributes
