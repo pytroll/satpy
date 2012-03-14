@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -272,13 +272,47 @@ class SatelliteInstrumentScene(SatelliteScene):
             return channels[0]
 
     def __setitem__(self, key, data):
-        if isinstance(data, Channel):
-            self.channels.append(Channel(name=key,
-                                     wavelength_range=data.wavelength_range,
-                                     resolution=data.resolution))
-            self[key].data = data.data
-        else:    
+        # Add a channel if it is not already in the scene. Works only if key is
+        # a string.
+        try:
+            if key not in self:
+                # if it's a blob with name and data, add it as is.
+                if hasattr(data, "name") and hasattr(data, "data"):
+                    self.channels.append(data)
+                else:
+                    kwargs = {"name": key}
+                    for attr in ["wavelength_range", "resolution"]:
+                        try:
+                            kwargs[attr] = getattr(data, attr)
+                        except (AttributeError, NameError):
+                            pass
+                    self.channels.append(Channel(**kwargs))
+        except AttributeError:
+            pass
+
+        # Add the data.
+        if isinstance(data, np.ma.core.MaskedArray):
             self[key].data = data
+        else:
+            try:
+                self[key].data = data.data
+            except AttributeError:
+                self[key].data = data
+
+
+
+        # if isinstance(data, Channel):
+        #     self.channels.append(Channel(name=key,
+        #                              wavelength_range=data.wavelength_range,
+        #                              resolution=data.resolution))
+        #     self[key].data = data.data
+        # else:
+        #     try:
+        #         self[key].data = data
+        #     except KeyError:
+        #         self.channels.append(Channel(name=key))
+        #         self[key].data = data                             
+                
 
 
     def __str__(self):
@@ -313,6 +347,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 self.channels_to_load |= set([chn.name])
 
         elif(isinstance(channels, (list, tuple, set))):
+            self.channels_to_load = set()
             for chn in channels:
                 try:
                     self.channels_to_load |= set([self[chn].name])
@@ -380,7 +415,6 @@ class SatelliteInstrumentScene(SatelliteScene):
                     # Look for custom reader
                     reader_module = __import__(reader_name, globals(),
                                                locals(), ['load'])
-                                               
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
                        len(area_extent) == 4):
@@ -388,14 +422,17 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         raise ValueError("Area extent must be a sequence of "
                                          "four numbers.")
+
                 reader_module.load(self, **kwargs)
             except ImportError:
                 LOG.exception("ImportError while loading "+reader+".")
                 continue
-            loaded_channels = [chn.name for chn in self.loaded_channels()]
-            self.channels_to_load = set([chn for chn in self.channels_to_load
-                                         if not chn in loaded_channels])
-            LOG.debug("Successfully loaded: "+str(loaded_channels))
+            loaded_channels = set([chn.name for chn in self.loaded_channels()])
+            just_loaded = loaded_channels & self.channels_to_load
+            if len(just_loaded) == 0:
+                LOG.info("No channels loaded with " + reader + ".")
+            self.channels_to_load -= loaded_channels
+            LOG.debug("Successfully loaded: "+str(just_loaded))
             
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "

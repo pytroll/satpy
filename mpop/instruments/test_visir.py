@@ -40,7 +40,8 @@ def patch_scene():
         """
         def __init__(self, val):
             self.data = val
-
+            self.area = None
+            
         def check_range(self):
             """Dummy check_range function.
             """

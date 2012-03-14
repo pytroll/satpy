@@ -1,18 +1,18 @@
 [satellite]
-satname = 'aqua'
+satname = 'terra'
 number = ''
 instruments = ('modis',)
 
 [modis-level2]
 format=hdfeos_l1b
 #dir=/data/prod/satellit/modis/lvl1
-dir = /local_disk/data/polar_out/direct_readout/modis
+dir = /data/proj/safutv/data/polar_out/direct_readout/modis
 
-filename250 = MYD02Qkm_A%Y%m%d_%H%M%S_*.hdf
-filename500 = MYD02Hkm_A%Y%m%d_%H%M%S_*.hdf
-filename1000 = MYD021km_A%Y%m%d_%H%M%S_*.hdf
+filename250 = MOD02Qkm_A%y%j_%H%M%S_*.hdf
+filename500 = MOD02Hkm_A%y%j_%H%M%S_*.hdf
+filename1000 = MOD021km_A%y%j_%H%M%S_*.hdf
 
-geofile1000 = MYD03_A%Y%m%d_%H%M%S_*.hdf
+geofile = MOD03_A%y%j_%H%M%S_*.hdf
 
 
 [modis-1]

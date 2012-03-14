@@ -42,7 +42,7 @@ class ViirsCompositer(VisirCompositer):
     """This class sets up the VIIRS instrument channel list.
     """
     
-    instrument_name = "seviri"
+    instrument_name = "viirs"
 
 
     def overview(self):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -415,6 +415,27 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
             self.assertEquals(chn.resolution, channels[i][2])
 
 
+    def test_setitem(self):
+        """__setitem__ for sat scenes.
+        """
+
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+
+        class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+            """Dummy satinst class.
+            """
+            channel_list = channels
+
+        self.scene = SatelliteInstrumentScene2()
+
+        self.assertRaises(TypeError, self.scene.__setitem__, 10.8, "rsutienrt")
+
+        a = np.ma.array([1, 2, 3])
+        self.scene[6.4] = a
+        self.assertTrue(isinstance(self.scene[6.4].data, np.ma.core.MaskedArray))
+        
 
     def test_getitem(self):
         """__getitem__ for sat scenes.
@@ -669,6 +690,20 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                           self.scene.channels_to_load)
 
         self.scene.load(["CTTH"])
+
+        # ### Test the reinitialization of channels_to_load
+        # self.scene = SatelliteInstrumentScene2()
+
+        # self.assertRaises(ValueError, self.scene.load, ["00_7"], area_extent="bla")
+
+        # self.scene.load(["00_7"], area_extent="bla")
+        # self.assertEquals(set(["00_7"]), self.scene.channels_to_load)
+
+        # self.scene.load(["06_4"])
+        # self.assertEquals(len(self.scene.loaded_channels()), 1)
+        # self.assertEquals(self.scene.loaded_channels()[0].name, "06_4")
+
+        # self.scene.load(["CTTH"])
         
     # def test_assemble_segments(self):
     #     """Assembling segments in a single satscene object.

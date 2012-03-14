@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2010, 2011.
+# Copyright (c) 2009-2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -32,38 +32,36 @@
 import os.path
 from setuptools import setup
 
-from version import get_git_version
-
-
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
 NAME = 'mpop'
 
 setup(name=NAME,
-      version=get_git_version(),
+      version="v0.11.0",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo'],
-      data_files=[('etc',['etc/geo_image.cfg']),
-                  ('etc',['etc/world_map.ascii']),
-                  ('share/doc/'+NAME+'/',
-                   ['doc/Makefile',
-                    'doc/source/conf.py',
-                    'doc/source/index.rst',
-                    'doc/source/install.rst',
-                    'doc/source/quickstart.rst',
-                    'doc/source/image.rst',
-                    'doc/source/pp.rst',
-                    'doc/source/saturn.rst',
-                    'doc/source/input.rst',
-                    'doc/examples/geo_hrit.py',
-                    'doc/examples/polar_aapp1b.py',
-                    'doc/examples/polar_segments.py'])],
+      data_files=[('etc',[os.path.join('etc', 'geo_image.cfg')]),
+                  (os.path.join('share', 'doc', NAME),
+                   [os.path.join('doc', 'Makefile'),
+                    os.path.join('doc', 'source', 'conf.py'),
+                    os.path.join('doc', 'source', 'index.rst'),
+                    os.path.join('doc', 'source', 'install.rst'),
+                    os.path.join('doc', 'source', 'quickstart.rst'),
+                    os.path.join('doc', 'source', 'image.rst'),
+                    os.path.join('doc', 'source', 'pp.rst'),
+                    os.path.join('doc', 'source', 'saturn.rst'),
+                    os.path.join('doc', 'source', 'input.rst'),
+                    os.path.join('doc', 'examples', 'geo_hrit.py'),
+                    os.path.join('doc', 'examples', 'polar_aapp1b.py'),
+                    os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
-      requires=['numpy (>=1.4.1)',
-                'pyresample (>=0.7.1)',
-                'mipp']
+      requires=['numpy (>=1.4.1)'],
+      extras_require={ 'xRIT': ['mipp'],
+                       'proj': ['pyresample'],
+                       'hdf_eos': ['pyhdf'],
+                       'aapp': ['ahamap']}
       )

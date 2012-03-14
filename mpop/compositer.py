@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -35,9 +35,18 @@ import types
 class Compositer(object):
     def __init__(self, scene):
         self._data_holder = scene
-        self.area = self._data_holder.area
-        self.time_slot = self._data_holder.time_slot
-        
+
+    @property
+    def area(self):
+        """Get the current area.
+        """
+        return self._data_holder.area
+
+    @property
+    def time_slot(self):
+        """Get the current area.
+        """
+        return self._data_holder.time_slot
 
     def __getitem__(self, *args, **kwargs):
         return self._data_holder.__getitem__(*args, **kwargs)

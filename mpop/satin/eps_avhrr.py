@@ -718,9 +718,9 @@ def read(fdes):
             
             cnt += 1
 
-    channels = channels[:, :cnt - 1, :]
-    llats = llats[:cnt - 1, :]
-    llons = llons[:cnt - 1, :]
+    channels = channels[:, :cnt, :]
+    llats = llats[:cnt, :]
+    llons = llons[:cnt, :]
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
 
@@ -785,10 +785,18 @@ def load_avhrr(satscene, options):
     if g3b:
         satscene["3B"] = channels[3, :, :]
 
-    satscene.lat = lats
-    satscene.lon = lons
+    print "Inside eps_avhrr.load_avhrr: orbit = ", orbit
+    #satscene.orbit = str(int(orbit) + 1)
+    satscene.orbit = str(int(orbit))
 
-    satscene.orbit = str(int(orbit) + 1)
+    try:
+        from pyresample import geometry
+        satscene.area = geometry.SwathDefinition(lons=lons, lats=lats)
+    except ImportError:
+        satscene.area = None
+        satscene.lat = lats
+        satscene.lon = lons
+
 
 def get_lonlat(satscene, row, col):
     try:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 import xrit.sat
 
-import mpop.satin.mipp
+import mpop.satin.mipp_xrit
 import mpop.scene
 from mpop.satellites import GeostationaryFactory
 

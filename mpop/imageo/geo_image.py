@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -40,11 +40,10 @@ from mpop import CONFIG_PATH
 from mpop.imageo.logger import LOG
 from mpop.utils import ensure_dir
 
-
 class GeoImage(mpop.imageo.image.Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
-    defined (*area_id* parameter) and *time_slot* of the snapshot.
+    defined (*area* parameter) and *time_slot* of the snapshot.
     
     The channels are considered to contain floating point values in the range
     [0.0,1.0]. In order to normalize the input data, the *crange* parameter
@@ -55,9 +54,9 @@ class GeoImage(mpop.imageo.image.Image):
     See also :class:`image.Image` for more information.
     """
 
-    def __init__(self, channels, area_id, time_slot, 
+    def __init__(self, channels, area, time_slot, 
                  mode = "L", crange = None, fill_value = None, palette = None):
-        self.area_id = area_id
+        self.area = area
         self.time_slot = time_slot
         self.tags = {}
         self.gdal_options = {}
@@ -67,7 +66,7 @@ class GeoImage(mpop.imageo.image.Image):
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,
-             format=None, blocksize=256):
+             fformat=None, blocksize=256, **kwargs):
         """Save the image to the given *filename*. If the extension is "tif",
         the image is saved to geotiff_ format, in which case the *compression*
         level can be given ([0, 9], 0 meaning off). See also
@@ -82,13 +81,13 @@ class GeoImage(mpop.imageo.image.Image):
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         file_tuple = os.path.splitext(filename)
-        format = format or file_tuple[1][1:]
+        fformat = fformat or file_tuple[1][1:]
 
-        if format.lower() in ('tif', 'tiff'):
+        if fformat.lower() in ('tif', 'tiff'):
             self.geotiff_save(filename, compression, tags,
-                              gdal_options, blocksize)
+                              gdal_options, blocksize, **kwargs)
         else:
-            super(GeoImage, self).save(filename, compression, format=format)
+            super(GeoImage, self).save(filename, compression, format=fformat, **kwargs)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
@@ -99,35 +98,48 @@ class GeoImage(mpop.imageo.image.Image):
                 chn = channels[i].filled(fill_value[i])
                 dst_ds.GetRasterBand(i + 1).WriteArray(chn)
         else:
-            mask = np.zeros_like(channels[0])
+            mask = np.zeros(channels[0].shape, dtype=np.uint8)
             i = 0
             for i in range(len(channels)):
                 dst_ds.GetRasterBand(i + 1).WriteArray(channels[i].filled(i))
                 mask |= np.ma.getmaskarray(channels[i]) 
             
-            alpha = np.where(mask, 0, opacity)
-            if self.mode.endswith("A"):
-                dst_ds.GetRasterBand(i + 1).WriteArray(alpha)
-            else:
-                dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
+            try:
+                mask |= np.ma.getmaskarray(opacity)
+            except AttributeError:
+                pass
+            
+            alpha = np.where(mask, 0, opacity).astype(np.uint8)
+            dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
     def geotiff_save(self, filename, compression=6,
                      tags=None, gdal_options=None,
-                     blocksize=0, geotransform=None, spatialref=None):
+                     blocksize=0, geotransform=None,
+                     spatialref=None, floating_point=False):
         """Save the image to the given *filename* in geotiff_ format, with the
         *compression* level in [0, 9]. 0 means not compressed. The *tags*
-        argument is a dict of tags to include in the image (as metadata).
-        By default it uses the 'area' instance to generate geotransform and spatialref
-        information, this can be overwritte by the arguments *geotransform* and
-        *spatialref*.
+        argument is a dict of tags to include in the image (as metadata).  By
+        default it uses the 'area' instance to generate geotransform and
+        spatialref information, this can be overwritten by the arguments
+        *geotransform* and *spatialref*. *floating_point* allows the saving of
+        'L' mode images in floating point format if set to True.
         
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         from osgeo import gdal, osr
         
         raster = gdal.GetDriverByName("GTiff")
-                    
-        channels, fill_value = self._finalize()
+
+        if floating_point:
+            if self.mode != "L":
+                raise ValueError("Image must be in 'L' mode for floating point"
+                                 " geotif saving")
+            channels = [self.channels[0].astype(np.float64)]
+            fill_value = self.fill_value or 0
+            gformat = gdal.GDT_Float64
+        else:
+            channels, fill_value = self._finalize()
+            gformat = gdal.GDT_Byte
 
         LOG.debug("Saving to GeoTiff.")
 
@@ -155,16 +167,29 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width,
                                        self.height, 
                                        1, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             else:
+                g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        2, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+        elif(self.mode == "LA"):
+            ensure_dir(filename)
+            g_opts.append("ALPHA=YES")
+            dst_ds = raster.Create(filename, 
+                                   self.width, 
+                                   self.height, 
+                                   2, 
+                                   gformat,
+                                   g_opts)
+            self._gdal_write_channels(dst_ds,
+                                      channels[:-1], channels[1],
+                                      fill_value)
         elif(self.mode == "RGB"):
             ensure_dir(filename)
             if fill_value is not None:
@@ -172,28 +197,30 @@ class GeoImage(mpop.imageo.image.Image):
                                        self.width, 
                                        self.height, 
                                        3, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
             else:
+                g_opts.append("ALPHA=YES")
                 dst_ds = raster.Create(filename, 
                                        self.width, 
                                        self.height, 
                                        4, 
-                                       gdal.GDT_Byte,
+                                       gformat,
                                        g_opts)
 
             self._gdal_write_channels(dst_ds, channels, 255, fill_value)
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
+            g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename, 
                                    self.width, 
                                    self.height, 
                                    4, 
-                                   gdal.GDT_Byte,
+                                   gformat,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds, channels, channels[3], fill_value)
+            self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
                                       " %s is not implemented."%self.mode)
@@ -214,9 +241,9 @@ class GeoImage(mpop.imageo.image.Image):
                 from pyresample import utils
                 from mpop.projector import get_area_def
             
-                area = get_area_def(self.area_id)
+                area = get_area_def(self.area)
             except (utils.AreaNotFound, AttributeError):
-                area = self.area_id
+                area = self.area
 
 
             try:
@@ -241,74 +268,73 @@ class GeoImage(mpop.imageo.image.Image):
         dst_ds = None
 
 
-    def add_overlay(self, color = (0, 0, 0)):
+    def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
         """Add coastline and political borders to image, using *color*.
+        Loses the masks !
+        
+        *resolution* is chosen automatically if None (default), otherwise it should be one of:
+        +-----+-------------------------+---------+
+        | 'f' | Full resolution         | 0.04 km | 
+        | 'h' | High resolution         | 0.2 km  |
+        | 'i' | Intermediate resolution | 1.0 km  |
+        | 'l' | Low resolution          | 5.0 km  |
+        | 'c' | Crude resolution        | 25  km  |
+        +-----+-------------------------+---------+
         """
-        import warnings
-        warnings.warn(
-            """The GeoImage.add_overlay method is deprecated and should not be
-            used anymore. To add coastlines, borders and rivers to your images,
-            use pycoast instead:
-            http://pycoast.googlecode.com
-            """,
-            DeprecationWarning)
+
 
         
-        import acpgimage
-        import _acpgpilext
-        import pps_array2image
-
-        self.convert("RGB")
+        img = self.pil_image()
 
         import ConfigParser
         conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, "geo_image.cfg"))
+        conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
-        coast_dir = CONFIG_PATH
-        coast_file = os.path.join(coast_dir, conf.get('coasts', 'coast_file'))
+        coast_dir = conf.get('shapes', 'dir')
 
-        arr = np.zeros(self.channels[0].shape, np.uint8)
+        LOG.debug("Getting area for overlay: " + str(self.area))
 
-        LOG.debug("Adding overlay: " + str(self.area_id))
-        if not isinstance(self.area_id, str):
-            area_id = self.area_id.area_id
-        else:
-            area_id = self.area_id
-        LOG.info("Add coastlines and political borders to image. "
-                 "Area = %s"%(area_id))
-        rimg = acpgimage.image(area_id)
-        rimg.info["nodata"] = 255
-        rimg.data = arr
-        area_overlayfile = ("%s/coastlines_%s.asc"
-                            %(coast_dir, area_id))
-        LOG.info("Read overlay. Try find something prepared on the area...")
-        try:
-            overlay = _acpgpilext.read_overlay(area_overlayfile)
-            LOG.info("Got overlay for area: %s."%area_overlayfile)
-        except IOError:
-            LOG.info("Didn't find an area specific overlay."
-                     " Have to read world-map...")
-            overlay = _acpgpilext.read_overlay(coast_file)
-        LOG.info("Add overlay.")
-        overlay_image = pps_array2image.add_overlay(rimg,
-                                                    overlay,
-                                                    pil.fromarray(arr),
-                                                    color = 1)
+        if self.area is None:
+            raise ValueError("Area of image is None, can't add overlay.")
 
-        val = np.ma.asarray(overlay_image)
+        from mpop.projector import get_area_def
+        if isinstance(self.area, str):
+            self.area = get_area_def(self.area) 
+        LOG.info("Add coastlines and political borders to image.")
+        LOG.debug("Area = " + str(self.area))
 
-        self.channels[0] = np.ma.where(val == 1, color[0], self.channels[0])
-        self.channels[0].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[0]))
+        if resolution is None:
+        
+            x_resolution = ((self.area.area_extent[2] -
+                             self.area.area_extent[0]) /
+                            self.area.x_size)
+            y_resolution = ((self.area.area_extent[3] -
+                             self.area.area_extent[1]) /
+                            self.area.y_size)
+            res = min(x_resolution, y_resolution)
 
-        self.channels[1] = np.ma.where(val == 1, color[1], self.channels[1])
-        self.channels[1].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[1]))
+            if res > 25000:
+                resolution = "c"
+            elif res > 5000:
+                resolution = "l"
+            elif res > 1000:
+                resolution = "i"
+            elif res > 200:
+                resolution = "h"
+            else:
+                resolution = "f"
 
-        self.channels[2] = np.ma.where(val == 1, color[2], self.channels[2])
-        self.channels[2].mask = np.where(val == 1,
-                                         False,
-                                         np.ma.getmaskarray(self.channels[2]))
+            LOG.debug("Automagically choose resolution " + resolution)
+        
+        from pycoast import ContourWriterAGG
+        cw_ = ContourWriterAGG(coast_dir)
+        cw_.add_coastlines(img, self.area, outline=color,
+                           resolution=resolution, width=width)
+        cw_.add_borders(img, self.area, outline=color,
+                        resolution=resolution, width=width)
+
+        arr = np.array(img)
+
+        for idx in range(len(self.channels)):
+            self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
