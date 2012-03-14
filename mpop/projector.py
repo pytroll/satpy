@@ -61,6 +61,22 @@ def get_area_def(area_name):
     """
     return utils.parse_area_file(AREA_FILE, area_name)[0]
 
+def _get_area_hash(area):
+    """Calculate a (close to) unique hash value for a given area.
+    """
+    if isinstance(area, (geometry.AreaDefinition, 
+                         geometry.SwathDefinition)):
+        _area = str(area)
+    elif isinstance(area, np.ndarray):
+        # probaly not needed.
+        _area = str(area)
+    else:
+        _area = ''
+    if _area.find('object at 0x') > -1:
+        # __str__ method not (yet) implemented.
+        _area = ''
+    return hash(_area)
+
 class Projector(object):
     """This class define projector objects. They contain the mapping
     information necessary for projection purposes. For efficiency reasons,
@@ -143,7 +159,10 @@ class Projector(object):
 
 
 
-        filename = (in_id + "2" + out_id + "_" + self.mode + ".npz")
+        filename = (in_id + "2" + out_id + "_" + 
+                    str(_get_area_hash(self.in_area)) + "to" + 
+                    str(_get_area_hash(self.out_area)) + "_" +
+                    self.mode + ".npz")
 
         projections_directory = "/var/tmp"
         try:

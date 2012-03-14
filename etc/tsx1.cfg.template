@@ -1,0 +1,19 @@
+[satellite]
+satname = 'tsx'
+number = '1'
+instruments = ('sarx',)
+
+[sarx-level1]
+format=mipp/xsar/TSX
+dir = '/data/xsar/in'
+filename_archive = 'TX01_SAR*_%Y%m%dT%H%M%S_*.tar'
+filename_metadata = 'TSX1_SAR*.xml'
+
+[sarx-level2]
+format='mipp_xsar'
+
+[sarx-1]
+name = 'sarx'
+frequency = (9.50, 9.65, 9.80) # GHz
+resolution = 8.25
+size = ()
