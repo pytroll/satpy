@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -799,6 +799,10 @@ def load_avhrr(satscene, options):
 
 
 def get_lonlat(satscene, row, col):
+    try:
+        return satscene.area.lons[row, col], satscene.area.lats[row, col]
+    except AttributeError:
+        pass
     try:
         if satscene.lat is None or satscene.lon is None:
             load(satscene)
