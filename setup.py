@@ -60,7 +60,7 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
       requires=['numpy (>=1.4.1)'],
-      extras_require={ 'xRIT': ['mipp'],
+      extras_require={ 'xRIT': ['mipp (>=0.6)'],
                        'proj': ['pyresample'],
                        'hdf_eos': ['pyhdf'],
                        'aapp': ['ahamap']}

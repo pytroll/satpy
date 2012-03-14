@@ -33,7 +33,7 @@ import random
 import unittest
 
 import numpy as np
-import xrit.sat
+import mipp.xrit.sat
 
 import mpop.satin.mipp_xrit
 import mpop.scene
@@ -202,14 +202,14 @@ def patch_mipp():
         del args, kwargs
         return FakeSlicer()
     
-    xrit.sat.old_load = xrit.sat.load
-    xrit.sat.load = fake_load
+    mipp.xrit.sat.old_load = mipp.xrit.sat.load
+    mipp.xrit.sat.load = fake_load
 
 def unpatch_mipp():
     """Unpatch the SatelliteInstrumentScene.
     """
-    xrit.sat.load = xrit.sat.old_load
-    delattr(xrit.sat, "old_load")
+    mipp.xrit.sat.load = mipp.xrit.sat.old_load
+    delattr(mipp.xrit.sat, "old_load")
 
 
 class TestMipp(unittest.TestCase):
