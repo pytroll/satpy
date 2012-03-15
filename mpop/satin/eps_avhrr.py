@@ -800,15 +800,16 @@ def load_avhrr(satscene, options):
 
 def get_lonlat(satscene, row, col):
     try:
-        return satscene.area.lons[row, col], satscene.area.lats[row, col]
-    except AttributeError:
-        pass
-    try:
-        if satscene.lat is None or satscene.lon is None:
+        if (satscene.area is None and
+            (satscene.lat is None or satscene.lon is None)):
             load(satscene)
     except AttributeError:
         load(satscene)
-    return satscene.lon[row, col], satscene.lat[row, col]
+    try:
+        return satscene.area.lons[row, col], satscene.area.lats[row, col]
+    except AttributeError:
+        return satscene.lon[row, col], satscene.lat[row, col]
+
 
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.
