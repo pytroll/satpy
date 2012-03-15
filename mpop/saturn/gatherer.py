@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -348,7 +348,7 @@ class SegmentedSwath(Satellite):
             #concatenate loaded granules.
             scenes = [GenericFactory.create_scene(granule.satname,
                                                   granule.number,
-                                                  granule.instument_name,
+                                                  granule.instrument_name,
                                                   granule.time_slot,
                                                   None,
                                                   None,
