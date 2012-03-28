@@ -241,8 +241,12 @@ class GeoImage(mpop.imageo.image.Image):
                                    area.area_extent[3], 0, -area.pixel_size_y]
                 dst_ds.SetGeoTransform(adfgeotransform)
                 srs = osr.SpatialReference()
-                srs.SetProjCS(area.proj_id)            
                 srs.ImportFromProj4(area.proj4_string)
+                srs.SetProjCS(area.proj_id)
+                try:
+                    srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
+                except KeyError:
+                    pass
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
