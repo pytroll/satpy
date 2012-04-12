@@ -207,27 +207,32 @@ class EpsAvhrrL1bReader(object):
         """Get calibrated channel data.
         """
 
-        if "3a" in channels or "3b" in channels:
+        if ("3a" in channels or
+            "3A" in channels or
+            "3b" in channels or
+            "3B" in channels):
             three_a = ((self["FRAME_INDICATOR"] & 2**16) == 2**16)
             three_b = ((self["FRAME_INDICATOR"] & 2**16) == 0)
 
         chans = {}
         for chan in channels:
-            if chan not in ["1", "2", "3a", "3b", "4", "5"]:
+            if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
                 raise NameError("Invalid channel name: " + str(chan))
             
             if chan == "1":
-                chans[chan] = to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                                      self["CH1_SOLAR_FILTERED_IRRADIANCE"])
+                chans[chan] = np.ma.array(
+                    to_refl(self["SCENE_RADIANCES"][:, 0, :],
+                            self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
             if chan == "2":
-                chans[chan] = to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                                      self["CH2_SOLAR_FILTERED_IRRADIANCE"])
-            if chan == "3a":
+                chans[chan] = np.ma.array(
+                    to_refl(self["SCENE_RADIANCES"][:, 1, :],
+                            self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+            if chan.lower() == "3a":
                 chans[chan] = to_refl(self["SCENE_RADIANCES"][:, 2, :],
                                       self["CH2_SOLAR_FILTERED_IRRADIANCE"])
                 chans[chan][three_b, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
-            if chan == "3b":
+            if chan.lower() == "3b":
                 chans[chan] = to_bt(self["SCENE_RADIANCES"][:, 2, :],
                                     self["CH3B_CENTRAL_WAVENUMBER"],
                                     self["CH3B_CONSTANT1"],
@@ -235,15 +240,17 @@ class EpsAvhrrL1bReader(object):
                 chans[chan][three_a, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan == "4":
-                chans[chan] = to_bt(self["SCENE_RADIANCES"][:, 3, :],
-                                    self["CH4_CENTRAL_WAVENUMBER"],
-                                    self["CH4_CONSTANT1"],
-                                    self["CH4_CONSTANT2_SLOPE"])
+                chans[chan] = np.ma.array(
+                    to_bt(self["SCENE_RADIANCES"][:, 3, :],
+                          self["CH4_CENTRAL_WAVENUMBER"],
+                          self["CH4_CONSTANT1"],
+                          self["CH4_CONSTANT2_SLOPE"]))
             if chan == "5":
-                chans[chan] = to_bt(self["SCENE_RADIANCES"][:, 4, :],
-                                    self["CH5_CENTRAL_WAVENUMBER"],
-                                    self["CH5_CONSTANT1"],
-                                    self["CH5_CONSTANT2_SLOPE"])
+                chans[chan] = np.ma.array(
+                    to_bt(self["SCENE_RADIANCES"][:, 4, :],
+                          self["CH5_CENTRAL_WAVENUMBER"],
+                          self["CH5_CONSTANT1"],
+                          self["CH5_CONSTANT2_SLOPE"]))
 
                 
         return chans
