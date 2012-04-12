@@ -1,0 +1,918 @@
+<?xml version="1.0"?>
+<!DOCTYPE format SYSTEM "eps.dtd">
+<?xml-stylesheet type="text/xsl" href="eps.xsl"?>
+
+
+<!--
+    File: eps_avhrrl1b_6.5.xml
+
+    Copyright (c) 2004, 2005 Eumetsat
+    
+    This file is part of the EPSXML format specification generated 
+    automatically using pfs2xml.
+    
+    This XML description is distributed under the GPL license; you can
+    redistribute it and/or modify it under the terms of the GNU General
+    Public License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+    
+    This XML description is distributed in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License
+    along with the pfs2xml package; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+-->
+
+
+<format>
+
+
+<version-control>
+    <format-version>
+        <major>4</major><minor>0</minor>
+	<baseline>april04</baseline>
+    </format-version>
+    <format-version>
+        <major>5</major><minor>0</minor>
+	<baseline>nov05</baseline>
+    </format-version>
+    <format-version>
+        <major>10</major><minor>0</minor>
+	<baseline>launch</baseline>
+	<baseline>current</baseline>
+    </format-version>
+    <pfs-version>
+        <major>6</major><minor>5</minor>
+    </pfs-version>
+</version-control>
+
+
+<brief-description>EPS AVHRR/3 Level 1B Format</brief-description>
+
+
+<full-description>
+    This AVHRR/3 1B description was generated using the AVHRR/3 PFS Excel document Issue 6 Revision 5 (eps_avhrrl1_6.5_names_masks.xls) and pfs2xml version 3.3
+</full-description>
+
+
+<file-extensions>
+    <glob>AVHR_*1B_*Z*</glob>
+</file-extensions>
+
+
+<parameters>
+    <parameter name="NE" value="2048" description="Number of earth view per scanline for Full data (highest value)"/>
+    <parameter name="NP" value="103" description="Number of navigation points at a sampling rate of 20 for a Full product  (highest value)"/>
+</parameters>
+
+
+<geolocation>
+    <name>Geolocation</name>
+    <description>AVHRR Geolocation Coverage (Latitude, Longitude)</description>
+    <latitude>mdr-1b[].EARTH_LOCATIONS[][0]</latitude>
+    <longitude>mdr-1b[].EARTH_LOCATIONS[][1]</longitude>
+</geolocation>
+
+
+<image>
+    <name>Channel 1</name>
+    <description>AVHRR Scene Radiance for Channel 1</description>
+    <source>mdr-1b[].SCENE_RADIANCES[0][]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Channel 2</name>
+    <description>AVHRR Scene Radiance for Channel 2</description>
+    <source>mdr-1b[].SCENE_RADIANCES[1][]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Channel 3a/b</name>
+    <description>AVHRR Scene Radiance for Channel 3a/b</description>
+    <source>mdr-1b[].SCENE_RADIANCES[2][]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Channel 4</name>
+    <description>AVHRR Scene Radiance for Channel 4</description>
+    <source>mdr-1b[].SCENE_RADIANCES[3][]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Channel 5</name>
+    <description>AVHRR Scene Radiance for Channel 5</description>
+    <source>mdr-1b[].SCENE_RADIANCES[4][]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Uniformity Test A</name>
+    <description>AVHRR Cloud Information Uniformity Test A (0=test failed or clear, 1=cloudy)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#Uniformity_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Uniformity Test B</name>
+    <description>AVHRR Cloud Information Uniformity Test A (0 =test failed or cloudy, 1=clear)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#Uniformity_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T3-T5 Test A</name>
+    <description>AVHRR Cloud Information T3-T5 Test A (0=test failed or clear, 1=cloudy)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T3_T5_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T3-T5 Test B</name>
+    <description>AVHRR Cloud Information T3-T5 Test B (0 =test failed or cloudy, 1=clear)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T3_T5_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4-T3 Test A</name>
+    <description>AVHRR Cloud Information T4-T3 Test A (0=test failed or clear, 1=cloudy)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_T3_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4-T3 Test B</name>
+    <description>AVHRR Cloud Information T4-T3 Test B (0 =test failed or cloudy, 1=clear)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_T3_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4-T5 Test A</name>
+    <description>AVHRR Cloud Information T4-T5 Test A (0=test failed or clear, 1=cloudy)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_T5_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4-T5 Test B</name>
+    <description>AVHRR Cloud Information T4-T5 Test B (0 =test failed or cloudy, 1=clear)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_T5_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Albedo Test A</name>
+    <description>AVHRR Cloud Information Albedo Test A (0=test failed or clear, 1=cloudy or snow/ice covered)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#Albedo_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Albedo Test B</name>
+    <description>AVHRR Cloud Information Albedo Test B (0 =test failed or cloudy, 1=clear or snow/ice covered)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#Albedo_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4 Test A</name>
+    <description>AVHRR Cloud Information T4 Test A (0=test failed or clear, 1=cloudy or snow/ice covered)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_test_a</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>T4 Test B</name>
+    <description>AVHRR Cloud Information T4 Test B (0 =test failed or cloudy, 1=clear or snow/ice covered)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#T4_test_b</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Test Situations</name>
+    <description>AVHRR Cloud Information - number of the test situations (11 different test situations)</description>
+    <source>mdr-1b[].CLOUD_INFORMATION[].#Number_of_the_test_situation</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<protocol>eps-product</protocol>
+
+
+<product name="AVHRR-1B" version="Issue 6 Revision 5">
+
+
+
+    <mphr name="mphr" subclass="0" version="2" description="Main Product Header Record ">
+        <delimiter name="Product Details"/>
+        <field name="PRODUCT_NAME" type="string" length="67" description="Complete name of the product"/>
+        <field name="PARENT_PRODUCT_NAME_1" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_2" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_3" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_4" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="INSTRUMENT_ID" type="enumerated" length="4" description="Instrument identification">
+            <item value="AMSA" name="AMSU-A"/>
+            <item value="ASCA" name="ASCAT"/>
+            <item value="ATOV" name="ATOVS" description="instruments: AVHRR/3, HIRS/4, AMSU-A, MHS"/>
+            <item value="AVHR" name="AVHRR/3"/>
+            <item value="GOME" name="GOME"/>
+            <item value="GRAS" name="GRAS"/>
+            <item value="HIRS" name="HIRS/4"/>
+            <item value="IASI" name="IASI"/>
+            <item value="MHSx" name="MHS"/>
+            <item value="NOAA" name="All NOAA" description="instruments specific to Level 0 NOAA product"/>
+            <item value="SEMx" name="SEM"/>
+            <item value="ADCS" name="ADCS"/>
+            <item value="SBUV" name="SBUV"/>
+            <item value="xxxx" name="No specific instrument"/>
+            <item value="HKTM" name="VCDU34" description="data specific to Level 0"/>
+        </field>
+        <field name="INSTRUMENT_MODEL" type="enumerated" length="3" description="Instrument Model identification">
+            <item value="0" name="Reserved"/>
+            <item value="1" name="Flight Model 1"/>
+            <item value="2" name="Flight Model 2"/>
+            <item value="3" name="Engineering Model"/>
+            <item value="4" name="Protoflight Model"/>
+        </field>
+        <field name="PRODUCT_TYPE" type="enumerated" length="3" description="Product Type">
+            <item value="ENG" description="IASI engineering data"/>
+            <item value="GAC" description="NOAC Global Area Coverage AVHRR data"/>
+            <item value="SND" description="Sounding Data"/>
+            <item value="SZF" description="ASCAT calibrated s0 data at full resolution"/>
+            <item value="SZO" description="ASCAT calibrated s0 data at operational resolution (50 km)"/>
+            <item value="SZR" description="ASCAT calibrated s0 data at research resolution (25 km)"/>
+            <item value="VER" description="IASI verification data"/>
+            <item value="xxx" description="No specific product type specified"/>
+            <item value="AIP" description="NOAA AIP/SAIP data"/>
+            <item value="TIP" description="NOAA TIP/STIP data"/>
+            <item value="HRP" description="HRPT data"/>
+            <item value="LRP" description="LRPT data"/>
+        </field>
+        <field name="PROCESSING_LEVEL" type="enumerated" length="2" description="Processing Level Identification">
+            <item value="00" name="Level 0"/>
+            <item value="01" name="Level 1"/>
+            <item value="1A" name="Level 1a"/>
+            <item value="1B" name="Level 1b"/>
+            <item value="1C" name="Level 1c"/>
+            <item value="02" name="Level 2"/>
+            <item value="03" name="Level 3"/>
+            <item value="xx" name="No Specific Level"/>
+        </field>
+        <field name="SPACECRAFT_ID" type="enumerated" length="3" description="Spacecraft identification">
+            <item value="xxx" description="No specific spacecraft"/>
+            <item value="M01" description="METOP 01"/>
+            <item value="M02" description="METOP 02"/>
+            <item value="M02" description="METOP 03"/>
+            <item value="N15" description="NOAA-K"/>
+            <item value="N16" description="NOAA-L"/>
+            <item value="N17" description="NOAA-M"/>
+            <item value="N18" description="NOAA-N"/>
+            <item value="N19" description="NOAA-N'"/>
+        </field>
+        <field name="SENSING_START" type="time" length="15" description="UTC Time of start of sensing data in this object (PDU, ROI or Full Product)"/>
+        <field name="SENSING_END" type="time" length="15" description="UTC Time of end of sensing data in this object (PDU, ROI or Full Product)"/>
+        <field name="SENSING_START_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of start of sensing data in the dump from which this object is derived. This data is the predicted start time at the MPF level."/>
+        <field name="SENSING_END_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of end of sensing data in the dump from which this object is derived. This data is the predicted end time at the MPF level."/>
+        <field name="PROCESSING_CENTRE" type="enumerated" length="4" description="Processing Centre Identification">
+            <item value="CGS1" description="First EUMETSAT EPS Core Ground Segment"/>
+            <item value="CGS2" description="Second EUMETSAT EPS Core Ground Segment"/>
+            <item value="CGS3" description="Third EUMETSAT EPS Core Ground Segment"/>
+            <item value="NSSx" description="NOAA/NESDIS"/>
+            <item value="RUSx" description="Reference User Station"/>
+            <item value="DMIx" description="DMI, Copenhagen (GRAS SAF)"/>
+            <item value="DWDx" description="DWD, Offenbach (Climate SAF)"/>
+            <item value="FMIx" description="FMI , Helsinki (Ozone SAF)"/>
+            <item value="IMPx" description="IMP, Lisbon  (Land SAF)"/>
+            <item value="INMx" description="INM, Madrid (NCW SAF)"/>
+            <item value="MFxx" description="MF, Lannion (OSI SAF)"/>
+            <item value="UKMO" description="UKMO, Bracknell (NWP SAF)"/>
+        </field>
+        <field name="PROCESSOR_MAJOR_VERSION" type="uinteger" length="5" description="Processing chain major version number"/>
+        <field name="PROCESSOR_MINOR_VERSION" type="uinteger" length="5" description="Processing chain minor version number"/>
+        <field name="FORMAT_MAJOR_VERSION" type="uinteger" length="5" description="Dataset Format Major Version number"/>
+        <field name="FORMAT_MINOR_VERSION" type="uinteger" length="5" description="Dataset Format Minor Version number"/>
+        <field name="PROCESSING_TIME_START" type="time" length="15" description="UTC time of the processing at start of processing for the product"/>
+        <field name="PROCESSING_TIME_END" type="time" length="15" description="UTC time of the processing at end of processing for the product"/>
+        <field name="PROCESSING_MODE" type="enumerated" length="1" description="Identification of the mode of processing">
+            <item value="N" name="Nominal" description="NRT processing"/>
+            <item value="B" name="Backlog Processing"/>
+            <item value="R" name="Reprocessing"/>
+            <item value="V" name="Validation"/>
+        </field>
+        <field name="DISPOSITION_MODE" type="enumerated" length="1" description="Identification of the diposition mode">
+            <item value="T" name="Testing"/>
+            <item value="O" name="Operational"/>
+            <item value="C" name="Commissioning"/>
+        </field>
+        <field name="RECEIVING_GROUND_STATION" type="enumerated" length="3" description="Acquisition Station Identification">
+            <item value="SVL" description="Svalbard"/>
+            <item value="WAL" description="Wallops Island, Virginia"/>
+            <item value="FBK" description="Fairbanks, Alaska"/>
+            <item value="SOC" description="SOCC (NESDIS Satellite Operations Control Centre), Suitland, Maryland"/>
+            <item value="RUS" description="Reference User Station"/>
+        </field>
+        <field name="RECEIVE_TIME_START" type="time" length="15" description="UTC time of the reception at CDA for first Data Item"/>
+        <field name="RECEIVE_TIME_END" type="time" length="15" description="UTC time of the reception at CDA for last Data Item"/>
+        <field name="ORBIT_START" type="uinteger" length="5" description="Start Orbit Number, counted incrementally since launch"/>
+        <field name="ORBIT_END" type="uinteger" length="5" description="Stop Orbit Number"/>
+        <field name="ACTUAL_PRODUCT_SIZE" type="uinteger" length="11" units="bytes" description="Size of the complete product"/>
+        <delimiter name="ASCENDING NODE ORBIT PARAMETERS"/>
+        <field name="STATE_VECTOR_TIME" type="longtime" length="18" units="UTC" description="Epoch time (in UTC) of the orbital elements and the orbit state vector. this corresponds to the time of crossing the ascending node for ORBIT_START"/>
+        <field name="SEMI_MAJOR_AXIS" type="integer" length="11" units="mm" description="Semi major axis of orbit at time of the ascending node crossing."/>
+        <field name="ECCENTRICITY" type="integer" length="11" scaling-factor="10^6" description="Orbit eccentricity at time of the ascending node crossing"/>
+        <field name="INCLINATION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Orbit inclination at time of the ascending node crossing"/>
+        <field name="PERIGEE_ARGUMENT" type="integer" length="11" scaling-factor="10^3" units="deg" description="Argument of perigee at time of the ascending node crossing"/>
+        <field name="RIGHT_ASCENSION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Right ascension at time of the ascending node crossing"/>
+        <field name="MEAN_ANOMALY" type="integer" length="11" scaling-factor="10^3" units="deg" description="Mean anomaly at time of the ascending node crossing"/>
+        <field name="X_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="X position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Y_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Y position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Z_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Z position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="X_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="X velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Y_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Y velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Z_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Z velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="EARTH_SUN_DISTANCE_RATIO" type="integer" length="11" description="Earth-Sun distance ratio - ratio of current Eart-Sun distance to Mean Earth-Sun distance"/>
+        <field name="LOCATION_TOLERANCE_RADIAL" type="integer" length="11" units="m" description="Nadir Earth location tolerance radial"/>
+        <field name="LOCATION_TOLERANCE_CROSSTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance cross-track"/>
+        <field name="LOCATION_TOLERANCE_ALONGTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance along-track"/>
+        <field name="YAW_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Yaw attitude error"/>
+        <field name="ROLL_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Roll attitude error"/>
+        <field name="PITCH_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Pitch attitude error"/>
+        <delimiter name="LOCATION SUMMARY"/>
+        <field name="SUBSAT_LATITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at start of the data set"/>
+        <field name="SUBSAT_LONGITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at start of the data set"/>
+        <field name="SUBSAT_LATITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at end of the data set"/>
+        <field name="SUBSAT_LONGITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at end of the data set"/>
+        <delimiter name="Leap Second Information"/>
+        <field name="LEAP_SECOND" type="integer" length="2" description="Occurence of Leap second within the product. Field is set to -1, 0 or +1 dependent upon occurrence of leap second and direction."/>
+        <field name="LEAP_SECOND_UTC" type="time" length="15" description="UTC time of occurrence of the Leap Second (If no leap second in the product, value is null)"/>
+        <delimiter name="Record counts"/>
+        <field name="TOTAL_RECORDS" type="uinteger" length="6" description="Total count of all records in the product"/>
+        <field name="TOTAL_MPHR" type="uinteger" length="6" description="Total count of all MPHRs in product (should always be 1!)"/>
+        <field name="TOTAL_SPHR" type="uinteger" length="6" description="Total count of all SPHRs in product (should be 0 or 1 only)"/>
+        <field name="TOTAL_IPR" type="uinteger" length="6" description="Total count of all IPRs in the product"/>
+        <field name="TOTAL_GEADR" type="uinteger" length="6" description="Total count of all GEADRs in the product"/>
+        <field name="TOTAL_GIADR" type="uinteger" length="6" description="Total count of all GIADRs in the product"/>
+        <field name="TOTAL_VEADR" type="uinteger" length="6" description="Total count of all VEADRs in the product"/>
+        <field name="TOTAL_VIADR" type="uinteger" length="6" description="Total count of all VIADRs in the product"/>
+        <field name="TOTAL_MDR" type="uinteger" length="6" description="Total count of all MDRs in the product"/>
+        <delimiter name="Record Based Generic Quality Flags"/>
+        <field name="COUNT_DEGRADED_INST_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to instrument problems"/>
+        <field name="COUNT_DEGRADED_PROC_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to processing problems"/>
+        <field name="COUNT_DEGRADED_INST_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded instrument"/>
+        <field name="COUNT_DEGRADED_PROC_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded processing"/>
+        <delimiter name="Time Based Generic Quality Flags"/>
+        <field name="DURATION_OF_PRODUCT" type="uinteger" length="8" units="ms" description="The duration of the product in milliseconds"/>
+        <field name="MILLISECONDS_OF_DATA_PRESENT" type="uinteger" length="8" units="ms" description="The total amount of data present in the product"/>
+        <field name="MILLISECONDS_OF_DATA_MISSING" type="uinteger" length="8" units="ms" description="The total amount of data missing from the prodcut"/>
+        <delimiter name="Regional Product Information"/>
+        <field name="SUBSETTED_PRODUCT" type="boolean" length="1" description="Set when product has been subsetted (e.g. geographically subsetted using a region of interest filter). Implies the presence of one or more UMARF GIADRs in GAD section for product retrieved from UMARF."/>
+    </mphr>
+
+
+
+    <sphr name="sphr" subclass="0" version="3" instrument="AVHRR" description="AVHRR SPHR">
+        <delimiter name="QUALITY"/>
+        <field name="SRC_DATA_QUAL" type="bitfield" length="16" description="Flag to specify which combination of auxiliary data is used for the scenes analysis.">
+            <bit length="6" name="Not_used"/>
+            <bit name="NWP_T2M_CHANGE" description="Availability of NWP T2M is changing during the dump"/>
+            <bit name="NWP_TCWV_CHANGE" description="Availability of NWP TCWV is changing during the dump"/>
+            <bit name="AMSUA_TCWV_CHANGE" description="Availability of AMSU-A TCWV is changing during the dump"/>
+            <bit name="NWP_TCWV_MISSING" description="NWP TCWV is missing"/>
+            <bit name="AMSUA_TCWV_NWP_T2M_MISSING" description="AMSU-A TCWV and NWP T2M are missing"/>
+            <bit name="AMSUA_TCWV_NWP_TCWV_MISSING" description="AMSU-A TCWV and NWP TCWV are missing"/>
+            <bit name="AMSUA_TCWV_MISSING" description="AMSU-A TCWV is missing"/>
+            <bit name="NWP_T2M_MISSING" description="NWP T2M is missing"/>
+            <bit name="NWP_TCWV_NWP_T2M_MISSING" description="NWP TCWV and NWP T2M are missing"/>
+            <bit name="AMSUA_TCWV_NWP_TCWV_NWP_T2M_MISSING" description="AMSU-A TCWV, NWP TCWV, and NWP T2M are missing"/>
+        </field>
+        <delimiter name="VARIABLE_PARAMETERS"/>
+        <field name="EARTH_VIEWS_PER_SCANLINE" type="integer" length="5" description="Number of Earth views per scanline (2048 for Full, 409 for GAC data)"/>
+        <field name="NAV_SAMPLE_RATE" type="integer" length="3" description="Rate of sampling the navigation data (angular relation and earth location). For Full data every 40th or 20th Earth view. For GAC data every 8th or 4th Earth view"/>
+    </sphr>
+
+
+
+    <giadr name="giadr-radiance" subclass="1" version="3" instrument="AVHRR" description="PRT Temperature conversion factors,  intercept, slope, and central wavenumber for the band correction for channels 3b, 4, and 5">
+        <delimiter name="RADIANCE_CONVERSION"/>
+        <field name="RAMP_CALIBRATION_COEFFICIENT" type="bitfield" length="16" description="Ramp/Auto Calibration Indicators Bit Field">
+            <bit length="10" name="Not_used"/>
+            <bit name="CH5" description="ramp non-linearity for GAC &#38; Full Resolution ch 5"/>
+            <bit name="CH4" description="ramp non-linearity for GAC and Full Resolution ch4"/>
+            <bit name="CH3B" description="ramp non-linearity for GAC and Full Resolution ch 3b"/>
+            <bit name="CH3A" description="ramp non-linearity for GAC and Full Resolution ch 3a"/>
+            <bit name="CH2" description="ramp non-linearity for GAC and Full Resolution ch 2"/>
+            <bit name="CH1" description="ramp non-linearity for GAC and Full Resolution ch 1"/>
+        </field>
+        <field name="YEAR_RECENT_CALIBRATION" type="uinteger2" units="yr" description="Year of Most Recent Solar Channel Calibration (e.g. 1999)"/>
+        <field name="DAY_RECENT_CALIBRATION" type="uinteger2" units="day" description="Day of Year of Most Recent Solar Channel Calibration (e.g. 365)"/>
+        <field name="PRIMARY_CALIBRATION_ALGORITHM_ID" type="uinteger2" description="Primary Calibration Algorithm ID"/>
+        <field name="PRIMARY_CALIBRATION_ALGORITHM_OPTION" type="bitfield" length="16" description="Primary Calibration Algorithm Selected Options">
+            <bit name="Not_used"/>
+            <bit name="Ch_5_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_5_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+            <bit name="Ch_4_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_4_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+            <bit name="Ch_3b_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_3b_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+        </field>
+        <field name="SECONDARY_CALIBRATION_ALGORITHM_ID" type="uinteger2" description="Secondary Calibration Algorithm ID"/>
+        <field name="SECONDARY_CALIBRATION_ALGORITHM_OPTION" type="bitfield" length="16" description="Secondary Calibration Algorithm Selected Options">
+            <bit name="Not_used"/>
+            <bit name="Ch_5_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_5_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+            <bit name="Ch_4_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_4_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+            <bit name="Ch_3b_resolution" description="0 = high, 1 = low"/>
+            <bit name="Ch_3b_substitution_coefficients" description="0 = no, 1 = yes"/>
+            <bit length="3" name="Not_used"/>
+        </field>
+        <field name="IR_TEMPERATURE1_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="IR Target Temp 1 Conversion Coefficient 1"/>
+        <field name="IR_TEMPERATURE1_COEFFICIENT2" type="integer2" scaling-factor="10^5" units="K/cnt" description="IR Target Temp 1 Conversion Coefficient 2"/>
+        <field name="IR_TEMPERATURE1_COEFFICIENT3" type="integer2" scaling-factor="10^8" units="K/cnt2" description="IR Target Temp 1 Conversion Coefficient 3"/>
+        <field name="IR_TEMPERATURE1_COEFFICIENT4" type="integer2" scaling-factor="10^11" units="K/cnt3" description="IR Target Temp 1 Conversion Coefficient 4"/>
+        <field name="IR_TEMPERATURE1_COEFFICIENT5" type="integer2" scaling-factor="10^14" units="K/cnt4" description="IR Target Temp 1 Conversion Coefficient 5"/>
+        <field name="IR_TEMPERATURE1_COEFFICIENT6" type="integer2" scaling-factor="10^17" units="K/cnt5" description="IR Target Temp 1 Conversion Coefficient 6"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="IR Target Temp 2 Conversion Coefficient 1"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT2" type="integer2" scaling-factor="10^5" units="K/cnt" description="IR Target Temp 2 Conversion Coefficient 2"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT3" type="integer2" scaling-factor="10^8" units="K/cnt2" description="IR Target Temp 2 Conversion Coefficient 3"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT4" type="integer2" scaling-factor="10^11" units="K/cnt3" description="IR Target Temp 2 Conversion Coefficient 4"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT5" type="integer2" scaling-factor="10^14" units="K/cnt4" description="IR Target Temp 2 Conversion Coefficient 5"/>
+        <field name="IR_TEMPERATURE2_COEFFICIENT6" type="integer2" scaling-factor="10^17" units="K/cnt5" description="IR Target Temp 2 Conversion Coefficient 6"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="IR Target Temp 3 Conversion Coefficient 1"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT2" type="integer2" scaling-factor="10^5" units="K/cnt" description="IR Target Temp 3 Conversion Coefficient 2"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT3" type="integer2" scaling-factor="10^8" units="oK/cnt2" description="IR Target Temp 3 Conversion Coefficient 3"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT4" type="integer2" scaling-factor="10^11" units="K/cnt3" description="IR Target Temp 3 Conversion Coefficient 4"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT5" type="integer2" scaling-factor="10^14" units="K/cnt4" description="IR Target Temp 3 Conversion Coefficient 5"/>
+        <field name="IR_TEMPERATURE3_COEFFICIENT6" type="integer2" scaling-factor="10^17" units="K/cnt5" description="IR Target Temp 3 Conversion Coefficient 6"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="IR Target Temp 4 Conversion Coefficient 1"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT2" type="integer2" scaling-factor="10^5" units="K/cnt" description="IR Target Temp 4 Conversion Coefficient 2"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT3" type="integer2" scaling-factor="10^8" units="K/cnt2" description="IR Target Temp 4 Conversion Coefficient 3"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT4" type="integer2" scaling-factor="10^11" units="K/cnt3" description="IR Target Temp 4 Conversion Coefficient 4"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT5" type="integer2" scaling-factor="10^14" units="K/cnt4" description="IR Target Temp 4 Conversion Coefficient 5"/>
+        <field name="IR_TEMPERATURE4_COEFFICIENT6" type="integer2" scaling-factor="10^17" units="K/cnt5" description="IR Target Temp 4 Conversion Coefficient 6"/>
+        <field name="CH1_SOLAR_FILTERED_IRRADIANCE" type="integer2" scaling-factor="10^1" units="W/m2" description="Ch 1 Solar Filtered Irradiance in Wavelength"/>
+        <field name="CH1_EQUIVALENT_FILTER_WIDTH" type="integer2" scaling-factor="10^3" units="mu_m" description="Ch 1 Equivalent Filter Width in Wavelength"/>
+        <field name="CH2_SOLAR_FILTERED_IRRADIANCE" type="integer2" scaling-factor="10^1" units="W/m2" description="Ch 2 Solar Filtered Irradiance in Wavelength"/>
+        <field name="CH2_EQUIVALENT_FILTER_WIDTH" type="integer2" scaling-factor="10^3" units="mu_m" description="Ch 2 Equivalent Filter Width in Wavelength"/>
+        <field name="CH3A_SOLAR_FILTERED_IRRADIANCE" type="integer2" scaling-factor="10^1" units="W/m2" description="Ch 3a Solar Filtered Irradiance in Wavelength"/>
+        <field name="CH3A_EQUIVALENT_FILTER_WIDTH" type="integer2" scaling-factor="10^3" units="mu_m" description="Ch 3a Equivalent Filter Width in Wavelength"/>
+        <field name="CH3B_CENTRAL_WAVENUMBER" type="integer4" scaling-factor="10^2" units="cm-1" description="Ch 3b Central Wavenumber"/>
+        <field name="CH3B_CONSTANT1" type="integer4" scaling-factor="10^5" units="K" description="Ch 3b Constant 1 for band correction"/>
+        <field name="CH3B_CONSTANT2_SLOPE" type="integer4" scaling-factor="10^6" units="K/ K" description="Ch 3b Constant 2 slope for band correction"/>
+        <field name="CH4_CENTRAL_WAVENUMBER" type="integer4" scaling-factor="10^3" units="cm-1" description="Ch 4 Central Wavenumber"/>
+        <field name="CH4_CONSTANT1" type="integer4" scaling-factor="10^5" units="K" description="Ch 4 Constant 1 for band correction"/>
+        <field name="CH4_CONSTANT2_SLOPE" type="integer4" scaling-factor="10^6" units="K/ K" description="Ch 4 Constant 2 slope for band correction"/>
+        <field name="CH5_CENTRAL_WAVENUMBER" type="integer4" scaling-factor="10^3" units="cm-1" description="Ch 5 Central Wavenumber"/>
+        <field name="CH5_CONSTANT1" type="integer4" scaling-factor="10^5" units="K" description="Ch 5 Constant 1 for band correction"/>
+        <field name="CH5_CONSTANT2_SLOPE" type="integer4" scaling-factor="10^6" units="K/ K" description="Ch 5 Constant 2 slope for band correction"/>
+    </giadr>
+
+
+
+    <giadr name="giadr-analog" subclass="2" version="2" instrument="AVHRR" description="Analog to digital conversion coefficients">
+        <delimiter name="A/D_CONVERSION"/>
+        <field name="PATCH_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="Patch Temperature Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="K/cnt" description="Patch Temperature Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="K/cnt2" description="Patch Temperature Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="K/cnt3" description="Patch Temperature Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="K/cnt4" description="Patch Temperature Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_EXTENDED_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="Patch Temperature Extended Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_EXTENDED_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="K/cnt" description="Patch Temperature Extended Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_EXTENDED_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="K/cnt2" description="Patch Temperature Extended Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_EXTENDED_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="K/cnt3" description="Patch Temperature Extended Conversion Coefficient"/>
+        <field name="PATCH_TEMPERATURE_EXTENDED_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="K/cnt4" description="Patch Temperature Extended Conversion Coefficient"/>
+        <field name="PATCH_POWER_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="mW" description="Patch Power Conversion Coefficient"/>
+        <field name="PATCH_POWER_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="mW/cnt" description="Patch Power Conversion Coefficient"/>
+        <field name="PATCH_POWER_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="mW/cnt2" description="Patch Power Conversion Coefficient"/>
+        <field name="PATCH_POWER_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="mW/cnt3" description="Patch Power Conversion Coefficient"/>
+        <field name="PATCH_POWER_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="mW/cnt4" description="Patch Power Conversion Coefficient"/>
+        <field name="RADIATOR_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="K" description="Radiator Temperature Conversion Coefficient"/>
+        <field name="RADIATOR_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="K/cnt" description="Radiator Temperature Conversion Coefficient"/>
+        <field name="RADIATOR_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="K/cnt2" description="Radiator Temperature Conversion Coefficient"/>
+        <field name="RADIATOR_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="K/cnt3" description="Radiator Temperature Conversion Coefficient"/>
+        <field name="RADIATOR_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="K/cnt4" description="Radiator Temperature Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE1_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Blackbody Temperature 1 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE1_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Blackbody Temperature 1 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE1_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Blackbody Temperature 1 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE1_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Blackbody Temperature 1 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE1_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Blackbody Temperature 1 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE2_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Blackbody Temperature 2 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE2_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Blackbody Temperature 2 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE2_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Blackbody Temperature 2 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE2_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Blackbody Temperature 2 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE2_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Blackbody Temperature 2 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE3_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Blackbody Temperature 3 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE3_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Blackbody Temperature 3 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE3_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Blackbody Temperature 3 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE3_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Blackbody Temperature 3 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE3_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Blackbody Temperature 3 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE4_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Blackbody Temperature 4 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE4_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Blackbody Temperature 4 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE4_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Blackbody Temperature 4 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE4_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Blackbody Temperature 4 Conversion Coefficient"/>
+        <field name="BLACKBODY_TEMPERATURE4_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Blackbody Temperature 4 Conversion Coefficient"/>
+        <field name="ELECTRONIC_CURRENT_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="mA" description="Electronics Current Conversion Coefficient"/>
+        <field name="ELECTRONIC_CURRENT_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="mA/cnt" description="Electronics Current Conversion Coefficient"/>
+        <field name="ELECTRONIC_CURRENT_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="mA/cnt2" description="Electronics Current Conversion Coefficient"/>
+        <field name="ELECTRONIC_CURRENT_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="mA/cnt3" description="Electronics Current Conversion Coefficient"/>
+        <field name="ELECTRONIC_CURRENT_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="mA/cnt4" description="Electronics Current Conversion Coefficient"/>
+        <field name="MOTOR_CURRENT_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="mA" description="Motor Current Conversion Coefficient"/>
+        <field name="MOTOR_CURRENT_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="mA/cnt" description="Motor Current Conversion Coefficient"/>
+        <field name="MOTOR_CURRENT_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="mA/cnt2" description="Motor Current Conversion Coefficient"/>
+        <field name="MOTOR_CURRENT_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="mA/cnt3" description="Motor Current Conversion Coefficient"/>
+        <field name="MOTOR_CURRENT_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="mA/cnt4" description="Motor Current Conversion Coefficient"/>
+        <field name="EARTH_SHIELD_POSITION_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="V" description="Earth Shield Position Conversion Coefficient"/>
+        <field name="EARTH_SHIELD_POSITION_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="V/cnt" description="Earth Shield Position Conversion Coefficient"/>
+        <field name="EARTH_SHIELD_POSITION_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="V/cnt2" description="Earth Shield Position Conversion Coefficient"/>
+        <field name="EARTH_SHIELD_POSITION_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="V/cnt3" description="Earth Shield Position Conversion Coefficient"/>
+        <field name="EARTH_SHIELD_POSITION_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="V/cnt4" description="Earth Shield Position Conversion Coefficient"/>
+        <field name="ELECTRONIC_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Electronics Temperature Conversion Coefficient"/>
+        <field name="ELECTRONIC_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Electronics Temperature Conversion Coefficient"/>
+        <field name="ELECTRONIC_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Electronics Temperature Conversion Coefficient"/>
+        <field name="ELECTRONIC_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Electronics Temperature Conversion Coefficient"/>
+        <field name="ELECTRONIC_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Electronics Temperature Conversion Coefficient"/>
+        <field name="COOLER_HOUSING_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Cooler Housing Temperature Conversion Coefficient"/>
+        <field name="COOLER_HOUSING_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Cooler Housing Temperature Conversion Coefficient"/>
+        <field name="COOLER_HOUSING_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Cooler Housing Temperature Conversion Coefficient"/>
+        <field name="COOLER_HOUSING_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Cooler Housing Temperature Conversion Coefficient"/>
+        <field name="COOLER_HOUSING_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Cooler Housing Temperature Conversion Coefficient"/>
+        <field name="BASEPLATE_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Baseplate Temperature Conversion Coefficient"/>
+        <field name="BASEPLATE_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Baseplate Temperature Conversion Coefficient"/>
+        <field name="BASEPLATE_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Baseplate Temperature Conversion Coefficient"/>
+        <field name="BASEPLATE_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Baseplate Temperature Conversion Coefficient"/>
+        <field name="BASEPLATE_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Baseplate Temperature Conversion Coefficient"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Motor Housing Temperature Conversion Coefficient"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Motor Housing Temperature Conversion Coefficient"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Motor Housing Temperature Conversion Coefficient"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Motor Housing Temperature Conversion Coefficient"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Motor Housing Temperature Conversion Coefficient"/>
+        <field name="AD_CONVERTER_TEMPERATURE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="A/D Converter Temperature Conversion Coefficient"/>
+        <field name="AD_CONVERTER_TEMPERATURE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="A/D Converter Temperature Conversion Coefficient"/>
+        <field name="AD_CONVERTER_TEMPERATURE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="A/D Converter Temperature Conversion Coefficient"/>
+        <field name="AD_CONVERTER_TEMPERATURE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="A/D Converter Temperature Conversion Coefficient"/>
+        <field name="AD_CONVERTER_TEMPERATURE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="A/D Converter Temperature Conversion Coefficient"/>
+        <field name="DETECTOR4_BIAS_VOLTAGE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="V" description="Detector #4 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR4_BIAS_VOLTAGE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="V/cnt" description="Detector #4 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR4_BIAS_VOLTAGE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="V/cnt2" description="Detector #4 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR4_BIAS_VOLTAGE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="V/cnt3" description="Detector #4 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR4_BIAS_VOLTAGE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="V/cnt4" description="Detector #4 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR5_BIAS_VOLTAGE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="V" description="Detector #5 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR5_BIAS_VOLTAGE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="V/cnt" description="Detector #5 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR5_BIAS_VOLTAGE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="V/cnt2" description="Detector #5 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR5_BIAS_VOLTAGE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="V/cnt3" description="Detector #5 Bias Voltage Conversion Coefficient"/>
+        <field name="DETECTOR5_BIAS_VOLTAGE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="V/cnt4" description="Detector #5 Bias Voltage Conversion Coefficient"/>
+        <field name="CH3B_BLACKBODY_VIEW_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Channel 3b Blackbody View Conversion Coefficient"/>
+        <field name="CH3B_BLACKBODY_VIEW_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Channel 3b Blackbody View Conversion Coefficient"/>
+        <field name="CH3B_BLACKBODY_VIEW_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Channel 3b Blackbody View Conversion Coefficient"/>
+        <field name="CH3B_BLACKBODY_VIEW_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Channel 3b Blackbody View Conversion Coefficient"/>
+        <field name="CH3B_BLACKBODY_VIEW_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Channel 3b Blackbody View Conversion Coefficient"/>
+        <field name="CH4_BLACKBODY_VIEW_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Channel 4 Blackbody View Conversion Coefficient"/>
+        <field name="CH4_BLACKBODY_VIEW_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Channel 4 Blackbody View Conversion Coefficient"/>
+        <field name="CH4_BLACKBODY_VIEW_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Channel 4 Blackbody View Conversion Coefficient"/>
+        <field name="CH4_BLACKBODY_VIEW_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Channel 4 Blackbody View Conversion Coefficient"/>
+        <field name="CH4_BLACKBODY_VIEW_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Channel 4 Blackbody View Conversion Coefficient"/>
+        <field name="CH5_BLACKBODY_VIEW_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="degC" description="Channel 5 Blackbody View Conversion Coefficient"/>
+        <field name="CH5_BLACKBODY_VIEW_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="degC/cnt" description="Channel 5 Blackbody View Conversion Coefficient"/>
+        <field name="CH5_BLACKBODY_VIEW_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="degC/cnt2" description="Channel 5 Blackbody View Conversion Coefficient"/>
+        <field name="CH5_BLACKBODY_VIEW_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="degC/cnt3" description="Channel 5 Blackbody View Conversion Coefficient"/>
+        <field name="CH5_BLACKBODY_VIEW_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="degC/cnt4" description="Channel 5 Blackbody View Conversion Coefficient"/>
+        <field name="REFERENCE_VOLTAGE_COEFFICIENT1" type="integer2" scaling-factor="10^2" units="V" description="Reference Voltage Conversion Coefficient"/>
+        <field name="REFERENCE_VOLTAGE_COEFFICIENT2" type="integer2" scaling-factor="10^4" units="V/cnt" description="Reference Voltage Conversion Coefficient"/>
+        <field name="REFERENCE_VOLTAGE_COEFFICIENT3" type="integer2" scaling-factor="10^6" units="V/cnt2" description="Reference Voltage Conversion Coefficient"/>
+        <field name="REFERENCE_VOLTAGE_COEFFICIENT4" type="integer2" scaling-factor="10^8" units="V/cnt3" description="Reference Voltage Conversion Coefficient"/>
+        <field name="REFERENCE_VOLTAGE_COEFFICIENT5" type="integer2" scaling-factor="10^10" units="V/cnt4" description="Reference Voltage Conversion Coefficient"/>
+    </giadr>
+
+
+
+    <mdr name="mdr-1b" subclass="2" version="4" instrument="AVHRR" description="Level 1B MDR">
+        <delimiter name="GENERIC_QUALITY_INDICATORS"/>
+        <field name="DEGRADED_INST_MDR" type="boolean" description="Quality of MDR has been degraded from nominal due to an instrument degradation"/>
+        <field name="DEGRADED_PROC_MDR" type="boolean" description="Quality of MDR has been degraded from nominal due to a processing degradation"/>
+        <delimiter name="MEASUREMENT_DATA"/>
+        <field name="EARTH_VIEWS_PER_SCANLINE" type="integer2" variable="NE" default="$NE" units="cnt" description="Earth views per scanline, NE"/>
+        <array name="SCENE_RADIANCES" length="5" labels="channel1,channel2,channel3,channel4,channel5">
+            <array length="$NE" label="FOV">
+                <field type="integer2" scaling-factor="10^2,10^2,10^4,10^2,10^2" units="See Description" description="Scene radiance for channels 1, 2, 3a or 3b, 4 &#38; 5. Channels 1,2, 3a in units of W/(m^2.sr). Channels 3b, 4 , 5 in units of mW/(m^2.sr.cm). Channels 1,2,4 &#38; 5 with scale factor = 2. Channels 3a or 3b with scale factor = 4."/>
+            </array>
+        </array>
+        <delimiter name="NAVIGATION_DATA_AT_SCAN_LINE"/>
+        <field name="TIME_ATTITUDE" type="uinteger4" units="s" description="Time Associated with Attitude Angles"/>
+        <array name="EULER_ANGLE" length="3" labels="roll,pitch,yaw">
+            <field type="integer2" scaling-factor="10^3" units="deg" description="Euler Angles: Roll, Pitch, Yaw"/>
+        </array>
+        <field name="NAVIGATION_STATUS" type="bitfield" length="32" description="Navigation Status Bit Field">
+            <bit length="15" name="Spare" description="Not used"/>
+            <bit name="EL_Corrected" description="Earth location corrected for Euler angles"/>
+            <bit length="4" name="EL_Indicator" description="Earth location indicator (0 = earth location available, 1 = user ephemeris files older than 24 hours, 2 = no earth location available )"/>
+            <bit length="4" name="SA_Control" description="Spacecraft attitude control (0 = operating in YGC or NOMINAL mode, 1 = operating in another mode, 2 = attitude exceeds nominal tolerance)"/>
+            <bit length="4" name="A_SMODE" description="Attitude SMODE (0 = NOMINAL mode, 1 = rate nulling mode, 2 = YGC mode, 3 = search mode, 4 = coast mode)"/>
+            <bit length="4" name="A_MODE" description="Attitude mode (0 = NOMINAL mode/no test, 1 = yaw axis test in progress, 2 = roll axis test in progress, 3 = pitch axis test in progress)"/>
+        </field>
+        <field name="SPACECRAFT_ALTITUDE" type="uinteger4" scaling-factor="10^1" units="km" description="Spacecraft Altitude Above Reference Geoid (MSL)"/>
+        <array name="ANGULAR_RELATIONS_FIRST" length="4" labels="solar-zenith,sat-zenith,solar-azimuth,sat-azimuth">
+            <field type="integer2" scaling-factor="10^2" units="deg" description="Angular relationship for the first earth view in scanline"/>
+        </array>
+        <array name="ANGULAR_RELATIONS_LAST" length="4" labels="solar-zenith,sat-zenith,solar-azimuth,sat-azimuth">
+            <field type="integer2" scaling-factor="10^2" units="deg" description="Angular relationship for the last earth view in scanline"/>
+        </array>
+        <array name="EARTH_LOCATION_FIRST" length="2" labels="latitude,longitude">
+            <field type="integer4" scaling-factor="10^4" units="deg" description="Earth location for the first earth view in scanline"/>
+        </array>
+        <array name="EARTH_LOCATION_LAST" length="2" labels="latitude,longitude">
+            <field type="integer4" scaling-factor="10^4" units="deg" description="Earth location for the last earth view in scanline"/>
+        </array>
+        <field name="NUM_NAVIGATION_POINTS" type="integer2" variable="NP" default="$NP" description="Number of navigation points in angular_relations and earth_locations arrays, NP"/>
+        <array name="ANGULAR_RELATIONS" length="$NP" label="Nav-point">
+            <array length="4" labels="solar-zenith,sat-zenith,solar-azimuth,sat-azimuth">
+                <field type="integer2" scaling-factor="10^2" units="deg" description="Angular relationships: solar zenith angle, satellite zenith angle, solar azimuth angle, satellite azimuth angle  (points 25 to 2025, each 40th point, possible reduction to every 20th point)"/>
+            </array>
+        </array>
+        <array name="EARTH_LOCATIONS" length="$NP" label="Nav-point">
+            <array length="2" labels="latitude,longitude">
+                <field type="integer4" scaling-factor="10^4" units="deg" description="Earth Location: latitude, longitude (points 25 to 2025, each 40th point, possible reduction to every 20th point)"/>
+            </array>
+        </array>
+        <field name="QUALITY_INDICATOR" type="bitfield" length="32" description="Quality Indicator Bit Field">
+            <bit name="do_not_use_scan_for_product_generation" description="do not use scan for product generation"/>
+            <bit name="time_sequence_error_detected_with_this_scan" description="time sequence error detected with this scan"/>
+            <bit name="data_gap_precedes_this_scan" description="data gap precedes this scan"/>
+            <bit name="insufficient_data_for_calibration" description="insufficient data for  calibration"/>
+            <bit name="earth_location_data_not_available" description="earth location data not available"/>
+            <bit name="first_good_time_following_a_clock_update" description="first good time following a clock update (nominally 0)"/>
+            <bit name="instrument_status_changed_with_this_scan" description="instrument status changed with this scan"/>
+            <bit name="sync_lock_dropped_during_this_frame" description="sync lock dropped during this frame - DEFAULT TO ZERO"/>
+            <bit name="frame_sync_word_error_greater_than_zero" description="frame sync word error greater than zero- DEFAULT TO ZERO"/>
+            <bit name="frame_sync_previously_dropped_lock" description="frame sync previously dropped lock- DEFAULT TO ZERO"/>
+            <bit name="flywheeling_detected_during_this_frame" description="flywheeling detected during this frame- DEFAULT TO ZERO"/>
+            <bit name="bit_slippage_detected_during_this_frame" description="bit slippage detected during this frame- DEFAULT TO ZERO"/>
+            <bit length="11" name="Not_used"/>
+            <bit name="TIP_parity_error_detected" description="TIP parity error detected- DEFAULT TO ZERO"/>
+            <bit length="2" name="reflected_sunlight_detected_ch3b" description="reflected sunlight detected ch 3b (0 = no anomaly; 1 = anomaly; 3 = unsure)"/>
+            <bit length="2" name="reflected_sunlight_detected_ch4" description="reflected sunlight detected ch 4 (0 = no anomaly; 1 = anomaly; 3 = unsure)"/>
+            <bit length="2" name="reflected_sunlight_detected_ch5" description="reflected sunlight detected ch 5 (0 = no anomaly; 1 = anomaly; 3 = unsure)"/>
+            <bit name="resync_occurred_on_this_frame" description="resync occurred on this frame- DEFAULT TO ZERO"/>
+            <bit name="pseudo_noise_occurred_on_this_frame" description="pseudo noise occurred on this frame"/>
+        </field>
+        <field name="SCAN_LINE_QUALITY" type="bitfield" length="32" description="Scan Line Quality Flags">
+            <delimiter name="Time Problem Code (all bits off implies the scan time is as expected)"/>
+            <bit length="8" name="not_used" description="Not used"/>
+            <bit name="bad_time_field_inferred_possible" description="time field is bad but can probably be inferred from the previous good time"/>
+            <bit name="bad_time_field_inferred_impossible" description="time field is bad and can't be inferred from the previous good time"/>
+            <bit name="time_discontinuity" description="this record starts a sequence that is inconsistent with previous times (i.e., there is a time discontinuity).  This may or may not be associated with a spacecraft clock update (See bit 26 in QUALITY_INDICATOR Field)"/>
+            <bit name="repeated_scan_times" description="start of a sequence that apparently repeats scan times that have been previously accepted"/>
+            <bit length="4" name="not_used" description="Not used"/>
+            <delimiter name="Calibration Code Problem (Note these bits complement the channel indicators; all bits set to 0 indicates normal calibration. )"/>
+            <bit name="scan_line_not_calibrated_bad_time" description="Scan line was not calibrated because of bad time"/>
+            <bit name="scan_line_calibrated_using_inadequate_data" description="Scan line was calibrated using fewer than the preferred number of scan lines because of proximity to start or end of data set or to a data gap"/>
+            <bit name="scan_line_not_calibrated_bad_prt_data" description="Scan line was not calibrated because of bad or insufficient PRT data"/>
+            <bit name="scan_line_calibrated_marginal_prt_data" description="Scan line was calibrated but with marginal PRT data"/>
+            <bit name="some_uncalibrated_channels_on_this_scan" description="Some uncalibrated channels on this scan. (See channel indicators.)"/>
+            <bit name="uncalibrated_due_to_instrument_mode" description="Uncalibrated due to instrument mode."/>
+            <bit name="questionable_calibration_space_view" description="Questionable calibration because of antenna position error of space view"/>
+            <bit name="questionable_calibration_black_body" description="Questionable calibration because of antenna position error of black body"/>
+            <delimiter name="Earth Location Problem Code (all bits off  indicates the Earth location was normal)"/>
+            <bit name="not_earth_located_bad_time" description="Not earth located because of bad time; earth location fields zero filled"/>
+            <bit name="questionable_earth_location_time_code" description="Earth location questionable because of questionable time code. (See time problem flags above.)"/>
+            <bit name="questionable_earth_location_marginal" description="Earth location questionable - only marginal agreement with reasonableness check."/>
+            <bit name="questionable_earth_location_failed" description="Earth location questionable - fails reasonableness check"/>
+            <bit name="questionable_earth_location_antenna_position" description="Earth location questionable because of antenna position check"/>
+            <bit length="3" name="not_used" description="Not used"/>
+        </field>
+        <array name="CALIBRATION_QUALITY" length="3">
+            <field type="bitfield" length="16" description="Calibration Quality Flags">
+                <bit length="8" name="Not_used"/>
+                <bit name="calibrated" description="this channel is not calibrated"/>
+                <bit name="questionable" description="this channel is calibrated but questionable"/>
+                <bit name="bad_blackbody" description="all bad blackbody counts for scan line"/>
+                <bit name="bad_space_view" description="all bad space view counts for scan line"/>
+                <bit name="zero_fill"/>
+                <bit name="marginal_blackbody" description="marginal blackbody view counts for this line"/>
+                <bit name="marginal_space_view" description="marginal space view counts for this line"/>
+                <bit name="Not_used"/>
+            </field>
+        </array>
+        <field name="COUNT_ERROR_FRAME" type="uinteger2" units="cnt" description="Count of Bit Errors in Frame Sync. This field is applicable only to NOAA data. For Metop data it should be defaulted to zero."/>
+        <delimiter name="Calibration_Coefficients"/>
+        <array name="CH123A_CURVE_SLOPE1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Operational calibration curve slope 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_CURVE_INTERCEPT1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Operational calibration curve intercept 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_CURVE_SLOPE2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Operational calibration curve slope 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_CURVE_INTERCEPT2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Operational calibration curve intercept 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_CURVE_INTERCEPTION" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" units="cnt" description="Visible Operational calibration intersection (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_TEST_CURVE_SLOPE1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Test calibration curve slope 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_TEST_CURVE_INTERCEPT1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Test calibration curve intercept 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_TEST_CURVE_SLOPE2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Test calibration curve slope 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_TEST_CURVE_INTERCEPT2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Test calibration curve intercept 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_TEST_CURVE_INTERCEPTION" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" units="cnt" description="Visible Test calibration intersection (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_PRELAUNCH_CURVE_SLOPE1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Prelaunch calibration curve slope 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_PRELAUNCH_CURVE_INTERCEPT1" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Prelaunch calibration curve intercept 1 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_PRELAUNCH_CURVE_SLOPE2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^7" units="%reflectance /cnt" description="Visible Prelaunch calibration curve slope 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_PRELAUNCH_CURVE_INTERCEPT2" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" scaling-factor="10^6" units="%reflectance" description="Visible Prelaunch calibration curve intercept 2 (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH123A_PRELAUNCH_CURVE_INTERCEPTION" length="3" labels="channel1,channel2,channel3a">
+            <field type="integer4" units="cnt" description="Visible Prelaunch calibration intersection (ch. 1,2,3a)"/>
+        </array>
+        <array name="CH3B45_SECOND_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^9" units="mW/(m2 sr cm-1)/cnt2" description="IR Operational Calibration Second Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CH3B45_FIRST_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^6" units="mW/(m2 sr cm-1)/cnt" description="IR Operational Calibration First Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CH3B45_ZEROTH_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^6" units="mW/(m2 sr cm-1)" description="IR Operational Calibration Zeroth Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CH3B45_TEST_SECOND_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^9" units="mW/(m2 sr cm-1)/cnt2" description="IR Test Calibration Second Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CH3B45_TEST_FIRST_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^6" units="mW/(m2 sr cm-1)/cnt" description="IR Test Calibration First Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CH3B45_TEST_ZEROTH_TERM" length="3" labels="channel3b,channel4,channel5">
+            <field type="integer4" scaling-factor="10^6" units="mW/(m2 sr cm-1)" description="IR Test Calibration Zeroth Order Term (ch. 3b,4,5)"/>
+        </array>
+        <array name="CLOUD_INFORMATION" length="$NE" label="FOV">
+            <field type="bitfield" length="16" description="Cloud Information CCM (Clear/Cloudy/Mixed) Codes">
+                <bit name="Uniformity_test_a" description="0=test failed or clear, 1=cloudy"/>
+                <bit name="Uniformity_test_b" description="0 =test failed or cloudy, 1=clear"/>
+                <bit name="T3_T5_test_a" description="0=test failed or clear, 1=cloudy"/>
+                <bit name="T3_T5_test_b" description="0 =test failed or cloudy, 1=clear"/>
+                <bit name="T4_T3_test_a" description="0=test failed or clear, 1=cloudy"/>
+                <bit name="T4_T3_test_b" description="0 =test failed or cloudy, 1=clear"/>
+                <bit name="T4_T5_test_a" description="0=test failed or clear, 1=cloudy"/>
+                <bit name="T4_T5_test_b" description="0 =test failed or cloudy, 1=clear"/>
+                <bit name="Albedo_test_a" description="0=test failed or clear, 1=cloudy or snow/ice covered"/>
+                <bit name="Albedo_test_b" description="0 =test failed or cloudy, 1=clear or snow/ice covered"/>
+                <bit name="T4_test_a" description="0=test failed or clear, 1=cloudy or snow/ice covered"/>
+                <bit name="T4_test_b" description="0 =test failed or cloudy, 1=clear or snow/ice covered"/>
+                <bit length="4" name="Number_of_the_test_situation" description="11 different test situations"/>
+            </field>
+        </array>
+        <delimiter name="DIGITAL_A_Telemetry"/>
+        <array name="FRAME_SYNCHRONISATION" length="6" label="sync-word">
+            <field type="uinteger2" description="Frame Sync. This field is applicable only to NOAA data. For Metop data the field will be zeroed."/>
+        </array>
+        <field name="FRAME_INDICATOR" type="bitfield" length="32" description="Frame ID. This field is applicable only to NOAA data. For Metop data the all bits will be unset.">
+            <bit length="6" name="Not_Used"/>
+            <bit name="Sync" description="0 = internal sysn, 1 = AVHRR sync"/>
+            <bit length="2" name="Frame" description="DEFAULT TO ZERO (0 = Not an HRPT frame but a GAC frame, 1 = minor frame 1, 2 = minor frame 2, 3  =minor frame 3)"/>
+            <bit length="4" name="Spacecraft_addresses"/>
+            <bit name="Stable" description="0 = frame stable, 1 = frame resync occurred"/>
+            <bit name="Input" description="0 = pseudonoise AVHRR input, 1 = normal AVHRR input"/>
+            <bit name="Channel_Input" description="0 = AVHRR channel 3b, 1 = AVHRR channel 3a"/>
+            <bit length="6" name="Not_used"/>
+            <bit length="10" name="Undefined"/>
+        </field>
+        <field name="TIME_CODE" type="bitfield" length="64" description="Time Code. This field is applicable only to NOAA data. For Metop data the all bits will be unset.">
+            <bit length="6" name="Not_used"/>
+            <bit length="9" name="day" description="Binary day count"/>
+            <bit name="0"/>
+            <bit length="6" name="Not_used"/>
+            <bit name="1"/>
+            <bit name="0"/>
+            <bit name="1"/>
+            <bit length="7" name="millisecond_msp" description="most significant part of the binary millisecond day count"/>
+            <bit length="6" name="Not_used"/>
+            <bit length="10" name="millisecond_p" description="part of binary millisecond of day count"/>
+            <bit length="6" name="Not_used"/>
+            <bit length="10" name="millisecond_lsp" description="least significant part of binary millisecond of day count"/>
+        </field>
+        <array name="RAMP_CALIB" length="5" labels="channel1,channel2,channel3,channel4,channel5">
+            <field type="uinteger2" units="cnt" description="Ramp Calibration (Ch 1-5)"/>
+        </array>
+        <array name="INTERNAL_TARGET_TEMPERATURE_COUNT" length="3" label="reading">
+            <field type="uinteger2" units="cnt" description="Internal Target Temperature Count Reading (1 - 3) - (Three readings from one of the four platinum resistance thermometers (PRT). A different PRT is sampled for each scan; every fifth scan will contain a reference value of 0 in place of each reading.)"/>
+        </array>
+        <delimiter name="Digital_B_telemetry"/>
+        <field name="INSTRUMENT_INVALID_WORD_FLAG" type="bitfield" length="16" description="Invalid Word Bit Flags">
+            <bit name="motor/telemetry"/>
+            <bit name="electronics/telemetry"/>
+            <bit name="channel_1_status"/>
+            <bit name="channel_2_status"/>
+            <bit name="channel_3a_status"/>
+            <bit name="channel_3b_status"/>
+            <bit name="channel_4_status"/>
+            <bit name="channel_5_status"/>
+            <bit name="channel_3a/3b_select_status"/>
+            <bit name="voltage_calibrate_status"/>
+            <bit name="cooler_heat"/>
+            <bit name="scan_motor"/>
+            <bit name="telemetry_lock"/>
+            <bit name="earth_shield"/>
+            <bit name="patch_control"/>
+            <bit name="not_used"/>
+        </field>
+        <field name="DIGITAL_B_DATA" type="bitfield" length="16" description="AVHRR Digital B Data">
+            <bit name="motor_telemetry" description="0=off, 1 =on"/>
+            <bit name="electronics_telemetry" description="0=off, 1 =on"/>
+            <bit name="channel_1_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_2_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_3a_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_3b_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_4_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_5_status" description="0 = disable, 1 = enable"/>
+            <bit name="channel_3a_3b_select_status" description="0 = 3b, 1 = 3a"/>
+            <bit name="voltage_calibrate_status" description="0 = off, 1 = on"/>
+            <bit name="cooler_heat" description="0 = off, 1 = on"/>
+            <bit name="scan_motor" description="0 = low, 1 = high"/>
+            <bit name="telemetry_lock" description="0 = off, 1 = lock"/>
+            <bit name="earth_shield" description="0 = disable, 1 = deploy"/>
+            <bit name="patch_control" description="0 = off, 1 = on"/>
+            <bit name="Not_used"/>
+        </field>
+        <delimiter name="Analog_housekeeping_data"/>
+        <field name="INSTRUMENT_INVALID_ANALOG_WORD_FLAG" type="bitfield" length="32" description="Invalid Word Bit Flags">
+            <bit length="9" name="unused"/>
+            <bit name="reference_voltage" description="word 22"/>
+            <array length="20" name="words21to2">
+                <bit description="words 21 through 2 (in order)"/>
+            </array>
+            <bit name="patch_control" description="0=off, 1=on"/>
+            <bit name="unused"/>
+        </field>
+        <field name="PATCH_TEMPERATURE" type="uinteger2" description="Word 1: Patch Temperature"/>
+        <field name="PATCH_EXTENDED_TEMPERATURE" type="uinteger2" description="Word 2: Patch Temperature Extended"/>
+        <field name="PATCH_POWER" type="uinteger2" description="Word 3: Patch Power"/>
+        <field name="RADIATOR_TEMPERATURE" type="uinteger2" description="Word 4: Radiator Temperature"/>
+        <field name="BLACKBODY_TEMPERATURE1" type="uinteger2" description="Word 5: Black Body Temperature 1"/>
+        <field name="BLACKBODY_TEMPERATURE2" type="uinteger2" description="Word 6: Black Body Temperature 2"/>
+        <field name="BLACKBODY_TEMPERATURE3" type="uinteger2" description="Word 7: Black Body Temperature 3"/>
+        <field name="BLACKBODY_TEMPERATURE4" type="uinteger2" description="Word 8: Black Body Temperature 4"/>
+        <field name="ELECTRONIC_CURRENT" type="uinteger2" description="Word 9: Electronics Current"/>
+        <field name="MOTOR_CURRENT" type="uinteger2" description="Word 10: Motor Current"/>
+        <field name="EARTH_SHIELD_POSITION" type="uinteger2" description="Word 11: Earth Shield Position"/>
+        <field name="ELECTRONIC_TEMPERATURE" type="uinteger2" description="Word 12: Electronics Temperature"/>
+        <field name="COOLER_HOUSING_TEMPERATURE" type="uinteger2" description="Word 13: Cooler Housing Temperature"/>
+        <field name="BASEPLATE_TEMPERATURE" type="uinteger2" description="Word 14: Baseplate Temperature"/>
+        <field name="MOTOR_HOUSING_TEMPERATURE" type="uinteger2" description="Word 15: Motor Housing Temperature"/>
+        <field name="AD_CONVERTER_TEMPERATURE" type="uinteger2" description="Word 16: A/D Converter Temperature"/>
+        <field name="DETECTOR4_VOLTAGE" type="uinteger2" description="Word 17: Detector #4 Bias Voltage"/>
+        <field name="DETECTOR5_VOLTAGE" type="uinteger2" description="Word 18: Detector #5 Bias Voltage"/>
+        <field name="CH3_BLACKBODY_VIEW" type="uinteger2" description="Word 19: Channel 3b Blackbody View"/>
+        <field name="CH4_BLACKBODY_VIEW" type="uinteger2" description="Word 20: Channel 4 Blackbody View"/>
+        <field name="CH5_BLACKBODY_VIEW" type="uinteger2" description="Word 21: Channel 5 Blackbody View"/>
+        <field name="REFERENCE_VOLTAGE" type="uinteger2" description="Word 22: Reference Voltage"/>
+    </mdr>
+
+
+
+</product>
+
+
+</format>
