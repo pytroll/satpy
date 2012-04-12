@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2012.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -264,7 +259,7 @@ class CloudType(NwcSafPpsChannel):
 
     def __init__(self):
         NwcSafPpsChannel.__init__(self)
-        self.name = "CloudType"
+        self.name = "CT"
 
 class CloudTopTemperatureHeight(NwcSafPpsChannel):
 
