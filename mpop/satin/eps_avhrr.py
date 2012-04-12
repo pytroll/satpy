@@ -708,8 +708,9 @@ def read(fdes):
                               [np.arange(geo_samples - 2) * 2 + 1]
             lons[cnt, 0] = res["EARTH_LOCATION_FIRST"][1]
             lons[cnt, -1] = res["EARTH_LOCATION_LAST"][1]
+            # unwraping datum shift line
+            lons[cnt, :] = np.rad2deg(np.unwrap(np.deg2rad(lons[cnt, :])))
 
-            # FIXME: this is wrong around tricky places (e.g. poles)
             xnew = np.arange(scanlength)
             tck = interpolate.splrep(samples, lats[cnt, :], s=0)
             llats[cnt, :] = interpolate.splev(xnew, tck, der=0)
@@ -721,6 +722,9 @@ def read(fdes):
     channels = channels[:, :cnt, :]
     llats = llats[:cnt, :]
     llons = llons[:cnt, :]
+    llons[llons>180] -= 360
+    llons[llons<-180] += 360
+
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
 
@@ -840,4 +844,3 @@ LOAD_CASES = {
 
 if __name__ == "__main__":
     pass
-
