@@ -356,7 +356,7 @@ def load(scene):
 
     lons, lats = reader.get_full_lonlats()
     try:
-        scene.area = geometry.SwathDefinition((lons, lats))
+        scene.area = geometry.SwathDefinition(lons, lats)
     except NameError:
         scene.lons, scene.lats = lons, lats
 
