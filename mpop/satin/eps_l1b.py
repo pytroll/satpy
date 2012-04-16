@@ -267,7 +267,7 @@ def get_lonlat(scene, row, col):
                     if record[0] == "mdr"]
             sphrs = [record for record in records
                      if record[0] == "sphr"]
-            sphr = sphrs[0]
+            sphr = sphrs[0][1]
             scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
     except AttributeError:
         records, form = read_raw(filename)
@@ -276,7 +276,7 @@ def get_lonlat(scene, row, col):
                 if record[0] == "mdr"]
         sphrs = [record for record in records
                  if record[0] == "sphr"]
-        sphr = sphrs[0]
+        sphr = sphrs[0][1]
         scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
     return scene.lons[row, col], scene.lats[row, col]
 
@@ -285,7 +285,9 @@ def _get_lonlats(mdrs, sphr, form):
     """Get sparse arrays of lon/lats.
     """
 
-    scanlines = mdrs.shape[0]
+    
+    scanlines = len(mdrs)
+    mdrs = np.concatenate(mdrs)
 
     lats = np.hstack((mdrs["EARTH_LOCATION_FIRST"][:, [0]]
                       * form.scales[("mdr", 2)]["EARTH_LOCATION_FIRST"][:, 0],
