@@ -347,14 +347,18 @@ def get_corners(filename):
     
     
 
-def load(scene):
+def load(scene, *args, **kwargs):
     """Loads the *channels* into the satellite *scene*.
     """
 
-    filename = get_filename(scene)
+    filename = (kwargs.get("filename", None) or
+                get_filename(scene, "level2"))
+    LOG.debug("Using file " + filename)
     reader = EpsAvhrrL1bReader(filename)
     for chname, arr in reader.get_channels(scene.channels_to_load).items():
         scene[chname] = arr
+
+    scene.orbit = str(int(reader["ORBIT_START"]))
 
     lons, lats = reader.get_full_lonlats()
     try:
