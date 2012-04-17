@@ -100,13 +100,13 @@ def read_raw(filename):
     return records, form
 
 
-def get_filename(satscene):
+def get_filename(satscene, level):
     """Get the filename.
     """
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
-    for option, value in conf.items(satscene.instrument_name + "-granules",
+    for option, value in conf.items(satscene.instrument_name + "-" + level,
                                     raw = True):
         options[option] = value
     values = {"INSTRUMENT": satscene.instrument_name[:4].upper(),
@@ -217,7 +217,7 @@ class EpsAvhrrL1bReader(object):
         chans = {}
         for chan in channels:
             if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-                raise NameError("Invalid channel name: " + str(chan))
+                LOG.info("Can't load channel in eps_l1b: " + str(chan))
             
             if chan == "1":
                 chans[chan] = np.ma.array(
@@ -258,7 +258,7 @@ class EpsAvhrrL1bReader(object):
 def get_lonlat(scene, row, col):
     """Get the longitutes and latitudes for the give *rows* and *cols*.
     """
-    filename = get_filename(scene)
+    filename = get_filename(scene, "granules")
     try:
         if scene.lons is None or scene.lats is None:
             records, form = read_raw(filename)
