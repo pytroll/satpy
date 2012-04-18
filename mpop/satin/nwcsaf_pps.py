@@ -136,6 +136,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         # Project the data
         for var in self._projectables:
+            LOG.info("Projecting " + str(var))
             res.__dict__[var] = copy.copy(self.__dict__[var])
             res.__dict__[var].data = coverage.project_array(
                 self.__dict__[var].data)
@@ -331,15 +332,15 @@ def load(scene, **kwargs):
     
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
-            raise IOError("More than 1 file matching for " + product + "!")
+            LOG.warning("More than 1 file matching for " + product + "!")
         elif len(file_list) == 0:
-            raise IOError("No " + product + " matching!: " + filename_tmpl)
+            LOG.warning("No " + product + " matching!: " + filename_tmpl)
+        else:
+            filename = file_list[0]
 
-        filename = file_list[0]
-
-        chn = classes[product]()
-        chn.read(filename)
-        scene.channels.append(chn)
+            chn = classes[product]()
+            chn.read(filename)
+            scene.channels.append(chn)
 
             
     LOG.info("Loading PPS parameters done.")
