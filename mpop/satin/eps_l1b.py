@@ -258,7 +258,11 @@ class EpsAvhrrL1bReader(object):
 def get_lonlat(scene, row, col):
     """Get the longitutes and latitudes for the give *rows* and *cols*.
     """
-    filename = get_filename(scene, "granules")
+    try:
+        filename = get_filename(scene, "granules")
+    except IOError:
+        from mpop.satin.eps1a import get_lonlat_avhrr
+        return get_lonlat_avhrr(scene, row, col)
     try:
         if scene.lons is None or scene.lats is None:
             records, form = read_raw(filename)
@@ -269,6 +273,7 @@ def get_lonlat(scene, row, col):
                      if record[0] == "sphr"]
             sphr = sphrs[0][1]
             scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
+        return scene.lons[row, col], scene.lats[row, col]
     except AttributeError:
         records, form = read_raw(filename)
         mdrs = [record[1]
@@ -278,7 +283,7 @@ def get_lonlat(scene, row, col):
                  if record[0] == "sphr"]
         sphr = sphrs[0][1]
         scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
-    return scene.lons[row, col], scene.lats[row, col]
+        return scene.lons[row, col], scene.lats[row, col]
 
 
 def _get_lonlats(mdrs, sphr, form):
