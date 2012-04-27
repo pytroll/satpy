@@ -233,7 +233,7 @@ def load_generic(satscene, filename, resolution):
         LOG.warning("Cannot load geolocation at this resolution (yet).")
         return
     
-    lat, lon = get_lat_lon(satscene, None)
+    lat, lon = get_lat_lon(satscene, resolution, filename)
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
@@ -279,7 +279,7 @@ def load_generic(satscene, filename, resolution):
 
 
     
-def get_lat_lon(satscene, resolution):
+def get_lat_lon(satscene, resolution, filename):
     """Read lat and lon.
     """
     del resolution
@@ -290,7 +290,9 @@ def get_lat_lon(satscene, resolution):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
-        
+
+    options["filename"] = filename
+    options["resolution"] = resolution
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
 def get_lat_lon_modis(satscene, options):
@@ -303,12 +305,18 @@ def get_lat_lon_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No geolocation file matching " + filename_tmpl
-                      + " in " + options["dir"])
+        LOG.warning("No geolocation file matching " + filename_tmpl
+                    + " in " + options["dir"])
+        LOG.debug("Using 5km geolocation and interpolating")
+        filename = options["filename"]
+        coarse_resolution = 5000
+    else:
+        filename = file_list[0]
+        coarse_resolution = 1000
 
-    filename = file_list[0]
+    resolution = options["resolution"]
     LOG.debug("Geolocation file = " + filename)
-
+    
     data = SD(filename)
     lat = data.select("Latitude")
     fill_value = lat.attributes()["_FillValue"]
@@ -317,6 +325,17 @@ def get_lat_lon_modis(satscene, options):
     fill_value = lon.attributes()["_FillValue"]
     lon = np.ma.masked_equal(lon.get(), fill_value)
 
+    if resolution == coarse_resolution:
+        return lat, lon
+
+    from geo_interpolator import modis5kmto1km, modis1kmto500m, modis1kmto250m
+    if coarse_resolution == 5000:
+        lon, lat = modis5kmto1km(lon, lat)
+    if resolution == 500:
+        lon, lat = modis1kmto500m(lon, lat)
+    if resolution == 250:
+        lon, lat = modis1kmto250m(lon, lat)
+    
     return lat, lon
 
 def get_lonlat(satscene, row, col):
@@ -333,12 +352,14 @@ def get_lonlat(satscene, row, col):
     file_list = glob.glob(os.path.join(path, filename_tmpl))
 
     if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!")
+        raise IOError("More than 1 geolocation file matching!" + filename_tmpl)
     elif len(file_list) == 0:
-        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
-
-    filename = file_list[0]
-    print "Geolocation file = ",filename
+        LOG.info("No MODIS geolocation file matching: " + filename_tmpl
+                 + ", estimating")
+        filename = ""
+    else:
+        filename = file_list[0]
+        LOG.debug("Geolocation file = " + filename)
 
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):
