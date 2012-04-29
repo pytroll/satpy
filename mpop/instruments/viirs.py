@@ -229,7 +229,7 @@ class ViirsCompositer(VisirCompositer):
     def red_snow(self):
         """Make a Red Snow RGB image composite.
         """
-        self.check_channels('M0', 'M10', 'M15')
+        self.check_channels('M05', 'M10', 'M15')
     
         ch1 = self['M05'].check_range()
         ch2 = self['M10'].check_range()
