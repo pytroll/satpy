@@ -273,8 +273,9 @@ class GeoImage(mpop.imageo.image.Image):
 
 
     def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
-        """Add coastline and political borders to image, using *color*.
-        Loses the masks !
+        """Add coastline and political borders to image, using *color* (tuple
+        of integers between 0 and 255).
+        Warning: Loses the masks !
         
         *resolution* is chosen automatically if None (default), otherwise it should be one of:
         +-----+-------------------------+---------+
