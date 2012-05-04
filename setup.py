@@ -38,7 +38,7 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 NAME = 'mpop'
 
 setup(name=NAME,
-      version="v0.11.0",
+      version="v0.11.3",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
