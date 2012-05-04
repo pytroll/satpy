@@ -180,7 +180,7 @@ class EpsAvhrrL1bReader(object):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
-            from geo_interpolator import metop20kmto1km
+            from geotiepoints import metop20kmto1km
             self.lons, self.lats = metop20kmto1km(lons, lats)
         else:
             raise NotImplementedError("Lon/lat expansion not implemented for " +
