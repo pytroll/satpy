@@ -333,7 +333,7 @@ def get_lat_lon_modis(satscene, options):
     if resolution == coarse_resolution:
         return lat, lon
 
-    from geo_interpolator import modis5kmto1km, modis1kmto500m, modis1kmto250m
+    from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
     if coarse_resolution == 5000:
         lon, lat = modis5kmto1km(lon, lat)
     if resolution == 500:
