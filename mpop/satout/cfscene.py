@@ -78,6 +78,8 @@ class CFScene(object):
 
         resolutions = []
         for chn in scene:
+            str_res = str(int(chn.resolution)) + "m"
+
             #print "CHN: ",chn
             if not chn.is_loaded():
                 continue
@@ -85,6 +87,13 @@ class CFScene(object):
             #print type(chn)
             if not isinstance(chn, Channel):
                 setattr(self, chn.name, chn)
+                try:
+                    _info = getattr(self, "band" + str_res).info
+                    for key in ("grid_mapping", "coordinates"):
+                        if _info.has_key(key):
+                            chn.info[key] = _info[key]
+                except AttributeError:
+                    self._set_geogrid(chn)
                 #print "INFO: ", chn.info
                 continue
 
@@ -113,8 +122,6 @@ class CFScene(object):
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value         
             data = np.expand_dims(data, band_axis)
-
-            str_res = str(int(chn.resolution)) + "m"
 
             if chn.resolution in resolutions:
                 # resolution has been used before
@@ -238,76 +245,88 @@ class CFScene(object):
                 setattr(self, "nominal_wavelength" + str_res, nomwl)
 
                 # grid mapping or lon lats
-                
-                try:
-                    area = InfoObject()
-                    area.data = 0
-                    area.info = {"var_name": chn.area.area_id,
-                                 "var_data": area.data,
-                                 "var_dim_names": ()}
-                    area.info.update(proj2cf(chn.area.proj_dict))
-                    setattr(self, area.info["var_name"], area)
-
-                    x__ = InfoObject()
-                    x__.data = chn.area.projection_x_coords[0, :]
-                    x__.info = {"var_name": "x"+str_res,
-                                "var_data": x__.data,
-                                "var_dim_names": ("x"+str_res,),
-                                "units": "m",
-                                "standard_name": "projection_x_coordinate",
-                                "long_name": "x coordinate of projection"}
-                    setattr(self, x__.info["var_name"], x__)
-
-                    y__ = InfoObject()
-                    y__.data = chn.area.projection_y_coords[:, 0]
-                    y__.info = {"var_name": "y"+str_res,
-                                "var_data": y__.data,
-                                "var_dim_names": ("y"+str_res,),
-                                "units": "m",
-                                "standard_name": "projection_y_coordinate",
-                                "long_name": "y coordinate of projection"}
-                    setattr(self, y__.info["var_name"], y__)
-                    
-                    band.info["grid_mapping"] = area.info["var_name"]
-                except AttributeError:
-                    lons = InfoObject()
-                    try:
-                        lons.data = chn.area.lons[:]
-                    except AttributeError:
-                        pass
-
-                    lons.info = {"var_name": "lon"+str_res,
-                                 "var_data": lons.data,
-                                 "var_dim_names": ("y"+str_res,
-                                                   "x"+str_res),
-                                 "units": "degrees east",
-                                 "long_name": "longitude coordinate",
-                                 "standard_name": "longitude"}
-                    if lons.data is not None:
-                        setattr(self, lons.info["var_name"], lons)
-
-                    lats = InfoObject()
-                    try:
-                        lats.data = chn.area.lats[:]
-                    except AttributeError:
-                        pass
-                    
-                    lats.info = {"var_name": "lat"+str_res,
-                                 "var_data": lats.data,
-                                 "var_dim_names": ("y"+str_res,
-                                                   "x"+str_res),
-                                 "units": "degrees north",
-                                 "long_name": "latitude coordinate",
-                                 "standard_name": "latitude"}
-                    if lats.data is not None:
-                        setattr(self, lats.info["var_name"], lats)
-                    
-                    if lats.data is not None and lons.data is not None:
-                        band.info["coordinates"] = (lats.info["var_name"]+" "+
-                                                    lons.info["var_name"])
+                area_id = self._set_geogrid(chn, band)
 
                 setattr(self, "band" + str_res, band)
+
+    def _set_geogrid(self, chn, band=None):
+        str_res = str(int(chn.resolution)) + "m"
+
+        try:
+            area = InfoObject()
+            area.data = 0
+            area.info = {"var_name": chn.area.area_id,
+                         "var_data": area.data,
+                         "var_dim_names": ()}
+            area.info.update(proj2cf(chn.area.proj_dict))
+            setattr(self, area.info["var_name"], area)
+
+            x__ = InfoObject()
+            x__.data = chn.area.projection_x_coords[0, :]
+            x__.info = {"var_name": "x"+str_res,
+                        "var_data": x__.data,
+                        "var_dim_names": ("x"+str_res,),
+                        "units": "m",
+                        "standard_name": "projection_x_coordinate",
+                        "long_name": "x coordinate of projection"}
+            setattr(self, x__.info["var_name"], x__)
+        
+            y__ = InfoObject()
+            y__.data = chn.area.projection_y_coords[:, 0]
+            y__.info = {"var_name": "y"+str_res,
+                        "var_data": y__.data,
+                        "var_dim_names": ("y"+str_res,),
+                        "units": "m",
+                        "standard_name": "projection_y_coordinate",
+                        "long_name": "y coordinate of projection"}
+            setattr(self, y__.info["var_name"], y__)
+            
+            if band:
+                band.info["grid_mapping"] = area.info["var_name"]
+            else:
+                chn.info["grid_mapping"] = area.info["var_name"]
                 
+        except AttributeError:
+            lons = InfoObject()
+            try:
+                lons.data = chn.area.lons[:]
+            except AttributeError:
+                pass
+
+            lons.info = {"var_name": "lon"+str_res,
+                         "var_data": lons.data,
+                         "var_dim_names": ("y"+str_res,
+                                           "x"+str_res),
+                         "units": "degrees east",
+                         "long_name": "longitude coordinate",
+                         "standard_name": "longitude"}
+            if lons.data is not None:
+                setattr(self, lons.info["var_name"], lons)
+                
+            lats = InfoObject()
+            try:
+                lats.data = chn.area.lats[:]
+            except AttributeError:
+                pass
+                
+            lats.info = {"var_name": "lat"+str_res,
+                         "var_data": lats.data,
+                         "var_dim_names": ("y"+str_res,
+                                           "x"+str_res),
+                         "units": "degrees north",
+                         "long_name": "latitude coordinate",
+                         "standard_name": "latitude"}
+            if lats.data is not None:
+                setattr(self, lats.info["var_name"], lats)
+                    
+            if lats.data is not None and lons.data is not None:
+                if band:
+                    band.info["coordinates"] = (lats.info["var_name"]+" "+
+                                                lons.info["var_name"])
+                else:
+                    chn.info["coordinates"] = (lats.info["var_name"]+" "+
+                                               lons.info["var_name"])
+
 def proj2cf(proj_dict):
     """Return the cf grid mapping from a proj dict.
 
@@ -321,7 +340,8 @@ def proj2cf(proj_dict):
     cases = {"geos": geos2cf,
              "stere": stere2cf,
              "merc": merc2cf,
-             "aea": aea2cf}
+             "aea": aea2cf,
+             "laea": laea2cf}
 
     return cases[proj_dict["proj"]](proj_dict)
 
@@ -388,6 +408,31 @@ def aea2cf(proj_dict):
                       standard_parallel=["lat_1", "lat_2"],
                       latitude_of_projection_origin="lat_0",
                       longitude_of_central_meridian="lon_0",
+                      false_easting="x_0",
+                      false_northing="y_0")
+
+    return retv
+
+def laea2cf(proj_dict):
+    """Return the cf grid mapping from a Lambert azimuthal equal-area proj dict.
+    http://trac.osgeo.org/gdal/wiki/NetCDF_ProjectionTestingStatus
+    """
+    x_0 = eval(proj_dict.get('x_0', '0.0'))
+    y_0 = eval(proj_dict.get('y_0', '0.0'))
+
+    #print x_0, y_0
+
+    retv = {"grid_mapping_name": "lambert_azimuthal_equal_area",
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
+            "latitude_of_projection_origin": eval(proj_dict["lat_0"]),
+            "false_easting": x_0,
+            "false_northing": y_0
+            }
+
+    retv = build_dict("lambert_azimuthal_equal_area",
+                      proj_dict,
+                      longitude_of_projection_origin="lon_0",
+                      latitude_of_projection_origin="lat_0",
                       false_easting="x_0",
                       false_northing="y_0")
 
