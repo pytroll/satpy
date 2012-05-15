@@ -251,8 +251,12 @@ class GeoImage(mpop.imageo.image.Image):
                                    area.area_extent[3], 0, -area.pixel_size_y]
                 dst_ds.SetGeoTransform(adfgeotransform)
                 srs = osr.SpatialReference()
-                srs.SetProjCS(area.proj_id)            
                 srs.ImportFromProj4(area.proj4_string)
+                srs.SetProjCS(area.proj_id)
+                try:
+                    srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
+                except KeyError:
+                    pass
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
@@ -269,8 +273,9 @@ class GeoImage(mpop.imageo.image.Image):
 
 
     def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
-        """Add coastline and political borders to image, using *color*.
-        Loses the masks !
+        """Add coastline and political borders to image, using *color* (tuple
+        of integers between 0 and 255).
+        Warning: Loses the masks !
         
         *resolution* is chosen automatically if None (default), otherwise it should be one of:
         +-----+-------------------------+---------+

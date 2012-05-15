@@ -2,11 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2010, 2012.
 
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
-
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -68,7 +63,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         self.shape = None
         if filename:
             self.read(filename)
-        
+            
     
     def read(self, filename):
         """Read product in hdf format from *filename*
@@ -79,14 +74,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         self._md = dict(h5f.attrs)
         self._md["satellite"] = h5f.attrs['satellite_id']
-        LOG.debug(h5f.attrs['sec_1970'])
-        try:
-            self._md["time_slot"] = (timedelta(seconds=h5f.attrs['sec_1970']) +
-                                     datetime(1970, 1, 1, 0, 0)),
-        except TypeError:
-            # This only matters for CPP. Is it a bug ?
-            self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970'][0])) +
-                                     datetime(1970, 1, 1, 0, 0)),
+        self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970']))
+                                 + datetime(1970, 1, 1, 0, 0))
 
         # Read the data and attributes
         #   This covers only one level of data. This could be made recursive.
@@ -147,6 +136,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         # Project the data
         for var in self._projectables:
+            LOG.info("Projecting " + str(var))
             res.__dict__[var] = copy.copy(self.__dict__[var])
             res.__dict__[var].data = coverage.project_array(
                 self.__dict__[var].data)
@@ -337,21 +327,20 @@ def load(scene, **kwargs):
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
                          %{"orbit": scene.orbit or "*",
                            "area": area_name,
-                           "satellite": scene.fullname,
+                           "satellite": scene.satname + scene.number,
                            "product": product})
     
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
-            raise IOError("More than 1 file matching for " + product + "!")
+            LOG.warning("More than 1 file matching for " + product + "!")
         elif len(file_list) == 0:
-            raise IOError("No " + product + " matching!: " + filename_tmpl)
+            LOG.warning("No " + product + " matching!: " + filename_tmpl)
+        else:
+            filename = file_list[0]
 
-        filename = file_list[0]
-
-        chn = classes[product]()
-        chn.read(filename)
-        chn.area = scene.area
-        scene.channels.append(chn)
+            chn = classes[product]()
+            chn.read(filename)
+            scene.channels.append(chn)
 
             
     LOG.info("Loading PPS parameters done.")

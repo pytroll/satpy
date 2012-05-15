@@ -84,7 +84,7 @@ def calibrate_refl(subdata, uncertainty, indices):
     array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
     return array
 
-def calibrate_tb(subdata, uncertainty, indices):
+def calibrate_tb(subdata, uncertainty, indices, band_names):
     """Calibration for the emissive channels.
     """
     del uncertainty
@@ -148,10 +148,16 @@ def calibrate_tb(subdata, uncertainty, indices):
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
     cwn = 1 / (cwn * 100)
 
+    # Some versions of the modis files do not contain all the bands.
+    emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36"]
+    current_channels = [i for i, band in enumerate(emmissive_channels)
+                        if band in band_names]
+    global_indices = list(np.array(current_channels)[indices])
+
     dims = (len(indices), 1, 1)
-    cwn = cwn[indices].reshape(dims)
-    tcs = tcs[indices].reshape(dims)
-    tci = tci[indices].reshape(dims)
+    cwn = cwn[global_indices].reshape(dims)
+    tcs = tcs[global_indices].reshape(dims)
+    tci = tci[global_indices].reshape(dims)
     
     tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
     tmp = c_2 / (cwn * np.ma.log(c_1 / (1000000 * tmp * cwn ** 5) + 1))
@@ -213,7 +219,7 @@ def load_generic(satscene, filename, resolution):
                        if band in satscene.channels_to_load]
             uncertainty = data.select(dataset+"_Uncert_Indexes")
             if dataset.endswith('Emissive'):
-                array = calibrate_tb(subdata, uncertainty, indices)
+                array = calibrate_tb(subdata, uncertainty, indices, band_names)
             else:
                 array = calibrate_refl(subdata, uncertainty, indices)
             for (i, idx) in enumerate(indices):
@@ -233,7 +239,7 @@ def load_generic(satscene, filename, resolution):
         LOG.warning("Cannot load geolocation at this resolution (yet).")
         return
     
-    lat, lon = get_lat_lon(satscene, None)
+    lat, lon = get_lat_lon(satscene, resolution, filename)
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
@@ -279,10 +285,9 @@ def load_generic(satscene, filename, resolution):
 
 
     
-def get_lat_lon(satscene, resolution):
+def get_lat_lon(satscene, resolution, filename):
     """Read lat and lon.
     """
-    del resolution
     
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
@@ -290,7 +295,9 @@ def get_lat_lon(satscene, resolution):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
-        
+
+    options["filename"] = filename
+    options["resolution"] = resolution
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
 def get_lat_lon_modis(satscene, options):
@@ -303,12 +310,18 @@ def get_lat_lon_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        raise IOError("No geolocation file matching " + filename_tmpl
-                      + " in " + options["dir"])
+        LOG.warning("No geolocation file matching " + filename_tmpl
+                    + " in " + options["dir"])
+        LOG.debug("Using 5km geolocation and interpolating")
+        filename = options["filename"]
+        coarse_resolution = 5000
+    else:
+        filename = file_list[0]
+        coarse_resolution = 1000
 
-    filename = file_list[0]
+    resolution = options["resolution"]
     LOG.debug("Geolocation file = " + filename)
-
+    
     data = SD(filename)
     lat = data.select("Latitude")
     fill_value = lat.attributes()["_FillValue"]
@@ -317,6 +330,17 @@ def get_lat_lon_modis(satscene, options):
     fill_value = lon.attributes()["_FillValue"]
     lon = np.ma.masked_equal(lon.get(), fill_value)
 
+    if resolution == coarse_resolution:
+        return lat, lon
+
+    from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
+    if coarse_resolution == 5000:
+        lon, lat = modis5kmto1km(lon, lat)
+    if resolution == 500:
+        lon, lat = modis1kmto500m(lon, lat)
+    if resolution == 250:
+        lon, lat = modis1kmto250m(lon, lat)
+    
     return lat, lon
 
 def get_lonlat(satscene, row, col):
@@ -333,12 +357,14 @@ def get_lonlat(satscene, row, col):
     file_list = glob.glob(os.path.join(path, filename_tmpl))
 
     if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!")
+        raise IOError("More than 1 geolocation file matching!" + filename_tmpl)
     elif len(file_list) == 0:
-        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
-
-    filename = file_list[0]
-    print "Geolocation file = ",filename
+        LOG.info("No MODIS geolocation file matching: " + filename_tmpl
+                 + ", estimating")
+        filename = ""
+    else:
+        filename = file_list[0]
+        LOG.debug("Geolocation file = " + filename)
 
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -147,8 +147,8 @@ class Granule(SatelliteInstrumentScene):
                                                  "filename", raw=True))
                     file_glob = globify(file_template)
 
-                    if((the_directory == directory) and
-                        fnmatch(the_name, file_glob)):
+                    if(os.path.samefile(the_directory, directory) and
+                       fnmatch(the_name, file_glob)):
                         try:
                             self.file_template = file_template
                             self.file_name = the_name
@@ -348,7 +348,7 @@ class SegmentedSwath(Satellite):
             #concatenate loaded granules.
             scenes = [GenericFactory.create_scene(granule.satname,
                                                   granule.number,
-                                                  granule.instument_name,
+                                                  granule.instrument_name,
                                                   granule.time_slot,
                                                   None,
                                                   None,

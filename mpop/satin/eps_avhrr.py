@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -708,8 +708,9 @@ def read(fdes):
                               [np.arange(geo_samples - 2) * 2 + 1]
             lons[cnt, 0] = res["EARTH_LOCATION_FIRST"][1]
             lons[cnt, -1] = res["EARTH_LOCATION_LAST"][1]
+            # unwraping datum shift line
+            lons[cnt, :] = np.rad2deg(np.unwrap(np.deg2rad(lons[cnt, :])))
 
-            # FIXME: this is wrong around tricky places (e.g. poles)
             xnew = np.arange(scanlength)
             tck = interpolate.splrep(samples, lats[cnt, :], s=0)
             llats[cnt, :] = interpolate.splev(xnew, tck, der=0)
@@ -721,6 +722,9 @@ def read(fdes):
     channels = channels[:, :cnt, :]
     llats = llats[:cnt, :]
     llons = llons[:cnt, :]
+    llons[llons>180] -= 360
+    llons[llons<-180] += 360
+
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
 
@@ -800,11 +804,16 @@ def load_avhrr(satscene, options):
 
 def get_lonlat(satscene, row, col):
     try:
-        if satscene.lat is None or satscene.lon is None:
+        if (satscene.area is None and
+            (satscene.lat is None or satscene.lon is None)):
             load(satscene)
     except AttributeError:
         load(satscene)
-    return satscene.lon[row, col], satscene.lat[row, col]
+    try:
+        return satscene.area.lons[row, col], satscene.area.lats[row, col]
+    except AttributeError:
+        return satscene.lon[row, col], satscene.lat[row, col]
+
 
 def get_lat_lon(satscene, resolution):
     """Read lat and lon.
@@ -835,4 +844,3 @@ LOAD_CASES = {
 
 if __name__ == "__main__":
     pass
-
