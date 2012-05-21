@@ -51,11 +51,12 @@ class WriterDimensionError(Exception):
 
 
 def attribute_dispenser( info ):
-    """ returns valid attribute key value pairs"""
-    for k, v in info.iteritems():
+    """ returns valid attribute key value pairs
+    (for cosmetic reasons, sorted is better than random)"""
+    for k, v in sorted(info.iteritems()):
         if k.startswith('var_'):
             continue
-        yield (k,v)
+        yield (k, v)
 
 
 def variable_dispenser( root_object, object_list ):
@@ -200,7 +201,6 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             # in the case of arrays containing strings:
             if str(vtype) == "object":
                 vtype = str
-
             nc_vars.append(rootgrp.createVariable(name, vtype, dim_name, zlib=compression))
 
         # insert attributes, search through info objects and create global
@@ -219,7 +219,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         # insert data 
 
-        for vname, vdata in zip(nc_vars, var_data):
+        for name, vname, vdata in zip(var_names, nc_vars, var_data):
             vname[:] = vdata
     finally:
         rootgrp.close()
