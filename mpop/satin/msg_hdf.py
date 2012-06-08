@@ -1125,7 +1125,8 @@ def load(scene, **kwargs):
 
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
-    directory = conf.get(scene.instrument_name+"-level3", "dir",
+    directory = conf.get(scene.instrument_name+"-level3",
+                         "dir",
                          raw=True)
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
