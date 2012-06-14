@@ -1110,9 +1110,9 @@ def get_best_product(filename, area_extent):
                 aex = get_area_extent(fname)
                 if np.all(np.max(np.abs(np.array(aex) -
                                         np.array(area_extent))) < 1000):
-                    LOG.info("MSG CT file found: %s"%fname)
+                    LOG.info("MSG file found: %s"%fname)
                     return fname
-
+            LOG.info("Did not find any MSG file for specified area")
 
     
 def load(scene, **kwargs):
