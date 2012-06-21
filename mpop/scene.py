@@ -411,7 +411,9 @@ class SatelliteInstrumentScene(SatelliteScene):
                     # Look for builtin reader
                     reader_module = __import__(reader, globals(),
                                                locals(), ['load'])
-                except ImportError:
+                except ImportError, e:
+                    LOG.warning("Cannot import builtin plugin "+reader+": " + str(e))
+                    
                     # Look for custom reader
                     reader_module = __import__(reader_name, globals(),
                                                locals(), ['load'])
