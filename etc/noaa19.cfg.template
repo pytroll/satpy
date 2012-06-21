@@ -10,9 +10,11 @@ dir = /local_disk/data/satellite/polar/%(satellite)s_%Y%m%d_%H%M_%(orbit)s
 format = aapp1b
 
 [avhrr-level3]
-filename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s.%(area)s.%(product)s.hdf
+filename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_%(area)s_%(product)s.h5
+geofilename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_%(area)s_avhrr.h5
 dir = /local_disk/data/satellite/polar/products
-format = pps_hdf
+geodir = /local_disk/data/satellite/polar/products
+format = nwcsaf_pps
 
 [avhrr-1]
 frequency = (0.58, 0.63, 0.68)
