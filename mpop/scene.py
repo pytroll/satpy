@@ -427,7 +427,8 @@ class SatelliteInstrumentScene(SatelliteScene):
 
                 reader_module.load(self, **kwargs)
             except ImportError, e:
-                LOG.exception("ImportError while loading "+reader+": " + str(e))
+                LOG.exception("ImportError while loading "+reader_name+": "
+                              + str(e))
                 continue
             loaded_channels = set([chn.name for chn in self.loaded_channels()])
             just_loaded = loaded_channels & self.channels_to_load
