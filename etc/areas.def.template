@@ -133,6 +133,15 @@ REGION: mesanX {
 	AREA_EXTENT:	(1067435.7598983962, -1278764.8903419089, 3791765.9965939857, 1690140.6680267097)
 };
 
+REGION: mesanE {
+	NAME:		Europe Mesan rotated lon/lat 1.8km
+	PCS_ID:		mesan
+	PCS_DEF:        proj=ob_tran,o_proj=eqc,o_lat_p=30,o_lon_p=10,lon_0=-10,a=6371000.0
+	XSIZE:	        5093
+	YSIZE:		6294
+	AREA_EXTENT:	(289083.00056196708, -2957836.6467769896, 5381881.121371055, 3335826.6850212598)
+};
+
 REGION: baws {
 	NAME:           BAWS
 	PCS_ID:         baws
