@@ -33,6 +33,10 @@ from netCDF4 import date2num
 
 from mpop.channel import Channel
 
+import logging
+LOG = logging.getLogger('cfscene')
+
+
 #CF_DATA_TYPE = np.int16
 CF_FLOAT_TYPE = np.float64
 TIME_UNITS = "seconds since 1970-01-01 00:00:00"
@@ -245,7 +249,7 @@ class CFScene(object):
                 setattr(self, "nominal_wavelength" + str_res, nomwl)
 
                 # grid mapping or lon lats
-                area_id = self._set_geogrid(chn, band)
+                self._set_geogrid(chn, band)
 
                 setattr(self, "band" + str_res, band)
 
@@ -341,7 +345,8 @@ def proj2cf(proj_dict):
              "stere": stere2cf,
              "merc": merc2cf,
              "aea": aea2cf,
-             "laea": laea2cf}
+             "laea": laea2cf,
+             "ob_tran": obtran2cf,}
 
     return cases[proj_dict["proj"]](proj_dict)
 
@@ -437,6 +442,40 @@ def laea2cf(proj_dict):
                       false_northing="y_0")
 
     return retv
+
+
+def obtran2cf(proj_dict):
+    """Return a grid mapping from a rotated pole grid (General Oblique
+    Transformation projection) proj dict.
+    
+    Please be aware this is not yet supported by CF!
+    """
+    LOG.warning("The General Oblique Transformation " + 
+                "projection is not CF compatible yet...")
+    x_0 = eval(proj_dict.get('x_0', '0.0'))
+    y_0 = eval(proj_dict.get('y_0', '0.0'))
+
+    #print x_0, y_0
+
+    retv = {"grid_mapping_name": "general_oblique_transformation",
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
+            "grid_north_pole_latitude": eval(proj_dict["o_lat_p"]),
+            "grid_north_pole_longitude": eval(proj_dict["o_lon_p"]),
+            "false_easting": x_0,
+            "false_northing": y_0
+            }
+
+    retv = build_dict("general_oblique_transformation",
+                      proj_dict,
+                      longitude_of_projection_origin="lon_0",
+                      grid_north_pole_latitude="o_lat_p",
+                      grid_north_pole_longitude="o_lon_p",
+                      false_easting="x_0",
+                      false_northing="y_0")
+
+    return retv
+
+
 
 def build_dict(proj_name, proj_dict, **kwargs):
     new_dict = {}
