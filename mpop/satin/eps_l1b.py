@@ -261,8 +261,43 @@ def get_lonlat(scene, row, col):
     try:
         filename = get_filename(scene, "granules")
     except IOError:
-        from mpop.satin.eps1a import get_lonlat_avhrr
-        return get_lonlat_avhrr(scene, row, col)
+        #from mpop.satin.eps1a import get_lonlat_avhrr
+        #return get_lonlat_avhrr(scene, row, col)
+        from pyorbital.orbital import Orbital
+        import pyproj
+        from datetime import timedelta
+        start_time = scene.time_slot
+        end_time = scene.time_slot + timedelta(minutes=3)
+
+        orbital = Orbital("METOP-A")
+        track_start = orbital.get_lonlatalt(start_time)
+        track_end = orbital.get_lonlatalt(end_time)
+        
+        geod = pyproj.Geod(ellps='WGS84')
+        az_fwd, az_back, dist = geod.inv(track_start[0], track_start[1],
+                                         track_end[0], track_end[1])
+
+        del dist
+        
+        M02_WIDTH = 2821885.8962408099
+
+
+        pos = ((col - 1024) * M02_WIDTH) / 2048.0
+        if row > 520:
+            lonlatdist = geod.fwd(track_end[0], track_end[1],
+                                  az_back - 86.253533216206648,  -pos)
+        else:
+            lonlatdist = geod.fwd(track_start[0], track_start[1],
+                                  az_fwd - 86.253533216206648,  pos) 
+
+        return lonlatdist[0], lonlatdist[1]
+        
+
+
+
+
+
+    
     try:
         if scene.lons is None or scene.lats is None:
             records, form = read_raw(filename)
