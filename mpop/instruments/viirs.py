@@ -270,6 +270,24 @@ class ViirsCompositer(VisirCompositer):
     hr_red_snow.prerequisites = set(['I01', 'I03', 'I05'])
 
 
+    def night_color(self):
+        self.check_channels('M12', 'M15', 'M16')
+
+        ch1 = -self['M12'].data
+        ch2 = -self['M15'].data
+        ch3 = -self['M16'].data
+
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
+        img.stretch(stretch="histogram")
+
+        return img
+
+    night_color.prerequisites = set(['M12', 'M15', 'M16'])
+
     def night_fog(self):
         """Make a Night Fog RGB image composite.
         """
