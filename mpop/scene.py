@@ -411,7 +411,9 @@ class SatelliteInstrumentScene(SatelliteScene):
                     # Look for builtin reader
                     reader_module = __import__(reader, globals(),
                                                locals(), ['load'])
-                except ImportError:
+                except ImportError, e:
+                    LOG.warning("Cannot import builtin plugin "+reader+": " + str(e))
+                    
                     # Look for custom reader
                     reader_module = __import__(reader_name, globals(),
                                                locals(), ['load'])
@@ -424,8 +426,9 @@ class SatelliteInstrumentScene(SatelliteScene):
                                          "four numbers.")
 
                 reader_module.load(self, **kwargs)
-            except ImportError:
-                LOG.exception("ImportError while loading "+reader+".")
+            except ImportError, e:
+                LOG.exception("ImportError while loading "+reader_name+": "
+                              + str(e))
                 continue
             loaded_channels = set([chn.name for chn in self.loaded_channels()])
             just_loaded = loaded_channels & self.channels_to_load
@@ -589,8 +592,10 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         chn.area = self.area + str(chn.shape)
             else: #chn.area is not None
-                if is_pyresample_loaded and isinstance(chn.area,
-                                                       SwathDefinition):
+                if (is_pyresample_loaded and
+                    isinstance(chn.area, SwathDefinition) and
+                    (not hasattr(chn.area, "area_id") or
+                     not chn.area.area_id)):
                     area_name = ("swath_" + self.fullname + "_" +
                                  str(self.time_slot) + "_"
                                  + str(chn.shape) + "_"

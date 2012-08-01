@@ -340,6 +340,9 @@ class GeoImage(mpop.imageo.image.Image):
 
         arr = np.array(img)
 
-        for idx in range(len(self.channels)):
-            self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+        if len(self.channels) == 1:
+            self.channels[0] = np.ma.array(arr[:, :] / 255.0)
+        else:
+            for idx in range(len(self.channels)):
+                self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
