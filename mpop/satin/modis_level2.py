@@ -49,9 +49,9 @@ SCAN_LINE_ATTRS = ['year', 'day', 'msec',
                    'elat', 'elon', 'csol_z'
                    ]
 
-GEO_PHYS_PRODUCTS = ['aot_869', 'chlor_a', 
+GEO_PHYS_PRODUCTS = ['aot_869', 'chlor_a', 'chlor_oc5',
                      'poc', 'cdom_index', 'angstrom', 
-                     'pic', 'par', 
+                     'pic', 'par', 'sst',
                      'nflh', 'ipar', 'Kd_490']
 
 CHANNELS = ['Rrs_412', 
