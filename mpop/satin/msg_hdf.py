@@ -33,6 +33,7 @@ import os.path
 from mpop import CONFIG_PATH
 import mpop.channel
 import numpy as np
+import pyresample.utils
 
 import glob
 from mpop.utils import get_logger
@@ -280,7 +281,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
                           + self.cloudphase.offset)
         self.processing_flags = self.processing_flags.data
 
-        self.area = get_area_def(self.region_name)
+        self.area = get_area_from_file(filename)
         
         self.filled = True
         
@@ -574,7 +575,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         
         self.shape = self.height.shape
 
-        self.area = get_area_def(self.region_name)
+        self.area = get_area_from_file(filename)
 
         self.filled = True
 
@@ -1114,6 +1115,34 @@ def get_best_product(filename, area_extent):
                     return fname
             LOG.info("Did not find any MSG file for specified area")
 
+def get_area_from_file(filename):
+    """Get the area from the h5 file.
+    """
+    from pyresample.geometry import AreaDefinition
+    import tables
+    
+    aex = get_area_extent(filename)
+    h5f = tables.openFile(filename)
+    pname = h5f.root._v_attrs["PROJECTION_NAME"]
+    proj = {}
+    if pname.startswith("GEOS"):
+        proj["proj"] = "geos"
+        proj["a"] = "6378169.0"
+        proj["b"] = "6356583.8"
+        proj["h"] = "35785831.0"
+        proj["lon_0"] = str(float(pname.split("<")[1][:-1]))
+    else:
+        raise NotImplementedError("Only geos projection supported yet.")
+    return AreaDefinition(h5f.root._v_attrs["REGION_NAME"],
+                          h5f.root._v_attrs["REGION_NAME"],
+                          pname,
+                          proj,
+                          int(h5f.root._v_attrs["NC"]),
+                          int(h5f.root._v_attrs["NL"]),
+                          aex)
+            
+                          
+    
     
 def load(scene, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
