@@ -117,6 +117,22 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
 
         # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        nodata_mask = False #np.ma.masked_equal(np.ones(self.shape), 0).mask
+        for key in self._projectables:
+            projectable = getattr(self,  key)
+            if key in ['cloudtype']:
+                nodata_array = np.ma.array(projectable.data)
+                nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                break
+
         try:
             from pyresample import geometry
         except ImportError:
@@ -131,15 +147,17 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         interpolate = False
         if hasattr(self, "lon") and hasattr(self, "lat"):
             if 'intercept' in self.lon.info:
-                offset = self.lon.info["intercept"]
+                gain_lon = self.lon.info["intercept"]
             elif 'offset' in self.lon.info:
-                offset = self.lon.info["offset"]
-            lons = self.lon.data * self.lon.info["gain"] + offset
+                offset_lon = self.lon.info["offset"]
+            lons = self.lon.data * gain_lon + offset_lon
+
             if 'intercept' in self.lat.info:
-                offset = self.lat.info["intercept"]
+                gain_lat = self.lat.info["intercept"]
             elif 'offset' in self.lat.info:
-                offset = self.lat.info["offset"]
-            lats = self.lat.data * self.lat.info["gain"] + offset
+                offset_lat = self.lat.info["offset"]
+            lats = self.lat.data * gain_lat + offset_lat
+
             if lons.shape != self.shape or lats.shape != self.shape:
                 # Data on tiepoint grid:
                 interpolate = True
@@ -148,6 +166,12 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                               "information on the tiepoint grid")
                     raise IOError(errmsg)
             else:
+                # Geolocation available on the full grid:
+                # We neeed to mask out nodata (VIIRS Bow-tie deletion...)
+                # We do it for all instruments, checking only against the nodata
+                lons = np.ma.masked_array(lons, nodata_mask)
+                lats = np.ma.masked_array(lats, nodata_mask)
+
                 self.area = geometry.SwathDefinition(lons=lons, lats=lats)
 
 
@@ -405,6 +429,7 @@ def load(scene, geofilename=None, **kwargs):
                "cpp": CloudPhysicalProperties
                }
 
+    nodata_mask = False
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
@@ -425,6 +450,26 @@ def load(scene, geofilename=None, **kwargs):
             chn.read(filename, lonlat_is_loaded==False)
             scene.channels.append(chn)
 
+
+        # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        if hasattr(chn, '_projectables'):
+            for key in chn._projectables:
+                projectable = getattr(chn,  key)
+                if key in ['cloudtype']:
+                    nodata_array = np.ma.array(projectable.data)
+                    nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                    break
+        else:
+            LOG.warning("Channel has no '_projectables' member." + 
+                        " No nodata-mask set...")
 
     # Is this safe!? AD 2012-08-25
     shape = chn.shape
@@ -458,10 +503,10 @@ def load(scene, geofilename=None, **kwargs):
             #satint.fill_borders("y", "x")
             lons, lats = satint.interpolate()
 
-            self.area = geometry.SwathDefinition(lons=lons, lats=lats)
-
         try:
             from pyresample import geometry
+            lons = np.ma.masked_array(lons, nodata_mask)
+            lats = np.ma.masked_array(lats, nodata_mask)
             scene.area = geometry.SwathDefinition(lons=lons, 
                                                   lats=lats)
         except ImportError:
