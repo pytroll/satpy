@@ -236,6 +236,9 @@ def load_viirs_sdr(satscene, options):
     file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
     filenames = [ os.path.basename(s) for s in file_list ]
 
+    geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
+    geofile_list = glob.glob(os.path.join(options["dir"], geo_filenames_tmpl))
+
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
     elif len(file_list) == 0:
@@ -272,6 +275,8 @@ def load_viirs_sdr(satscene, options):
         if len(filename_band) > 1:
             raise IOError("More than one file matching band-name %s" % chn)
 
+
+
         band = ViirsBandData(filename_band[0])
         band.read()
         LOG.debug('Band id = ' + band.band_id)
@@ -295,23 +300,38 @@ def load_viirs_sdr(satscene, options):
 
         # We assume the same geolocation should apply to all M-bands!
         # ...and the same to all I-bands:
-        
+
         if band_desc == "M" and not m_lonlat_is_loaded:
-            band.read_lonlat(options["dir"])
+            mband_geos = [ s for s in geofile_list 
+                         if os.path.basename(s).find('GMTCO') == 0 ]
+            if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
+                band.read_lonlat(options["dir"], filename=mband_geos[0])
+            else:
+                band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
             m_lons = np.ma.array(band.longitude, mask=band.data.mask)
             m_lats = np.ma.array(band.latitude, mask=band.data.mask)
             m_lonlat_is_loaded = True
 
         if band_desc == "I" and not i_lonlat_is_loaded:
-            band.read_lonlat(options["dir"])
+            iband_geos = [ s for s in geofile_list 
+                         if os.path.basename(s).find('GITCO') == 0 ]
+            if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
+                band.read_lonlat(options["dir"], filename=iband_geos[0])
+            else:
+                band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
             i_lons = np.ma.array(band.longitude, mask=band.data.mask)
             i_lats = np.ma.array(band.latitude, mask=band.data.mask)
             i_lonlat_is_loaded = True
 
         if band_desc == "DNB":
-            band.read_lonlat(options["dir"])
+            dnb_geos = [ s for s in geofile_list 
+                         if os.path.basename(s).find('GDNBO') == 0 ]
+            if len(dnb_geos) == 1 and os.path.exists(dnb_geos[0]):
+                band.read_lonlat(options["dir"], filename=dnb_geos[0])
+            else:
+                band.read_lonlat(options["dir"])
             # Masking the geo-location:
             dnb_lons = np.ma.array(band.longitude, mask=band.data.mask)
             dnb_lats = np.ma.array(band.latitude, mask=band.data.mask)
