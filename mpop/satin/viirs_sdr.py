@@ -189,11 +189,19 @@ def get_lonlat(filename, band_id):
     h5f = h5py.File(filename, 'r')
     # Doing it a bit dirty for now - AD:
     if band_id.find('M') == 0:
-        lats = h5f['All_Data']['VIIRS-MOD-GEO_All']['Latitude'].value
-        lons = h5f['All_Data']['VIIRS-MOD-GEO_All']['Longitude'].value
+        try:
+            lats = h5f['All_Data']['VIIRS-MOD-GEO-TC_All']['Latitude'].value
+            lons = h5f['All_Data']['VIIRS-MOD-GEO-TC_All']['Longitude'].value
+        except KeyError:
+            lats = h5f['All_Data']['VIIRS-MOD-GEO_All']['Latitude'].value
+            lons = h5f['All_Data']['VIIRS-MOD-GEO_All']['Longitude'].value
     elif band_id.find('I') == 0:
-        lats = h5f['All_Data']['VIIRS-IMG-GEO_All']['Latitude'].value
-        lons = h5f['All_Data']['VIIRS-IMG-GEO_All']['Longitude'].value
+        try:
+            lats = h5f['All_Data']['VIIRS-IMG-GEO-TC_All']['Latitude'].value
+            lons = h5f['All_Data']['VIIRS-IMG-GEO-TC_All']['Longitude'].value
+        except KeyError:
+            lats = h5f['All_Data']['VIIRS-IMG-GEO_All']['Latitude'].value
+            lons = h5f['All_Data']['VIIRS-IMG-GEO_All']['Longitude'].value
     elif band_id.find('D') == 0:
         lats = h5f['All_Data']['VIIRS-DNB-GEO_All']['Latitude'].value
         lons = h5f['All_Data']['VIIRS-DNB-GEO_All']['Longitude'].value
@@ -305,7 +313,7 @@ def load_viirs_sdr(satscene, options):
             mband_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GMTCO') == 0 ]
             if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
-                band.read_lonlat(options["dir"], filename=mband_geos[0])
+                band.read_lonlat(options["dir"], filename=os.path.basename(mband_geos[0]))
             else:
                 band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
@@ -317,7 +325,7 @@ def load_viirs_sdr(satscene, options):
             iband_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GITCO') == 0 ]
             if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
-                band.read_lonlat(options["dir"], filename=iband_geos[0])
+                band.read_lonlat(options["dir"], filename=os.path.basename(iband_geos[0]))
             else:
                 band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
@@ -329,7 +337,7 @@ def load_viirs_sdr(satscene, options):
             dnb_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GDNBO') == 0 ]
             if len(dnb_geos) == 1 and os.path.exists(dnb_geos[0]):
-                band.read_lonlat(options["dir"], filename=dnb_geos[0])
+                band.read_lonlat(options["dir"], filename=os.path.basename(dnb_geos[0]))
             else:
                 band.read_lonlat(options["dir"])
             # Masking the geo-location:
