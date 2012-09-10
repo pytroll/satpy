@@ -1,14 +1,24 @@
 [satellite]
 satname = npp
 variant = 
-number = 1
+number = 
 instruments = ('viirs',)
 
 [viirs-level2]
-# SVDNB_npp_d20100906_t2105098_e2106344_b00012_c20110707160525242376_noaa_ops.h5
-filename = SV???_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_ops.h5
-dir = /local_disk/laptop/NPP_NPOESS/SampleData/NPP_NCT4_SAMPLE_PRODUCTS
+## SVDNB_npp_d20100906_t2105098_e2106344_b00012_c20110707160525242376_noaa_ops.h5
+geo_filenames = G????_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_cspp_dev.h5
+filename = SV???_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_cspp_dev.h5
+dir = /data/viirs/sdr
 format = viirs_sdr
+
+
+[viirs-level3]
+filename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_*_%(product)s.h5
+geofilename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_*_viirs.h5
+geodir = /san1/pps/import/PPS_data/remapped
+dir = /san1/pps/import/PPS_data/remapped
+format = nwcsaf_pps
+
 
 [viirs-m01]
 frequency = (0.402, 0.412, 0.422)
