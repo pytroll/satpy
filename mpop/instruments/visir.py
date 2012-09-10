@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -30,6 +30,51 @@ from mpop.compositer import Compositer
 # remove warnings for unused prerequisites
 
 class VisirCompositer(Compositer):
+
+    def __call__(self, *channels, **keys):
+        """Build a geoimage.
+        e.g.:
+        img = l.image(0.6, 0.8, -10.8, mode="RGB")
+        """
+
+        data = []
+        area = None
+        inv = []
+        new_channels = []
+        
+        for channel in channels:
+            if isinstance(channel, str):
+                if channel.startswith("-"):
+                    inv.append(True)
+                    channel = channel[1:]
+                else:
+                    inv.append(False)
+            else:
+                if channel < 0:
+                    inv.append(True)
+                    channel = -channel
+                else:
+                    inv.append(False)
+
+            new_channels.append(channel)
+                
+            data.append(self[channel].data)
+            
+            new_area = self[channel].area
+            if area and (new_area != area):
+                raise ValueError("Channels should have the same area")
+            else:
+                area = new_area
+
+        self.check_channels(*new_channels)
+
+        img = geo_image.GeoImage(data,
+                                 area=area,
+                                 time_slot=self.time_slot,
+                                 fill_value=keys.get("fill_value", None),
+                                 mode=keys.get("mode", None))
+        img.invert(inv)
+        return img
 
     def channel_image(self, channel, fill_value=0):
         """Make a black and white image of the *channel*.
