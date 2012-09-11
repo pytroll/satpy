@@ -65,9 +65,9 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         self.shape = None
         if filename:
             self.read(filename)
-            
-    
-    def read(self, filename):
+
+
+    def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
         h5f = h5py.File(filename, "r")
@@ -87,12 +87,18 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             for skey, value in dataset.attrs.iteritems():
                 if isinstance(value, h5py.h5r.Reference):
                     self._refs[(key, skey)] = h5f[value].name.split("/")[1]
+                    
+            if type(dataset.id) is h5py.h5g.GroupID:
+                LOG.warning("Format reader does not support groups")
+                continue
+
             try:
                 getattr(self, key).data = dataset[:]
                 is_palette = (dataset.attrs.get("CLASS", None) == "PALETTE")
                 if(len(dataset.shape) > 1 and
                    not is_palette and
-                   key not in ["lon", "lat"]):
+                   key not in ["lon", "lat", 
+                               "row_indices", "column_indices"]):
                     self._projectables.append(key)
                     if self.shape is None:
                         self.shape = dataset.shape
@@ -106,17 +112,68 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         h5f.close()
 
+        if not load_lonlat:
+            return
+
+
         # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        nodata_mask = False #np.ma.masked_equal(np.ones(self.shape), 0).mask
+        for key in self._projectables:
+            projectable = getattr(self,  key)
+            if key in ['cloudtype']:
+                nodata_array = np.ma.array(projectable.data)
+                nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                break
 
         try:
             from pyresample import geometry
         except ImportError:
             return
 
+        tiepoint_grid = False
+        if hasattr(self, "row_indices") and hasattr(self, "column_indices"):
+            column_indices = self.column_indices.data
+            row_indices = self.row_indices.data
+            tiepoint_grid = True
+
+        interpolate = False
         if hasattr(self, "lon") and hasattr(self, "lat"):
-            lons = self.lon.data * self.lon.info["gain"] + self.lon.info["intercept"]
-            lats = self.lat.data * self.lat.info["gain"] + self.lat.info["intercept"]
-            self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+            if 'intercept' in self.lon.info:
+                gain_lon = self.lon.info["intercept"]
+            elif 'offset' in self.lon.info:
+                offset_lon = self.lon.info["offset"]
+            lons = self.lon.data * gain_lon + offset_lon
+
+            if 'intercept' in self.lat.info:
+                gain_lat = self.lat.info["intercept"]
+            elif 'offset' in self.lat.info:
+                offset_lat = self.lat.info["offset"]
+            lats = self.lat.data * gain_lat + offset_lat
+
+            if lons.shape != self.shape or lats.shape != self.shape:
+                # Data on tiepoint grid:
+                interpolate = True
+                if not tiepoint_grid:
+                    errmsg = ("Interpolation needed but insufficient" + 
+                              "information on the tiepoint grid")
+                    raise IOError(errmsg)
+            else:
+                # Geolocation available on the full grid:
+                # We neeed to mask out nodata (VIIRS Bow-tie deletion...)
+                # We do it for all instruments, checking only against the nodata
+                lons = np.ma.masked_array(lons, nodata_mask)
+                lats = np.ma.masked_array(lats, nodata_mask)
+
+                self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+
 
         elif hasattr(self, "region") and self.region.data["area_extent"].any():
             region = self.region.data
@@ -129,6 +186,24 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                                                 region["xsize"],
                                                 region["ysize"],
                                                 region["area_extent"])
+
+        if interpolate:
+            from geotiepoints import SatelliteInterpolator
+        
+            cols_full = np.arange(self.shape[1])
+            rows_full = np.arange(self.shape[0])
+
+            satint = SatelliteInterpolator((lons, lats),
+                                           (row_indices, 
+                                            column_indices),
+                                           (rows_full, cols_full))
+            #satint.fill_borders("y", "x")
+            lons, lats = satint.interpolate()
+
+            self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+
+
+
     def project(self, coverage):
         """Project what can be projected in the product.
         """
@@ -316,12 +391,17 @@ def load(scene, geofilename=None, **kwargs):
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
     directory = conf.get(scene.instrument_name+"-level3", "dir")
-    geodir = conf.get(scene.instrument_name+"-level3", "geodir")
+    try:
+        geodir = conf.get(scene.instrument_name+"-level3", "geodir")
+    except NoOptionError:
+        LOG.warning("No option 'geodir' in level3 section")
+        geodir = None
+
     filename = conf.get(scene.instrument_name+"-level3", "filename",
                         raw=True)
     pathname_tmpl = os.path.join(directory, filename)
 
-    if not geofilename:
+    if not geofilename and geodir:
         # Load geo file from config file:
         try:
             geoname_tmpl = conf.get(scene.instrument_name+"-level3", 
@@ -342,13 +422,6 @@ def load(scene, geofilename=None, **kwargs):
             geofilename = None
 
 
-    if geofilename:
-        lons, lats = get_lonlat(geofilename)
-        lonlat_is_loaded = True
-    else:
-        LOG.warning("No Geo file specified: No geolocation will be loaded")
-
-
     classes = {"ctth": CloudTopTemperatureHeight,
                "cloudtype": CloudType,
                "cloudmask": CloudMask,
@@ -356,6 +429,7 @@ def load(scene, geofilename=None, **kwargs):
                "cpp": CloudPhysicalProperties
                }
 
+    nodata_mask = False
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
@@ -373,14 +447,68 @@ def load(scene, geofilename=None, **kwargs):
             filename = file_list[0]
 
             chn = classes[product]()
-            chn.read(filename)
+            chn.read(filename, lonlat_is_loaded==False)
             scene.channels.append(chn)
 
+
+        # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        if hasattr(chn, '_projectables'):
+            for key in chn._projectables:
+                projectable = getattr(chn,  key)
+                if key in ['cloudtype']:
+                    nodata_array = np.ma.array(projectable.data)
+                    nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                    break
+        else:
+            LOG.warning("Channel has no '_projectables' member." + 
+                        " No nodata-mask set...")
+
+    # Is this safe!? AD 2012-08-25
+    shape = chn.shape
+
+    interpolate = False
+    if geofilename:
+        geodict = get_lonlat(geofilename)
+        lons, lats = geodict['lon'], geodict['lat']
+        if lons.shape != shape or lats.shape != shape:
+            interpolate = True
+            row_indices = geodict['row_indices']
+            column_indices = geodict['column_indices']
+
+        lonlat_is_loaded = True
+    else:
+        LOG.warning("No Geo file specified: " + 
+                    "Geolocation will be loaded from product")
+
+
     if lonlat_is_loaded:
+        if interpolate:
+            from geotiepoints import SatelliteInterpolator
+        
+            cols_full = np.arange(shape[1])
+            rows_full = np.arange(shape[0])
+
+            satint = SatelliteInterpolator((lons, lats),
+                                           (row_indices, 
+                                            column_indices),
+                                           (rows_full, cols_full))
+            #satint.fill_borders("y", "x")
+            lons, lats = satint.interpolate()
+
         try:
             from pyresample import geometry
+            lons = np.ma.masked_array(lons, nodata_mask)
+            lats = np.ma.masked_array(lats, nodata_mask)
             scene.area = geometry.SwathDefinition(lons=lons, 
-                                             lats=lats)
+                                                  lats=lats)
         except ImportError:
             scene.area = None
             scene.lat = lats
@@ -396,11 +524,27 @@ def get_lonlat(filename):
     LOG.debug("Geo File = " + filename)
 
     h5f = h5py.File(filename, 'r')
+
+    # We neeed to mask out nodata (VIIRS Bow-tie deletion...)
+    # We do it for all instruments, checking only against the nodata
+    nodata = h5f['where']['lon']['what'].attrs['nodata']
     gain = h5f['where']['lon']['what'].attrs['gain']
     offset = h5f['where']['lon']['what'].attrs['offset']
-    lons = h5f['where']['lon']['data'].value * gain + offset
-    lats = h5f['where']['lat']['data'].value * gain + offset
+
+    longitudes = np.ma.array(h5f['where']['lon']['data'].value)
+    lons = np.ma.masked_equal(longitudes, nodata) * gain + offset
+    latitudes = np.ma.array(h5f['where']['lat']['data'].value)
+    lats = np.ma.masked_equal(latitudes, nodata) * gain + offset
+
+    col_indices = None
+    row_indices = None
+    if "column_indices" in h5f["where"].keys():
+        col_indices = h5f['/where/column_indices'].value
+    if "row_indices" in h5f["where"].keys():
+        row_indices = h5f['/where/row_indices'].value
 
     h5f.close()
-    return lons, lats
-
+    return {'lon': lons, 
+            'lat': lats, 
+            'col_indices': col_indices, 'row_indices':row_indices}
+    #return lons, lats

@@ -145,7 +145,7 @@ class ViirsCompositer(VisirCompositer):
         """Make a high resolution Day Natural Colors RGB image 
         composite from I-bands only - 375 meter resolution.
         """
-        self.check_channels('I01', 'I02', 'I3')
+        self.check_channels('I01', 'I02', 'I03')
 
         ch1 = self['I03'].check_range()
         ch2 = self['I02'].check_range()
@@ -316,3 +316,17 @@ class ViirsCompositer(VisirCompositer):
 
     cloudtop.prerequisites = set(['M12', 'M15', 'M16'])
 
+
+    def dnb(self):
+        """Make a black and white image of the Day-Night band."""
+        self.check_channels('DNB')
+    
+        img =  geo_image.GeoImage(self['DNB'].data,
+                                  self.area,
+                                  self.time_slot,
+                                  fill_value=0,
+                                  mode="L")
+        img.enhance(stretch = "histogram")
+        return img
+    
+    dnb.prerequisites = set(['DNB'])
