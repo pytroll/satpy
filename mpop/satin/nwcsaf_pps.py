@@ -461,6 +461,8 @@ def load(scene, geofilename=None, **kwargs):
                }
 
     nodata_mask = False
+
+    chn = None
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
@@ -472,8 +474,10 @@ def load(scene, geofilename=None, **kwargs):
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
             LOG.warning("More than 1 file matching for " + product + "!")
+            continue
         elif len(file_list) == 0:
             LOG.warning("No " + product + " matching!: " + filename_tmpl)
+            continue
         else:
             filename = file_list[0]
 
@@ -501,6 +505,9 @@ def load(scene, geofilename=None, **kwargs):
         else:
             LOG.warning("Channel has no '_projectables' member." + 
                         " No nodata-mask set...")
+
+    if chn is None:
+        return
 
     # Is this safe!? AD 2012-08-25
     shape = chn.shape
