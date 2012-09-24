@@ -103,7 +103,8 @@ class ViirsBandData(object):
         self.orbit = self.orbit_begin 
 
         if 'All_Data' not in h5f:
-            raise IOError("No group 'All_Data' in hdf5 file: %s" % self.filename)
+            raise IOError("No group 'All_Data' in hdf5 file:" + 
+                          " %s" % self.filename)
         
         keys = h5f['All_Data'].keys()
         if len(keys) > 1:
@@ -121,13 +122,8 @@ class ViirsBandData(object):
         if tb_name in keys:
             band_data = h5f['All_Data'][bname][tb_name].value
             factors_name = tb_name + 'Factors'
-            try:
-                scale, offset = h5f['All_Data'][bname][factors_name].value
-            except ValueError:
-                print("Failed unpacking scale factors!")
-                scale_factors = h5f['All_Data'][bname][factors_name].value
-                print("Scale factors = " + str(scale_factors))
-                scale, offset = scale_factors[0:2]
+            scale_factors = h5f['All_Data'][bname][factors_name].value
+            scale, offset = scale_factors[0:2]
             self.units = 'K'
         elif refl_name in keys:
             band_data = h5f['All_Data'][bname][refl_name].value
@@ -192,7 +188,6 @@ class ViirsBandData(object):
 # ------------------------------------------------------------------------------
 def get_lonlat(filename, band_id):
     """Read lon,lat from hdf5 file"""
-    import h5py
     LOG.debug("Geo File = " + filename)
 
     h5f = h5py.File(filename, 'r')
@@ -234,7 +229,8 @@ def load(satscene, *args, **kwargs):
 
 
 def load_viirs_sdr(satscene, options):
-    """Read viirs SDR reflectances and Tbs from file and load it into *satscene*.
+    """Read viirs SDR reflectances and Tbs from file and load it into
+    *satscene*.
     """
     import glob
 
@@ -253,8 +249,8 @@ def load_viirs_sdr(satscene, options):
     file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
     filenames = [ os.path.basename(s) for s in file_list ]
 
-    geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
-    geofile_list = glob.glob(os.path.join(options["dir"], geo_filenames_tmpl))
+    tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
+    geofile_list = glob.glob(os.path.join(options["dir"], tmpl))
 
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
@@ -334,7 +330,8 @@ def load_viirs_sdr(satscene, options):
             iband_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GITCO') == 0 ]
             if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
-                band.read_lonlat(options["dir"], filename=os.path.basename(iband_geos[0]))
+                band.read_lonlat(options["dir"], 
+                                 filename=os.path.basename(iband_geos[0]))
             else:
                 band.read_lonlat(options["dir"])
             # Masking the geo-location using mask from an abitrary band:
@@ -346,7 +343,8 @@ def load_viirs_sdr(satscene, options):
             dnb_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GDNBO') == 0 ]
             if len(dnb_geos) == 1 and os.path.exists(dnb_geos[0]):
-                band.read_lonlat(options["dir"], filename=os.path.basename(dnb_geos[0]))
+                band.read_lonlat(options["dir"], 
+                                 filename=os.path.basename(dnb_geos[0]))
             else:
                 band.read_lonlat(options["dir"])
             # Masking the geo-location:
