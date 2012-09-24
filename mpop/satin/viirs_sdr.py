@@ -121,12 +121,21 @@ class ViirsBandData(object):
         if tb_name in keys:
             band_data = h5f['All_Data'][bname][tb_name].value
             factors_name = tb_name + 'Factors'
-            scale, offset = h5f['All_Data'][bname][factors_name].value
+            try:
+                scale, offset = h5f['All_Data'][bname][factors_name].value
+            except ValueError:
+                print("Failed unpacking scale factors!")
+                scale_factors = h5f['All_Data'][bname][factors_name].value
+                print("Scale factors = " + str(scale_factors))
+                scale, offset = scale_factors[0:2]
             self.units = 'K'
         elif refl_name in keys:
             band_data = h5f['All_Data'][bname][refl_name].value
             factors_name = refl_name + 'Factors'
-            scale, offset = h5f['All_Data'][bname][factors_name].value
+            #scale, offset = h5f['All_Data'][bname][factors_name].value
+            # In the data from CLASS this tuple is repeated 4 times!???
+            # FIXME!
+            scale, offset = h5f['All_Data'][bname][factors_name].value[0:2]
             self.units = '%'
         elif refl_name not in keys and tb_name not in keys and rad_name in keys:
             band_data = h5f['All_Data'][bname][rad_name].value
