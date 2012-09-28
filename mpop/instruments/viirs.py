@@ -105,7 +105,7 @@ class ViirsCompositer(VisirCompositer):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value=None,
+                                 fill_value=(0, 0, 0),
                                  mode="RGB")
 
         img.enhance(stretch="linear")
@@ -209,8 +209,8 @@ class ViirsCompositer(VisirCompositer):
         """
         self.check_channels('I02', 'I03', 'I05')
 
-        ch1 = self['I02'].check_range()
-        ch2 = self['I03'].check_range()
+        ch1 = self['I03'].check_range()
+        ch2 = self['I02'].check_range()
         ch3 = -self['I05'].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
