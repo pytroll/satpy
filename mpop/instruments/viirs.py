@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -108,7 +108,7 @@ class ViirsCompositer(VisirCompositer):
                                  fill_value=None,
                                  mode="RGB")
 
-        img.enhance(stretch="crude")
+        img.enhance(stretch="linear")
         img.enhance(gamma=2.0)
     
         return img
@@ -169,7 +169,7 @@ class ViirsCompositer(VisirCompositer):
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
         """
-        return self.channel_image(0.6)
+        return self.channel_image("M05")
 
     vis06.prerequisites = set(['M05'])
 

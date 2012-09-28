@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011.
+# Copyright (c) 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -224,6 +224,16 @@ def load(satscene, *args, **kwargs):
     CASES[satscene.instrument_name](satscene, options)
 
 
+def globify(filename):
+    filename = filename.replace("%Y", "????")
+    filename = filename.replace("%m", "??")
+    filename = filename.replace("%d", "??")
+    filename = filename.replace("%H", "??")
+    filename = filename.replace("%M", "??")
+    filename = filename.replace("%S", "??")
+    return filename
+
+
 def load_viirs_sdr(satscene, options):
     """Read viirs SDR reflectances and Tbs from file and load it into *satscene*.
     """
@@ -241,16 +251,28 @@ def load_viirs_sdr(satscene, options):
 
     filename_tmpl = satscene.time_slot.strftime(options["filename"]) %values
 
-    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
-    filenames = [ os.path.basename(s) for s in file_list ]
+    directory = satscene.time_slot.strftime(options["dir"]) % values
 
-    geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
-    geofile_list = glob.glob(os.path.join(options["dir"], geo_filenames_tmpl))
+    if not os.path.exists(directory):
+        directory = globify(options["dir"]) % values
+        directories = glob.glob(directory)
+        if len(directories) > 1:
+            raise IOError("More than one directory for a npp orbit...")
+        directory = directories[0]
+
+    file_list = glob.glob(os.path.join(directory, filename_tmpl))
+    filenames = [ os.path.basename(s) for s in file_list ]
 
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
     elif len(file_list) == 0:
-        raise IOError("No VIIRS file matching!: " + filename_tmpl)
+        raise IOError("No VIIRS file matching!: " + os.path.join(directory,
+                                                                 filename_tmpl))
+
+
+    geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
+    geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
+
 
     m_lats = None
     m_lons = None
@@ -277,7 +299,7 @@ def load_viirs_sdr(satscene, options):
         if len(fnames_band) == 0:
             continue
 
-        filename_band = glob.glob(os.path.join(options["dir"], 
+        filename_band = glob.glob(os.path.join(directory, 
                                                fnames_band[0]))
         
         if len(filename_band) > 1:
@@ -313,9 +335,9 @@ def load_viirs_sdr(satscene, options):
             mband_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GMTCO') == 0 ]
             if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
-                band.read_lonlat(options["dir"], filename=os.path.basename(mband_geos[0]))
+                band.read_lonlat(directory, filename=os.path.basename(mband_geos[0]))
             else:
-                band.read_lonlat(options["dir"])
+                band.read_lonlat(directory)
             # Masking the geo-location using mask from an abitrary band:
             m_lons = np.ma.array(band.longitude, mask=band.data.mask)
             m_lats = np.ma.array(band.latitude, mask=band.data.mask)
@@ -325,9 +347,9 @@ def load_viirs_sdr(satscene, options):
             iband_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GITCO') == 0 ]
             if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
-                band.read_lonlat(options["dir"], filename=os.path.basename(iband_geos[0]))
+                band.read_lonlat(directory, filename=os.path.basename(iband_geos[0]))
             else:
-                band.read_lonlat(options["dir"])
+                band.read_lonlat(directory)
             # Masking the geo-location using mask from an abitrary band:
             i_lons = np.ma.array(band.longitude, mask=band.data.mask)
             i_lats = np.ma.array(band.latitude, mask=band.data.mask)
@@ -337,9 +359,9 @@ def load_viirs_sdr(satscene, options):
             dnb_geos = [ s for s in geofile_list 
                          if os.path.basename(s).find('GDNBO') == 0 ]
             if len(dnb_geos) == 1 and os.path.exists(dnb_geos[0]):
-                band.read_lonlat(options["dir"], filename=os.path.basename(dnb_geos[0]))
+                band.read_lonlat(directory, filename=os.path.basename(dnb_geos[0]))
             else:
-                band.read_lonlat(options["dir"])
+                band.read_lonlat(directory)
             # Masking the geo-location:
             dnb_lons = np.ma.array(band.longitude, mask=band.data.mask)
             dnb_lats = np.ma.array(band.latitude, mask=band.data.mask)
@@ -363,7 +385,6 @@ def load_viirs_sdr(satscene, options):
             satscene[chn].area = None
             satscene[chn].lat = lats
             satscene[chn].lon = lons
-
 
         if 'institution' not in glob_info:
             glob_info['institution'] = band.global_info['N_Dataset_Source']
