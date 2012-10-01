@@ -105,7 +105,7 @@ class ViirsCompositer(VisirCompositer):
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value=(0, 0, 0),
+                                 fill_value=None,
                                  mode="RGB")
 
         img.enhance(stretch="linear")
