@@ -394,6 +394,7 @@ def load_viirs_sdr(satscene, options):
                          + str(satscene[chn].data.shape) + "_" +
                          band_desc)
             satscene[chn].area.area_id = area_name
+            satscene[chn].area_id = area_name
         except ImportError:
             satscene[chn].area = None
             satscene[chn].lat = lats

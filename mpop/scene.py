@@ -707,6 +707,7 @@ def assemble_segments(segments):
                               + str(new_scene[chn].data.shape) + "_" +
                               str(new_scene[chn].resolution))
                 new_scene[chn].area.area_id = area_name
+                new_scene[chn].area_id = area_name
             else:
                 new_scene[chn].area = swath_definitions[area_names]
         except AttributeError:
