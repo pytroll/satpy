@@ -73,7 +73,11 @@ class VisirCompositer(Compositer):
                                  time_slot=self.time_slot,
                                  fill_value=keys.get("fill_value", None),
                                  mode=keys.get("mode", None))
-        img.invert(inv)
+
+        img.enhance(inverse=inv,
+                    gamma=keys.get("gamma", 1.0),
+                    stretch=keys.get("stretch", "no"))
+        
         return img
 
     def channel_image(self, channel, fill_value=0):
