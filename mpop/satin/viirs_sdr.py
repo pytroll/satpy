@@ -388,6 +388,12 @@ def load_viirs_sdr(satscene, options):
             from pyresample import geometry
             satscene[chn].area = geometry.SwathDefinition(lons=lons, 
                                                           lats=lats)
+
+            area_name = ("swath_" + satscene.fullname + "_" +
+                         str(satscene.time_slot) + "_"
+                         + str(satscene[chn].data.shape) + "_" +
+                         band_desc)
+            satscene[chn].area.area_id = area_name
         except ImportError:
             satscene[chn].area = None
             satscene[chn].lat = lats

@@ -688,8 +688,29 @@ def assemble_segments(segments):
                 seg[chn] = np.ma.masked_all_like(
                     list(seg.loaded_channels())[0].data)
 
+    swath_definitions = {}
+
     for chn in channels:
         new_scene[chn] = np.ma.concatenate([seg[chn].data for seg in segments])
+        try:
+
+            area_names = tuple([seg[chn].area.area_id for seg in segments])
+            if area_names not in swath_definitions:
+            
+                lons = np.ma.concatenate([seg[chn].area.lons[:]
+                                          for seg in segments])
+                lats = np.ma.concatenate([seg[chn].area.lats[:]
+                                          for seg in segments])
+                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                area_name =  ("swath_" + new_scene.fullname + "_" +
+                              str(new_scene.time_slot) + "_"
+                              + str(new_scene[chn].data.shape) + "_" +
+                              str(new_scene[chn].resolution))
+                new_scene[chn].area.area_id = area_name
+            else:
+                new_scene[chn].area = swath_definitions[area_names]
+        except AttributeError:
+            pass
 
     try:
         lons = np.ma.concatenate([seg.area.lons[:] for seg in segments])
