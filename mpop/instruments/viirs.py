@@ -348,3 +348,35 @@ class ViirsCompositer(VisirCompositer):
         return img
     
     dnb.prerequisites = set(['DNB'])
+
+    def ir108(self):
+        """Make a black and white image of the IR 10.8um channel.
+        """
+        self.check_channels("M15")
+
+        img = geo_image.GeoImage(self["M15"].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L",
+                                 crange=(-70 + 273.15, 57.5 + 273.15))
+        img.enhance(inverse=True)
+        return img
+
+    ir108.prerequisites = set(["M15"])
+
+    def hr_ir108(self):
+        """Make a black and white image of the IR 10.8um channel (320m).
+        """
+        self.check_channels("I05")
+
+        img = geo_image.GeoImage(self["I05"].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L",
+                                 crange=(-70 + 273.15, 57.5 + 273.15))
+        img.enhance(inverse=True)
+        return img
+
+    hr_ir108.prerequisites = set(["I05"])
