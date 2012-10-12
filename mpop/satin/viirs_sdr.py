@@ -262,8 +262,13 @@ def load_viirs_sdr(satscene, options):
         directory = globify(options["dir"]) % values
         directories = glob.glob(directory)
         if len(directories) > 1:
-            raise IOError("More than one directory for a npp orbit...")
-        directory = directories[0]
+            raise IOError("More than one directory for npp scene... " + 
+                          "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+        elif len(directories) == 0:
+            raise IOError("No directory found for npp scene. " + 
+                          "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+        else:
+            directory = directories[0]
 
     file_list = glob.glob(os.path.join(directory, filename_tmpl))
     filenames = [ os.path.basename(s) for s in file_list ]
@@ -274,10 +279,8 @@ def load_viirs_sdr(satscene, options):
         raise IOError("No VIIRS file matching!: " + os.path.join(directory,
                                                                  filename_tmpl))
 
-
     geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
     geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
-
 
     m_lats = None
     m_lons = None
