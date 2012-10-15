@@ -225,7 +225,20 @@ def load(satscene, *args, **kwargs):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
-    CASES[satscene.instrument_name](satscene, options)
+
+    LOG.debug('Make a VIIRS bandlist from config-file....')
+    bandlist = []
+    band_sections = [ s for s in conf.sections() 
+                      if (s.find('viirs-m')==0 or
+                          s.find('viirs-i')==0 or 
+                          s.find('viirs-d')==0) ]
+    for section in band_sections:
+        for option, value in conf.items(section, raw = True):
+            if option == 'name':
+                bandlist.append(value)
+    LOG.debug('VIIRS bandlist created: %r' % bandlist)
+
+    CASES[satscene.instrument_name](satscene, bandlist, options)
 
 
 def globify(filename):
@@ -238,10 +251,14 @@ def globify(filename):
     return filename
 
 
-def load_viirs_sdr(satscene, options):
+def load_viirs_sdr(satscene, band_list, options):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
     """
+    chns = satscene.channels_to_load & set(band_list)
+    if len(chns) == 0:
+        return
+
     import glob
 
     if "filename" not in options:
@@ -276,8 +293,11 @@ def load_viirs_sdr(satscene, options):
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
     elif len(file_list) == 0:
-        raise IOError("No VIIRS file matching!: " + os.path.join(directory,
-                                                                 filename_tmpl))
+        #LOG.warning("No VIIRS SDR file matching!: " + os.path.join(directory,
+        #                                                           filename_tmpl))
+        raise IOError("No VIIRS SDR file matching!: " + os.path.join(directory,
+                                                                     filename_tmpl))
+        return
 
     geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
     geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
