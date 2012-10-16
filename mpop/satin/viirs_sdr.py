@@ -226,19 +226,7 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
 
-    LOG.debug('Make a VIIRS bandlist from config-file....')
-    bandlist = []
-    band_sections = [ s for s in conf.sections() 
-                      if (s.find('viirs-m')==0 or
-                          s.find('viirs-i')==0 or 
-                          s.find('viirs-d')==0) ]
-    for section in band_sections:
-        for option, value in conf.items(section, raw = True):
-            if option == 'name':
-                bandlist.append(value)
-    LOG.debug('VIIRS bandlist created: %r' % bandlist)
-
-    CASES[satscene.instrument_name](satscene, bandlist, options)
+    CASES[satscene.instrument_name](satscene, options)
 
 
 def globify(filename):
@@ -251,10 +239,11 @@ def globify(filename):
     return filename
 
 
-def load_viirs_sdr(satscene, band_list, options):
+def load_viirs_sdr(satscene, options):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
     """
+    band_list = [ s.name for s in satscene.channels ]
     chns = satscene.channels_to_load & set(band_list)
     if len(chns) == 0:
         return
