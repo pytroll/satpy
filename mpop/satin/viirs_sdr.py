@@ -225,6 +225,7 @@ def load(satscene, *args, **kwargs):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
+
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -242,6 +243,11 @@ def load_viirs_sdr(satscene, options):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
     """
+    band_list = [ s.name for s in satscene.channels ]
+    chns = satscene.channels_to_load & set(band_list)
+    if len(chns) == 0:
+        return
+
     import glob
 
     if "filename" not in options:
@@ -276,8 +282,11 @@ def load_viirs_sdr(satscene, options):
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
     elif len(file_list) == 0:
-        raise IOError("No VIIRS file matching!: " + os.path.join(directory,
-                                                                 filename_tmpl))
+        #LOG.warning("No VIIRS SDR file matching!: " + os.path.join(directory,
+        #                                                           filename_tmpl))
+        raise IOError("No VIIRS SDR file matching!: " + os.path.join(directory,
+                                                                     filename_tmpl))
+        return
 
     geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
     geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
