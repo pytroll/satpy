@@ -33,6 +33,7 @@ from ConfigParser import ConfigParser
 
 import numpy as np
 import h5py
+import hashlib
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
@@ -213,7 +214,8 @@ def get_lonlat(filename, band_id):
         raise IOError("Failed reading lon,lat: " + 
                       "Band-id not supported = %s" % (band_id))
     h5f.close()
-    return lons, lats
+    return (np.ma.masked_less(lons, -999, False), 
+            np.ma.masked_less(lats, -999, False))
 
 
 def load(satscene, *args, **kwargs):
@@ -302,6 +304,8 @@ def load_viirs_sdr(satscene, options):
     i_lonlat_is_loaded = False
     glob_info = {}
 
+    LOG.debug("Channels to load: " + str(satscene.channels_to_load))
+
     for chn in satscene.channels_to_load:
         # Take only those files in the list matching the band:
         # (Filename starts with 'SV' and then the band-name)
@@ -348,30 +352,37 @@ def load_viirs_sdr(satscene, options):
         # We assume the same geolocation should apply to all M-bands!
         # ...and the same to all I-bands:
 
-        if band_desc == "M" and not m_lonlat_is_loaded:
-            mband_geos = [ s for s in geofile_list 
-                         if os.path.basename(s).find('GMTCO') == 0 ]
-            if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
-                band.read_lonlat(directory, filename=os.path.basename(mband_geos[0]))
+        if band_desc == "M":
+            if not m_lonlat_is_loaded:
+                mband_geos = [ s for s in geofile_list 
+                             if os.path.basename(s).find('GMTCO') == 0 ]
+                if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
+                    band.read_lonlat(directory, filename=os.path.basename(mband_geos[0]))
+                else:
+                    band.read_lonlat(directory)
+                # Masking the geo-location using mask from an abitrary band:
+                m_lons = band.longitude
+                m_lats = band.latitude
+                m_lonlat_is_loaded = True
             else:
-                band.read_lonlat(directory)
-            # Masking the geo-location using mask from an abitrary band:
-            m_lons = np.ma.array(band.longitude, mask=band.data.mask)
-            m_lats = np.ma.array(band.latitude, mask=band.data.mask)
-            m_lonlat_is_loaded = True
+                band.longitude = m_lons
+                band.latitude = m_lats
 
-        if band_desc == "I" and not i_lonlat_is_loaded:
-            iband_geos = [ s for s in geofile_list 
-                         if os.path.basename(s).find('GITCO') == 0 ]
-            if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
-                band.read_lonlat(directory,
-                                 filename=os.path.basename(iband_geos[0]))
+        if band_desc == "I":
+            if not i_lonlat_is_loaded:
+                iband_geos = [ s for s in geofile_list 
+                             if os.path.basename(s).find('GITCO') == 0 ]
+                if len(iband_geos) == 1 and os.path.exists(iband_geos[0]):
+                    band.read_lonlat(directory,
+                                     filename=os.path.basename(iband_geos[0]))
+                else:
+                    band.read_lonlat(directory)
+                i_lons = band.longitude
+                i_lats = band.latitude
+                i_lonlat_is_loaded = True
             else:
-                band.read_lonlat(directory)
-            # Masking the geo-location using mask from an abitrary band:
-            i_lons = np.ma.array(band.longitude, mask=band.data.mask)
-            i_lats = np.ma.array(band.latitude, mask=band.data.mask)
-            i_lonlat_is_loaded = True
+                band.longitude = i_lons
+                band.latitude = i_lats
 
         if band_desc == "DNB":
             dnb_geos = [ s for s in geofile_list 
@@ -381,10 +392,8 @@ def load_viirs_sdr(satscene, options):
                                  filename=os.path.basename(dnb_geos[0]))
             else:
                 band.read_lonlat(directory)
-            # Masking the geo-location:
-            dnb_lons = np.ma.array(band.longitude, mask=band.data.mask)
-            dnb_lats = np.ma.array(band.latitude, mask=band.data.mask)
-
+            dnb_lons = band.longitude
+            dnb_lats = band.latitude
 
         if band_desc == "M":
             lons = m_lons
@@ -395,22 +404,25 @@ def load_viirs_sdr(satscene, options):
         elif band_desc == "DNB":
             lons = dnb_lons
             lats = dnb_lats
-            
+
+        band_uid = band_desc + hashlib.sha1(band.data.mask).hexdigest()
+        
         try:
             from pyresample import geometry
-            satscene[chn].area = geometry.SwathDefinition(lons=lons, 
-                                                          lats=lats)
+            satscene[chn].area = geometry.SwathDefinition(
+                lons=np.ma.array(lons, mask=band.data.mask),
+                lats=np.ma.array(lats, mask=band.data.mask))
 
             area_name = ("swath_" + satscene.fullname + "_" +
                          str(satscene.time_slot) + "_"
                          + str(satscene[chn].data.shape) + "_" +
-                         band_desc)
+                         band_uid)
             satscene[chn].area.area_id = area_name
             satscene[chn].area_id = area_name
         except ImportError:
             satscene[chn].area = None
-            satscene[chn].lat = lats
-            satscene[chn].lon = lons
+            satscene[chn].lat = np.ma.array(lats, mask=band.data.mask)
+            satscene[chn].lon = np.ma.array(lons, mask=band.data.mask)
 
         if 'institution' not in glob_info:
             glob_info['institution'] = band.global_info['N_Dataset_Source']
