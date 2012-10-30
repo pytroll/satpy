@@ -703,10 +703,10 @@ def assemble_segments(segments):
                 area_name = "+".join(area_names)
                 new_scene[chn].area.area_id = area_name
                 new_scene[chn].area_id = area_name
-                swath_definitions[area_names] = lons, lats
+                swath_definitions[area_names] = new_scene[chn].area
             else:
-                lons, lats = swath_definitions[area_names]
-                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                new_scene[chn].area = swath_definitions[area_names]
+                new_scene[chn].area_id = new_scene[chn].area.area_id
         except AttributeError:
             pass
 
