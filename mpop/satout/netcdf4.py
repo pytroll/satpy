@@ -111,6 +111,22 @@ def find_tag(info_list , tag):
             pass
     return tag_data
 
+def find_FillValue_tags(info_list ):
+    """ 
+        Iterates through info objects to find _FillValue tags for var_names
+    """
+    fill_value_dict={} 
+    for info in info_list: 
+        try:
+            fill_value_dict[info['var_name']] = info['_FillValue']
+        except KeyError:
+            pass
+            try:
+                fill_value_dict[info['var_name']] = None
+            except KeyError:
+                pass
+    return fill_value_dict
+
 def find_info(info_list, tag):
     """ 
         Iterates through info objects to find specific tag.
@@ -194,6 +210,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         nc_vars = []
 
+        fill_value_dict=find_FillValue_tags(info_list)
         for name, vtype, dim_name in zip(var_names,
                                          [dtype(vt) for vt in var_data ],
                                          dim_names ):
@@ -201,7 +218,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             # in the case of arrays containing strings:
             if str(vtype) == "object":
                 vtype = str
-            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name, zlib=compression))
+            nc_vars.append(rootgrp.createVariable(
+                    name, vtype, dim_name, 
+                    zlib=compression,
+                    fill_value=fill_value_dict[name]))
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.
@@ -209,8 +229,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             if 'var_name' in info:
                 # handle variable attributes
                 nc_var = rootgrp.variables[info['var_name']]
+                #nc_var.set_auto_maskandscale(False)
                 for j, k in attribute_dispenser(info):
-                    setattr( nc_var, j, k)
+                    if j not in ["_FillValue"]:
+                        setattr( nc_var, j, k)
             else:
                 # handle global attributes
                 for j, k in attribute_dispenser(info):
