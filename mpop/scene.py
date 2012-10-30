@@ -703,7 +703,7 @@ def assemble_segments(segments):
                 area_name = "+".join(area_names)
                 new_scene[chn].area.area_id = area_name
                 new_scene[chn].area_id = area_name
-                swath_definitions[area_names] = lons.data, lats.data
+                swath_definitions[area_names] = lons, lats
             else:
                 lons, lats = swath_definitions[area_names]
                 new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
