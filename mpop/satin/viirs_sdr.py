@@ -357,10 +357,10 @@ def load_viirs_sdr(satscene, options):
                 mband_geos = [ s for s in geofile_list 
                              if os.path.basename(s).find('GMTCO') == 0 ]
                 if len(mband_geos) == 1 and os.path.exists(mband_geos[0]):
-                    band.read_lonlat(directory, filename=os.path.basename(mband_geos[0]))
+                    band.read_lonlat(directory,
+                                     filename=os.path.basename(mband_geos[0]))
                 else:
                     band.read_lonlat(directory)
-                # Masking the geo-location using mask from an abitrary band:
                 m_lons = band.longitude
                 m_lats = band.latitude
                 m_lonlat_is_loaded = True
@@ -395,23 +395,14 @@ def load_viirs_sdr(satscene, options):
             dnb_lons = band.longitude
             dnb_lats = band.latitude
 
-        if band_desc == "M":
-            lons = m_lons
-            lats = m_lats
-        elif band_desc == "I":
-            lons = i_lons
-            lats = i_lats
-        elif band_desc == "DNB":
-            lons = dnb_lons
-            lats = dnb_lats
-
         band_uid = band_desc + hashlib.sha1(band.data.mask).hexdigest()
         
         try:
             from pyresample import geometry
+        
             satscene[chn].area = geometry.SwathDefinition(
-                lons=np.ma.array(lons, mask=band.data.mask),
-                lats=np.ma.array(lats, mask=band.data.mask))
+                lons=np.ma.array(band.longitude, mask=band.data.mask),
+                lats=np.ma.array(band.latitude, mask=band.data.mask))
 
             area_name = ("swath_" + satscene.fullname + "_" +
                          str(satscene.time_slot) + "_"
@@ -421,8 +412,8 @@ def load_viirs_sdr(satscene, options):
             satscene[chn].area_id = area_name
         except ImportError:
             satscene[chn].area = None
-            satscene[chn].lat = np.ma.array(lats, mask=band.data.mask)
-            satscene[chn].lon = np.ma.array(lons, mask=band.data.mask)
+            satscene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
+            satscene[chn].lon = np.ma.array(band.longitude, mask=band.data.mask)
 
         if 'institution' not in glob_info:
             glob_info['institution'] = band.global_info['N_Dataset_Source']
