@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -40,7 +40,7 @@ def save(scene, filename, compression=True, dtype=np.int16, band_axis=2):
     *band_axis* gives the which axis to use for the band dimension. For
      example, use band_axis=0 to get dimensions like (band, y, x).
     """
-    scene.add_to_history("Saved as netcdf4/cf by mpop")
+    scene.add_to_history("Saved as netcdf4/cf by pytroll/mpop.")
     return netcdf_cf_writer(filename, CFScene(scene, dtype, band_axis),
                             compression=compression)
 
@@ -186,6 +186,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
         # array sizes
         used_dim_names = {}
         for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
+
             # case of a scalar
             if len(names) == 0:
                 continue
@@ -194,9 +195,9 @@ def netcdf_cf_writer(filename, root_object, compression=True):
                 # ensure unique dimension names
                 if dim_name in used_dim_names:
                     if dim_size != used_dim_names[dim_name]:
-                        print dim_size, used_dim_names[dim_name]
                         raise WriterDimensionError("Dimension name "
-                                                   "already in use")
+                                                   + dim_name +
+                                                   " already in use")
                     else:
                         continue
 
