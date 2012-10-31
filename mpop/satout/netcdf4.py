@@ -230,7 +230,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             if 'var_name' in info:
                 # handle variable attributes
                 nc_var = rootgrp.variables[info['var_name']]
-                #nc_var.set_auto_maskandscale(False)
+                nc_var.set_auto_maskandscale(False)
                 for j, k in attribute_dispenser(info):
                     if j not in ["_FillValue"]:
                         setattr( nc_var, j, k)

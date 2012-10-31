@@ -242,7 +242,7 @@ def _load02(filename):
         var = rootgrp.variables[var_name]
         if not (hasattr(var, "standard_name") or
                 hasattr(var, "long_name")):
-            LOG.info("Ignored " + var_name)
+            LOG.info("Delayed processing of " + var_name)
             continue
 
         dims = var.dimensions
