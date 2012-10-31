@@ -229,9 +229,10 @@ def load_generic(satscene, filename, resolution):
 
 
     # Get the orbit number
-    mda = data.attributes()["CoreMetadata.0"]
-    orbit_idx = mda.index("ORBITNUMBER")
-    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+    if not satscene.orbit:
+        mda = data.attributes()["CoreMetadata.0"]
+        orbit_idx = mda.index("ORBITNUMBER")
+        satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
     
     ## Get the geolocation
     #if resolution != 1000:
