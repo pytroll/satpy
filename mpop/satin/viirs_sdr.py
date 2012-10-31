@@ -26,7 +26,11 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to VIIRS SDR format 
+"""Interface to VIIRS SDR format
+
+Format documentation:
+http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
+
 """
 import os.path
 from ConfigParser import ConfigParser
@@ -37,8 +41,6 @@ import hashlib
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
-
-EPSILON = 0.001
 
 # ------------------------------------------------------------------------------
 class ViirsBandData(object):
@@ -56,8 +58,6 @@ class ViirsBandData(object):
         self.data = None
         self.scale = 1.0    # gain
         self.offset = 0.0   # intercept
-        self.nodata = 65533 # Where do we get the no-data/fillvalue
-                            # in the SDR hdf5 file!? FIXME!
         self.filename = filename
         self.units = 'unknown'
         self.geo_filename = None
@@ -66,8 +66,13 @@ class ViirsBandData(object):
         self.longitude = None
 
 
-    def read(self):
+    def read(self, calibrate=1):
         """Read one VIIRS M- or I-band channel: Data and attributes (meta data)
+
+        - *calibrate* set to 1 (default) returns reflectances for visual bands,
+           tb for ir bands, and radiance for dnb.
+           
+        - *calibrate* set to 2 returns radiances.
         """
 
         h5f = h5py.File(self.filename, 'r')
@@ -103,6 +108,9 @@ class ViirsBandData(object):
         # orbit number at beggining of aggregation:
         self.orbit = self.orbit_begin 
 
+
+        # Read the calibrated data
+
         if 'All_Data' not in h5f:
             raise IOError("No group 'All_Data' in hdf5 file:" + 
                           " %s" % self.filename)
@@ -113,42 +121,54 @@ class ViirsBandData(object):
                           "more than one sub-group under 'All_Data'")
         bname = keys[0]
         keys = h5f['All_Data'][bname].keys()
-    
-        # Get the M-band Tb or Reflectance:
-        # First check if we have reflectances or brightness temperatures:
-        tb_name = 'BrightnessTemperature'
-        refl_name = 'Reflectance'
+
+        if calibrate == 1:
+            # Get the M-band Tb or Reflectance:
+            # First check if we have reflectances or brightness temperatures:
+            tb_name = 'BrightnessTemperature'
+            refl_name = 'Reflectance'
+        elif calibrate == 2:
+            tb_name = 'Radiance'
+            refl_name = 'Radiance'
+            
         rad_name = 'Radiance' # Day/Night band
 
         if tb_name in keys:
             band_data = h5f['All_Data'][bname][tb_name].value
             factors_name = tb_name + 'Factors'
             scale_factors = h5f['All_Data'][bname][factors_name].value
-            scale, offset = scale_factors[0:2]
-            self.units = 'K'
+            self.scale, self.offset = scale_factors[0:2]
+            if calibrate == 1:
+                self.units = 'K'
+            elif calibrate == 2:
+                self.units == 'W m-2 um-1 sr-1'
         elif refl_name in keys:
             band_data = h5f['All_Data'][bname][refl_name].value
             factors_name = refl_name + 'Factors'
-            #scale, offset = h5f['All_Data'][bname][factors_name].value
+            #self.scale, self.offset = h5f['All_Data'][bname][factors_name].value
             # In the data from CLASS this tuple is repeated 4 times!???
             # FIXME!
-            scale, offset = h5f['All_Data'][bname][factors_name].value[0:2]
-            self.units = '%'
+            self.scale, self.offset = h5f['All_Data'][bname][factors_name].value[0:2]
+            if calibrate == 1:
+                self.units = '%'
+            elif calibrate == 2:
+                self.units == 'W m-2 um-1 sr-1'
         elif refl_name not in keys and tb_name not in keys and rad_name in keys:
             band_data = h5f['All_Data'][bname][rad_name].value
-            scale, offset = (10000., 0.) # The unit is W/sr cm-2 in the file!
+            self.scale, self.offset = (10000., 0.) # The unit is W/sr cm-2 in the file!
             self.units = 'W sr-1 m-2'
         else:
             raise IOError('Neither brightness temperatures nor ' + 
                           'reflectances in the SDR file!')
 
-        self.scale = scale
-        self.offset = offset
+        # Masking spurious data
 
-        band_array = np.ma.array(band_data)
-        band_array = np.ma.masked_inside(band_array,
-                                         self.nodata - EPSILON,
-                                         self.nodata + EPSILON)
+        # according to documentation, mask integers >= 65328, floats <= -999.3
+        
+        if issubclass(band_data.dtype.type, np.integer):
+            band_array = np.ma.masked_greater(band_data, 65528)
+        if issubclass(band_data.dtype.type, np.floating):
+            band_array = np.ma.masked_less(band_data, -999.2)
 
         # Is it necessary to mask negatives?
         # The VIIRS reflectances are between 0 and 1.
@@ -297,8 +317,6 @@ def load_viirs_sdr(satscene, options):
     m_lons = None
     i_lats = None
     i_lons = None
-    dnb_lats = None
-    dnb_lons = None
 
     m_lonlat_is_loaded = False
     i_lonlat_is_loaded = False
