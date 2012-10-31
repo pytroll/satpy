@@ -333,9 +333,9 @@ def load_from_nc4(filename):
 
             data = var[:, :, :].astype(var.dtype)
 
-            data = np.ma.masked_equal(data,
-                                      var._FillValue)
-
+            data = np.ma.masked_outside(data,
+                                        var.valid_range[0],
+                                        var.valid_range[1])
 
             try:
                 area_var = getattr(var,"grid_mapping")
