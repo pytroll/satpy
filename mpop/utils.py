@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -56,7 +56,7 @@ class OrderedConfigParser(object):
         try:
             conf_file = open(filename, 'r')
             config = conf_file.read()
-            config_keys = re.findall(r'\[\w+-*\w*\]', config)
+            config_keys = re.findall(r'\[.*\]', config)
             self.section_keys = [key[1:-1] for key in config_keys]
         except IOError, e:        
             # Pass if file not found
