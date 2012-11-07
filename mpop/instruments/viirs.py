@@ -335,7 +335,7 @@ class ViirsCompositer(VisirCompositer):
     cloudtop.prerequisites = set(['M12', 'M15', 'M16'])
 
 
-    def dnb(self):
+    def dnb(self, stretch="histogram"):
         """Make a black and white image of the Day-Night band."""
         self.check_channels('DNB')
     
@@ -344,7 +344,8 @@ class ViirsCompositer(VisirCompositer):
                                   self.time_slot,
                                   fill_value=0,
                                   mode="L")
-        img.enhance(stretch = "histogram")
+        if stretch:
+            img.enhance(stretch=stretch)
         return img
     
     dnb.prerequisites = set(['DNB'])
