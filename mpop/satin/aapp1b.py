@@ -30,15 +30,13 @@ import glob
 import os.path
 from ConfigParser import ConfigParser
 
-import avhrr
 import math
 import numpy as np
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 
-
-# Using ahamap
+# Using ahamap: FIXME!
 
 EPSILON = 0.001
 
@@ -89,6 +87,8 @@ def load_avhrr(satscene, options):
     filename = file_list[0]
 
     LOG.debug("Loading from " + filename)
+
+    import avhrr # AHAMAP module
 
     avh = avhrr.avhrr(filename)
     avh.get_unprojected()

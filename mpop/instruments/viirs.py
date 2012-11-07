@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -108,7 +108,7 @@ class ViirsCompositer(VisirCompositer):
                                  fill_value=None,
                                  mode="RGB")
 
-        img.enhance(stretch="crude")
+        img.enhance(stretch="linear")
         img.enhance(gamma=2.0)
     
         return img
@@ -169,7 +169,7 @@ class ViirsCompositer(VisirCompositer):
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
         """
-        return self.channel_image(0.6)
+        return self.channel_image("M05")
 
     vis06.prerequisites = set(['M05'])
 
@@ -209,8 +209,8 @@ class ViirsCompositer(VisirCompositer):
         """
         self.check_channels('I02', 'I03', 'I05')
 
-        ch1 = self['I02'].check_range()
-        ch2 = self['I03'].check_range()
+        ch1 = self['I03'].check_range()
+        ch2 = self['I02'].check_range()
         ch3 = -self['I05'].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
@@ -349,3 +349,35 @@ class ViirsCompositer(VisirCompositer):
         return img
     
     dnb.prerequisites = set(['DNB'])
+
+    def ir108(self):
+        """Make a black and white image of the IR 10.8um channel.
+        """
+        self.check_channels("M15")
+
+        img = geo_image.GeoImage(self["M15"].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L",
+                                 crange=(-70 + 273.15, 57.5 + 273.15))
+        img.enhance(inverse=True)
+        return img
+
+    ir108.prerequisites = set(["M15"])
+
+    def hr_ir108(self):
+        """Make a black and white image of the IR 10.8um channel (320m).
+        """
+        self.check_channels("I05")
+
+        img = geo_image.GeoImage(self["I05"].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L",
+                                 crange=(-70 + 273.15, 57.5 + 273.15))
+        img.enhance(inverse=True)
+        return img
+
+    hr_ir108.prerequisites = set(["I05"])

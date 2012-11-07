@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -128,7 +128,7 @@ class Channel(GenericChannel):
     def __init__(self,
                  name=None,
                  resolution=0, 
-                 wavelength_range=(-np.inf, -np.inf, -np.inf), 
+                 wavelength_range=[-np.inf, -np.inf, -np.inf], 
                  data=None,
                  calibration_unit=None):
 
@@ -140,7 +140,7 @@ class Channel(GenericChannel):
 
 
         if(name is None and
-           wavelength_range == (-np.inf, -np.inf, -np.inf)):
+           wavelength_range == [-np.inf, -np.inf, -np.inf]):
             raise ValueError("Cannot define a channel with neither name "
                              "nor wavelength range.")
 
@@ -159,7 +159,7 @@ class Channel(GenericChannel):
              not (wavelength_range[1] <= wavelength_range[2])):            
             raise ValueError("Wavelength_range should be a sorted triplet.")
 
-        self.wavelength_range = wavelength_range
+        self.wavelength_range = list(wavelength_range)
         
         self.data = data
 

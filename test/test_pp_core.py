@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -254,7 +254,7 @@ class TestPPCore(unittest.TestCase):
         for i, chn in enumerate(self.scene.channels):
             self.assertTrue(isinstance(chn, mpop.channel.Channel))
             self.assertEquals(chn.name, channels[i][0])
-            self.assertEquals(chn.wavelength_range, channels[i][1])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
     def test_project(self):

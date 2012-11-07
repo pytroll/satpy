@@ -70,6 +70,30 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
     def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
+        is_temp = False
+        if not h5py.is_hdf5(filename):
+            # Try see if it is bzipped:
+            import bz2
+            bz2file = bz2.BZ2File(filename)
+            import tempfile
+            tmpfilename = tempfile.mktemp()
+            try:
+                ofpt = open(tmpfilename, 'wb')
+                ofpt.write(bz2file.read())
+                ofpt.close()
+                is_temp = True
+            except IOError:
+                import traceback
+                traceback.print_exc()
+                raise IOError("Failed to read the file %s" % filename)
+
+            filename = tmpfilename
+            
+        if not h5py.is_hdf5(filename):
+            if is_temp:
+                os.remove(filename)
+            raise IOError("File is not a hdf5 file!" % filename)
+
         h5f = h5py.File(filename, "r")
 
         # Read the global attributes
@@ -111,6 +135,9 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                 self._keys.append(key)
 
         h5f.close()
+        
+        if is_temp:
+            os.remove(filename)
 
         if not load_lonlat:
             return
@@ -147,15 +174,19 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         interpolate = False
         if hasattr(self, "lon") and hasattr(self, "lat"):
             if 'intercept' in self.lon.info:
-                gain_lon = self.lon.info["intercept"]
+                offset_lon = self.lon.info["intercept"]
             elif 'offset' in self.lon.info:
                 offset_lon = self.lon.info["offset"]
+            if 'gain' in self.lon.info:
+                gain_lon = self.lon.info["gain"]
             lons = self.lon.data * gain_lon + offset_lon
 
             if 'intercept' in self.lat.info:
-                gain_lat = self.lat.info["intercept"]
+                offset_lat = self.lat.info["intercept"]
             elif 'offset' in self.lat.info:
                 offset_lat = self.lat.info["offset"]
+            if 'gain' in self.lat.info:
+                gain_lat = self.lat.info["gain"]
             lats = self.lat.data * gain_lat + offset_lat
 
             if lons.shape != self.shape or lats.shape != self.shape:
@@ -430,6 +461,8 @@ def load(scene, geofilename=None, **kwargs):
                }
 
     nodata_mask = False
+
+    chn = None
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
@@ -441,8 +474,10 @@ def load(scene, geofilename=None, **kwargs):
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
             LOG.warning("More than 1 file matching for " + product + "!")
+            continue
         elif len(file_list) == 0:
             LOG.warning("No " + product + " matching!: " + filename_tmpl)
+            continue
         else:
             filename = file_list[0]
 
@@ -470,6 +505,9 @@ def load(scene, geofilename=None, **kwargs):
         else:
             LOG.warning("Channel has no '_projectables' member." + 
                         " No nodata-mask set...")
+
+    if chn is None:
+        return
 
     # Is this safe!? AD 2012-08-25
     shape = chn.shape

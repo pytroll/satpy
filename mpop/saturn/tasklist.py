@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -69,6 +69,8 @@ class TaskList(dict):
         """
         if area_id is None:
             areas = self.keys()
+        elif(isinstance(area_id, (list, tuple, set))):
+            areas = list(area_id)
         else:
             areas = [area_id]
         prerequisites = set()

@@ -680,16 +680,35 @@ def assemble_segments(segments):
                                             seg.instrument_name, seg.time_slot,
                                             seg.orbit, variant=seg.variant)
     
-    for seg in segments:
-        for chn in channels:
-            if not seg[chn].is_loaded():
-                # this makes the assumption that all channels have the same
-                # shape.
-                seg[chn] = np.ma.masked_all_like(
-                    list(seg.loaded_channels())[0].data)
+    swath_definitions = {}
 
     for chn in channels:
-        new_scene[chn] = np.ma.concatenate([seg[chn].data for seg in segments])
+        new_scene[chn] = np.ma.concatenate([seg[chn].data
+                                            for seg in segments
+                                            if seg[chn].is_loaded()])
+        try:
+
+            area_names = tuple([seg[chn].area.area_id
+                                for seg in segments
+                                if seg[chn].is_loaded()])
+            if area_names not in swath_definitions:
+            
+                lons = np.ma.concatenate([seg[chn].area.lons[:]
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
+                lats = np.ma.concatenate([seg[chn].area.lats[:]
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
+                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                area_name = "+".join(area_names)
+                new_scene[chn].area.area_id = area_name
+                new_scene[chn].area_id = area_name
+                swath_definitions[area_names] = new_scene[chn].area
+            else:
+                new_scene[chn].area = swath_definitions[area_names]
+                new_scene[chn].area_id = new_scene[chn].area.area_id
+        except AttributeError:
+            pass
 
     try:
         lons = np.ma.concatenate([seg.area.lons[:] for seg in segments])

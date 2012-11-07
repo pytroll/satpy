@@ -79,7 +79,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan")
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(self.chan.data is None)
 
@@ -96,7 +96,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", resolution = numb)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, numb)
         self.assert_(self.chan.data is None)
 
@@ -153,7 +153,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", data = data)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(np.all(self.chan.data == data))
 
@@ -163,7 +163,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", data = data)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(np.all(self.chan.data == data))
 
