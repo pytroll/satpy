@@ -73,13 +73,14 @@ PROJNAME = {"vertical_perspective": "nsper",
 def _load02(filename):
     """Load data from a netcdf4 file, cf-satellite v0.2 (2012-02-03).
     """
+
     
     rootgrp = Dataset(filename, 'r')
     
     # processed variables
     processed = set()
 
-    satellite_name, satellite_number = rootgrp.platform.split("-")
+    satellite_name, satellite_number = rootgrp.platform.rsplit("-", 1)
 
     time_slot = rootgrp.variables["time"].getValue()[0]
     time_slot = num2date(time_slot, TIME_UNITS)
@@ -127,16 +128,18 @@ def _load02(filename):
                 pass
 
         if varname in ["band_data", "Band data"]:
+            LOG.debug("Found some data: " + var_name)
             dims = var.dimensions
 
             for dim in dims:
                 dim_chart[dim] = var_name
-            
+
             for cnt, dim in enumerate(dims):
                 if dim.startswith("band"):
                     break
-                
-            data = var[:, :, :]
+
+            data = var
+            data.set_auto_maskandscale(False)
                 
             area = None
             try:
@@ -181,7 +184,7 @@ def _load02(filename):
                     from pyresample.geometry import AreaDefinition
                     area = AreaDefinition("myareaid", "myareaname",
                                           "myprojid", proj4_dict,
-                                          data.shape[1], data.shape[0],
+                                          len(x__), len(y__),
                                           area_extent)
 
                 except ImportError:
@@ -223,9 +226,23 @@ def _load02(filename):
                 LOG.debug("No lon/lat found.")         
             
             names = rootgrp.variables[dim][:]
+            scales = data.scale_factor
+            offsets = data.add_offset
+            if len(names) == 1:
+                scales = np.array([scales])
+                offsets = np.array([offsets])
+            print scales, offsets
             for nbr, name in enumerate(names):
                 try:
-                    scene[name] = data.take([nbr], axis=cnt).squeeze()
+                    if cnt == 0:
+                        chn_data = data[nbr, :, :].squeeze()
+                    if cnt == 1:
+                        chn_data = data[:, nbr, :].squeeze()
+                    if cnt == 2:
+                        chn_data = data[:, :, nbr].squeeze()
+                    scene[name] = (np.ma.masked_equal(chn_data, data._FillValue)
+                                   * scales[nbr] + offsets[nbr])
+
                     scene[name].info["units"] = var.units
                 except KeyError:
                     from mpop.channel import Channel
