@@ -100,8 +100,7 @@ class CFScene(object):
                 data = np.ones(chn.data.shape, dtype=CF_DATA_TYPE) * fill_value
                 scale = 1
                 offset = 0
-            elif np.iinfo(CF_DATA_TYPE).kind == 'i':
-                # Signed data type
+            else:
                 chn_max = chn.data.max()
                 chn_min = chn.data.min()
                
@@ -110,24 +109,15 @@ class CFScene(object):
                 # Handle the case where all data has the same value.
                 if scale == 0:
                     scale = 1
-                offset = (chn_max + chn_min) / 2.0
+                if np.iinfo(CF_DATA_TYPE).kind == 'i':
+                    # Signed data type
+                    offset = (chn_max + chn_min) / 2.0
+                else: # Unsigned data type
+                    offset = chn_min - scale                    
                 
                 data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
                 data[chn.data.mask] = fill_value
-            else: # Unsigned data type
-                chn_max = chn.data.max()
-                chn_min = chn.data.min()
-               
-                scale = ((chn_max - chn_min) /
-                         (2**np.iinfo(CF_DATA_TYPE).bits - 2.0))
-                # Handle the case where all data has the same value.
-                if scale == 0:
-                    scale = 1
-                offset = chn_min - scale
-                
-                data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
-                data[chn.data.mask] = fill_value
-                
+
             data = np.ma.expand_dims(data, band_axis)
             
             # it's a grid mapping
