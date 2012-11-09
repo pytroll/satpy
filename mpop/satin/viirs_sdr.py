@@ -136,7 +136,10 @@ class ViirsBandData(object):
         if tb_name in keys:
             band_data = h5f['All_Data'][bname][tb_name].value
             factors_name = tb_name + 'Factors'
-            scale_factors = h5f['All_Data'][bname][factors_name].value
+            try:
+                scale_factors = h5f['All_Data'][bname][factors_name].value
+            except KeyError:
+                scale_factors = 1.0, 0.0
             self.scale, self.offset = scale_factors[0:2]
             if calibrate == 1:
                 self.units = 'K'
