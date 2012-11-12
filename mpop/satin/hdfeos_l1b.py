@@ -33,14 +33,18 @@ http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
 3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
 w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
+import glob
 import os.path
 from ConfigParser import ConfigParser
+from urlparse import urlparse
 
+import math
 import numpy as np
 from pyhdf.SD import SD
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
+
 
 # load(["1", "11"], resolution=500)
 
@@ -55,6 +59,7 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
     options["resolution"] = kwargs.get("resolution", 1000)
+    options["uri"] = kwargs.get("uri")
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -149,7 +154,8 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
     cwn = 1 / (cwn * 100)
 
     # Some versions of the modis files do not contain all the bands.
-    emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36"]
+    emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29",
+                          "30", "31", "32", "33", "34", "35", "36"]
     current_channels = [i for i, band in enumerate(emmissive_channels)
                         if band in band_names]
     global_indices = list(np.array(current_channels)[indices])
@@ -172,22 +178,23 @@ def load_modis(satscene, options):
      loaded. If no resolution is specified, the 1km resolution (aggregated) is
      used.
     """
-    import glob
+    if options["uri"] is not None:
+        filename = urlparse(options["uri"]).path
+    else:
+        resolution = int(options["resolution"]) or 1000
 
-    resolution = int(options["resolution"]) or 1000
+        filename_tmpl = satscene.time_slot.strftime(options["filename"+
+                                                            str(resolution)])
+        file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
+        if len(file_list) > 1:
+            raise IOError("More than 1 file matching!")
+        elif len(file_list) == 0:
+            raise IOError("No EOS MODIS file matching " +
+                          filename_tmpl + " in " +
+                          options["dir"])
+        filename = file_list[0]
 
-    filenames = {}
-    filename_tmpl = satscene.time_slot.strftime(options["filename"+
-                                                        str(resolution)])
-    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
-    if len(file_list) > 1:
-        raise IOError("More than 1 file matching!")
-    elif len(file_list) == 0:
-        raise IOError("No EOS MODIS file matching " +
-                      filename_tmpl + " in " +
-                      options["dir"])
-
-    load_generic(satscene, file_list[0], resolution)
+    load_generic(satscene, filename, resolution)
     
 def load_generic(satscene, filename, resolution):
     """Read modis data, generic part.
@@ -456,7 +463,6 @@ def get_lonlat(satscene, row, col):
     return lon, lat
         
     
-import math
 
 def vinc_dist(f__, a__, phi1, lembda1, phi2, lembda2):
     """ 
