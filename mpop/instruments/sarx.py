@@ -12,7 +12,8 @@ class SarxCompositer(Compositer):
     
     instrument_name = "sarx"
 
-    def average(self, downscaling_factor=2, average_window=None):
+    def average(self, downscaling_factor=2, average_window=None,
+                stretch="linear"):
         from mpop.imageo.geo_image import GeoImage
         from pyresample import geometry
         import scipy.ndimage as ndi
@@ -58,8 +59,11 @@ class SarxCompositer(Compositer):
                                        data.shape[1], data.shape[0],
                                        area_extent)
 
-        return GeoImage(data, area, self.time_slot,
-                        fill_value=(0,), mode='L')
+        img = GeoImage(data, area, self.time_slot,
+                       fill_value=(0,), mode='L')
+        if stretch:
+            img.enhance(stretch=stretch)
+        return img
 
     average.prerequisites = set([9.65,])
     
