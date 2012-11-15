@@ -180,6 +180,10 @@ def load_modis(satscene, options):
     """
     if options["uri"] is not None:
         filename = urlparse(options["uri"]).path
+        res = {"1": 1000,
+               "Q": 250,
+               "H": 500}
+        resolution = res[os.path.split(filename)[1][5]]
     else:
         resolution = int(options["resolution"]) or 1000
 
