@@ -142,3 +142,25 @@ default_loglevel = getattr(logging, default_loglevel.upper())
 del _config
 
 logging_on(default_loglevel)
+
+
+
+###
+
+import re
+def strftime(utctime, format_string):
+    """Like datetime.strftime, except it works with string formatting
+    conversion specifier items on windows, making the assumption that all
+    conversion specifiers use mapping keys.
+
+    E.g.:
+    >>> from datetime import datetime
+    >>> t = datetime.utcnow()
+    >>> a = "blabla%Y%d%m-%H%M%S-%(value)s"
+    >>> strftime(t, a)
+    'blabla20120911-211448-%(value)s'
+    """
+    res = format_string
+    for i in re.finditer("%\w", format_string):
+        res = res.replace(i.group(), utctime.strftime(i.group()))
+    return res
