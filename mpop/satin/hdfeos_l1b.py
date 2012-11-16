@@ -205,7 +205,7 @@ def load_generic(satscene, filename, resolution):
     """
 
     try:
-        data = SD(filename)
+        data = SD(str(filename))
     except HDF4Error as err:
         logger.warning("Could not load data from " + str(filename)
                        + ": " + str(err))
@@ -319,12 +319,18 @@ def get_lat_lon(satscene, resolution, filename):
 def get_lat_lon_modis(satscene, options):
     """Read lat and lon.
     """
-    import glob
     filename_tmpl = satscene.time_slot.strftime(options["geofile"])
     file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
 
+    if len(file_list) == 0:
+        # Try in the same directory as the data
+        data_dir = os.path.split(options["filename"])[0]
+        file_list = glob.glob(os.path.join(data_dir, filename_tmpl))
+        
     if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!")
+        logger.warning("More than 1 geolocation file matching!")
+        filename = max(file_list, key=lambda x: os.stat(x).st_mtime)
+        coarse_resolution = 1000
     elif len(file_list) == 0:
         logger.warning("No geolocation file matching " + filename_tmpl
                     + " in " + options["dir"])
@@ -335,10 +341,12 @@ def get_lat_lon_modis(satscene, options):
         filename = file_list[0]
         coarse_resolution = 1000
 
+    logger.debug("Using geolocation file: " + str(filename))
+
     resolution = options["resolution"]
     logger.debug("Geolocation file = " + filename)
     
-    data = SD(filename)
+    data = SD(str(filename))
     lat = data.select("Latitude")
     fill_value = lat.attributes()["_FillValue"]
     lat = np.ma.masked_equal(lat.get(), fill_value)
