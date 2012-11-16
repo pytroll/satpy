@@ -41,6 +41,7 @@ from urlparse import urlparse
 import math
 import numpy as np
 from pyhdf.SD import SD
+from pyhdf.error import HDF4Error
 
 from mpop import CONFIG_PATH
 
@@ -203,7 +204,11 @@ def load_generic(satscene, filename, resolution):
     """Read modis data, generic part.
     """
 
-    data = SD(filename)
+    try:
+        data = SD(filename)
+    except HDF4Error as err:
+        logger.warning("Could not load data from " + str(filename)
+                       + ": " + str(err))
 
     datadict = {
         1000: ['EV_250_Aggr1km_RefSB',
