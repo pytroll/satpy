@@ -43,10 +43,9 @@ import numpy as np
 from pyhdf.SD import SD
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
 
-
-# load(["1", "11"], resolution=500)
+import logging
+logger = logging.getLogger(__name__)
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -247,7 +246,7 @@ def load_generic(satscene, filename, resolution):
     
     ## Get the geolocation
     #if resolution != 1000:
-    #    LOG.warning("Cannot load geolocation at this resolution (yet).")
+    #    logger.warning("Cannot load geolocation at this resolution (yet).")
     #    return
     
     lat, lon = get_lat_lon(satscene, resolution, filename)
@@ -321,9 +320,9 @@ def get_lat_lon_modis(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!")
     elif len(file_list) == 0:
-        LOG.warning("No geolocation file matching " + filename_tmpl
+        logger.warning("No geolocation file matching " + filename_tmpl
                     + " in " + options["dir"])
-        LOG.debug("Using 5km geolocation and interpolating")
+        logger.debug("Using 5km geolocation and interpolating")
         filename = options["filename"]
         coarse_resolution = 5000
     else:
@@ -331,7 +330,7 @@ def get_lat_lon_modis(satscene, options):
         coarse_resolution = 1000
 
     resolution = options["resolution"]
-    LOG.debug("Geolocation file = " + filename)
+    logger.debug("Geolocation file = " + filename)
     
     data = SD(filename)
     lat = data.select("Latitude")
@@ -370,12 +369,12 @@ def get_lonlat(satscene, row, col):
     if len(file_list) > 1:
         raise IOError("More than 1 geolocation file matching!" + filename_tmpl)
     elif len(file_list) == 0:
-        LOG.info("No MODIS geolocation file matching: " + filename_tmpl
+        logger.info("No MODIS geolocation file matching: " + filename_tmpl
                  + ", estimating")
         filename = ""
     else:
         filename = file_list[0]
-        LOG.debug("Geolocation file = " + filename)
+        logger.debug("Geolocation file = " + filename)
 
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):
