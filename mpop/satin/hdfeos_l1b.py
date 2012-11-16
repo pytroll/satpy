@@ -209,6 +209,7 @@ def load_generic(satscene, filename, resolution):
     except HDF4Error as err:
         logger.warning("Could not load data from " + str(filename)
                        + ": " + str(err))
+        return
 
     datadict = {
         1000: ['EV_250_Aggr1km_RefSB',

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2010, 2011.
+# Copyright (c) 2009, 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -238,7 +238,7 @@ class Projector(object):
 
             res = kd_tree.get_sample_from_neighbour_info('nn',
                                                          self.out_area.shape,
-                                                         data.ravel(),
+                                                         data,
                                                          valid_index,
                                                          valid_output_index,
                                                          index_array,
