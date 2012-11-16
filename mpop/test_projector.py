@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -314,7 +314,7 @@ class TestProjector(unittest.TestCase):
         
         # test nearest
         self.proj = Projector(in_area_id, out_area_id, mode="nearest")
-        self.assertTrue(np.allclose(data.ravel(),
+        self.assertTrue(np.allclose(data,
                                     self.proj.project_array(data) + 1))
         
 
