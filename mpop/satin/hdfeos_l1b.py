@@ -36,7 +36,6 @@ w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 import glob
 import os.path
 from ConfigParser import ConfigParser
-from urlparse import urlparse
 
 import math
 import numpy as np
@@ -59,7 +58,7 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
     options["resolution"] = kwargs.get("resolution", 1000)
-    options["uri"] = kwargs.get("uri")
+    options["filename"] = kwargs.get("filename")
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -178,8 +177,9 @@ def load_modis(satscene, options):
      loaded. If no resolution is specified, the 1km resolution (aggregated) is
      used.
     """
-    if options["uri"] is not None:
-        filename = urlparse(options["uri"]).path
+    if options["filename"] is not None:
+        logger.debug("Reading from file: " + str(options["filename"]))
+        filename = options["filename"]
         res = {"1": 1000,
                "Q": 250,
                "H": 500}
