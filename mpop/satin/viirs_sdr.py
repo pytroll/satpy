@@ -41,7 +41,7 @@ import hashlib
 
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
-
+from mpop.utils import strftime
 # ------------------------------------------------------------------------------
 class ViirsBandData(object):
     """Placeholder for the VIIRS M&I-band data.
@@ -285,9 +285,9 @@ def load_viirs_sdr(satscene, options):
               #"satellite": satscene.fullname
               }
 
-    filename_tmpl = satscene.time_slot.strftime(options["filename"]) %values
+    filename_tmpl = strftime(satscene.time_slot, options["filename"]) %values
 
-    directory = satscene.time_slot.strftime(options["dir"]) % values
+    directory = strftime(satscene.time_slot, options["dir"]) % values
 
     if not os.path.exists(directory):
         directory = globify(options["dir"]) % values
@@ -313,7 +313,7 @@ def load_viirs_sdr(satscene, options):
                                                                      filename_tmpl))
         return
 
-    geo_filenames_tmpl = satscene.time_slot.strftime(options["geo_filenames"]) %values
+    geo_filenames_tmpl = strftime(satscene.time_slot, options["geo_filenames"]) %values
     geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
 
     m_lats = None
