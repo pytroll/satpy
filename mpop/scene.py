@@ -642,20 +642,6 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
-    def append(self, scene):
-        """Append data from another *scene* to this one
-        """
-        
-        for chn in self.loaded_channels():
-            chn.data = np.ma.concatenate((chn.data, scene[chn.name].data))
-        if self.lon is not None:
-            self.lon = np.ma.concatenate((self.lon, scene.lon))
-        if self.lat is not None:
-            self.lat = np.ma.concatenate((self.lat, scene.lat))
-        if self.area is not None:
-            self.area.append(scene.area)
-            
-            
 if sys.version_info < (2, 5):
     def any(iterable):
         for element in iterable:
@@ -680,36 +666,33 @@ def assemble_segments(segments):
                                             seg.instrument_name, seg.time_slot,
                                             seg.orbit, variant=seg.variant)
     
-    for seg in segments:
-        for chn in channels:
-            if not seg[chn].is_loaded():
-                # this makes the assumption that all channels have the same
-                # shape.
-                seg[chn] = np.ma.masked_all_like(
-                    list(seg.loaded_channels())[0].data)
-
     swath_definitions = {}
 
     for chn in channels:
-        new_scene[chn] = np.ma.concatenate([seg[chn].data for seg in segments])
+        new_scene[chn] = np.ma.concatenate([seg[chn].data
+                                            for seg in segments
+                                            if seg[chn].is_loaded()])
         try:
 
-            area_names = tuple([seg[chn].area.area_id for seg in segments])
+            area_names = tuple([seg[chn].area.area_id
+                                for seg in segments
+                                if seg[chn].is_loaded()])
             if area_names not in swath_definitions:
             
                 lons = np.ma.concatenate([seg[chn].area.lons[:]
-                                          for seg in segments])
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
                 lats = np.ma.concatenate([seg[chn].area.lats[:]
-                                          for seg in segments])
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
                 new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
-                area_name =  ("swath_" + new_scene.fullname + "_" +
-                              str(new_scene.time_slot) + "_"
-                              + str(new_scene[chn].data.shape) + "_" +
-                              str(new_scene[chn].resolution))
+                area_name = "+".join(area_names)
                 new_scene[chn].area.area_id = area_name
                 new_scene[chn].area_id = area_name
+                swath_definitions[area_names] = new_scene[chn].area
             else:
                 new_scene[chn].area = swath_definitions[area_names]
+                new_scene[chn].area_id = new_scene[chn].area.area_id
         except AttributeError:
             pass
 

@@ -237,6 +237,9 @@ class SequentialRunner(object):
             
         area_name = self.data.area_id or self.data.area_def.area_id
         tasks, dummy = tasklist.split(area_name)
+        if area_name not in tasks:
+            LOG.debug("Nothing to do for " + area_name)
+            return
         for product, flist in tasks[area_name].items():
             try:
                 fun = getattr(self.data.image, product)
