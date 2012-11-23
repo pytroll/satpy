@@ -87,8 +87,16 @@ class ViirsBandData(object):
             raise IOError("No group 'All_Data' in hdf5 file: " + 
                           self.filename)
 
+        keys = h5f['Data_Products'].keys()
+        idx = 0
+        for key in keys:
+            if key.find('SDR') >= 0:
+                break
+            idx = idx + 1
+
         # Then get the band info (Data_Products attributes):
-        bname = h5f['Data_Products'].keys()[0]
+        #bname = h5f['Data_Products'].keys()[0]
+        bname = h5f['Data_Products'].keys()[idx]
         for gran_aggr in h5f['Data_Products'][bname].keys():
             attributes = h5f['Data_Products'][bname][gran_aggr].attrs
             for key in attributes.keys():
@@ -116,10 +124,12 @@ class ViirsBandData(object):
                           " %s" % self.filename)
         
         keys = h5f['All_Data'].keys()
-        if len(keys) > 1:
-            raise IOError("Unexpected file content - " + 
-                          "more than one sub-group under 'All_Data'")
-        bname = keys[0]
+        idx = 0
+        for key in keys:
+            if key.find('SDR') >= 0:
+                break
+            idx = idx + 1
+        bname = keys[idx]
         keys = h5f['All_Data'][bname].keys()
 
         if calibrate == 1:
@@ -333,11 +343,12 @@ def load_viirs_sdr(satscene, options):
         fnames_band = []
 
         try:
-            fnames_band = [ s for s in filenames if s.find(chn) == 2 ]
+            fnames_band = [ s for s in filenames if s.find('SV'+chn) >= 0 ]
         except TypeError:
             LOG.warning('Band frequency not available from VIIRS!')
             LOG.info('Asking for channel' + str(chn) + '!')
 
+        LOG.debug("fnames_band = " + str(fnames_band))
         if len(fnames_band) == 0:
             continue
 
@@ -346,7 +357,6 @@ def load_viirs_sdr(satscene, options):
         
         if len(filename_band) > 1:
             raise IOError("More than one file matching band-name %s" % chn)
-
 
 
         band = ViirsBandData(filename_band[0])
