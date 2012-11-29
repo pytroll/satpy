@@ -28,10 +28,82 @@ http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/NWPSAF-MF-UD-003
 
 
 import numpy as np
+import os
 import logging
 import datetime
-
+import glob
+from ConfigParser import ConfigParser
+from mpop.utils import debug_on
+from mpop import CONFIG_PATH
+from mpop.satin.logger import LOG
 logger = logging.getLogger(__name__)
+from pyresample import geometry
+
+def load(satscene, *args, **kwargs):
+    """Read data from file and load it into *satscene*.
+    """
+    del args, kwargs
+    conf = ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+    options = {}
+    for option, value in conf.items(satscene.instrument_name + "-level2",
+                                    raw = True):
+        options[option] = value
+
+    ###CASES[satscene.instrument_name](satscene, options)
+    debug_on()
+   
+    if "filename" not in options:
+		raise IOError("No filename given, cannot load.")
+
+
+    chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
+    print '***', chns
+    if len(chns) == 0:
+        return
+
+    values = {"orbit": satscene.orbit,
+              "satname": satscene.satname,
+              "number": satscene.number,
+              "instrument": satscene.instrument_name,
+              "satellite": satscene.fullname
+              }
+
+    filename = os.path.join(satscene.time_slot.strftime(options["dir"])%values,
+                            satscene.time_slot.strftime(options["filename"])
+                            %values)
+
+    file_list = glob.glob(filename)
+
+    if len(file_list) > 1:
+        raise IOError("More than one l1b file matching!")
+    elif len(file_list) == 0:
+        raise IOError("No l1b file matching!: "+
+                      filename)
+
+    
+    filename = file_list[0]
+
+    LOG.debug("Loading from " + filename)
+
+    scene = AAPP1b(filename)
+    scene.read()
+    scene.calibrate()
+    scene.navigate()
+    for chn in chns:
+		print chn
+		#print scene.channels
+		if scene.channels.has_key(chn) :#and scene.channels[chn] != None:
+			satscene[chn].data = scene.channels[chn]
+	        satscene[chn].info['units'] = scene.units[chn]
+
+        
+    satscene.area = geometry.SwathDefinition(lons=scene.lons, lats=scene.lats)
+    print 'from inside aapp1b.py', satscene.area
+
+    #satscene.area = None
+    #satscene.lat = scene.lats
+    #satscene.lon = scene.lons
 
 # AAPP 1b header
 
@@ -215,12 +287,18 @@ class AAPP1b(object):
     """AAPP-level 1b data reader"""
     def __init__(self, fname):
         self.filename = fname
-        self.channels = {'ch1' : None,
-                         'ch2' : None,
-                         'ch3a' : None,
-                         'ch3b' : None,
-                         'ch4' : None,
-                         'ch5' : None}
+        self.channels = {'1' : None,
+                         '2' : None,
+                         '3A' : None,
+                         '3B' : None,
+                         '4' : None,
+                         '5' : None}
+        self.units = {'1': None,
+					  '2': None,
+					  '3A': None,
+             	      '3B': None,
+                      '4': None,
+                      '5': None}
 
         self._data = None
         self._header = None
@@ -277,23 +355,28 @@ class AAPP1b(object):
         """Calibrate the data"""
 
         tic = datetime.datetime.now()
-        self.channels['ch1'] = _vis_calibrate(self._data, 0)
-        self.channels['ch2'] = _vis_calibrate(self._data, 1)
+        self.channels['1'] = _vis_calibrate(self._data, 0)
+        self.units['1'] = '%'
         
+        self.channels['2'] = _vis_calibrate(self._data, 1)
+        self.units['2'] = '%'
         # Is it 3A or 3B:
         is3b = np.expand_dims(np.bitwise_and(np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
 
         ch3a = _vis_calibrate(self._data, 2)
-        self.channels['ch3a'] = np.ma.masked_array(ch3a, is3b * ch3a)
+        self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
+        self.units['3A'] = '%'		
 
         ch3b = _ir_calibrate(self._header, self._data, 0)
-        self.channels['ch3b'] = np.ma.masked_array(ch3b, 
+        self.channels['3B'] = np.ma.masked_array(ch3b, 
                                                    np.logical_or((is3b==False)
                                                                  * ch3b, 
                                                                  ch3b<0.1))
-
-        self.channels['ch4'] = _ir_calibrate(self._header, self._data, 1)
-        self.channels['ch5'] = _ir_calibrate(self._header, self._data, 2)
+        self.units['3B'] = 'K'
+        self.channels['4'] = _ir_calibrate(self._header, self._data, 1)
+        self.units['4'] = 'K'
+        self.channels['5'] = _ir_calibrate(self._header, self._data, 2)
+        self.units['5'] = 'K'
 
         self._is3b = is3b
         logger.debug("Calibration time " + str(datetime.datetime.now() - tic))
