@@ -7,6 +7,9 @@
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   Nina Håkansson <nina.hakansson@smhi.se>
+#   Oana Nicola <oananicola@yahoo.com>
+#   Lars Ørum Rasmussen <ras@dmi.dk>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,16 +36,14 @@ import logging
 import datetime
 import glob
 from ConfigParser import ConfigParser
-from mpop.utils import debug_on
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
 logger = logging.getLogger(__name__)
-from pyresample import geometry
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
     """
     del args, kwargs
+
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -51,14 +52,13 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     ###CASES[satscene.instrument_name](satscene, options)
-    debug_on()
    
     if "filename" not in options:
 		raise IOError("No filename given, cannot load.")
 
 
     chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
-    print '***', chns
+    logger.debug("Loading " + str(chns))
     if len(chns) == 0:
         return
 
@@ -84,26 +84,26 @@ def load(satscene, *args, **kwargs):
     
     filename = file_list[0]
 
-    LOG.debug("Loading from " + filename)
+    logger.debug("Loading from " + filename)
 
     scene = AAPP1b(filename)
     scene.read()
-    scene.calibrate()
+    scene.calibrate(chns)
     scene.navigate()
     for chn in chns:
-		print chn
-		#print scene.channels
-		if scene.channels.has_key(chn) :#and scene.channels[chn] != None:
-			satscene[chn].data = scene.channels[chn]
-	        satscene[chn].info['units'] = scene.units[chn]
+        if scene.channels.has_key(chn):
+            satscene[chn].data = scene.channels[chn]
+            satscene[chn].info['units'] = scene.units[chn]
 
-        
-    satscene.area = geometry.SwathDefinition(lons=scene.lons, lats=scene.lats)
-    print 'from inside aapp1b.py', satscene.area
-
-    #satscene.area = None
-    #satscene.lat = scene.lats
-    #satscene.lon = scene.lons
+    try:
+        from pyresample import geometry
+    except ImportError, e:
+        logger.debug("Could not load pyresample: " + str(e))
+        satscene.lat = scene.lats
+        satscene.lon = scene.lons
+    else:
+        satscene.area = geometry.SwathDefinition(lons=scene.lons,
+                                                 lats=scene.lats)
 
 # AAPP 1b header
 
@@ -351,42 +351,54 @@ class AAPP1b(object):
             self.lons, self.lats = satint.interpolate()
             logger.debug("Navigation time " + str(datetime.datetime.now() - tic))
 
-    def calibrate(self):
+    def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5")):
         """Calibrate the data"""
 
         tic = datetime.datetime.now()
-        self.channels['1'] = _vis_calibrate(self._data, 0)
-        self.units['1'] = '%'
-        
-        self.channels['2'] = _vis_calibrate(self._data, 1)
-        self.units['2'] = '%'
-        # Is it 3A or 3B:
-        is3b = np.expand_dims(np.bitwise_and(np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
+        if "1" in chns:
+            self.channels['1'] = _vis_calibrate(self._data, 0)
+            self.units['1'] = '%'
+            
+        if "2" in chns:
+            self.channels['2'] = _vis_calibrate(self._data, 1)
+            self.units['2'] = '%'
 
-        ch3a = _vis_calibrate(self._data, 2)
-        self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
-        self.units['3A'] = '%'		
+        if "3A" in chns or "3B" in chns:
+            # Is it 3A or 3B:
+            is3b = np.expand_dims(np.bitwise_and(
+                np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
+            self._is3b = is3b
 
-        ch3b = _ir_calibrate(self._header, self._data, 0)
-        self.channels['3B'] = np.ma.masked_array(ch3b, 
-                                                   np.logical_or((is3b==False)
-                                                                 * ch3b, 
-                                                                 ch3b<0.1))
-        self.units['3B'] = 'K'
-        self.channels['4'] = _ir_calibrate(self._header, self._data, 1)
-        self.units['4'] = 'K'
-        self.channels['5'] = _ir_calibrate(self._header, self._data, 2)
-        self.units['5'] = 'K'
+        if "3A" in chns:
+            ch3a = _vis_calibrate(self._data, 2)
+            self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
+            self.units['3A'] = '%'		
 
-        self._is3b = is3b
+        if "3B" in chns:
+            ch3b = _ir_calibrate(self._header, self._data, 0)
+            self.channels['3B'] = np.ma.masked_array(ch3b, 
+                                                     np.logical_or((is3b==False)
+                                                                   * ch3b, 
+                                                                   ch3b<0.1))
+            self.units['3B'] = 'K'
+
+        if "4" in chns:
+            self.channels['4'] = _ir_calibrate(self._header, self._data, 1)
+            self.units['4'] = 'K'
+
+        if "5" in chns:
+            self.channels['5'] = _ir_calibrate(self._header, self._data, 2)
+            self.units['5'] = 'K'
+
         logger.debug("Calibration time " + str(datetime.datetime.now() - tic))
         
 
 def _vis_calibrate(data, chn):
     """Visible channel calibration only"""
 
-    # Calibration count to albedo, the calibration is performed separately for two
-    # value ranges.
+    # Calibration count to albedo, the calibration is performed separately for
+    # two value ranges.
+    
     channel = data["hrpt"][:, :, chn].astype(np.float)
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
     mask2 = channel > np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
@@ -464,11 +476,12 @@ if __name__ == "__main__":
 
     import sys
     from mpop.utils import debug_on
+
     debug_on()
-    scene = AAPP1b(sys.argv[1])
-    scene.read()
-    scene.calibrate()
-    scene.navigate()
-    show(scene.channels['ch1'])
+    SCENE = AAPP1b(sys.argv[1])
+    SCENE.read()
+    SCENE.calibrate()
+    SCENE.navigate()
+    show(SCENE.channels['1'])
 
 
