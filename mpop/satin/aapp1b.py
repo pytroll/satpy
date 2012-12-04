@@ -26,7 +26,8 @@
 
 """Reader for aapp level 1b data.
 
-http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/NWPSAF-MF-UD-003_Formats.pdf
+http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/
+NWPSAF-MF-UD-003_Formats.pdf
 """
 
 
@@ -53,14 +54,19 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     LOG.info("Loading instrument '%s'" % satscene.instrument_name)
-    CASES[satscene.instrument_name](satscene, options)
+    try:
+        CASES[satscene.instrument_name](satscene, options)
+    except KeyError:
+        raise KeyError("Unknown instrument '%s'" % satscene.instrument_name)
 
 def load_avhrr(satscene, options):
+    """Read avhrr data from file and load it into *satscene*.
+    """
    
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
 
-    chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
+    chns = satscene.channels_to_load & set(avhrr_channel_names)
     LOG.info("Loading channels " + str(sorted(list(chns))))
     if len(chns) == 0:
         return
@@ -81,8 +87,7 @@ def load_avhrr(satscene, options):
     if len(file_list) > 1:
         raise IOError("More than one l1b file matching!")
     elif len(file_list) == 0:
-        raise IOError("No l1b file matching!: "+
-                      filename)
+        raise IOError("No l1b file matching!: " + filename)
 
     
     filename = file_list[0]
@@ -100,8 +105,8 @@ def load_avhrr(satscene, options):
 
     try:
         from pyresample import geometry
-    except ImportError, e:
-        LOG.debug("Could not load pyresample: " + str(e))
+    except ImportError, ex_:
+        LOG.debug("Could not load pyresample: " + str(ex_))
         satscene.lat = scene.lats
         satscene.lon = scene.lons
     else:
@@ -286,22 +291,15 @@ scantype = np.dtype([("scnlin", "<i2"),
                      ])
                      
 
+avhrr_channel_names = ("1", "2", "3A", "3B", "4", "5")
+
 class AAPP1b(object):
-    """AAPP-level 1b data reader"""
+    """AAPP-level 1b data reader
+    """
     def __init__(self, fname):
         self.filename = fname
-        self.channels = {'1' : None,
-                         '2' : None,
-                         '3A' : None,
-                         '3B' : None,
-                         '4' : None,
-                         '5' : None}
-        self.units = {'1': 'counts',
-                      '2': 'counts',
-                      '3A': 'counts',
-             	      '3B': 'counts',
-                      '4': 'counts',
-                      '5': 'counts'}
+        self.channels = dict([(i, None) for i in avhrr_channel_names])
+        self.units = dict([(i, 'counts') for i in avhrr_channel_names])
 
         self._data = None
         self._header = None
@@ -310,8 +308,8 @@ class AAPP1b(object):
         self.lats = None
 
     def read(self):
-        """Read the data"""
-
+        """Read the data.
+        """
         tic = datetime.datetime.now()
         with open(self.filename, "rb") as fp_:
             header =  np.fromfile(fp_, dtype=headertype, count=1)
@@ -355,7 +353,8 @@ class AAPP1b(object):
             LOG.debug("Navigation time " + str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5")):
-        """Calibrate the data"""
+        """Calibrate the data
+        """
 
         tic = datetime.datetime.now()
 
@@ -398,7 +397,8 @@ class AAPP1b(object):
         
 
 def _vis_calibrate(data, chn):
-    """Visible channel calibration only"""
+    """Visible channel calibration only
+    """
 
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
@@ -407,27 +407,31 @@ def _vis_calibrate(data, chn):
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
     mask2 = channel > np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
 
-    channel[mask1] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 0]
-                                               * 1e-10, 1) + 
-                      np.expand_dims(data["calvis"][:, chn, 2, 1] * 1e-7, 1))[mask1]
+    channel[mask1] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 0] * 
+                                               1e-10, 1) + 
+                      np.expand_dims(data["calvis"][:, chn, 2, 1] * 
+                                     1e-7, 1))[mask1]
 
-    channel[mask2] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 2] * 1e-10, 1) + 
-                      np.expand_dims(data["calvis"][:, chn, 2, 3] * 1e-7, 1))[mask2]
+    channel[mask2] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 2] * 
+                                               1e-10, 1) +
+                      np.expand_dims(data["calvis"][:, chn, 2, 3] * 
+                                     1e-7, 1))[mask2]
 
-    channel[channel<0] = 0
+    channel[channel < 0] = 0
     
     return channel
 
 
 def _ir_calibrate(header, data, irchn):
-    """IR calibration"""
+    """IR calibration
+    """
 
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
 
-    k1 = np.expand_dims(data['calir'][:, irchn, 0, 0] / 1.0e9, 1)
-    k2 = np.expand_dims(data['calir'][:, irchn, 0, 1] / 1.0e6, 1)
-    k3 = np.expand_dims(data['calir'][:, irchn, 0, 2] / 1.0e6, 1)
+    k1_ = np.expand_dims(data['calir'][:, irchn, 0, 0] / 1.0e9, 1)
+    k2_ = np.expand_dims(data['calir'][:, irchn, 0, 1] / 1.0e6, 1)
+    k3_ = np.expand_dims(data['calir'][:, irchn, 0, 2] / 1.0e6, 1)
 
     # Central wavenumber:
     cwnum = header['radtempcnv'][0, irchn, 0]
@@ -442,11 +446,11 @@ def _ir_calibrate(header, data, irchn):
     count = data['hrpt'][:, :, irchn + 2].astype(np.float)
 
     # Count to radiance conversion:
-    rad = k1 * count*count + k2*count + k3
+    rad = k1_ * count*count + k2_*count + k3_
 
-    all_zero = np.logical_and(np.logical_and(np.equal(k1, 0),
-                                             np.equal(k2, 0)),
-                              np.equal(k3, 0))    
+    all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
+                                             np.equal(k2_, 0)),
+                              np.equal(k3_, 0))    
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
