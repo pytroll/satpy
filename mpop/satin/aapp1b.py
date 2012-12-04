@@ -37,7 +37,8 @@ import datetime
 import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
-logger = logging.getLogger(__name__)
+
+LOG = logging.getLogger('aapp1b')
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -51,14 +52,16 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
 
-    ###CASES[satscene.instrument_name](satscene, options)
+    LOG.info("Loading instrument '%s'" % satscene.instrument_name)
+    CASES[satscene.instrument_name](satscene, options)
+
+def load_avhrr(satscene, options):
    
     if "filename" not in options:
-		raise IOError("No filename given, cannot load.")
-
+        raise IOError("No filename given, cannot load.")
 
     chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
-    logger.debug("Loading " + str(chns))
+    LOG.info("Loading channels " + str(sorted(list(chns))))
     if len(chns) == 0:
         return
 
@@ -84,7 +87,7 @@ def load(satscene, *args, **kwargs):
     
     filename = file_list[0]
 
-    logger.debug("Loading from " + filename)
+    LOG.debug("Loading from " + filename)
 
     scene = AAPP1b(filename)
     scene.read()
@@ -98,7 +101,7 @@ def load(satscene, *args, **kwargs):
     try:
         from pyresample import geometry
     except ImportError, e:
-        logger.debug("Could not load pyresample: " + str(e))
+        LOG.debug("Could not load pyresample: " + str(e))
         satscene.lat = scene.lats
         satscene.lon = scene.lons
     else:
@@ -293,12 +296,12 @@ class AAPP1b(object):
                          '3B' : None,
                          '4' : None,
                          '5' : None}
-        self.units = {'1': None,
-					  '2': None,
-					  '3A': None,
-             	      '3B': None,
-                      '4': None,
-                      '5': None}
+        self.units = {'1': 'counts',
+                      '2': 'counts',
+                      '3A': 'counts',
+             	      '3B': 'counts',
+                      '4': 'counts',
+                      '5': 'counts'}
 
         self._data = None
         self._header = None
@@ -315,7 +318,7 @@ class AAPP1b(object):
             fp_.seek(10664 * 2, 1)
             data = np.fromfile(fp_, dtype=scantype)
 
-        logger.debug("Reading time " + str(datetime.datetime.now() - tic))
+        LOG.debug("Reading time " + str(datetime.datetime.now() - tic))
         self._header = header
         self._data = data
 
@@ -330,8 +333,8 @@ class AAPP1b(object):
         try:
             from geotiepoints import SatelliteInterpolator
         except ImportError:
-            logger.warning("Could not interpolate lon/lats, "
-                           "python-geotiepoints missing.")
+            LOG.warning("Could not interpolate lon/lats, "
+                        "python-geotiepoints missing.")
             self.lons, self.lats = lons40km, lats40km
         else:
             cols40km = np.arange(24, 2048, 40)
@@ -349,12 +352,13 @@ class AAPP1b(object):
                                            along_track_order,
                                            cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            logger.debug("Navigation time " + str(datetime.datetime.now() - tic))
+            LOG.debug("Navigation time " + str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5")):
         """Calibrate the data"""
 
         tic = datetime.datetime.now()
+
         if "1" in chns:
             self.channels['1'] = _vis_calibrate(self._data, 0)
             self.units['1'] = '%'
@@ -390,7 +394,7 @@ class AAPP1b(object):
             self.channels['5'] = _ir_calibrate(self._header, self._data, 2)
             self.units['5'] = 'K'
 
-        logger.debug("Calibration time " + str(datetime.datetime.now() - tic))
+        LOG.debug("Calibration time " + str(datetime.datetime.now() - tic))
         
 
 def _vis_calibrate(data, chn):
@@ -411,7 +415,6 @@ def _vis_calibrate(data, chn):
                       np.expand_dims(data["calvis"][:, chn, 2, 3] * 1e-7, 1))[mask2]
 
     channel[channel<0] = 0
-
     
     return channel
 
@@ -443,11 +446,12 @@ def _ir_calibrate(header, data, irchn):
 
     all_zero = np.logical_and(np.logical_and(np.equal(k1, 0),
                                              np.equal(k2, 0)),
-                              np.equal(k3, 0))
+                              np.equal(k3, 0))    
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
-    if suspect_line_nums:
-        logger.info("Suspect scan lines: " + str(suspect_line_nums))
+    if suspect_line_nums.any():
+        LOG.info("Suspect scan lines: " + str(suspect_line_nums))
+
 
     t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
 
@@ -458,8 +462,8 @@ def _ir_calibrate(header, data, irchn):
     # Post AAPP-v4
     tb_ = bandcor_2 + bandcor_3 * t_planck
 
-    tb_[tb_ < 0] = 0    
-    return tb_
+    tb_[tb_ <= 0] = np.nan
+    return np.ma.masked_array(tb_, np.isnan(tb_))
 
 
 def show(data):
@@ -470,7 +474,9 @@ def show(data):
                                  (data.max() - data.min()), np.uint8))
     img.show()
 
-
+CASES = {
+    "avhrr": load_avhrr,
+    }
 
 if __name__ == "__main__":
 
@@ -482,6 +488,9 @@ if __name__ == "__main__":
     SCENE.read()
     SCENE.calibrate()
     SCENE.navigate()
+    for i_ in ('1', '2', '3A', '3B', '4', '5'):
+        data_ = SCENE.channels[i_]
+        print >> sys.stderr, "%-3s" % i_, \
+            "%6.2f%%" % (100.*(float(np.ma.count(data_))/data_.size)), \
+            "%6.2f, %6.2f, %6.2f" % (data_.min(), data_.mean(), data_.max())    
     show(SCENE.channels['1'])
-
-
