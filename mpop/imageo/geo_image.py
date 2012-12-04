@@ -83,6 +83,9 @@ class GeoImage(mpop.imageo.image.Image):
         file_tuple = os.path.splitext(filename)
         fformat = fformat or file_tuple[1][1:]
 
+        if fformat.lower() in ["pgm", "pbm", "ppm"]:
+            fformat = "ppm"
+
         if fformat.lower() in ('tif', 'tiff'):
             self.geotiff_save(filename, compression, tags,
                               gdal_options, blocksize, **kwargs)
