@@ -341,10 +341,10 @@ def get_lat_lon_modis(satscene, options):
         filename = file_list[0]
         coarse_resolution = 1000
 
-    logger.debug("Using geolocation file: " + str(filename))
+    logger.debug("Loading geolocation file: " + str(filename)
+                 + " at resolution " + str(coarse_resolution))
 
     resolution = options["resolution"]
-    logger.debug("Geolocation file = " + filename)
     
     data = SD(str(filename))
     lat = data.select("Latitude")
@@ -358,6 +358,8 @@ def get_lat_lon_modis(satscene, options):
         return lat, lon
 
     from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
+    logger.debug("Interpolating from " + str(coarse_resolution)
+                 + " to " + str(resolution))
     if coarse_resolution == 5000:
         lon, lat = modis5kmto1km(lon, lat)
     if resolution == 500:
