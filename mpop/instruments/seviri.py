@@ -150,3 +150,27 @@ class SeviriCompositer(VisirCompositer):
         return img
 
     night_fog.prerequisites = co2corr_chan.prerequisites | set([10.8, 12.0])
+
+    def night_microphysics(self):
+        """Make a Night Microphysics RGB image composite from Seviri channels.
+        This is a Eumetsat variant of night_fog.
+        See e.g http://oiswww.eumetsat.int/~idds/html/doc/best_practices.pdf
+        """
+        self.check_channels(3.9, 10.8, 12.0)
+
+        ch1 = self[12.0].data - self[10.8].data
+        ch2 = self[10.8].data - self[3.9].data
+        ch3 = self[10.8].data
+        
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value = (0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 10),
+                                         (243, 293)))
+
+        return img
+
+    night_microphysics.prerequisites = set([3.9, 10.8, 12.0])

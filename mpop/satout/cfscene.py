@@ -384,16 +384,24 @@ def geos2cf(proj_dict):
             }
 
 def stere2cf(proj_dict):
-    """Return the cf grid mapping from a geos proj dict.
+    """Return the cf grid mapping from a stereographic proj dict.
     """
 
-    raise NotImplementedError
+    return {"grid_mapping_name": "stereographic",
+            "latitude_of_projection_origin": eval(proj_dict["lat_0"]),
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
+            "scale_factor_at_projection_origin": eval(
+            proj_dict.get("x_0", "1.0")),
+            "false_easting": eval(proj_dict.get("x_0", "0")),
+            "false_northing" : eval(proj_dict.get("y_0", "0"))
+            }
 
 def merc2cf(proj_dict):
     """Return the cf grid mapping from a mercator proj dict.
     """
 
-    raise NotImplementedError
+    raise NotImplementedError(
+        "CF grid mapping from a PROJ.4 mercator projection is not implemented")
 
 def aea2cf(proj_dict):
     """Return the cf grid mapping from a Albers Equal Area proj dict.

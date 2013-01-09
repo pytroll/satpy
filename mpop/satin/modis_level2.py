@@ -42,7 +42,8 @@ import mpop.channel
 
 EOS_SATELLITE = {'aqua': 'eos2', 
                  'modisa': 'eos2', 
-                 'terra': 'eos1'}
+                 'terra': 'eos1',
+                 'modist': 'eos1'}
 
 SCAN_LINE_ATTRS = ['year', 'day', 'msec', 
                    'slat', 'slon', 'clat', 'clon',
