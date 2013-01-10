@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2012.
+# Copyright (c) 2009-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -38,7 +38,7 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 NAME = 'mpop'
 
 setup(name=NAME,
-      version="v0.11.7",
+      version="v0.12.0",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
