@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -73,7 +73,7 @@ def load(satscene, calibrate=True, area_extent=None):
                                                       area_extent)
 
 def load_generic(satscene, options, calibrate=True, area_extent=None):
-    """Read seviri data from file and load it into *satscene*.
+    """Read imager data from file and load it into *satscene*.
     """
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 

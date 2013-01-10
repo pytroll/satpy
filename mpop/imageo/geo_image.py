@@ -90,7 +90,7 @@ class GeoImage(mpop.imageo.image.Image):
             self.geotiff_save(filename, compression, tags,
                               gdal_options, blocksize, **kwargs)
         else:
-            super(GeoImage, self).save(filename, compression, format=fformat, **kwargs)
+            super(GeoImage, self).save(filename, compression, fformat=fformat, **kwargs)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
