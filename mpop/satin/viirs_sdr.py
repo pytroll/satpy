@@ -42,6 +42,7 @@ import hashlib
 from mpop import CONFIG_PATH
 from mpop.satin.logger import LOG
 from mpop.utils import strftime
+
 # ------------------------------------------------------------------------------
 class ViirsBandData(object):
     """Placeholder for the VIIRS M&I-band data.
@@ -175,9 +176,7 @@ class ViirsBandData(object):
                           'reflectances in the SDR file!')
 
         # Masking spurious data
-
         # according to documentation, mask integers >= 65328, floats <= -999.3
-        
         if issubclass(band_data.dtype.type, np.integer):
             band_array = np.ma.masked_greater(band_data, 65528)
         if issubclass(band_data.dtype.type, np.floating):
@@ -261,7 +260,7 @@ def load(satscene, *args, **kwargs):
                                     raw = True):
         options[option] = value
 
-    CASES[satscene.instrument_name](satscene, options)
+    CASES[satscene.instrument_name](satscene, options, *args, **kwargs)
 
 
 def globify(filename):
@@ -274,10 +273,11 @@ def globify(filename):
     return filename
 
 
-def load_viirs_sdr(satscene, options):
+def load_viirs_sdr(satscene, options, *args, **kwargs):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
     """
+    calibrate = kwargs.get('calibrate', 1)
     band_list = [ s.name for s in satscene.channels ]
     chns = satscene.channels_to_load & set(band_list)
     if len(chns) == 0:
@@ -360,7 +360,7 @@ def load_viirs_sdr(satscene, options):
 
 
         band = ViirsBandData(filename_band[0])
-        band.read()
+        band.read(calibrate)
         LOG.debug('Band id = ' + band.band_id)
 
         band_desc = None # I-band or M-band or Day/Night band?
