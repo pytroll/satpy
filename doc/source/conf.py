@@ -34,6 +34,8 @@ class Mock(object):
             mockType = type(name, (), {})
             mockType.__module__ = __name__
             return mockType
+        elif name == "inf":
+            return 0
         else:
             return Mock()
 
