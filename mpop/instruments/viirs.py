@@ -350,6 +350,24 @@ class ViirsCompositer(VisirCompositer):
     
     dnb.prerequisites = set(['DNB'])
 
+    def dnb_rgb(self, stretch="linear"):
+        """Make a RGB Day-Night band using M15 as blue."""
+        self.check_channels('DNB', 'M15')
+        ch1 = self['DNB'].data
+        ch2 = self['DNB'].data
+        ch3 = -self['M15'].data
+   
+        img =  geo_image.GeoImage((ch1, ch2, ch3),
+                                  self.area,
+                                  self.time_slot,
+                                  fill_value=(0, 0, 0),
+                                  mode="RGB")
+        if stretch:
+            img.enhance(stretch=stretch)
+        return img
+    
+    dnb_rgb.prerequisites = set(['DNB', 'M15'])
+
     def ir108(self):
         """Make a black and white image of the IR 10.8um channel.
         """
