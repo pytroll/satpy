@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012.
+# Copyright (c) 2010, 2012, 2013.
 
 # Author(s):
  
@@ -70,6 +70,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
     def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
+        LOG.debug("Filename: %s" % filename)
+
         is_temp = False
         if not h5py.is_hdf5(filename):
             # Try see if it is bzipped:
