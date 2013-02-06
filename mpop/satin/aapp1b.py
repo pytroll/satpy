@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 SMHI
+# Copyright (c) 2012, 2013 SMHI
 
 # Author(s):
 
@@ -43,8 +43,11 @@ LOG = logging.getLogger('aapp1b')
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
+    A possible *calibrate* keyword argument is passed to the AAPP reader. 
+    Should be 0 for off (counts), 1 for default (brightness temperatures and
+    reflectances), and 2 for radiances only.
     """
-    del args, kwargs
+    del args
 
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
@@ -52,6 +55,8 @@ def load(satscene, *args, **kwargs):
     for option, value in conf.items(satscene.instrument_name + "-level2",
                                     raw = True):
         options[option] = value
+
+    options["calibrate"] = kwargs.get("calibrate", True)
 
     LOG.info("Loading instrument '%s'" % satscene.instrument_name)
     try:
@@ -95,7 +100,11 @@ def load_avhrr(satscene, options):
 
     scene = AAPP1b(filename)
     scene.read()
-    scene.calibrate(chns)
+    if 'calibrate' in options:
+        scene.calibrate(chns, calibrate=options['calibrate'])
+    else:
+        scene.calibrate(chns, calibrate=1)
+
     scene.navigate()
     for chn in chns:
         if scene.channels.has_key(chn):
@@ -349,18 +358,25 @@ class AAPP1b(object):
             self.lons, self.lats = satint.interpolate()
             LOG.debug("Navigation time " + str(datetime.datetime.now() - tic))
 
-    def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5")):
+    def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
+                  calibrate=1):
         """Calibrate the data
         """
         tic = datetime.datetime.now()
 
         if "1" in chns:
-            self.channels['1'] = _vis_calibrate(self._data, 0)
-            self.units['1'] = '%'
+            self.channels['1'] = _vis_calibrate(self._data, 0, calibrate)
+            if calibrate == 0:
+                self.units['1'] = ''
+            else:
+                self.units['1'] = '%'
             
         if "2" in chns:
-            self.channels['2'] = _vis_calibrate(self._data, 1)
-            self.units['2'] = '%'
+            self.channels['2'] = _vis_calibrate(self._data, 1, calibrate)
+            if calibrate == 0:
+                self.units['2'] = ''
+            else:
+                self.units['2'] = '%'
 
         if "3A" in chns or "3B" in chns:
             # Is it 3A or 3B:
@@ -369,36 +385,65 @@ class AAPP1b(object):
             self._is3b = is3b
 
         if "3A" in chns:
-            ch3a = _vis_calibrate(self._data, 2)
+            ch3a = _vis_calibrate(self._data, 2, calibrate)
             self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
-            self.units['3A'] = '%'		
+            if calibrate == 0:
+                self.units['3A'] = ''		
+            else:
+                self.units['3A'] = '%'
 
         if "3B" in chns:
-            ch3b = _ir_calibrate(self._header, self._data, 0)
+            ch3b = _ir_calibrate(self._header, self._data, 0, calibrate)
             self.channels['3B'] = np.ma.masked_array(ch3b, 
                                                      np.logical_or((is3b==False)
                                                                    * ch3b, 
                                                                    ch3b<0.1))
-            self.units['3B'] = 'K'
+            if calibrate == 1:
+                self.units['3B'] = 'K'
+            elif calibrate == 2:
+                self.units['3B'] = 'W*m-2*sr-1*cm ?'
+            else:
+                self.units['3B'] = ''
 
         if "4" in chns:
-            self.channels['4'] = _ir_calibrate(self._header, self._data, 1)
-            self.units['4'] = 'K'
+            self.channels['4'] = _ir_calibrate(self._header, self._data, 1, calibrate)
+            if calibrate == 1:
+                self.units['4'] = 'K'
+            elif calibrate == 2:
+                self.units['4'] = 'W*m-2*sr-1*cm ?'
+            else:
+                self.units['4'] = ''
+
 
         if "5" in chns:
-            self.channels['5'] = _ir_calibrate(self._header, self._data, 2)
-            self.units['5'] = 'K'
+            self.channels['5'] = _ir_calibrate(self._header, self._data, 2, calibrate)
+            if calibrate == 1:
+                self.units['5'] = 'K'
+            elif calibrate == 2:
+                self.units['5'] = 'W*m-2*sr-1*cm ?'
+            else:
+                self.units['5'] = ''
 
         LOG.debug("Calibration time " + str(datetime.datetime.now() - tic))
         
 
-def _vis_calibrate(data, chn):
-    """Visible channel calibration only
+def _vis_calibrate(data, chn, calib_type):
+    """Visible channel calibration only.
+    *calib_type* = 0: Counts
+    *calib_type* = 1: Reflectances
+    *calib_type* = 2: Radiances
     """
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
     
     channel = data["hrpt"][:, :, chn].astype(np.float)
+    if calib_type == 0:
+        return channel
+
+    if calib_type == 2:
+        LOG.info("Radiances are not yet supported for " + 
+                 "the VIS/NIR channels!")
+
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
     mask2 = channel > np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
 
@@ -417,9 +462,18 @@ def _vis_calibrate(data, chn):
     return channel
 
 
-def _ir_calibrate(header, data, irchn):
+def _ir_calibrate(header, data, irchn, calib_type):
     """IR calibration
+    *calib_type* = 0: Counts
+    *calib_type* = 1: Reflectances
+    *calib_type* = 2: Radiances
     """
+
+    count = data['hrpt'][:, :, irchn + 2].astype(np.float)
+
+    if calib_type == 0:
+        return count
+
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
 
@@ -437,10 +491,11 @@ def _ir_calibrate(header, data, irchn):
     bandcor_2 = header['radtempcnv'][0, irchn, 1]/1e5
     bandcor_3 = header['radtempcnv'][0, irchn, 2]/1e6
 
-    count = data['hrpt'][:, :, irchn + 2].astype(np.float)
-
     # Count to radiance conversion:
     rad = k1_ * count*count + k2_*count + k3_
+
+    if calib_type == 2:
+        return rad
 
     all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
                                              np.equal(k2_, 0)),
