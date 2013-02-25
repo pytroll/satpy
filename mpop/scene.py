@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -322,6 +322,66 @@ class SatelliteInstrumentScene(SatelliteScene):
         return self.channels.__iter__()
 
 
+    def _set_reader(self, pformat):
+        """Gets the reader for *pformat* format, and puts it in the `reader`
+        attribute.
+        """
+       
+        elements = pformat.split(".")
+        if len(elements) == 1:
+            reader_module = pformat
+            reader = "mpop.satin."+reader_module
+
+            # Loading old style plugins
+            reader_module = pformat
+            LOG.warning("old style plugin: " + pformat)
+            try:
+                # Look for builtin reader
+                loader = __import__(reader, globals(),
+                                    locals(), ['load'])
+            except ImportError:
+                # Look for custom reader
+                loader = __import__(reader_module, globals(),
+                                    locals(), ['load'])
+
+            # Build a custom Reader plugin on the fly...
+            from mpop.plugin_base import Reader
+            reader_class = type(elements[-1].capitalize() + "Reader",
+                                (Reader,),
+                                {"pformat": elements[-1]})
+
+            reader_instance = reader_class(self)
+
+            # ... and set its "load" attribute with the "load" function of the
+            # loader module
+            loader = getattr(loader, "load")
+            setattr(reader_instance, "load", loader)
+
+            setattr(self, elements[-1] + "_reader", reader_instance)
+
+
+        else:
+            reader_module = ".".join(elements[:-1])
+            reader_class = elements[-1]
+        
+            reader = "mpop.satin."+reader_module
+            try:
+                # Look for builtin reader
+                loader = __import__(reader, globals(),
+                                    locals(), [reader_class])
+            except ImportError:
+                # Look for custom reader
+                loader = __import__(reader_module, globals(),
+                                    locals(), [reader_class])
+            loader = getattr(loader, reader_class)
+            reader_instance = loader(self)
+            setattr(self, loader.pformat + "_reader", reader_instance)
+
+        return reader_instance
+
+
+
+
 
     def load(self, channels=None, load_again=False, area_extent=None, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
@@ -407,16 +467,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             # read the data
             reader = "mpop.satin."+reader_name
             try:
-                try:
-                    # Look for builtin reader
-                    reader_module = __import__(reader, globals(),
-                                               locals(), ['load'])
-                except ImportError, e:
-                    LOG.warning("Cannot import builtin plugin "+reader+": " + str(e))
-                    
-                    # Look for custom reader
-                    reader_module = __import__(reader_name, globals(),
-                                               locals(), ['load'])
+                reader_instance = self._set_reader(reader_name)
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
                        len(area_extent) == 4):
@@ -424,8 +475,8 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         raise ValueError("Area extent must be a sequence of "
                                          "four numbers.")
-
-                reader_module.load(self, **kwargs)
+                    
+                reader_instance.load(self, **kwargs)
             except ImportError, e:
                 LOG.exception("ImportError while loading "+reader_name+": "
                               + str(e))
