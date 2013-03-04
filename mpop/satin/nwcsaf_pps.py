@@ -70,6 +70,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
     def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
+        LOG.debug("Filename: %s" % filename)
+
         is_temp = False
         if not h5py.is_hdf5(filename):
             # Try see if it is bzipped:
