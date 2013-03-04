@@ -440,7 +440,7 @@ def load(scene, geofilename=None, **kwargs):
             geoname_tmpl = conf.get(scene.instrument_name+"-level3", 
                                     "geofilename", raw=True)
             filename_tmpl = (scene.time_slot.strftime(geoname_tmpl)
-                             %{"orbit": scene.orbit or "*",
+                             %{"orbit": scene.orbit.zfill(5) or "*",
                                "area": area_name,
                                "satellite": scene.satname + scene.number})
 
@@ -468,7 +468,7 @@ def load(scene, geofilename=None, **kwargs):
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit or "*",
+                         %{"orbit": scene.orbit.zfill(5) or "*",
                            "area": area_name,
                            "satellite": scene.satname + scene.number,
                            "product": product})
