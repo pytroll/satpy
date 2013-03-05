@@ -446,7 +446,8 @@ def load(scene, geofilename=None, **kwargs):
 
             file_list = glob.glob(os.path.join(geodir, filename_tmpl))
             if len(file_list) > 1:
-                LOG.warning("More than 1 file matching for geoloaction")
+                LOG.warning("More than 1 file matching for geoloaction: "
+                            + str(file_list))
             elif len(file_list) == 0:
                 LOG.warning("No geolocation file matching!: " + filename_tmpl)
             else:
@@ -475,7 +476,8 @@ def load(scene, geofilename=None, **kwargs):
     
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
-            LOG.warning("More than 1 file matching for " + product + "!")
+            LOG.warning("More than 1 file matching for " + product + "! "
+                        + str(file_list))
             continue
         elif len(file_list) == 0:
             LOG.warning("No " + product + " matching!: " + filename_tmpl)
