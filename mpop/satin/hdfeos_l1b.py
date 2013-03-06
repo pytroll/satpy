@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -53,12 +53,13 @@ def load(satscene, *args, **kwargs):
     del args
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
+    options = kwargs
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
     options["resolution"] = kwargs.get("resolution", 1000)
     options["filename"] = kwargs.get("filename")
+    
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -198,9 +199,13 @@ def load_modis(satscene, options):
                           options["dir"])
         filename = file_list[0]
 
-    load_generic(satscene, filename, resolution)
+    cores = options.get("cores", 1)
+
+    logger.debug("Using " + str(cores) + " cores for interpolation")
+
+    load_generic(satscene, filename, resolution, cores)
     
-def load_generic(satscene, filename, resolution):
+def load_generic(satscene, filename, resolution, cores):
     """Read modis data, generic part.
     """
 
@@ -223,6 +228,8 @@ def load_generic(satscene, filename, resolution):
     datasets = datadict[resolution]
 
     
+
+    loaded_bands = []
     
     # process by dataset, reflective and emissive datasets separately
 
@@ -242,6 +249,7 @@ def load_generic(satscene, filename, resolution):
                 satscene[band_names[idx]] = array[i]
                 # fix the resolution to match the loaded data.
                 satscene[band_names[idx]].resolution = resolution
+                loaded_bands.append(band_names[idx])
 
 
     # Get the orbit number
@@ -257,7 +265,9 @@ def load_generic(satscene, filename, resolution):
     
     lat, lon = get_lat_lon(satscene, resolution, filename)
     from pyresample import geometry
-    satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    area = geometry.SwathDefinition(lons=lon, lats=lat)
+    for band_name in loaded_bands:
+        satscene[band_name].area = area
 
     # Trimming out dead sensor lines (detectors) on aqua:
     # (in addition channel 21 is noisy)
