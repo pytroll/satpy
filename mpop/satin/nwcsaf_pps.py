@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012.
+# Copyright (c) 2010, 2012, 2013.
 
 # Author(s):
  
@@ -70,6 +70,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
     def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
+        LOG.debug("Filename: %s" % filename)
+
         is_temp = False
         if not h5py.is_hdf5(filename):
             # Try see if it is bzipped:
@@ -438,13 +440,14 @@ def load(scene, geofilename=None, **kwargs):
             geoname_tmpl = conf.get(scene.instrument_name+"-level3", 
                                     "geofilename", raw=True)
             filename_tmpl = (scene.time_slot.strftime(geoname_tmpl)
-                             %{"orbit": scene.orbit or "*",
+                             %{"orbit": scene.orbit.zfill(5) or "*",
                                "area": area_name,
                                "satellite": scene.satname + scene.number})
 
             file_list = glob.glob(os.path.join(geodir, filename_tmpl))
             if len(file_list) > 1:
-                LOG.warning("More than 1 file matching for geoloaction")
+                LOG.warning("More than 1 file matching for geoloaction: "
+                            + str(file_list))
             elif len(file_list) == 0:
                 LOG.warning("No geolocation file matching!: " + filename_tmpl)
             else:
@@ -466,14 +469,15 @@ def load(scene, geofilename=None, **kwargs):
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit or "*",
+                         %{"orbit": scene.orbit.zfill(5) or "*",
                            "area": area_name,
                            "satellite": scene.satname + scene.number,
                            "product": product})
     
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
-            LOG.warning("More than 1 file matching for " + product + "!")
+            LOG.warning("More than 1 file matching for " + product + "! "
+                        + str(file_list))
             continue
         elif len(file_list) == 0:
             LOG.warning("No " + product + " matching!: " + filename_tmpl)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -311,6 +311,75 @@ class ViirsCompositer(VisirCompositer):
         return img
 
     night_fog.prerequisites = set(['M12', 'M15', 'M16'])
+
+    def dust(self):
+        """Make a Dust RGB image composite.
+        """
+        self.check_channels('M14', 'M15', 'M16')
+
+        ch1 = self['M16'].data - self['M15'].data
+        ch2 = self['M15'].data - self['M14'].data
+        ch3 = self['M15'].data
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 15),
+                                         (261, 289)))
+
+        img.enhance(gamma=(1.0, 2.5, 1.0))
+        
+        return img
+
+    dust.prerequisites = set(['M14', 'M15', 'M16'])
+
+
+    def ash(self):
+        """Make a Ash RGB image composite.
+        """
+        self.check_channels('M14', 'M15', 'M16')
+
+        ch1 = self['M16'].data - self['M15'].data
+        ch2 = self['M15'].data - self['M14'].data
+        ch3 = self['M15'].data
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (-4, 5),
+                                         (243, 303)))
+
+        return img
+
+    ash.prerequisites = set(['M14', 'M15', 'M16'])
+
+
+    def fog(self):
+        """Make a Fog RGB image composite.
+        """
+        self.check_channels('M14', 'M15', 'M16')
+
+        ch1 = self['M16'].data - self['M15'].data
+        ch2 = self['M15'].data - self['M14'].data
+        ch3 = self['M15'].data
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-4, 2),
+                                         (0, 6),
+                                         (243, 283)))
+
+        img.enhance(gamma=(1.0, 2.0, 1.0))
+        
+        return img
+
+    fog.prerequisites = set(['M14', 'M15', 'M16'])
 
 
     def cloudtop(self):
