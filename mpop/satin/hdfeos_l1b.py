@@ -282,8 +282,8 @@ def load_generic(satscene, filename, resolution, cores):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
@@ -302,8 +302,8 @@ def load_generic(satscene, filename, resolution, cores):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
