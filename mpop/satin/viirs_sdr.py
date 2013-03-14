@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012.
+# Copyright (c) 2011, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -321,7 +321,6 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
         #                                                           filename_tmpl))
         raise IOError("No VIIRS SDR file matching!: " + os.path.join(directory,
                                                                      filename_tmpl))
-        return
 
     geo_filenames_tmpl = strftime(satscene.time_slot, options["geo_filenames"]) %values
     geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
@@ -423,8 +422,6 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
                                  filename=os.path.basename(dnb_geos[0]))
             else:
                 band.read_lonlat(directory)
-            dnb_lons = band.longitude
-            dnb_lats = band.latitude
 
         band_uid = band_desc + hashlib.sha1(band.data.mask).hexdigest()
         
