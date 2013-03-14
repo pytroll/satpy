@@ -263,7 +263,7 @@ def load_generic(satscene, filename, resolution, cores):
     #    logger.warning("Cannot load geolocation at this resolution (yet).")
     #    return
     
-    lat, lon = get_lat_lon(satscene, resolution, filename)
+    lat, lon = get_lat_lon(satscene, resolution, filename, cores)
     from pyresample import geometry
     area = geometry.SwathDefinition(lons=lon, lats=lat)
     for band_name in loaded_bands:
@@ -311,7 +311,7 @@ def load_generic(satscene, filename, resolution, cores):
 
 
     
-def get_lat_lon(satscene, resolution, filename):
+def get_lat_lon(satscene, resolution, filename, cores=1):
     """Read lat and lon.
     """
     
@@ -324,6 +324,7 @@ def get_lat_lon(satscene, resolution, filename):
 
     options["filename"] = filename
     options["resolution"] = resolution
+    options["cores"] = cores
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
 def get_lat_lon_modis(satscene, options):
@@ -367,15 +368,17 @@ def get_lat_lon_modis(satscene, options):
     if resolution == coarse_resolution:
         return lat, lon
 
+    cores = options["cores"]
+
     from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
     logger.debug("Interpolating from " + str(coarse_resolution)
                  + " to " + str(resolution))
     if coarse_resolution == 5000:
         lon, lat = modis5kmto1km(lon, lat)
     if resolution == 500:
-        lon, lat = modis1kmto500m(lon, lat)
+        lon, lat = modis1kmto500m(lon, lat, cores)
     if resolution == 250:
-        lon, lat = modis1kmto250m(lon, lat)
+        lon, lat = modis1kmto250m(lon, lat, cores)
     
     return lat, lon
 
