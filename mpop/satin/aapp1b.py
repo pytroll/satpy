@@ -100,10 +100,7 @@ def load_avhrr(satscene, options):
 
     scene = AAPP1b(filename)
     scene.read()
-    if 'calibrate' in options:
-        scene.calibrate(chns, calibrate=options['calibrate'])
-    else:
-        scene.calibrate(chns, calibrate=1)
+    scene.calibrate(chns, calibrate=options.get('calibrate', 1))
 
     scene.navigate()
     for chn in chns:
