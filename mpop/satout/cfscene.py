@@ -115,8 +115,11 @@ class CFScene(object):
                 else: # Unsigned data type
                     offset = chn_min - scale                    
                 
-                data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
-                data[chn.data.mask] = fill_value
+                if isinstance(chn.data, np.ma.MaskedArray):
+                    data = ((chn.data.data - offset) / scale).astype(CF_DATA_TYPE)
+                    data[chn.data.mask] = fill_value
+                else:
+                    data = ((chn.data - offset) / scale).astype(CF_DATA_TYPE)
 
             data = np.ma.expand_dims(data, band_axis)
             
@@ -199,7 +202,7 @@ class CFScene(object):
                 area = None
                 if(chn.area in areas):
                     str_arc = str(areas.index(chn.area))
-                    coordinates = ["lon"+str_arc, "lat"+str_arc]
+                    coordinates = ("lat"+str_arc + " " + "lon"+str_arc)
                 else:
                     areas.append(chn.area)
                     str_arc = str(area_counter)
@@ -239,6 +242,7 @@ class CFScene(object):
                     if lats.data is not None and lons.data is not None:
                         coordinates = (lats.info["var_name"]+" "+
                                        lons.info["var_name"])
+                xy_names = ["y"+str_arc, "x"+str_arc]
 
             if (chn.area, chn.info['units']) in area_units:
                 str_cnt = str(area_units.index((chn.area, chn.info['units'])))
