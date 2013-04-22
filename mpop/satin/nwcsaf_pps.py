@@ -102,6 +102,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         self._md = dict(h5f.attrs)
         self._md["satellite"] = h5f.attrs['satellite_id']
+        self._md["orbit"] = h5f.attrs['orbit_number']
         self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970']))
                                  + datetime(1970, 1, 1, 0, 0))
 
