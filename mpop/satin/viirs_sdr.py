@@ -301,6 +301,7 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
 
     if not os.path.exists(directory):
         directory = globify(options["dir"]) % values
+        LOG.debug("Looking for files in directory " + str(directory))
         directories = glob.glob(directory)
         if len(directories) > 1:
             raise IOError("More than one directory for npp scene... " + 
@@ -314,11 +315,10 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
     file_list = glob.glob(os.path.join(directory, filename_tmpl))
     filenames = [ os.path.basename(s) for s in file_list ]
 
+    LOG.debug("Template = " + str(filename_tmpl))
     if len(file_list) > 22: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
         raise IOError("More than 22 files matching!")
     elif len(file_list) == 0:
-        #LOG.warning("No VIIRS SDR file matching!: " + os.path.join(directory,
-        #                                                           filename_tmpl))
         raise IOError("No VIIRS SDR file matching!: " + os.path.join(directory,
                                                                      filename_tmpl))
 
