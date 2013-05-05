@@ -501,7 +501,6 @@ def _ir_calibrate(header, data, irchn, calib_type):
     if suspect_line_nums.any():
         LOG.info("Suspect scan lines: " + str(suspect_line_nums))
 
-
     t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
 
     # Band corrections applied to t_planck to get correct
@@ -512,7 +511,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
     tb_[tb_ <= 0] = np.nan
-    tb_[bandcor_3 == 0] = np.nan
+    tb_[count == 0] = np.nan
     tb_[rad == 0] = np.nan
     return np.ma.masked_array(tb_, np.isnan(tb_))
 
