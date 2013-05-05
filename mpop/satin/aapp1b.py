@@ -505,14 +505,16 @@ def _ir_calibrate(header, data, irchn, calib_type):
 
     t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
 
-    # TODO: can we check that with self._header["libversnb"] for example ?
-    # AAPP-v4 and earlier:
-    #tb_ = (t_planck - bandcor_2) / bandcor_3
-
-    # Post AAPP-v4
-    tb_ = bandcor_2 + bandcor_3 * t_planck
+    # Band corrections applied to t_planck to get correct
+    # brightness temperature for channel:
+    if bandcor_2 < 0: # Post AAPP-v4
+        tb_ = bandcor_2 + bandcor_3 * t_planck
+    else: # AAPP 1 to 4
+        tb_ = (t_planck - bandcor_2) / bandcor_3
 
     tb_[tb_ <= 0] = np.nan
+    tb_[bandcor_3 == 0] = np.nan
+    tb_[rad == 0] = np.nan
     return np.ma.masked_array(tb_, np.isnan(tb_))
 
 
