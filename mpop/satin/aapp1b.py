@@ -454,9 +454,8 @@ def _vis_calibrate(data, chn, calib_type):
                       np.expand_dims(data["calvis"][:, chn, 2, 3] * 
                                      1e-7, 1))[mask2]
 
-    channel[channel < 0] = 0
-    
-    return channel
+    channel[channel < 0] = np.nan
+    return np.ma.masked_array(channel, np.isnan(channel))
 
 
 def _ir_calibrate(header, data, irchn, calib_type):
