@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 Martin Raspaud
+# Copyright (c) 2012, 2013 Martin Raspaud
 
 # Author(s):
 
@@ -203,9 +203,20 @@ class EpsAvhrrL1bReader(object):
                                    self["EARTH_LOCATION_LAST"][:, [1]]))
         return self.lons[row, col], self.lats[row, col]
         
-    def get_channels(self, channels):
+    def get_channels(self, channels, calib_type):
         """Get calibrated channel data.
+        *calib_type* = 0: Counts
+        *calib_type* = 1: Reflectances and brightness temperatures
+        *calib_type* = 2: Radiances
         """
+
+        if calib_type == 0:
+            raise ValueError('calibrate=0 is not supported! ' +
+                             'This reader cannot return counts')
+        elif calib_type != 1 and calib_type != 2:
+            raise ValueError('calibrate=' + str(calib_type) + 
+                             'is not supported!')
+
 
         if ("3a" in channels or
             "3A" in channels or
@@ -220,39 +231,64 @@ class EpsAvhrrL1bReader(object):
                 LOG.info("Can't load channel in eps_l1b: " + str(chan))
             
             if chan == "1":
-                chans[chan] = np.ma.array(
-                    to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                            self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 0, :],
+                                self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
+                else: 
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 0, :])
             if chan == "2":
-                chans[chan] = np.ma.array(
-                    to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                            self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 1, :],
+                                self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                else:
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 1, :])
+
             if chan.lower() == "3a":
-                chans[chan] = to_refl(self["SCENE_RADIANCES"][:, 2, :],
-                                      self["CH2_SOLAR_FILTERED_IRRADIANCE"])
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 2, :],
+                                self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                else:
+                    chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 2, :])
+                    
                 chans[chan][three_b, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan.lower() == "3b":
-                chans[chan] = to_bt(self["SCENE_RADIANCES"][:, 2, :],
-                                    self["CH3B_CENTRAL_WAVENUMBER"],
-                                    self["CH3B_CONSTANT1"],
-                                    self["CH3B_CONSTANT2_SLOPE"])
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 2, :],
+                              self["CH3B_CENTRAL_WAVENUMBER"],
+                              self["CH3B_CONSTANT1"],
+                              self["CH3B_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = self["SCENE_RADIANCES"][:, 2, :]
                 chans[chan][three_a, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan == "4":
-                chans[chan] = np.ma.array(
-                    to_bt(self["SCENE_RADIANCES"][:, 3, :],
-                          self["CH4_CENTRAL_WAVENUMBER"],
-                          self["CH4_CONSTANT1"],
-                          self["CH4_CONSTANT2_SLOPE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 3, :],
+                              self["CH4_CENTRAL_WAVENUMBER"],
+                              self["CH4_CONSTANT1"],
+                              self["CH4_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 3, :])
+                    
             if chan == "5":
-                chans[chan] = np.ma.array(
-                    to_bt(self["SCENE_RADIANCES"][:, 4, :],
-                          self["CH5_CENTRAL_WAVENUMBER"],
-                          self["CH5_CONSTANT1"],
-                          self["CH5_CONSTANT2_SLOPE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 4, :],
+                              self["CH5_CENTRAL_WAVENUMBER"],
+                              self["CH5_CONSTANT1"],
+                              self["CH5_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
-                
         return chans
     
 def get_lonlat(scene, row, col):
@@ -389,13 +425,25 @@ def get_corners(filename):
 
 def load(scene, *args, **kwargs):
     """Loads the *channels* into the satellite *scene*.
+    A possible *calibrate* keyword argument is passed to the AAPP reader
+    Should be 0 for off, 1 for default, and 2 for radiances only.
+    However, as the AAPP-lvl1b file contains radiances this reader cannot
+    return counts, so calibrate=0 is not allowed/supported. The radiance to
+    counts conversion is not possible.
     """
+
+    del args
+    calibrate = kwargs.get("calibrate", True)
+    if calibrate == 0:
+        raise ValueError('calibrate=0 is not supported! ' +
+                         'This reader cannot return counts')
 
     filename = (kwargs.get("filename", None) or
                 get_filename(scene, "level2"))
     LOG.debug("Using file " + filename)
     reader = EpsAvhrrL1bReader(filename)
-    for chname, arr in reader.get_channels(scene.channels_to_load).items():
+    for chname, arr in reader.get_channels(scene.channels_to_load, 
+                                           calibrate).items():
         scene[chname] = arr
 
     scene.orbit = str(int(reader["ORBIT_START"]))
@@ -405,10 +453,7 @@ def load(scene, *args, **kwargs):
         scene.area = geometry.SwathDefinition(lons, lats)
     except NameError:
         scene.lons, scene.lats = lons, lats
-
         
-
-
 
 def norm255(a__):
     """normalize array to uint8.
