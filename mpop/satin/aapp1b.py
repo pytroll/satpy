@@ -122,7 +122,7 @@ AVHRR_CHANNEL_NAMES = ("1", "2", "3A", "3B", "4", "5")
 
 # AAPP 1b header
 
-_headertype = np.dtype([("siteid", "S3"),
+_HEADERTYPE = np.dtype([("siteid", "S3"),
                         ("blank", "S1"),
                         ("l1bversnb", "<i2"),
                         ("l1bversyr", "<i2"),
@@ -259,7 +259,7 @@ _headertype = np.dtype([("siteid", "S3"),
 
 # AAPP 1b scanline
 
-_scantype = np.dtype([("scnlin", "<i2"),
+_SCANTYPE = np.dtype([("scnlin", "<i2"),
                       ("scnlinyr", "<i2"),
                       ("scnlindy", "<i2"),
                       ("clockdrift", "<i2"),
@@ -316,9 +316,9 @@ class AAPP1b(object):
         """
         tic = datetime.datetime.now()
         with open(self.filename, "rb") as fp_:
-            header =  np.fromfile(fp_, dtype=_headertype, count=1)
+            header =  np.fromfile(fp_, dtype=_HEADERTYPE, count=1)
             fp_.seek(10664 * 2, 1)
-            data = np.fromfile(fp_, dtype=_scantype)
+            data = np.fromfile(fp_, dtype=_SCANTYPE)
 
         LOG.debug("Reading time " + str(datetime.datetime.now() - tic))
         self._header = header
@@ -403,7 +403,8 @@ class AAPP1b(object):
                 self.units['3B'] = ''
 
         if "4" in chns:
-            self.channels['4'] = _ir_calibrate(self._header, self._data, 1, calibrate)
+            self.channels['4'] = _ir_calibrate(self._header, 
+                                               self._data, 1, calibrate)
             if calibrate == 1:
                 self.units['4'] = 'K'
             elif calibrate == 2:
@@ -413,7 +414,8 @@ class AAPP1b(object):
 
 
         if "5" in chns:
-            self.channels['5'] = _ir_calibrate(self._header, self._data, 2, calibrate)
+            self.channels['5'] = _ir_calibrate(self._header, 
+                                               self._data, 2, calibrate)
             if calibrate == 1:
                 self.units['5'] = 'K'
             elif calibrate == 2:
