@@ -511,7 +511,10 @@ def _ir_calibrate(header, data, irchn, calib_type):
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
     tb_[tb_ <= 0] = np.nan
-    tb_[count == 0] = np.nan
+    # Data with count=0 are often related to erroneous (bad) lines, but in case
+    # of saturation (channel 3b) count=0 can be observed and associated to a
+    # real measurement. So we leave out this filtering to the user!
+    # tb_[count == 0] = np.nan
     tb_[rad == 0] = np.nan
     return np.ma.masked_array(tb_, np.isnan(tb_))
 
