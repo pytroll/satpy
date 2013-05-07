@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -185,10 +185,10 @@ class ViirsCompositer(VisirCompositer):
     def green_snow(self):
         """Make a Green Snow RGB image composite.
         """
-        self.check_channels('M07', 'M10', 'M15')
+        self.check_channels('M05', 'M10', 'M15')
 
         ch1 = self['M10'].check_range()
-        ch2 = self['M07'].check_range()
+        ch2 = self['M05'].check_range()
         ch3 = -self['M15'].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
@@ -202,15 +202,15 @@ class ViirsCompositer(VisirCompositer):
         
         return img
 
-    green_snow.prerequisites = set(['M07', 'M10', 'M15'])
+    green_snow.prerequisites = set(['M05', 'M10', 'M15'])
 
     def hr_green_snow(self):
         """Make a Green Snow RGB image composite.
         """
-        self.check_channels('I02', 'I03', 'I05')
+        self.check_channels('I01', 'I03', 'I05')
 
         ch1 = self['I03'].check_range()
-        ch2 = self['I02'].check_range()
+        ch2 = self['I01'].check_range()
         ch3 = -self['I05'].data
 
         img = geo_image.GeoImage((ch1, ch2, ch3),
@@ -224,7 +224,7 @@ class ViirsCompositer(VisirCompositer):
 
         return img
 
-    hr_green_snow.prerequisites = set(['I02', 'I03', 'I05'])
+    hr_green_snow.prerequisites = set(['I01', 'I03', 'I05'])
 
     def red_snow(self):
         """Make a Red Snow RGB image composite.

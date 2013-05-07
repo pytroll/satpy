@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -227,10 +227,10 @@ class VisirCompositer(Compositer):
     def green_snow(self):
         """Make a Green Snow RGB image composite.
         """
-        self.check_channels(0.85, 1.63, 10.8)
+        self.check_channels(0.635, 1.63, 10.8)
 
         ch1 = self[1.63].check_range()
-        ch2 = self[0.85].check_range()
+        ch2 = self[0.635].check_range()
         ch3 = -self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
@@ -244,7 +244,7 @@ class VisirCompositer(Compositer):
 
         return img
 
-    green_snow.prerequisites = set([0.85, 1.63, 10.8])
+    green_snow.prerequisites = set([0.635, 1.63, 10.8])
 
     def red_snow(self):
         """Make a Red Snow RGB image composite.
