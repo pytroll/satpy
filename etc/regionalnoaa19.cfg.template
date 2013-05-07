@@ -1,0 +1,61 @@
+[satellite]
+satname = noaa
+number = 19
+variant = regional
+instruments = ('avhrr',)
+
+[avhrr-level3]
+filename = %(product)s_%Y%m%d_%H%M00_%(satellite)s.h5*
+dir = /path/to/my/ears/nwc
+format = nwcsaf_pps
+
+[avhrr-level1]
+format=hrpt
+shortname=noaa19
+dir=/path/to/my/ears/avhrr
+filename=avhrr_%Y%m%d%_H%M%S_noaa19.hrp*bz2
+
+[avhrr-granules]
+type=bzipped hrpt
+granularity=60
+full_scan_period=0.1667
+scan_width=2048
+dir=/path/to/my/ears/avhrr
+filename=avhrr_%Y%m%d_%H%M%S_noaa19.hrp.bz2
+
+
+[avhrr-1]
+name = '1'
+frequency = (0.58, 0.63, 0.68)
+resolution = 1090
+size = (2048,)
+
+[avhrr-2]
+name = '2'
+frequency = (0.725, 0.8625, 1.0)
+resolution = 1090
+size = (2048,)
+
+[avhrr-3]
+name = '3A'
+frequency = (1.58, 1.61, 1.64)
+resolution = 1090
+size = (2048,)
+
+[avhrr-4]
+name = '3B'
+frequency = (3.55, 3.74, 3.93)
+resolution = 1090
+size = (2048,)
+
+[avhrr-5]
+name = '4'
+frequency = (10.3, 10.8, 11.3)
+resolution = 1090
+size = (2500, 2500)
+
+[avhrr-6]
+name = '5'
+frequency = (11.5, 12.0, 12.5)
+resolution = 1090
+size = (2500, 2500)

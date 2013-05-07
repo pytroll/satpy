@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -53,12 +53,13 @@ def load(satscene, *args, **kwargs):
     del args
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
+    options = kwargs
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
     options["resolution"] = kwargs.get("resolution", 1000)
     options["filename"] = kwargs.get("filename")
+    
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -198,9 +199,13 @@ def load_modis(satscene, options):
                           options["dir"])
         filename = file_list[0]
 
-    load_generic(satscene, filename, resolution)
+    cores = options.get("cores", 1)
+
+    logger.debug("Using " + str(cores) + " cores for interpolation")
+
+    load_generic(satscene, filename, resolution, cores)
     
-def load_generic(satscene, filename, resolution):
+def load_generic(satscene, filename, resolution, cores):
     """Read modis data, generic part.
     """
 
@@ -223,6 +228,8 @@ def load_generic(satscene, filename, resolution):
     datasets = datadict[resolution]
 
     
+
+    loaded_bands = []
     
     # process by dataset, reflective and emissive datasets separately
 
@@ -242,6 +249,7 @@ def load_generic(satscene, filename, resolution):
                 satscene[band_names[idx]] = array[i]
                 # fix the resolution to match the loaded data.
                 satscene[band_names[idx]].resolution = resolution
+                loaded_bands.append(band_names[idx])
 
 
     # Get the orbit number
@@ -255,9 +263,11 @@ def load_generic(satscene, filename, resolution):
     #    logger.warning("Cannot load geolocation at this resolution (yet).")
     #    return
     
-    lat, lon = get_lat_lon(satscene, resolution, filename)
+    lat, lon = get_lat_lon(satscene, resolution, filename, cores)
     from pyresample import geometry
-    satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    area = geometry.SwathDefinition(lons=lon, lats=lat)
+    for band_name in loaded_bands:
+        satscene[band_name].area = area
 
     # Trimming out dead sensor lines (detectors) on aqua:
     # (in addition channel 21 is noisy)
@@ -272,8 +282,8 @@ def load_generic(satscene, filename, resolution):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
@@ -292,8 +302,8 @@ def load_generic(satscene, filename, resolution):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
@@ -301,7 +311,7 @@ def load_generic(satscene, filename, resolution):
 
 
     
-def get_lat_lon(satscene, resolution, filename):
+def get_lat_lon(satscene, resolution, filename, cores=1):
     """Read lat and lon.
     """
     
@@ -314,6 +324,7 @@ def get_lat_lon(satscene, resolution, filename):
 
     options["filename"] = filename
     options["resolution"] = resolution
+    options["cores"] = cores
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
 def get_lat_lon_modis(satscene, options):
@@ -357,15 +368,17 @@ def get_lat_lon_modis(satscene, options):
     if resolution == coarse_resolution:
         return lat, lon
 
+    cores = options["cores"]
+
     from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
     logger.debug("Interpolating from " + str(coarse_resolution)
                  + " to " + str(resolution))
     if coarse_resolution == 5000:
         lon, lat = modis5kmto1km(lon, lat)
     if resolution == 500:
-        lon, lat = modis1kmto500m(lon, lat)
+        lon, lat = modis1kmto500m(lon, lat, cores)
     if resolution == 250:
-        lon, lat = modis1kmto250m(lon, lat)
+        lon, lat = modis1kmto250m(lon, lat, cores)
     
     return lat, lon
 
