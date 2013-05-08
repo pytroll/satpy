@@ -38,7 +38,7 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 NAME = 'mpop'
 
 setup(name=NAME,
-      version="v0.12.0",
+      version="v0.13.0alpha",
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
@@ -50,7 +50,7 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/mraspaud/mpop",
-      download_url="https://github.com/mraspaud/mpop/tarball/master#egg=mpop-v0.12.0",
+      #download_url="https://github.com/mraspaud/mpop/tarball/master#egg=mpop-v0.12.0",
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo'],
       data_files=[('etc',[os.path.join('etc', 'geo_image.cfg')],

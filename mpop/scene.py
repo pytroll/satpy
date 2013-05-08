@@ -334,7 +334,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
             # Loading old style plugins
             reader_module = pformat
-            LOG.warning("old style plugin: " + pformat)
+            LOG.info("old style plugin: " + pformat)
             try:
                 # Look for builtin reader
                 loader = __import__(reader, globals(),
