@@ -74,6 +74,5 @@ setup(name=NAME,
       requires=['numpy (>=1.4.1)'],
       extras_require={ 'xRIT': ['mipp >= 0.6.0'],
                        'proj': ['pyresample'],
-                       'hdf_eos': ['pyhdf'],
-                       'aapp': ['ahamap']}
+                       'hdf_eos': ['pyhdf']}
       )
