@@ -66,7 +66,6 @@ class ViirsBandData(object):
         self.latitude = None
         self.longitude = None
 
-
     def read(self, calibrate=1):
         """Read one VIIRS M- or I-band channel: Data and attributes (meta data)
 
@@ -165,6 +164,11 @@ class ViirsBandData(object):
             self.scale, self.offset = h5f['All_Data'][bname][factors_name].value[0:2]
             if calibrate == 1:
                 self.units = '%'
+                # To get reflectances in percent!
+                # The VIIRS reflectances are between 0 and 1.
+                # mpop standard is '%'
+                self.scale *= np.int8(100)
+                self.offset *= np.int8(100)
             elif calibrate == 2:
                 self.units == 'W m-2 um-1 sr-1'
         elif refl_name not in keys and tb_name not in keys and rad_name in keys:
@@ -178,21 +182,17 @@ class ViirsBandData(object):
         # Masking spurious data
         # according to documentation, mask integers >= 65328, floats <= -999.3
         if issubclass(band_data.dtype.type, np.integer):
-            band_array = np.ma.masked_greater(band_data, 65528)
+            band_mask = band_data >= 65528
         if issubclass(band_data.dtype.type, np.floating):
-            band_array = np.ma.masked_less(band_data, -999.2)
+            band_mask = band_data <= -999.2
 
         # Is it necessary to mask negatives?
-        # The VIIRS reflectances are between 0 and 1.
-        # mpop standard is '%'
-        if self.units == '%':
-            myscale = 100.0 # To get reflectances in percent!
-        else:
-            myscale = 1.0
-        self.data =  np.ma.masked_less(myscale * (band_array *
-                                                  self.scale +
-                                                  self.offset),
-                                       0)
+
+        band_data *= self.scale
+        band_data += self.offset
+        band_mask |= band_data < 0
+        self.data = np.ma.array(band_data, mask=band_mask, copy=False)
+
         h5f.close()
 
     def read_lonlat(self, geodir, **kwargs):
@@ -246,13 +246,13 @@ def get_lonlat(filename, band_id):
         raise IOError("Failed reading lon,lat: " + 
                       "Band-id not supported = %s" % (band_id))
     h5f.close()
-    return (np.ma.masked_less(lons, -999, False), 
-            np.ma.masked_less(lats, -999, False))
 
+    return (np.ma.masked_less_equal(lons, -999, copy=False),
+            np.ma.masked_less_equal(lats, -999, copy=False))
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
-    """    
+    """
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}

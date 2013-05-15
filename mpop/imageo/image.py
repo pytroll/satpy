@@ -38,6 +38,11 @@ import re
 import Image as Pil
 import numpy as np
 
+try:
+    import numexpr as ne
+except ImportError:
+    ne = None
+
 from mpop.imageo.logger import LOG
 from mpop.utils import ensure_dir
 
@@ -819,7 +824,7 @@ class Image(object):
         self.invert(inverse)
         self.gamma(gamma)
         self.stretch(stretch)
-        
+
     def gamma(self, gamma = 1.0):
         """Apply gamma correction to the channels of the image. If *gamma* is a
         tuple, then it should have as many elements as the channels of the
@@ -849,9 +854,18 @@ class Image(object):
             gamma_list = [gamma] * len(self.channels)
         for i in range(len(self.channels)):
             if(isinstance(self.channels[i], np.ma.core.MaskedArray)):
-                self.channels[i] = np.ma.array(self.channels[i].data **
-                                               (1.0 / gamma_list[i]),
-                                               mask=self.channels[i].mask)
+                if ne:
+                    self.channels[i] = np.ma.array(
+                        ne.evaluate("data ** (1.0 / gamma)",
+                                    local_dict={"data": self.channels[i].data,
+                                                'gamma': gamma_list[i]}),
+                        mask=self.channels[i].mask,
+                        copy=False)
+                else:
+                    self.channels[i] = np.ma.array(self.channels[i].data **
+                                                   (1.0 / gamma_list[i]),
+                                                   mask=self.channels[i].mask,
+                                                   copy=False)
             else:
                 self.channels[i] = np.where(self.channels[i] >= 0,
                                             self.channels[i] **
@@ -1028,11 +1042,13 @@ class Image(object):
             max_stretch = self.channels[ch_nb].max()
 
         if((not self.channels[ch_nb].mask.all()) and
-            max_stretch - min_stretch > 0):    
-            stretched = ((self.channels[ch_nb].data - min_stretch) * 1.0 /
-                                    (max_stretch - min_stretch))
+            max_stretch - min_stretch > 0):
+            stretched = self.channels[ch_nb].data.astype(np.float)
+            stretched -= min_stretch
+            stretched /= max_stretch - min_stretch
             self.channels[ch_nb] = np.ma.array(stretched, 
-                                               mask=self.channels[ch_nb].mask)
+                                               mask=self.channels[ch_nb].mask,
+                                               copy=False)
         else:
             LOG.warning("Nothing to stretch !")
 
