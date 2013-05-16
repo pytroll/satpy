@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2012.
+# Copyright (c) 2009-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -31,6 +31,9 @@
 """
 import os.path
 from setuptools import setup
+import imp
+
+version = imp.load_source('mpop.version', 'mpop/version.py')
 
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
@@ -38,10 +41,18 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 NAME = 'mpop'
 
 setup(name=NAME,
-      version="v0.11.0",
+      version=version.__version__,
       description='Meteorological post processing package',
       author='Martin Raspaud',
       author_email='martin.raspaud@smhi.se',
+      classifiers=["Development Status :: 5 - Production/Stable",
+                   "Intended Audience :: Science/Research",
+                   "License :: OSI Approved :: GNU General Public License v3 " +
+                   "or later (GPLv3+)",
+                   "Operating System :: OS Independent",
+                   "Programming Language :: Python",
+                   "Topic :: Scientific/Engineering"],
+      url="https://github.com/mraspaud/mpop",
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo'],
       data_files=[('etc',[os.path.join('etc', 'geo_image.cfg')],

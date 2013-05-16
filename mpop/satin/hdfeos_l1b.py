@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2012.
+# Copyright (c) 2010-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -33,16 +33,19 @@ http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
 3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
 w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
+import glob
 import os.path
 from ConfigParser import ConfigParser
 
+import math
 import numpy as np
 from pyhdf.SD import SD
+from pyhdf.error import HDF4Error
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
 
-# load(["1", "11"], resolution=500)
+import logging
+logger = logging.getLogger(__name__)
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -50,11 +53,13 @@ def load(satscene, *args, **kwargs):
     del args
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
+    options = kwargs
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
     options["resolution"] = kwargs.get("resolution", 1000)
+    options["filename"] = kwargs.get("filename")
+    
     CASES[satscene.instrument_name](satscene, options)
 
 
@@ -84,7 +89,7 @@ def calibrate_refl(subdata, uncertainty, indices):
     array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
     return array
 
-def calibrate_tb(subdata, uncertainty, indices):
+def calibrate_tb(subdata, uncertainty, indices, band_names):
     """Calibration for the emissive channels.
     """
     del uncertainty
@@ -148,10 +153,17 @@ def calibrate_tb(subdata, uncertainty, indices):
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
     cwn = 1 / (cwn * 100)
 
+    # Some versions of the modis files do not contain all the bands.
+    emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29",
+                          "30", "31", "32", "33", "34", "35", "36"]
+    current_channels = [i for i, band in enumerate(emmissive_channels)
+                        if band in band_names]
+    global_indices = list(np.array(current_channels)[indices])
+
     dims = (len(indices), 1, 1)
-    cwn = cwn[indices].reshape(dims)
-    tcs = tcs[indices].reshape(dims)
-    tci = tci[indices].reshape(dims)
+    cwn = cwn[global_indices].reshape(dims)
+    tcs = tcs[global_indices].reshape(dims)
+    tci = tci[global_indices].reshape(dims)
     
     tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
     tmp = c_2 / (cwn * np.ma.log(c_1 / (1000000 * tmp * cwn ** 5) + 1))
@@ -166,28 +178,43 @@ def load_modis(satscene, options):
      loaded. If no resolution is specified, the 1km resolution (aggregated) is
      used.
     """
-    import glob
+    if options["filename"] is not None:
+        logger.debug("Reading from file: " + str(options["filename"]))
+        filename = options["filename"]
+        res = {"1": 1000,
+               "Q": 250,
+               "H": 500}
+        resolution = res[os.path.split(filename)[1][5]]
+    else:
+        resolution = int(options["resolution"]) or 1000
 
-    resolution = int(options["resolution"]) or 1000
+        filename_tmpl = satscene.time_slot.strftime(options["filename"+
+                                                            str(resolution)])
+        file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
+        if len(file_list) > 1:
+            raise IOError("More than 1 file matching!")
+        elif len(file_list) == 0:
+            raise IOError("No EOS MODIS file matching " +
+                          filename_tmpl + " in " +
+                          options["dir"])
+        filename = file_list[0]
 
-    filenames = {}
-    filename_tmpl = satscene.time_slot.strftime(options["filename"+
-                                                        str(resolution)])
-    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
-    if len(file_list) > 1:
-        raise IOError("More than 1 file matching!")
-    elif len(file_list) == 0:
-        raise IOError("No EOS MODIS file matching " +
-                      filename_tmpl + " in " +
-                      options["dir"])
+    cores = options.get("cores", 1)
 
-    load_generic(satscene, file_list[0], resolution)
+    logger.debug("Using " + str(cores) + " cores for interpolation")
+
+    load_generic(satscene, filename, resolution, cores)
     
-def load_generic(satscene, filename, resolution):
+def load_generic(satscene, filename, resolution, cores):
     """Read modis data, generic part.
     """
 
-    data = SD(filename)
+    try:
+        data = SD(str(filename))
+    except HDF4Error as err:
+        logger.warning("Could not load data from " + str(filename)
+                       + ": " + str(err))
+        return
 
     datadict = {
         1000: ['EV_250_Aggr1km_RefSB',
@@ -201,6 +228,8 @@ def load_generic(satscene, filename, resolution):
     datasets = datadict[resolution]
 
     
+
+    loaded_bands = []
     
     # process by dataset, reflective and emissive datasets separately
 
@@ -213,29 +242,32 @@ def load_generic(satscene, filename, resolution):
                        if band in satscene.channels_to_load]
             uncertainty = data.select(dataset+"_Uncert_Indexes")
             if dataset.endswith('Emissive'):
-                array = calibrate_tb(subdata, uncertainty, indices)
+                array = calibrate_tb(subdata, uncertainty, indices, band_names)
             else:
                 array = calibrate_refl(subdata, uncertainty, indices)
             for (i, idx) in enumerate(indices):
                 satscene[band_names[idx]] = array[i]
                 # fix the resolution to match the loaded data.
                 satscene[band_names[idx]].resolution = resolution
+                loaded_bands.append(band_names[idx])
 
 
     # Get the orbit number
-    mda = data.attributes()["CoreMetadata.0"]
-    orbit_idx = mda.index("ORBITNUMBER")
-    satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+    if not satscene.orbit:
+        mda = data.attributes()["CoreMetadata.0"]
+        orbit_idx = mda.index("ORBITNUMBER")
+        satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
     
-
-    # Get the geolocation
-    if resolution != 1000:
-        LOG.warning("Cannot load geolocation at this resolution (yet).")
-        return
+    ## Get the geolocation
+    #if resolution != 1000:
+    #    logger.warning("Cannot load geolocation at this resolution (yet).")
+    #    return
     
-    lat, lon = get_lat_lon(satscene, None)
+    lat, lon = get_lat_lon(satscene, resolution, filename, cores)
     from pyresample import geometry
-    satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
+    area = geometry.SwathDefinition(lons=lon, lats=lat)
+    for band_name in loaded_bands:
+        satscene[band_name].area = area
 
     # Trimming out dead sensor lines (detectors) on aqua:
     # (in addition channel 21 is noisy)
@@ -250,8 +282,8 @@ def load_generic(satscene, filename, resolution):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
@@ -270,8 +302,8 @@ def load_generic(satscene, filename, resolution):
                 continue
             satscene[band] = satscene[band].data[indices, :]
             satscene[band].area = geometry.SwathDefinition(
-                lons=satscene.area.lons[indices,:],
-                lats=satscene.area.lats[indices,:])
+                lons=satscene[band].area.lons[indices,:],
+                lats=satscene[band].area.lats[indices,:])
             satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
                                            + str(satscene.time_slot) + "_"
                                            + str(satscene[band].shape) + "_"
@@ -279,10 +311,9 @@ def load_generic(satscene, filename, resolution):
 
 
     
-def get_lat_lon(satscene, resolution):
+def get_lat_lon(satscene, resolution, filename, cores=1):
     """Read lat and lon.
     """
-    del resolution
     
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
@@ -290,26 +321,43 @@ def get_lat_lon(satscene, resolution):
     for option, value in conf.items(satscene.instrument_name+"-level2",
                                     raw = True):
         options[option] = value
-        
+
+    options["filename"] = filename
+    options["resolution"] = resolution
+    options["cores"] = cores
     return LAT_LON_CASES[satscene.instrument_name](satscene, options)
 
 def get_lat_lon_modis(satscene, options):
     """Read lat and lon.
     """
-    import glob
     filename_tmpl = satscene.time_slot.strftime(options["geofile"])
     file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
 
+    if len(file_list) == 0:
+        # Try in the same directory as the data
+        data_dir = os.path.split(options["filename"])[0]
+        file_list = glob.glob(os.path.join(data_dir, filename_tmpl))
+        
     if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!")
+        logger.warning("More than 1 geolocation file matching!")
+        filename = max(file_list, key=lambda x: os.stat(x).st_mtime)
+        coarse_resolution = 1000
     elif len(file_list) == 0:
-        raise IOError("No geolocation file matching " + filename_tmpl
-                      + " in " + options["dir"])
+        logger.warning("No geolocation file matching " + filename_tmpl
+                    + " in " + options["dir"])
+        logger.debug("Using 5km geolocation and interpolating")
+        filename = options["filename"]
+        coarse_resolution = 5000
+    else:
+        filename = file_list[0]
+        coarse_resolution = 1000
 
-    filename = file_list[0]
-    LOG.debug("Geolocation file = " + filename)
+    logger.debug("Loading geolocation file: " + str(filename)
+                 + " at resolution " + str(coarse_resolution))
 
-    data = SD(filename)
+    resolution = options["resolution"]
+    
+    data = SD(str(filename))
     lat = data.select("Latitude")
     fill_value = lat.attributes()["_FillValue"]
     lat = np.ma.masked_equal(lat.get(), fill_value)
@@ -317,6 +365,21 @@ def get_lat_lon_modis(satscene, options):
     fill_value = lon.attributes()["_FillValue"]
     lon = np.ma.masked_equal(lon.get(), fill_value)
 
+    if resolution == coarse_resolution:
+        return lat, lon
+
+    cores = options["cores"]
+
+    from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
+    logger.debug("Interpolating from " + str(coarse_resolution)
+                 + " to " + str(resolution))
+    if coarse_resolution == 5000:
+        lon, lat = modis5kmto1km(lon, lat)
+    if resolution == 500:
+        lon, lat = modis1kmto500m(lon, lat, cores)
+    if resolution == 250:
+        lon, lat = modis1kmto250m(lon, lat, cores)
+    
     return lat, lon
 
 def get_lonlat(satscene, row, col):
@@ -333,12 +396,14 @@ def get_lonlat(satscene, row, col):
     file_list = glob.glob(os.path.join(path, filename_tmpl))
 
     if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!")
+        raise IOError("More than 1 geolocation file matching!" + filename_tmpl)
     elif len(file_list) == 0:
-        raise IOError("No MODIS geolocation file matching!: " + filename_tmpl)
-
-    filename = file_list[0]
-    print "Geolocation file = ",filename
+        logger.info("No MODIS geolocation file matching: " + filename_tmpl
+                 + ", estimating")
+        filename = ""
+    else:
+        filename = file_list[0]
+        logger.debug("Geolocation file = " + filename)
 
     if(os.path.exists(filename) and
        (satscene.lon is None or satscene.lat is None)):
@@ -430,7 +495,6 @@ def get_lonlat(satscene, row, col):
     return lon, lat
         
     
-import math
 
 def vinc_dist(f__, a__, phi1, lembda1, phi2, lembda2):
     """ 

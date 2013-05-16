@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # Author(s):
  
@@ -40,7 +40,7 @@ def save(scene, filename, compression=True, dtype=np.int16, band_axis=2):
     *band_axis* gives the which axis to use for the band dimension. For
      example, use band_axis=0 to get dimensions like (band, y, x).
     """
-    scene.add_to_history("Saved as netcdf4/cf by mpop")
+    scene.add_to_history("Saved as netcdf4/cf by pytroll/mpop.")
     return netcdf_cf_writer(filename, CFScene(scene, dtype, band_axis),
                             compression=compression)
 
@@ -51,11 +51,12 @@ class WriterDimensionError(Exception):
 
 
 def attribute_dispenser( info ):
-    """ returns valid attribute key value pairs"""
-    for k, v in info.iteritems():
+    """ returns valid attribute key value pairs
+    (for cosmetic reasons, sorted is better than random)"""
+    for k, v in sorted(info.iteritems()):
         if k.startswith('var_'):
             continue
-        yield (k,v)
+        yield (k, v)
 
 
 def variable_dispenser( root_object, object_list ):
@@ -109,6 +110,22 @@ def find_tag(info_list , tag):
         except KeyError:
             pass
     return tag_data
+
+def find_FillValue_tags(info_list ):
+    """ 
+        Iterates through info objects to find _FillValue tags for var_names
+    """
+    fill_value_dict={} 
+    for info in info_list: 
+        try:
+            fill_value_dict[info['var_name']] = info['_FillValue']
+        except KeyError:
+            pass
+            try:
+                fill_value_dict[info['var_name']] = None
+            except KeyError:
+                pass
+    return fill_value_dict
 
 def find_info(info_list, tag):
     """ 
@@ -169,6 +186,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
         # array sizes
         used_dim_names = {}
         for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
+
             # case of a scalar
             if len(names) == 0:
                 continue
@@ -177,9 +195,9 @@ def netcdf_cf_writer(filename, root_object, compression=True):
                 # ensure unique dimension names
                 if dim_name in used_dim_names:
                     if dim_size != used_dim_names[dim_name]:
-                        print dim_size, used_dim_names[dim_name]
                         raise WriterDimensionError("Dimension name "
-                                                   "already in use")
+                                                   + dim_name +
+                                                   " already in use")
                     else:
                         continue
 
@@ -193,6 +211,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         nc_vars = []
 
+        fill_value_dict=find_FillValue_tags(info_list)
         for name, vtype, dim_name in zip(var_names,
                                          [dtype(vt) for vt in var_data ],
                                          dim_names ):
@@ -200,8 +219,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             # in the case of arrays containing strings:
             if str(vtype) == "object":
                 vtype = str
-
-            nc_vars.append(rootgrp.createVariable(name, vtype, dim_name, zlib=compression))
+            nc_vars.append(rootgrp.createVariable(
+                    name, vtype, dim_name, 
+                    zlib=compression,
+                    fill_value=fill_value_dict[name]))
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.
@@ -209,8 +230,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             if 'var_name' in info:
                 # handle variable attributes
                 nc_var = rootgrp.variables[info['var_name']]
+                nc_var.set_auto_maskandscale(False)
                 for j, k in attribute_dispenser(info):
-                    setattr( nc_var, j, k)
+                    if j not in ["_FillValue"]:
+                        setattr( nc_var, j, k)
             else:
                 # handle global attributes
                 for j, k in attribute_dispenser(info):
@@ -219,7 +242,7 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         # insert data 
 
-        for vname, vdata in zip(nc_vars, var_data):
+        for name, vname, vdata in zip(var_names, nc_vars, var_data):
             vname[:] = vdata
     finally:
         rootgrp.close()

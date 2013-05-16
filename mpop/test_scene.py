@@ -273,7 +273,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.channels_to_load, set([]))
         for i, chn in enumerate(self.scene.channels):
             self.assertEquals(chn.name, channels[i][0])
-            self.assertEquals(chn.wavelength_range, channels[i][1])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
         self.assertRaises(TypeError,
@@ -321,7 +321,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.channels_to_load, set([]))
         for i, chn in enumerate(self.scene.channels):
             self.assertEquals(chn.name, channels[i][0])
-            self.assertEquals(chn.wavelength_range, channels[i][1])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
         self.assertRaises(TypeError,
@@ -365,7 +365,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.channels_to_load, set([]))
         for i, chn in enumerate(self.scene.channels):
             self.assertEquals(chn.name, channels[i][0])
-            self.assertEquals(chn.wavelength_range, channels[i][1])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
         self.assertRaises(TypeError,
@@ -411,7 +411,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(self.scene.channels_to_load, set([]))
         for i, chn in enumerate(self.scene.channels):
             self.assertEquals(chn.name, channels[i][0])
-            self.assertEquals(chn.wavelength_range, channels[i][1])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
 

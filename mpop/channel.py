@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -45,24 +45,22 @@ class GenericChannel(object):
     calibrated channels data or more elaborate channels such as cloudtype or
     CTTH.
     """
-    #: Name of the channel.
-    name = None
-
-    #: Channel resolution, in meters.
-    resolution = 0
-
-    #: ID of the area on which the channel is defined.
-    area_id = None
-
-    #: Area on which the channel is defined.
-    area_def = None
-
     def __init__(self, name = None):
         object.__init__(self)
 
+        # Channel name
         if name is not None and not isinstance(name, str):
             raise TypeError("Channel name must be a string, or None")
         self.name = name
+
+        # Channel resolution, in meters.
+        self.resolution = None
+
+        # ID of the area on which the channel is defined.
+        self.area_id = None
+
+        # Area on which the channel is defined.
+        self.area_def = None
         self.info = {}
 
     def __cmp__(self, ch2):
@@ -82,12 +80,12 @@ class GenericChannel(object):
             return cmp(self.name, ch2.name)
         
 
-    def get_area(self):
+    def _get_area(self):
         """Getter for area.
         """
         return self.area_def or self.area_id
 
-    def set_area(self, area):
+    def _set_area(self, area):
         """Setter for area.
         """
         if (area is None):
@@ -113,7 +111,7 @@ class GenericChannel(object):
                     raise TypeError("Malformed area argument. "
                                     "Should be a string or an area object.")
 
-    area = property(get_area, set_area)
+    area = property(_get_area, _set_area)
 
 class Channel(GenericChannel):
     """This is the satellite channel class. It defines satellite channels as a
@@ -128,7 +126,7 @@ class Channel(GenericChannel):
     def __init__(self,
                  name=None,
                  resolution=0, 
-                 wavelength_range=(-np.inf, -np.inf, -np.inf), 
+                 wavelength_range=[-np.inf, -np.inf, -np.inf], 
                  data=None,
                  calibration_unit=None):
 
@@ -140,7 +138,7 @@ class Channel(GenericChannel):
 
 
         if(name is None and
-           wavelength_range == (-np.inf, -np.inf, -np.inf)):
+           wavelength_range == [-np.inf, -np.inf, -np.inf]):
             raise ValueError("Cannot define a channel with neither name "
                              "nor wavelength range.")
 
@@ -159,7 +157,9 @@ class Channel(GenericChannel):
              not (wavelength_range[1] <= wavelength_range[2])):            
             raise ValueError("Wavelength_range should be a sorted triplet.")
 
-        self.wavelength_range = wavelength_range
+        self.wavelength_range = list(wavelength_range)
+
+        self.unit = calibration_unit
         
         self.data = data
 

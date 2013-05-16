@@ -83,11 +83,14 @@ class GeoImage(mpop.imageo.image.Image):
         file_tuple = os.path.splitext(filename)
         fformat = fformat or file_tuple[1][1:]
 
+        if fformat.lower() in ["pgm", "pbm", "ppm"]:
+            fformat = "ppm"
+
         if fformat.lower() in ('tif', 'tiff'):
             self.geotiff_save(filename, compression, tags,
                               gdal_options, blocksize, **kwargs)
         else:
-            super(GeoImage, self).save(filename, compression, format=fformat, **kwargs)
+            super(GeoImage, self).save(filename, compression, fformat=fformat, **kwargs)
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using
@@ -257,6 +260,13 @@ class GeoImage(mpop.imageo.image.Image):
                     srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
                 except KeyError:
                     pass
+                try:
+                    # Check for epsg code.
+                    srs.SetAuthority('PROJCS', 'EPSG',
+                                     int(area.proj_dict['init'].
+                                         split('epsg:')[1]))
+                except (KeyError, IndexError):
+                    pass
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
@@ -273,8 +283,9 @@ class GeoImage(mpop.imageo.image.Image):
 
 
     def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
-        """Add coastline and political borders to image, using *color*.
-        Loses the masks !
+        """Add coastline and political borders to image, using *color* (tuple
+        of integers between 0 and 255).
+        Warning: Loses the masks !
         
         *resolution* is chosen automatically if None (default), otherwise it should be one of:
         +-----+-------------------------+---------+
@@ -339,6 +350,9 @@ class GeoImage(mpop.imageo.image.Image):
 
         arr = np.array(img)
 
-        for idx in range(len(self.channels)):
-            self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+        if len(self.channels) == 1:
+            self.channels[0] = np.ma.array(arr[:, :] / 255.0)
+        else:
+            for idx in range(len(self.channels)):
+                self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 

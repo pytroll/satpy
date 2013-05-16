@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012.
+# Copyright (c) 2010, 2012, 2013.
 
 # Author(s):
  
@@ -24,6 +24,8 @@
 """Plugin for reading PPS's cloud products hdf files.
 """
 import ConfigParser
+from ConfigParser import NoOptionError
+
 from datetime import datetime, timedelta
 import os.path
 
@@ -63,25 +65,46 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         self.shape = None
         if filename:
             self.read(filename)
-        
-    
-    def read(self, filename):
+
+
+    def read(self, filename, load_lonlat=True):
         """Read product in hdf format from *filename*
         """
+        LOG.debug("Filename: %s" % filename)
+
+        is_temp = False
+        if not h5py.is_hdf5(filename):
+            # Try see if it is bzipped:
+            import bz2
+            bz2file = bz2.BZ2File(filename)
+            import tempfile
+            tmpfilename = tempfile.mktemp()
+            try:
+                ofpt = open(tmpfilename, 'wb')
+                ofpt.write(bz2file.read())
+                ofpt.close()
+                is_temp = True
+            except IOError:
+                import traceback
+                traceback.print_exc()
+                raise IOError("Failed to read the file %s" % filename)
+
+            filename = tmpfilename
+            
+        if not h5py.is_hdf5(filename):
+            if is_temp:
+                os.remove(filename)
+            raise IOError("File is not a hdf5 file!" % filename)
+
         h5f = h5py.File(filename, "r")
 
         # Read the global attributes
 
         self._md = dict(h5f.attrs)
         self._md["satellite"] = h5f.attrs['satellite_id']
-        LOG.debug(h5f.attrs['sec_1970'])
-        try:
-            self._md["time_slot"] = (timedelta(seconds=h5f.attrs['sec_1970']) +
-                                     datetime(1970, 1, 1, 0, 0)),
-        except TypeError:
-            # This only matters for CPP. Is it a bug ?
-            self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970'][0])) +
-                                     datetime(1970, 1, 1, 0, 0)),
+        self._md["orbit"] = h5f.attrs['orbit_number']
+        self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970']))
+                                 + datetime(1970, 1, 1, 0, 0))
 
         # Read the data and attributes
         #   This covers only one level of data. This could be made recursive.
@@ -91,12 +114,18 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             for skey, value in dataset.attrs.iteritems():
                 if isinstance(value, h5py.h5r.Reference):
                     self._refs[(key, skey)] = h5f[value].name.split("/")[1]
+                    
+            if type(dataset.id) is h5py.h5g.GroupID:
+                LOG.warning("Format reader does not support groups")
+                continue
+
             try:
                 getattr(self, key).data = dataset[:]
                 is_palette = (dataset.attrs.get("CLASS", None) == "PALETTE")
                 if(len(dataset.shape) > 1 and
                    not is_palette and
-                   key not in ["lon", "lat"]):
+                   key not in ["lon", "lat", 
+                               "row_indices", "column_indices"]):
                     self._projectables.append(key)
                     if self.shape is None:
                         self.shape = dataset.shape
@@ -109,18 +138,76 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                 self._keys.append(key)
 
         h5f.close()
+        
+        if is_temp:
+            os.remove(filename)
+
+        if not load_lonlat:
+            return
+
 
         # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        nodata_mask = False #np.ma.masked_equal(np.ones(self.shape), 0).mask
+        for key in self._projectables:
+            projectable = getattr(self,  key)
+            if key in ['cloudtype']:
+                nodata_array = np.ma.array(projectable.data)
+                nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                break
 
         try:
             from pyresample import geometry
         except ImportError:
             return
 
+        tiepoint_grid = False
+        if hasattr(self, "row_indices") and hasattr(self, "column_indices"):
+            column_indices = self.column_indices.data
+            row_indices = self.row_indices.data
+            tiepoint_grid = True
+
+        interpolate = False
         if hasattr(self, "lon") and hasattr(self, "lat"):
-            lons = self.lon.data * self.lon.info["gain"] + self.lon.info["intercept"]
-            lats = self.lat.data * self.lat.info["gain"] + self.lat.info["intercept"]
-            self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+            if 'intercept' in self.lon.info:
+                offset_lon = self.lon.info["intercept"]
+            elif 'offset' in self.lon.info:
+                offset_lon = self.lon.info["offset"]
+            if 'gain' in self.lon.info:
+                gain_lon = self.lon.info["gain"]
+            lons = self.lon.data * gain_lon + offset_lon
+
+            if 'intercept' in self.lat.info:
+                offset_lat = self.lat.info["intercept"]
+            elif 'offset' in self.lat.info:
+                offset_lat = self.lat.info["offset"]
+            if 'gain' in self.lat.info:
+                gain_lat = self.lat.info["gain"]
+            lats = self.lat.data * gain_lat + offset_lat
+
+            if lons.shape != self.shape or lats.shape != self.shape:
+                # Data on tiepoint grid:
+                interpolate = True
+                if not tiepoint_grid:
+                    errmsg = ("Interpolation needed but insufficient" + 
+                              "information on the tiepoint grid")
+                    raise IOError(errmsg)
+            else:
+                # Geolocation available on the full grid:
+                # We neeed to mask out nodata (VIIRS Bow-tie deletion...)
+                # We do it for all instruments, checking only against the nodata
+                lons = np.ma.masked_array(lons, nodata_mask)
+                lats = np.ma.masked_array(lats, nodata_mask)
+
+                self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+
 
         elif hasattr(self, "region") and self.region.data["area_extent"].any():
             region = self.region.data
@@ -133,6 +220,24 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                                                 region["xsize"],
                                                 region["ysize"],
                                                 region["area_extent"])
+
+        if interpolate:
+            from geotiepoints import SatelliteInterpolator
+        
+            cols_full = np.arange(self.shape[1])
+            rows_full = np.arange(self.shape[0])
+
+            satint = SatelliteInterpolator((lons, lats),
+                                           (row_indices, 
+                                            column_indices),
+                                           (rows_full, cols_full))
+            #satint.fill_borders("y", "x")
+            lons, lats = satint.interpolate()
+
+            self.area = geometry.SwathDefinition(lons=lons, lats=lats)
+
+
+
     def project(self, coverage):
         """Project what can be projected in the product.
         """
@@ -142,6 +247,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         # Project the data
         for var in self._projectables:
+            LOG.info("Projecting " + str(var))
             res.__dict__[var] = copy.copy(self.__dict__[var])
             res.__dict__[var].data = coverage.project_array(
                 self.__dict__[var].data)
@@ -259,7 +365,7 @@ class CloudType(NwcSafPpsChannel):
 
     def __init__(self):
         NwcSafPpsChannel.__init__(self)
-        self.name = "CT"
+        self.name = "CloudType"
 
 class CloudTopTemperatureHeight(NwcSafPpsChannel):
 
@@ -287,10 +393,12 @@ class CloudPhysicalProperties(NwcSafPpsChannel):
 
 
 
-def load(scene, **kwargs):
+def load(scene, geofilename=None, **kwargs):
     del kwargs
 
     import glob
+
+    lonlat_is_loaded = False
 
     products = []
     if "CTTH" in scene.channels_to_load:
@@ -307,17 +415,46 @@ def load(scene, **kwargs):
     if len(products) == 0:
         return
 
-    conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
-    directory = conf.get(scene.instrument_name+"-level3", "dir")
-    filename = conf.get(scene.instrument_name+"-level3", "filename",
-                        raw=True)
-    pathname_tmpl = os.path.join(directory, filename)
 
     try:
         area_name = scene.area_id or scene.area.area_id
     except AttributeError:
         area_name = "satproj_?????_?????"
+
+
+    conf = ConfigParser.ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
+    directory = conf.get(scene.instrument_name+"-level3", "dir")
+    try:
+        geodir = conf.get(scene.instrument_name+"-level3", "geodir")
+    except NoOptionError:
+        LOG.warning("No option 'geodir' in level3 section")
+        geodir = None
+
+    filename = conf.get(scene.instrument_name+"-level3", "filename",
+                        raw=True)
+    pathname_tmpl = os.path.join(directory, filename)
+
+    if not geofilename and geodir:
+        # Load geo file from config file:
+        try:
+            geoname_tmpl = conf.get(scene.instrument_name+"-level3", 
+                                    "geofilename", raw=True)
+            filename_tmpl = (scene.time_slot.strftime(geoname_tmpl)
+                             %{"orbit": scene.orbit.zfill(5) or "*",
+                               "area": area_name,
+                               "satellite": scene.satname + scene.number})
+
+            file_list = glob.glob(os.path.join(geodir, filename_tmpl))
+            if len(file_list) > 1:
+                LOG.warning("More than 1 file matching for geoloaction: "
+                            + str(file_list))
+            elif len(file_list) == 0:
+                LOG.warning("No geolocation file matching!: " + filename_tmpl)
+            else:
+                geofilename = file_list[0]
+        except NoOptionError:
+            geofilename = None
 
 
     classes = {"ctth": CloudTopTemperatureHeight,
@@ -327,283 +464,100 @@ def load(scene, **kwargs):
                "cpp": CloudPhysicalProperties
                }
 
+    nodata_mask = False
+
+    chn = None
     for product in products:
         LOG.debug("Loading " + product)
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit or "*",
+                         %{"orbit": scene.orbit.zfill(5) or "*",
                            "area": area_name,
-                           "satellite": scene.fullname,
+                           "satellite": scene.satname + scene.number,
                            "product": product})
     
         file_list = glob.glob(filename_tmpl)
         if len(file_list) > 1:
-            raise IOError("More than 1 file matching for " + product + "!")
+            LOG.warning("More than 1 file matching for " + product + "! "
+                        + str(file_list))
+            continue
         elif len(file_list) == 0:
-            raise IOError("No " + product + " matching!: " + filename_tmpl)
+            LOG.warning("No " + product + " matching!: " + filename_tmpl)
+            continue
+        else:
+            filename = file_list[0]
 
-        filename = file_list[0]
-
-        chn = classes[product]()
-        chn.read(filename)
-        chn.area = scene.area
-        scene.channels.append(chn)
-
-            
-    LOG.info("Loading PPS parameters done.")
-
-###################################################
-#
-# Adams grejer
-#
-###################################################
+            chn = classes[product]()
+            chn.read(filename, lonlat_is_loaded==False)
+            scene.channels.append(chn)
 
 
-class PpsCloudType(mpop.channel.GenericChannel):
-    def __init__(self, resolution=None):
-        mpop.channel.GenericChannel.__init__(self, "CloudType")
-        self.filled = False
-        self.name = "CloudType"
-        self.resolution = resolution
-        self.shape = None
+        # Setup geolocation
+        # We need a no-data mask from one of the projectables to
+        # mask out bow-tie deletion pixels from the geolocation array
+        # So far only relevant for VIIRS.
+        # Preferably the lon-lat data in the PPS VIIRS geolocation
+        # file should already be masked. 
+        # The no-data values in the products are not only where geo-location is absent
+        # Only the Cloud Type can be used as a proxy so far.
+        # Adam Dybbroe, 2012-08-31
+        if hasattr(chn, '_projectables'):
+            for key in chn._projectables:
+                projectable = getattr(chn,  key)
+                if key in ['cloudtype']:
+                    nodata_array = np.ma.array(projectable.data)
+                    nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                    break
+        else:
+            LOG.warning("Channel has no '_projectables' member." + 
+                        " No nodata-mask set...")
 
-        self.version = ""
-        self.region = None
-        self.des = ""
-        self.orbit_number = None
-        self.cloudtype_des = ""
-        self.qualityflag_des = ""
-        self.phaseflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.cloudtype_lut = []
-        self.qualityflag_lut = []
-        self.phaseflag_lut = []
-        self.cloudtype = None
-        self.data = None
-        self.qualityflag = None
-        self.phaseflag = None
-
-        self.palette = None
-        
-    def read(self, filename):
-        """Read the NWCSAF PPS Cloud Type"""
-        h5f = h5py.File(filename, "r")
-        # Global attributes:
-        self.version = h5f.attrs['version']
-        self.satellite_id = h5f.attrs['satellite_id']
-        self.des = h5f.attrs['description']
-        self.orbit_number = h5f.attrs['orbit_number']
-        self.sec_1970 = h5f.attrs['sec_1970']
-
-        # Data:
-        nodata = 0
-        ctype = np.ma.array(h5f['cloudtype'].value)
-        self.cloudtype = np.ma.masked_equal(ctype, nodata)
-        self.data = self.cloudtype
-        mask = self.cloudtype.mask
-
-        self.cloudtype_des = h5f['cloudtype'].attrs['description']
-        qflags = h5f['quality_flag'].value
-        self.qualityflag = np.ma.array(qflags, mask=mask)
-        self.qualityflag_des = h5f['quality_flag'].attrs['description']
-        phflags = h5f['phase_flag'].value
-        self.phaseflag = np.ma.array(phflags, mask=mask)
-        self.phaseflag_des = h5f['phase_flag'].attrs['description']
-        # LUTs:
-        self.cloudtype_lut = h5f['cloudtype'].attrs['output_value_namelist']
-        self.qualityflag_lut = h5f['quality_flag'].attrs['output_value_namelist']
-        self.phaseflag_lut = h5f['phase_flag'].attrs['output_value_namelist']
-        
-        self.palette = h5f['PALETTE'].value
-        h5f.close()
-
-        if not self.shape:
-            self.shape = self.cloudtype.shape
-
-        self.filled = True
-
-    def project(self, coverage):
-        """Remaps the NWCSAF/PPS level2 data to cartographic
-        map-projection on a user defined area.
-        """
-        LOG.info("Projecting product %s..."%(self.name))
-        retv = PpsCloudType(None)
-        retv.cloudtype = coverage.project_array(self.cloudtype)
-        retv.area = coverage.out_area
-        retv.shape = retv.shape
-        retv.resolution = self.resolution
-        retv.orbit_number = self.orbit_number
-        retv.satellite_id = self.satellite_id
-        retv.info = self.info
-        retv.filled = True
-        valid_min = retv.cloudtype.min()
-        valid_max = retv.cloudtype.max()
-        retv.info['valid_range'] = np.array([valid_min, valid_max])
-        retv.info['var_data'] = retv.cloudtype
-
-        return retv
-
-    def __str__(self):
-        return ("'%s: shape %s, resolution %sm'"%
-                (self.name, 
-                 self.shape, 
-                 self.resolution))   
-
-    def is_loaded(self):
-        """Tells if the channel contains loaded data.
-        """
-        return self.cloudtype is not None
-
-
-class PpsCTTH(mpop.channel.GenericChannel):
-    def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CTTH")
-        self.region = None
-        self.des = ""
-        self.ctt_des = ""
-        self.cth_des = ""
-        self.ctp_des = ""
-        self.cloudiness_des = ""
-        self.processingflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.processingflag_lut = []
-
-        self.temperature = None
-        self.t_gain = 1.0
-        self.t_intercept = 0.0
-        self.t_nodata = 255
-
-        self.pressure = None
-        self.p_gain = 1.0
-        self.p_intercept = 0.0
-        self.p_nodata = 255
-
-        self.height = None
-        self.h_gain = 1.0
-        self.h_intercept = 0.0
-        self.h_nodata = 255
-
-        self.cloudiness = None
-        self.c_nodata = 255
-        self.processingflag = None
-        
-    def read(self, filename):
-        """Read the NWCSAF PPS Cloud Top Temperature & Height"""
-        pass
-
-
-def adamsload(scene, **kwargs):
-    """Load data into the *channels*. *Channels* is a list or a tuple
-    containing channels we will load data into. If None, all channels are
-    loaded.
-    """
-
-    del kwargs
-
-    import glob
-
-    if("CTTH" not in scene.channels_to_load and
-       "CloudType" not in scene.channels_to_load):
+    if chn is None:
         return
-    
-    conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
-    directory = conf.get(scene.instrument_name+"-level3", "dir")
-    filename = conf.get(scene.instrument_name+"-level3", "filename",
-                        raw=True)
-    pathname_tmpl = os.path.join(directory, filename)
 
-    lonlat_dir = conf.get(scene.instrument_name+"-level3", "lonlat_dir")
-    lonlat_filename = conf.get(scene.instrument_name+"-level3",
-                              "lonlat_filename",
-                              raw=True)
-    lonlat_tmpl = os.path.join(lonlat_dir, lonlat_filename)
+    # Is this safe!? AD 2012-08-25
+    shape = chn.shape
 
-    area_name = "satproj"
-    filename_tmpl = (scene.time_slot.strftime(lonlat_tmpl)
-                     %{"orbit": scene.orbit,
-                       "area": area_name,
-                       "satellite": scene.satname})
-    
-    file_list = glob.glob(filename_tmpl)
-    if len(file_list) > 1:
-        raise IOError("More than one Geolocation file matching!")
-    elif len(file_list) == 0:
-        raise IOError("No NWCSAF/PPS Geolocation matching!: " + filename_tmpl)
+    interpolate = False
+    if geofilename:
+        geodict = get_lonlat(geofilename)
+        lons, lats = geodict['lon'], geodict['lat']
+        if lons.shape != shape or lats.shape != shape:
+            interpolate = True
+            row_indices = geodict['row_indices']
+            column_indices = geodict['column_indices']
 
-    filename = file_list[0]
-    if not os.path.exists(filename):
-        raise IOError("Can't find geolocation file")
+        lonlat_is_loaded = True
     else:
-        lon, lat = get_lonlat(filename)
+        LOG.warning("No Geo file specified: " + 
+                    "Geolocation will be loaded from product")
 
-    lonlat_is_loaded = False
 
-    if "CTTH" in scene.channels_to_load:
-        filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit,
-                           "area": area_name,
-                           "satellite": scene.fullname,
-                           "product": "ctth"})
-    
-        file_list = glob.glob(filename_tmpl)
-        if len(file_list) > 1:
-            raise IOError("More than 1 file matching!")
-        elif len(file_list) == 0:
-            raise IOError("No NWCSAF PPS CTTH matching!: " + filename_tmpl)
+    if lonlat_is_loaded:
+        if interpolate:
+            from geotiepoints import SatelliteInterpolator
+        
+            cols_full = np.arange(shape[1])
+            rows_full = np.arange(shape[0])
 
-        filename = file_list[0]
+            satint = SatelliteInterpolator((lons, lats),
+                                           (row_indices, 
+                                            column_indices),
+                                           (rows_full, cols_full))
+            #satint.fill_borders("y", "x")
+            lons, lats = satint.interpolate()
 
-        if not os.path.exists(filename):
-            LOG.info("Can't find any CTTH file, skipping")
-        else:
-            ct_chan = PpsCTTH()
-            ct_chan.read(filename)
-            ct_chan.area = scene.area
-            scene.channels.append(ct_chan)
-
-        if not lonlat_is_loaded:
-            pass # FIXME!
+        try:
+            from pyresample import geometry
+            lons = np.ma.masked_array(lons, nodata_mask)
+            lats = np.ma.masked_array(lats, nodata_mask)
+            scene.area = geometry.SwathDefinition(lons=lons, 
+                                                  lats=lats)
+        except ImportError:
+            scene.area = None
+            scene.lat = lats
+            scene.lon = lons
 
             
-    if "CloudType" in scene.channels_to_load:
-        filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit,
-                           "area": area_name,
-                           "satellite": scene.fullname,
-                           "product": "cloudtype"})
-
-        file_list = glob.glob(filename_tmpl)
-        if len(file_list) > 1:
-            raise IOError("More than 1 file matching!")
-        elif len(file_list) == 0:
-            raise IOError("No NWCSAF PPS Cloudtype matching!: " + filename_tmpl)
-
-        filename = file_list[0]
-
-        if not os.path.exists(filename):
-            LOG.info("Can't find any Cloudyype file, skipping")
-        else:
-            ct_chan = PpsCloudType()
-            ct_chan.read(filename)
-            ct_chan.area = scene.area
-            scene.channels.append(ct_chan)
-
-        if not lonlat_is_loaded:
-           lons = np.ma.array(lon, mask=ct_chan.cloudtype.mask)
-           lats = np.ma.array(lat, mask=ct_chan.cloudtype.mask)
-           lonlat_is_loaded = True
-
-    try:
-       from pyresample import geometry
-       scene.area = geometry.SwathDefinition(lons=lons, 
-                                             lats=lats)
-    except ImportError:
-       scene.area = None
-       scene.lat = lats
-       scene.lon = lons
-
     LOG.info("Loading PPS parameters done.")
 
 
@@ -613,11 +567,27 @@ def get_lonlat(filename):
     LOG.debug("Geo File = " + filename)
 
     h5f = h5py.File(filename, 'r')
+
+    # We neeed to mask out nodata (VIIRS Bow-tie deletion...)
+    # We do it for all instruments, checking only against the nodata
+    nodata = h5f['where']['lon']['what'].attrs['nodata']
     gain = h5f['where']['lon']['what'].attrs['gain']
     offset = h5f['where']['lon']['what'].attrs['offset']
-    lons = h5f['where']['lon']['data'].value * gain + offset
-    lats = h5f['where']['lat']['data'].value * gain + offset
+
+    longitudes = np.ma.array(h5f['where']['lon']['data'].value)
+    lons = np.ma.masked_equal(longitudes, nodata) * gain + offset
+    latitudes = np.ma.array(h5f['where']['lat']['data'].value)
+    lats = np.ma.masked_equal(latitudes, nodata) * gain + offset
+
+    col_indices = None
+    row_indices = None
+    if "column_indices" in h5f["where"].keys():
+        col_indices = h5f['/where/column_indices'].value
+    if "row_indices" in h5f["where"].keys():
+        row_indices = h5f['/where/row_indices'].value
 
     h5f.close()
-    return lons, lats
-
+    return {'lon': lons, 
+            'lat': lats, 
+            'col_indices': col_indices, 'row_indices':row_indices}
+    #return lons, lats

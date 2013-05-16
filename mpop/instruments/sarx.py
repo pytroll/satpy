@@ -13,6 +13,20 @@ class SarxCompositer(Compositer):
     instrument_name = "sarx"
 
     def average(self, downscaling_factor=2, average_window=None):
+        """
+        Makes a mean convolution of an image.
+
+        :Parameters:
+         `downscaling_factor` : int
+             image downscaling factor, default is a factor 2.             
+         `average_window` : int
+             window size for calculating mean values, default is
+             the same as downscaling_factor.
+
+        :Returns:
+         `image` : GeoImage
+             mean convoluted image.
+        """
         from mpop.imageo.geo_image import GeoImage
         from pyresample import geometry
         import scipy.ndimage as ndi

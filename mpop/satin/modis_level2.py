@@ -42,16 +42,17 @@ import mpop.channel
 
 EOS_SATELLITE = {'aqua': 'eos2', 
                  'modisa': 'eos2', 
-                 'terra': 'eos1'}
+                 'terra': 'eos1',
+                 'modist': 'eos1'}
 
 SCAN_LINE_ATTRS = ['year', 'day', 'msec', 
                    'slat', 'slon', 'clat', 'clon',
                    'elat', 'elon', 'csol_z'
                    ]
 
-GEO_PHYS_PRODUCTS = ['aot_869', 'chlor_a', 
+GEO_PHYS_PRODUCTS = ['aot_869', 'chlor_a', 'chlor_oc5',
                      'poc', 'cdom_index', 'angstrom', 
-                     'pic', 'par', 
+                     'pic', 'par', 'sst',
                      'nflh', 'ipar', 'Kd_490']
 
 CHANNELS = ['Rrs_412', 
@@ -115,7 +116,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         from pyhdf.SD import SD
         import datetime
 
-        print "*** >>> Read the hdf-eos file!"
+        #print "*** >>> Read the hdf-eos file!"
         root = SD(filename)
     
         # Get all the Attributes:
@@ -156,9 +157,12 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
 
             self.attr = attr
             band = data
-            nodata = attr['bad_value_scaled']
-            self.data = (np.ma.masked_equal(band, nodata) * 
-                         attr['slope'] + attr['intercept'])
+            if self.name in FLAGS_QUALITY:
+                self.data = band
+            else:
+                nodata = attr['bad_value_scaled']
+                self.data = (np.ma.masked_equal(band, nodata) * 
+                             attr['slope'] + attr['intercept'])
             
             value.endaccess()
         #except:
@@ -173,7 +177,7 @@ class ModisEosHdfLevel2(mpop.channel.GenericChannel):
         map-projection on a user defined area.
         """
         LOG.info("Projecting product %s..."%(self.name))
-        print("Inside project...")
+        #print("Inside project...")
 
         retv = ModisEosHdfLevel2(self.name)        
         retv.data = coverage.project_array(self.data)
@@ -207,7 +211,7 @@ def load(satscene, **kwargs):
     pathname = os.path.join(options["dir"], options['filename'])    
     filename = satscene.time_slot.strftime(pathname)
     
-    for prodname in GEO_PHYS_PRODUCTS:
+    for prodname in GEO_PHYS_PRODUCTS + FLAGS_QUALITY:
         if prodname in satscene.channels_to_load:
             
             prod_chan = ModisEosHdfLevel2(prodname)
@@ -223,18 +227,28 @@ def load(satscene, **kwargs):
             prod_chan.info['var_dim_names'] = ('y'+resolution_str,
                                                'x'+resolution_str)
             prod_chan.info['long_name'] = prod_chan.attr['long_name'][:-1]
+            try:
+                prod_chan.info['standard_name'] = prod_chan.attr['standard_name'][:-1]
+            except KeyError:
+                pass
             valid_min = np.min(prod_chan.data)
             valid_max = np.max(prod_chan.data)
             prod_chan.info['valid_range'] = np.array([valid_min, valid_max])
             prod_chan.info['resolution'] = prod_chan.resolution
 
+            if prodname == 'l2_flags':
+                # l2 flags definitions
+                for i in range(1, 33):
+                    key =  "f%02d_name"%i
+                    prod_chan.info[key] = prod_chan.attr[key][:-1]
+
             satscene.channels.append(prod_chan)
             if prodname in CHANNELS:
                 satscene[prodname].info['units'] = '%'
             else:
-                satscene[prodname].info['units'] = ''
+                satscene[prodname].info['units'] = prod_chan.attr['units'][:-1]
 
-            LOG.info("Loading modis lvl2 product done")
+            LOG.info("Loading modis lvl2 product '%s' done"%prodname)
 
     # Check if there are any bands to load:
     channels_to_load = False
@@ -244,7 +258,7 @@ def load(satscene, **kwargs):
             break
 
     if channels_to_load:
-        print "FILE: ", filename
+        #print "FILE: ", filename
         eoshdf = SD(filename)
         # Get all the Attributes:
         # Common Attributes, Data Time,
@@ -273,6 +287,7 @@ def load(satscene, **kwargs):
                                       attr['slope'] + attr['intercept'])
 
                 satscene[bandname].info['units'] = '%'
+                satscene[bandname].info['long_name'] = attr['long_name'][:-1]
 
         for dset in selected_dsets:
             dset.endaccess()  
@@ -286,7 +301,7 @@ def load(satscene, **kwargs):
     from pyresample import geometry
     satscene.area = geometry.SwathDefinition(lons=lon, lats=lat)
 
-    print "Variant: ", satscene.variant 
+    #print "Variant: ", satscene.variant 
     satscene.variant = 'regional' # Temporary fix!
 
     LOG.info("Loading modis data done.")

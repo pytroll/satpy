@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -29,10 +29,8 @@
 """Interface to Eumetcast level 1.5 HRIT/LRIT format. Uses the MIPP reader.
 """
 import ConfigParser
-import datetime
 import os
 
-import numpy as np
 from mipp import xrit
 from mipp import CalibrationError, ReaderError
 
@@ -48,13 +46,21 @@ try:
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
+
+from mpop.plugin_base import Reader
+
+class XritReader(Reader):
+
+    pformat = "mipp_xrit"
     
+    def load(self, *args, **kwargs):
+        load(*args, **kwargs)
 
 def load(satscene, calibrate=True, area_extent=None):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
-    """    
+    """
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -73,8 +79,9 @@ def load(satscene, calibrate=True, area_extent=None):
                                                       area_extent)
 
 def load_generic(satscene, options, calibrate=True, area_extent=None):
-    """Read seviri data from file and load it into *satscene*.
+    """Read imager data from file and load it into *satscene*.
     """
+    del options
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
     LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,

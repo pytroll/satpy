@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -299,7 +299,7 @@ class Image(object):
 
         return img
 
-    def save(self, filename, compression = 6, format = None):
+    def save(self, filename, compression = 6, fformat = None):
         """Save the image to the given *filename*.
         """
         cases = {"pic": self.terragon_save,
@@ -307,9 +307,9 @@ class Image(object):
                  "lut": self.terragon_save}
 
         fileext = os.path.splitext(filename)[1][1:4]
-        cases.get(fileext, self.pil_save)(filename, compression, format)
+        cases.get(fileext, self.pil_save)(filename, compression, fformat)
 
-    def pil_save(self, filename, compression = 6, format = None):
+    def pil_save(self, filename, compression = 6, fformat = None):
         """Save the image to the given *filename* using PIL. For now, the
         compression level [0-9] is ignored, due to PIL's lack of support. See
         also :meth:`save`.
@@ -325,18 +325,18 @@ class Image(object):
         cases = {"jpg": "jpeg",
                  "tif": "tiff"}
 
-        format = format or os.path.splitext(filename)[1][1:4]
-        format = format.lower()
-        format = cases.get(format, format)
+        fformat = fformat or os.path.splitext(filename)[1][1:4]
+        fformat = fformat.lower()
+        fformat = cases.get(fformat, fformat)
 
-        self.pil_image().save(filename, format)
+        self.pil_image().save(filename, fformat)
                     
-    def terragon_save(self, filename, compression = None, format = None):
+    def terragon_save(self, filename, compression = None, fformat = None):
         """Save the image to the given *filename* in terragon format.
         """
-        # Terragon does not support compression or format option.
+        # Terragon does not support compression or fformat option.
         del compression
-        del format
+        del fformat
 
         if(self.mode != "L"):
             raise ValueError("Cannot save mode %s to terragon, use mode L"

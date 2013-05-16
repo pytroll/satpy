@@ -1,0 +1,88 @@
+#
+# Level 1.5 configuration file for Electro L N1
+#
+# An item like:
+#   name = value
+# is read in python like:
+#   try:
+#       name = eval(value)
+#   except NameError:
+#       name = str(value)
+#
+
+[satellite]
+satname = 'electro-l'
+number = 'n1'
+instruments = ('msu-gs',)
+projection = 'geos(+76.0)'
+
+[msu-gs-level2]
+format = 'mipp_xrit'
+
+[msu-gs-level1]
+format = 'mipp/xrit/GOMS'
+#dir = '/usr/local/safnwc/import/SEVIRI_data'
+dir = '/local_disk/data/satellite/electroln1'
+filename = 'H-000-GOMS1_-GOMS1_4_____-%(channel)s_076E-%(segment)s-%Y%m%d%H%M-__'
+filename_pro = 'H-000-GOMS1_-GOMS1_4_____-_________-%(segment)s-%Y%m%d%H%M-__'
+filename_epi = 'H-000-GOMS1_-GOMS1_4_____-_________-%(segment)s-%Y%m%d%H%M-__'
+
+[msu-gs-1]
+name = '00_6'
+frequency = (0.5, 0.57, 0.65)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-2]
+name = '00_7'
+frequency = (0.65, 0.72, 0.8)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-3]
+name = '00_9'
+frequency = (0.8, 0.86, 0.9)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-4]
+name = '03_8'
+frequency = (3.5, 3.75, 4.0)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-5]
+name = '06_4'
+frequency = (5.7, 6.35, 7.0)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-6]
+name = '08_0'
+frequency = (7.5, 8.0, 8.5)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-7]
+name = '08_7'
+frequency = (8.2, 8.7, 9.2)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-8]
+name = '09_7'
+frequency = (9.2, 9.7, 10.2)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-9]
+name = '10_7'
+frequency = (10.2, 10.7, 11.2)
+resolution = 4000.0
+size = (2784, 2784)
+
+[msu-gs-10]
+name = '11_9'
+frequency = (11.2, 11.7, 12.5)
+resolution = 4000.0
+size = (2784, 2784)

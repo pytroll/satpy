@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 Martin Raspaud
+# Copyright (c) 2012, 2013 Martin Raspaud
 
 # Author(s):
 
@@ -100,13 +100,13 @@ def read_raw(filename):
     return records, form
 
 
-def get_filename(satscene):
+def get_filename(satscene, level):
     """Get the filename.
     """
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
-    for option, value in conf.items(satscene.instrument_name + "-granules",
+    for option, value in conf.items(satscene.instrument_name + "-" + level,
                                     raw = True):
         options[option] = value
     values = {"INSTRUMENT": satscene.instrument_name[:4].upper(),
@@ -180,7 +180,7 @@ class EpsAvhrrL1bReader(object):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
-            from geo_interpolator import metop20kmto1km
+            from geotiepoints import metop20kmto1km
             self.lons, self.lats = metop20kmto1km(lons, lats)
         else:
             raise NotImplementedError("Lon/lat expansion not implemented for " +
@@ -203,9 +203,20 @@ class EpsAvhrrL1bReader(object):
                                    self["EARTH_LOCATION_LAST"][:, [1]]))
         return self.lons[row, col], self.lats[row, col]
         
-    def get_channels(self, channels):
+    def get_channels(self, channels, calib_type):
         """Get calibrated channel data.
+        *calib_type* = 0: Counts
+        *calib_type* = 1: Reflectances and brightness temperatures
+        *calib_type* = 2: Radiances
         """
+
+        if calib_type == 0:
+            raise ValueError('calibrate=0 is not supported! ' +
+                             'This reader cannot return counts')
+        elif calib_type != 1 and calib_type != 2:
+            raise ValueError('calibrate=' + str(calib_type) + 
+                             'is not supported!')
+
 
         if ("3a" in channels or
             "3A" in channels or
@@ -217,48 +228,112 @@ class EpsAvhrrL1bReader(object):
         chans = {}
         for chan in channels:
             if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-                raise NameError("Invalid channel name: " + str(chan))
+                LOG.info("Can't load channel in eps_l1b: " + str(chan))
             
             if chan == "1":
-                chans[chan] = np.ma.array(
-                    to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                            self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 0, :],
+                                self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
+                else: 
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 0, :])
             if chan == "2":
-                chans[chan] = np.ma.array(
-                    to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                            self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 1, :],
+                                self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                else:
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 1, :])
+
             if chan.lower() == "3a":
-                chans[chan] = to_refl(self["SCENE_RADIANCES"][:, 2, :],
-                                      self["CH2_SOLAR_FILTERED_IRRADIANCE"])
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_refl(self["SCENE_RADIANCES"][:, 2, :],
+                                self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                else:
+                    chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 2, :])
+                    
                 chans[chan][three_b, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan.lower() == "3b":
-                chans[chan] = to_bt(self["SCENE_RADIANCES"][:, 2, :],
-                                    self["CH3B_CENTRAL_WAVENUMBER"],
-                                    self["CH3B_CONSTANT1"],
-                                    self["CH3B_CONSTANT2_SLOPE"])
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 2, :],
+                              self["CH3B_CENTRAL_WAVENUMBER"],
+                              self["CH3B_CONSTANT1"],
+                              self["CH3B_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = self["SCENE_RADIANCES"][:, 2, :]
                 chans[chan][three_a, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan == "4":
-                chans[chan] = np.ma.array(
-                    to_bt(self["SCENE_RADIANCES"][:, 3, :],
-                          self["CH4_CENTRAL_WAVENUMBER"],
-                          self["CH4_CONSTANT1"],
-                          self["CH4_CONSTANT2_SLOPE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 3, :],
+                              self["CH4_CENTRAL_WAVENUMBER"],
+                              self["CH4_CONSTANT1"],
+                              self["CH4_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = np.ma.array(
+                        self["SCENE_RADIANCES"][:, 3, :])
+                    
             if chan == "5":
-                chans[chan] = np.ma.array(
-                    to_bt(self["SCENE_RADIANCES"][:, 4, :],
-                          self["CH5_CENTRAL_WAVENUMBER"],
-                          self["CH5_CONSTANT1"],
-                          self["CH5_CONSTANT2_SLOPE"]))
+                if calib_type == 1:
+                    chans[chan] = np.ma.array(
+                        to_bt(self["SCENE_RADIANCES"][:, 4, :],
+                              self["CH5_CENTRAL_WAVENUMBER"],
+                              self["CH5_CONSTANT1"],
+                              self["CH5_CONSTANT2_SLOPE"]))
+                else:
+                    chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
-                
         return chans
     
 def get_lonlat(scene, row, col):
     """Get the longitutes and latitudes for the give *rows* and *cols*.
     """
-    filename = get_filename(scene)
+    try:
+        filename = get_filename(scene, "granules")
+    except IOError:
+        #from mpop.satin.eps1a import get_lonlat_avhrr
+        #return get_lonlat_avhrr(scene, row, col)
+        from pyorbital.orbital import Orbital
+        import pyproj
+        from datetime import timedelta
+        start_time = scene.time_slot
+        end_time = scene.time_slot + timedelta(minutes=3)
+
+        orbital = Orbital("METOP-A")
+        track_start = orbital.get_lonlatalt(start_time)
+        track_end = orbital.get_lonlatalt(end_time)
+        
+        geod = pyproj.Geod(ellps='WGS84')
+        az_fwd, az_back, dist = geod.inv(track_start[0], track_start[1],
+                                         track_end[0], track_end[1])
+
+        del dist
+        
+        M02_WIDTH = 2821885.8962408099
+
+
+        pos = ((col - 1024) * M02_WIDTH) / 2048.0
+        if row > 520:
+            lonlatdist = geod.fwd(track_end[0], track_end[1],
+                                  az_back - 86.253533216206648,  -pos)
+        else:
+            lonlatdist = geod.fwd(track_start[0], track_start[1],
+                                  az_fwd - 86.253533216206648,  pos) 
+
+        return lonlatdist[0], lonlatdist[1]
+        
+
+
+
+
+
+    
     try:
         if scene.lons is None or scene.lats is None:
             records, form = read_raw(filename)
@@ -267,8 +342,9 @@ def get_lonlat(scene, row, col):
                     if record[0] == "mdr"]
             sphrs = [record for record in records
                      if record[0] == "sphr"]
-            sphr = sphrs[0]
+            sphr = sphrs[0][1]
             scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
+        return scene.lons[row, col], scene.lats[row, col]
     except AttributeError:
         records, form = read_raw(filename)
         mdrs = [record[1]
@@ -276,16 +352,18 @@ def get_lonlat(scene, row, col):
                 if record[0] == "mdr"]
         sphrs = [record for record in records
                  if record[0] == "sphr"]
-        sphr = sphrs[0]
+        sphr = sphrs[0][1]
         scene.lons, scene.lats = _get_lonlats(mdrs, sphr, form)
-    return scene.lons[row, col], scene.lats[row, col]
+        return scene.lons[row, col], scene.lats[row, col]
 
 
 def _get_lonlats(mdrs, sphr, form):
     """Get sparse arrays of lon/lats.
     """
 
-    scanlines = mdrs.shape[0]
+    
+    scanlines = len(mdrs)
+    mdrs = np.concatenate(mdrs)
 
     lats = np.hstack((mdrs["EARTH_LOCATION_FIRST"][:, [0]]
                       * form.scales[("mdr", 2)]["EARTH_LOCATION_FIRST"][:, 0],
@@ -345,24 +423,37 @@ def get_corners(filename):
     
     
 
-def load(scene):
+def load(scene, *args, **kwargs):
     """Loads the *channels* into the satellite *scene*.
+    A possible *calibrate* keyword argument is passed to the AAPP reader
+    Should be 0 for off, 1 for default, and 2 for radiances only.
+    However, as the AAPP-lvl1b file contains radiances this reader cannot
+    return counts, so calibrate=0 is not allowed/supported. The radiance to
+    counts conversion is not possible.
     """
 
-    filename = get_filename(scene)
+    del args
+    calibrate = kwargs.get("calibrate", True)
+    if calibrate == 0:
+        raise ValueError('calibrate=0 is not supported! ' +
+                         'This reader cannot return counts')
+
+    filename = (kwargs.get("filename", None) or
+                get_filename(scene, "level2"))
+    LOG.debug("Using file " + filename)
     reader = EpsAvhrrL1bReader(filename)
-    for chname, arr in reader.get_channels(scene.channels_to_load).items():
+    for chname, arr in reader.get_channels(scene.channels_to_load, 
+                                           calibrate).items():
         scene[chname] = arr
+
+    scene.orbit = str(int(reader["ORBIT_START"]))
 
     lons, lats = reader.get_full_lonlats()
     try:
         scene.area = geometry.SwathDefinition(lons, lats)
     except NameError:
         scene.lons, scene.lats = lons, lats
-
         
-
-
 
 def norm255(a__):
     """normalize array to uint8.

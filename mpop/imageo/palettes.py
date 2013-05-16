@@ -94,6 +94,7 @@ def cms_modified():
     
     return convert_palette(legend)
 
+
 def ctth_height():
     """CTTH height palette.
     """
@@ -121,6 +122,63 @@ def ctth_height():
     for i in range(79):
         legend.append((255, 255, 255)) 
     legend.append((224,224,224))
+    
+    return convert_palette(legend)
+
+def ctth_height_pps():
+    """CTTH height palette for NWCSAF/PPS.
+    Identical to the one found in the hdf5 files.
+    """
+    legend = []    
+    legend.append((255, 0, 216)) # 0 meters
+    legend.append((255, 0, 216)) # 0 meters
+    legend.append((255, 0, 216)) # 0 meters
+    legend.append((126, 0, 43))
+    legend.append((126, 0, 43))
+    legend.append((153, 20, 47))
+    legend.append((153, 20, 47))
+    legend.append((153, 20, 47))
+    legend.append((178, 51, 0))
+    legend.append((178, 51, 0))
+    legend.append((255, 76, 0))
+    legend.append((255, 76, 0))
+    legend.append((255, 76, 0))
+    legend.append((255, 102, 0))
+    legend.append((255, 102, 0))
+    legend.append((255, 164, 0))
+    legend.append((255, 164, 0))
+    legend.append((255, 164, 0))
+    legend.append((255, 216, 0))
+    legend.append((255, 216, 0))
+    legend.append((216, 255, 0))
+    legend.append((216, 255, 0))
+    legend.append((178, 255, 0))
+    legend.append((178, 255, 0))
+    legend.append((178, 255, 0))
+    legend.append((153, 255, 0))
+    legend.append((153, 255, 0))
+    legend.append((0, 255, 0))
+    legend.append((0, 255, 0))
+    legend.append((0, 255, 0))
+    legend.append((0, 140, 48))
+    legend.append((0, 140, 48))
+    legend.append((0, 178, 255))
+    legend.append((0, 178, 255))
+    legend.append((0, 178, 255))
+    legend.append((0, 216, 255))
+    legend.append((0, 216, 255))
+    legend.append((0, 255, 255))
+    legend.append((0, 255, 255))
+    legend.append((0, 255, 255))
+    legend.append((238, 214, 210))
+    legend.append((238, 214, 210))
+    legend.append((239, 239, 223))
+    legend.append((239, 239, 223))
+    for idx in range(47, 150):
+        legend.append((255, 255, 255)) # 10,000 meters
+
+    for idx in range(150, 256):
+        legend.append((0, 0, 0))
     
     return convert_palette(legend)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -31,6 +31,55 @@ from mpop.compositer import Compositer
 
 class VisirCompositer(Compositer):
 
+    def __call__(self, *channels, **keys):
+        """Build a geoimage.
+        e.g.:
+        img = l.image(0.6, 0.8, -10.8, mode="RGB")
+        """
+
+        data = []
+        area = None
+        inv = []
+        new_channels = []
+        
+        for channel in channels:
+            if isinstance(channel, str):
+                if channel.startswith("-"):
+                    inv.append(True)
+                    channel = channel[1:]
+                else:
+                    inv.append(False)
+            else:
+                if channel < 0:
+                    inv.append(True)
+                    channel = -channel
+                else:
+                    inv.append(False)
+
+            new_channels.append(channel)
+                
+            data.append(self[channel].data)
+            
+            new_area = self[channel].area
+            if area and (new_area != area):
+                raise ValueError("Channels should have the same area")
+            else:
+                area = new_area
+
+        self.check_channels(*new_channels)
+
+        img = geo_image.GeoImage(data,
+                                 area=area,
+                                 time_slot=self.time_slot,
+                                 fill_value=keys.get("fill_value", None),
+                                 mode=keys.get("mode", None))
+
+        img.enhance(inverse=inv,
+                    gamma=keys.get("gamma", 1.0),
+                    stretch=keys.get("stretch", "no"))
+        
+        return img
+
     def channel_image(self, channel, fill_value=0):
         """Make a black and white image of the *channel*.
         """
@@ -44,7 +93,7 @@ class VisirCompositer(Compositer):
         img.enhance(stretch="crude")
         return img
 
-    def overview(self):
+    def overview(self, stretch='crude', gamma=1.6):
         """Make an overview RGB image composite.
         """
         self.check_channels(0.635, 0.85, 10.8)
@@ -58,15 +107,17 @@ class VisirCompositer(Compositer):
                                  self.time_slot,
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
-        
-        img.enhance(stretch="crude")
-        img.enhance(gamma=1.6)
+
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
 
         return img
 
     overview.prerequisites = set([0.635, 0.85, 10.8])
 
-    def natural(self):
+    def natural(self, stretch=None, gamma=1.8):
         """Make a Natural Colors RGB image composite.
         """
         self.check_channels(0.635, 0.85, 1.63)
@@ -84,9 +135,10 @@ class VisirCompositer(Compositer):
                                          (0, 90),
                                          (0, 90)))
 
-
-
-        img.enhance(gamma=1.8)
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
 
         return img
     
@@ -178,10 +230,10 @@ class VisirCompositer(Compositer):
     def green_snow(self):
         """Make a Green Snow RGB image composite.
         """
-        self.check_channels(0.85, 1.63, 10.8)
+        self.check_channels(0.635, 1.63, 10.8)
 
         ch1 = self[1.63].check_range()
-        ch2 = self[0.85].check_range()
+        ch2 = self[0.635].check_range()
         ch3 = -self[10.8].data
         
         img = geo_image.GeoImage((ch1, ch2, ch3),
@@ -195,7 +247,7 @@ class VisirCompositer(Compositer):
 
         return img
 
-    green_snow.prerequisites = set([0.85, 1.63, 10.8])
+    green_snow.prerequisites = set([0.635, 1.63, 10.8])
 
     def red_snow(self):
         """Make a Red Snow RGB image composite.
@@ -335,7 +387,7 @@ class VisirCompositer(Compositer):
 
     night_fog.prerequisites = set([3.75, 10.8, 12.0])
 
-    def cloudtop(self):
+    def cloudtop(self, stretch=(0.005, 0.005), gamma=None):
         """Make a Cloudtop RGB image composite.
         """
         self.check_channels(3.75, 10.8, 12.0)
@@ -350,7 +402,10 @@ class VisirCompositer(Compositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch=(0.005, 0.005))
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
 
         return img
 

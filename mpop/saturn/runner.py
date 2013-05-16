@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2012.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -237,8 +237,15 @@ class SequentialRunner(object):
             
         area_name = self.data.area_id or self.data.area_def.area_id
         tasks, dummy = tasklist.split(area_name)
+        if area_name not in tasks:
+            LOG.debug("Nothing to do for " + area_name)
+            return
         for product, flist in tasks[area_name].items():
-            fun = getattr(self.data.image, product)
+            try:
+                fun = getattr(self.data.image, product)
+            except AttributeError:
+                LOG.warning("Missing composite function: " + str(product))
+                continue
             flist = flist.put_date(self.data.time_slot)
 
             if self.data.orbit is not None:

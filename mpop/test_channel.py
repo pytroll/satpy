@@ -63,6 +63,37 @@ class TestGenericChannel(unittest.TestCase):
 
         self.assert_(self.chan > self.chan2)
 
+    def test_area(self):
+        """Area setting and retrieving.
+        """
+        self.chan = GenericChannel(name = "newchan")
+        self.chan.area = "bla"
+        self.assert_(self.chan.area == "bla")
+
+        self.chan.area = None
+        self.assert_(self.chan.area == None)
+
+        class DummyArea(object):
+            def __init__(self, area_extent, x_size, y_size, proj_id, proj_dict):
+                self.area_extent = area_extent
+                self.x_size = x_size
+                self.y_size = y_size
+                self.proj_id = proj_id
+                self.proj_dict = proj_dict
+
+        self.chan.area = DummyArea(1, 2, 3, 4, 5)
+        self.assert_(self.chan.area.area_extent == 1)
+
+        class DummyArea(object):
+            def __init__(self, lons, lats):
+                self.lons = lons
+                self.lats = lats
+
+        self.chan.area = DummyArea(1, 2)
+        self.assert_(self.chan.area.lats == 2)
+
+        self.assertRaises(TypeError, setattr, self.chan, "area", 1)
+
 
 class TestChannel(unittest.TestCase):
     """Class for testing the Channel class.
@@ -79,7 +110,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan")
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(self.chan.data is None)
 
@@ -96,7 +127,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", resolution = numb)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, numb)
         self.assert_(self.chan.data is None)
 
@@ -153,7 +184,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", data = data)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(np.all(self.chan.data == data))
 
@@ -163,7 +194,7 @@ class TestChannel(unittest.TestCase):
         self.chan = Channel(name = "newchan", data = data)
         self.assertEqual(self.chan.name, "newchan")
         self.assertEqual(self.chan.wavelength_range,
-                         (-np.inf, -np.inf, -np.inf))
+                         [-np.inf, -np.inf, -np.inf])
         self.assertEqual(self.chan.resolution, 0)
         self.assert_(np.all(self.chan.data == data))
 

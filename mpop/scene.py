@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # Author(s):
  
@@ -322,6 +322,66 @@ class SatelliteInstrumentScene(SatelliteScene):
         return self.channels.__iter__()
 
 
+    def _set_reader(self, pformat):
+        """Gets the reader for *pformat* format, and puts it in the `reader`
+        attribute.
+        """
+       
+        elements = pformat.split(".")
+        if len(elements) == 1:
+            reader_module = pformat
+            reader = "mpop.satin."+reader_module
+
+            # Loading old style plugins
+            reader_module = pformat
+            LOG.info("old style plugin: " + pformat)
+            try:
+                # Look for builtin reader
+                loader = __import__(reader, globals(),
+                                    locals(), ['load'])
+            except ImportError:
+                # Look for custom reader
+                loader = __import__(reader_module, globals(),
+                                    locals(), ['load'])
+
+            # Build a custom Reader plugin on the fly...
+            from mpop.plugin_base import Reader
+            reader_class = type(elements[-1].capitalize() + "Reader",
+                                (Reader,),
+                                {"pformat": elements[-1]})
+
+            reader_instance = reader_class(self)
+
+            # ... and set its "load" attribute with the "load" function of the
+            # loader module
+            loader = getattr(loader, "load")
+            setattr(reader_instance, "load", loader)
+
+            setattr(self, elements[-1] + "_reader", reader_instance)
+
+
+        else:
+            reader_module = ".".join(elements[:-1])
+            reader_class = elements[-1]
+        
+            reader = "mpop.satin."+reader_module
+            try:
+                # Look for builtin reader
+                loader = __import__(reader, globals(),
+                                    locals(), [reader_class])
+            except ImportError:
+                # Look for custom reader
+                loader = __import__(reader_module, globals(),
+                                    locals(), [reader_class])
+            loader = getattr(loader, reader_class)
+            reader_instance = loader(self)
+            setattr(self, loader.pformat + "_reader", reader_instance)
+
+        return reader_instance
+
+
+
+
 
     def load(self, channels=None, load_again=False, area_extent=None, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
@@ -407,14 +467,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             # read the data
             reader = "mpop.satin."+reader_name
             try:
-                try:
-                    # Look for builtin reader
-                    reader_module = __import__(reader, globals(),
-                                               locals(), ['load'])
-                except ImportError:
-                    # Look for custom reader
-                    reader_module = __import__(reader_name, globals(),
-                                               locals(), ['load'])
+                reader_instance = self._set_reader(reader_name)
                 if area_extent is not None:
                     if(isinstance(area_extent, (tuple, list)) and
                        len(area_extent) == 4):
@@ -422,10 +475,11 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         raise ValueError("Area extent must be a sequence of "
                                          "four numbers.")
-
-                reader_module.load(self, **kwargs)
-            except ImportError:
-                LOG.exception("ImportError while loading "+reader+".")
+                    
+                reader_instance.load(self, **kwargs)
+            except ImportError, e:
+                LOG.exception("ImportError while loading "+reader_name+": "
+                              + str(e))
                 continue
             loaded_channels = set([chn.name for chn in self.loaded_channels()])
             just_loaded = loaded_channels & self.channels_to_load
@@ -589,8 +643,10 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         chn.area = self.area + str(chn.shape)
             else: #chn.area is not None
-                if is_pyresample_loaded and isinstance(chn.area,
-                                                       SwathDefinition):
+                if (is_pyresample_loaded and
+                    isinstance(chn.area, SwathDefinition) and
+                    (not hasattr(chn.area, "area_id") or
+                     not chn.area.area_id)):
                     area_name = ("swath_" + self.fullname + "_" +
                                  str(self.time_slot) + "_"
                                  + str(chn.shape) + "_"
@@ -637,20 +693,6 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         return res
 
-    def append(self, scene):
-        """Append data from another *scene* to this one
-        """
-        
-        for chn in self.loaded_channels():
-            chn.data = np.ma.concatenate((chn.data, scene[chn.name].data))
-        if self.lon is not None:
-            self.lon = np.ma.concatenate((self.lon, scene.lon))
-        if self.lat is not None:
-            self.lat = np.ma.concatenate((self.lat, scene.lat))
-        if self.area is not None:
-            self.area.append(scene.area)
-            
-            
 if sys.version_info < (2, 5):
     def any(iterable):
         for element in iterable:
@@ -675,16 +717,35 @@ def assemble_segments(segments):
                                             seg.instrument_name, seg.time_slot,
                                             seg.orbit, variant=seg.variant)
     
-    for seg in segments:
-        for chn in channels:
-            if not seg[chn].is_loaded():
-                # this makes the assumption that all channels have the same
-                # shape.
-                seg[chn] = np.ma.masked_all_like(
-                    list(seg.loaded_channels())[0].data)
+    swath_definitions = {}
 
     for chn in channels:
-        new_scene[chn] = np.ma.concatenate([seg[chn].data for seg in segments])
+        new_scene[chn] = np.ma.concatenate([seg[chn].data
+                                            for seg in segments
+                                            if seg[chn].is_loaded()])
+        try:
+
+            area_names = tuple([seg[chn].area.area_id
+                                for seg in segments
+                                if seg[chn].is_loaded()])
+            if area_names not in swath_definitions:
+            
+                lons = np.ma.concatenate([seg[chn].area.lons[:]
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
+                lats = np.ma.concatenate([seg[chn].area.lats[:]
+                                          for seg in segments
+                                          if seg[chn].is_loaded()])
+                new_scene[chn].area = SwathDefinition(lons=lons, lats=lats)
+                area_name = "+".join(area_names)
+                new_scene[chn].area.area_id = area_name
+                new_scene[chn].area_id = area_name
+                swath_definitions[area_names] = new_scene[chn].area
+            else:
+                new_scene[chn].area = swath_definitions[area_names]
+                new_scene[chn].area_id = new_scene[chn].area.area_id
+        except AttributeError:
+            pass
 
     try:
         lons = np.ma.concatenate([seg.area.lons[:] for seg in segments])
