@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2010, 2011, 2012.
+# Copyright (c) 2009, 2010, 2011, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -64,18 +64,15 @@ def get_area_def(area_name):
 def _get_area_hash(area):
     """Calculate a (close to) unique hash value for a given area.
     """
-    if isinstance(area, (geometry.AreaDefinition, 
-                         geometry.SwathDefinition)):
-        _area = str(area)
+    if isinstance(area, geometry.AreaDefinition):
+        return hash(str(area))
+    elif isinstance(area, geometry.SwathDefinition):
+        return hash(area.lons.tostring() + area.lats.tostring())
     elif isinstance(area, np.ndarray):
         # probaly not needed.
-        _area = str(area)
+        return hash(area.tostring())
     else:
-        _area = ''
-    if _area.find('object at 0x') > -1:
-        # __str__ method not (yet) implemented.
-        _area = ''
-    return hash(_area)
+        LOG.warning("Cannot hash area, beware of duplicate area names.")
 
 class Projector(object):
     """This class define projector objects. They contain the mapping
