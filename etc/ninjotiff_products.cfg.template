@@ -1,0 +1,97 @@
+#
+# Definition of Ninjo products.
+#
+
+#
+# RGB products
+#
+[msg_dust]
+description = MSG RGB dust
+sat_id = 900014
+chan_id = 6600015
+data_cat = GPRN
+physic_value = None
+physic_unit = None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_convection]
+description = MSG RGB Convection
+sat_id = 900014
+chan_id = 6700015
+data_cat = GPRN
+physic_value = None
+physic_unit = None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_night_microphysics]
+description = MSG RGB Night Microphysics
+sat_id = 900014
+chan_id = 8000015
+data_cat = GPRN
+physic_value = Class
+physic_unit = None 
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_airmass]
+description = MSG RGB Airmass
+sat_id = 900014
+chan_id = 6500015
+data_cat = GPRN
+physic_value = Class
+physic_unit =  None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+#
+# NWCSAF products
+#
+[msg_cloudtype]
+description = NWCSAF Cloudtype
+sat_id = 900014
+chan_id = 1700015
+data_cat = GPRN
+physic_value = Class
+physic_unit = None 
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_cloudtop_temp]
+description = NWCSAF Cloud Top Temperature
+sat_id = 900014
+chan_id = 2000015
+data_cat = GPRN
+physic_value = Class
+physic_unit = None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_cloudtop_height]
+description = NWCSAF Cloud Top Height
+sat_id = 900014
+chan_id = 1900015
+data_cat = GPRN
+physic_value = Class
+physic_unit = None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
+
+[msg_precipitating_clouds]
+description = NWCSAF Precipitating Clouds
+sat_id = 900014
+chan_id = 2100015
+data_cat = GPRN
+physic_value = Class
+physic_unit = None
+gradient = 1.0
+axis_intercept = 0.0
+data_source = EUMETCAST
