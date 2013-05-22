@@ -41,6 +41,21 @@ import numpy as np
 from mpop.imageo.logger import LOG
 from mpop.utils import ensure_dir
 
+class UnknownImageFormat(Exception):
+    """Exception to be raised when image format is unknown to MPOP"""
+    pass
+
+def check_image_format(fformat):
+    cases = {"jpg": "jpeg",
+             "tif": "tiff",
+             "pgm": "ppm",
+             "pbm": "ppm",
+             "ppm": "ppm"}
+    fformat = fformat.lower()
+    fformat = cases.get(fformat, fformat)
+    if fformat.upper() not in Pil.SAVE:
+        raise UnknownImageFormat("Unknown image format '%s'." % fformat)
+    return fformat
 
 class Image(object):
     """This class defines images. As such, it contains data of the different
@@ -302,12 +317,7 @@ class Image(object):
     def save(self, filename, compression = 6, fformat = None):
         """Save the image to the given *filename*.
         """
-        cases = {"pic": self.terragon_save,
-                 "des": self.terragon_save,
-                 "lut": self.terragon_save}
-
-        fileext = os.path.splitext(filename)[1][1:4]
-        cases.get(fileext, self.pil_save)(filename, compression, fformat)
+        self.pil_save(filename, compression, fformat)
 
     def pil_save(self, filename, compression = 6, fformat = None):
         """Save the image to the given *filename* using PIL. For now, the
@@ -322,107 +332,11 @@ class Image(object):
         
         ensure_dir(filename)
 
-        cases = {"jpg": "jpeg",
-                 "tif": "tiff"}
-
         fformat = fformat or os.path.splitext(filename)[1][1:4]
-        fformat = fformat.lower()
-        fformat = cases.get(fformat, fformat)
+        fformat = check_image_format(fformat)
 
         self.pil_image().save(filename, fformat)
                     
-    def terragon_save(self, filename, compression = None, fformat = None):
-        """Save the image to the given *filename* in terragon format.
-        """
-        # Terragon does not support compression or fformat option.
-        del compression
-        del fformat
-
-        if(self.mode != "L"):
-            raise ValueError("Cannot save mode %s to terragon, use mode L"
-                             " instead"%self.mode)
-
-        file_tuple = os.path.splitext(filename)
-        cases = {
-            ".pic": self.terragon_pic_save,
-            ".lut": self.terragon_lut_save,
-            ".des": self.terragon_des_save
-            }
-
-        save_fun = cases[file_tuple[1]]
-        save_fun(filename)
-
-    def terragon_pic_save(self, filename):
-        """Save the pic file of the terragon format.
-        """
-        channels, fill_value = self._finalize()
-        file_descriptor = open(filename, "wb")
-        str_array = channels[0].filled()
-        file_descriptor.write(str_array)
-        file_descriptor.close()
-
-    def terragon_des_save(self, filename):
-        """Save the des file of the terragon format.
-        """
-
-        file_descriptor = open(filename, "w")
-        file_descriptor.write("VERSION 2\n")
-        file_descriptor.write("LAYERS 1 1\n")
-        file_descriptor.write("LINES %d\n"%self.height)
-        file_descriptor.write("POINTS %d\n"%self.width)
-        file_descriptor.write("BITS 8\n")
-
-
-
-    def terragon_lut_save(self, filename, cutoffs = [0.03, 0.03]):
-        """Save the lut file of the terragon format.
-        """
-
-        nwidth = 256
-        carr = self.channels[0].compressed()
-
-        try:
-            hist, bins = np.histogram(carr, nwidth)
-        except Warning:
-            pass
-
-        ndim = carr.size
-
-        left = 0
-        i = 0
-
-        pix_sum = 0.0
-
-        while i < nwidth and pix_sum < cutoffs[0] * ndim:
-            pix_sum = pix_sum + hist[i]
-            i = i + 1
-
-        left = bins[i-1]
-
-        right = 0
-        pix_sum = 0.0
-        i = nwidth - 1
-        while i >= 0 and pix_sum < cutoffs[1]*ndim:
-            pix_sum = pix_sum + hist[i]
-            i = i - 1
-
-
-        right = bins[i+1]
-        delta_x = (right - left) * 255
-
-        file_descriptor = open(filename, "w")
-
-        for i in range(256):
-            outval = int(255 * (i - left * 255) / delta_x + 0.5)
-            if outval < 0:
-                outval = 0
-            elif outval > 255:
-                outval = 255
-            file_descriptor.write(" %3d %3d %3d %3d\n"
-                                  %(i, outval, outval, outval))
-        file_descriptor.close()
-
-
     def putalpha(self, alpha):
         """Adds an *alpha* channel to the current image, or replaces it with
         *alpha* if it already exists.

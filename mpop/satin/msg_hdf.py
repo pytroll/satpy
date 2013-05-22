@@ -27,7 +27,6 @@
 
 """Plugin for reading PPS's cloud products hdf files.
 """
-
 import ConfigParser
 import os.path
 from mpop import CONFIG_PATH
@@ -67,17 +66,23 @@ def _get_area_extent(cfac, lfac, coff, loff, numcols, numlines):
 def get_area_extent(filename):
     """Get the area extent of the data in *filename*.
     """
-    import tables
-    h5f = tables.openFile(filename)
-    aex = _get_area_extent(h5f.root._v_attrs["CFAC"],
-                           h5f.root._v_attrs["LFAC"],
-                           h5f.root._v_attrs["COFF"],
-                           h5f.root._v_attrs["LOFF"],
-                           h5f.root._v_attrs["NC"],
-                           h5f.root._v_attrs["NL"])
+    import h5py
+    h5f = h5py.File(filename, 'r')
+    aex = _get_area_extent(h5f.attrs["CFAC"],
+                           h5f.attrs["LFAC"],
+                           h5f.attrs["COFF"],
+                           h5f.attrs["LOFF"],
+                           h5f.attrs["NC"],
+                           h5f.attrs["NL"])
     h5f.close()
     return aex
 
+def _get_palette(h5f, dsname):
+    try:
+        p = h5f[dsname].attrs['PALETTE']
+        return h5f[p].value
+    except KeyError:
+        return None
 
 class PpsCloudType(mpop.channel.GenericChannel):
     def __init__(self):
@@ -210,75 +215,80 @@ class MsgCloudType(mpop.channel.GenericChannel):
     def read(self, filename):
         """Reader for the NWCSAF/MSG cloudtype. Use *filename* to read data.
         """
-        import tables
+        import h5py
         
         self.cloudtype = MsgCloudTypeData()
         self.processing_flags = MsgCloudTypeData()
         self.cloudphase = MsgCloudTypeData()
 
 
-        h5f = tables.openFile(filename)
+        h5f = h5py.File(filename, 'r')
         # pylint: disable-msg=W0212
-        self.package = h5f.root._v_attrs["PACKAGE"]
-        self.saf = h5f.root._v_attrs["SAF"]
-        self.product_name = h5f.root._v_attrs["PRODUCT_NAME"]
-        self.num_of_columns = h5f.root._v_attrs["NC"]
-        self.num_of_lines = h5f.root._v_attrs["NL"]
-        self.projection_name = h5f.root._v_attrs["PROJECTION_NAME"]
-        self.region_name = h5f.root._v_attrs["REGION_NAME"]
-        self.cfac = h5f.root._v_attrs["CFAC"]
-        self.lfac = h5f.root._v_attrs["LFAC"]
-        self.coff = h5f.root._v_attrs["COFF"]
-        self.loff = h5f.root._v_attrs["LOFF"]
-        self.nb_param = h5f.root._v_attrs["NB_PARAMETERS"]
-        self.gp_sc_id = h5f.root._v_attrs["GP_SC_ID"]
-        self.image_acquisition_time = h5f.root._v_attrs["IMAGE_ACQUISITION_TIME"]
-        self.spectral_channel_id = h5f.root._v_attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.root._v_attrs["NOMINAL_PRODUCT_TIME"]
-        self.sgs_product_quality = h5f.root._v_attrs["SGS_PRODUCT_QUALITY"]
-        self.sgs_product_completeness = h5f.root._v_attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.root._v_attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.package = h5f.attrs["PACKAGE"]
+        self.saf = h5f.attrs["SAF"]
+        self.product_name = h5f.attrs["PRODUCT_NAME"]
+        self.num_of_columns = h5f.attrs["NC"]
+        self.num_of_lines = h5f.attrs["NL"]
+        self.projection_name = h5f.attrs["PROJECTION_NAME"]
+        self.region_name = h5f.attrs["REGION_NAME"]
+        self.cfac = h5f.attrs["CFAC"]
+        self.lfac = h5f.attrs["LFAC"]
+        self.coff = h5f.attrs["COFF"]
+        self.loff = h5f.attrs["LOFF"]
+        self.nb_param = h5f.attrs["NB_PARAMETERS"]
+        self.gp_sc_id = h5f.attrs["GP_SC_ID"]
+        self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
+        self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
+        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
+        self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
+        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
     
         # The cloudtype data
-        self.cloudtype.data = h5f.root.CT[:, :]
-        self.cloudtype.scaling_factor = h5f.root.CT.attrs["SCALING_FACTOR"]
-        self.cloudtype.offset = h5f.root.CT.attrs["OFFSET"]
-        self.cloudtype.num_of_lines = h5f.root.CT.attrs["N_LINES"]
-        self.cloudtype.num_of_columns = h5f.root.CT.attrs["N_COLS"]
+        h5d = h5f['CT']
+        self.cloudtype.data = h5d[:, :]
+        self.cloudtype.scaling_factor = h5d.attrs["SCALING_FACTOR"]
+        self.cloudtype.offset = h5d.attrs["OFFSET"]
+        self.cloudtype.num_of_lines = h5d.attrs["N_LINES"]
+        self.cloudtype.num_of_columns = h5d.attrs["N_COLS"]
         self.shape = (self.cloudtype.num_of_lines,
                       self.cloudtype.num_of_columns)
-        self.cloudtype.product = h5f.root.CT.attrs["PRODUCT"]
-        self.cloudtype.id = h5f.root.CT.attrs["ID"]
+        self.cloudtype.product = h5d.attrs["PRODUCT"]
+        self.cloudtype.id = h5d.attrs["ID"]
+        self.cloudtype_palette = _get_palette(h5f, 'CT')
         # ------------------------
     
         # The cloud phase data
-        self.cloudphase.data = h5f.root.CT_PHASE[:, :]
-        self.cloudphase.scaling_factor = h5f.root.CT_PHASE.attrs["SCALING_FACTOR"]
-        self.cloudphase.offset = h5f.root.CT_PHASE.attrs["OFFSET"]
-        self.cloudphase.num_of_lines = h5f.root.CT_PHASE.attrs["N_LINES"]
-        self.cloudphase.num_of_columns = h5f.root.CT_PHASE.attrs["N_COLS"]
-        self.cloudphase.product = h5f.root.CT_PHASE.attrs["PRODUCT"]
-        self.cloudphase.id = h5f.root.CT_PHASE.attrs["ID"]
+        h5d = h5f['CT_PHASE']
+        self.cloudphase.data = h5d[:, :]
+        self.cloudphase.scaling_factor = h5d.attrs["SCALING_FACTOR"]
+        self.cloudphase.offset = h5d.attrs["OFFSET"]
+        self.cloudphase.num_of_lines = h5d.attrs["N_LINES"]
+        self.cloudphase.num_of_columns = h5d.attrs["N_COLS"]
+        self.cloudphase.product = h5d.attrs["PRODUCT"]
+        self.cloudphase.id = h5d.attrs["ID"]
+        self.cloudphase_palette = _get_palette(h5f, 'CT_PHASE')
+
         # ------------------------
     
         # The cloudtype processing/quality flags
-        self.processing_flags.data = h5f.root.CT_QUALITY[:, :]
+        h5d = h5f['CT_QUALITY']
+        self.processing_flags.data = h5d[:, :]
         self.processing_flags.scaling_factor = \
-                          h5f.root.CT_QUALITY.attrs["SCALING_FACTOR"]
-        self.processing_flags.offset = h5f.root.CT_QUALITY.attrs["OFFSET"]
-        self.processing_flags.num_of_lines = h5f.root.CT_QUALITY.attrs["N_LINES"]
-        self.processing_flags.num_of_columns = h5f.root.CT_QUALITY.attrs["N_COLS"]
-        self.processing_flags.product = h5f.root.CT_QUALITY.attrs["PRODUCT"]
-        self.processing_flags.id = h5f.root.CT_QUALITY.attrs["ID"]
+                          h5d.attrs["SCALING_FACTOR"]
+        self.processing_flags.offset = h5d.attrs["OFFSET"]
+        self.processing_flags.num_of_lines = h5d.attrs["N_LINES"]
+        self.processing_flags.num_of_columns = h5d.attrs["N_COLS"]
+        self.processing_flags.product = h5d.attrs["PRODUCT"]
+        self.processing_flags.id = h5d.attrs["ID"]
         # ------------------------
+
         h5f.close()
         
-        self.cloudtype = (self.cloudtype.data * self.cloudtype.scaling_factor
-                          + self.cloudtype.offset)
-        self.cloudphase = (self.cloudphase.data * self.cloudphase.scaling_factor
-                          + self.cloudphase.offset)
+        self.cloudtype = self.cloudtype.data
+        self.cloudphase = self.cloudphase.data
         self.processing_flags = self.processing_flags.data
 
         self.area = get_area_from_file(filename)
@@ -289,12 +299,12 @@ class MsgCloudType(mpop.channel.GenericChannel):
     def save(self, filename):
         """Save the current cloudtype object to hdf *filename*, in pps format.
         """
-        import tables
+        import h5py
         ctype = self.convert2pps()
         LOG.info("Saving CType hdf file...")
         ctype.save(filename)
-        h5f = tables.openFile(filename, mode="a")
-        h5f.root._v_attrs["straylight_contaminated"] = self.qc_straylight
+        h5f = h5py.File(filename, mode="a")
+        h5f.attrs["straylight_contaminated"] = self.qc_straylight
         h5f.close()
         LOG.info("Saving CType hdf file done !")
 
@@ -453,8 +463,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
         """
         return self.filled
 
-    def read(self, filename):
-        import tables
+    def read(self, filename, calibrate=True):
+        import h5py
         
         self.cloudiness = MsgCTTHData() # Effective cloudiness
         self.temperature = MsgCTTHData()
@@ -462,111 +472,132 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.pressure = MsgCTTHData()
         self.processing_flags = MsgCTTHData()
 
-        h5f = tables.openFile(filename)
+        h5f = h5py.File(filename, 'r')
         
         # The header
         # pylint: disable-msg=W0212
-        self.package = h5f.root._v_attrs["PACKAGE"]
-        self.saf = h5f.root._v_attrs["SAF"]
-        self.product_name = h5f.root._v_attrs["PRODUCT_NAME"]
-        self.num_of_columns = h5f.root._v_attrs["NC"]
-        self.num_of_lines = h5f.root._v_attrs["NL"]
-        self.projection_name = h5f.root._v_attrs["PROJECTION_NAME"]
-        self.region_name = h5f.root._v_attrs["REGION_NAME"]
-        self.cfac = h5f.root._v_attrs["CFAC"]
-        self.lfac = h5f.root._v_attrs["LFAC"]
-        self.coff = h5f.root._v_attrs["COFF"]
-        self.loff = h5f.root._v_attrs["LOFF"]
-        self.nb_param = h5f.root._v_attrs["NB_PARAMETERS"]
-        self.gp_sc_id = h5f.root._v_attrs["GP_SC_ID"]
-        self.image_acquisition_time = h5f.root._v_attrs["IMAGE_ACQUISITION_TIME"]
-        self.spectral_channel_id = h5f.root._v_attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.root._v_attrs["NOMINAL_PRODUCT_TIME"]
-        self.sgs_product_quality = h5f.root._v_attrs["SGS_PRODUCT_QUALITY"]
-        self.sgs_product_completeness = h5f.root._v_attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.root._v_attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.package = h5f.attrs["PACKAGE"]
+        self.saf = h5f.attrs["SAF"]
+        self.product_name = h5f.attrs["PRODUCT_NAME"]
+        self.num_of_columns = h5f.attrs["NC"]
+        self.num_of_lines = h5f.attrs["NL"]
+        self.projection_name = h5f.attrs["PROJECTION_NAME"]
+        self.region_name = h5f.attrs["REGION_NAME"]
+        self.cfac = h5f.attrs["CFAC"]
+        self.lfac = h5f.attrs["LFAC"]
+        self.coff = h5f.attrs["COFF"]
+        self.loff = h5f.attrs["LOFF"]
+        self.nb_param = h5f.attrs["NB_PARAMETERS"]
+        self.gp_sc_id = h5f.attrs["GP_SC_ID"]
+        self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
+        self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
+        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
+        self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
+        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
     
         # The CTTH cloudiness data
-        self.cloudiness.data = h5f.root.CTTH_EFFECT[:, :]
+        h5d = h5f['CTTH_EFFECT']
+        self.cloudiness.data = h5d[:, :]
         self.cloudiness.scaling_factor = \
-                             h5f.root.CTTH_EFFECT.attrs["SCALING_FACTOR"]
-        self.cloudiness.offset = h5f.root.CTTH_EFFECT.attrs["OFFSET"]
-        self.cloudiness.num_of_lines = h5f.root.CTTH_EFFECT.attrs["N_LINES"]
-        self.cloudiness.num_of_columns = h5f.root.CTTH_EFFECT.attrs["N_COLS"]
-        self.cloudiness.product = h5f.root.CTTH_EFFECT.attrs["PRODUCT"]
-        self.cloudiness.id = h5f.root.CTTH_EFFECT.attrs["ID"]
+                             h5d.attrs["SCALING_FACTOR"]
+        self.cloudiness.offset = h5d.attrs["OFFSET"]
+        self.cloudiness.num_of_lines = h5d.attrs["N_LINES"]
+        self.cloudiness.num_of_columns = h5d.attrs["N_COLS"]
+        self.cloudiness.product = h5d.attrs["PRODUCT"]
+        self.cloudiness.id = h5d.attrs["ID"]
 
         self.cloudiness.data = np.ma.masked_equal(self.cloudiness.data, 255)
         self.cloudiness = np.ma.masked_equal(self.cloudiness.data, 0)
+        self.cloudiness_palette = _get_palette(h5f, 'CTTH_EFFECT')
         
         # ------------------------
     
         # The CTTH temperature data
-        self.temperature.data = h5f.root.CTTH_TEMPER[:, :]
+        h5d = h5f['CTTH_TEMPER']
+        self.temperature.data = h5d[:, :]
         self.temperature.scaling_factor = \
-                               h5f.root.CTTH_TEMPER.attrs["SCALING_FACTOR"]
-        self.temperature.offset = h5f.root.CTTH_TEMPER.attrs["OFFSET"]
-        self.temperature.num_of_lines = h5f.root.CTTH_TEMPER.attrs["N_LINES"]
+                               h5d.attrs["SCALING_FACTOR"]
+        self.temperature.offset = h5d.attrs["OFFSET"]
+        self.temperature.num_of_lines = h5d.attrs["N_LINES"]
         self.shape = (self.temperature.num_of_lines,
                       self.temperature.num_of_columns)
-        self.temperature.num_of_columns = h5f.root.CTTH_TEMPER.attrs["N_COLS"]
-        self.temperature.product = h5f.root.CTTH_TEMPER.attrs["PRODUCT"]
-        self.temperature.id = h5f.root.CTTH_TEMPER.attrs["ID"]
+        self.temperature.num_of_columns = h5d.attrs["N_COLS"]
+        self.temperature.product = h5d.attrs["PRODUCT"]
+        self.temperature.id = h5d.attrs["ID"]
         
-        self.temperature = (np.ma.masked_equal(self.temperature.data, 0) *
-                            self.temperature.scaling_factor +
-                            self.temperature.offset)
+        self.temperature.data = np.ma.masked_equal(self.temperature.data, 0)
+        if calibrate:
+            self.temperature = (self.temperature.data * 
+                                self.temperature.scaling_factor +
+                                self.temperature.offset)
+        else:
+            self.temperature = self.temperature.data
+        self.temperature_palette = _get_palette(h5f, 'CTTH_TEMPER')
 
         # ------------------------
     
         # The CTTH pressure data
-        self.pressure.data = h5f.root.CTTH_PRESS[:, :]
+        h5d = h5f['CTTH_PRESS']
+        self.pressure.data = h5d[:, :]
         self.pressure.scaling_factor = \
-                                     h5f.root.CTTH_PRESS.attrs["SCALING_FACTOR"]
-        self.pressure.offset = h5f.root.CTTH_PRESS.attrs["OFFSET"]
-        self.pressure.num_of_lines = h5f.root.CTTH_PRESS.attrs["N_LINES"]
-        self.pressure.num_of_columns = h5f.root.CTTH_PRESS.attrs["N_COLS"]
-        self.pressure.product = h5f.root.CTTH_PRESS.attrs["PRODUCT"]
-        self.pressure.id = h5f.root.CTTH_PRESS.attrs["ID"]
+                                     h5d.attrs["SCALING_FACTOR"]
+        self.pressure.offset = h5d.attrs["OFFSET"]
+        self.pressure.num_of_lines = h5d.attrs["N_LINES"]
+        self.pressure.num_of_columns = h5d.attrs["N_COLS"]
+        self.pressure.product = h5d.attrs["PRODUCT"]
+        self.pressure.id = h5d.attrs["ID"]
         
         self.pressure.data = np.ma.masked_equal(self.pressure.data, 255)
-        self.pressure = (np.ma.masked_equal(self.pressure.data, 0) *
-                         self.pressure.scaling_factor +
-                         self.pressure.offset)
+        self.pressure.data = np.ma.masked_equal(self.pressure.data, 0)
+        if calibrate:
+            self.pressure = (self.pressure.data *
+                             self.pressure.scaling_factor +
+                             self.pressure.offset)
+        else:
+            self.pressure = self.pressure.data
+        self.pressure_palette = _get_palette(h5f, 'CTTH_PRESS')
 
         # ------------------------
     
         # The CTTH height data
-        self.height.data = h5f.root.CTTH_HEIGHT[:, :]
+        h5d = h5f['CTTH_HEIGHT']
+        self.height.data = h5d[:, :]
         self.height.scaling_factor = \
-                                   h5f.root.CTTH_HEIGHT.attrs["SCALING_FACTOR"]
-        self.height.offset = h5f.root.CTTH_HEIGHT.attrs["OFFSET"]
-        self.height.num_of_lines = h5f.root.CTTH_HEIGHT.attrs["N_LINES"]
-        self.height.num_of_columns = h5f.root.CTTH_HEIGHT.attrs["N_COLS"]
-        self.height.product = h5f.root.CTTH_HEIGHT.attrs["PRODUCT"]
-        self.height.id = h5f.root.CTTH_HEIGHT.attrs["ID"]
+                                   h5d.attrs["SCALING_FACTOR"]
+        self.height.offset = h5d.attrs["OFFSET"]
+        self.height.num_of_lines = h5d.attrs["N_LINES"]
+        self.height.num_of_columns = h5d.attrs["N_COLS"]
+        self.height.product = h5d.attrs["PRODUCT"]
+        self.height.id = h5d.attrs["ID"]
         
         self.height.data = np.ma.masked_equal(self.height.data, 255)
-        self.height = (np.ma.masked_equal(self.height.data, 0) *
-                       self.height.scaling_factor +
-                       self.height.offset)
+        self.height.data = np.ma.masked_equal(self.height.data, 0)
+        if calibrate:
+            self.height = (self.height.data *
+                           self.height.scaling_factor +
+                           self.height.offset)
+        else:
+            self.height = self.height.data
+        self.height_palette = _get_palette(h5f, 'CTTH_HEIGHT')
 
         
         # ------------------------
     
         # The CTTH processing/quality flags
-        self.processing_flags.data = h5f.root.CTTH_QUALITY[:, :]
+        h5d = h5f['CTTH_QUALITY']
+        self.processing_flags.data = h5d[:, :]
         self.processing_flags.scaling_factor = \
-                                h5f.root.CTTH_QUALITY.attrs["SCALING_FACTOR"]
-        self.processing_flags.offset = h5f.root.CTTH_QUALITY.attrs["OFFSET"]
+                                h5d.attrs["SCALING_FACTOR"]
+        self.processing_flags.offset = h5d.attrs["OFFSET"]
         self.processing_flags.num_of_lines = \
-                                h5f.root.CTTH_QUALITY.attrs["N_LINES"]
+                                h5d.attrs["N_LINES"]
         self.processing_flags.num_of_columns = \
-                                h5f.root.CTTH_QUALITY.attrs["N_COLS"]
-        self.processing_flags.product = h5f.root.CTTH_QUALITY.attrs["PRODUCT"]
-        self.processing_flags.id = h5f.root.CTTH_QUALITY.attrs["ID"]
+                                h5d.attrs["N_COLS"]
+        self.processing_flags.product = h5d.attrs["PRODUCT"]
+        self.processing_flags.id = h5d.attrs["ID"]
 
         self.processing_flags = \
              np.ma.masked_equal(self.processing_flags.data, 0)
@@ -669,6 +700,147 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         return retv
 
+# ----------------------------------------
+
+class MsgPCData(object):
+    """NWCSAF/MSG Precipitating Clouds data layer
+    """    
+    def __init__(self):
+        self.data = None
+        self.scaling_factor = 1
+        self.offset = 0
+        self.num_of_lines = 0
+        self.num_of_columns = 0
+        self.product = ""
+        self.id = ""
+        
+class MsgPC(mpop.channel.GenericChannel):
+    """NWCSAF/MSG Precipitating Clouds data structure as retrieved from HDF5
+    file. Resolution sets the nominal resolution of the data.
+    """
+    def __init__(self):
+        mpop.channel.GenericChannel.__init__(self, "PC")
+        self.filled = False
+        self.name = "PC"
+        self.package = ""
+        self.saf = ""
+        self.product_name = ""
+        self.num_of_columns = 0
+        self.num_of_lines = 0
+        self.projection_name = ""
+        self.pcs_def = ""
+        self.xscale = 0
+        self.yscale = 0
+        self.ll_lon = 0.0
+        self.ll_lat = 0.0
+        self.ur_lon = 0.0
+        self.ur_lat = 0.0
+        self.region_name = ""
+        self.cfac = 0
+        self.lfac = 0
+        self.coff = 0
+        self.loff = 0
+        self.nb_param = 0
+        self.gp_sc_id = 0
+        self.image_acquisition_time = 0
+        self.spectral_channel_id = 0
+        self.nominal_product_time = 0
+        self.sgs_product_quality = 0
+        self.sgs_product_completeness = 0
+        self.product_algorithm_version = ""
+        self.probability_1 = None
+        self.processing_flags = None
+        self.shape = None
+        self.satid = ""
+        self.qc_straylight = -1
+        
+    def __str__(self):
+        return ("'%s: shape %s, resolution %sm'"%
+                (self.name, 
+                 self.probability_1.shape, 
+                 self.resolution))
+
+    def is_loaded(self):
+        """Tells if the channel contains loaded data.
+        """
+        return self.filled
+
+# ------------------------------------------------------------------
+    def read(self, filename, calibrate=True):
+        """Reader for the NWCSAF/MSG precipitating clouds. Use *filename* to read data.
+        """
+        import h5py
+        
+        self.probability_1 = MsgPCData()
+        self.processing_flags = MsgPCData()
+
+
+        h5f = h5py.File(filename, 'r')
+        # pylint: disable-msg=W0212
+        self.package = h5f.attrs["PACKAGE"]
+        self.saf = h5f.attrs["SAF"]
+        self.product_name = h5f.attrs["PRODUCT_NAME"]
+        self.num_of_columns = h5f.attrs["NC"]
+        self.num_of_lines = h5f.attrs["NL"]
+        self.projection_name = h5f.attrs["PROJECTION_NAME"]
+        self.region_name = h5f.attrs["REGION_NAME"]
+        self.cfac = h5f.attrs["CFAC"]
+        self.lfac = h5f.attrs["LFAC"]
+        self.coff = h5f.attrs["COFF"]
+        self.loff = h5f.attrs["LOFF"]
+        self.nb_param = h5f.attrs["NB_PARAMETERS"]
+        self.gp_sc_id = h5f.attrs["GP_SC_ID"]
+        self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
+        self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
+        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
+        self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
+        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
+        # pylint: enable-msg=W0212
+        # ------------------------
+    
+        # The precipitating clouds data
+        h5d = h5f['PC_PROB1']
+        self.probability_1.data = h5d[:, :]
+        self.probability_1.scaling_factor = h5d.attrs["SCALING_FACTOR"]
+        self.probability_1.offset = h5d.attrs["OFFSET"]
+        self.probability_1.num_of_lines = h5d.attrs["N_LINES"]
+        self.probability_1.num_of_columns = h5d.attrs["N_COLS"]
+        self.shape = (self.probability_1.num_of_lines,
+                      self.probability_1.num_of_columns)
+        self.probability_1.product = h5d.attrs["PRODUCT"]
+        self.probability_1.id = h5d.attrs["ID"]
+        self.probability_1.data = np.ma.masked_equal(self.probability_1.data, 0)
+        if calibrate:
+            self.probability_1 = (self.probability_1.data * 
+                                  self.probability_1.scaling_factor +
+                                  self.probability_1.offset)
+        else:
+            self.probability_1 = self.probability_1.data
+        self.probability_1_palette = _get_palette(h5f, 'PC_PROB1')
+
+
+        # ------------------------
+    
+        # The cloudtype processing/quality flags
+        h5d = h5f['PC_QUALITY']
+        self.processing_flags.data = h5d[:, :]
+        self.processing_flags.scaling_factor = \
+                          h5d.attrs["SCALING_FACTOR"]
+        self.processing_flags.offset = h5d.attrs["OFFSET"]
+        self.processing_flags.num_of_lines = h5d.attrs["N_LINES"]
+        self.processing_flags.num_of_columns = h5d.attrs["N_COLS"]
+        self.processing_flags.product = h5d.attrs["PRODUCT"]
+        self.processing_flags.id = h5d.attrs["ID"]
+        self.processing_flags = np.ma.masked_equal(self.processing_flags.data, 0)
+
+        # ------------------------
+        h5f.close()
+        
+        self.area = get_area_from_file(filename)
+        
+        self.filled = True
+        
 # ------------------------------------------------------------------ 
 
 
@@ -1119,11 +1291,11 @@ def get_area_from_file(filename):
     """Get the area from the h5 file.
     """
     from pyresample.geometry import AreaDefinition
-    import tables
+    import h5py
     
     aex = get_area_extent(filename)
-    h5f = tables.openFile(filename)
-    pname = h5f.root._v_attrs["PROJECTION_NAME"]
+    h5f = h5py.File(filename, 'r')
+    pname = h5f.attrs["PROJECTION_NAME"]
     proj = {}
     if pname.startswith("GEOS"):
         proj["proj"] = "geos"
@@ -1133,13 +1305,15 @@ def get_area_from_file(filename):
         proj["lon_0"] = str(float(pname.split("<")[1][:-1]))
     else:
         raise NotImplementedError("Only geos projection supported yet.")
-    return AreaDefinition(h5f.root._v_attrs["REGION_NAME"],
-                          h5f.root._v_attrs["REGION_NAME"],
-                          pname,
-                          proj,
-                          int(h5f.root._v_attrs["NC"]),
-                          int(h5f.root._v_attrs["NL"]),
-                          aex)
+    area_def = AreaDefinition(h5f.attrs["REGION_NAME"],
+                              h5f.attrs["REGION_NAME"],
+                              pname,
+                              proj,
+                              int(h5f.attrs["NC"]),
+                              int(h5f.attrs["NL"]),
+                              aex)
+    h5f.close()
+    return area_def
             
                           
     
