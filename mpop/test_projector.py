@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012.
+# Copyright (c) 2009, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -55,6 +55,8 @@ class FakeSwathDefinition:
         self.kwargs = kwargs
         self.shape = None
         self.area_id = random_string(20)
+        self.lons = np.ones((5, 5))
+        self.lats = np.ones((5, 5))
 
 
 class FakeImageContainer:
