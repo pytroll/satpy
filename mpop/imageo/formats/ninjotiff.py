@@ -309,19 +309,35 @@ def _read_directories(self):
 # Read Ninjo products config file.
 #
 #-------------------------------------------------------------------------------
-_g_products = {} # lazy read
-def get_product_config(product_name=None, filename=None):
-    def _readit(filename=filename):
-        from ConfigParser import ConfigParser        
+def get_product_config(product_name=None, force_read=False):
+    return ProductConfigs()(product_name, force_read)
 
-        def _find_a_config_file():
-            name_ = 'ninjotiff_products.cfg'
-            home_ = os.path.dirname(os.path.abspath(__file__))
-            penv_ = os.environ.get('PPP_CONFIG_DIR', '')
-            for fname_ in [os.path.join(x, name_) for x in (home_, penv_)]:
-                if os.path.isfile(fname_):
-                    return fname_
-            raise ValueError("Could not find a Ninjo tiff config file")        
+class _Singleton(type):
+    def __init__(cls, name_, bases_, dict_):
+        super(_Singleton, cls).__init__(name_, bases_, dict_)
+        cls.instance = None
+
+    def __call__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super(_Singleton, cls).__call__(*args, **kwargs)
+        return cls.instance
+
+ 
+class ProductConfigs(object):
+    __metaclass__ = _Singleton
+
+    def __init__(self):
+        self.read_config()
+
+    def __call__(self, product_name=None, force_read=False):
+        if force_read:
+            self.read_config()
+        if product_name:
+            return self._products[product_name]
+        return self._products
+
+    def read_config(self):
+        from ConfigParser import ConfigParser        
 
         def _eval(val):
             try:
@@ -329,8 +345,9 @@ def get_product_config(product_name=None, filename=None):
             except:
                 return str(val)
 
-        filename = filename or _find_a_config_file()
-        log.info("Using Ninjo config file: '%s'" % filename)
+        filename = self._find_a_config_file()
+        print "Reading Ninjo config file: '%s'" % filename
+        log.info("Reading Ninjo config file: '%s'" % filename)
 
         cfg = ConfigParser()
         cfg.read(filename)
@@ -340,14 +357,17 @@ def get_product_config(product_name=None, filename=None):
             for key, val in cfg.items(sec):
                 prd[key] = _eval(val)
             products[sec] = prd
-        return products
+        self._products = products
 
-    global _g_products
-    if not _g_products:
-        _g_products = _readit()
-    if product_name:
-        return _g_products[product_name]
-    return _g_products
+    @staticmethod
+    def _find_a_config_file():
+        name_ = 'ninjotiff_products.cfg'
+        home_ = os.path.dirname(os.path.abspath(__file__))
+        penv_ = os.environ.get('PPP_CONFIG_DIR', '')
+        for fname_ in [os.path.join(x, name_) for x in (home_, penv_)]:
+            if os.path.isfile(fname_):
+                return fname_
+        raise ValueError("Could not find a Ninjo tiff config file")        
 
 #------------------------------------------------------------------------------- 
 #
