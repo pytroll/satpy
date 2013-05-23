@@ -52,13 +52,25 @@ class UnknownImageFormat(Exception):
 
 def check_image_format(fformat):
     cases = {"jpg": "jpeg",
+             "jpeg": "jpeg",
              "tif": "tiff",
+             "tiff": "tif",
              "pgm": "ppm",
              "pbm": "ppm",
-             "ppm": "ppm"}
+             "ppm": "ppm",
+             "bmp": "bmp",
+             "dib": "bmp",
+             "gif": "gif",
+             "im": "im",
+             "pcx": "pcx",
+             "png": "png",
+             "xbm": "xbm",
+             "xpm": "xpm",
+             }
     fformat = fformat.lower()
-    fformat = cases.get(fformat, fformat)
-    if fformat.upper() not in Pil.SAVE:
+    try:
+        fformat = cases[fformat]
+    except KeyError:
         raise UnknownImageFormat("Unknown image format '%s'." % fformat)
     return fformat
 
