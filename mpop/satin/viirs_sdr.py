@@ -250,7 +250,7 @@ class ViirsGeolocationData(object):
                                       dtype=np.float32)
         self.latitudes = np.empty(self.shape, 
                                      dtype=np.float32)
-        self.mask = np.empty(self.shape, 
+        self.mask = np.zeros(self.shape, 
                              dtype=np.bool)
 
         granule_length = self.shape[0]/len(self.filenames)
@@ -308,7 +308,7 @@ class ViirsBandData(object):
         self.band_desc = None
         self.band_uid = None
         self.metadata = []
-    @profile
+
     def read(self):
         self._read_metadata()
 
@@ -317,7 +317,7 @@ class ViirsBandData(object):
         self._read_data()
 
         return self
-    @profile
+
     def _read_metadata(self):
 
         for fname in self.filenames:
@@ -344,7 +344,7 @@ class ViirsBandData(object):
         self.band_id = self.metadata[0]['Band_ID']
         if self.band_id == "N/A":
             self.band_id = "DNB"
-    @profile
+
     def _read_data(self):
         """Read one VIIRS M- or I-band channel: Data and attributes (meta data)
 
@@ -416,9 +416,6 @@ class ViirsBandData(object):
 
             self.mask[y0_:y1_, :] |= self.raw_data[y0_:y1_, :] < 0
 
-            #masked_data = np.ma.array(granule_data, mask=band_mask, copy=False)
-
-            #self.data[y0_:y1_, :] = 
         self.data = np.ma.array(self.raw_data, mask=self.mask, copy=False)
 
         self.band_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
@@ -534,7 +531,7 @@ def _get_swathsegment(filelist, time_start, time_end=None):
 
     segment_files.sort()
     return segment_files
-@profile
+
 def load_viirs_sdr(satscene, options, *args, **kwargs):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
@@ -649,10 +646,12 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
         from pyresample import geometry
         
         satscene[chn].area = geometry.SwathDefinition(
-            lons=np.ma.array(band.geolocation.longitudes, mask=band.data.mask,
-                             copy=False),
-            lats=np.ma.array(band.geolocation.latitudes, mask=band.data.mask,
-                             copy=False))
+            lons=np.ma.masked_where(band.data.mask,
+                                    band.geolocation.longitudes,
+                                    copy=False),
+            lats=np.ma.masked_where(band.data.mask,
+                                    band.geolocation.latitudes,
+                                    copy=False))
 
         area_name = ("swath_" + satscene.fullname + "_" +
                      str(satscene.time_slot) + "_"
