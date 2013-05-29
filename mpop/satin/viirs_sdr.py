@@ -433,6 +433,180 @@ class ViirsBandData(object):
 
 
 # ------------------------------------------------------------------------------
+from mpop.plugin_base import Reader
+class ViirsSDRReader(Reader):
+    pformat = "viirs_sdr"
+
+    def __init__(self, *args, **kwargs):
+        Reader.__init__(self, *args, **kwargs)
+
+    def load(self, satscene, calibrate=1, time_interval=None):
+        """Read viirs SDR reflectances and Tbs from file and load it into
+        *satscene*.
+        """
+        if satscene.instrument_name != "viirs":
+            raise ValueError("Wrong instrument, expecting viirs")
+        
+        conf = ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+        options = {}
+        for option, value in conf.items(satscene.instrument_name+"-level2",
+                                        raw = True):
+            options[option] = value
+
+        band_list = [ s.name for s in satscene.channels ]
+        chns = satscene.channels_to_load & set(band_list)
+        if len(chns) == 0:
+            return
+
+        if time_interval:
+            time_start, time_end = time_interval
+        else:
+            time_start, time_end = satscene.time_slot, None
+
+        import glob
+
+        if "filename" not in options:
+            raise IOError("No filename given, cannot load")
+
+        values = {"orbit": satscene.orbit,
+                  "satname": satscene.satname,
+                  "instrument": satscene.instrument_name,
+                  "satellite": satscene.satname
+                  #"satellite": satscene.fullname
+                  }
+
+        filename_tmpl = strftime(satscene.time_slot, options["filename"]) %values
+
+        directory = strftime(satscene.time_slot, options["dir"]) % values
+
+        if not os.path.exists(directory):
+            directory = globify(options["dir"]) % values
+            logger.debug("Looking for files in directory " + str(directory))
+            directories = glob.glob(directory)
+            if len(directories) > 1:
+                raise IOError("More than one directory for npp scene... " + 
+                              "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+            elif len(directories) == 0:
+                raise IOError("No directory found for npp scene. " + 
+                              "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+            else:
+                directory = directories[0]
+
+        file_list = glob.glob(os.path.join(directory, filename_tmpl))
+        # Only take the files in the interval given:
+        logger.debug("Number of files before segment selection: " + str(len(file_list)))
+        for fname in file_list:
+            if os.path.basename(fname).startswith("SVM14"):
+                logger.debug("File before segmenting: " + os.path.basename(fname))
+        file_list = _get_swathsegment(file_list, time_start, time_end)
+        logger.debug("Number of files after segment selection: " + str(len(file_list)))
+
+        for fname in file_list:
+            if os.path.basename(fname).startswith("SVM14"):
+                logger.debug("File after segmenting: " + os.path.basename(fname))
+
+        filenames = [ os.path.basename(s) for s in file_list ]
+
+        logger.debug("Template = " + str(filename_tmpl))
+        if len(file_list) % 22 != 0: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
+            logger.warning("Number of SDR files is not divisible by 22!")
+        if len(file_list) == 0:
+            raise IOError("No VIIRS SDR file matching!: " + 
+                          os.path.join(directory, filename_tmpl))
+
+        geo_filenames_tmpl = strftime(satscene.time_slot, 
+                                      options["geo_filenames"]) %values
+        geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
+        # Only take the files in the interval given:
+        geofile_list = _get_swathsegment(geofile_list, time_start, time_end)
+
+        glob_info = {}
+
+        logger.debug("Channels to load: " + str(satscene.channels_to_load))
+        for chn in satscene.channels_to_load:
+            # Take only those files in the list matching the band:
+            # (Filename starts with 'SV' and then the band-name)
+            fnames_band = []
+
+            try:
+                fnames_band = [ s for s in filenames if s.find('SV'+chn) >= 0 ]
+            except TypeError:
+                logger.warning('Band frequency not available from VIIRS!')
+                logger.info('Asking for channel' + str(chn) + '!')
+
+            if len(fnames_band) == 0:
+                continue
+
+            filename_band = [os.path.join(directory, fname) for fname in fnames_band]
+            logger.debug("fnames_band = " + str(filename_band))
+
+            band = ViirsBandData(filename_band, calibrate=calibrate).read()
+            
+            logger.debug('Band id = ' + band.band_id)
+
+            band.read_lonlat(geodir=directory)
+
+            if not band.band_desc:
+                logger.warning('Band name = ' + band.band_id)
+                raise AttributeError('Band description not supported!')
+
+
+            satscene[chn].data = band.data
+            satscene[chn].info['units'] = band.units
+            satscene[chn].info['band_id'] = band.band_id
+
+            # We assume the same geolocation should apply to all M-bands!
+            # ...and the same to all I-bands:
+
+
+            from pyresample import geometry
+
+            satscene[chn].area = geometry.SwathDefinition(
+                lons=np.ma.masked_where(band.data.mask,
+                                        band.geolocation.longitudes,
+                                        copy=False),
+                lats=np.ma.masked_where(band.data.mask,
+                                        band.geolocation.latitudes,
+                                        copy=False))
+
+            area_name = ("swath_" + satscene.fullname + "_" +
+                         str(satscene.time_slot) + "_"
+                         + str(satscene[chn].data.shape) + "_" +
+                         band.band_uid)
+            satscene[chn].area.area_id = area_name
+            satscene[chn].area_id = area_name
+            #except ImportError:
+            #    satscene[chn].area = None
+            #    satscene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
+            #    satscene[chn].lon = np.ma.array(band.longitude, mask=band.data.mask)
+
+            ##if 'institution' not in glob_info:
+            ##    glob_info['institution'] = band.global_info['N_Dataset_Source']
+            ##if 'mission_name' not in glob_info:
+            ##    glob_info['mission_name'] = band.global_info['Mission_Name']
+
+
+        ViirsGeolocationData.clear_cache()
+
+        # Compulsory global attribudes
+        satscene.info["title"] = (satscene.satname.capitalize() + 
+                                  " satellite, " +
+                                  satscene.instrument_name.capitalize() +
+                                  " instrument.")
+        if 'institution' in glob_info:
+            satscene.info["institution"] = glob_info['institution']
+
+        if 'mission_name' in glob_info:
+            satscene.add_to_history(glob_info['mission_name'] + 
+                                    " VIIRS SDR read by mpop") 
+        else:
+            satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
+
+        satscene.info["references"] = "No reference."
+        satscene.info["comments"] = "No comment."
+        
+
 def get_lonlat(filename):
     """Read lon,lat from hdf5 file"""
     logger.debug("Geo File = " + filename)
@@ -464,18 +638,6 @@ def get_lonlat_into(filename, out_lons, out_lats, out_mask):
         if key.endswith("Longitude"):
             h5f[key].read_direct(out_lons)
 
-
-def load(satscene, *args, **kwargs):
-    """Read data from file and load it into *satscene*.
-    """    
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
-    for option, value in conf.items(satscene.instrument_name+"-level2",
-                                    raw = True):
-        options[option] = value
-
-    CASES[satscene.instrument_name](satscene, options, *args, **kwargs)
 
 
 def globify(filename):
@@ -532,164 +694,3 @@ def _get_swathsegment(filelist, time_start, time_end=None):
     segment_files.sort()
     return segment_files
 
-def load_viirs_sdr(satscene, options, *args, **kwargs):
-    """Read viirs SDR reflectances and Tbs from file and load it into
-    *satscene*.
-    """
-    calibrate = kwargs.get('calibrate', 1)
-    band_list = [ s.name for s in satscene.channels ]
-    chns = satscene.channels_to_load & set(band_list)
-    if len(chns) == 0:
-        return
-
-    if "time_interval" in kwargs:
-        time_start, time_end = kwargs['time_interval']
-    else:
-        time_start, time_end = satscene.time_slot, None
-
-    import glob
-
-    if "filename" not in options:
-        raise IOError("No filename given, cannot load")
-
-    values = {"orbit": satscene.orbit,
-              "satname": satscene.satname,
-              "instrument": satscene.instrument_name,
-              "satellite": satscene.satname
-              #"satellite": satscene.fullname
-              }
-
-    filename_tmpl = strftime(satscene.time_slot, options["filename"]) %values
-
-    directory = strftime(satscene.time_slot, options["dir"]) % values
-
-    if not os.path.exists(directory):
-        directory = globify(options["dir"]) % values
-        logger.debug("Looking for files in directory " + str(directory))
-        directories = glob.glob(directory)
-        if len(directories) > 1:
-            raise IOError("More than one directory for npp scene... " + 
-                          "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
-        elif len(directories) == 0:
-            raise IOError("No directory found for npp scene. " + 
-                          "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
-        else:
-            directory = directories[0]
-
-    file_list = glob.glob(os.path.join(directory, filename_tmpl))
-    # Only take the files in the interval given:
-    logger.debug("Number of files before segment selection: " + str(len(file_list)))
-    for fname in file_list:
-        if os.path.basename(fname).startswith("SVM14"):
-            logger.debug("File before segmenting: " + os.path.basename(fname))
-    file_list = _get_swathsegment(file_list, time_start, time_end)
-    logger.debug("Number of files after segment selection: " + str(len(file_list)))
-
-    for fname in file_list:
-        if os.path.basename(fname).startswith("SVM14"):
-            logger.debug("File after segmenting: " + os.path.basename(fname))
-
-    filenames = [ os.path.basename(s) for s in file_list ]
-
-    logger.debug("Template = " + str(filename_tmpl))
-    if len(file_list) % 22 != 0: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
-        logger.warning("Number of SDR files is not divisible by 22!")
-    if len(file_list) == 0:
-        raise IOError("No VIIRS SDR file matching!: " + 
-                      os.path.join(directory, filename_tmpl))
-
-    geo_filenames_tmpl = strftime(satscene.time_slot, 
-                                  options["geo_filenames"]) %values
-    geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
-    # Only take the files in the interval given:
-    geofile_list = _get_swathsegment(geofile_list, time_start, time_end)
-
-    glob_info = {}
-
-    logger.debug("Channels to load: " + str(satscene.channels_to_load))
-    for chn in satscene.channels_to_load:
-        # Take only those files in the list matching the band:
-        # (Filename starts with 'SV' and then the band-name)
-        fnames_band = []
-
-        try:
-            fnames_band = [ s for s in filenames if s.find('SV'+chn) >= 0 ]
-        except TypeError:
-            logger.warning('Band frequency not available from VIIRS!')
-            logger.info('Asking for channel' + str(chn) + '!')
-
-        if len(fnames_band) == 0:
-            continue
-
-        filename_band = [os.path.join(directory, fname) for fname in fnames_band]
-        logger.debug("fnames_band = " + str(filename_band))
-        
-        band = ViirsBandData(filename_band, calibrate=calibrate).read()
-        
-        logger.debug('Band id = ' + band.band_id)
-
-        band.read_lonlat(geodir=directory)
-
-        if not band.band_desc:
-            logger.warning('Band name = ' + band.band_id)
-            raise AttributeError('Band description not supported!')
-
-
-        satscene[chn].data = band.data
-        satscene[chn].info['units'] = band.units
-        satscene[chn].info['band_id'] = band.band_id
-
-        # We assume the same geolocation should apply to all M-bands!
-        # ...and the same to all I-bands:
-
-        
-        from pyresample import geometry
-        
-        satscene[chn].area = geometry.SwathDefinition(
-            lons=np.ma.masked_where(band.data.mask,
-                                    band.geolocation.longitudes,
-                                    copy=False),
-            lats=np.ma.masked_where(band.data.mask,
-                                    band.geolocation.latitudes,
-                                    copy=False))
-
-        area_name = ("swath_" + satscene.fullname + "_" +
-                     str(satscene.time_slot) + "_"
-                     + str(satscene[chn].data.shape) + "_" +
-                     band.band_uid)
-        satscene[chn].area.area_id = area_name
-        satscene[chn].area_id = area_name
-        #except ImportError:
-        #    satscene[chn].area = None
-        #    satscene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
-        #    satscene[chn].lon = np.ma.array(band.longitude, mask=band.data.mask)
-
-        ##if 'institution' not in glob_info:
-        ##    glob_info['institution'] = band.global_info['N_Dataset_Source']
-        ##if 'mission_name' not in glob_info:
-        ##    glob_info['mission_name'] = band.global_info['Mission_Name']
-
-
-    ViirsGeolocationData.clear_cache()
-    
-    # Compulsory global attribudes
-    satscene.info["title"] = (satscene.satname.capitalize() + 
-                              " satellite, " +
-                              satscene.instrument_name.capitalize() +
-                              " instrument.")
-    if 'institution' in glob_info:
-        satscene.info["institution"] = glob_info['institution']
-
-    if 'mission_name' in glob_info:
-        satscene.add_to_history(glob_info['mission_name'] + 
-                                " VIIRS SDR read by mpop") 
-    else:
-        satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
-
-    satscene.info["references"] = "No reference."
-    satscene.info["comments"] = "No comment."
-
-
-CASES = {
-    "viirs": load_viirs_sdr
-    }
