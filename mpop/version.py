@@ -27,4 +27,4 @@ __major__ = "0"
 __minor__ = "13"
 __patch__ = "1"
 
-__version__ = ".".join([__major__, __minor__, __patch__])
+__version__ = "v" + ".".join([__major__, __minor__, __patch__])
