@@ -5,10 +5,10 @@ number =
 instruments = ('viirs',)
 
 [viirs-level2]
-## SVDNB_npp_d20100906_t2105098_e2106344_b00012_c20110707160525242376_noaa_ops.h5
-geo_filenames = G????_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_cspp_dev.h5
-filename = SV???_%(satellite)s_d%Y%m%d_t%H%M???_e???????_b%(orbit)s_c*_cspp_dev.h5
-dir = /data/viirs/sdr
+filename = SV???_%(satellite)s_d*b%(orbit)s_c*.h5
+geo_filenames = G????_%(satellite)s_d*b%(orbit)s_c*.h5
+#dir = /data/npp/level1
+dir = /data/ras/smhi-npp/npp_20130312_1034_07108
 format = viirs_sdr
 
 
