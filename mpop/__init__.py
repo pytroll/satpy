@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -38,4 +38,6 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 CONFIG_PATH = (os.environ.get('PPP_CONFIG_DIR', '') or
                os.path.join(BASE_PATH, 'etc'))
 
+
+from mpop.version import __version__
 
