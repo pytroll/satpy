@@ -7,9 +7,8 @@ instruments = ('viirs',)
 [viirs-level2]
 filename = SV???_%(satellite)s_d*b%(orbit)s_c*.h5
 geo_filenames = G????_%(satellite)s_d*b%(orbit)s_c*.h5
-#dir = /data/npp/level1
-dir = /data/ras/smhi-npp/npp_20130312_1034_07108
-format = viirs_sdr
+dir = /data/viirs/sdr
+format = viirs_sdr.ViirsSDRReader
 
 
 [viirs-level3]
