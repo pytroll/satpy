@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2010, 2011, 2012.
+# Copyright (c) 2009, 2010, 2011, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -35,15 +35,17 @@ example.
 """
 import os
 import ConfigParser
+import logging
 
 import numpy as np
 from pyresample import image, utils, geometry, kd_tree
 
 from mpop import CONFIG_PATH
-from mpop.logger import LOG
 
 CONF = ConfigParser.ConfigParser()
 CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+logger = logging.getLogger(__name__)
 
 try:
     AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or
@@ -51,8 +53,8 @@ try:
                              CONF.get("projector", "area_file"))
 except ConfigParser.NoSectionError:
     AREA_FILE = ""
-    LOG.warning("Couldn't find the mpop.cfg file. "
-                "Do you have one ? is it in $PPP_CONFIG_DIR ?")
+    logger.warning("Couldn't find the mpop.cfg file. "
+                   "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
 def get_area_def(area_name):
     """Get the definition of *area_name* from file. The file is defined to use
@@ -64,18 +66,15 @@ def get_area_def(area_name):
 def _get_area_hash(area):
     """Calculate a (close to) unique hash value for a given area.
     """
-    if isinstance(area, (geometry.AreaDefinition, 
-                         geometry.SwathDefinition)):
-        _area = str(area)
+    if isinstance(area, geometry.AreaDefinition):
+        return hash(str(area))
+    elif isinstance(area, geometry.SwathDefinition):
+        return hash(area.lons.tostring() + area.lats.tostring())
     elif isinstance(area, np.ndarray):
         # probaly not needed.
-        _area = str(area)
+        return hash(area.tostring())
     else:
-        _area = ''
-    if _area.find('object at 0x') > -1:
-        # __str__ method not (yet) implemented.
-        _area = ''
-    return hash(_area)
+        logger.warning("Cannot hash area, beware of duplicate area names.")
 
 class Projector(object):
     """This class define projector objects. They contain the mapping
@@ -174,8 +173,8 @@ class Projector(object):
         self._filename = os.path.join(projections_directory, filename)
 
         if(not os.path.exists(self._filename)):
-            LOG.info("Computing projection from %s to %s..."
-                     %(in_id, out_id))
+            logger.info("Computing projection from %s to %s..."
+                        %(in_id, out_id))
 
 
             if self.mode == "nearest":
@@ -211,8 +210,8 @@ class Projector(object):
         *resave* is true.
         """
         if (not os.path.exists(self._filename)) or resave:
-            LOG.info("Saving projection to " +
-                     self._filename)
+            logger.info("Saving projection to " +
+                        self._filename)
             np.savez(self._filename, **self._cache)
         
         
@@ -247,8 +246,8 @@ class Projector(object):
         elif self.mode == "quick":
             
             if not 'row_idx' in self._cache:
-                 self._cache['row_idx'] = self._file_cache['row_idx']
-                 self._cache['col_idx'] = self._file_cache['col_idx']
+                self._cache['row_idx'] = self._file_cache['row_idx']
+                self._cache['col_idx'] = self._file_cache['col_idx']
                  
             row_idx, col_idx = self._cache['row_idx'], self._cache['col_idx']
             img = image.ImageContainer(data, self.in_area, fill_value=None)

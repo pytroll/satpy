@@ -262,9 +262,13 @@ class Channel(GenericChannel):
 
         See also the :mod:`mpop.projector` module.
         """
-        res = copy.copy(self)
+        res = Channel(name=self.name,
+                      resolution=self.resolution, 
+                      wavelength_range=self.wavelength_range, 
+                      data=None,
+                      calibration_unit=self.unit)
         res.area = coverage_instance.out_area
-        res.data = None
+
         if self.is_loaded():
             LOG.info("Projecting channel %s (%fμm)..."
                      %(self.name, self.wavelength_range[1]))

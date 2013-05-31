@@ -35,7 +35,9 @@ from mipp import xrit
 from mipp import CalibrationError, ReaderError
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
@@ -115,8 +117,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                     raise ValueError("Slicing area must be in "
                                      "geos projection, and lon_0 should match the"
                                      " satellite's position.")
-            except ReaderError:
+            except ReaderError, e:
                 # if channel can't be found, go on with next channel
+                LOG.error(str(e))
                 continue
         try:
             image = xrit.sat.load(satscene.fullname,
@@ -140,8 +143,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             else:
                 metadata, data = image()
 
-        except ReaderError:
+        except ReaderError, e:
             # if channel can't be found, go on with next channel
+            LOG.error(str(e))
             continue
 
         satscene[chn] = data
