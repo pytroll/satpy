@@ -250,8 +250,6 @@ class ViirsGeolocationData(object):
         if "lunar_zenith" in kwargs and kwargs["lunar_zenith"]:
             self.read_lunar_zenith()
 
-        self.mask = None
-
         return self
         
     def read_sun_angles(self):
@@ -299,9 +297,9 @@ class ViirsGeolocationData(object):
             return self
         
         self.longitudes = np.empty(self.shape, 
-                                      dtype=np.float32)
+                                   dtype=np.float32)
         self.latitudes = np.empty(self.shape, 
-                                     dtype=np.float32)
+                                  dtype=np.float32)
         self.mask = np.zeros(self.shape, 
                              dtype=np.bool)
 
