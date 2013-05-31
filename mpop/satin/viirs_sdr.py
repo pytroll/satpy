@@ -234,8 +234,58 @@ class ViirsGeolocationData(object):
         self.longitudes = None
         self.shape = shape
         self.latitudes = None
+        self.sun_zenith = None
+        self.sun_azimuth = None
+        self.lunar_zenith = None
+        self.sat_zenith = None
+        self.sat_azimuth = None
+        self.moon_phase = None
 
-    def read(self):
+    def read(self, **kwargs):
+        """Read the lon,lat and other ancillary data from the geolocation file"""
+        self._read_lonlat()
+        if "lunar_zenith" in kwargs and kwargs["lunar_zenith"]:
+            self.read_lunar_zenith()
+
+        return self
+        
+    def read_sun_angles(self):
+        """
+        Read the sun zenith and azimuth angles from geo filename and assemble
+        """
+        return
+
+    def read_lunar_zenith(self):
+        """
+        Read the lunar zenith angles from geo filename and assemble
+        """
+
+        if self.lunar_zenith is not None:
+            LOG.info("Lunar zenith already set. Don't read again.")
+            return
+
+        self.lunar_zenith = np.ma.array(np.zeros(self.shape, 
+                                                 dtype=np.float32), 
+                                        fill_value=0)
+
+        granule_length = self.shape[0]/len(self.filenames)
+
+        for index, filename in enumerate(self.filenames):
+            md = HDF5MetaData(filename).read()
+
+            swath_index = index * granule_length
+            y0_ = swath_index
+            y1_ = swath_index+granule_length 
+
+            with h5py.File(filename, 'r') as h5f:
+                for key in md.get_data_keys():
+                    if key.endswith("LunarZenithAngle"):
+                        self.lunar_zenith[y0_:y1_, :] = np.ma.masked_less(h5f[key].value, -999, False)
+
+        LOG.debug("Lunar zenith angles read in for... " + str(self))
+
+
+    def _read_lonlat(self):
         """ 
         Read longitudes and latitudes from geo filenames and assemble
         """
@@ -260,14 +310,10 @@ class ViirsGeolocationData(object):
             self.longitudes[y0_:y1_, :] = lon 
             self.latitudes[y0_:y1_, :] = lat 
             
-
         LOG.debug("Geolocation read in for... " + str(self))
-        return self
-
 
 
 # ------------------------------------------------------------------------------
-
 class ViirsBandData(object):
     """Placeholder for the VIIRS M&I-band data.
     Reads the SDR data - one hdf5 file for each band.
@@ -286,7 +332,7 @@ class ViirsBandData(object):
         self.units = 'unknown'
         self.geo_filenames = []
         self.calibrate = calibrate
-
+        
         self.data = None
         self.geolocation = None
 
@@ -322,7 +368,7 @@ class ViirsBandData(object):
         self.begin_time = self.metadata[0].get_begin_time()
         self.end_time = self.metadata[-1].get_end_time()
 
-        self.unit = self.metadata[0].get_unit(self.calibrate)
+        self.units = self.metadata[0].get_unit(self.calibrate)
         self.band_desc = self.metadata[0].get_band_description()
 
         self.band_id = self.metadata[0]['Band_ID']
@@ -405,7 +451,7 @@ class ViirsBandData(object):
 
         self.band_uid = self.band_desc + hashlib.sha1(self.data.mask).hexdigest()
 
-    def read_lonlat(self, geofilepaths=None, geodir=None):
+    def read_lonlat(self, geofilepaths=None, geodir=None, **kwargs):
 
         if geofilepaths is None:
             if geodir is None:
@@ -413,17 +459,23 @@ class ViirsBandData(object):
             geofilepaths = [os.path.join(geodir, geofilepath) 
                             for geofilepath in self.geo_filenames]
 
-        self.geolocation = ViirsGeolocationData(self.data.shape, 
-                                                geofilepaths).read()
+        if "lunar_zenith" in kwargs and kwargs["lunar_zenith"]:
+            self.geolocation = ViirsGeolocationData(self.data.shape, 
+                                                    geofilepaths).read(lunar_zenith=True)
+        else:
+            self.geolocation = ViirsGeolocationData(self.data.shape, 
+                                                    geofilepaths).read()
 
+                          
 
 # ------------------------------------------------------------------------------
-def get_lonlat(filename):
-    """Read lon,lat from hdf5 file"""
+def get_lonlat(filename, **kwargs):
+    """Read lon,lat datasets available in the Geolocation
+    hdf5 file"""
     LOG.debug("Geo File = " + filename)
 
     md = HDF5MetaData(filename).read()
-
+ 
     lats , lons = None, None
     h5f = h5py.File(filename, 'r')
     for key in md.get_data_keys():
@@ -507,6 +559,8 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
     """Read viirs SDR reflectances and Tbs from file and load it into
     *satscene*.
     """
+    del args
+
     calibrate = kwargs.get('calibrate', 1)
     band_list = [ s.name for s in satscene.channels ]
     chns = satscene.channels_to_load & set(band_list)
@@ -598,8 +652,9 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
         band = ViirsBandData(filename_band, calibrate=calibrate).read()
         
         LOG.debug('Band id = ' + band.band_id)
-
-        band.read_lonlat(geodir=directory)
+        if not band.band_id == "DNB" and "lunar_zenith" in kwargs:
+            kwargs["lunar_zenith"] = False
+        band.read_lonlat(geodir=directory, **kwargs)
 
         if not band.band_desc:
             LOG.warning('Band name = ' + band.band_id)
@@ -662,3 +717,9 @@ def load_viirs_sdr(satscene, options, *args, **kwargs):
 CASES = {
     "viirs": load_viirs_sdr
     }
+
+
+if __name__ == "__main__":
+    import sys
+    filename = sys.argv[1]
+
