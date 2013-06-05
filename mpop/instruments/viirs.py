@@ -45,7 +45,7 @@ class ViirsCompositer(VisirCompositer):
     instrument_name = "viirs"
 
 
-    def overview(self):
+    def overview(self, stretch='crude', gamma=1.6):
         """Make an Overview RGB image composite from VIIRS
         channels.
         """
@@ -60,9 +60,10 @@ class ViirsCompositer(VisirCompositer):
                                  self.time_slot,
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
-        
-        img.enhance(stretch="crude")
-        img.enhance(gamma=1.6)
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
     
         return img
 
