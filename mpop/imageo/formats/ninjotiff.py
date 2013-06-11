@@ -274,42 +274,28 @@ ninjo_tags_dict = {
 _ninjo_tags_extender = libtiff.add_tags(ninjo_tags_dict.values())
 ninjo_tags = sorted(ninjo_tags_dict.keys())
 
-class _TIFF(object):
-    """ Just an context wrapper.
-    """
-    def __init__(self, filename, mode='r'):
-        """Open a tiff file.
-
-        see: libtiff.TIFF.open()
-        """
-        self.tiff = TIFF.open(filename, mode)
-        self.tiff.ninjo_tags_dict = ninjo_tags_dict
-        self.tiff.ninjo_tags = ninjo_tags
-
-    def __enter__(self):
-        return self.tiff
-
-    def __exit__(self, type_, value, traceback):
-        self.tiff.close()
-
-def _read_directories(self):
-    """Iterate over directories in a tiff file.
-
-    :Parameters:
-    `self` : libtiff.TIFF instance.
-    """
-    yield self
-    while not self.LastDirectory():
-        self.ReadDirectory()
-        yield self
-    self.SetDirectory(0)
-
 #------------------------------------------------------------------------------- 
 #
 # Read Ninjo products config file.
 #
 #-------------------------------------------------------------------------------
-def get_product_config(product_name=None, force_read=False):
+def get_product_config(product_name, force_read=False):
+    """Read Ninjo configuration entry for a given product name.
+
+    :Parameters:
+        product_name : str
+            Name of Ninjo product.
+
+    :Arguments:
+        force_read : Boolean
+            Force re-reading config file.
+
+    **Notes**:
+        * It will look for a *ninjotiff_products.cfg* in MPOP's 
+          configuration directory defined by *PPP_CONFIG_DIR*.
+        * As an example, see *ninjotiff_products.cfg.template* in
+          MPOP's *etc* directory.
+    """
     return ProductConfigs()(product_name, force_read)
 
 class _Singleton(type):
@@ -329,12 +315,14 @@ class ProductConfigs(object):
     def __init__(self):
         self.read_config()
 
-    def __call__(self, product_name=None, force_read=False):
+    def __call__(self, product_name, force_read=False):
         if force_read:
             self.read_config()
-        if product_name:
-            return self._products[product_name]
-        return self._products
+        return self._products[product_name]
+
+    @property
+    def product_names(self):
+        return sorted(self._products.keys())
 
     def read_config(self):
         from ConfigParser import ConfigParser        
@@ -374,7 +362,57 @@ class ProductConfigs(object):
 # Read tiff file.
 #
 #------------------------------------------------------------------------------- 
+class _TIFF(object):
+    """ Just an context wrapper around an libtiff.TIFF instance.
+    """
+    def __init__(self, filename, mode='r'):
+        """Open a tiff file.
+
+        see: libtiff.TIFF.open()
+        """
+        self.tiff = TIFF.open(filename, mode)
+        self.tiff.ninjo_tags_dict = ninjo_tags_dict
+        self.tiff.ninjo_tags = ninjo_tags
+
+    def __enter__(self):
+        return self.tiff
+
+    def __exit__(self, type_, value, traceback):
+        self.tiff.close()
+
+def _read_directories(self):
+    """Iterate over directories in a tiff file.
+
+    :Parameters:
+        self : libtiff.TIFF
+            A TIFF instance.
+    
+    :Returns:
+        tiff_directory : Tiff object
+            A Tiff directory instance.
+    """
+    yield self
+    while not self.LastDirectory():
+        self.ReadDirectory()
+        yield self
+    self.SetDirectory(0)
+
 def info(filename):
+    """Read metadata from Tiff file.
+
+    :Parameters:
+        filename : str
+            Name of Tiff file.
+
+    :Returns:
+        iterator : a Python generator iterator
+            A "list" of tiff metadata.
+
+    **Usage**::
+
+        for inf in info(filename):
+            print inf, '\n'
+    """
     with _TIFF(filename) as self:
         for d in _read_directories(self):
             l = []
@@ -395,11 +433,33 @@ def info(filename):
             yield '\n'.join(l)
 
 def image_data(filename):
+    """Read image data from Tiff file.
+
+    :Parameters:
+        filename : str
+            Name of Tiff file.
+
+    **Usage**::
+
+        for img in image_data(filename):
+            print img
+    """
     with _TIFF(filename) as self:
         for d in _read_directories(self):
             yield d.read_tiles()    
 
 def colortable(filename):
+    """Read colortables from Tiff file.
+
+    :Parameters:
+        filename : str
+            Name of Tiff file.
+
+    **Usage**::
+
+        for clt in colortable(filename):
+            print clt
+    """
     with _TIFF(filename) as self:
         return self.GetField('ColorMap')
 
@@ -409,13 +469,24 @@ def colortable(filename):
 # Write Ninjo Products
 #
 #------------------------------------------------------------------------------- 
-def save(geo_image, filename, **kwargs):
-    # MPOP compatible writer
+def save(geo_image, filename, ninjo_product_name=None, **kwargs):
+    """MPOP's interface to Ninjo TIFF writer.
+
+    :Parameters:
+        geo_image : mpop.imageo.geo_image.GeoImage
+            See MPOP's documentation.
+        filename : str
+            The name of the TIFF file to be created
+    :Keywords:
+        ninjo_product_name : str
+            Index to Ninjo configuration file.   
+        kwargs : dict
+            See _write
+    """
     channels, fill_value = geo_image._finalize()
     area_def = geo_image.area
     area_name = area_def.proj_id.split('_')[1]
     time_slot = geo_image.time_slot
-    ninjo_product_name = kwargs['ninjo_product_name']
     if geo_image.mode == 'RGB':
         if not fill_value:
             fill_value = (0, 0, 0)
@@ -431,17 +502,31 @@ def save(geo_image, filename, **kwargs):
         raise ValueError("Don't known how til handle image mode '%s'" %
                          geo_image.mode)
         
-    write(data, filename, 
+    write(data, filename, ninjo_product_name,
           area_def=area_def,
           time_slot=time_slot,
-          ninjo_product_name=ninjo_product_name,
           fill_value=fill_value)
 
-def write(image_data, output_fn, **kwargs):
-    # Generic writer
+def write(image_data, output_fn, product_name, **kwargs):
+    """Generic Ninjo TIFF writer, using a product definition config file.
+
+    :Parameters:
+        image_data : 2D numpy array
+            Satellite image data to be put into the NinJo compatible tiff
+        output_fn : str
+            The name of the TIFF file to be created
+        product_name : str
+            Index to Ninjo configuration file.
+    
+    :Keywords:
+        kwargs : dict
+            See _write
+    """
+    if not product_name or not isinstance(product_name, str):
+        raise ValueError, "Invalid Ninjo product name '%s'" % str(product_name)
+
     area = kwargs.pop('area_def')
     time_stamp = kwargs.pop('time_slot')
-    product_name = kwargs.pop('ninjo_product_name')
     fill_value = kwargs.get('fill_value', -1)
     cmap = kwargs.get('cmap', None)
 
@@ -495,8 +580,9 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
     (deresolution: 2,4,8,16).
 
     :Parameters:
-        image_data : 2D numpy array
+        image_data : 2D or 3D numpy array
             Satellite image data to be put into the NinJo compatible tiff
+            An 3D array (HxWx3) is expected for a RGB image.
         filename : str
             The name of the TIFF file to be created
 
