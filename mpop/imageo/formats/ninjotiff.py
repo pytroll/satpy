@@ -469,7 +469,7 @@ def colortable(filename):
 # Write Ninjo Products
 #
 #-------------------------------------------------------------------------------
-def _get_physic_unit(physic_unit):
+def _get_physic_value(physic_unit):
     # return Ninjo's physics unit and value.
     if physic_unit.upper() in ('K', 'KELVIN'):
         return 'Kelvin', 'T'
@@ -628,7 +628,7 @@ def write(image_data, output_fn, area_def, product_name=None, **kwargs):
     physic_unit = kwargs.get('physic_unit', None)
     if physic_unit and not kwargs.get('physic_value', None):
         kwargs['physic_unit'], kwargs['physic_value'] = \
-            _get_physic_unit(physic_unit)
+            _get_physic_value(physic_unit)
 
     # Ninjo's projection name.
     kwargs['projection'] = kwargs.pop('projection', None) or \
