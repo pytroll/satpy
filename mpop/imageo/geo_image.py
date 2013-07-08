@@ -94,7 +94,7 @@ class GeoImage(mpop.imageo.image.Image):
             super(GeoImage, self).save(filename, compression, fformat=fformat)
         except mpop.imageo.image.UnknownImageFormat:
             # No ... last resort, try to import an external module. 
-            LOG.info("Will import an image saver module '%s'" % fformat)
+            LOG.info("Importing image saver module '%s'" % fformat)
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
             except ImportError:

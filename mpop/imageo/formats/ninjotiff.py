@@ -4,7 +4,7 @@ ninjotiff.py
 
 Created on Mon Apr 15 13:41:55 2013
 
-Big parts of the tiff writer are (PFE) from 
+A big amount of the tiff writer are (PFE) from 
 https://github.com/davidh-ssec/polar2grid by David Hoese
 
 License:
@@ -334,7 +334,7 @@ class ProductConfigs(object):
                 return str(val)
 
         filename = self._find_a_config_file()
-        print "Reading Ninjo config file: '%s'" % filename
+        #print "Reading Ninjo config file: '%s'" % filename
         log.info("Reading Ninjo config file: '%s'" % filename)
 
         cfg = ConfigParser()
@@ -468,7 +468,93 @@ def colortable(filename):
 #
 # Write Ninjo Products
 #
-#------------------------------------------------------------------------------- 
+#-------------------------------------------------------------------------------
+def _get_physic_unit(physic_unit):
+    # return Ninjo's physics unit and value.
+    if physic_unit.upper() in ('K', 'KELVIN'):
+        return 'Kelvin', 'T'
+    elif physic_unit.upper() in ('C', 'CELSIUS'):
+        return 'Celsius', 'T'
+    elif physic_unit == '%':
+        return physic_unit, 'Reflectance'
+    elif physic_unit.upper() in ('MW M-2 SR-1 (CM-1)-1',):
+        return physic_unit, 'Radiance'
+    else:
+        return physic_unit, 'Unknown'
+
+def _get_projection_name(area_def):
+    # return Ninjo's projection name.
+    proj_name = area_def.proj_dict['proj']
+    if proj_name in ('eqc',):
+        return 'PLAT'
+    elif proj_name in ('stere',):
+        lat_0 = area_def.proj_dict['lat_0']
+        if  lat_0 < 0:
+            return 'SPOL'
+        else:
+            return 'NPOL'
+    return None
+        
+
+def _finalize(geo_image):
+    """Finalize a mpop GeoImage for Ninjo. Specialy take care of phycical scale
+    and offset.
+
+    :Parameters:
+        geo_image : mpop.imageo.geo_image.GeoImage
+            See MPOP's documentation.
+
+    :Returns:
+        image : numpy.array
+            Final image.
+        scale : float
+            Scale for transform pixel value to physical value.
+        offset : float
+            Offset for transform pixel value to physical value.
+        fill_value : int
+            Value for used masked out pixels.
+
+    **Notes**:
+        physic_val = image*scale + offset
+    """
+    if geo_image.mode == 'L':
+        # PFE: mpop.satout.cfscene
+        dtype = np.uint8
+        data = geo_image.channels[0]
+        fill_value = geo_image.fill_value or 0
+        if np.ma.count_masked(data) == data.size:
+            # All data is masked
+            data = np.ones(data.shape, dtype=dtype) * fill_value
+            scale = 1
+            offset = 0
+        else:
+            chn_max = data.max()
+            chn_min = data.min()
+               
+            scale = ((chn_max - chn_min) /
+                     (2**np.iinfo(dtype).bits - 1.0))
+            # Handle the case where all data has the same value.
+            scale = scale or 1
+            offset = chn_min
+                
+            mask = data.mask
+            data = ((data.data - offset) / scale).astype(dtype)
+            data[mask] = fill_value
+        return data, scale, offset, fill_value
+
+    elif geo_image.mode == 'RGB':
+        channels, fill_value = geo_image._finalize()
+        fill_value = fill_value or (0, 0, 0)
+        data = np.dstack((channels[0].filled(fill_value[0]),
+                          channels[1].filled(fill_value[1]),
+                          channels[2].filled(fill_value[2])))
+        return data, 1.0, 0.0, fill_value[0]
+
+    else:
+        raise ValueError("Don't known how til handle image mode '%s'" %
+                         str(geo_image.mode))
+        
+    
 def save(geo_image, filename, ninjo_product_name=None, **kwargs):
     """MPOP's interface to Ninjo TIFF writer.
 
@@ -479,68 +565,56 @@ def save(geo_image, filename, ninjo_product_name=None, **kwargs):
             The name of the TIFF file to be created
     :Keywords:
         ninjo_product_name : str
-            Index to Ninjo configuration file.   
+            Optional index to Ninjo configuration file.   
         kwargs : dict
             See _write
     """
-    channels, fill_value = geo_image._finalize()
+    data, scale, offset, fill_value = _finalize(geo_image)
     area_def = geo_image.area
-    area_name = area_def.proj_id.split('_')[1]
     time_slot = geo_image.time_slot
-    if geo_image.mode == 'RGB':
-        if not fill_value:
-            fill_value = (0, 0, 0)
-        data = np.dstack((channels[0].filled(fill_value[0]),
-                          channels[1].filled(fill_value[1]),
-                          channels[2].filled(fill_value[2])))
-        fill_value = fill_value[0]
-    elif geo_image.mode == 'L':
-        if not fill_value:
-            fill_value = 0
-        data = channels[0].filled(fill_value)
-    else:
-        raise ValueError("Don't known how til handle image mode '%s'" %
-                         geo_image.mode)
-        
-    write(data, filename, ninjo_product_name,
-          area_def=area_def,
-          time_slot=time_slot,
-          fill_value=fill_value)
 
-def write(image_data, output_fn, product_name, **kwargs):
-    """Generic Ninjo TIFF writer, using a product definition config file.
+    # Some Ninjo tiff names
+    kwargs['image_dt'] = time_slot
+    kwargs['transparent_pix'] = fill_value
+    kwargs['gradient'] = scale
+    kwargs['axis_intercept'] = offset
+    kwargs['is_calibrated'] = True
+    
+    write(data, filename, area_def, ninjo_product_name, **kwargs)
+
+def write(image_data, output_fn, area_def, product_name=None, **kwargs):
+    """Generic Ninjo TIFF writer.
+
+    If 'prodcut_name' is given, it will load corresponding Ninjo tiff metadata
+    from '${PPP_CONFIG_DIR}/ninjotiff.cfg'. Else, all Ninjo tiff metadata should 
+    be passed by '**kwargs'. A mixture is allowed, where passed arguments 
+    overwrite config file.
 
     :Parameters:
         image_data : 2D numpy array
             Satellite image data to be put into the NinJo compatible tiff
         output_fn : str
             The name of the TIFF file to be created
+        area_def: pyresample.geometry.AreaDefinition
+            Defintion of area
         product_name : str
-            Index to Ninjo configuration file.
+            Optional index to Ninjo configuration file.
     
     :Keywords:
         kwargs : dict
             See _write
     """
-    if not product_name or not isinstance(product_name, str):
-        raise ValueError, "Invalid Ninjo product name '%s'" % str(product_name)
-
-    area = kwargs.pop('area_def')
-    time_stamp = kwargs.pop('time_slot')
-    fill_value = kwargs.get('fill_value', -1)
-    cmap = kwargs.get('cmap', None)
-
-    upper_left = area.get_lonlat(0, 0)
-    lower_right = area.get_lonlat(area.shape[0], area.shape[1])
-    scale = abs(lower_right[0] - upper_left[0])/area.shape[1],\
-        abs(upper_left[1] - lower_right[1])/area.shape[0]
+    upper_left = area_def.get_lonlat(0, 0)
+    lower_right = area_def.get_lonlat(area_def.shape[0], area_def.shape[1])
+    scale = abs(lower_right[0] - upper_left[0])/area_def.shape[1],\
+        abs(upper_left[1] - lower_right[1])/area_def.shape[0]
 
     if len(image_data.shape) == 3:
-        shape = (area.y_size, area.x_size, 3)
+        shape = (area_def.y_size, area_def.x_size, 3)
         write_rgb = True
         log.info("Will generate RGB product '%s'" % product_name)
     else:
-        shape = (area.y_size, area.x_size)
+        shape = (area_def.y_size, area_def.x_size)
         write_rgb = False
         log.info("Will generate product '%s'" % product_name)
 
@@ -548,20 +622,32 @@ def write(image_data, output_fn, product_name, **kwargs):
         raise ValueError, "Raster shape %s does not correspond to expected shape %s" % (
             str(image_data.shape), str(shape))
 
-    options = get_product_config(product_name)
+    # Ninjo's physical units and value.
+    # If just a physical unit (e.g. 'C') is passed, it will then be
+    # translated into Ninjo's unit and value (e.q 'CELCIUS' and 'T').
+    physic_unit = kwargs.get('physic_unit', None)
+    if physic_unit and not kwargs.get('physic_value', None):
+        kwargs['physic_unit'], kwargs['physic_value'] = \
+            _get_physic_unit(physic_unit)
+
+    # Ninjo's projection name.
+    kwargs['projection'] = kwargs.pop('projection', None) or \
+        _get_projection_name(area_def) or \
+        area_def.proj_id.split('_')[-1]
+
+    if product_name:
+        options = get_product_config(product_name)
+    else:
+        options = {}
     options['meridian_west'] = upper_left[0]
     options['meridian_east'] = lower_right[0]
     options['pixel_xres'] = scale[0]
     options['pixel_yres'] = scale[1]
     options['origin_lon'] = upper_left[0]
     options['origin_lat'] = upper_left[1]
-    options['projection'] = area.proj_id.split('_')[-1]
-    options['image_dt'] = time_stamp
     options['min_gray_val'] = image_data.min()
     options['max_gray_val'] = image_data.max()
-
-    options['transparent_pix'] = fill_value
-    options['cmap'] = cmap
+    options.update(kwargs) # Update/overwrite with passed arguments
 
     _write(image_data, output_fn, write_rgb=write_rgb, **options)
     
@@ -673,8 +759,10 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
         log.error(text)
         raise ValueError(text)
     
-    def _default_colormap():
+    def _default_colormap(reverse=False):
          # Basic B&W colormap
+        if reverse:
+            return [[ x*256 for x in range(255, -1, -1) ]]*3
         return [[ x*256 for x in range(256) ]]*3
 
     def _eval_or_none(key, eval_func):
@@ -716,16 +804,21 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
     is_normalized = int(bool(kwargs.pop("is_normalized", 0)))
     description = _eval_or_none("description", str)
 
-    physic_value = str(kwargs.pop("physic_value"))
-    physic_unit = str(kwargs.pop("physic_unit"))
-    gradient = float(kwargs.pop("gradient"))
-    axis_intercept = float(kwargs.pop("axis_intercept"))
+    physic_value = str(kwargs.pop("physic_value", 'None'))
+    physic_unit = str(kwargs.pop("physic_unit", 'None'))
+    gradient = float(kwargs.pop("gradient", 1.0))
+    axis_intercept = float(kwargs.pop("axis_intercept", 0.0))
 
     transparent_pix = int(kwargs.pop("transparent_pix", -1))
 
     # Keyword checks / verification
     if not cmap:
-        cmap = _default_colormap()
+        if physic_value == 'T':
+            reverse = True
+        else:
+            reverse = False
+        cmap = _default_colormap(reverse)
+            
     if len(cmap) != 3:
         _raise_value_error("Colormap (cmap) must be a list of 3 lists (RGB), not %d" %
                            len(cmap))
@@ -751,7 +844,7 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
     image_epoch = calendar.timegm(image_dt.timetuple())
 
     def _write_oneres(image_data, pixel_xres, pixel_yres):
-        log.info("Writing tag data for a resolution %dx%d" % image_data.shape[:2])
+        log.info("Writing tags and data for a resolution %dx%d" % image_data.shape[:2])
 
         # Write Tag Data
         
@@ -795,6 +888,8 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
         tiff.SetField("SatelliteNumber", "\x00") # Hardcoded to 0
         if write_rgb:
             tiff.SetField("ColorDepth", 24)
+        elif cmap:
+            tiff.SetField("ColorDepth", 16)
         else:
             tiff.SetField("ColorDepth", 8)
         tiff.SetField("DataSource", data_source)
@@ -837,11 +932,11 @@ def _write(image_data, output_fn, write_rgb=False, **kwargs):
     # Write multi-resolution overviews (or not)
     tiff.SetDirectory(0)
     _write_oneres(image_data, pixel_xres, pixel_yres)
-    for i, scale in enumerate((2, 4, 8, 16)):
+    for index, scale in enumerate((2, 4, 8, 16)):
         shape  = (image_data.shape[0]/scale,
                   image_data.shape[1]/scale)
         if shape[0] > tile_width and shape[1] > tile_length:
-            tiff.SetDirectory(i+1)
+            tiff.SetDirectory(index + 1)
             _write_oneres(image_data[::scale,::scale], pixel_xres*scale, pixel_yres*scale)
     tiff.close()
 
