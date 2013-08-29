@@ -5,8 +5,7 @@ instruments = ('modis',)
 
 [modis-level2]
 format=hdfeos_l1b
-#dir=/data/prod/satellit/modis/lvl1
-dir = /data/proj/safutv/data/polar_out/direct_readout/modis
+dir=/data/prod/satellit/modis/lvl1
 
 filename250 = MOD02Qkm_A%y%j_%H%M%S_*.hdf
 filename500 = MOD02Hkm_A%y%j_%H%M%S_*.hdf
@@ -75,13 +74,23 @@ name = '12'
 frequency = (0.546, 0.5510, 0.556)
 resolution = 1000
 
-[modis-13]
-name = '13'
+[modis-13lo]
+name = '13lo'
 frequency = (0.662, 0.6670, 0.672)
 resolution = 1000
 
-[modis-14]
-name = '14'
+[modis-13hi]
+name = '13hi'
+frequency = (0.662, 0.6670, 0.672)
+resolution = 1000
+
+[modis-14lo]
+name = '14lo'
+frequency = (0.673, 0.6780, 0.683)
+resolution = 1000
+
+[modis-14hi]
+name = '14hi'
 frequency = (0.673, 0.6780, 0.683)
 resolution = 1000
 
