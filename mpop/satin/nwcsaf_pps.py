@@ -438,10 +438,14 @@ def load(scene, geofilename=None, **kwargs):
     if not geofilename and geodir:
         # Load geo file from config file:
         try:
+            if not scene.orbit:
+                orbit = ""
+            else:
+                orbit = scene.orbit
             geoname_tmpl = conf.get(scene.instrument_name+"-level3", 
                                     "geofilename", raw=True)
             filename_tmpl = (scene.time_slot.strftime(geoname_tmpl)
-                             %{"orbit": scene.orbit.zfill(5) or "*",
+                             %{"orbit": orbit.zfill(5) or "*",
                                "area": area_name,
                                "satellite": scene.satname + scene.number})
 
@@ -469,8 +473,12 @@ def load(scene, geofilename=None, **kwargs):
     chn = None
     for product in products:
         LOG.debug("Loading " + product)
+        if not scene.orbit:
+            orbit = ""
+        else:
+            orbit = scene.orbit
         filename_tmpl = (scene.time_slot.strftime(pathname_tmpl)
-                         %{"orbit": scene.orbit.zfill(5) or "*",
+                         %{"orbit": orbit.zfill(5) or "*",
                            "area": area_name,
                            "satellite": scene.satname + scene.number,
                            "product": product})
