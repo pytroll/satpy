@@ -21,8 +21,7 @@ format = 'mipp_xrit'
 
 [msu-gs-level1]
 format = 'mipp/xrit/GOMS'
-#dir = '/usr/local/safnwc/import/SEVIRI_data'
-dir = '/local_disk/data/satellite/electroln1'
+dir = '/data/electro'
 filename = 'H-000-GOMS1_-GOMS1_4_____-%(channel)s_076E-%(segment)s-%Y%m%d%H%M-__'
 filename_pro = 'H-000-GOMS1_-GOMS1_4_____-_________-%(segment)s-%Y%m%d%H%M-__'
 filename_epi = 'H-000-GOMS1_-GOMS1_4_____-_________-%(segment)s-%Y%m%d%H%M-__'
