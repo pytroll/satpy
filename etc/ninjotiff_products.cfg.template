@@ -2,18 +2,105 @@
 # Definition of Ninjo products.
 #
 
+#------------------------------------------------------------------------------
+#
+# Single channels
+#
+#------------------------------------------------------------------------------
+[VIS006]
+description = MSG Channel 1
+sat_id = 6200014
+chan_id = 100015
+data_cat = GORN
+data_source = EUMETCAST
+
+[VIS008]
+description = MSG Channel 2
+sat_id = 6200014
+chan_id = 200015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_016]
+description = MSG Channel 3
+sat_id = 6200014
+chan_id = 300015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_039]
+description = MSG Channel 4
+sat_id = 6200014
+chan_id = 400015
+data_cat = GORN
+data_source = EUMETCAST
+
+[WV_062]
+description = MSG Channel 5
+sat_id = 6200014
+chan_id = 500015
+data_cat = GORN
+data_source = EUMETCAST
+
+[WV_073]
+description = MSG Channel 6
+sat_id = 6200014
+chan_id = 600015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_087]
+description = MSG Channel 7
+sat_id = 6200014
+chan_id = 700015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_097]
+description = MSG Channel 8
+sat_id = 6200014
+chan_id = 800015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_108]
+description = MSG Channel 9
+sat_id = 6200014
+chan_id = 900015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_120]
+description = MSG Channel 10
+sat_id = 6200014
+chan_id = 1000015
+data_cat = GORN
+data_source = EUMETCAST
+
+[IR_134]
+description = MSG Channel 11
+sat_id = 6200014
+chan_id = 1100015
+data_cat = GORN
+data_source = EUMETCAST
+
+[HRV]
+description = MSG Channel 12
+sat_id = 6200014
+chan_id = 1200015
+data_cat = GORN
+data_source = EUMETCAST
+
+#------------------------------------------------------------------------------
 #
 # RGB products
 #
+#------------------------------------------------------------------------------
 [msg_dust]
 description = MSG RGB dust
 sat_id = 900014
 chan_id = 6600015
 data_cat = GPRN
-physic_value = None
-physic_unit = None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_convection]
@@ -21,10 +108,6 @@ description = MSG RGB Convection
 sat_id = 900014
 chan_id = 6700015
 data_cat = GPRN
-physic_value = None
-physic_unit = None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_night_microphysics]
@@ -32,10 +115,6 @@ description = MSG RGB Night Microphysics
 sat_id = 900014
 chan_id = 8000015
 data_cat = GPRN
-physic_value = Class
-physic_unit = None 
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_airmass]
@@ -43,24 +122,19 @@ description = MSG RGB Airmass
 sat_id = 900014
 chan_id = 6500015
 data_cat = GPRN
-physic_value = Class
-physic_unit =  None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
+#------------------------------------------------------------------------------
 #
 # NWCSAF products
 #
+#------------------------------------------------------------------------------
 [msg_cloudtype]
 description = NWCSAF Cloudtype
 sat_id = 900014
 chan_id = 1700015
 data_cat = GPRN
 physic_value = Class
-physic_unit = None 
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_cloudtop_temp]
@@ -69,9 +143,6 @@ sat_id = 900014
 chan_id = 2000015
 data_cat = GPRN
 physic_value = Class
-physic_unit = None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_cloudtop_height]
@@ -80,9 +151,6 @@ sat_id = 900014
 chan_id = 1900015
 data_cat = GPRN
 physic_value = Class
-physic_unit = None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
 
 [msg_precipitating_clouds]
@@ -91,7 +159,4 @@ sat_id = 900014
 chan_id = 2100015
 data_cat = GPRN
 physic_value = Class
-physic_unit = None
-gradient = 1.0
-axis_intercept = 0.0
 data_source = EUMETCAST
