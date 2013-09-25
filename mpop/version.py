@@ -23,8 +23,8 @@
 """Version file.
 """
 
-__major__ = "0"
-__minor__ = "13"
-__patch__ = "1"
+__major__ = "1"
+__minor__ = "0"
+__patch__ = "0"
 
 __version__ = "v" + ".".join([__major__, __minor__, __patch__])
