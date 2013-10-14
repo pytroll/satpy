@@ -219,9 +219,6 @@ class Projector(object):
         """Project an array *data* along the given Projector object.
         """
         
-        if self.in_area == self.out_area:
-            return data
-
         if self.mode == "nearest":
             
             if not 'valid_index' in self._cache:
