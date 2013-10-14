@@ -653,35 +653,32 @@ class SatelliteInstrumentScene(SatelliteScene):
                                  + str(chn.name))
                     chn.area.area_id = area_name
 
-            if chn.area == dest_area:
-                res.channels.append(chn)
+            if isinstance(chn.area, str):
+                area_id = chn.area
             else:
-                if isinstance(chn.area, str):
-                    area_id = chn.area
-                else:
-                    area_id = chn.area_id or chn.area.area_id
-                
-                if area_id not in cov:
-                    if radius is None:
-                        if chn.resolution > 0:
-                            radius = 5 * chn.resolution
-                        else:
-                            radius = 10000
-                    cov[area_id] = mpop.projector.Projector(chn.area,
-                                                            dest_area,
-                                                            mode=mode,
-                                                            radius=radius)
-                    if precompute:
-                        try:
-                            cov[area_id].save()
-                        except IOError:
-                            LOG.exception("Could not save projection.")
+                area_id = chn.area_id or chn.area.area_id
 
-                try:
-                    res.channels.append(chn.project(cov[area_id]))
-                except NotLoadedError:
-                    LOG.warning("Channel "+str(chn.name)+" not loaded, "
-                                "thus not projected.")
+            if area_id not in cov:
+                if radius is None:
+                    if chn.resolution > 0:
+                        radius = 5 * chn.resolution
+                    else:
+                        radius = 10000
+                cov[area_id] = mpop.projector.Projector(chn.area,
+                                                        dest_area,
+                                                        mode=mode,
+                                                        radius=radius)
+                if precompute:
+                    try:
+                        cov[area_id].save()
+                    except IOError:
+                        LOG.exception("Could not save projection.")
+
+            try:
+                res.channels.append(chn.project(cov[area_id]))
+            except NotLoadedError:
+                LOG.warning("Channel "+str(chn.name)+" not loaded, "
+                            "thus not projected.")
         
         # Compose with image object
         try:
