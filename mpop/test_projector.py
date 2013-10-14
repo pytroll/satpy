@@ -302,6 +302,7 @@ class TestProjector(unittest.TestCase):
         """
         in_area_id = random_string(20)
         out_area_id = random_string(20)
+        data = np.random.standard_normal((3, 1))
 
         # test quick
         self.proj = Projector(in_area_id, out_area_id, mode="quick")
