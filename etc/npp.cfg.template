@@ -8,7 +8,7 @@ instruments = ('viirs',)
 filename = SV???_%(satellite)s_d*b%(orbit)s_c*.h5
 geo_filenames = G????_%(satellite)s_d*b%(orbit)s_c*.h5
 dir = /data/viirs/sdr
-geodir = /data/viirs/sdr
+geo_dir = /data/viirs/sdr
 format = viirs_sdr.ViirsSDRReader
 
 
