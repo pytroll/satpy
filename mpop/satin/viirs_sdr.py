@@ -71,6 +71,8 @@ class HDF5MetaData(object):
     def __init__(self, filename):
         self.metadata = {}
         self.filename = filename
+        if not os.path.exists(filename):
+            raise IOError("File %s does not exist!" % filename)
 
     def read(self):
         h5f = h5py.File(self.filename, 'r')
@@ -247,9 +249,9 @@ class ViirsGeolocationData(object):
             return self
         
         self.longitudes = np.empty(self.shape, 
-                                      dtype=np.float32)
+                                   dtype=np.float32)
         self.latitudes = np.empty(self.shape, 
-                                     dtype=np.float32)
+                                  dtype=np.float32)
         self.mask = np.zeros(self.shape, 
                              dtype=np.bool)
 
@@ -320,10 +322,20 @@ class ViirsBandData(object):
 
     def _read_metadata(self):
 
+        logger.debug("Filenames: " + str(self.filenames))
+
         for fname in self.filenames:
+            logger.debug("Get and append metadata from file: " + str(fname))
             md = NPPMetaData(fname).read()
             self.metadata.append(md)
             self.geo_filenames.append(md.get_geofilname())
+            # # Check if the geo-filenames actually exists:
+            # geofilename = md.get_geofilname()
+            # if os.path.exists(geofilename):
+            #     self.geo_filenames.append(geofilename)
+            # else:
+            #     logger.warning("Geo file defined in metadata header " + 
+            #                    "does not exist: " + str(geofilename))
 
         #
         # initiate data arrays
@@ -424,10 +436,13 @@ class ViirsBandData(object):
 
         if geofilepaths is None:
             if geodir is None:
-                geodir = os.path.dir(self.metadata[0].filename)
+                geodir = os.path.dirname(self.metadata[0].filename)
+
+            logger.debug("Geo-files = " + str(self.geo_filenames))
             geofilepaths = [os.path.join(geodir, geofilepath) 
                             for geofilepath in self.geo_filenames]
-
+        
+        logger.debug("Geo-files = " + str(geofilepaths))
         self.geolocation = ViirsGeolocationData(self.data.shape, 
                                                 geofilepaths).read()
 
@@ -515,11 +530,26 @@ class ViirsSDRReader(Reader):
             raise IOError("No VIIRS SDR file matching!: " + 
                           os.path.join(directory, filename_tmpl))
 
-        geo_filenames_tmpl = strftime(satscene.time_slot, 
-                                      options["geo_filenames"]) %values
-        geofile_list = glob.glob(os.path.join(directory, geo_filenames_tmpl))
-        # Only take the files in the interval given:
-        geofile_list = _get_swathsegment(geofile_list, time_start, time_end)
+        geo_dir_string = options.get("geo_dir", None)
+        if geo_dir_string:
+            geodirectory = strftime(satscene.time_slot, geo_dir_string) % values
+        else:
+            geodirectory = directory
+        logger.debug("Geodir = " + str(geodirectory))
+
+        geofile_list = []
+        geo_filenames_string = options.get("geo_filenames", None)
+        if geo_filenames_string:
+            geo_filenames_tmpl = strftime(satscene.time_slot, 
+                                          geo_filenames_string) % values
+            geofile_list = glob.glob(os.path.join(geodirectory, 
+                                                  geo_filenames_tmpl))
+            logger.debug("List of geo-files: " + str(geofile_list))
+            # Only take the files in the interval given:
+            geofile_list = _get_swathsegment(geofile_list, time_start, time_end)
+
+        logger.debug("List of geo-files (after time interval selection): " 
+                     + str(geofile_list))
 
         glob_info = {}
 
@@ -542,10 +572,54 @@ class ViirsSDRReader(Reader):
             logger.debug("fnames_band = " + str(filename_band))
 
             band = ViirsBandData(filename_band, calibrate=calibrate).read()
-            
             logger.debug('Band id = ' + band.band_id)
 
-            band.read_lonlat(geodir=directory)
+            # If the list of geo-files is not specified in the config file or
+            # some of them do not exist, we rely on what is written in the
+            # band-data metadata header:
+            if len(geofile_list) < len(filename_band):
+                geofilenames_band = [ os.path.join(geodirectory, gfile) for
+                                      gfile in band.geo_filenames ]
+                logger.debug("Geolocation filenames for band: " +
+                             str(geofilenames_band))
+                # Check if the geo-filenames found from the metadata actually
+                # exist and issue a warning if they do not:
+                for geofilename in geofilenames_band:
+                    if not os.path.exists(geofilename):
+                        logger.warning("Geo file defined in metadata header " + 
+                                       "does not exist: " + str(geofilename))
+
+            elif band.band_id.find('M') == 0:
+                geofilenames_band = [ geofile for geofile in geofile_list 
+                                      if os.path.basename(geofile).startswith('GMTCO') ]
+                if len(geofilenames_band) != len(filename_band):
+                    # Try the geoid instead:
+                    geofilenames_band = [ geofile for geofile in geofile_list 
+                                          if os.path.basename(geofile).startswith('GMODO') ]
+                    if len(geofilenames_band) != len(filename_band):
+                        raise IOError("Not all geo location files " + 
+                                      "for this scene are present for band " + 
+                                      band.band_id + "!")
+            elif band.band_id.find('I') == 0:
+                geofilenames_band = [ geofile for geofile in geofile_list 
+                                      if os.path.basename(geofile).startswith('GITCO') ]
+                if len(geofilenames_band) != len(filename_band):
+                    # Try the geoid instead:
+                    geofilenames_band = [ geofile for geofile in geofile_list 
+                                          if os.path.basename(geofile).startswith('GIMGO') ]
+                    if len(geofilenames_band) != len(filename_band):
+                        raise IOError("Not all geo location files " + 
+                                      "for this scene are present for band " + 
+                                      band.band_id + "!")
+            elif band.band_id.find('D') == 0:
+                geofilenames_band = [ geofile for geofile in geofile_list 
+                                      if os.path.basename(geofile).startswith('GDNBO') ]
+                if len(geofilenames_band) != len(filename_band):
+                    raise IOError("Not all geo-location files " + 
+                                  "for this scene are present for " + 
+                                  "the Day Night Band!")
+
+            band.read_lonlat(geofilepaths=geofilenames_band)
 
             if not band.band_desc:
                 logger.warning('Band name = ' + band.band_id)
@@ -558,7 +632,6 @@ class ViirsSDRReader(Reader):
 
             # We assume the same geolocation should apply to all M-bands!
             # ...and the same to all I-bands:
-
 
             from pyresample import geometry
 
