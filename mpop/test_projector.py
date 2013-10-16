@@ -302,13 +302,7 @@ class TestProjector(unittest.TestCase):
         """
         in_area_id = random_string(20)
         out_area_id = random_string(20)
-
-        # test computation skip if equal areas
-        in_area = geometry.AreaDefinition()
-        self.proj = Projector(in_area, in_area)
-        self.assertEquals(self.proj.in_area, self.proj.out_area)
         data = np.random.standard_normal((3, 1))
-        self.assertTrue(np.all(data == self.proj.project_array(data)))
 
         # test quick
         self.proj = Projector(in_area_id, out_area_id, mode="quick")
