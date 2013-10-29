@@ -211,7 +211,7 @@ def _load02(filename):
                          units.lower().endswith("north") or 
                          units.lower().endswith("south")):
                         lats = coord_var[:]
-                if lons and lats:
+                if lons.any() and lats.any():
                     try:
                         from pyresample.geometry import SwathDefinition
                         area = SwathDefinition(lons=lons, lats=lats)
