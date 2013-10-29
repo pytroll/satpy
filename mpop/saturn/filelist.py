@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -27,12 +27,23 @@
 
 """Filelist class.
 """
+import logging
 import os
 import shutil
 import tempfile
+from urlparse import urlunsplit
 
+from mpop.satout.cfscene import proj2cf
 from mpop.utils import ensure_dir
-from mpop.saturn import LOG
+
+
+try:
+    from posttroll.message import Message
+except ImportError:
+    Message = None
+
+
+logger = logging.getLogger(__name__)
 
 class FileList(list):
     """List of files.
@@ -60,7 +71,7 @@ class FileList(list):
             types[ext] = types.get(ext, FileList()) + FileList([filename])
         return types
 
-    def save_object(self, obj):
+    def save_object(self, obj, pub=None):
         """save *obj* to the filelist.
         """
         files_by_ext = self._get_by_ext()
@@ -78,9 +89,9 @@ class FileList(list):
                 os.chmod(tmpfilename, 0644)
                 os.fsync(handle)
             except Exception:
-                LOG.exception("Something went wrong in saving file... "
+                logger.exception("Something went wrong in saving file... "
                               "Dumping trace.")
-                LOG.warning("Job skipped, going on with the next.")
+                logger.warning("Job skipped, going on with the next.")
                 continue
             for filename in files_by_ext[extkey][1:]:
                 path2, trash = os.path.split(filename)
@@ -96,29 +107,61 @@ class FileList(list):
                     os.fsync(handle2)
                     os.close(handle2)
                 except (IOError, OSError):
-                    LOG.exception("Copying file %s to %s failed"
+                    logger.exception("Copying file %s to %s failed"
                                   %(tmpfilename,tmpfilename2))
-                    LOG.info("Retrying...")
+                    logger.info("Retrying...")
                     try:
                         shutil.copy(tmpfilename, tmpfilename2)
                         os.fsync(handle2)
                         os.close(handle2)
-                        LOG.info("Went OK this time...")
+                        logger.info("Went OK this time...")
                     except (IOError, OSError):
-                        LOG.exception("No way...")
+                        logger.exception("No way...")
                 try:
                     os.rename(tmpfilename2, filename)
+                    if pub:
+                        send_message(obj, filename, pub)
                 except (IOError, OSError):
-                    LOG.exception("Renaming file %s to %s failed"
+                    logger.exception("Renaming file %s to %s failed"
                                 %(tmpfilename2,filename))
-                    LOG.info("Retrying...")
+                    logger.info("Retrying...")
                     try:
                         os.rename(tmpfilename2, filename)
+                        if pub:
+                            send_message(obj, filename, pub)
                     except (IOError, OSError):
-                        LOG.exception("No way...")
-                LOG.debug("Done saving "+filename)
+                        logger.exception("No way...")
+                logger.debug("Done saving "+filename)
                 
             os.rename(tmpfilename, files_by_ext[extkey][0])
             os.fsync(handle)
             os.close(handle)
-            LOG.debug("Done saving "+files_by_ext[extkey][0])
+            if pub:
+                send_message(obj, files_by_ext[extkey][0], pub)
+            logger.debug("Done saving "+files_by_ext[extkey][0])
+
+def send_message(obj, filename, pub):
+    to_send = {}
+    to_send["nominal_time"] = obj.time_slot
+    # FIXME: how do we do this ?
+    to_send["start_time"] = obj.time_slot
+    to_send["end_time"] = obj.time_slot
+    
+    to_send["area"] = proj2cf(obj.area.proj_dict)
+    to_send["area"]["name"] = obj.area.name
+    to_send["area"]["id"] = obj.area.area_id
+    to_send["area"]["area_extent"] = obj.area.area_extent
+    to_send["uri"] = urlunsplit(("file", "", filename, "", ""))
+    # FIXME: we should have more info on format
+    to_send["format"] = os.path.splitext(filename)[1]
+    to_send["type"] = "image"
+    to_send["level"] = "2"
+    try:
+        msg = Message('/oper/polar/direct_readout/norrköping',
+                      "file",
+                      to_send).encode()
+        pub.send(msg)
+        logger.debug("Send notification of file creation: " + str(msg))
+    except TypeError:
+        logger.warning("Cant send message: " + str(to_send))
+

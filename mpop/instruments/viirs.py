@@ -507,3 +507,24 @@ class ViirsCompositer(VisirCompositer):
         return img
 
     chlorophyll.prerequisites = set(["M02", "M03", "M04"])
+
+    def hr_cloudtop(self):
+        """Make a Night Fog RGB image composite.
+        """
+        self.check_channels('I04', 'I05')
+        
+        ch1 = -self['I04'].data
+        ch2 = self['I05'].data
+        ch3 = self['I05'].data
+        
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
+
+        img.enhance(stretch=(0.005, 0.005))
+
+        return img
+
+    hr_cloudtop.prerequisites = set(['I04', 'I05'])

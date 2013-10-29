@@ -331,12 +331,14 @@ class Image(object):
 
         return img
 
-    def save(self, filename, compression = 6, fformat = None):
-        """Save the image to the given *filename*.
+    def save(self, filename, compression=6, fformat=None):
+        """Save the image to the given *filename*. For some formats like jpg
+        and png, the work is delegated to :meth:`pil_save`, which doesn't
+        support the *compression* option.
         """
         self.pil_save(filename, compression, fformat)
 
-    def pil_save(self, filename, compression = 6, fformat = None):
+    def pil_save(self, filename, compression=6, fformat=None):
         """Save the image to the given *filename* using PIL. For now, the
         compression level [0-9] is ignored, due to PIL's lack of support. See
         also :meth:`save`.
@@ -359,7 +361,8 @@ class Image(object):
         *alpha* if it already exists.
         """
         alpha = np.ma.array(alpha)
-        if(not (alpha.shape[0] == 0 and self.shape[0] == 0) and
+        if(not (alpha.shape[0] == 0 and
+                self.shape[0] == 0) and
            alpha.shape != self.shape):
             raise ValueError("Alpha channel shape should match image shape")
         
