@@ -117,6 +117,30 @@ class VisirCompositer(Compositer):
 
     overview.prerequisites = set([0.635, 0.85, 10.8])
 
+    def night_overview(self, stretch='histogram', gamma=None):
+        """Make an overview RGB image composite using IR channels.
+        """
+        self.check_channels(3.75, 10.8, 12.0)
+
+        ch1 = -self[3.75].data
+        ch2 = -self[10.8].data
+        ch3 = -self[12.0].data
+        
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
+        if stretch:
+            img.stretch(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
+
+        return img
+
+    night_overview.prerequisites = set([3.75, 10.8, 12.0])
+
+
     def natural(self, stretch=None, gamma=1.8):
         """Make a Natural Colors RGB image composite.
         """
