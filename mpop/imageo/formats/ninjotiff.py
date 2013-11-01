@@ -494,7 +494,32 @@ def _get_projection_name(area_def):
         else:
             return 'NPOL'
     return None
-        
+
+def _get_pixel_size(projection_name, area_def):
+    if projection_name == 'PLAT':
+        upper_left = area_def.get_lonlat(0, 0)
+        lower_right = area_def.get_lonlat(area_def.shape[0], area_def.shape[1])
+        pixel_size = abs(lower_right[0] - upper_left[0])/area_def.shape[1],\
+            abs(upper_left[1] - lower_right[1])/area_def.shape[0]
+    elif projection_name in ('NPOL', 'SPOL'):
+        pixel_size = (np.rad2deg(area_def.pixel_size_x/float(area_def.proj_dict['a'])), 
+                      np.rad2deg(area_def.pixel_size_y/float(area_def.proj_dict['b'])))
+    else:
+        raise ValueError("Could determine pixel size from projection name '%s'" %
+                         projection_name + " (Unknown)")
+    return pixel_size
+
+def _get_satellite_altitude(filename):
+    # Guess altitude (probably no big deal if we fail).
+    sat_altitudes = {'MSG': 36000.0,
+                     'METOP': 817.0,
+                     'NOAA': 870.0}
+
+    filename = os.path.basename(filename).upper()
+    for nam_, alt_ in sat_altitudes.items():
+        if nam_ in filename:
+            return alt_
+    return 0
 
 def _finalize(geo_image):
     """Finalize a mpop GeoImage for Ninjo. Specialy take care of phycical scale
@@ -606,8 +631,6 @@ def write(image_data, output_fn, area_def, product_name=None, **kwargs):
     """
     upper_left = area_def.get_lonlat(0, 0)
     lower_right = area_def.get_lonlat(area_def.shape[0], area_def.shape[1])
-    scale = abs(lower_right[0] - upper_left[0])/area_def.shape[1],\
-        abs(upper_left[1] - lower_right[1])/area_def.shape[0]
 
     if len(image_data.shape) == 3:
         shape = (area_def.y_size, area_def.x_size, 3)
@@ -635,14 +658,30 @@ def write(image_data, output_fn, area_def, product_name=None, **kwargs):
         _get_projection_name(area_def) or \
         area_def.proj_id.split('_')[-1]
 
+    # Get pixel size
+    if not kwargs.has_key('pixel_xres') or not kwargs.has_key('pixel_yres'):
+        kwargs['pixel_xres'], kwargs['pixel_yres'] = \
+            _get_pixel_size(kwargs['projection'], area_def)
+
+    # Get altitude.
+    kwargs['altitude'] = kwargs.pop('altitude', None) or \
+        _get_satellite_altitude(output_fn)
+
     if product_name:
         options = get_product_config(product_name)
     else:
         options = {}
     options['meridian_west'] = upper_left[0]
     options['meridian_east'] = lower_right[0]
-    options['pixel_xres'] = scale[0]
-    options['pixel_yres'] = scale[1]
+    if area_def.proj_dict.has_key('lat_0'):        
+        options['ref_lat1'] = area_def.proj_dict['lat_0']
+        options['ref_lat2'] = 0
+    if area_def.proj_dict.has_key('lon_0'):        
+        options['central_meridian'] = area_def.proj_dict['lon_0']
+    if area_def.proj_dict.has_key('a'):        
+        options['radius_a'] = area_def.proj_dict['a']
+    if area_def.proj_dict.has_key('b'):        
+        options['radius_b'] = area_def.proj_dict['a']
     options['origin_lon'] = upper_left[0]
     options['origin_lat'] = upper_left[1]
     options['min_gray_val'] = image_data.min()
