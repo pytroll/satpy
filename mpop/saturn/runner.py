@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -171,7 +171,7 @@ class SequentialRunner(object):
         """
         self.running = False
 
-    def run_from_cmd(self):
+    def run_from_cmd(self, pub=None):
         """Batch run mpop.
         """
         time_slots, mode, areas, composites = parse_options()
@@ -187,10 +187,10 @@ class SequentialRunner(object):
                                                     variant=self.variant)
             prerequisites = tasklist.get_prerequisites(self.klass)
             self.data.load(prerequisites)
-            self.run_from_data(tasklist)
+            self.run_from_data(tasklist, pub)
                                 
 
-    def run_from_data(self, tasklist=None, radius=None):
+    def run_from_data(self, tasklist=None, radius=None, pub=None):
         """Run on given data.
         """
         if tasklist is None:
@@ -221,14 +221,14 @@ class SequentialRunner(object):
                         LOG.info("Running interrupted")
                         return
                     img = fun()
-                    flist.save_object(img)
+                    flist.save_object(img, pub)
                     del img
                 except (NotLoadedError, KeyError, ValueError), err:
                     LOG.warning("Error in "+product+": "+str(err))
                     LOG.info("Skipping "+product)
             del local_data
 
-    def run_from_local_data(self, tasklist=None, extra_tags=None):
+    def run_from_local_data(self, tasklist=None, extra_tags=None, pub=None):
         """Run on given local data (already projected).
         """
         if tasklist is None:
@@ -261,7 +261,7 @@ class SequentialRunner(object):
                 img = fun()
                 if extra_tags:
                     img.tags.update(extra_tags)
-                flist.save_object(img)
+                flist.save_object(img, pub)
                 del img
             except (NotLoadedError, KeyError), err:
                 LOG.warning("Error in "+product+": "+str(err))
