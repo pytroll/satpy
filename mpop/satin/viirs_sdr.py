@@ -229,6 +229,7 @@ class GeolocationFlyweight(object):
 
     def clear_cache(self):
         del self._instances
+        self._instances = dict()
         
 
 @GeolocationFlyweight
