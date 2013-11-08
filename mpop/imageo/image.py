@@ -878,7 +878,12 @@ class Image(object):
 
         carr = arr.compressed()
 
-        imhist, bins = np.histogram(carr, nwidth, normed=True)
+        #imhist, bins = np.histogram(carr, nwidth, normed=True)
+        LOG.debug("Make a histogram neglecting the outer 0.5% percentiles:")
+        imhist, bins = com_histogram(carr, 0.5, nwidth, normed=True)
+        nwidth = len(imhist)
+        LOG.debug("Histogram calculated. Number of bins = " + str(nwidth))
+
         cdf = imhist.cumsum() - imhist[0]
         cdf = cdf / cdf[-1]
 
@@ -924,16 +929,19 @@ class Image(object):
             return
         
         nwidth = 2048.0
-
-
         arr = self.channels[ch_nb]
 
         carr = arr.compressed()
-        hist, bins = np.histogram(carr, nwidth)
 
+        LOG.debug("Make a histogram neglecting the outer 0.5% percentiles:")
+        hist, bins = com_histogram(carr, 0.5, nwidth)
+        #hist, bins = np.histogram(carr, nwidth)
+        nwidth = len(hist)
+        LOG.debug("Histogram calculated. Number of bins = " + str(nwidth))
         ndim = carr.size
 
         left = 0
+        #hist_sum = 0.005 * ndim
         hist_sum = 0.0
         i = 0
         while i < nwidth and hist_sum < cutoffs[0]*ndim:
@@ -943,6 +951,7 @@ class Image(object):
         left = bins[i-1]
 
         right = 0
+        #hist_sum = 0.005 * ndim
         hist_sum = 0.0
         i = nwidth - 1
         while i >= 0 and hist_sum < cutoffs[1]*ndim:
@@ -1051,3 +1060,24 @@ def rgb2ycbcr(r__, g__, b__):
 
     return y__, cb_, cr_
 
+    
+
+def com_histogram(arr, percentile, nwidth=2048, normed=False):
+    """Make a center of mass histogram, that is clip the outer 0.1% of the
+    edges of the histogram, and then return a new histogram of the center"""
+
+    left, right = (np.percentile(arr, percentile), 
+                   np.percentile(arr, 100.-percentile))
+    # Clip the data and make a new histogram:
+    hist, bins = np.histogram(np.ma.masked_where(np.logical_or(arr < left, 
+                                                               arr > right), 
+                                                     arr).compressed(), 
+                                  nwidth, normed=normed)
+    # Add the edges back into the histogram:
+    bins = np.concatenate([[arr.min()], 
+                           bins, 
+                           [arr.max()]])
+    hist = np.concatenate([[arr.size*percentile/100.], 
+                           hist, 
+                           [arr.size*percentile/100.]])
+    return hist, bins
