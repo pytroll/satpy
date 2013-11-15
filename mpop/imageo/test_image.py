@@ -454,7 +454,7 @@ class TestRegularImage(unittest.TestCase):
             linear = np.array([[ 0., 1.00048852, 1.00048852],
                                [ 1.00048852, 0.50024426, 0.50024426]])
             crude = np.array([[0, 1, 1], [1, 0.5, 0.5]])
-            histo = np.array([[0, 1, 1], [1, 0.399997070334, 0.399997070334]])
+            histo = np.array([[0, 1, 1], [1.0, 0.397614314115, 0.397614314115]])
             self.img.stretch()
             self.assert_(all([np.all(self.img.channels[i] == old_channels[i])
                          for i in range(len(self.img.channels))]))
