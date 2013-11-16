@@ -878,16 +878,10 @@ class Image(object):
 
         carr = arr.compressed()
 
-        LOG.debug("Make a histogram of the inner 99% and add " + 
-                  "the 0.5% and 99.5% percentiles afterwards:")
-        imhist, bins = com_histogram(carr, 0.5, nwidth)
-        nwidth = len(imhist)
-        LOG.debug("Histogram calculated. Number of bins = " + str(nwidth))
-        LOG.debug("Histogram values: " + str(imhist))
-        LOG.debug("Histogram bins: " + str(bins))
-
-        cdf = imhist.cumsum() - imhist[0]
-        cdf = cdf / (cdf[-1] * 1.0)
+        cdf = np.arange(0.0, 1.0, 1/nwidth)
+        LOG.debug("Make histogram bins having equal amount of data, " + 
+                  "using numpy percentile function:")
+        bins = np.percentile(carr, list(cdf * 100))
 
         res = np.ma.empty_like(arr)
         res.mask = np.ma.getmaskarray(arr)
