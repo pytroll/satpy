@@ -461,9 +461,8 @@ class TestRegularImage(unittest.TestCase):
             self.img.stretch("linear")
             self.assert_(np.all((self.img.channels[0] - linear) < EPSILON))
             self.img.stretch("crude")
-            self.assert_(np.all(self.img.channels[0] == crude))
+            self.assert_(np.all((self.img.channels[0] - crude) < EPSILON))
             self.img.stretch("histogram")
-            print self.img.channels[0]
             self.assert_(np.all(np.abs(self.img.channels[0] - histo) < EPSILON))
             self.img.stretch((0.05, 0.05))
             self.assert_(np.all((self.img.channels[0] - linear) < EPSILON))
