@@ -497,7 +497,8 @@ class ViirsSDRReader(Reader):
         directory = strftime(satscene.time_slot, options["dir"]) % values
 
         if not os.path.exists(directory):
-            directory = globify(options["dir"]) % values
+            #directory = globify(options["dir"]) % values
+            directory = globify(strftime(satscene.time_slot, options["dir"])) % values
             logger.debug("Looking for files in directory " + str(directory))
             directories = glob.glob(directory)
             if len(directories) > 1:

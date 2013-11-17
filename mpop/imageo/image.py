@@ -878,20 +878,14 @@ class Image(object):
 
         carr = arr.compressed()
 
-        LOG.debug("Make a histogram of the inner 99% and add " + 
-                  "the 0.5% and 99.5% percentiles afterwards:")
-        imhist, bins = com_histogram(carr, 0.5, nwidth)
-        nwidth = len(imhist)
-        LOG.debug("Histogram calculated. Number of bins = " + str(nwidth))
-        LOG.debug("Histogram values: " + str(imhist))
-        LOG.debug("Histogram bins: " + str(bins))
-
-        cdf = imhist.cumsum() - imhist[0]
-        cdf = cdf / cdf[-1]
+        cdf = np.arange(0.0, 1.0, 1/nwidth)
+        LOG.debug("Make histogram bins having equal amount of data, " + 
+                  "using numpy percentile function:")
+        bins = np.percentile(carr, list(cdf * 100))
 
         res = np.ma.empty_like(arr)
         res.mask = np.ma.getmaskarray(arr)
-        res[~res.mask] = np.interp(carr, bins[:-1], cdf)
+        res[~res.mask] = np.interp(carr, bins, cdf)
 
         self.channels[ch_nb] = res
 
@@ -917,7 +911,6 @@ class Image(object):
         arr = c + b*np.log(arr)
         self.channels[ch_nb] = arr
 
-
     def stretch_linear(self, ch_nb, cutoffs=(0.005, 0.005)):
         """Stretch linearly the contrast of the current image on channel
         *ch_nb*, using *cutoffs* for left and right trimming.
@@ -930,40 +923,19 @@ class Image(object):
             LOG.warning("Nothing to stretch !")
             return
         
-        nwidth = 2048.0
         arr = self.channels[ch_nb]
-
         carr = arr.compressed()
 
-        LOG.debug("Make a histogram neglecting the outer 0.5% percentiles:")
-        hist, bins = com_histogram(carr, 0.5, nwidth)
-        #hist, bins = np.histogram(carr, nwidth)
-        nwidth = len(hist)
-        LOG.debug("Histogram calculated. Number of bins = " + str(nwidth))
-        ndim = carr.size
+        LOG.debug("Calculate the histogram percentiles: ")
+        LOG.debug("Left and right percentiles: " + 
+                  str(cutoffs[0]*100) + " " + str(cutoffs[1]*100))
 
-        left = 0
-        #hist_sum = 0.005 * ndim
-        hist_sum = 0.0
-        i = 0
-        while i < nwidth and hist_sum < cutoffs[0]*ndim:
-            hist_sum = hist_sum + hist[i]
-            i = i + 1
+        left, right = (np.percentile(carr, cutoffs[0]*100),
+                       np.percentile(carr, 100. - cutoffs[1]*100))
 
-        left = bins[i-1]
-
-        right = 0
-        #hist_sum = 0.005 * ndim
-        hist_sum = 0.0
-        i = nwidth - 1
-        while i >= 0 and hist_sum < cutoffs[1]*ndim:
-            hist_sum = hist_sum + hist[i]
-            i = i - 1
-
-        right = bins[i+1]
         delta_x = (right - left)
-        LOG.debug("Interval: left=%f,right=%f width=%f"
-                  %(left,right,delta_x))
+        LOG.debug("Interval: left=%f, right=%f width=%f"
+                  % (left, right, delta_x))
 
         if delta_x > 0.0:
             self.channels[ch_nb] = np.ma.array((arr - left) / delta_x, 
@@ -971,6 +943,7 @@ class Image(object):
         else:
             self.channels[ch_nb] = np.ma.zeros(arr.shape)
             LOG.warning("Unable to make a contrast stretch!")
+
 
     def crude_stretch(self, ch_nb, min_stretch = None, max_stretch = None):
         """Perform simple linear stretching (without any cutoff) on the channel
@@ -1062,11 +1035,11 @@ def rgb2ycbcr(r__, g__, b__):
 
     return y__, cb_, cr_
 
-    
 
 def com_histogram(arr, percentile, nwidth=2048, normed=False):
     """Make a center of mass histogram, that is clip the outer 0.1% of the
-    edges of the histogram, and then return a new histogram of the center"""
+    edges of the histogram, and then return a new histogram of the center plus
+    the edges glued back in"""
 
     left, right = (np.percentile(arr, percentile), 
                    np.percentile(arr, 100.-percentile))
