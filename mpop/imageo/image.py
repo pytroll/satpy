@@ -885,7 +885,7 @@ class Image(object):
 
         res = np.ma.empty_like(arr)
         res.mask = np.ma.getmaskarray(arr)
-        res[~res.mask] = np.interp(carr, bins[:-1], cdf)
+        res[~res.mask] = np.interp(carr, bins, cdf)
 
         self.channels[ch_nb] = res
 
