@@ -930,8 +930,10 @@ class Image(object):
         LOG.debug("Left and right percentiles: " + 
                   str(cutoffs[0]*100) + " " + str(cutoffs[1]*100))
 
-        left, right = (np.percentile(carr, cutoffs[0]*100),
-                       np.percentile(carr, 100. - cutoffs[1]*100))
+        #left, right = (np.percentile(carr, cutoffs[0]*100),
+        #               np.percentile(carr, 100. - cutoffs[1]*100))
+        left, right = np.percentile(carr, [cutoffs[0]*100, 
+                                           100. - cutoffs[1]*100])
 
         delta_x = (right - left)
         LOG.debug("Interval: left=%f, right=%f width=%f"
