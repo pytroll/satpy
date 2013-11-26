@@ -101,6 +101,7 @@ class HDF5MetaData(object):
                 if long_key is not None:
                     raise KeyError("Multiple keys called %s" % key)
                 long_key = mkey
+                break
         return self.metadata[long_key]
 
     def keys(self):
@@ -145,13 +146,17 @@ class NPPMetaData(HDF5MetaData):
         shape = self['Radiance/shape']
         band = self['Band_ID']
         if band[0] == 'M':
-            if shape != VIIRS_MBAND_GRANULE_SIZE:
+            #if shape != VIIRS_MBAND_GRANULE_SIZE:
+            if ((shape[0] % VIIRS_MBAND_GRANULE_SIZE[0]) != 0 and
+                (shape[1] % VIIRS_MBAND_GRANULE_SIZE[1]) != 0):
                 raise ValueError("Unsupported granule size %s for %s" % (shape, band))
         elif band == "DNB":
-            if shape != VIIRS_DNB_GRANULE_SIZE:
+            if ((shape[0] % VIIRS_DNB_GRANULE_SIZE[0]) != 0 and
+                (shape[1] % VIIRS_MBAND_GRANULE_SIZE[1]) != 0):
                 raise ValueError("Unsupported granule size %s for %s" % (shape, band))
         elif band[0] == "I":
-            if shape != VIIRS_IBAND_GRANULE_SIZE:
+            if ((shape[0] % VIIRS_IBAND_GRANULE_SIZE[0] != 0) and
+                (shape[1] % VIIRS_IBAND_GRANULE_SIZE[1] != 0)):
                 raise ValueError("Unsupported granule size %s for %s" % (shape, band))
 
         return shape 
