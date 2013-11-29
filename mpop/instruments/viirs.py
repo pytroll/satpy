@@ -493,7 +493,7 @@ class ViirsCompositer(VisirCompositer):
         #X = np.maximum(self["M02"].data, self["M03"].data)/self["M04"].data
         X = self["M02"].data/self["M04"].data
         X = np.log10(X)
-        chlor_a = 10**(a0 + a1*X + a2*(X**2) + a3*(X**3) + a4(*X**4))
+        chlor_a = 10**(a0 + a1*X + a2*(X**2) + a3*(X**3) + a4*(X**4))
         print 'chlor_a:', chlor_a.min(), chlor_a.mean(), chlor_a.max()
         
         img = geo_image.GeoImage(chlor_a,
