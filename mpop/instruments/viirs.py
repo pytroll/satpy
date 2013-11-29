@@ -272,20 +272,10 @@ class ViirsCompositer(VisirCompositer):
 
 
     def night_color(self):
-        self.check_channels('M12', 'M15', 'M16')
-
-        ch1 = -self['M12'].data
-        ch2 = -self['M15'].data
-        ch3 = -self['M16'].data
-
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB")
-        img.stretch(stretch="histogram")
-
-        return img
+        """Make a Night Overview RGB image composite.
+        Same as cloudtop ... just different.
+        """
+        return self.cloudtop(stretch="histogram")
 
     night_color.prerequisites = set(['M12', 'M15', 'M16'])
 
@@ -383,7 +373,7 @@ class ViirsCompositer(VisirCompositer):
     fog.prerequisites = set(['M14', 'M15', 'M16'])
 
 
-    def cloudtop(self):
+    def cloudtop(self, stretch=None):
         """Make a Cloudtop RGB image composite.
         """
         self.check_channels('M12', 'M15', 'M16')
@@ -398,7 +388,10 @@ class ViirsCompositer(VisirCompositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch=(0.005, 0.005))
+        if stretch:
+            img.enhance(stretch=stretch)
+        else:
+            img.enhance(stretch=(0.005, 0.005))
 
         return img
 
