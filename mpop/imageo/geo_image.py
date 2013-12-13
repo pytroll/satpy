@@ -100,7 +100,7 @@ class GeoImage(Image):
             super(GeoImage, self).save(filename, compression, fformat=fformat)
         except UnknownImageFormat:
             # No ... last resort, try to import an external module. 
-            logger.info("Importing image saver module '%s'" % fformat)
+            logger.info("Importing image writer module '%s'" % fformat)
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
             except ImportError:
