@@ -34,14 +34,15 @@ import os.path
 import types
 import weakref
 import sys
+import logging
 
 import numpy as np
 
 from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
-from mpop.logger import LOG
 from mpop.utils import OrderedConfigParser
 
+LOG = logging.getLogger(__name__)
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
