@@ -32,6 +32,10 @@
 but has the advandage of using masked arrays as pixel arrays, so that data
 arrays containing invalid values may be properly handled.
 """
+import warnings
+warnings.warn("mpop.imageo.image is deprecated, please install trollimage.",
+              DeprecationWarning)
+
 import os
 import re
 
@@ -73,6 +77,149 @@ def check_image_format(fformat):
     except KeyError:
         raise UnknownImageFormat("Unknown image format '%s'." % fformat)
     return fformat
+
+try:
+    from numpy import percentile
+except ImportError:
+
+    # Stolen from numpy 1.7.0 for backward compatibility
+
+    def percentile(a, q, axis=None, out=None, overwrite_input=False):
+        """
+        Compute the qth percentile of the data along the specified axis.
+
+        Returns the qth percentile of the array elements.
+
+        Parameters
+        ----------
+        a : array_like
+        Input array or object that can be converted to an array.
+        q : float in range of [0,100] (or sequence of floats)
+        Percentile to compute which must be between 0 and 100 inclusive.
+        axis : int, optional
+        Axis along which the percentiles are computed. The default (None)
+        is to compute the median along a flattened version of the array.
+        out : ndarray, optional
+        Alternative output array in which to place the result. It must
+        have the same shape and buffer length as the expected output,
+        but the type (of the output) will be cast if necessary.
+        overwrite_input : bool, optional
+        If True, then allow use of memory of input array `a` for
+        calculations. The input array will be modified by the call to
+        median. This will save memory when you do not need to preserve
+        the contents of the input array. Treat the input as undefined,
+        but it will probably be fully or partially sorted.
+        Default is False. Note that, if `overwrite_input` is True and the
+        input is not already an array, an error will be raised.
+
+        Returns
+        -------
+        pcntile : ndarray
+        A new array holding the result (unless `out` is specified, in
+        which case that array is returned instead). If the input contains
+        integers, or floats of smaller precision than 64, then the output
+        data-type is float64. Otherwise, the output data-type is the same
+        as that of the input.
+
+        See Also
+        --------
+        mean, median
+
+        Notes
+        -----
+        Given a vector V of length N, the qth percentile of V is the qth ranked
+        value in a sorted copy of V. A weighted average of the two nearest
+        neighbors is used if the normalized ranking does not match q exactly.
+        The same as the median if ``q=50``, the same as the minimum if ``q=0``
+        and the same as the maximum if ``q=100``.
+
+        Examples
+        --------
+        >>> a = np.array([[10, 7, 4], [3, 2, 1]])
+        >>> a
+        array([[10, 7, 4],
+        [ 3, 2, 1]])
+        >>> np.percentile(a, 50)
+        3.5
+        >>> np.percentile(a, 0.5, axis=0)
+        array([ 6.5, 4.5, 2.5])
+        >>> np.percentile(a, 50, axis=1)
+        array([ 7., 2.])
+
+        >>> m = np.percentile(a, 50, axis=0)
+        >>> out = np.zeros_like(m)
+        >>> np.percentile(a, 50, axis=0, out=m)
+        array([ 6.5, 4.5, 2.5])
+        >>> m
+        array([ 6.5, 4.5, 2.5])
+
+        >>> b = a.copy()
+        >>> np.percentile(b, 50, axis=1, overwrite_input=True)
+        array([ 7., 2.])
+        >>> assert not np.all(a==b)
+        >>> b = a.copy()
+        >>> np.percentile(b, 50, axis=None, overwrite_input=True)
+        3.5
+
+        """
+        a = np.asarray(a)
+
+        if q == 0:
+            return a.min(axis=axis, out=out)
+        elif q == 100:
+            return a.max(axis=axis, out=out)
+
+        if overwrite_input:
+            if axis is None:
+                sorted = a.ravel()
+                sorted.sort()
+            else:
+                a.sort(axis=axis)
+                sorted = a
+        else:
+            sorted = np.sort(a, axis=axis)
+        if axis is None:
+            axis = 0
+
+        return _compute_qth_percentile(sorted, q, axis, out)
+
+    # handle sequence of q's without calling sort multiple times
+    def _compute_qth_percentile(sorted, q, axis, out):
+        if not np.isscalar(q):
+            p = [_compute_qth_percentile(sorted, qi, axis, None)
+                 for qi in q]
+
+            if out is not None:
+                out.flat = p
+
+            return p
+
+        q = q / 100.0
+        if (q < 0) or (q > 1):
+            raise ValueError("percentile must be either in the range [0,100]")
+
+        indexer = [slice(None)] * sorted.ndim
+        Nx = sorted.shape[axis]
+        index = q*(Nx-1)
+        i = int(index)
+        if i == index:
+            indexer[axis] = slice(i, i+1)
+            weights = np.array(1)
+            sumval = 1.0
+        else:
+            indexer[axis] = slice(i, i+2)
+            j = i + 1
+            weights = np.array([(j - index), (index - i)],float)
+            wshape = [1]*sorted.ndim
+            wshape[axis] = 2
+            weights.shape = wshape
+            sumval = weights.sum()
+
+        # Use add.reduce in both cases to coerce data type as well as
+        # check and use out array.
+        return np.add.reduce(sorted[indexer]*weights, axis=axis, out=out)/sumval
+
+
 
 class Image(object):
     """This class defines images. As such, it contains data of the different
@@ -860,7 +1007,6 @@ class Image(object):
                 self.channels[i] = 1.0 - chn
                 i = i + 1
          
-   
     def stretch_hist_equalize(self, ch_nb):
         """Stretch the current image's colors by performing histogram
         equalization on channel *ch_nb*.
@@ -881,7 +1027,7 @@ class Image(object):
         cdf = np.arange(0.0, 1.0, 1/nwidth)
         LOG.debug("Make histogram bins having equal amount of data, " + 
                   "using numpy percentile function:")
-        bins = np.percentile(carr, list(cdf * 100))
+        bins = percentile(carr, list(cdf * 100))
 
         res = np.ma.empty_like(arr)
         res.mask = np.ma.getmaskarray(arr)
@@ -930,10 +1076,8 @@ class Image(object):
         LOG.debug("Left and right percentiles: " + 
                   str(cutoffs[0]*100) + " " + str(cutoffs[1]*100))
 
-        #left, right = (np.percentile(carr, cutoffs[0]*100),
-        #               np.percentile(carr, 100. - cutoffs[1]*100))
-        left, right = np.percentile(carr, [cutoffs[0]*100, 
-                                           100. - cutoffs[1]*100])
+        left, right = percentile(carr, [cutoffs[0]*100, 
+                                        100. - cutoffs[1]*100])
 
         delta_x = (right - left)
         LOG.debug("Interval: left=%f, right=%f width=%f"
@@ -1037,24 +1181,3 @@ def rgb2ycbcr(r__, g__, b__):
 
     return y__, cb_, cr_
 
-
-def com_histogram(arr, percentile, nwidth=2048, normed=False):
-    """Make a center of mass histogram, that is clip the outer 0.1% of the
-    edges of the histogram, and then return a new histogram of the center plus
-    the edges glued back in"""
-
-    left, right = (np.percentile(arr, percentile), 
-                   np.percentile(arr, 100.-percentile))
-    # Clip the data and make a new histogram:
-    hist, bins = np.histogram(np.ma.masked_where(np.logical_or(arr < left, 
-                                                               arr > right), 
-                                                     arr).compressed(), 
-                                  nwidth, normed=normed)
-    # Add the edges back into the histogram:
-    bins = np.concatenate([[arr.min()], 
-                           bins, 
-                           [arr.max()]])
-    hist = np.concatenate([[arr.size*percentile/100.], 
-                           hist, 
-                           [arr.size*percentile/100.]])
-    return hist, bins

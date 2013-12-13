@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2011, 2012.
+# Copyright (c) 2009-2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -32,15 +32,19 @@
 """
 import os
 
-import Image as pil
 import numpy as np
 
-import mpop.imageo.image
+try:
+    from trollimage.image import Image, UnknownImageFormat
+except ImportError:
+    from mpop.imageo.image import Image, UnknownImageFormat
+
+
 from mpop import CONFIG_PATH
 from mpop.imageo.logger import LOG
 from mpop.utils import ensure_dir
 
-class GeoImage(mpop.imageo.image.Image):
+class GeoImage(Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
     defined (*area* parameter) and *time_slot* of the snapshot.
@@ -92,13 +96,13 @@ class GeoImage(mpop.imageo.image.Image):
         try:
             # Let image.pil_save it ?
             super(GeoImage, self).save(filename, compression, fformat=fformat)
-        except mpop.imageo.image.UnknownImageFormat:
+        except UnknownImageFormat:
             # No ... last resort, try to import an external module. 
             LOG.info("Importing image saver module '%s'" % fformat)
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
             except ImportError:
-                raise  mpop.imageo.image.UnknownImageFormat(
+                raise  UnknownImageFormat(
                     "Unknown image format '%s'" % fformat)
             saver.save(self, filename, **kwargs)
 
