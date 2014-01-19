@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2013.
+# Copyright (c) 2009-2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -61,7 +61,7 @@ class GeoImage(Image):
     """
 
     def __init__(self, channels, area, time_slot, 
-                 mode = "L", crange = None, fill_value = None, palette = None):
+                 mode="L", crange=None, fill_value=None, palette=None):
         self.area = area
         self.time_slot = time_slot
         self.tags = {}
@@ -113,15 +113,15 @@ class GeoImage(Image):
         *opacity* as alpha value for valid data, and *fill_value*.
         """
         if fill_value is not None:
-            for i in range(len(channels)):
-                chn = channels[i].filled(fill_value[i])
+            for i, chan in enumerate(channels):
+                chn = chan.filled(fill_value[i])
                 dst_ds.GetRasterBand(i + 1).WriteArray(chn)
         else:
-            mask = np.zeros(channels[0].shape, dtype=np.uint8)
+            mask = np.zeros(channels[0].shape, dtype=np.bool)
             i = 0
-            for i in range(len(channels)):
-                dst_ds.GetRasterBand(i + 1).WriteArray(channels[i].filled(i))
-                mask |= np.ma.getmaskarray(channels[i]) 
+            for i, chan in enumerate(channels):
+                dst_ds.GetRasterBand(i + 1).WriteArray(chan.filled(0))
+                mask |= np.ma.getmaskarray(chan) 
             
             try:
                 mask |= np.ma.getmaskarray(opacity)

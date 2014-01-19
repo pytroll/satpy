@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012, 2013.
+# Copyright (c) 2009, 2012, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -240,22 +240,20 @@ class Image(object):
     classical [0,255] range and byte type is done automagically when saving the
     image to file.
     """
-    channels = None
-    mode = None
-    width = 0
-    height = 0
-    fill_value = None
-    palette = None
-
-    _secondary_mode = "RGB"
-
     modes = ["L", "LA", "RGB", "RGBA", "YCbCr", "YCbCrA", "P", "PA"]
-    
-    #: Shape (dimensions) of the image.
-    shape = None
-    
+        
     def __init__(self, channels = None, mode = "L", color_range = None, 
                  fill_value = None, palette = None):
+
+        self.channels = None
+        self.mode = None
+        self.width = 0
+        self.height = 0
+        self.fill_value = None
+        self.palette = None
+        self.shape = None
+        
+        self._secondary_mode = "RGB"
 
         if(channels is not None and
            not isinstance(channels, (tuple, set, list,
