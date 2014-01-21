@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013 Martin Raspaud
+# Copyright (c) 2013, 2014 Martin Raspaud
 
 # Author(s):
 
@@ -25,6 +25,6 @@
 
 __major__ = "1"
 __minor__ = "0"
-__patch__ = "1"
+__patch__ = "2"
 
 __version__ = "v" + ".".join([__major__, __minor__, __patch__])
