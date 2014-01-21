@@ -155,6 +155,7 @@ def read(h5f, channels, calibrate=1):
     return res
 
 def navigate(h5f):
+    scans = h5f["All_Data"]["NumberOfScans"][0]
     geostuff = h5f["All_Data"]["VIIRS-MOD-GEO_All"]
     c_align = geostuff["AlignmentCoefficient"].value[np.newaxis, np.newaxis,
                                                      :, np.newaxis]
@@ -162,9 +163,9 @@ def navigate(h5f):
                                                    :, np.newaxis]
     lon = geostuff["Longitude"].value
     lat = geostuff["Latitude"].value
-    s_track, s_scan = ((np.mgrid[0:768, 0:3200] % 16) + 0.5) / 16
-    s_track = s_track.reshape(48, 16, 200, 16)
-    s_scan = s_scan.reshape(48, 16, 200, 16)
+    s_track, s_scan = ((np.mgrid[0:scans*16, 0:3200] % 16) + 0.5) / 16
+    s_track = s_track.reshape(scans, 16, 200, 16)
+    s_scan = s_scan.reshape(scans, 16, 200, 16)
     
     a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
     a_track = s_track
@@ -182,7 +183,7 @@ def navigate(h5f):
             a_track * ((1 - a_scan) * lon_d + a_scan * lon_c))
     flat = ((1 - a_track) * ((1 - a_scan) * lat_a + a_scan * lat_b) +
             a_track * ((1 - a_scan) * lat_d + a_scan * lat_c))
-    return flon.reshape(768, 3200), flat.reshape(768, 3200)
+    return flon.reshape(scans*16, 3200), flat.reshape(scans*16, 3200)
 
 if __name__ == '__main__':
     #filename = "/local_disk/data/satellite/polar/compact_viirs/SVMC_npp_d20140114_t1245125_e1246367_b11480_c20140114125427496143_eum_ops.h5"
