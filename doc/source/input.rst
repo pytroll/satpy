@@ -18,25 +18,42 @@ Reader for for hrit/lrit formats. Recommends numexpr and pyresample.
 aapp1b
 ------
 
-Reader for aapp level 1b format. Requires AHAMAP, recommends pyresample.
+Reader for aapp level 1b format. Requires numpy, recommends pyresample.
 
 .. automodule:: mpop.satin.aapp1b
    :members:
    :undoc-members:
 
 
-eps_format
-----------
+eps_l1b
+-------
 Reader for eps level 1b format. Recommends pyresample.
 
-.. automodule:: mpop.satin.eps_format
+.. automodule:: mpop.satin.eps_l1b
    :members:
    :undoc-members:
 
 
-thin_modis
+
+viirs_sdr
+---------
+Reader for the VIIRS SDR format. Require h5py.
+
+.. automodule:: mpop.satin.viirs_sdr
+   :members:
+   :undoc-members:
+
+viirs_compact
+-------------
+Reader for the VIIRS compact format from EUMETSAT. Require h5py.
+
+.. automodule:: mpop.satin.viirs_compact
+   :members:
+   :undoc-members:
+
+hdfeos_l1b
 ----------
-Reader for thinned modis format (as send via Eumetcast). Require pyhdf.
+Reader for modis data format. Require pyhdf.
 
 .. automodule:: mpop.satin.hdfeos_l1b
    :members:
@@ -45,7 +62,7 @@ Reader for thinned modis format (as send via Eumetcast). Require pyhdf.
 
 msg_hdf
 -------
-Reader for msg cloud products. Requires pytable and acpg.
+Reader for msg cloud products. Requires h5py, recommends acpg.
 
 .. automodule:: mpop.satin.msg_hdf
    :members:

@@ -33,7 +33,7 @@ but has the advandage of using masked arrays as pixel arrays, so that data
 arrays containing invalid values may be properly handled.
 """
 import warnings
-warnings.warn("mpop.imageo.image is deprecated, please install trollimage.",
+warnings.warn(__name__ + " is deprecated, please use trollimage instead.",
               DeprecationWarning)
 
 import os
