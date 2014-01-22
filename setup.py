@@ -73,7 +73,7 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_aapp1b.py'),
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
-      install_requires=['numpy >=1.4.1', 'pyresample'],
+      install_requires=['numpy >=1.4.1', 'pyresample', 'pil'],
       extras_require={ 'xRIT': ['mipp >= 0.6.0'],
                        'hdf_eos': ['pyhdf'],
                        'viirs': ['h5py']}
