@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2014.
 
 # Author(s):
  
@@ -356,5 +356,11 @@ class TestComposites(unittest.TestCase):
         unpatch_geo_image()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_visir.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestComposites))
+    
+    return mysuite

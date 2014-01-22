@@ -390,5 +390,12 @@ def random_string(length, choices=string.letters):
                     for i in range(length)])
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_channel.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGenericChannel))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestChannel))
+    
+    return mysuite

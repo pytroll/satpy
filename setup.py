@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2013.
+# Copyright (c) 2009-2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -72,8 +72,10 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_aapp1b.py'),
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
+      test_suite='mpop.tests.suite',
       install_requires=['numpy >=1.4.1'],
       extras_require={ 'xRIT': ['mipp >= 0.6.0'],
                        'proj': ['pyresample'],
-                       'hdf_eos': ['pyhdf']}
+                       'hdf_eos': ['pyhdf'],
+                       'viirs': ['h5py']}
       )

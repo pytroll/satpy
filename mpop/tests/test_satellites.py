@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -232,5 +232,11 @@ class TestSatellites(unittest.TestCase):
         unpatch_configparser()
         unpatch_scene()
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_satellites.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSatellites))
+    
+    return mysuite
