@@ -5,7 +5,7 @@ python:
 install:
 - pip install .
 - pip install coveralls
-script: python setup.py test
+script: coverage run --source=mpop setup.py test
 after_success: coveralls
 deploy:
   provider: pypi
