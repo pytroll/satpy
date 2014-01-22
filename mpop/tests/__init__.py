@@ -28,7 +28,7 @@ from mpop.tests import (#test_pp_core, # crash
                         test_image,
                         test_geo_image,
                         #test_mipp,
-                        #test_projector,
+                        test_projector,
                         #test_satellites,
                         #test_scene,
                         #test_seviri,
