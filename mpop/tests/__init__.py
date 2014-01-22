@@ -23,18 +23,18 @@
 """The tests package.
 """
 
-#from mpop.tests import (#test_pp_core,
-                        #test_channel,
-                        #test_image,
-                        #test_geo_image,
+from mpop.tests import (test_pp_core,
+                        test_channel,
+                        test_image,
+                        test_geo_image,
                         #test_mipp,
-                        #test_projector,
-                        #test_satellites,
-                        #test_scene,
-                        #test_seviri,
+                        test_projector,
+                        test_satellites,
+                        test_scene,
+                        test_seviri,
                         #test_viirs_sdr,
-                        #test_visir,
-#                        )
+                        test_visir,
+                        )
 
 import unittest
 
@@ -43,16 +43,16 @@ def suite():
     """
 
     mysuite = unittest.TestSuite()
-    #mysuite.addTests(test_pp_core.suite())
-    #mysuite.addTests(test_channel.suite())
-    #mysuite.addTests(test_image.suite())
-    #mysuite.addTests(test_geo_image.suite())
+    mysuite.addTests(test_pp_core.suite())
+    mysuite.addTests(test_channel.suite())
+    mysuite.addTests(test_image.suite())
+    mysuite.addTests(test_geo_image.suite())
     #mysuite.addTests(test_mipp.suite())
-    #mysuite.addTests(test_projector.suite())
-    #mysuite.addTests(test_satellites.suite())
-    #mysuite.addTests(test_scene.suite())
-    #mysuite.addTests(test_seviri.suite())
+    mysuite.addTests(test_projector.suite())
+    mysuite.addTests(test_satellites.suite())
+    mysuite.addTests(test_scene.suite())
+    mysuite.addTests(test_seviri.suite())
     #mysuite.addTests(test_viirs_sdr.suite())
-    #mysuite.addTests(test_visir.suite())
+    mysuite.addTests(test_visir.suite())
 
     return mysuite
