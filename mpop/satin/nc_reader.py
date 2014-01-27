@@ -211,7 +211,7 @@ def _load02(filename):
                          units.lower().endswith("north") or 
                          units.lower().endswith("south")):
                         lats = coord_var[:]
-                if lons and lats:
+                if lons.any() and lats.any():
                     try:
                         from pyresample.geometry import SwathDefinition
                         area = SwathDefinition(lons=lons, lats=lats)
@@ -231,7 +231,7 @@ def _load02(filename):
             if len(names) == 1:
                 scales = np.array([scales])
                 offsets = np.array([offsets])
-            print scales, offsets
+            LOG.info("Scales and offsets: %s %s %s" % (str(names), str(scales), str(offsets)))
             for nbr, name in enumerate(names):
                 try:
                     if cnt == 0:
