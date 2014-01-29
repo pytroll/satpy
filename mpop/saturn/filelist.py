@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2013.
+# Copyright (c) 2010, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -31,16 +31,8 @@ import logging
 import os
 import shutil
 import tempfile
-from urlparse import urlunsplit
 
-from mpop.satout.cfscene import proj2cf
 from mpop.utils import ensure_dir
-
-
-try:
-    from posttroll.message import Message
-except ImportError:
-    Message = None
 
 
 logger = logging.getLogger(__name__)
@@ -71,7 +63,7 @@ class FileList(list):
             types[ext] = types.get(ext, FileList()) + FileList([filename])
         return types
 
-    def save_object(self, obj, pub=None):
+    def save_object(self, obj, hook=None):
         """save *obj* to the filelist.
         """
         files_by_ext = self._get_by_ext()
@@ -119,16 +111,16 @@ class FileList(list):
                         logger.exception("No way...")
                 try:
                     os.rename(tmpfilename2, filename)
-                    if pub:
-                        send_message(obj, filename, pub)
+                    if hook:
+                        hook(obj, filename)
                 except (IOError, OSError):
                     logger.exception("Renaming file %s to %s failed"
                                 %(tmpfilename2,filename))
                     logger.info("Retrying...")
                     try:
                         os.rename(tmpfilename2, filename)
-                        if pub:
-                            send_message(obj, filename, pub)
+                        if hook:
+                            hook(obj, filename)
                     except (IOError, OSError):
                         logger.exception("No way...")
                 logger.debug("Done saving "+filename)
@@ -136,32 +128,7 @@ class FileList(list):
             os.rename(tmpfilename, files_by_ext[extkey][0])
             os.fsync(handle)
             os.close(handle)
-            if pub:
-                send_message(obj, files_by_ext[extkey][0], pub)
+            if hook:
+                hook(obj, files_by_ext[extkey][0])
             logger.debug("Done saving "+files_by_ext[extkey][0])
-
-def send_message(obj, filename, pub):
-    to_send = {}
-    to_send["nominal_time"] = obj.time_slot
-    # FIXME: how do we do this ?
-    to_send["start_time"] = obj.time_slot
-    to_send["end_time"] = obj.time_slot
-    
-    to_send["area"] = proj2cf(obj.area.proj_dict)
-    to_send["area"]["name"] = obj.area.name
-    to_send["area"]["id"] = obj.area.area_id
-    to_send["area"]["area_extent"] = obj.area.area_extent
-    to_send["uri"] = urlunsplit(("file", "", filename, "", ""))
-    # FIXME: we should have more info on format
-    to_send["format"] = os.path.splitext(filename)[1]
-    to_send["type"] = "image"
-    to_send["level"] = "2"
-    try:
-        msg = Message('/oper/polar/direct_readout/norrköping',
-                      "file",
-                      to_send).encode()
-        pub.send(msg)
-        logger.debug("Send notification of file creation: " + str(msg))
-    except TypeError:
-        logger.warning("Cant send message: " + str(to_send))
 
