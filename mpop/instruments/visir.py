@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # Author(s):
  
@@ -418,5 +418,6 @@ class VisirCompositer(Compositer):
         return img
 
     cloudtop.prerequisites = set([3.75, 10.8, 12.0])
+
 #pylint: enable=W0612
 
