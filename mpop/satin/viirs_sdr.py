@@ -101,7 +101,7 @@ class HDF5MetaData(object):
                 if long_key is not None:
                     raise KeyError("Multiple keys called %s" % key)
                 long_key = mkey
-                break # Test remove this to be able to read SDR files with several granules in one file (Matias' files)
+                break # Test this to be able to read SDR files with several granules in one file (Matias' files)
         return self.metadata[long_key]
 
     def keys(self):
