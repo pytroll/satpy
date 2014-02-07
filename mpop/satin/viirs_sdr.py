@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013.
+# Copyright (c) 2011, 2012, 2013, 2014.
 
 # Author(s):
 
@@ -101,7 +101,7 @@ class HDF5MetaData(object):
                 if long_key is not None:
                     raise KeyError("Multiple keys called %s" % key)
                 long_key = mkey
-                break
+                break # Test this to be able to read SDR files with several granules in one file (Matias' files)
         return self.metadata[long_key]
 
     def keys(self):
@@ -178,7 +178,7 @@ class NPPMetaData(HDF5MetaData):
         """
         :param data_type: Reflectance, Radiance or BrightnessTemperature
         :type data_type: string
-        :returns: HDF5 data key and scale factor keys i a two element tuple
+        :returns: HDF5 data key and scale factor keys in a two element tuple
 
         """
         data_key = None
@@ -217,7 +217,7 @@ class NPPMetaData(HDF5MetaData):
 
 #
 #
-# http://yloiseau.dnsalias.net/articles/DesignPatterns/flyweight/
+# http://yloiseau.net/articles/DesignPatterns/flyweight/
 class GeolocationFlyweight(object):
     def __init__(self, cls):
         self._cls = cls
@@ -384,6 +384,8 @@ class ViirsBandData(object):
                 data_key, factors_key = md.get_reflectance_keys()
                 if data_key is None:
                     data_key, factors_key = md.get_brightness_temperature_keys()
+                    logger.debug("data and factors keys: " + 
+                                 str(data_key) + str(factors_key))
                 # handle dnb data
                 if data_key is None and self.band_id == "DNB":
                     data_key, factors_key = md.get_radiance_keys()
@@ -397,12 +399,22 @@ class ViirsBandData(object):
                 granule_factors_data = h5f[factors_key].value
             except KeyError:
                 #
-                # We can't find the factors this must be DNB
-                if self.band_id != "DNB":
+                # # We can't find the factors this must be DNB
+                # if self.band_id != "DNB":
+                #     raise
+                # We can't find the factors, so this must be the DNB or the M13
+                # band:
+                logger.debug("Band id = " + str(self.band_id))
+
+                if self.band_id != "DNB" and self.band_id != "M13":
                     raise
-                # The unit is W/sr cm-2 in the file! but we need 'W sr-1 m-2'
-                granule_factors_data = (10000., 0.) 
-                
+                if self.band_id == "DNB":
+                    # The unit is W/sr cm-2 in the file! but we need 'W sr-1 m-2'
+                    granule_factors_data = (10000., 0.) 
+                else:
+                    # M13 is stored in floats with no scale or offset:
+                    granule_factors_data = (1., 0.)
+
             granule_data = h5f[data_key].value
 
             self.scale, self.offset = granule_factors_data[0:2] 
@@ -534,8 +546,10 @@ class ViirsSDRReader(Reader):
         if len(file_list) % 22 != 0: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
             logger.warning("Number of SDR files is not divisible by 22!")
         if len(file_list) == 0:
+            logger.debug("File template = " + str(os.path.join(directory, filename_tmpl)))
             raise IOError("No VIIRS SDR file matching!: " + 
-                          os.path.join(directory, filename_tmpl))
+                          "Start time = " + str(time_start) + 
+                          "  End time = " + str(time_end))
 
         geo_dir_string = options.get("geo_dir", None)
         if geo_dir_string:
@@ -753,7 +767,7 @@ def _get_swathsegment(filelist, time_start, time_end=None):
     for filename in filelist:
         timetup = _get_times_from_npp(filename)
 
-        #Search for single granule using time start
+        # Search for single granule using time start
         if time_end is None:
             if time_start >= timetup[0] and time_start <= timetup[1]:
                 segment_files.append(filename)
