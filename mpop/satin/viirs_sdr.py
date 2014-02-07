@@ -441,8 +441,25 @@ class ViirsBandData(object):
             # according to documentation, mask integers >= 65328, floats <= -999.3
             if issubclass(granule_data.dtype.type, np.integer):
                 self.mask[y0_:y1_, :] = granule_data >= 65528
+                msg = ("na:" + str((granule_data == 65535).sum()) +
+                       " miss:" + str((granule_data == 65534).sum()) + 
+                       " obpt:" + str((granule_data == 65533).sum()) + 
+                       " ogpt:" + str((granule_data == 65532).sum()) +
+                       " err:" + str((granule_data == 65531).sum()) +
+                       " elint:" + str((granule_data == 65530).sum()) +
+                       " vdne:" + str((granule_data == 65529).sum()) +
+                       " soub:" + str((granule_data == 65528).sum()))
             if issubclass(granule_data.dtype.type, np.floating):
                 self.mask[y0_:y1_, :] = granule_data < -999.2
+                msg = ("na:" + str((granule_data == -999.9).sum()) +
+                       " miss:" + str((granule_data == -999.8).sum()) + 
+                       " obpt:" + str((granule_data == -999.7).sum()) + 
+                       " ogpt:" + str((granule_data == -999.6).sum()) +
+                       " err:" + str((granule_data == -999.5).sum()) +
+                       " elint:" + str((granule_data == -999.4).sum()) +
+                       " vdne:" + str((granule_data == -999.3).sum()) +
+                       " soub:" + str((granule_data == -999.2).sum()))
+            logger.debug(msg)
 
             self.mask[y0_:y1_, :] |= self.raw_data[y0_:y1_, :] < 0
 
