@@ -221,6 +221,7 @@ class SequentialRunner(object):
                         LOG.info("Running interrupted")
                         return
                     img = fun()
+                    img.info["product_name"] = product
                     flist.save_object(img, hook)
                     del img
                 except (NotLoadedError, KeyError, ValueError), err:
@@ -259,6 +260,7 @@ class SequentialRunner(object):
             try:
                 LOG.debug("Doing "+product+".")
                 img = fun()
+                img.info["product_name"] = product
                 if extra_tags:
                     img.tags.update(extra_tags)
                 flist.save_object(img, hook)

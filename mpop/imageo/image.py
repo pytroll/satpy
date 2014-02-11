@@ -252,6 +252,7 @@ class Image(object):
         self.fill_value = None
         self.palette = None
         self.shape = None
+        self.info = {}
         
         self._secondary_mode = "RGB"
 
