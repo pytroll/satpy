@@ -80,7 +80,8 @@ def _load02(filename):
     # processed variables
     processed = set()
 
-    satellite_name, satellite_number = rootgrp.platform.rsplit("-", 1)
+    # Currently MPOP does not like unicode (so much).
+    satellite_name, satellite_number = [str(i) for i in rootgrp.platform.rsplit("-", 1)]
 
     time_slot = rootgrp.variables["time"].getValue()[0]
     time_slot = num2date(time_slot, TIME_UNITS)
@@ -233,6 +234,7 @@ def _load02(filename):
                 offsets = np.array([offsets])
             LOG.info("Scales and offsets: %s %s %s" % (str(names), str(scales), str(offsets)))
             for nbr, name in enumerate(names):
+                name = str(name)
                 try:
                     if cnt == 0:
                         chn_data = data[nbr, :, :].squeeze()
@@ -272,10 +274,12 @@ def _load02(filename):
         
             names = rootgrp.variables[dim][:]
             for nbr, name in enumerate(names):
+                name = str(name)
                 scene[name].wavelength_range[1] = var[nbr]
             try:
                 bnds = rootgrp.variables[var.bounds][:]
                 for nbr, name in enumerate(names):
+                    name = str(name)
                     scene[name].wavelength_range[0] = bnds[nbr, 0]
                     scene[name].wavelength_range[2] = bnds[nbr, 1]
                 processed |= set([var.bounds])
@@ -431,6 +435,7 @@ def load_from_nc4(filename):
                 LOG.debug("No lon/lat found.")
             
             for i, name in enumerate(names):
+                name = str(name)
                 if var.dimensions[0].startswith("band"):
                     chn_data = data[i, :, :]
                 elif var.dimensions[1].startswith("band"):
