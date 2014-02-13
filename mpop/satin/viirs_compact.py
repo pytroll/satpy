@@ -122,11 +122,12 @@ def read(h5f, channels, calibrate=1):
                       for key in h5f["All_Data"].keys()
                       if key.startswith("VIIRS")])
         
+    scans = h5f["All_Data"]["NumberOfScans"][0]
     res = []
-    
+
     for channel in channels:
         rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
-        arr = np.ma.masked_greater(rads.value, 65526)
+        arr = np.ma.masked_greater(rads[:scans*16, :], 65526)
         arr = np.ma.where(arr <= rads.attrs['Threshold'],
                           arr * rads.attrs['RadianceScaleLow'] + rads.attrs['RadianceOffsetLow'],
                           arr * rads.attrs['RadianceScaleHigh'] + rads.attrs['RadianceOffsetHigh'],)
@@ -170,14 +171,14 @@ def navigate(h5f):
     a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
     a_track = s_track
 
-    lon_a = lon[::2, np.newaxis, :-1, np.newaxis]
-    lon_b = lon[::2, np.newaxis, 1:, np.newaxis]
-    lon_c = lon[1::2, np.newaxis, 1:, np.newaxis]
-    lon_d = lon[1::2, np.newaxis, :-1, np.newaxis]
-    lat_a = lat[::2, np.newaxis, :-1, np.newaxis]
-    lat_b = lat[::2, np.newaxis, 1:, np.newaxis]
-    lat_c = lat[1::2, np.newaxis, 1:, np.newaxis]
-    lat_d = lat[1::2, np.newaxis, :-1, np.newaxis]
+    lon_a = lon[:scans*2:2, np.newaxis, :-1, np.newaxis]
+    lon_b = lon[:scans*2:2, np.newaxis, 1:, np.newaxis]
+    lon_c = lon[1:scans*2:2, np.newaxis, 1:, np.newaxis]
+    lon_d = lon[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+    lat_a = lat[:scans*2:2, np.newaxis, :-1, np.newaxis]
+    lat_b = lat[:scans*2:2, np.newaxis, 1:, np.newaxis]
+    lat_c = lat[1:scans*2:2, np.newaxis, 1:, np.newaxis]
+    lat_d = lat[1:scans*2:2, np.newaxis, :-1, np.newaxis]
 
     flon = ((1 - a_track) * ((1 - a_scan) * lon_a + a_scan * lon_b) +
             a_track * ((1 - a_scan) * lon_d + a_scan * lon_c))

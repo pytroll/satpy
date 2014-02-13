@@ -68,8 +68,8 @@ class FileList(list):
         """
         files_by_ext = self._get_by_ext()
         for extkey in files_by_ext:
-            path, trash = os.path.split(files_by_ext[extkey][0])
-            del trash
+            path, filename = os.path.split(files_by_ext[extkey][0])
+            origname = filename
             try:
                 ensure_dir(files_by_ext[extkey][0])
                 handle, tmpfilename = tempfile.mkstemp(extkey,
@@ -112,7 +112,7 @@ class FileList(list):
                 try:
                     os.rename(tmpfilename2, filename)
                     if hook:
-                        hook(obj, filename)
+                        hook(obj, filename=origname, uri=filename)
                 except (IOError, OSError):
                     logger.exception("Renaming file %s to %s failed"
                                 %(tmpfilename2,filename))
@@ -120,7 +120,7 @@ class FileList(list):
                     try:
                         os.rename(tmpfilename2, filename)
                         if hook:
-                            hook(obj, filename)
+                            hook(obj, filename=origname, uri=filename)
                     except (IOError, OSError):
                         logger.exception("No way...")
                 logger.debug("Done saving "+filename)
@@ -129,6 +129,6 @@ class FileList(list):
             os.fsync(handle)
             os.close(handle)
             if hook:
-                hook(obj, files_by_ext[extkey][0])
+                hook(obj, filename=origname, uri=files_by_ext[extkey][0])
             logger.debug("Done saving "+files_by_ext[extkey][0])
 
