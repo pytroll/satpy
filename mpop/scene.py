@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # Author(s):
  
@@ -548,7 +548,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None):
+    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None, nprocs=1):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -563,9 +563,9 @@ class SatelliteInstrumentScene(SatelliteScene):
         possible, 'nearest' otherwise.
 
         *radius* defines the radius of influence for neighbour search in
-         'nearest' mode. Setting it to None, or omitting it will fallback to
-         default values (5 times the channel resolution) or 10km if the
-         resolution is not available.
+        'nearest' mode (in metres). Setting it to None, or omitting it will
+        fallback to default values (5 times the channel resolution) or 10,000m
+        if the resolution is not available.
 
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
@@ -610,7 +610,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         
         cov = {}
 
-        for chn in _channels:
+        for chn in sorted(_channels, key=lambda x: x.resolution, reverse=True):
             if chn.area is None:
                 if self.area is None:
                     area_name = ("swath_" + self.fullname + "_" +
@@ -668,7 +668,8 @@ class SatelliteInstrumentScene(SatelliteScene):
                 cov[area_id] = mpop.projector.Projector(chn.area,
                                                         dest_area,
                                                         mode=mode,
-                                                        radius=radius)
+                                                        radius=radius,
+                                                        nprocs=nprocs)
                 if precompute:
                     try:
                         cov[area_id].save()
