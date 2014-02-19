@@ -548,7 +548,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None):
+    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None, nprocs=1):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -668,7 +668,8 @@ class SatelliteInstrumentScene(SatelliteScene):
                 cov[area_id] = mpop.projector.Projector(chn.area,
                                                         dest_area,
                                                         mode=mode,
-                                                        radius=radius)
+                                                        radius=radius,
+                                                        nprocs=nprocs)
                 if precompute:
                     try:
                         cov[area_id].save()
