@@ -308,65 +308,6 @@ class Channel(GenericChannel):
             return self.data.shape
 
 
-    def sunzen_corr(self, time_slot, lons=None, lats=None,
-                    limit=85., mode='cos', name=None):
-        '''Perform Sun zenith angle correction and return the
-        corrected channel.  The parameter *limit* can be used to set
-        the maximum zenith angle for which the correction is
-        calculated.  For larger angles, the correction is the same as
-        at the *limit* (default: 85.0 degrees).  Coordinate values can
-        be given as parameters *lons* and *lats*, if None, these will
-        be read from the channel data (slower).  Parameter *mode* is a
-        placeholder for other possible corrections.  Parameter *name*
-        is used to set the self.name of the new channel.  Default is
-        None, which sets the name as original_name+'_SZC'.  The name
-        of the new channel is also recorded as
-        self.info['sun_zen_corrected'] to the original channel, so
-        this can be used as a pointer to the corrected data.
-        '''
-
-        try:
-            from pyorbital import astronomy
-        except ImportError:
-            LOG.warning("Could not load pyorbital.astronomy")
-            return None
-
-        if lons is None or lats is None:
-            # Read coordinates
-            lons, lats = self.area.get_lonlats()
-    
-        # Calculate Sun zenith angles and the cosine
-        zen_angles = astronomy.sun_zenith_angle(time_slot, 
-                                                lons, lats)
-        cos_zen = astronomy.cos_zen(time_slot, lons, lats)
-
-        # Copy the channel
-        new_ch = copy.deepcopy(self)
-        # Update the name
-        if name is None:
-            new_ch.name += '_SZC'
-        else:
-            new_ch.name = name
-
-        if mode == 'cos':
-            # Cosine correction
-            lim_y, lim_x = np.where(zen_angles < limit)
-            new_ch.data[lim_y, lim_x] /= cos_zen[lim_y, lim_x]
-            # Use constant value (the limit) for larger zenith
-            # angles
-            lim_y, lim_x = np.where(zen_angles >= limit)
-            new_ch.data[lim_y, lim_x] /= np.cos(np.radians(limit))
-        else:
-            # placeholder for other corrections
-            pass
-
-        # Add information about the corrected version to original
-        # channel
-        self.info["sun_zen_corrected"] = self.name+'_SZC'
-
-        return new_ch
-
-
     # Arithmetic operations on channels.
 
     def __pow__(self, other):
