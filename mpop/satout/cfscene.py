@@ -66,6 +66,8 @@ class CFScene(object):
         self.info["instrument"] = scene.instrument_name
         if scene.variant:
             self.info["service"] = scene.variant
+        if scene.orbit:
+            self.info["orbit"] = scene.orbit
         
         self.time = InfoObject()
         self.time.data = date2num(scene.time_slot,
