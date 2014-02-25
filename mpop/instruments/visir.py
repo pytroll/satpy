@@ -82,6 +82,8 @@ class VisirCompositer(Compositer):
 
     def channel_image(self, channel, fill_value=0):
         """Make a black and white image of the *channel*.
+
+        Linear stretch without clipping is applied.
         """
         self.check_channels(channel)
 
@@ -95,6 +97,18 @@ class VisirCompositer(Compositer):
 
     def overview(self, stretch='crude', gamma=1.6):
         """Make an overview RGB image composite.
+
+        +--------------------+--------------------+
+        | Channels           | Gamma (default)    |
+        +====================+====================+
+        | VIS0.6             | gamma 1.6          |
+        +--------------------+--------------------+
+        | VIS0.8             | gamma 1.6          |
+        +--------------------+--------------------+
+        | IR10.8 (inverted)  | gamma 1.6          |
+        +--------------------+--------------------+
+
+        Linear stretch without clipping is applied.
         """
         self.check_channels(0.635, 0.85, 10.8)
 
@@ -119,14 +133,36 @@ class VisirCompositer(Compositer):
 
     def night_overview(self, stretch='histogram', gamma=None):
         """Make an overview RGB image composite using IR channels.
+        
+        +--------------------+--------------------+
+        | Channels           | Gamma              |
+        +====================+====================+
+        | IR3.9 (inverted)   | gamma 1            |
+        +--------------------+--------------------+
+        | IR10.8 (inverted)  | gamma 1            |
+        +--------------------+--------------------+
+        | IR12.0 (inverted)  | gamma 1            |
+        +--------------------+--------------------+
+
+        Histogram equalization is applied for each channel.
         """
-        return self.cloudtop(stretch=stretch)
+        return self.cloudtop(stretch=stretch, gamma=gamma)
 
     night_overview.prerequisites = set([3.75, 10.8, 12.0])
 
 
     def natural(self, stretch=None, gamma=1.8):
         """Make a Natural Colors RGB image composite.
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Range (reflectance)| Gamma (default)    |
+        +====================+====================+====================+
+        | IR1.6              | 0 - 90             | gamma 1.8          |
+        +--------------------+--------------------+--------------------+
+        | VIS0.8             | 0 - 90             | gamma 1.8          |
+        +--------------------+--------------------+--------------------+
+        | VIS0.6             | 0 - 90             | gamma 1.8          |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(0.635, 0.85, 1.63)
         
@@ -193,6 +229,9 @@ class VisirCompositer(Compositer):
 
     def ir108(self):
         """Make a black and white image of the IR 10.8um channel.
+
+        Channel is inverted. Temperature range from -70 °C (white) to
+        +57.5 °C (black) is shown.
         """
         self.check_channels(10.8)
 
@@ -208,7 +247,11 @@ class VisirCompositer(Compositer):
     ir108.prerequisites = set([10.8])
 
     def wv_high(self):
-        """Make a black and white image of the IR 6.7um channel."""
+        """Make a black and white image of the IR 6.7um channel.
+
+        Channel inverted and a linear stretch is applied with 0.5 %
+        clipping at both ends.
+        """
         self.check_channels(6.7)
 
         img =  geo_image.GeoImage(self[6.7].data,
@@ -222,7 +265,11 @@ class VisirCompositer(Compositer):
     wv_high.prerequisites = set([6.7])
 
     def wv_low(self):
-        """Make a black and white image of the IR 7.3um channel."""
+        """Make a black and white image of the IR 7.3um channel.
+
+        Channel data inverted and a linear stretch is applied with 0.5
+        % clipping at both ends.
+        """
         self.check_channels(7.3)
 
         img = geo_image.GeoImage(self[7.3].data,
@@ -237,6 +284,18 @@ class VisirCompositer(Compositer):
         
     def green_snow(self):
         """Make a Green Snow RGB image composite.
+
+        +--------------------+--------------------+
+        | Channels           | Gamma              |
+        +====================+====================+
+        | IR1.6              | gamma 1.6          |
+        +--------------------+--------------------+
+        | VIS0.6             | gamma 1.6          |
+        +--------------------+--------------------+
+        | IR10.8 (inverted)  | gamma 1.6          |
+        +--------------------+--------------------+
+
+        Linear stretch without clipping.
         """
         self.check_channels(0.635, 1.63, 10.8)
 
@@ -259,6 +318,18 @@ class VisirCompositer(Compositer):
 
     def red_snow(self):
         """Make a Red Snow RGB image composite.
+
+        +--------------------+--------------------+
+        | Channels           | Gamma              |
+        +====================+====================+
+        | VIS0.6             | gamma 1.6          |
+        +--------------------+--------------------+
+        | IR1.6              | gamma 1.6          |
+        +--------------------+--------------------+
+        | IR10.8 (inverted)  | gamma 1.6          |
+        +--------------------+--------------------+
+
+        Linear stretch without clipping.
         """
         self.check_channels(0.635, 1.63, 10.8)        
 
@@ -280,6 +351,16 @@ class VisirCompositer(Compositer):
 
     def convection(self):
         """Make a Severe Convection RGB image composite.
+        
+        +--------------------+--------------------+--------------------+
+        | Channels           | Span               | Gamma              |
+        +====================+====================+====================+
+        | WV6.2 - WV7.3      |     -30 to 0 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR3.9 - IR10.8     |      0 to 55 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(0.635, 1.63, 3.75, 6.7, 7.3, 10.8)
 
@@ -304,6 +385,16 @@ class VisirCompositer(Compositer):
 
     def dust(self):
         """Make a Dust RGB image composite.
+        
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.8 - IR8.7     |     0 to 15 K      | gamma 2.5          |
+        +--------------------+--------------------+--------------------+
+        | IR10.8             |   261 to 289 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(8.7, 10.8, 12.0)
 
@@ -328,6 +419,16 @@ class VisirCompositer(Compositer):
 
     def ash(self):
         """Make a Ash RGB image composite.
+        
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.8 - IR8.7     |     -4 to 5 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.8             |   243 to 303 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(8.7, 10.8, 12.0)
 
@@ -350,6 +451,16 @@ class VisirCompositer(Compositer):
 
     def fog(self):
         """Make a Fog RGB image composite.
+        
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.8 - IR8.7     |      0 to 6 K      | gamma 2.0          |
+        +--------------------+--------------------+--------------------+
+        | IR10.8             |   243 to 283 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(8.7, 10.8, 12.0)
 
@@ -373,6 +484,16 @@ class VisirCompositer(Compositer):
 
     def night_fog(self):
         """Make a Night Fog RGB image composite.
+        
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.8 - IR3.9     |      0 to 6 K      | gamma 2.0          |
+        +--------------------+--------------------+--------------------+
+        | IR10.8             |   243 to 293 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
         """
         self.check_channels(3.75, 10.8, 12.0)
 
@@ -397,6 +518,18 @@ class VisirCompositer(Compositer):
 
     def cloudtop(self, stretch=(0.005, 0.005), gamma=None):
         """Make a Cloudtop RGB image composite.
+        
+        +--------------------+--------------------+
+        | Channels           | Gamma              |
+        +====================+====================+
+        | IR3.9 (inverted)   | gamma 1            |
+        +--------------------+--------------------+
+        | IR10.8 (inverted)  | gamma 1            |
+        +--------------------+--------------------+
+        | IR12.0 (inverted)  | gamma 1            |
+        +--------------------+--------------------+
+
+        Linear stretch with 0.5 % clipping at both ends.
         """
         self.check_channels(3.75, 10.8, 12.0)
 
