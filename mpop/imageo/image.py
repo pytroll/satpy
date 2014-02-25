@@ -39,7 +39,7 @@ warnings.warn(__name__ + " is deprecated, please use trollimage instead.",
 import os
 import re
 
-import Image as Pil
+from PIL import Image as Pil
 import numpy as np
 
 try:

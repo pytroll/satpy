@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012, 2013.
+# Copyright (c) 2010, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -10,41 +10,48 @@
 # Author(s):
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This file is part of mpop.
 
-# mpop is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# mpop is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 
-# mpop is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# mpop is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-# You should have received a copy of the GNU General Public License
-# along with mpop.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Test module for mpop.projector.
+"""Integration testing of
+ - :mod:`mpop.scene`
+ - :mod:`mpop.channel`
+ - :mod:`mpop.projector`
 """
 import ConfigParser
+import random
 import unittest
 
 import numpy as np
 from pyresample import geometry, utils, kd_tree, image
 
-from mpop.projector import Projector
+import mpop.scene
 
 
 class FakeAreaDefinition:
     """Fake AreaDefinition.
     """
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         self.args = args
         self.shape = None
-        self.area_id = random_string(20)
+        self.area_id = args[0]
+        self.x_size = random.random()
+        self.y_size = random.random()
+        self.proj_id = random_string(20)
+        self.proj_dict = random_string(20)
+        self.area_extent = random_string(20)
 
 class FakeSwathDefinition:
     """Fake SwathDefinition.
@@ -55,8 +62,6 @@ class FakeSwathDefinition:
         self.kwargs = kwargs
         self.shape = None
         self.area_id = random_string(20)
-        self.lons = np.ones((5, 5))
-        self.lats = np.ones((5, 5))
 
 
 class FakeImageContainer:
@@ -191,13 +196,13 @@ def patch_configparser():
             """
             del args, kwargs
             self = self
-            return "abc"
-
+            return "test_plugin"
+        
         def sections(self):
             """Dummy sections method
             """
             raise ConfigParser.NoSectionError("Dummy sections.")
-        
+
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
 
@@ -208,131 +213,90 @@ def unpatch_configparser():
     delattr(ConfigParser, "OldConfigParser")
 
 
-class TestProjector(unittest.TestCase):
-    """Class for testing the Projector class.
-    """
-
-    proj = None
-
-    def setUp(self):
-        """Apply patches
-        """
-        patch_geometry()
-        patch_utils()
-        patch_kd_tree()
-        patch_image()
-        patch_configparser()
-        
-    def test_init(self):
-        """Creation of coverage.
-        """
-
-        # in case of wrong number of arguments
-        
-        self.assertRaises(TypeError, Projector)
-        self.assertRaises(TypeError, Projector, random_string(20))
-
-
-        # in case of string arguments
-
-        in_area_id = random_string(20)
-        out_area_id = random_string(20)
-        self.proj = Projector(in_area_id, out_area_id)
-        self.assertTrue(isinstance(self.proj.in_area, geometry.AreaDefinition))
-        self.assertEquals(self.proj.in_area.args[0], in_area_id)
-        self.assertEquals(self.proj.out_area.args[0], out_area_id)
-
-        
-        # in case of undefined areas
-        
-        self.assertRaises(utils.AreaNotFound,
-                          Projector,
-                          "raise",
-                          random_string(20))
-        self.assertRaises(utils.AreaNotFound,
-                          Projector,
-                          random_string(20),
-                          "raise")
-
-        # in case of geometry objects as input
-
-        in_area = geometry.AreaDefinition()
-        self.proj = Projector(in_area, out_area_id)
-        self.assertEquals(self.proj.in_area, in_area)
-
-        in_area = geometry.SwathDefinition()
-        self.proj = Projector(in_area, out_area_id)
-        self.assertEquals(self.proj.in_area, in_area)
-
-        out_area = geometry.AreaDefinition()
-        self.proj = Projector(in_area_id, out_area)
-        self.assertEquals(self.proj.out_area, out_area)
-
-        # in case of lon/lat is input
-        
-        self.proj = Projector("raise", out_area_id, ([1, 2, 3], [1, 2, 3]))
-        self.assertTrue(isinstance(self.proj.in_area, geometry.SwathDefinition))
-
-
-        # in case of wrong mode
-
-        self.assertRaises(ValueError,
-                          Projector,
-                          random_string(20),
-                          random_string(20),
-                          mode=random_string(20))
-
-        # quick mode cache
-        self.proj = Projector(in_area_id, out_area_id, mode="quick")
-        cache = getattr(self.proj, "_cache")
-        self.assertTrue(cache['row_idx'] is not None)
-        self.assertTrue(cache['col_idx'] is not None)
-
-        # nearest mode cache
-
-        self.proj = Projector(in_area_id, out_area_id, mode="nearest")
-        cache = getattr(self.proj, "_cache")
-        self.assertTrue(cache['valid_index'] is not None)
-        self.assertTrue(cache['valid_output_index'] is not None)
-        self.assertTrue(cache['index_array'] is not None)
-
-
-    def test_project_array(self):
-        """Test the project_array function.
-        """
-        in_area_id = random_string(20)
-        out_area_id = random_string(20)
-        data = np.random.standard_normal((3, 1))
-
-        # test quick
-        self.proj = Projector(in_area_id, out_area_id, mode="quick")
-        self.assertTrue(np.allclose(data, self.proj.project_array(data) - 1))
-        
-        # test nearest
-        self.proj = Projector(in_area_id, out_area_id, mode="nearest")
-        self.assertTrue(np.allclose(data,
-                                    self.proj.project_array(data) + 1))
-        
-
-
-    def tearDown(self):
-        """Unpatch things.
-        """
-        unpatch_utils()
-        unpatch_geometry()
-        unpatch_kd_tree()
-        unpatch_image()
-        unpatch_configparser()
-        
 def random_string(length,
                   choices="abcdefghijklmnopqrstuvwxyz"
                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
     """Generates a random string with elements from *set* of the specified
     *length*.
     """
-    import random
     return "".join([random.choice(choices)
-                    for dummy in range(length)])
+                    for dummy_itr in range(length)])
 
-if __name__ == '__main__':
-    unittest.main()
+class TestPPCore(unittest.TestCase):
+    """Class for testing the core of mpop.
+    """
+
+    def setUp(self):
+        """Apply patches.
+        """
+
+        self.scene = mpop.scene.SatelliteInstrumentScene()
+        patch_geometry()
+        patch_utils()
+        patch_kd_tree()
+        patch_image()
+        patch_configparser()
+
+    def test_channel_list_syntax(self):
+        """Test syntax for channel list
+        """
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+        
+        class Satscene(mpop.scene.SatelliteInstrumentScene):
+            """Adding a channel list.
+            """
+            instrument_name = random_string(8)
+            channel_list = channels
+
+        self.scene = Satscene()
+        for i, chn in enumerate(self.scene.channels):
+            self.assertTrue(isinstance(chn, mpop.channel.Channel))
+            self.assertEquals(chn.name, channels[i][0])
+            self.assertEquals(chn.wavelength_range, list(channels[i][1]))
+            self.assertEquals(chn.resolution, channels[i][2])
+
+    def test_project(self):
+        """Test project
+        """
+        channels = [["00_7", (0.5, 0.7, 0.9), 2500],
+                    ["06_4", (5.7, 6.4, 7.1), 5000],
+                    ["11_5", (10.5, 11.5, 12.5), 5000]]
+        
+        class Satscene(mpop.scene.SatelliteInstrumentScene):
+            """Adding a channel list.
+            """
+            instrument_name = random_string(8)
+            channel_list = channels
+
+        area = random_string(8)
+        self.scene = Satscene(area=area)
+        area2 = random_string(8)
+
+        new_scene = self.scene.project(area2)
+        self.assertEquals(new_scene.area.area_id, area2)
+
+        for chn in new_scene.channels:
+            self.assertEquals(chn.area, area2)
+        
+        
+
+    def tearDown(self):
+        """Remove patches.
+        """
+        unpatch_geometry()
+        unpatch_utils()
+        unpatch_kd_tree()
+        unpatch_image()
+        unpatch_configparser()
+
+
+def suite():
+    """The test suite for test_pp_core.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPPCore))
+    
+    return mysuite

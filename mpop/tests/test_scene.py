@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -805,5 +805,12 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         unpatch_configparser()
         unpatch_projector()
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_scene.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSatelliteScene))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSatelliteInstrumentScene))
+    
+    return mysuite

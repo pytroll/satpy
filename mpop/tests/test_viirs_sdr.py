@@ -63,5 +63,11 @@ class TestViirsSDRReader(unittest.TestCase):
 
         self.assert_(result_file == single_file)
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_viirs_sdr.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestViirsSDRReader))
+    
+    return mysuite
