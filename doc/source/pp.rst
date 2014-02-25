@@ -153,3 +153,10 @@ Satellite class loader
 .. automodule:: mpop.satellites
    :members:
    :undoc-members:
+
+Miscellaneous tools
+-------------------
+
+.. automodule:: mpop.tools
+   :members:
+   :undoc-members:
