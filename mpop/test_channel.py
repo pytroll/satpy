@@ -369,6 +369,40 @@ class TestChannel(unittest.TestCase):
                           self.chan.check_range,
                           [np.random.uniform()])
 
+
+    def test_sunzen_corr(self):
+        '''Test Sun zenith angle correction.
+        '''
+
+        import datetime as dt
+
+        chan = Channel(name='test')
+        
+        original_value = 10.
+
+        chan.data = original_value * np.ones((2,11))
+        lats = np.zeros((2,11)) # equator
+        lons = np.array([np.linspace(-90, 90, 11), np.linspace(-90, 90, 11)])
+
+        # Equinox, so the Sun is at the equator
+        time_slot = dt.datetime(2014,3,20,16,57)
+
+        new_ch = chan.sunzen_corr(time_slot, lonlats=(lons, lats), limit=80.)
+
+        # Test minimum after correction, accuracy of three decimals is enough
+        self.assertTrue(np.abs(10.000 - np.min(new_ch.data)) < 10**-3)
+        # Test maximum after correction
+        self.assertTrue(np.abs(57.588 - np.max(new_ch.data)) < 10**-3)
+
+        # There should be ten values at zenith angle >= 80 deg, and
+        # these are all equal
+        self.assertTrue(np.where(new_ch.data == \
+                                     np.max(new_ch.data))[0].shape[0] == 10)
+
+        # All values should be larger than the starting values
+        self.assertTrue(np.all(new_ch.data > original_value))
+
+
 #    def test_project(self):
 #        """Project a channel.
 #        """
