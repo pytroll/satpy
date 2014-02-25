@@ -5,6 +5,7 @@ python:
 install:
 - pip install .
 - pip install coveralls
+- pip install pyorbital
 script: coverage run --source=mpop setup.py test
 after_success: coveralls
 deploy:
