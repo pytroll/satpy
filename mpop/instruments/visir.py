@@ -83,7 +83,7 @@ class VisirCompositer(Compositer):
     def channel_image(self, channel, fill_value=0):
         """Make a black and white image of the *channel*.
 
-        Linear stretch without clipping is applied.
+        Linear stretch without clipping is applied by default.
         """
         self.check_channels(channel)
 
