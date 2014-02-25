@@ -39,7 +39,9 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['Image', 'numpy', 'pyresample']
+MOCK_MODULES = ['Image', 'pyhdf.SD', 'pyhdf.error', 'numpy', 'numpy.core',
+                'numpy.core.multiarray', 'pyresample', 'pyresample.utils',
+                'pyresample.geometry', 'h5py']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
