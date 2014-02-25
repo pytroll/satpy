@@ -29,8 +29,8 @@ def sunzen_corr_cos(data, cos_zen, limit=80.):
     cosine of the zenith angle (*cos_zen*).  The correction is limited
     to *limit* degrees (default: 80.0 degrees).  For larger zenith
     angles, the correction is the same as at the *limit*.  Both *data*
-    and *cos_zen* are given either as Numpy arrays or as Numpy
-    MaskedArrays, and they should have equal dimensions.
+    and *cos_zen* are given as 2-dimensional Numpy arrays or Numpy
+    MaskedArrays, and they should have equal shapes.
     '''
     
     # Convert the zenith angle limit to cosine of zenith angle
