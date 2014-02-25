@@ -222,6 +222,8 @@ class VisirCompositer(Compositer):
 
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
+
+        Linear stretch without clipping is applied.
         """
         return self.channel_image(0.6)
 
