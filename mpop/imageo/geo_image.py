@@ -149,6 +149,8 @@ class GeoImage(Image):
         
         raster = gdal.GetDriverByName("GTiff")
 
+        tags = tags or {}
+
         if floating_point:
             if self.mode != "L":
                 raise ValueError("Image must be in 'L' mode for floating point"
@@ -157,8 +159,17 @@ class GeoImage(Image):
             fill_value = self.fill_value or 0
             gformat = gdal.GDT_Float64
         else:
-            channels, fill_value = self._finalize()
-            gformat = gdal.GDT_Byte
+            nbits = int(tags.get("NBITS", "8"))
+            if nbits > 16:
+                dtype = np.uint32
+                gformat = gdal.GDT_UInt32
+            elif nbits > 8:
+                dtype = np.uint16
+                gformat = gdal.GDT_UInt16
+            else:
+                dtype = np.uint8
+                gformat = gdal.GDT_Byte
+            channels, fill_value = self._finalize(dtype)
 
         logger.debug("Saving to GeoTiff.")
 
@@ -196,7 +207,8 @@ class GeoImage(Image):
                                        2, 
                                        gformat,
                                        g_opts)
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      np.iinfo(dtype).max, fill_value)
         elif(self.mode == "LA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
@@ -227,7 +239,8 @@ class GeoImage(Image):
                                        gformat,
                                        g_opts)
 
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      np.iinfo(dtype).max, fill_value)
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
@@ -239,7 +252,9 @@ class GeoImage(Image):
                                    gformat,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
+            self._gdal_write_channels(dst_ds,
+                                      channels[:-1], channels[3],
+                                      fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
                                       " %s is not implemented."%self.mode)
