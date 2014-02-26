@@ -155,9 +155,14 @@ class GeoImage(Image):
             if self.mode != "L":
                 raise ValueError("Image must be in 'L' mode for floating point"
                                  " geotif saving")
+            if self.fill_value is None:
+                logger.warning("Image cannot be transparent, "
+                               "so setting fill_value to 0")
+                self.fill_value = 0
             channels = [self.channels[0].astype(np.float64)]
-            fill_value = self.fill_value or 0
+            fill_value = self.fill_value or [0]
             gformat = gdal.GDT_Float64
+            opacity = 0
         else:
             nbits = int(tags.get("NBITS", "8"))
             if nbits > 16:
@@ -169,6 +174,7 @@ class GeoImage(Image):
             else:
                 dtype = np.uint8
                 gformat = gdal.GDT_Byte
+            opacity = np.iinfo(dtype).max
             channels, fill_value = self._finalize(dtype)
 
         logger.debug("Saving to GeoTiff.")
@@ -208,7 +214,7 @@ class GeoImage(Image):
                                        gformat,
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels,
-                                      np.iinfo(dtype).max, fill_value)
+                                      opacity, fill_value)
         elif(self.mode == "LA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
@@ -240,7 +246,7 @@ class GeoImage(Image):
                                        g_opts)
 
             self._gdal_write_channels(dst_ds, channels,
-                                      np.iinfo(dtype).max, fill_value)
+                                      opacity, fill_value)
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
