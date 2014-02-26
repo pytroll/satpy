@@ -38,6 +38,13 @@ version = imp.load_source('mpop.version', 'mpop/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
+requires = ['numpy >=1.4.1', 'pyresample']
+
+try:
+    from PIL import Image
+except ImportError:
+    requires.append("pillow")
+
 NAME = 'mpop'
 
 setup(name=NAME,
@@ -73,7 +80,7 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_aapp1b.py'),
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
-      install_requires=['numpy >=1.4.1', 'pyresample', 'pillow'],
+      install_requires=requires,
       extras_require={ 'xRIT': ['mipp >= 0.6.0'],
                        'hdf_eos': ['pyhdf'],
                        'viirs': ['h5py']}
