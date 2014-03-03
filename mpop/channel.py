@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -268,7 +268,7 @@ class Channel(GenericChannel):
                       data=None,
                       calibration_unit=self.unit)
         res.area = coverage_instance.out_area
-
+        res.info = self.info
         if self.is_loaded():
             LOG.info("Projecting channel %s (%fμm)..."
                      %(self.name, self.wavelength_range[1]))
