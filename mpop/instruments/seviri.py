@@ -133,7 +133,7 @@ class SeviriCompositer(VisirCompositer):
                                     set([0.635, 1.63, 6.7, 7.3, 10.8]))
 
 
-    def cloudtop(self):
+    def cloudtop(self, stretch=(0.005, 0.005), gamma=None):
         """Make a Cloudtop RGB image composite from Seviri channels.
         """
         self.co2corr_chan()
@@ -149,7 +149,10 @@ class SeviriCompositer(VisirCompositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch=(0.005, 0.005))
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
 
         return img
     
