@@ -158,6 +158,13 @@ class SeviriCompositer(VisirCompositer):
     
     cloudtop.prerequisites = co2corr_chan.prerequisites | set([10.8, 12.0])
 
+    def night_overview(self, stretch='histogram', gamma=None):
+        """See cloudtop.
+        """
+        return self.cloudtop(stretch=stretch, gamma=gamma)
+
+    night_overview.prerequisites =  cloudtop.prerequisites
+
     def night_fog(self):
         """Make a Night Fog RGB image composite from Seviri channels.
         """
