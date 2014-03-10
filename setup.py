@@ -81,7 +81,9 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
       install_requires=requires,
+      test_requires=["mock"],
       extras_require={ 'xRIT': ['mipp >= 0.6.0'],
                        'hdf_eos': ['pyhdf'],
-                       'viirs': ['h5py']}
+                       'viirs': ['h5py'],
+                       'nc': ['netCDF4']}
       )
