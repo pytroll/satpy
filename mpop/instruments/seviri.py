@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2013.
 
 # Author(s):
  
@@ -104,7 +104,36 @@ class SeviriCompositer(VisirCompositer):
 
     co2corr_chan.prerequisites = set([3.75, 10.8, 13.4])
 
-    def cloudtop(self):
+
+    def convection_co2(self):
+        """Make a Severe Convection RGB image composite on SEVIRI compensating
+        for the CO2 absorption in the 3.9 micron channel.
+        """
+        self.co2corr_chan()
+        self.check_channels("_IR39Corr", 0.635, 1.63, 6.7, 7.3, 10.8)
+
+        ch1 = self[6.7].data - self[7.3].data
+        ch2 = self["_IR39Corr"].data - self[10.8].data
+        ch3 = self[1.63].check_range() - self[0.635].check_range()
+
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB",
+                                 crange=((-30, 0),
+                                         (0, 55),
+                                         (-70, 20)))
+        
+        img.enhance(gamma = (1.0, 0.5, 1.0))
+
+        return img
+
+    convection_co2.prerequisites = (co2corr_chan.prerequisites | 
+                                    set([0.635, 1.63, 6.7, 7.3, 10.8]))
+
+
+    def cloudtop(self, stretch=(0.005, 0.005), gamma=None):
         """Make a Cloudtop RGB image composite from Seviri channels.
         """
         self.co2corr_chan()
@@ -120,11 +149,21 @@ class SeviriCompositer(VisirCompositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch=(0.005, 0.005))
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
 
         return img
     
     cloudtop.prerequisites = co2corr_chan.prerequisites | set([10.8, 12.0])
+
+    def night_overview(self, stretch='histogram', gamma=None):
+        """See cloudtop.
+        """
+        return self.cloudtop(stretch=stretch, gamma=gamma)
+
+    night_overview.prerequisites =  cloudtop.prerequisites
 
     def night_fog(self):
         """Make a Night Fog RGB image composite from Seviri channels.

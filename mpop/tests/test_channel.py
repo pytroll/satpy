@@ -369,6 +369,95 @@ class TestChannel(unittest.TestCase):
                           self.chan.check_range,
                           [np.random.uniform()])
 
+
+    def test_sunzen_corr(self):
+        '''Test Sun zenith angle correction.
+        '''
+
+        import datetime as dt
+
+        chan = Channel(name='test')
+        
+        original_value = 10.
+
+        chan.data = original_value * np.ones((2,11))
+        lats = np.zeros((2,11)) # equator
+        lons = np.array([np.linspace(-90, 90, 11), np.linspace(-90, 90, 11)])
+
+        # Equinox, so the Sun is at the equator
+        time_slot = dt.datetime(2014,3,20,16,57)
+
+        new_ch = chan.sunzen_corr(time_slot, lonlats=(lons, lats), limit=80.)
+
+        # Test minimum after correction, accuracy of three decimals is enough
+        #self.assertTrue(np.abs(10.000 - np.min(new_ch.data)) < 10**-3)
+        self.assertAlmostEqual(10.000, np.min(new_ch.data), places=3)
+        # Test maximum after correction
+        self.assertAlmostEqual(57.588, np.max(new_ch.data), places=3)
+
+        # There should be ten values at zenith angle >= 80 deg, and
+        # these are all equal
+        self.assertTrue(np.where(new_ch.data == \
+                                     np.max(new_ch.data))[0].shape[0] == 10)
+
+        # All values should be larger than the starting values
+        self.assertTrue(np.all(new_ch.data > original_value))
+
+        # Channel name
+        self.assertEqual(new_ch.name, chan.name+'_SZC')
+        
+        # Test channel name in the info dict
+        self.assertEqual(new_ch.name, chan.info['sun_zen_corrected'])
+
+        # Test with several locations and arbitrary data
+        chan = Channel(name='test2')
+        chan.data = np.array([[0., 67.31614275, 49.96271995,
+                               99.41046645, 29.08660989],
+                              [87.61007584, 79.6683524, 53.20397351,
+                               29.88260374, 62.33623915],
+                              [60.49283004, 54.04267222, 32.72365906,
+                               91.44995651, 32.27232955],
+                              [63.71580638, 69.57673795, 7.63064373,
+                               32.15683105, 9.05786335],
+                              [65.61434337, 33.2317155, 18.77672384,
+                               30.13527574, 23.22572904]])
+        lons = np.array([[116.28695847, 164.1125604, 40.77223701,
+                          -113.54699788, 133.15558442],
+                         [-17.18990601, 75.17472034, 12.81618371,
+                           -40.75524952, 40.70898002],
+                         [42.74662341, 164.05671859, -166.58469404,
+                          -58.16684483, -144.97963063],
+                         [46.26303645, -167.48682034, 170.28131412,
+                          -17.80502488, -63.9031154],
+                         [-107.14829679, -147.66665952, -0.75970554,
+                           77.701768, -130.48677807]])
+        lats = np.array([[-51.53681682, -83.21762788, 5.91008672, 
+                           22.51730385, 66.83356427],
+                         [82.78543163,  23.1529456 ,  -7.16337152,
+                          -68.23118425, 28.72194953],
+                         [31.03440852, 70.55322517, -83.61780288,
+                          29.88413938, 25.7214828],
+                         [-19.02517922, -19.20958728, -14.7825735,
+                           22.66967876, 67.6089238],
+                         [45.12202477, 61.79674149, 58.71037615,
+                          -62.04350423, 13.06405864]])
+        time_slot = dt.datetime(1998, 8, 1, 10, 0)
+
+        # These are the expected results
+        results = np.array([[0., 387.65821593, 51.74080022,
+                             572.48205988, 138.96586013],
+                            [227.24857818, 105.53045776, 62.24134162,
+                             172.0870564, 64.12902666],
+                            [63.08646652, 311.21934562, 188.44804188,
+                             526.63931022, 185.84893885],
+                            [82.86856236, 400.6764648, 43.9431259,
+                             46.58056343, 36.04457644],
+                            [377.85794388, 191.3738223, 27.55002934,
+                             173.54213642, 133.75164285]])
+
+        new_ch = chan.sunzen_corr(time_slot, lonlats=(lons, lats), limit=80.)
+        self.assertAlmostEqual(np.max(results-new_ch.data), 0.000, places=3)
+        
 #    def test_project(self):
 #        """Project a channel.
 #        """
@@ -390,5 +479,12 @@ def random_string(length, choices=string.letters):
                     for i in range(length)])
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_channel.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGenericChannel))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestChannel))
+    
+    return mysuite

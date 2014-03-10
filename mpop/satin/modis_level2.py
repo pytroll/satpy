@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011.
+# Copyright (c) 2011, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -64,7 +64,17 @@ CHANNELS = ['Rrs_412',
             'Rrs_555', 
             'Rrs_645', 
             'Rrs_667', 
-            'Rrs_678'
+            'Rrs_678',
+            'nLw_412', 
+            'nLw_443', 
+            'nLw_469', 
+            'nLw_488', 
+            'nLw_531', 
+            'nLw_547', 
+            'nLw_555', 
+            'nLw_645', 
+            'nLw_667', 
+            'nLw_678',
             ]
 
 # Flags and quality (the two latter only for SST products):

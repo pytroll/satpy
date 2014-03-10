@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2011, 2012.
+# Copyright (c) 2009-2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -32,15 +32,21 @@
 """
 import os
 
-import Image as pil
 import numpy as np
 
-import mpop.imageo.image
+try:
+    from trollimage.image import Image, UnknownImageFormat
+except ImportError:
+    from mpop.imageo.image import Image, UnknownImageFormat
+
+
 from mpop import CONFIG_PATH
-from mpop.imageo.logger import LOG
+import logging
 from mpop.utils import ensure_dir
 
-class GeoImage(mpop.imageo.image.Image):
+logger = logging.getLogger(__name__)
+
+class GeoImage(Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
     defined (*area* parameter) and *time_slot* of the snapshot.
@@ -55,7 +61,7 @@ class GeoImage(mpop.imageo.image.Image):
     """
 
     def __init__(self, channels, area, time_slot, 
-                 mode = "L", crange = None, fill_value = None, palette = None):
+                 mode="L", crange=None, fill_value=None, palette=None):
         self.area = area
         self.time_slot = time_slot
         self.tags = {}
@@ -92,13 +98,13 @@ class GeoImage(mpop.imageo.image.Image):
         try:
             # Let image.pil_save it ?
             super(GeoImage, self).save(filename, compression, fformat=fformat)
-        except mpop.imageo.image.UnknownImageFormat:
+        except UnknownImageFormat:
             # No ... last resort, try to import an external module. 
-            LOG.info("Importing image saver module '%s'" % fformat)
+            logger.info("Importing image writer module '%s'" % fformat)
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
             except ImportError:
-                raise  mpop.imageo.image.UnknownImageFormat(
+                raise  UnknownImageFormat(
                     "Unknown image format '%s'" % fformat)
             saver.save(self, filename, **kwargs)
 
@@ -107,15 +113,15 @@ class GeoImage(mpop.imageo.image.Image):
         *opacity* as alpha value for valid data, and *fill_value*.
         """
         if fill_value is not None:
-            for i in range(len(channels)):
-                chn = channels[i].filled(fill_value[i])
+            for i, chan in enumerate(channels):
+                chn = chan.filled(fill_value[i])
                 dst_ds.GetRasterBand(i + 1).WriteArray(chn)
         else:
-            mask = np.zeros(channels[0].shape, dtype=np.uint8)
+            mask = np.zeros(channels[0].shape, dtype=np.bool)
             i = 0
-            for i in range(len(channels)):
-                dst_ds.GetRasterBand(i + 1).WriteArray(channels[i].filled(i))
-                mask |= np.ma.getmaskarray(channels[i]) 
+            for i, chan in enumerate(channels):
+                dst_ds.GetRasterBand(i + 1).WriteArray(chan.filled(0))
+                mask |= np.ma.getmaskarray(chan) 
             
             try:
                 mask |= np.ma.getmaskarray(opacity)
@@ -143,18 +149,35 @@ class GeoImage(mpop.imageo.image.Image):
         
         raster = gdal.GetDriverByName("GTiff")
 
+        tags = tags or {}
+
         if floating_point:
             if self.mode != "L":
                 raise ValueError("Image must be in 'L' mode for floating point"
                                  " geotif saving")
+            if self.fill_value is None:
+                logger.warning("Image cannot be transparent, "
+                               "so setting fill_value to 0")
+                self.fill_value = 0
             channels = [self.channels[0].astype(np.float64)]
-            fill_value = self.fill_value or 0
+            fill_value = self.fill_value or [0]
             gformat = gdal.GDT_Float64
+            opacity = 0
         else:
-            channels, fill_value = self._finalize()
-            gformat = gdal.GDT_Byte
+            nbits = int(tags.get("NBITS", "8"))
+            if nbits > 16:
+                dtype = np.uint32
+                gformat = gdal.GDT_UInt32
+            elif nbits > 8:
+                dtype = np.uint16
+                gformat = gdal.GDT_UInt16
+            else:
+                dtype = np.uint8
+                gformat = gdal.GDT_Byte
+            opacity = np.iinfo(dtype).max
+            channels, fill_value = self._finalize(dtype)
 
-        LOG.debug("Saving to GeoTiff.")
+        logger.debug("Saving to GeoTiff.")
 
         if tags is not None:
             self.tags.update(tags)
@@ -190,7 +213,8 @@ class GeoImage(mpop.imageo.image.Image):
                                        2, 
                                        gformat,
                                        g_opts)
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      opacity, fill_value)
         elif(self.mode == "LA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
@@ -221,7 +245,8 @@ class GeoImage(mpop.imageo.image.Image):
                                        gformat,
                                        g_opts)
 
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      opacity, fill_value)
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
@@ -233,7 +258,9 @@ class GeoImage(mpop.imageo.image.Image):
                                    gformat,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
+            self._gdal_write_channels(dst_ds,
+                                      channels[:-1], channels[3],
+                                      fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
                                       " %s is not implemented."%self.mode)
@@ -280,7 +307,7 @@ class GeoImage(mpop.imageo.image.Image):
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
-                LOG.exception("Could not load geographic data, invalid area")
+                logger.exception("Could not load geographic data, invalid area")
 
         self.tags.update({'TIFFTAG_DATETIME':
                           self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
@@ -317,7 +344,7 @@ class GeoImage(mpop.imageo.image.Image):
 
         coast_dir = conf.get('shapes', 'dir')
 
-        LOG.debug("Getting area for overlay: " + str(self.area))
+        logger.debug("Getting area for overlay: " + str(self.area))
 
         if self.area is None:
             raise ValueError("Area of image is None, can't add overlay.")
@@ -325,8 +352,8 @@ class GeoImage(mpop.imageo.image.Image):
         from mpop.projector import get_area_def
         if isinstance(self.area, str):
             self.area = get_area_def(self.area) 
-        LOG.info("Add coastlines and political borders to image.")
-        LOG.debug("Area = " + str(self.area))
+        logger.info("Add coastlines and political borders to image.")
+        logger.debug("Area = " + str(self.area))
 
         if resolution is None:
         
@@ -349,7 +376,7 @@ class GeoImage(mpop.imageo.image.Image):
             else:
                 resolution = "f"
 
-            LOG.debug("Automagically choose resolution " + resolution)
+            logger.debug("Automagically choose resolution " + resolution)
         
         from pycoast import ContourWriterAGG
         cw_ = ContourWriterAGG(coast_dir)

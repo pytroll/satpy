@@ -89,7 +89,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
     LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,
                                               satscene.channels_to_load))
     
-    # Compulsory global attribudes
+    # Compulsory global attributes
     satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
                               " satellite, " +
                               satscene.instrument_name.capitalize() +

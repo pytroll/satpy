@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012, 2013.
+# Copyright (c) 2009, 2012, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -32,10 +32,14 @@
 but has the advandage of using masked arrays as pixel arrays, so that data
 arrays containing invalid values may be properly handled.
 """
+import warnings
+warnings.warn(__name__ + " is deprecated, please use trollimage instead.",
+              DeprecationWarning)
+
 import os
 import re
 
-import Image as Pil
+from PIL import Image as Pil
 import numpy as np
 
 try:
@@ -74,6 +78,149 @@ def check_image_format(fformat):
         raise UnknownImageFormat("Unknown image format '%s'." % fformat)
     return fformat
 
+try:
+    from numpy import percentile
+except ImportError:
+
+    # Stolen from numpy 1.7.0 for backward compatibility
+
+    def percentile(a, q, axis=None, out=None, overwrite_input=False):
+        """
+        Compute the qth percentile of the data along the specified axis.
+
+        Returns the qth percentile of the array elements.
+
+        Parameters
+        ----------
+        a : array_like
+        Input array or object that can be converted to an array.
+        q : float in range of [0,100] (or sequence of floats)
+        Percentile to compute which must be between 0 and 100 inclusive.
+        axis : int, optional
+        Axis along which the percentiles are computed. The default (None)
+        is to compute the median along a flattened version of the array.
+        out : ndarray, optional
+        Alternative output array in which to place the result. It must
+        have the same shape and buffer length as the expected output,
+        but the type (of the output) will be cast if necessary.
+        overwrite_input : bool, optional
+        If True, then allow use of memory of input array `a` for
+        calculations. The input array will be modified by the call to
+        median. This will save memory when you do not need to preserve
+        the contents of the input array. Treat the input as undefined,
+        but it will probably be fully or partially sorted.
+        Default is False. Note that, if `overwrite_input` is True and the
+        input is not already an array, an error will be raised.
+
+        Returns
+        -------
+        pcntile : ndarray
+        A new array holding the result (unless `out` is specified, in
+        which case that array is returned instead). If the input contains
+        integers, or floats of smaller precision than 64, then the output
+        data-type is float64. Otherwise, the output data-type is the same
+        as that of the input.
+
+        See Also
+        --------
+        mean, median
+
+        Notes
+        -----
+        Given a vector V of length N, the qth percentile of V is the qth ranked
+        value in a sorted copy of V. A weighted average of the two nearest
+        neighbors is used if the normalized ranking does not match q exactly.
+        The same as the median if ``q=50``, the same as the minimum if ``q=0``
+        and the same as the maximum if ``q=100``.
+
+        Examples
+        --------
+        >>> a = np.array([[10, 7, 4], [3, 2, 1]])
+        >>> a
+        array([[10, 7, 4],
+        [ 3, 2, 1]])
+        >>> np.percentile(a, 50)
+        3.5
+        >>> np.percentile(a, 0.5, axis=0)
+        array([ 6.5, 4.5, 2.5])
+        >>> np.percentile(a, 50, axis=1)
+        array([ 7., 2.])
+
+        >>> m = np.percentile(a, 50, axis=0)
+        >>> out = np.zeros_like(m)
+        >>> np.percentile(a, 50, axis=0, out=m)
+        array([ 6.5, 4.5, 2.5])
+        >>> m
+        array([ 6.5, 4.5, 2.5])
+
+        >>> b = a.copy()
+        >>> np.percentile(b, 50, axis=1, overwrite_input=True)
+        array([ 7., 2.])
+        >>> assert not np.all(a==b)
+        >>> b = a.copy()
+        >>> np.percentile(b, 50, axis=None, overwrite_input=True)
+        3.5
+
+        """
+        a = np.asarray(a)
+
+        if q == 0:
+            return a.min(axis=axis, out=out)
+        elif q == 100:
+            return a.max(axis=axis, out=out)
+
+        if overwrite_input:
+            if axis is None:
+                sorted = a.ravel()
+                sorted.sort()
+            else:
+                a.sort(axis=axis)
+                sorted = a
+        else:
+            sorted = np.sort(a, axis=axis)
+        if axis is None:
+            axis = 0
+
+        return _compute_qth_percentile(sorted, q, axis, out)
+
+    # handle sequence of q's without calling sort multiple times
+    def _compute_qth_percentile(sorted, q, axis, out):
+        if not np.isscalar(q):
+            p = [_compute_qth_percentile(sorted, qi, axis, None)
+                 for qi in q]
+
+            if out is not None:
+                out.flat = p
+
+            return p
+
+        q = q / 100.0
+        if (q < 0) or (q > 1):
+            raise ValueError("percentile must be either in the range [0,100]")
+
+        indexer = [slice(None)] * sorted.ndim
+        Nx = sorted.shape[axis]
+        index = q*(Nx-1)
+        i = int(index)
+        if i == index:
+            indexer[axis] = slice(i, i+1)
+            weights = np.array(1)
+            sumval = 1.0
+        else:
+            indexer[axis] = slice(i, i+2)
+            j = i + 1
+            weights = np.array([(j - index), (index - i)],float)
+            wshape = [1]*sorted.ndim
+            wshape[axis] = 2
+            weights.shape = wshape
+            sumval = weights.sum()
+
+        # Use add.reduce in both cases to coerce data type as well as
+        # check and use out array.
+        return np.add.reduce(sorted[indexer]*weights, axis=axis, out=out)/sumval
+
+
+
 class Image(object):
     """This class defines images. As such, it contains data of the different
     *channels* of the image (red, green, and blue for example). The *mode*
@@ -93,22 +240,21 @@ class Image(object):
     classical [0,255] range and byte type is done automagically when saving the
     image to file.
     """
-    channels = None
-    mode = None
-    width = 0
-    height = 0
-    fill_value = None
-    palette = None
-
-    _secondary_mode = "RGB"
-
     modes = ["L", "LA", "RGB", "RGBA", "YCbCr", "YCbCrA", "P", "PA"]
-    
-    #: Shape (dimensions) of the image.
-    shape = None
-    
+        
     def __init__(self, channels = None, mode = "L", color_range = None, 
                  fill_value = None, palette = None):
+
+        self.channels = None
+        self.mode = None
+        self.width = 0
+        self.height = 0
+        self.fill_value = None
+        self.palette = None
+        self.shape = None
+        self.info = {}
+        
+        self._secondary_mode = "RGB"
 
         if(channels is not None and
            not isinstance(channels, (tuple, set, list,
@@ -208,7 +354,7 @@ class Image(object):
                   1.0 / (color_max - color_min))
         self.channels.append(np.ma.array(scaled, mask=chn_mask))
     
-    def _finalize(self):
+    def _finalize(self, dtype=np.uint8):
         """Finalize the image, that is put it in RGB mode, and set the channels
         in 8bit format ([0,255] range).
         """
@@ -220,15 +366,16 @@ class Image(object):
 
         for chn in self.channels:
             if isinstance(chn, np.ma.core.MaskedArray):
-                final_data = chn.data.clip(0, 1) * 255
+                final_data = chn.data.clip(0, 1) * np.iinfo(dtype).max
             else:
-                final_data = chn.clip(0, 1) * 255
+                final_data = chn.clip(0, 1) * np.iinfo(dtype).max
                 
             channels.append(np.ma.array(final_data,
-                                        np.uint8,
+                                        dtype,
                                         mask = chn.mask))
         if self.fill_value is not None:
-            fill_value = [int(col * 255) for col in self.fill_value]
+            fill_value = [int(col * np.iinfo(dtype).max)
+                          for col in self.fill_value]
         else:
             fill_value = None
         return channels, fill_value
@@ -331,12 +478,14 @@ class Image(object):
 
         return img
 
-    def save(self, filename, compression = 6, fformat = None):
-        """Save the image to the given *filename*.
+    def save(self, filename, compression=6, fformat=None):
+        """Save the image to the given *filename*. For some formats like jpg
+        and png, the work is delegated to :meth:`pil_save`, which doesn't
+        support the *compression* option.
         """
         self.pil_save(filename, compression, fformat)
 
-    def pil_save(self, filename, compression = 6, fformat = None):
+    def pil_save(self, filename, compression=6, fformat=None):
         """Save the image to the given *filename* using PIL. For now, the
         compression level [0-9] is ignored, due to PIL's lack of support. See
         also :meth:`save`.
@@ -359,7 +508,8 @@ class Image(object):
         *alpha* if it already exists.
         """
         alpha = np.ma.array(alpha)
-        if(not (alpha.shape[0] == 0 and self.shape[0] == 0) and
+        if(not (alpha.shape[0] == 0 and
+                self.shape[0] == 0) and
            alpha.shape != self.shape):
             raise ValueError("Alpha channel shape should match image shape")
         
@@ -857,7 +1007,6 @@ class Image(object):
                 self.channels[i] = 1.0 - chn
                 i = i + 1
          
-   
     def stretch_hist_equalize(self, ch_nb):
         """Stretch the current image's colors by performing histogram
         equalization on channel *ch_nb*.
@@ -875,13 +1024,14 @@ class Image(object):
 
         carr = arr.compressed()
 
-        imhist, bins = np.histogram(carr, nwidth, normed=True)
-        cdf = imhist.cumsum() - imhist[0]
-        cdf = cdf / cdf[-1]
+        cdf = np.arange(0.0, 1.0, 1/nwidth)
+        LOG.debug("Make histogram bins having equal amount of data, " + 
+                  "using numpy percentile function:")
+        bins = percentile(carr, list(cdf * 100))
 
         res = np.ma.empty_like(arr)
         res.mask = np.ma.getmaskarray(arr)
-        res[~res.mask] = np.interp(carr, bins[:-1], cdf)
+        res[~res.mask] = np.interp(carr, bins, cdf)
 
         self.channels[ch_nb] = res
 
@@ -907,7 +1057,6 @@ class Image(object):
         arr = c + b*np.log(arr)
         self.channels[ch_nb] = arr
 
-
     def stretch_linear(self, ch_nb, cutoffs=(0.005, 0.005)):
         """Stretch linearly the contrast of the current image on channel
         *ch_nb*, using *cutoffs* for left and right trimming.
@@ -920,36 +1069,19 @@ class Image(object):
             LOG.warning("Nothing to stretch !")
             return
         
-        nwidth = 2048.0
-
-
         arr = self.channels[ch_nb]
-
         carr = arr.compressed()
-        hist, bins = np.histogram(carr, nwidth)
 
-        ndim = carr.size
+        LOG.debug("Calculate the histogram percentiles: ")
+        LOG.debug("Left and right percentiles: " + 
+                  str(cutoffs[0]*100) + " " + str(cutoffs[1]*100))
 
-        left = 0
-        hist_sum = 0.0
-        i = 0
-        while i < nwidth and hist_sum < cutoffs[0]*ndim:
-            hist_sum = hist_sum + hist[i]
-            i = i + 1
+        left, right = percentile(carr, [cutoffs[0]*100, 
+                                        100. - cutoffs[1]*100])
 
-        left = bins[i-1]
-
-        right = 0
-        hist_sum = 0.0
-        i = nwidth - 1
-        while i >= 0 and hist_sum < cutoffs[1]*ndim:
-            hist_sum = hist_sum + hist[i]
-            i = i - 1
-
-        right = bins[i+1]
         delta_x = (right - left)
-        LOG.debug("Interval: left=%f,right=%f width=%f"
-                  %(left,right,delta_x))
+        LOG.debug("Interval: left=%f, right=%f width=%f"
+                  % (left, right, delta_x))
 
         if delta_x > 0.0:
             self.channels[ch_nb] = np.ma.array((arr - left) / delta_x, 
@@ -957,6 +1089,7 @@ class Image(object):
         else:
             self.channels[ch_nb] = np.ma.zeros(arr.shape)
             LOG.warning("Unable to make a contrast stretch!")
+
 
     def crude_stretch(self, ch_nb, min_stretch = None, max_stretch = None):
         """Perform simple linear stretching (without any cutoff) on the channel

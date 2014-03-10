@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011.
+# Copyright (c) 2011, 2013.
 
 # Author(s):
  
@@ -65,7 +65,7 @@ class Tle(object):
             tles_dict = {}
 
             import glob
-            filelist = glob.glob("/data/24/saf/polar_in/tle2/tle-*.txt")
+            filelist = glob.glob("/data/24/saf/polar_in/tle/tle-*.txt")
             if len(filelist) > 0:
                 filelist.sort()
                 tlef = open(filelist[-1])

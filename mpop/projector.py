@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2010, 2011, 2012, 2013.
+# Copyright (c) 2009, 2010, 2011, 2012, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -89,15 +89,17 @@ class Projector(object):
     mode.
     """
     
-    in_area = None
-    out_area = None
-    _cache = None
-    _filename = None
-    mode = "quick"
-
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode=None,
-                 radius=10000):
+                 radius=10000, nprocs=1):
+
+        self.in_area = None
+        self.out_area = None
+        self._cache = None
+        self._filename = None
+        self.mode = "quick"
+        self.radius = radius
+
 
         # TODO:
         # - Rework so that in_area and out_area can be lonlats.
@@ -181,8 +183,9 @@ class Projector(object):
                 valid_index, valid_output_index, index_array, distance_array = \
                              kd_tree.get_neighbour_info(self.in_area,
                                                         self.out_area,
-                                                        radius,
-                                                        neighbours=1)
+                                                        self.radius,
+                                                        neighbours=1,
+                                                        nprocs=nprocs)
                 del distance_array
                 self._cache = {}
                 self._cache['valid_index'] = valid_index
@@ -219,9 +222,6 @@ class Projector(object):
         """Project an array *data* along the given Projector object.
         """
         
-        if self.in_area == self.out_area:
-            return data
-
         if self.mode == "nearest":
             
             if not 'valid_index' in self._cache:

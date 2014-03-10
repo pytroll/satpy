@@ -104,7 +104,7 @@ def load_avhrr(satscene, options):
 
     scene.navigate()
     for chn in chns:
-        if scene.channels.has_key(chn):
+        if scene.channels.has_key(chn) and np.ma.count(scene.channels[chn]) > 0:
             satscene[chn].data = scene.channels[chn]
             satscene[chn].info['units'] = scene.units[chn]
 

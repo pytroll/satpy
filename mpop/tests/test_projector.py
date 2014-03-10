@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012, 2013.
+# Copyright (c) 2009, 2012, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -302,13 +302,7 @@ class TestProjector(unittest.TestCase):
         """
         in_area_id = random_string(20)
         out_area_id = random_string(20)
-
-        # test computation skip if equal areas
-        in_area = geometry.AreaDefinition()
-        self.proj = Projector(in_area, in_area)
-        self.assertEquals(self.proj.in_area, self.proj.out_area)
         data = np.random.standard_normal((3, 1))
-        self.assertTrue(np.all(data == self.proj.project_array(data)))
 
         # test quick
         self.proj = Projector(in_area_id, out_area_id, mode="quick")
@@ -340,5 +334,12 @@ def random_string(length,
     return "".join([random.choice(choices)
                     for dummy in range(length)])
 
-if __name__ == '__main__':
-    unittest.main()
+
+def suite():
+    """The test suite for test_projector.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestProjector))
+    
+    return mysuite

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009.
+# Copyright (c) 2009, 2013.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -65,6 +65,11 @@ def vv_legend():
     return convert_palette(legend)
 
 def cms_modified():
+    """Palette for regular cloud classification.
+    """
+    return nwcsaf_cloudtype()
+
+def nwcsaf_cloudtype():
     """Palette for regular cloud classification.
     """
     legend = []

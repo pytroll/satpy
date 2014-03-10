@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -26,6 +26,10 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to AAPP level 1b format. Uses the AHAMAP reader.
 """
+import warnings
+warnings.warn(__name__ + " is deprecated, please use aapp1b instead.",
+              DeprecationWarning)
+
 import glob
 import os.path
 from ConfigParser import ConfigParser

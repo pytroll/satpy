@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -27,12 +27,15 @@
 
 """Filelist class.
 """
+import logging
 import os
 import shutil
 import tempfile
 
 from mpop.utils import ensure_dir
-from mpop.saturn import LOG
+
+
+logger = logging.getLogger(__name__)
 
 class FileList(list):
     """List of files.
@@ -60,13 +63,13 @@ class FileList(list):
             types[ext] = types.get(ext, FileList()) + FileList([filename])
         return types
 
-    def save_object(self, obj):
+    def save_object(self, obj, hook=None):
         """save *obj* to the filelist.
         """
         files_by_ext = self._get_by_ext()
         for extkey in files_by_ext:
-            path, trash = os.path.split(files_by_ext[extkey][0])
-            del trash
+            path, filename = os.path.split(files_by_ext[extkey][0])
+            origname = filename
             try:
                 ensure_dir(files_by_ext[extkey][0])
                 handle, tmpfilename = tempfile.mkstemp(extkey,
@@ -78,9 +81,9 @@ class FileList(list):
                 os.chmod(tmpfilename, 0644)
                 os.fsync(handle)
             except Exception:
-                LOG.exception("Something went wrong in saving file... "
+                logger.exception("Something went wrong in saving file... "
                               "Dumping trace.")
-                LOG.warning("Job skipped, going on with the next.")
+                logger.warning("Job skipped, going on with the next.")
                 continue
             for filename in files_by_ext[extkey][1:]:
                 path2, trash = os.path.split(filename)
@@ -96,29 +99,36 @@ class FileList(list):
                     os.fsync(handle2)
                     os.close(handle2)
                 except (IOError, OSError):
-                    LOG.exception("Copying file %s to %s failed"
+                    logger.exception("Copying file %s to %s failed"
                                   %(tmpfilename,tmpfilename2))
-                    LOG.info("Retrying...")
+                    logger.info("Retrying...")
                     try:
                         shutil.copy(tmpfilename, tmpfilename2)
                         os.fsync(handle2)
                         os.close(handle2)
-                        LOG.info("Went OK this time...")
+                        logger.info("Went OK this time...")
                     except (IOError, OSError):
-                        LOG.exception("No way...")
+                        logger.exception("No way...")
                 try:
                     os.rename(tmpfilename2, filename)
+                    if hook:
+                        hook(obj, filename=origname, uri=filename)
                 except (IOError, OSError):
-                    LOG.exception("Renaming file %s to %s failed"
+                    logger.exception("Renaming file %s to %s failed"
                                 %(tmpfilename2,filename))
-                    LOG.info("Retrying...")
+                    logger.info("Retrying...")
                     try:
                         os.rename(tmpfilename2, filename)
+                        if hook:
+                            hook(obj, filename=origname, uri=filename)
                     except (IOError, OSError):
-                        LOG.exception("No way...")
-                LOG.debug("Done saving "+filename)
+                        logger.exception("No way...")
+                logger.debug("Done saving "+filename)
                 
             os.rename(tmpfilename, files_by_ext[extkey][0])
             os.fsync(handle)
             os.close(handle)
-            LOG.debug("Done saving "+files_by_ext[extkey][0])
+            if hook:
+                hook(obj, filename=origname, uri=files_by_ext[extkey][0])
+            logger.debug("Done saving "+files_by_ext[extkey][0])
+

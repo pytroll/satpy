@@ -4,3 +4,5 @@ doc/build
 *.pyc
 *~
 RELEASE-VERSION
+dist
+mpop.egg-info

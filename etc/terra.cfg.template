@@ -5,8 +5,7 @@ instruments = ('modis',)
 
 [modis-level2]
 format=hdfeos_l1b
-#dir=/data/prod/satellit/modis/lvl1
-dir = /data/proj/safutv/data/polar_out/direct_readout/modis
+dir=/data/prod/satellit/modis/lvl1
 
 filename250 = MOD02Qkm_A%y%j_%H%M%S_*.hdf
 filename500 = MOD02Hkm_A%y%j_%H%M%S_*.hdf

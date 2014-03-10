@@ -272,20 +272,10 @@ class ViirsCompositer(VisirCompositer):
 
 
     def night_color(self):
-        self.check_channels('M12', 'M15', 'M16')
-
-        ch1 = -self['M12'].data
-        ch2 = -self['M15'].data
-        ch3 = -self['M16'].data
-
-        img = geo_image.GeoImage((ch1, ch2, ch3),
-                                 self.area,
-                                 self.time_slot,
-                                 fill_value=(0, 0, 0),
-                                 mode="RGB")
-        img.stretch(stretch="histogram")
-
-        return img
+        """Make a Night Overview RGB image composite.
+        Same as cloudtop ... just different.
+        """
+        return self.cloudtop(stretch="histogram")
 
     night_color.prerequisites = set(['M12', 'M15', 'M16'])
 
@@ -383,7 +373,7 @@ class ViirsCompositer(VisirCompositer):
     fog.prerequisites = set(['M14', 'M15', 'M16'])
 
 
-    def cloudtop(self):
+    def cloudtop(self, stretch=None):
         """Make a Cloudtop RGB image composite.
         """
         self.check_channels('M12', 'M15', 'M16')
@@ -398,7 +388,10 @@ class ViirsCompositer(VisirCompositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch=(0.005, 0.005))
+        if stretch:
+            img.enhance(stretch=stretch)
+        else:
+            img.enhance(stretch=(0.005, 0.005))
 
         return img
 
@@ -469,3 +462,62 @@ class ViirsCompositer(VisirCompositer):
         return img
 
     hr_ir108.prerequisites = set(["I05"])
+
+    def chlorophyll(self, stretch=None):
+        """ From http://oceancolor.gsfc.nasa.gov/REPROCESSING/R2009/ocv6/
+
+        * Rrs1 = blue wavelength Rrs (e.g., 443, 490, or 510-nm)
+        * Rrs2 = green wavelength Rrs (e.g., 547, 555, or 565-nm)
+        * X = log10(Rrs1 / Rrs2)
+        * chlor_a = 10^(a0 + a1*X + a2*X^2 + a3*X^3 + a4*X^4)
+        
+        sensor  default *      blue     green   a0       a1      a2       a3       a4
+        OC3V    VIIRS   Y      443>486  550     0.2228  -2.4683  1.5867  -0.4275  -0.7768
+
+        blue: M02(445)>M03(488)
+        green: M04(555)
+
+        * X = log10(max(M2, M3)/M4)
+        """
+        self.check_channels("M02", "M03", "M04")
+
+        a0, a1, a2, a3, a4 = (0.2228, -2.4683, 1.5867, -0.4275, -0.7768)
+        
+        #X = np.maximum(self["M02"].data, self["M03"].data)/self["M04"].data
+        X = self["M02"].data/self["M04"].data
+        X = np.log10(X)
+        chlor_a = 10**(a0 + a1*X + a2*(X**2) + a3*(X**3) + a4*(X**4))
+        print 'chlor_a:', chlor_a.min(), chlor_a.mean(), chlor_a.max()
+        
+        img = geo_image.GeoImage(chlor_a,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L")
+
+        if stretch:
+            img.enhance(stretch=stretch)
+        return img
+
+    chlorophyll.prerequisites = set(["M02", "M03", "M04"])
+
+    def hr_cloudtop(self):
+        """Make a Night Fog RGB image composite.
+        """
+        self.check_channels('I04', 'I05')
+        
+        ch1 = -self['I04'].data
+        ch2 = self['I05'].data
+        ch3 = self['I05'].data
+        
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
+
+        img.enhance(stretch=(0.005, 0.005))
+
+        return img
+
+    hr_cloudtop.prerequisites = set(['I04', 'I05'])

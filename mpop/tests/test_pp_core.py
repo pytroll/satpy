@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012.
+# Copyright (c) 2010, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -292,5 +292,11 @@ class TestPPCore(unittest.TestCase):
         unpatch_configparser()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_pp_core.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPPCore))
+    
+    return mysuite
