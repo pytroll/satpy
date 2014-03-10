@@ -374,7 +374,8 @@ def proj2cf(proj_dict):
              "merc": merc2cf,
              "aea": aea2cf,
              "laea": laea2cf,
-             "ob_tran": obtran2cf,}
+             "ob_tran": obtran2cf,
+             "eqc": eqc2cf,}
 
     return cases[proj_dict["proj"]](proj_dict)
 
@@ -388,6 +389,20 @@ def geos2cf(proj_dict):
             "semi_major_axis": eval(proj_dict["a"]),
             "semi_minor_axis": eval(proj_dict["b"]),
             "perspective_point_height": eval(proj_dict["h"])
+            }
+
+def eqc2cf(proj_dict):
+    """Return the cf grid mapping from a eqc proj dict. However, please be
+    aware that this is not an official CF projection. See
+    http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.4/apf.html.
+    """
+
+    return {"grid_mapping_name": "equirectangular",
+            "latitude_of_true_scale": eval(proj_dict.get("lat_ts", "0")),
+            "latitude_of_projection_origin": eval(proj_dict["lat_0"]),
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
+            "false_easting": eval(proj_dict.get("x_0", "0")),
+            "false_northing" : eval(proj_dict.get("y_0", "0"))
             }
 
 def stere2cf(proj_dict):
