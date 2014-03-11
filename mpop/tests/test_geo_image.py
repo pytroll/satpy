@@ -10,7 +10,6 @@ from mock import patch, MagicMock
 # Mock some modules, so we don't need them for tests.
 sys.modules['osgeo'] = MagicMock()
 sys.modules['pyresample'] = MagicMock()
-sys.modules['mpop.projector'] = MagicMock()
 import mpop.imageo.geo_image as geo_image
 
 
