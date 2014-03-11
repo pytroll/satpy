@@ -67,8 +67,8 @@ class GeoImage(Image):
         self.tags = {}
         self.gdal_options = {}
 
-        super(GeoImage, self).__init__(channels, mode, crange,
-                                      fill_value, palette)
+        Image.__init__(self, channels, mode, crange,
+                       fill_value, palette)
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,
@@ -97,7 +97,7 @@ class GeoImage(Image):
                                      gdal_options, blocksize, **kwargs)
         try:
             # Let image.pil_save it ?
-            super(GeoImage, self).save(filename, compression, fformat=fformat)
+            Image.save(self, filename, compression, fformat=fformat)
         except UnknownImageFormat:
             # No ... last resort, try to import an external module. 
             logger.info("Importing image writer module '%s'" % fformat)
@@ -156,7 +156,7 @@ class GeoImage(Image):
                 raise ValueError("Image must be in 'L' mode for floating point"
                                  " geotif saving")
             if self.fill_value is None:
-                logger.warning("Image cannot be transparent, "
+                logger.warning("Image with floats cannot be transparent, "
                                "so setting fill_value to 0")
                 self.fill_value = 0
             channels = [self.channels[0].astype(np.float64)]
@@ -267,7 +267,7 @@ class GeoImage(Image):
 
                 
         # Create raster GeoTransform based on upper left corner and pixel
-        # resolution ... if not overwritten by argument geotranform.
+        # resolution ... if not overwritten by argument geotransform.
 
         if geotransform:
             dst_ds.SetGeoTransform(geotransform)
