@@ -194,7 +194,6 @@ class GeoImage(Image):
             g_opts.append("TILED=YES")
             g_opts.append("BLOCKXSIZE=" + str(blocksize))
             g_opts.append("BLOCKYSIZE=" + str(blocksize))
-            
 
         if(self.mode == "L"):
             ensure_dir(filename)
@@ -277,10 +276,9 @@ class GeoImage(Image):
                     spatialref = spatialref.ExportToWkt()
                 dst_ds.SetProjection(spatialref)
         else:
+            from pyresample import utils
+            from mpop.projector import get_area_def
             try:
-                from pyresample import utils
-                from mpop.projector import get_area_def
-            
                 area = get_area_def(self.area)
             except (utils.AreaNotFound, AttributeError):
                 area = self.area
@@ -291,6 +289,7 @@ class GeoImage(Image):
                                    area.area_extent[3], 0, -area.pixel_size_y]
                 dst_ds.SetGeoTransform(adfgeotransform)
                 srs = osr.SpatialReference()
+
                 srs.ImportFromProj4(area.proj4_string)
                 srs.SetProjCS(area.proj_id)
                 try:
