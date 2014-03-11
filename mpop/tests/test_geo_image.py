@@ -7,9 +7,13 @@ import sys
 import numpy as np
 from mock import patch, MagicMock
 
-# Mock osgeo, so we don't need it for tests.
+# Mock some modules, so we don't need them for tests.
 sys.modules['osgeo'] = MagicMock()
+sys.modules['pyresample'] = MagicMock()
+sys.modules['mpop.projector'] = MagicMock()
 import mpop.imageo.geo_image as geo_image
+
+
 
 
 class TestGeoImage(unittest.TestCase):
@@ -135,9 +139,6 @@ class TestGeoImage(unittest.TestCase):
                     self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S")}
         dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
         
-        
-
-
         
 
 
