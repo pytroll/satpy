@@ -28,7 +28,7 @@ from mpop.tests import (#test_pp_core, # crash
                         test_image,
                         test_geo_image,
                         #test_mipp,
-                        #test_projector,
+                        test_projector,
                         #test_satellites,
                         #test_scene,
                         #test_seviri,
@@ -48,7 +48,7 @@ def suite():
     mysuite.addTests(test_image.suite())
     mysuite.addTests(test_geo_image.suite())
     #mysuite.addTests(test_mipp.suite())
-    #mysuite.addTests(test_projector.suite())
+    mysuite.addTests(test_projector.suite())
     #mysuite.addTests(test_satellites.suite())
     #mysuite.addTests(test_scene.suite())
     #mysuite.addTests(test_seviri.suite())

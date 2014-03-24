@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
@@ -39,42 +39,28 @@ import logging
 
 import numpy as np
 from pyresample import image, utils, geometry, kd_tree
-
+from zipfile import BadZipfile
 from mpop import CONFIG_PATH
 
-CONF = ConfigParser.ConfigParser()
-CONF.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
-
 logger = logging.getLogger(__name__)
-
-try:
-    AREA_FILE = os.path.join(CONF.get("projector", "area_directory") or
-                             CONFIG_PATH,
-                             CONF.get("projector", "area_file"))
-except ConfigParser.NoSectionError:
-    AREA_FILE = ""
-    logger.warning("Couldn't find the mpop.cfg file. "
-                   "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
 def get_area_def(area_name):
     """Get the definition of *area_name* from file. The file is defined to use
     is to be placed in the $PPP_CONFIG_DIR directory, and its name is defined
     in mpop's configuration file.
     """
-    return utils.parse_area_file(AREA_FILE, area_name)[0]
+    return utils.parse_area_file(Projector.area_file, area_name)[0]
 
 def _get_area_hash(area):
     """Calculate a (close to) unique hash value for a given area.
     """
-    if isinstance(area, geometry.AreaDefinition):
-        return hash(str(area))
-    elif isinstance(area, geometry.SwathDefinition):
+    try:
         return hash(area.lons.tostring() + area.lats.tostring())
-    elif isinstance(area, np.ndarray):
-        # probaly not needed.
-        return hash(area.tostring())
-    else:
-        logger.warning("Cannot hash area, beware of duplicate area names.")
+    except AttributeError:
+        try:
+            return hash(area.tostring())
+        except AttributeError:
+            return hash(str(area))
 
 class Projector(object):
     """This class define projector objects. They contain the mapping
@@ -88,10 +74,28 @@ class Projector(object):
     defines the radius of influence for nearest neighbour search in 'nearest'
     mode.
     """
-    
+
+    conf = ConfigParser.ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+    try:
+        area_file = os.path.join(conf.get("projector", "area_directory") or
+                                 CONFIG_PATH,
+                                 conf.get("projector", "area_file"))
+    except ConfigParser.NoSectionError:
+        area_file = ""
+        logger.warning("Couldn't find the mpop.cfg file. "
+                       "Do you have one ? is it in $PPP_CONFIG_DIR ?")
+
+
+
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode=None,
                  radius=10000, nprocs=1):
+
+        if (mode is not None and
+            mode not in ["quick", "nearest"]):
+            raise ValueError("Projector mode must be 'nearest' or 'quick'")
 
         self.in_area = None
         self.out_area = None
@@ -110,23 +114,22 @@ class Projector(object):
             self.in_area = get_area_def(in_area)
             in_id = in_area
         except (utils.AreaNotFound, AttributeError):
-            if isinstance(in_area, geometry.AreaDefinition):
-                self.in_area = in_area
+            try:
                 in_id = in_area.area_id
-            elif isinstance(in_area, geometry.SwathDefinition):
                 self.in_area = in_area
-                in_id = in_area.area_id
-            elif in_latlons is not None:
-                self.in_area = geometry.SwathDefinition(lons=in_latlons[0],
-                                                        lats=in_latlons[1])
-                in_id = in_area
-            else:
-                raise utils.AreaNotFound("Input area " +
-                                         str(in_area) +
-                                         " must be defined in " +
-                                         AREA_FILE + ", be an area object"
-                                         " or longitudes/latitudes must be "
-                                         "provided.")
+            except AttributeError:
+                try:
+                    self.in_area = geometry.SwathDefinition(lons=in_latlons[0],
+                                                            lats=in_latlons[1])
+                    in_id = in_area
+                except TypeError:
+                    raise utils.AreaNotFound("Input area " +
+                                             str(in_area) +
+                                             " must be defined in " +
+                                             self.area_file +
+                                             ", be an area object"
+                                             " or longitudes/latitudes must be "
+                                             "provided.")
 
 
         # Setting up the output area
@@ -134,49 +137,52 @@ class Projector(object):
             self.out_area = get_area_def(out_area)
             out_id = out_area
         except (utils.AreaNotFound, AttributeError):
-            if isinstance(out_area, (geometry.AreaDefinition,
-                                     geometry.SwathDefinition)):
-                self.out_area = out_area
+            try:
                 out_id = out_area.area_id
-            else:
+                self.out_area = out_area
+            except AttributeError:
                 raise utils.AreaNotFound("Output area " +
                                          str(out_area) +
                                          " must be defined in " +
-                                         AREA_FILE + " or "
+                                         self.area_file + " or "
                                          "be an area object.")
 
         if self.in_area == self.out_area:
             return
 
         # choosing the right mode if necessary
-        if(mode is None):
-            if (isinstance(in_area, geometry.AreaDefinition) and
-                isinstance(out_area, geometry.AreaDefinition)):
+        if mode is None:
+            try:
+                dicts = in_area.proj_dict, out_area.proj_dict
+                del dicts
                 self.mode = "quick"
-            else:
+            except AttributeError:
                 self.mode = "nearest"
         else:
             self.mode = mode
 
 
 
-        filename = (in_id + "2" + out_id + "_" + 
-                    str(_get_area_hash(self.in_area)) + "to" + 
+        filename = (in_id + "2" + out_id + "_" +
+                    str(_get_area_hash(self.in_area)) + "to" +
                     str(_get_area_hash(self.out_area)) + "_" +
                     self.mode + ".npz")
 
         projections_directory = "/var/tmp"
         try:
-            projections_directory = CONF.get("projector",
+            projections_directory = self.conf.get("projector",
                                              "projections_directory")
         except ConfigParser.NoSectionError:
             pass
-        
+
         self._filename = os.path.join(projections_directory, filename)
 
-        if(not os.path.exists(self._filename)):
-            logger.info("Computing projection from %s to %s..."
-                        %(in_id, out_id))
+        try:
+            self._cache = {}
+            self._file_cache = np.load(self._filename)
+        except (BadZipfile, IOError):
+            logger.info("Computing projection from %s to %s...",
+                        in_id, out_id)
 
 
             if self.mode == "nearest":
@@ -196,17 +202,10 @@ class Projector(object):
                 ridx, cidx = \
                       utils.generate_quick_linesample_arrays(self.in_area,
                                                              self.out_area)
-                                                    
                 self._cache = {}
                 self._cache['row_idx'] = ridx
                 self._cache['col_idx'] = cidx
 
-            else:
-                raise ValueError("Unrecognised mode " + str(self.mode) + ".") 
-            
-        else:
-            self._cache = {}
-            self._file_cache = np.load(self._filename)
 
     def save(self, resave=False):
         """Save the precomputation to disk, and overwrite existing file in case
@@ -216,20 +215,18 @@ class Projector(object):
             logger.info("Saving projection to " +
                         self._filename)
             np.savez(self._filename, **self._cache)
-        
-        
+
     def project_array(self, data):
         """Project an array *data* along the given Projector object.
         """
-        
+
         if self.mode == "nearest":
-            
             if not 'valid_index' in self._cache:
                 self._cache['valid_index'] = self._file_cache['valid_index']
                 self._cache['valid_output_index'] = \
                                         self._file_cache['valid_output_index']
                 self._cache['index_array'] = self._file_cache['index_array']
-                
+
             valid_index, valid_output_index, index_array = \
                          (self._cache['valid_index'],
                           self._cache['valid_output_index'],
@@ -244,21 +241,12 @@ class Projector(object):
                                                          fill_value=None)
 
         elif self.mode == "quick":
-            
             if not 'row_idx' in self._cache:
                 self._cache['row_idx'] = self._file_cache['row_idx']
                 self._cache['col_idx'] = self._file_cache['col_idx']
-                 
             row_idx, col_idx = self._cache['row_idx'], self._cache['col_idx']
             img = image.ImageContainer(data, self.in_area, fill_value=None)
             res = np.ma.array(img.get_array_from_linesample(row_idx, col_idx),
-                              dtype = data.dtype)
-            
-        
+                              dtype=data.dtype)
 
         return res
-    
-
-
-
-        
