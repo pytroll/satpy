@@ -180,7 +180,7 @@ class Projector(object):
         try:
             self._cache = {}
             self._file_cache = np.load(self._filename)
-        except (BadZipfile, IOError):
+        except:
             logger.info("Computing projection from %s to %s...",
                         in_id, out_id)
 
