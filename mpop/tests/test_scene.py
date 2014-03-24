@@ -27,6 +27,11 @@
 
 """Unit tests for scene.py.
 """
+
+from mock import MagicMock, patch
+import sys
+sys.modules['pyresample.geometry'] = MagicMock()
+
 import ConfigParser
 import datetime
 import random
@@ -551,7 +556,6 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertEquals(set([chn.name for chn in self.scene.loaded_channels()]),
                           set(["00_7", "06_4", "11_5"]))
-
     def test_project(self):
         """Projecting a scene.
         """
@@ -581,13 +585,14 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
                                       mask = np.array(np.random.rand(3, 3) * 2,
                                                       dtype = int))
-        self.scene[6.4].area = area
-        
+        self.scene[6.4].area = MagicMock()
+
         res = self.scene.project(area2)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
+        self.scene[0.7].area = self.scene[6.4].area
         res = self.scene.project(area2, channels=[0.7])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 6.4)
@@ -621,16 +626,16 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                        mask = np.array(np.random.rand(3, 3) * 2,
                                                        dtype = int))
 
-        
         res = self.scene.project(area2)
         self.assertEquals(res[11.5].shape, (3, 3))
-        
+
+        self.scene[0.7].area = MagicMock()
         res = self.scene.project(area2, channels=[0.7])
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 6.4)
 
-        self.scene[6.4].area = area2
-
+        self.scene[6.4].area = MagicMock()
+        self.scene[11.5].area = MagicMock()
         res = self.scene.project(area2)
         self.assertEquals(res[0.7].shape, (3, 3))
         
@@ -650,13 +655,14 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                                        mask = np.array(np.random.rand(3, 3) * 2,
                                                        dtype = int))
 
-        self.scene[6.4].area = area
-        
+        self.scene[6.4].area = MagicMock()
         res = self.scene.project(area)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertEquals(res[11.5].shape, (3, 3))
-        
+
+        self.scene[11.5].area = self.scene[6.4].area
+        self.scene[0.7].area = self.scene[6.4].area
         res = self.scene.project(area, channels=None)
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))

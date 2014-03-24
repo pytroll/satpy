@@ -3,7 +3,7 @@
 # Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
 
@@ -53,7 +53,7 @@ try:
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
-    
+
 
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
@@ -531,7 +531,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             self.info["history"] = timed_message
         else:
             self.info["history"] += "\n" + timed_message
-            
+
 
     def check_channels(self, *channels):
         """Check if the *channels* are loaded, raise an error otherwise.
@@ -548,7 +548,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None, nprocs=1):
+    def project(self, dest_area, channels=None, precompute=False, mode=None,
+                radius=None, nprocs=1):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -570,18 +571,18 @@ class SatelliteInstrumentScene(SatelliteScene):
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
         """
-        
+
         if not is_pyresample_loaded:
-            # Not much point in proceeding then 
+            # Not much point in proceeding then
             return self
-        
+
         _channels = set([])
 
         if channels is None:
             for chn in self.loaded_channels():
                 _channels |= set([chn])
 
-        elif(isinstance(channels, (list, tuple, set))):
+        elif isinstance(channels, (list, tuple, set)):
             for chn in channels:
                 try:
                     _channels |= set([self[chn]])
@@ -598,16 +599,16 @@ class SatelliteInstrumentScene(SatelliteScene):
         if isinstance(dest_area, str):
             dest_area = mpop.projector.get_area_def(dest_area)
 
-        
+
         res.area = dest_area
         res.channels = []
 
         if not _channels <= self.loaded_channels():
-            LOG.warning("Cannot project nonloaded channels: %s."
-                        %(_channels - self.loaded_channels()))
+            LOG.warning("Cannot project nonloaded channels: %s.",
+                        _channels - self.loaded_channels())
             LOG.info("Will project the other channels though.")
             _channels = _channels and self.loaded_channels()
-        
+
         cov = {}
 
         for chn in sorted(_channels, key=lambda x: x.resolution, reverse=True):
@@ -619,7 +620,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     chn.area = area_name
                 else:
                     if is_pyresample_loaded:
-                        try:                            
+                        try:
                             chn.area = AreaDefinition(
                                 self.area.area_id + str(chn.shape),
                                 self.area.name,
@@ -645,7 +646,6 @@ class SatelliteInstrumentScene(SatelliteScene):
                         chn.area = self.area + str(chn.shape)
             else: #chn.area is not None
                 if (is_pyresample_loaded and
-                    isinstance(chn.area, SwathDefinition) and
                     (not hasattr(chn.area, "area_id") or
                      not chn.area.area_id)):
                     area_name = ("swath_" + self.fullname + "_" +
