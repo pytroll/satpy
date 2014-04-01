@@ -322,3 +322,40 @@ class SeviriCompositer(VisirCompositer):
         return img
 
     day_solar.prerequisites = refl39_chan.prerequisites | set([0.8, 1.63, 3.75])
+
+
+    def day_microphysics(self, lut_dir='/tmp'):
+        """Make a 'Day Microphysics' RGB as suggested in the MSG interpretation guide
+        (rgbpart04.ppt). It is kind of special as it requires the derivation of
+        the daytime component of the mixed Terrestrial/Solar 3.9 micron
+        channel. Furthermore the sun zenith angle is used.
+        """
+
+        self.refl39_chan(lut_dir)
+        self.check_channels(0.8, "_IR39Refl", 10.8)
+
+        # We calculate the sun zenith angle again. Should be reused if already
+        # calculated/available...
+        # FIXME!
+        lonlats = self[3.9].area.get_lonlats()
+        sunz = sza(self.time_slot, lonlats[0], lonlats[1])
+        sunz = np.ma.masked_outside(sunz, 0.0, 88.0)
+        sunzmask = sunz.mask
+        sunz = sunz.filled(88.)
+        
+        costheta = np.cos(np.deg2rad(sunz))
+
+        red = np.ma.masked_where(sunzmask, self[0.8].data / costheta)
+        blue = self[10.8].data
+        img = geo_image.GeoImage((red, self['_IR39Refl'].data, blue),
+                                 self.area,
+                                 self.time_slot, 
+                                 crange=((0, 100), (0, 25), (203, 323)), 
+                                 #crange=((0, 100), (0, 60), (203, 323)), 
+                                 fill_value=(0, 0, 0), mode="RGB")
+        img.gamma((1.0, 1.5, 1.0))
+        #img.gamma((1.0, 2.5, 1.0)) # Summertime settings....
+
+        return img
+
+    day_microphysics.prerequisites = refl39_chan.prerequisites | set([0.8, 10.8])
