@@ -28,7 +28,7 @@ at the same time, so don't hesitate to load all the channels anyway.
 Contrarily to AAPP, no smoothing, sigma or gross filtering is taking place.
 
 TODO:
- - Add navigation (pyorbital).
+ - Faster navigation (pyorbital).
 
 """
 from ConfigParser import ConfigParser
@@ -39,6 +39,7 @@ import numpy as np
 import numexpr as ne
 from mpop.plugin_base import Reader
 from mpop import CONFIG_PATH
+from pyresample.geometry import SwathDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ c1 = 1.1910427e-5 #mW/(m2-sr-cm-4)
 c2 = 1.4387752 #cm-K 
 
 
-calib = {"noaa 16":
+calib = {"noaa 15": # copy from noaa 16
          {
              # VIS
              "intersections": np.array([497.5, 500.3, 498.7]),
@@ -70,6 +71,53 @@ calib = {"noaa 16":
              "b0": np.array([0, 2.96, 2.25]),
              "b1": np.array([0, -0.05411, -0.03665]),
              "b2": np.array([0, 0.00024532, 0.00014854]),
+             },
+         "noaa 16":
+         {
+             # VIS
+             "intersections": np.array([497.5, 500.3, 498.7]),
+             "slopes_l": np.array([0.0523, 0.0513, 0.0262]),
+             "slopes_h": np.array([0.1528, 0.1510, 0.1920]),
+             "intercepts_l": np.array([-2.016, -1.943, -1.01]),
+             "intercepts_h": np.array([-51.91, -51.77, -84.2]),
+             # IR
+             "d0": np.array([276.355, 276.142, 275.996, 276.132, 0]),
+             "d1": np.array([0.0562, 0.05605, 0.05486, 0.0594, 0]),
+             "d2": np.array([-1.590e-5, -1.707e-5, -1.223e-5, -1.344e-5, 0]),
+             "d3": np.array([2.486e-8, 2.595e-8, 1.862e-8, 2.112e-8, 0]),
+             "d4": np.array([-1.199e-11, -1.224e-11,
+                             -0.853e-11, -1.001e-11, 0]),
+             "prt_weights": np.array((.25, .25, .25, .25)),
+             "vc": np.array((2700.1148, 917.2289, 838.1255)),
+             "A": np.array((1.592459, 0.332380, 0.674623)),
+             "B": np.array((0.998147, 0.998522, 0.998363)),
+             "N_S": np.array([0, -2.467, -2.009]),
+             "b0": np.array([0, 2.96, 2.25]),
+             "b1": np.array([0, -0.05411, -0.03665]),
+             "b2": np.array([0, 0.00024532, 0.00014854]),
+             },
+         "noaa 18": # FIXME: copy of noaa 19
+         {
+             # VIS
+             "intersections": np.array([496.43, 500.37, 496.11]),
+             "slopes_l": np.array([0.055091, 0.054892, 0.027174]),
+             "slopes_h": np.array([0.16253, 0.16325, 0.18798]),
+             "intercepts_l": np.array([-2.1415, -2.1288, -1.0881]),
+             "intercepts_h": np.array([-55.863, -56.445, -81.491]),
+             # IR
+             "d0": np.array([276.601, 276.683, 276.565, 276.615, 0]),
+             "d1": np.array([0.05090, 0.05101, 0.05117, 0.05103, 0]),
+             "d2": np.array([1.657e-6, 1.482e-6, 1.313e-6, 1.484e-6, 0]),
+             "d3": np.array([0, 0, 0, 0, 0]),
+             "d4": np.array([0, 0, 0, 0, 0]),
+             "prt_weights": np.array((1, 1, 1, 1)),
+             "vc": np.array((2659.7952, 928.1460, 833.2532)),
+             "A": np.array((1.698704, 0.436645, 0.253179)),
+             "B": np.array((0.996960, 0.998607, 0.999057)),
+             "N_S": np.array([0, -5.49, -3.39]),
+             "b0": np.array([0, 5.70, 3.58]),
+             "b1": np.array([0, -0.11187, -0.05991]),
+             "b2": np.array([0, 0.00054668, 0.00024985]),
              },
          "noaa 19":
          {
@@ -145,6 +193,7 @@ calib = {"noaa 16":
 
 SATELLITES = {7: "noaa 15",
               3: "noaa 16",
+              5: "noaa 18",
               13: "noaa 18",
               15: "noaa 19"}
 
@@ -193,6 +242,10 @@ class HRPTReader(Reader):
 
         sat = (array["id"]["id"] & (2 ** 6 - 1)) >> 3
         sat = SATELLITES[sat[len(sat) / 2]]
+
+        lon, lat, alt = navigate(array["timecode"], sat)
+        area = SwathDefinition(lon.reshape(2048, -1), lat.reshape(2048, -1))
+        satscene.area = area
 
         vis = vis_cal(array["image_data"][:, :, :3], sat)
         ir_ = ir_cal(array["image_data"][:, :, 2:], array["telemetry"]["PRT"],
@@ -247,6 +300,62 @@ def read_file(filename):
     arr = np.memmap(filename, dtype=dtype)
     #arr = arr.newbyteorder()
     return arr
+
+## navigation
+
+from pyorbital.orbital import Orbital
+from datetime import datetime, timedelta, time
+from pyorbital.geoloc import ScanGeometry, compute_pixels, get_lonlatalt
+
+def timecode(tc_array):
+    word = tc_array[0]
+    day = word >> 1
+    word = tc_array[1]
+    msecs = ((127) & word) * 1024
+    word = tc_array[2]
+    msecs += word & 1023
+    msecs *= 1024
+    word = tc_array[3]
+    msecs += word & 1023
+    return datetime(2014, 1, 1) + timedelta(days=int(day) - 1,
+                                            milliseconds=int(msecs))
+def navigate(timecodes, satellite):
+    orb = Orbital(satellite)
+
+
+    first_time = timecode(timecodes[0])
+    first_time = datetime(first_time.year, first_time.month, first_time.day)
+
+    hrpttimes = [timecode(x) - first_time for x in timecodes]
+    hrpttimes = np.array([x.seconds + x.microseconds / 1000000.0
+                          for x in hrpttimes])
+    
+    scan_points = np.arange(2048)
+    if satellite == "noaa 16":
+        scan_angle = 55.25
+    else:
+        scan_angle = 55.37
+    scans_nb = len(hrpttimes)
+    avhrr_inst = np.vstack(((scan_points / 1023.5 - 1)
+                            * np.deg2rad(-scan_angle),
+                            np.zeros((len(scan_points),)))).T
+    avhrr_inst = np.tile(avhrr_inst, [scans_nb, 1])
+
+    offset = hrpttimes
+
+    times = (np.tile(scan_points * 0.000025, [scans_nb, 1])
+             + np.expand_dims(offset, 1))
+
+    sgeom = ScanGeometry(avhrr_inst, times.ravel())
+
+    s_times = sgeom.times(first_time)
+
+    rpy = (0, 0, 0)
+    pixels_pos = compute_pixels((orb.tle._line1, orb.tle._line2), sgeom, s_times, rpy)
+    pos_time = get_lonlatalt(pixels_pos, s_times)
+    return pos_time
+    
+    
 
 ## VIS calibration
 
@@ -360,4 +469,27 @@ def ir_cal(ir_data, telemetry, back_scan, space_data, sat):
 CASES = {
     "avhrr": HRPTReader.load_avhrr
     }
+
+
+if __name__ == '__main__':
+    import sys
+    array = read_file(sys.argv[1])
+    sat = (array["id"]["id"] & (2 ** 6 - 1)) >> 3
+    sat = int(np.round(np.mean(sat)))
+    sat = SATELLITES[sat]
+
+    vis = vis_cal(array["image_data"][:, :, :3], sat)
+    ir_ = ir_cal(array["image_data"][:, :, 2:], array["telemetry"]["PRT"],
+                 array["back_scan"], array["space_data"], sat)
+
+    channels = np.empty(array["image_data"].shape, dtype=np.float64)
+    channels[:, :, :2] = vis[:, :, :2]
+    channels[:, :, 3:] = ir_[:, :, 1:]
+    ch3a = bfield(array["id"]["id"], 10)
+    ch3b = np.logical_not(ch3a)
+    channels[ch3a, :, 2] = vis[ch3a, :, 2]
+    channels[ch3b, :, 2] = ir_[ch3b, :, 0]
+
+    lon, lat, alt = navigate(array["timecode"], sat)
+    area = SwathDefinition(lon.reshape(2048, -1), lat.reshape(2048, -1))
 
