@@ -36,13 +36,11 @@ import numpy as np
 from mock import patch, MagicMock
 
 # Mock some modules, so we don't need them for tests.
+
 sys.modules['osgeo'] = MagicMock()
 sys.modules['pyresample'] = MagicMock()
-#sys.modules['trollimage.image'] = MagicMock()
+
 import mpop.imageo.geo_image as geo_image
-
-
-
 
 class TestGeoImage(unittest.TestCase):
     """Class for testing pp.geo_image.
@@ -50,13 +48,13 @@ class TestGeoImage(unittest.TestCase):
     def setUp(self):
         """Setup the test.
         """
+        
         self.time_slot = datetime.datetime(2009, 10, 8, 14, 30)
         self.data = np.zeros((512, 512), dtype=np.uint8)
         self.img = geo_image.GeoImage(self.data,
                                       area="euro",
                                       time_slot=self.time_slot)
 
-        
 
     @patch.object(geo_image.GeoImage, 'geotiff_save')
     def test_save(self, mock_save):

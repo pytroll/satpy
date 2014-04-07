@@ -50,7 +50,7 @@ class GeoImage(Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
     defined (*area* parameter) and *time_slot* of the snapshot.
-    
+
     The channels are considered to contain floating point values in the range
     [0.0,1.0]. In order to normalize the input data, the *crange* parameter
     defines the original range of the data. The conversion to the classical
