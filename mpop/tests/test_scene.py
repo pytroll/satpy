@@ -667,8 +667,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertEquals(res[6.4].shape, (3, 3))
         self.assertEquals(res[11.5].shape, (3, 3))
-        
-        
+
     def test_load(self):
         """Loading channels into a scene.
         """

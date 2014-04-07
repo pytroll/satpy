@@ -213,3 +213,4 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestProjector))
 
     return mysuite
+
