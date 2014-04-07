@@ -1,3 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2013, 2014.
+
+# Author(s):
+
+#   Lars Ørum Rasmussen <ras@dmi.dk>
+
+# This file is part of mpop.
+
+# mpop is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+
+# mpop is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# mpop.  If not, see <http://www.gnu.org/licenses/>.
 #
 """This modules describes the sarx instrument from the TerraSAR-X satellite.
 """
@@ -9,7 +30,7 @@ from mpop.logger import LOG
 class SarxCompositer(Compositer):
     """This class sets up the SAR-X instrument channel list.
     """
-    
+
     instrument_name = "sarx"
 
     def average(self, downscaling_factor=2, average_window=None):
@@ -18,7 +39,7 @@ class SarxCompositer(Compositer):
 
         :Parameters:
          `downscaling_factor` : int
-             image downscaling factor, default is a factor 2.             
+             image downscaling factor, default is a factor 2.
          `average_window` : int
              window size for calculating mean values, default is
              the same as downscaling_factor.
@@ -36,9 +57,9 @@ class SarxCompositer(Compositer):
         if average_window == None:
             average_window = downscaling_factor
 
-        LOG.info("Downsampling a factor %d and averaging "%downscaling_factor + 
+        LOG.info("Downsampling a factor %d and averaging "%downscaling_factor +
                  "in a window of %dx%d"%(average_window, average_window))
-        
+
         ch = self[9.65]
 
         # If average window and downscale factor is the same
@@ -48,22 +69,23 @@ class SarxCompositer(Compositer):
         #                         swidth, width/swidth]).mean(3).mean(1)
 
         # avg kernel
-        kernel = np.ones((average_window, average_window), dtype=np.float) / \
-            (average_window*average_window)
+        kernel = (np.ones((average_window, average_window), dtype=np.float)
+                  / (average_window*average_window))
         # do convolution
-        data = ndi.filters.correlate(ch.data.astype(np.float), kernel, mode='nearest')
+        data = ndi.filters.correlate(ch.data.astype(np.float), kernel,
+                                     mode='nearest')
         # downscale
         data = data[1::downscaling_factor, 1::downscaling_factor]
 
         # New area, and correct for integer truncation.
-        p_size_x, p_size_y = (ch.area.pixel_size_x*downscaling_factor, 
+        p_size_x, p_size_y = (ch.area.pixel_size_x*downscaling_factor,
                               ch.area.pixel_size_y*downscaling_factor)
         area_extent = (ch.area.area_extent[0],
                        ch.area.area_extent[1],
                        ch.area.area_extent[0] + data.shape[1]*p_size_x,
                        ch.area.area_extent[1] + data.shape[0]*p_size_y)
-                       
-        area = geometry.AreaDefinition(self._data_holder.satname + 
+
+        area = geometry.AreaDefinition(self._data_holder.satname +
                                        self._data_holder.instrument_name +
                                        str(area_extent) +
                                        str(data.shape),
@@ -76,4 +98,3 @@ class SarxCompositer(Compositer):
                         fill_value=(0,), mode='L')
 
     average.prerequisites = set([9.65,])
-    
