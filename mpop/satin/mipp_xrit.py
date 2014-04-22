@@ -11,6 +11,7 @@
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
 
 # This file is part of mpop.
 
@@ -30,6 +31,7 @@
 """
 import ConfigParser
 import os
+from pyproj import Proj
 
 from mipp import xrit
 from mipp import CalibrationError, ReaderError
@@ -37,28 +39,32 @@ from mipp import CalibrationError, ReaderError
 from mpop import CONFIG_PATH
 import logging
 
+#from mpop.satin.convert_area_extent import local_to_global
+#from convert_area_extent import local_to_global
+
 LOG = logging.getLogger(__name__)
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
     # on scipy.spatial which memory leaks on multiple imports
-    is_pyresample_loaded = False
+    IS_PYRESAMPLE_LOADED = False
     from pyresample import geometry
     from mpop.projector import get_area_def
-    is_pyresample_loaded = True
+    IS_PYRESAMPLE_LOADED = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
 
 from mpop.plugin_base import Reader
 
 class XritReader(Reader):
-
+    '''Class for reading XRIT data.
+    '''
     pformat = "mipp_xrit"
     
     def load(self, *args, **kwargs):
         load(*args, **kwargs)
 
-def load(satscene, calibrate=True, area_extent=None):
+def load(satscene, calibrate=True, area_extent=None, extent_in_ll=False):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
@@ -75,15 +81,20 @@ def load(satscene, calibrate=True, area_extent=None):
            not section[:-1].endswith("-level") and
            not section.endswith("-granules")):
             options[section] = conf.items(section)
+
     CASES.get(satscene.instrument_name, load_generic)(satscene,
                                                       options,
                                                       calibrate,
-                                                      area_extent)
+                                                      area_extent,
+                                                      extent_in_ll)
 
-def load_generic(satscene, options, calibrate=True, area_extent=None):
+
+def load_generic(satscene, options, calibrate=True, area_extent=None,
+                 extent_in_ll=False):
     """Read imager data from file and load it into *satscene*.
     """
     del options
+
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
     LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,
@@ -107,20 +118,34 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         area_extent = satscene.area.area_extent
         from_area = True
     
+    extent_converted = False
     for chn in satscene.channels_to_load:
         if from_area:
             try:
                 metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
                                          chn, only_metadata=True)
                 if(satscene.area_def.proj_dict["proj"] != "geos" or
-                   float(satscene.area_def.proj_dict["lon_0"]) != metadata.sublon):
+                   float(satscene.area_def.proj_dict["lon_0"]) != \
+                       metadata.sublon):
                     raise ValueError("Slicing area must be in "
-                                     "geos projection, and lon_0 should match the"
-                                     " satellite's position.")
-            except ReaderError, e:
+                                     "geos projection, and lon_0 should match "
+                                     "the satellite's position.")
+            except ReaderError, err:
                 # if channel can't be found, go on with next channel
-                LOG.error(str(e))
+                LOG.error(str(err))
                 continue
+
+        # Convert area_extent to satellite projection if the originating
+        # extent is in latitude/longitude values
+        if not extent_converted and area_extent is not None and \
+                extent_in_ll:
+            metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
+                                     chn, only_metadata=True)
+            area_extent = lonlat_to_geo_extent(area_extent, 
+                                               metadata.proj4_params)
+
+            extent_converted = True
+
         try:
             image = xrit.sat.load(satscene.fullname,
                                   satscene.time_slot,
@@ -143,9 +168,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             else:
                 metadata, data = image()
 
-        except ReaderError, e:
+        except ReaderError, err:
             # if channel can't be found, go on with next channel
-            LOG.error(str(e))
+            LOG.error(str(err))
             continue
 
         satscene[chn] = data
@@ -159,7 +184,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             key, val = param.split("=")
             proj_dict[key] = val
             
-        if is_pyresample_loaded:
+        if IS_PYRESAMPLE_LOADED:
             # Build area_def on-the-fly
             satscene[chn].area = geometry.AreaDefinition(
                 satscene.satname + satscene.instrument_name +
@@ -176,3 +201,42 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
 
 CASES = {}
 
+
+def lonlat_to_geo_extent(local_extent_ll, global_proj4_str, 
+                         max_extent=(-5567248.07, -5570248.48, 
+                                      5570248.48, 5567248.07)):
+    '''Convert (local) coordinate extent *local_extent_ll* to global
+    extent in satellite projection using PROJ4 definition
+    *global_proj4_str*.  *max_extent* gives the maximum extent values
+    in satellite projection.  Default values for *max_extent* are for
+    MSG3 at lon_0=0.0.
+    '''
+
+    # proj4-ify the projection string
+    global_proj4_str = global_proj4_str.split(' ')
+    global_proj4_str = '+' + ' +'.join(global_proj4_str)
+
+    left_lon, down_lat, right_lon, up_lat = local_extent_ll
+
+    pro = Proj(global_proj4_str)
+
+    # Get corner extents
+    left_ex1, up_ex1 = pro(left_lon, up_lat)
+    right_ex1, up_ex2 = pro(right_lon, up_lat)
+    left_ex2, down_ex1 = pro(left_lon, down_lat)
+    right_ex2, down_ex2 = pro(right_lon, down_lat)
+
+    # Get the maximum needed extent from different corners.
+    extent = [min(left_ex1, left_ex2), 
+              min(down_ex1, down_ex2), 
+              max(right_ex1, right_ex2), 
+              max(up_ex1, up_ex2)]
+
+    # Replace "infinity" values with maximum extent
+    for i in range(4):
+        if abs(extent[i]) > 1e20:
+            extent[i] = max_extent[i]
+
+
+
+    return extent
