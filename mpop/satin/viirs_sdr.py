@@ -289,6 +289,41 @@ class ViirsGeolocationData(object):
 
 # ------------------------------------------------------------------------------
 
+def _get_invalid_info(granule_data):
+    """Get a detailed report of the missing data.
+        N/A: not applicable
+        MISS: required value missing at time of processing
+        OBPT: onboard pixel trim (overlapping/bow-tie pixel removed during
+            SDR processing)
+        OGPT: on-ground pixel trim (overlapping/bow-tie pixel removed
+            during EDR processing)
+        ERR: error occurred during processing / non-convergence
+        ELINT: ellipsoid intersect failed / instrument line-of-sight does
+            not intersect the Earth’s surface
+        VDNE: value does not exist / processing algorithm did not execute
+        SOUB: scaled out-of-bounds / solution not within allowed range
+    """
+    if issubclass(granule_data.dtype.type, np.integer):
+        msg = ("na:" + str((granule_data == 65535).sum()) +
+               " miss:" + str((granule_data == 65534).sum()) + 
+               " obpt:" + str((granule_data == 65533).sum()) + 
+               " ogpt:" + str((granule_data == 65532).sum()) +
+               " err:" + str((granule_data == 65531).sum()) +
+               " elint:" + str((granule_data == 65530).sum()) +
+               " vdne:" + str((granule_data == 65529).sum()) +
+               " soub:" + str((granule_data == 65528).sum()))
+    if issubclass(granule_data.dtype.type, np.floating):
+        msg = ("na:" + str((granule_data == -999.9).sum()) +
+               " miss:" + str((granule_data == -999.8).sum()) + 
+               " obpt:" + str((granule_data == -999.7).sum()) + 
+               " ogpt:" + str((granule_data == -999.6).sum()) +
+               " err:" + str((granule_data == -999.5).sum()) +
+               " elint:" + str((granule_data == -999.4).sum()) +
+               " vdne:" + str((granule_data == -999.3).sum()) +
+               " soub:" + str((granule_data == -999.2).sum()))
+    return msg
+    
+
 class ViirsBandData(object):
     """Placeholder for the VIIRS M&I-band data.
     Reads the SDR data - one hdf5 file for each band.
@@ -430,7 +465,6 @@ class ViirsBandData(object):
             y0_ = swath_index
             y1_ = swath_index+granule_length 
 
-            # Is it necessary to mask negatives?
             self.raw_data[y0_:y1_, :] = granule_data
             self.raw_data[y0_:y1_, :] *= self.scale
             self.raw_data[y0_:y1_, :] += self.offset
@@ -439,29 +473,15 @@ class ViirsBandData(object):
 
             # Masking spurious data
             # according to documentation, mask integers >= 65328, floats <= -999.3
+
             if issubclass(granule_data.dtype.type, np.integer):
                 self.mask[y0_:y1_, :] = granule_data >= 65528
-                msg = ("na:" + str((granule_data == 65535).sum()) +
-                       " miss:" + str((granule_data == 65534).sum()) + 
-                       " obpt:" + str((granule_data == 65533).sum()) + 
-                       " ogpt:" + str((granule_data == 65532).sum()) +
-                       " err:" + str((granule_data == 65531).sum()) +
-                       " elint:" + str((granule_data == 65530).sum()) +
-                       " vdne:" + str((granule_data == 65529).sum()) +
-                       " soub:" + str((granule_data == 65528).sum()))
             if issubclass(granule_data.dtype.type, np.floating):
                 self.mask[y0_:y1_, :] = granule_data < -999.2
-                msg = ("na:" + str((granule_data == -999.9).sum()) +
-                       " miss:" + str((granule_data == -999.8).sum()) + 
-                       " obpt:" + str((granule_data == -999.7).sum()) + 
-                       " ogpt:" + str((granule_data == -999.6).sum()) +
-                       " err:" + str((granule_data == -999.5).sum()) +
-                       " elint:" + str((granule_data == -999.4).sum()) +
-                       " vdne:" + str((granule_data == -999.3).sum()) +
-                       " soub:" + str((granule_data == -999.2).sum()))
-            logger.debug(msg)
+            logger.debug("%s", _get_invalid_info(granule_data))
 
-            self.mask[y0_:y1_, :] |= self.raw_data[y0_:y1_, :] < 0
+            # Is it necessary to mask negatives?
+            #self.mask[y0_:y1_, :] |= self.raw_data[y0_:y1_, :] < 0
 
         self.data = np.ma.array(self.raw_data, mask=self.mask, copy=False)
 

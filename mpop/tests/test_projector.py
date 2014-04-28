@@ -29,183 +29,20 @@
 
 """Test module for mpop.projector.
 """
-import ConfigParser
 import unittest
 
 import numpy as np
-from pyresample import geometry, utils, kd_tree, image
+
+
+from mock import MagicMock, patch
+import sys
+sys.modules['pyresample'] = MagicMock()
+
+from pyresample import geometry, utils
 
 from mpop.projector import Projector
+import mpop.projector
 
-
-class FakeAreaDefinition:
-    """Fake AreaDefinition.
-    """
-    def __init__(self, *args):
-        self.args = args
-        self.shape = None
-        self.area_id = random_string(20)
-
-class FakeSwathDefinition:
-    """Fake SwathDefinition.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-        self.shape = None
-        self.area_id = random_string(20)
-        self.lons = np.ones((5, 5))
-        self.lats = np.ones((5, 5))
-
-
-class FakeImageContainer:
-    """Fake ImageContainer
-    """
-    def __init__(self, data, *args, **kwargs):
-        del args, kwargs
-        self.data = data
-
-    def get_array_from_linesample(self, *args):
-        """Fake method.
-        """
-        del args
-        return self.data + 1
-
-def patch_geometry():
-    """Patching the geometry module
-    """
-    geometry.OldAreaDefinition = geometry.AreaDefinition
-    geometry.AreaDefinition = FakeAreaDefinition
-    geometry.OldSwathDefinition = geometry.SwathDefinition
-    geometry.SwathDefinition = FakeSwathDefinition
-
-def unpatch_geometry():
-    """Unpatching the geometry module.
-    """
-    geometry.AreaDefinition = geometry.OldAreaDefinition
-    delattr(geometry, "OldAreaDefinition")
-    geometry.SwathDefinition = geometry.OldSwathDefinition
-    delattr(geometry, "OldSwathDefinition")
-
-
-def patch_kd_tree():
-    """Patching the kd_tree module.
-    """
-    def fake_get_neighbour_info(*args, **kwargs):
-        """Fake function.
-        """
-        del args, kwargs
-        return (np.random.standard_normal((3, 1)),
-                np.random.standard_normal((3, 1)),
-                np.random.standard_normal((3, 1)),
-                np.random.standard_normal((3, 1)))
-
-    def fake_gsfni(typ, area, data, *args, **kwargs):
-        """Fake function.
-        """
-        del typ, area, args, kwargs
-        return data - 1
-
-    kd_tree.old_get_neighbour_info = kd_tree.get_neighbour_info
-    kd_tree.get_neighbour_info = fake_get_neighbour_info
-    kd_tree.old_gsfni = kd_tree.get_sample_from_neighbour_info
-    kd_tree.get_sample_from_neighbour_info = fake_gsfni
-    
-def unpatch_kd_tree():
-    """Unpatching the kd_tree module.
-    """
-
-    kd_tree.get_neighbour_info = kd_tree.old_get_neighbour_info
-    delattr(kd_tree, "old_get_neighbour_info")
-    kd_tree.get_sample_from_neighbour_info = kd_tree.old_gsfni
-    delattr(kd_tree, "old_gsfni")
-    
-
-def patch_utils():
-    """Patching the utils module.
-    """
-
-    def fake_parse_area_file(filename, area):
-        """Fake function.
-        """
-        del filename
-        if area == "raise" or not isinstance(area, str):
-            raise utils.AreaNotFound("This area is not to be found")
-        else:
-            return [geometry.AreaDefinition(area)]
-        
-    def fake_gqla(*args):
-        """Fake function.
-        """
-        del args
-        return (np.random.standard_normal((3, 1)),
-                np.random.standard_normal((3, 1)))
-
-    utils.old_parse_area_file = utils.parse_area_file
-    utils.parse_area_file = fake_parse_area_file
-    utils.old_generate_quick_linesample_arrays = \
-                       utils.generate_quick_linesample_arrays
-    utils.generate_quick_linesample_arrays = \
-                       fake_gqla
-    
-def unpatch_utils():
-    """Unpatching the utils module.
-    """
-    utils.parse_area_file = utils.old_parse_area_file
-    delattr(utils, "old_parse_area_file")
-    utils.generate_quick_linesample_arrays = \
-          utils.old_generate_quick_linesample_arrays
-    delattr(utils, "old_generate_quick_linesample_arrays")
-    
-
-def patch_image():
-    """Patching the pyresample.image module.
-    """
-    image.OldImageContainer = image.ImageContainer
-    image.ImageContainer = FakeImageContainer
-
-def unpatch_image():
-    """Unpatching the pyresample.image module.
-    """
-    image.ImageContainer = image.OldImageContainer
-    delattr(image, "OldImageContainer")
-
-def patch_configparser():
-    """Patch to fake ConfigParser.
-    """
-    class FakeConfigParser:
-        """Dummy ConfigParser class.
-        """
-        def __init__(self, *args, **kwargs):
-            pass
-        
-        def read(self, *args, **kwargs):
-            """Dummy read method
-            """
-            del args, kwargs
-            self = self
-
-        def get(self, *args, **kwargs):
-            """Dummy get method
-            """
-            del args, kwargs
-            self = self
-            return "abc"
-
-        def sections(self):
-            """Dummy sections method
-            """
-            raise ConfigParser.NoSectionError("Dummy sections.")
-        
-    ConfigParser.OldConfigParser = ConfigParser.ConfigParser
-    ConfigParser.ConfigParser = FakeConfigParser
-
-def unpatch_configparser():
-    """Unpatch fake ConfigParser.
-    """
-    ConfigParser.ConfigParser = ConfigParser.OldConfigParser
-    delattr(ConfigParser, "OldConfigParser")
 
 
 class TestProjector(unittest.TestCase):
@@ -213,22 +50,15 @@ class TestProjector(unittest.TestCase):
     """
 
     proj = None
-
-    def setUp(self):
-        """Apply patches
-        """
-        patch_geometry()
-        patch_utils()
-        patch_kd_tree()
-        patch_image()
-        patch_configparser()
-        
-    def test_init(self):
+    @patch.object(utils, 'generate_quick_linesample_arrays')
+    @patch.object(mpop.projector.kd_tree, 'get_neighbour_info')
+    @patch.object(mpop.projector, '_get_area_hash')
+    def test_init(self, gah, gni, gqla):
         """Creation of coverage.
         """
 
         # in case of wrong number of arguments
-        
+
         self.assertRaises(TypeError, Projector)
         self.assertRaises(TypeError, Projector, random_string(20))
 
@@ -237,43 +67,66 @@ class TestProjector(unittest.TestCase):
 
         in_area_id = random_string(20)
         out_area_id = random_string(20)
-        self.proj = Projector(in_area_id, out_area_id)
-        self.assertTrue(isinstance(self.proj.in_area, geometry.AreaDefinition))
-        self.assertEquals(self.proj.in_area.args[0], in_area_id)
-        self.assertEquals(self.proj.out_area.args[0], out_area_id)
 
-        
+        area_type = utils.parse_area_file.return_value.__getitem__.return_value
+
+        gni.side_effect = [("a", "b", "c", "d")] * 10
+
+        self.proj = Projector(in_area_id, out_area_id)
+        self.assertEquals(utils.parse_area_file.call_count, 2)
+        utils.parse_area_file.assert_any_call('', in_area_id)
+        utils.parse_area_file.assert_any_call('', out_area_id)
+
+
+
+        self.assertEquals(self.proj.in_area, area_type)
+        self.assertEquals(self.proj.out_area, area_type)
+
+
         # in case of undefined areas
-        
-        self.assertRaises(utils.AreaNotFound,
-                          Projector,
-                          "raise",
-                          random_string(20))
-        self.assertRaises(utils.AreaNotFound,
-                          Projector,
-                          random_string(20),
-                          "raise")
+
+        mock = MagicMock(side_effect=Exception("raise"))
+        with patch.object(utils, 'parse_area_file', mock):
+            self.assertRaises(Exception,
+                              Projector,
+                              "raise",
+                              random_string(20))
+            self.assertRaises(Exception,
+                              Projector,
+                              random_string(20),
+                              "raise")
 
         # in case of geometry objects as input
 
-        in_area = geometry.AreaDefinition()
-        self.proj = Projector(in_area, out_area_id)
-        self.assertEquals(self.proj.in_area, in_area)
+        with patch.object(utils, 'AreaNotFound', Exception):
+            mock = MagicMock(side_effect=[utils.AreaNotFound("raise"),
+                                          MagicMock()])
+            with patch.object(utils, 'parse_area_file', mock):
+                in_area = geometry.AreaDefinition()
+                self.proj = Projector(in_area, out_area_id)
+                print self.proj.in_area
+                self.assertEquals(self.proj.in_area, in_area)
 
         in_area = geometry.SwathDefinition()
+        utils.parse_area_file.return_value.__getitem__.side_effect = [AttributeError, out_area_id]
         self.proj = Projector(in_area, out_area_id)
         self.assertEquals(self.proj.in_area, in_area)
 
         out_area = geometry.AreaDefinition()
+        utils.parse_area_file.return_value.__getitem__.side_effect = [in_area_id, AttributeError]
         self.proj = Projector(in_area_id, out_area)
         self.assertEquals(self.proj.out_area, out_area)
 
         # in case of lon/lat is input
-        
-        self.proj = Projector("raise", out_area_id, ([1, 2, 3], [1, 2, 3]))
-        self.assertTrue(isinstance(self.proj.in_area, geometry.SwathDefinition))
 
+        utils.parse_area_file.return_value.__getitem__.side_effect = [AttributeError, out_area_id]
+        lonlats = ("great_lons", "even_greater_lats")
 
+        self.proj = Projector("raise", out_area_id, lonlats)
+        geometry.SwathDefinition.assert_called_with(lons=lonlats[0],
+                                                    lats=lonlats[1])
+
+        utils.parse_area_file.return_value.__getitem__.side_effect = None
         # in case of wrong mode
 
         self.assertRaises(ValueError,
@@ -282,6 +135,9 @@ class TestProjector(unittest.TestCase):
                           random_string(20),
                           mode=random_string(20))
 
+        utils.parse_area_file.return_value.__getitem__.side_effect = ["a", "b",
+                                                                      "c", "d"]
+        gqla.side_effect = [("ridx", "cidx")]
         # quick mode cache
         self.proj = Projector(in_area_id, out_area_id, mode="quick")
         cache = getattr(self.proj, "_cache")
@@ -297,33 +153,47 @@ class TestProjector(unittest.TestCase):
         self.assertTrue(cache['index_array'] is not None)
 
 
-    def test_project_array(self):
+    @patch.object(np.ma, "array")
+    @patch.object(mpop.projector.kd_tree, 'get_sample_from_neighbour_info')
+    @patch.object(np, "load")
+    def test_project_array(self, npload, gsfni, marray):
         """Test the project_array function.
         """
         in_area_id = random_string(20)
         out_area_id = random_string(20)
         data = np.random.standard_normal((3, 1))
 
+        utils.parse_area_file.return_value.__getitem__.side_effect = ["a", "b", "c", "d"]
         # test quick
         self.proj = Projector(in_area_id, out_area_id, mode="quick")
-        self.assertTrue(np.allclose(data, self.proj.project_array(data) - 1))
-        
+        self.proj.project_array(data)
+        mpop.projector.image.ImageContainer.assert_called_with(\
+            data, "a", fill_value=None)
+        mpop.projector.image.ImageContainer.return_value.\
+            get_array_from_linesample.assert_called_with(\
+            self.proj._cache["row_idx"], self.proj._cache["col_idx"])
+        marray.assert_called_once_with(\
+            mpop.projector.image.ImageContainer.return_value.\
+            get_array_from_linesample.return_value,
+            dtype=np.dtype('float64'))
+
         # test nearest
+        in_area = MagicMock()
+        out_area = MagicMock()
+        utils.parse_area_file.return_value.__getitem__.side_effect = \
+                        [in_area, out_area]
         self.proj = Projector(in_area_id, out_area_id, mode="nearest")
-        self.assertTrue(np.allclose(data,
-                                    self.proj.project_array(data) + 1))
-        
+        self.proj.project_array(data)
+        mpop.projector.kd_tree.get_sample_from_neighbour_info.\
+             assert_called_with('nn',
+                                out_area.shape,
+                                data,
+                                npload.return_value.__getitem__.return_value,
+                                npload.return_value.__getitem__.return_value,
+                                npload.return_value.__getitem__.return_value,
+                                fill_value=None)
 
 
-    def tearDown(self):
-        """Unpatch things.
-        """
-        unpatch_utils()
-        unpatch_geometry()
-        unpatch_kd_tree()
-        unpatch_image()
-        unpatch_configparser()
-        
 def random_string(length,
                   choices="abcdefghijklmnopqrstuvwxyz"
                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
@@ -341,5 +211,6 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestProjector))
-    
+
     return mysuite
+

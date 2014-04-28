@@ -41,11 +41,175 @@ import math
 import numpy as np
 from pyhdf.SD import SD
 from pyhdf.error import HDF4Error
+import hashlib
 
 from mpop import CONFIG_PATH
+from mpop.plugin_base import Reader
 
 import logging
 logger = logging.getLogger(__name__)
+
+class ModisReader(Reader):
+
+    pformat = "hdfeos_l1b"
+    
+    def load(self, satscene, *args, **kwargs):
+        """Read data from file and load it into *satscene*.
+        """
+        del args
+        conf = ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+        options = kwargs
+        for option, value in conf.items(satscene.instrument_name+"-level2",
+                                        raw = True):
+            options[option] = value
+        options["resolution"] = kwargs.get("resolution", 1000)
+        options["filename"] = kwargs.get("filename")
+
+        if options["filename"] is not None:
+            logger.debug("Reading from file: " + str(options["filename"]))
+            filename = options["filename"]
+            res = {"1": 1000,
+                   "Q": 250,
+                   "H": 500}
+            resolution = res[os.path.split(filename)[1][5]]
+        else:
+            resolution = int(options["resolution"]) or 1000
+
+            filename_tmpl = satscene.time_slot.strftime(options["filename"+
+                                                                str(resolution)])
+            file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
+            if len(file_list) > 1:
+                raise IOError("More than 1 file matching!")
+            elif len(file_list) == 0:
+                raise IOError("No EOS MODIS file matching " +
+                              filename_tmpl + " in " +
+                              options["dir"])
+            filename = file_list[0]
+
+        self.filename = filename
+
+        cores = options.get("cores", 1)
+
+        logger.debug("Using " + str(cores) + " cores for interpolation")
+        
+
+        try:
+            data = SD(str(filename))
+            self.data = data
+        except HDF4Error as err:
+            logger.warning("Could not load data from " + str(filename)
+                           + ": " + str(err))
+            return
+
+        datadict = {
+            1000: ['EV_250_Aggr1km_RefSB',
+                   'EV_500_Aggr1km_RefSB',
+                   'EV_1KM_RefSB',
+                   'EV_1KM_Emissive'],
+            500: ['EV_250_Aggr500_RefSB',
+                  'EV_500_RefSB'],
+            250: ['EV_250_RefSB']}
+
+        datasets = datadict[resolution]
+
+
+
+        loaded_bands = []
+
+        # process by dataset, reflective and emissive datasets separately
+
+        for dataset in datasets:
+            subdata = data.select(dataset)
+            band_names = subdata.attributes()["band_names"].split(",")
+            if len(satscene.channels_to_load & set(band_names)) > 0:
+                # get the relative indices of the desired channels
+                indices = [i for i, band in enumerate(band_names)
+                           if band in satscene.channels_to_load]
+                uncertainty = data.select(dataset+"_Uncert_Indexes")
+                if dataset.endswith('Emissive'):
+                    array = calibrate_tb(subdata, uncertainty, indices, band_names)
+                else:
+                    array = calibrate_refl(subdata, uncertainty, indices)
+                for (i, idx) in enumerate(indices):
+                    satscene[band_names[idx]] = array[i]
+                    # fix the resolution to match the loaded data.
+                    satscene[band_names[idx]].resolution = resolution
+                    loaded_bands.append(band_names[idx])
+
+
+        # Get the orbit number
+        if not satscene.orbit:
+            mda = data.attributes()["CoreMetadata.0"]
+            orbit_idx = mda.index("ORBITNUMBER")
+            satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+        ## Get the geolocation
+        #if resolution != 1000:
+        #    logger.warning("Cannot load geolocation at this resolution (yet).")
+        #    return
+
+        lat, lon = get_lat_lon(satscene, resolution, filename, cores)
+        from pyresample import geometry
+        area = geometry.SwathDefinition(lons=lon, lats=lat)
+        for band_name in loaded_bands:
+            satscene[band_name].area = area
+
+        # Trimming out dead sensor lines (detectors) on aqua:
+        # (in addition channel 21 is noisy)
+        if satscene.satname == "aqua":
+            for band in ["6", "27", "36"]:
+                if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+                    continue
+                width = satscene[band].data.shape[1]
+                height = satscene[band].data.shape[0]
+                indices = satscene[band].data.mask.sum(1) < width
+                if indices.sum() == height:
+                    continue
+                satscene[band] = satscene[band].data[indices, :]
+                satscene[band].area = geometry.SwathDefinition(
+                    lons=satscene[band].area.lons[indices,:],
+                    lats=satscene[band].area.lats[indices,:])
+
+        # Trimming out dead sensor lines (detectors) on terra:
+        # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
+        if satscene.satname == "terra":
+            for band in ["29"]:
+                if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+                    continue
+                width = satscene[band].data.shape[1]
+                height = satscene[band].data.shape[0]
+                indices = satscene[band].data.mask.sum(1) < width
+                if indices.sum() == height:
+                    continue
+                satscene[band] = satscene[band].data[indices, :]
+                satscene[band].area = geometry.SwathDefinition(
+                    lons=satscene[band].area.lons[indices,:],
+                    lats=satscene[band].area.lats[indices,:])
+
+        for band_name in loaded_bands:
+            band_uid = hashlib.sha1(satscene[band_name].data.mask).hexdigest()
+            satscene[band_name].area.area_id = ("swath_" + satscene.fullname + "_"
+                                                + str(satscene.time_slot) + "_"
+                                                + str(satscene[band_name].shape) + "_"
+                                                + str(band_uid))
+            satscene[band_name].area_id = satscene[band_name].area.area_id
+
+    # These have to be interpolated...
+    def get_height(self):
+        return self.data.select("Height")
+
+    def get_sunz(self):
+        return self.data.select("SolarZenith")
+    
+    def get_suna(self):
+        return self.data.select("SolarAzimuth")
+
+    def get_satz(self):
+        return self.data.select("SensorZenith")
+    
+    def get_sata(self):
+        return self.data.select("SensorAzimuth")
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
