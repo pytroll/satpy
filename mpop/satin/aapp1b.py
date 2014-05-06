@@ -10,6 +10,7 @@
 #   Nina Håkansson <nina.hakansson@smhi.se>
 #   Oana Nicola <oananicola@yahoo.com>
 #   Lars Ørum Rasmussen <ras@dmi.dk>
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +40,9 @@ import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
 
-LOG = logging.getLogger('aapp1b')
+from mpop.satin.helper_functions import reduce_swath
+
+LOGGER = logging.getLogger('aapp1b')
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -57,8 +60,9 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     options["calibrate"] = kwargs.get("calibrate", True)
+    options["area_def_names"] = kwargs.get("area_def_names", None)
 
-    LOG.info("Loading instrument '%s'" % satscene.instrument_name)
+    LOGGER.info("Loading instrument '%s'" % satscene.instrument_name)
     try:
         CASES[satscene.instrument_name](satscene, options)
     except KeyError:
@@ -71,7 +75,7 @@ def load_avhrr(satscene, options):
         raise IOError("No filename given, cannot load.")
 
     chns = satscene.channels_to_load & set(AVHRR_CHANNEL_NAMES)
-    LOG.info("Loading channels " + str(sorted(list(chns))))
+    LOGGER.info("Loading channels " + str(sorted(list(chns))))
     if len(chns) == 0:
         return
 
@@ -96,7 +100,7 @@ def load_avhrr(satscene, options):
     
     filename = file_list[0]
 
-    LOG.debug("Loading from " + filename)
+    LOGGER.debug("Loading from " + filename)
 
     scene = AAPP1b(filename)
     scene.read()
@@ -111,12 +115,17 @@ def load_avhrr(satscene, options):
     try:
         from pyresample import geometry
     except ImportError, ex_:
-        LOG.debug("Could not load pyresample: " + str(ex_))
+        LOGGER.debug("Could not load pyresample: " + str(ex_))
         satscene.lat = scene.lats
         satscene.lon = scene.lons
     else:
         satscene.area = geometry.SwathDefinition(lons=scene.lons,
                                                  lats=scene.lats)
+
+    # Reduce data size for lower memory footprint and faster resampling
+    if options["area_def_names"] is not None:
+        reduce_swath(satscene, options["area_def_names"])
+
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3A", "3B", "4", "5")
 
@@ -320,7 +329,7 @@ class AAPP1b(object):
             fp_.seek(10664 * 2, 1)
             data = np.fromfile(fp_, dtype=_SCANTYPE)
 
-        LOG.debug("Reading time " + str(datetime.datetime.now() - tic))
+        LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
         self._header = header
         self._data = data
 
@@ -334,7 +343,7 @@ class AAPP1b(object):
         try:
             from geotiepoints import SatelliteInterpolator
         except ImportError:
-            LOG.warning("Could not interpolate lon/lats, "
+            LOGGER.warning("Could not interpolate lon/lats, "
                         "python-geotiepoints missing.")
             self.lons, self.lats = lons40km, lats40km
         else:
@@ -353,7 +362,7 @@ class AAPP1b(object):
                                            along_track_order,
                                            cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            LOG.debug("Navigation time " + str(datetime.datetime.now() - tic))
+            LOGGER.debug("Navigation time " + str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
                   calibrate=1):
@@ -423,7 +432,7 @@ class AAPP1b(object):
             else:
                 self.units['5'] = ''
 
-        LOG.debug("Calibration time " + str(datetime.datetime.now() - tic))
+        LOGGER.debug("Calibration time " + str(datetime.datetime.now() - tic))
         
 
 def _vis_calibrate(data, chn, calib_type):
@@ -440,7 +449,7 @@ def _vis_calibrate(data, chn, calib_type):
         return channel
 
     if calib_type == 2:
-        LOG.info("Radiances are not yet supported for " + 
+        LOGGER.info("Radiances are not yet supported for " + 
                  "the VIS/NIR channels!")
 
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
@@ -501,7 +510,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
-        LOG.info("Suspect scan lines: " + str(suspect_line_nums))
+        LOGGER.info("Suspect scan lines: " + str(suspect_line_nums))
 
     t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
 
