@@ -40,8 +40,6 @@ import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
 
-from mpop.satin.helper_functions import reduce_swath
-
 LOGGER = logging.getLogger('aapp1b')
 
 def load(satscene, *args, **kwargs):
@@ -60,7 +58,6 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     options["calibrate"] = kwargs.get("calibrate", True)
-    options["area_def_names"] = kwargs.get("area_def_names", None)
 
     LOGGER.info("Loading instrument '%s'" % satscene.instrument_name)
     try:
@@ -121,10 +118,6 @@ def load_avhrr(satscene, options):
     else:
         satscene.area = geometry.SwathDefinition(lons=scene.lons,
                                                  lats=scene.lats)
-
-    # Reduce data size for lower memory footprint and faster resampling
-    if options["area_def_names"] is not None:
-        reduce_swath(satscene, options["area_def_names"])
 
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3A", "3B", "4", "5")
