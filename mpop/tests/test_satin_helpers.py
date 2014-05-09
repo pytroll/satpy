@@ -26,7 +26,7 @@ import mpop.satin
  - :mod:`mpop.satin`
 '''
 
-class TestReaders(unittest.TestCase):
+class TestSatinHelpers(unittest.TestCase):
     '''Class for testing mpop.satin'''
 
     def test_area_def_names_to_extent(self):
@@ -39,7 +39,7 @@ class TestReaders(unittest.TestCase):
             'a=6378169.00 b=6356583.80 h=35785831.00'
 
         # MSG3 maximum extent
-        msg_extent=(-5567248.07, -5570248.48, 5570248.48, 5567248.07)
+        msg_extent = (-5567248.07, -5570248.48, 5570248.48, 5567248.07)
 
         area_def_names = ['eurol', 'euro4']
 
@@ -51,6 +51,33 @@ class TestReaders(unittest.TestCase):
                                                                  proj4_str,
                                                                  msg_extent)
 
-    
         for i in range(len(max_extent)):
             self.assertAlmostEqual(max_extent[i], correct_values[i], 2)
+
+        # Test for case with single area definition
+        # Two of the area corner points is outside the satellite view,
+        # so one of the extent values ('right' or 'east' border) is
+        # replaced with the default value
+
+        area_def_names = 'afghanistan'
+
+        correct_values = [-5567248.07, -5570248.48, 5570248.48, 5567248.07]
+
+        max_extent = \
+            mpop.satin.helper_functions.area_def_names_to_extent(area_def_names,
+                                                                 proj4_str,
+                                                                 msg_extent)
+
+        for i in range(len(max_extent)):
+            self.assertAlmostEqual(max_extent[i], correct_values[i], 2)
+
+        self.assertEqual(max_extent[2], msg_extent[2])
+
+def suite():
+    """The test suite for test_satin_helpers.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSatinHelpers))
+    
+    return mysuite

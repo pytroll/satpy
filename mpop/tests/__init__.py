@@ -34,6 +34,7 @@ from mpop.tests import (#test_pp_core, # crash
                         #test_seviri,
                         #test_viirs_sdr,
                         #test_visir,
+                        test_satin_helpers,
                         )
 
 import unittest
@@ -54,5 +55,6 @@ def suite():
     #mysuite.addTests(test_seviri.suite())
     #mysuite.addTests(test_viirs_sdr.suite())
     #mysuite.addTests(test_visir.suite())
+    mysuite.addTests(test_satin_helpers.suite())
 
     return mysuite
