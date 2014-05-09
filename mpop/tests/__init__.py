@@ -23,7 +23,8 @@
 """The tests package.
 """
 
-from mpop.tests import (#test_pp_core, # crash
+from mpop.tests import (test_satin_helpers,
+                        #test_pp_core, # crash
                         test_channel,
                         test_image,
                         test_geo_image,
@@ -34,7 +35,6 @@ from mpop.tests import (#test_pp_core, # crash
                         #test_seviri,
                         #test_viirs_sdr,
                         #test_visir,
-                        test_satin_helpers,
                         )
 
 import unittest
@@ -44,6 +44,7 @@ def suite():
     """
 
     mysuite = unittest.TestSuite()
+    mysuite.addTests(test_satin_helpers.suite())
     #mysuite.addTests(test_pp_core.suite())
     mysuite.addTests(test_channel.suite())
     mysuite.addTests(test_image.suite())
@@ -55,6 +56,5 @@ def suite():
     #mysuite.addTests(test_seviri.suite())
     #mysuite.addTests(test_viirs_sdr.suite())
     #mysuite.addTests(test_visir.suite())
-    mysuite.addTests(test_satin_helpers.suite())
 
     return mysuite
