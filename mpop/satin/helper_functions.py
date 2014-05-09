@@ -32,37 +32,6 @@ from pyproj import Proj
 
 LOGGER = logging.getLogger(__name__)
 
-def get_area_boundaries(area_def):
-    '''Get area boundaries (lon+lat coordinates) from area definition.
-    '''
-    
-    # upper boundary
-    lonlat = np.array([area_def.get_lonlat(0, i) \
-                           for i in range(area_def.x_size)])
-    up_lons = lonlat[:, 0]
-    up_lats = lonlat[:, 1]
-
-    # lower boundary
-    lonlat = np.array([area_def.get_lonlat(area_def.y_size-1, i) \
-                           for i in range(area_def.x_size)])
-    down_lons = lonlat[:, 0]
-    down_lats = lonlat[:, 1]
-    
-    # left boundary
-    lonlat = np.array([area_def.get_lonlat(i, 0) \
-                           for i in range(area_def.y_size)])
-    left_lons = lonlat[:, 0]
-    left_lats = lonlat[:, 1]
-    
-    # right boundary
-    lonlat = np.array([area_def.get_lonlat(i, area_def.x_size-1) \
-                           for i in range(area_def.y_size)])
-    right_lons = lonlat[:, 0]
-    right_lats = lonlat[:, 1]
-    
-    return (Boundary(up_lons, right_lons, down_lons, left_lons),
-            Boundary(up_lats, right_lats, down_lats, left_lats))
-
 
 def area_def_names_to_extent(area_def_names, proj4_str, 
                              default_extent=(-5567248.07, -5570248.48, 
@@ -86,7 +55,7 @@ def area_def_names_to_extent(area_def_names, proj4_str,
 
     for name in area_def_names:
 
-        boundaries = get_area_boundaries(get_area_def(name))
+        boundaries = get_area_def(name).get_boundary_lonlats()
 
         # extents for edges
         _, up_y = pro(boundaries[0].side1, boundaries[1].side1)
