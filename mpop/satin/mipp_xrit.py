@@ -145,7 +145,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
                                                        metadata.proj4_params,
                                                        area_extent)
             # otherwise use the default value (MSG3 extent at
-            # lon0=0.0), that is, do not pass default_extent
+            # lon0=0.0), that is, do not pass default_extent=area_extent
             else:
                 area_extent = area_def_names_to_extent(area_def_names, 
                                                        metadata.proj4_params)
@@ -206,45 +206,3 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
             LOGGER.info("Could not build area, pyresample missing...")
 
 CASES = {}
-
-
-def lonlat_to_geo_extent(local_extent_ll, global_proj4_str, 
-                         max_extent=(-5567248.07, -5570248.48, 
-                                      5570248.48, 5567248.07)):
-    '''Convert (local) coordinate extent *local_extent_ll* to global
-    extent in satellite projection using PROJ4 definition
-    *global_proj4_str*.  *max_extent* gives the maximum extent values
-    in satellite projection.  Default values for *max_extent* are for
-    MSG3 at lon_0=0.0.
-    '''
-
-    # proj4-ify the projection string
-    global_proj4_str = global_proj4_str.split(' ')
-    global_proj4_str = '+' + ' +'.join(global_proj4_str)
-
-    left_lon, down_lat, right_lon, up_lat = local_extent_ll
-
-    pro = Proj(global_proj4_str)
-
-    # Get corner extents
-    left_ex1, up_ex1 = pro(left_lon, up_lat)
-    right_ex1, up_ex2 = pro(right_lon, up_lat)
-    left_ex2, down_ex1 = pro(left_lon, down_lat)
-    right_ex2, down_ex2 = pro(right_lon, down_lat)
-
-    # Get the maximum needed extent from different corners.
-    extent = [min(left_ex1, left_ex2), 
-              min(down_ex1, down_ex2), 
-              max(right_ex1, right_ex2), 
-              max(up_ex1, up_ex2)]
-
-    # Replace "infinity" values with maximum extent
-    for i in range(4):
-        if abs(extent[i]) > 1e20:
-            extent[i] = max_extent[i]
-
-    return extent
-
-
-
-    
