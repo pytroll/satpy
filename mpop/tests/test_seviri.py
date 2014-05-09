@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2014.
 
 # Author(s):
  
@@ -278,5 +278,12 @@ class TestCo2Corr(unittest.TestCase):
         unpatch_geo_image()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_seviri.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestComposites))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestCo2Corr))
+    
+    return mysuite

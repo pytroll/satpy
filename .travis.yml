@@ -1,0 +1,18 @@
+language: python
+python:
+- '2.6'
+- '2.7'
+install:
+- pip install .
+- pip install coveralls
+- pip install pyorbital
+script: coverage run --source=mpop setup.py test
+after_success: coveralls
+deploy:
+  provider: pypi
+  user: Martin.Raspaud
+  password:
+    secure: RuQzdaLTY4sryIzG8Hz1KWEsyYRxrLvbyfm7DurXDPcj2vsujRwJicNwBrJajIBkzZWwdmWE8db55BPWZwCsJtVUbE53vc742wSAcci2zzCgizSb/jjlDkwk1CE/PoMl4t3JsuIU6bklgw1Y1d4Xn4+BeZe8Blol5PD/FUovxfo=
+  on:
+    tags: true
+    repo: mraspaud/mpop

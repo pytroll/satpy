@@ -39,7 +39,7 @@ warnings.warn(__name__ + " is deprecated, please use trollimage instead.",
 import os
 import re
 
-import Image as Pil
+from PIL import Image as Pil
 import numpy as np
 
 try:
@@ -354,7 +354,7 @@ class Image(object):
                   1.0 / (color_max - color_min))
         self.channels.append(np.ma.array(scaled, mask=chn_mask))
     
-    def _finalize(self):
+    def _finalize(self, dtype=np.uint8):
         """Finalize the image, that is put it in RGB mode, and set the channels
         in 8bit format ([0,255] range).
         """
@@ -366,15 +366,16 @@ class Image(object):
 
         for chn in self.channels:
             if isinstance(chn, np.ma.core.MaskedArray):
-                final_data = chn.data.clip(0, 1) * 255
+                final_data = chn.data.clip(0, 1) * np.iinfo(dtype).max
             else:
-                final_data = chn.clip(0, 1) * 255
+                final_data = chn.clip(0, 1) * np.iinfo(dtype).max
                 
             channels.append(np.ma.array(final_data,
-                                        np.uint8,
+                                        dtype,
                                         mask = chn.mask))
         if self.fill_value is not None:
-            fill_value = [int(col * 255) for col in self.fill_value]
+            fill_value = [int(col * np.iinfo(dtype).max)
+                          for col in self.fill_value]
         else:
             fill_value = None
         return channels, fill_value

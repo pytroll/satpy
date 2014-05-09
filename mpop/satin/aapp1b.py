@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013 SMHI
+# Copyright (c) 2012, 2013, 2014 SMHI
 
 # Author(s):
 
@@ -40,7 +40,11 @@ import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
 
+<<<<<<< HEAD
 LOGGER = logging.getLogger('aapp1b')
+=======
+logger = logging.getLogger('aapp1b')
+>>>>>>> upstream/pre-master
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -59,7 +63,11 @@ def load(satscene, *args, **kwargs):
 
     options["calibrate"] = kwargs.get("calibrate", True)
 
+<<<<<<< HEAD
     LOGGER.info("Loading instrument '%s'" % satscene.instrument_name)
+=======
+    logger.info("Loading instrument '%s'" % satscene.instrument_name)
+>>>>>>> upstream/pre-master
     try:
         CASES[satscene.instrument_name](satscene, options)
     except KeyError:
@@ -72,7 +80,11 @@ def load_avhrr(satscene, options):
         raise IOError("No filename given, cannot load.")
 
     chns = satscene.channels_to_load & set(AVHRR_CHANNEL_NAMES)
+<<<<<<< HEAD
     LOGGER.info("Loading channels " + str(sorted(list(chns))))
+=======
+    logger.info("Loading channels " + str(sorted(list(chns))))
+>>>>>>> upstream/pre-master
     if len(chns) == 0:
         return
 
@@ -97,27 +109,36 @@ def load_avhrr(satscene, options):
     
     filename = file_list[0]
 
+<<<<<<< HEAD
     LOGGER.debug("Loading from " + filename)
+=======
+    logger.debug("Loading from " + filename)
+>>>>>>> upstream/pre-master
 
     scene = AAPP1b(filename)
     scene.read()
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
 
     scene.navigate()
-    for chn in chns:
-        if scene.channels.has_key(chn) and np.ma.count(scene.channels[chn]) > 0:
-            satscene[chn].data = scene.channels[chn]
-            satscene[chn].info['units'] = scene.units[chn]
 
     try:
         from pyresample import geometry
     except ImportError, ex_:
+<<<<<<< HEAD
         LOGGER.debug("Could not load pyresample: " + str(ex_))
+=======
+        logger.debug("Could not load pyresample: " + str(ex_))
+>>>>>>> upstream/pre-master
         satscene.lat = scene.lats
         satscene.lon = scene.lons
     else:
         satscene.area = geometry.SwathDefinition(lons=scene.lons,
                                                  lats=scene.lats)
+    for chn in chns:
+        if scene.channels.has_key(chn) and np.ma.count(scene.channels[chn]) > 0:
+            satscene[chn].data = scene.channels[chn]
+            satscene[chn].info['units'] = scene.units[chn]
+            satscene[chn].area = satscene.area
 
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3A", "3B", "4", "5")
@@ -322,7 +343,11 @@ class AAPP1b(object):
             fp_.seek(10664 * 2, 1)
             data = np.fromfile(fp_, dtype=_SCANTYPE)
 
+<<<<<<< HEAD
         LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
+=======
+        logger.debug("Reading time " + str(datetime.datetime.now() - tic))
+>>>>>>> upstream/pre-master
         self._header = header
         self._data = data
 
@@ -336,7 +361,11 @@ class AAPP1b(object):
         try:
             from geotiepoints import SatelliteInterpolator
         except ImportError:
+<<<<<<< HEAD
             LOGGER.warning("Could not interpolate lon/lats, "
+=======
+            logger.warning("Could not interpolate lon/lats, "
+>>>>>>> upstream/pre-master
                         "python-geotiepoints missing.")
             self.lons, self.lats = lons40km, lats40km
         else:
@@ -355,7 +384,11 @@ class AAPP1b(object):
                                            along_track_order,
                                            cross_track_order)
             self.lons, self.lats = satint.interpolate()
+<<<<<<< HEAD
             LOGGER.debug("Navigation time " + str(datetime.datetime.now() - tic))
+=======
+            logger.debug("Navigation time " + str(datetime.datetime.now() - tic))
+>>>>>>> upstream/pre-master
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
                   calibrate=1):
@@ -425,7 +458,11 @@ class AAPP1b(object):
             else:
                 self.units['5'] = ''
 
+<<<<<<< HEAD
         LOGGER.debug("Calibration time " + str(datetime.datetime.now() - tic))
+=======
+        logger.debug("Calibration time " + str(datetime.datetime.now() - tic))
+>>>>>>> upstream/pre-master
         
 
 def _vis_calibrate(data, chn, calib_type):
@@ -442,7 +479,11 @@ def _vis_calibrate(data, chn, calib_type):
         return channel
 
     if calib_type == 2:
+<<<<<<< HEAD
         LOGGER.info("Radiances are not yet supported for " + 
+=======
+        logger.info("Radiances are not yet supported for " + 
+>>>>>>> upstream/pre-master
                  "the VIS/NIR channels!")
 
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
@@ -465,7 +506,7 @@ def _vis_calibrate(data, chn, calib_type):
 def _ir_calibrate(header, data, irchn, calib_type):
     """IR calibration
     *calib_type* = 0: Counts
-    *calib_type* = 1: Reflectances
+    *calib_type* = 1: BT
     *calib_type* = 2: Radiances
     """
 
@@ -474,12 +515,25 @@ def _ir_calibrate(header, data, irchn, calib_type):
     if calib_type == 0:
         return count
 
-    ir_const_1 = 1.1910659e-5
-    ir_const_2 = 1.438833
-
     k1_ = np.expand_dims(data['calir'][:, irchn, 0, 0] / 1.0e9, 1)
     k2_ = np.expand_dims(data['calir'][:, irchn, 0, 1] / 1.0e6, 1)
     k3_ = np.expand_dims(data['calir'][:, irchn, 0, 2] / 1.0e6, 1)
+
+    # Count to radiance conversion:
+    rad = k1_ * count*count + k2_*count + k3_
+
+    all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
+                                             np.equal(k2_, 0)),
+                              np.equal(k3_, 0))    
+    idx = np.indices((all_zero.shape[0],))
+    suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
+    if suspect_line_nums.any():
+        logger.info("Suspicious scan lines: " + str(suspect_line_nums))
+
+
+
+    if calib_type == 2:
+        return rad
 
     # Central wavenumber:
     cwnum = header['radtempcnv'][0, irchn, 0]
@@ -491,6 +545,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
     bandcor_2 = header['radtempcnv'][0, irchn, 1]/1e5
     bandcor_3 = header['radtempcnv'][0, irchn, 2]/1e6
 
+<<<<<<< HEAD
     # Count to radiance conversion:
     rad = k1_ * count*count + k2_*count + k3_
 
@@ -504,6 +559,10 @@ def _ir_calibrate(header, data, irchn, calib_type):
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
         LOGGER.info("Suspect scan lines: " + str(suspect_line_nums))
+=======
+    ir_const_1 = 1.1910659e-5
+    ir_const_2 = 1.438833
+>>>>>>> upstream/pre-master
 
     t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
 
@@ -514,12 +573,12 @@ def _ir_calibrate(header, data, irchn, calib_type):
     else: # AAPP 1 to 4
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
-    tb_[tb_ <= 0] = np.nan
+    #tb_[tb_ <= 0] = np.nan
     # Data with count=0 are often related to erroneous (bad) lines, but in case
     # of saturation (channel 3b) count=0 can be observed and associated to a
     # real measurement. So we leave out this filtering to the user!
     # tb_[count == 0] = np.nan
-    tb_[rad == 0] = np.nan
+    #tb_[rad == 0] = np.nan
     return np.ma.masked_array(tb_, np.isnan(tb_))
 
 
@@ -546,6 +605,19 @@ if __name__ == "__main__":
     debug_on()
     SCENE = AAPP1b(sys.argv[1])
     SCENE.read()
+    for name, val in zip(SCENE._header.dtype.names, SCENE._header[0]):
+        print name, val
+    starttime = datetime.datetime(SCENE._header[0]["startdatayr"], 1, 1, 0, 0)
+    starttime += datetime.timedelta(days=int(SCENE._header[0]["startdatady"]) - 1,
+                                    seconds=SCENE._header[0]["startdatatime"] / 1000.0)
+    print "starttime:", starttime
+    endtime = datetime.datetime(SCENE._header[0]["enddatayr"], 1, 1, 0, 0)
+    endtime += datetime.timedelta(days=int(SCENE._header[0]["enddatady"]) - 1,
+                                    seconds=SCENE._header[0]["enddatatime"] / 1000.0)
+    print "endtime:", endtime
+    #print SCENE._data['hrpt'].shape
+    #show(SCENE._data['hrpt'][:, :, 4].astype(np.float))
+    #raw_input()
     SCENE.calibrate()
     SCENE.navigate()
     for i_ in AVHRR_CHANNEL_NAMES:
@@ -553,4 +625,4 @@ if __name__ == "__main__":
         print >> sys.stderr, "%-3s" % i_, \
             "%6.2f%%" % (100.*(float(np.ma.count(data_))/data_.size)), \
             "%6.2f, %6.2f, %6.2f" % (data_.min(), data_.mean(), data_.max())    
-    show(SCENE.channels['4'], negate=True)
+    show(SCENE.channels['2'], negate=False)

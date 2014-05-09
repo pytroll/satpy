@@ -1,0 +1,49 @@
+#
+# Level 1.5 configuration file for GOES15
+#
+# An item like:
+#   name = value
+# is read in python like:
+#   try:
+#       name = eval(value)
+#   except NameError:
+#       name = str(value)
+#
+
+[satellite]
+satname = 'goes'
+number = '15'
+instruments = ('imager15',)
+projection = 'geos(-135.0)'
+
+[imager15-level2]
+format = 'mipp_xrit'
+
+[imager15-level1]
+format = 'mipp/xrit/SGS'
+dir = '/data/xrit/out'
+filename = 'L-000-MSG?__-GOES15______-%(channel)s_135W-%(segment)s-%Y%m%d%H%M-__'
+
+[imager15-1]
+name = '00_7'
+frequency = (0.5, 0.7, 0.9)
+resolution = 4006.5756
+size = (2816, 2816)
+
+[imager15-2]
+name = '03_9'
+frequency = (2.9, 3.9, 4.9)
+resolution = 4006.5756
+size = (2816, 2816)
+
+[imager15-3]
+name = '06_6'
+frequency = (5.9, 6.6, 7.3)
+resolution = 4006.5756
+size = (2816, 2816)
+
+[imager15-4]
+name = '10_7'
+frequency = (9.7, 10.7, 11.7)
+resolution = 4006.5756
+size = (2816, 2816)

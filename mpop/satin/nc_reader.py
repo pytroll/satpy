@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -67,7 +67,10 @@ PROJNAME = {"vertical_perspective": "nsper",
             "geostationary": "geos",
             "albers_conical_equal_area": "aea",
             "azimuthal_equidistant": "aeqd",
-            
+            "equirectangular": "eqc",
+            "transverse_mercator": "tmerc",
+            "stereographic": "stere",
+            "general_oblique_transformation": "ob_tran"
     }
 
 def _load02(filename):

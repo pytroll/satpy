@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # Author(s):
  
@@ -66,6 +66,8 @@ class CFScene(object):
         self.info["instrument"] = scene.instrument_name
         if scene.variant:
             self.info["service"] = scene.variant
+        if scene.orbit:
+            self.info["orbit"] = scene.orbit
         
         self.time = InfoObject()
         self.time.data = date2num(scene.time_slot,
@@ -156,6 +158,7 @@ class CFScene(object):
                     str_arc = str(area_counter)
                     area_counter += 1
                     x__ = InfoObject()
+                    chn.area.get_proj_coords(cache=True)
                     x__.data = chn.area.projection_x_coords[0, :]
                     x__.info = {"var_name": "x"+str_arc,
                                 "var_data": x__.data,
@@ -211,7 +214,7 @@ class CFScene(object):
                     try:
                         lons.data = chn.area.lons[:]
                     except AttributeError:
-                        pass
+                        lons.data = scene.area.lons[:]
 
                     lons.info = {"var_name": "lon"+str_arc,
                                  "var_data": lons.data,
@@ -227,7 +230,7 @@ class CFScene(object):
                     try:
                         lats.data = chn.area.lats[:]
                     except AttributeError:
-                        pass
+                        lats.data = scene.area.lats[:]
                     
                     lats.info = {"var_name": "lat"+str_arc,
                                  "var_data": lats.data,
@@ -371,7 +374,8 @@ def proj2cf(proj_dict):
              "merc": merc2cf,
              "aea": aea2cf,
              "laea": laea2cf,
-             "ob_tran": obtran2cf,}
+             "ob_tran": obtran2cf,
+             "eqc": eqc2cf,}
 
     return cases[proj_dict["proj"]](proj_dict)
 
@@ -385,6 +389,20 @@ def geos2cf(proj_dict):
             "semi_major_axis": eval(proj_dict["a"]),
             "semi_minor_axis": eval(proj_dict["b"]),
             "perspective_point_height": eval(proj_dict["h"])
+            }
+
+def eqc2cf(proj_dict):
+    """Return the cf grid mapping from a eqc proj dict. However, please be
+    aware that this is not an official CF projection. See
+    http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.4/apf.html.
+    """
+
+    return {"grid_mapping_name": "equirectangular",
+            "latitude_of_true_scale": eval(proj_dict.get("lat_ts", "0")),
+            "latitude_of_projection_origin": eval(proj_dict["lat_0"]),
+            "longitude_of_projection_origin": eval(proj_dict["lon_0"]),
+            "false_easting": eval(proj_dict.get("x_0", "0")),
+            "false_northing" : eval(proj_dict.get("y_0", "0"))
             }
 
 def stere2cf(proj_dict):

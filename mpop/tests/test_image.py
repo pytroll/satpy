@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2013.
+# Copyright (c) 2009, 2013, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -751,5 +751,16 @@ def random_string(length,
                     for dummy in range(length)])
 
 
-if __name__ == '__main__':
-    unittest.main()
+def suite():
+    """The test suite for test_image.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestImageCreation))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestRegularImage))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFlatImage))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestEmptyImage))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestNoDataImage))
+    
+    return mysuite
+

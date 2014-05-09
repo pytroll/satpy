@@ -1,0 +1,49 @@
+#
+# Level 1.5 configuration file for MTSAT2
+#
+# An item like:
+#   name = value
+# is read in python like:
+#   try:
+#       name = eval(value)
+#   except:
+#       name = str(value)
+#
+
+[satellite]
+satname = 'mtsat'
+number = '2'
+instruments = ('mviri',)
+projection = 'geos(145.0)'
+
+[mviri-level2]
+format = 'mipp_xrit'
+
+[mviri-level1]
+format = 'mipp/xrit/SGS'
+dir = '/data/xrit/out'
+filename = 'L-000-MSG?__-MTSAT2______-%(channel)s_145E-%(segment)s-%Y%m%d%H%M-__'
+
+[mviri-1]
+name = '00_7'
+frequency = (0.5, 0.7, 0.9)
+resolution = 4000.0
+size = (2752, 2752)
+
+[mviri-2]
+name = '03_8'
+frequency = (2.8, 3.8, 4.8)
+resolution = 4000.0
+size = (2752, 2752)
+
+[mviri-3]
+name = '06_8'
+frequency = (6.1, 6.8, 7.5)
+resolution = 4000.0
+size = (2752, 2752)
+
+[mviri-4]
+name = '10_8'
+frequency = (9.8, 10.8, 11.8)
+resolution = 4000.0
+size = (2752, 2752)

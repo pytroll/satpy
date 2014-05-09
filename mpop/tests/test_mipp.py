@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # Author(s):
  
@@ -241,5 +236,12 @@ class TestMipp(unittest.TestCase):
         unpatch_configparser()
         unpatch_satellite()
         unpatch_mipp()
-if __name__ == '__main__':
-    unittest.main()
+
+def suite():
+    """The test suite for test_mipp.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestMipp))
+    
+    return mysuite

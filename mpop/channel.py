@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping, 
-# Sweden
+# Copyright (c) 2010-2014.
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -78,7 +73,7 @@ class GenericChannel(object):
             return 1
         else:
             return cmp(self.name, ch2.name)
-        
+
 
     def _get_area(self):
         """Getter for area.
@@ -144,7 +139,7 @@ class Channel(GenericChannel):
 
         if not isinstance(resolution, (int, float)):
             raise TypeError("Resolution must be an integer number of meters.")
-        
+
         self.resolution = resolution
 
         if(not isinstance(wavelength_range, (tuple, list, set)) or
@@ -160,7 +155,7 @@ class Channel(GenericChannel):
         self.wavelength_range = list(wavelength_range)
 
         self.unit = calibration_unit
-        
+
         self.data = data
 
     def __cmp__(self, ch2, key = 0):
@@ -201,7 +196,7 @@ class Channel(GenericChannel):
                      self.wavelength_range[2], 
                      self.resolution))
 
-    
+
     def is_loaded(self):
         """Tells if the channel contains loaded data.
         """
@@ -217,12 +212,12 @@ class Channel(GenericChannel):
         if not isinstance(min_range, (float, int)):
             raise TypeError("Min_range must be a single number.")
 
-        
+
         if isinstance(self._data, np.ma.core.MaskedArray):
             if self._data.mask.all():
                 return self._data
-        
-        if((self._data.max() - self._data.min()) < min_range):
+
+        if (self._data.max() - self._data.min()) < min_range:
             return np.ma.zeros(self.shape)
         else:
             return self._data
@@ -232,9 +227,9 @@ class Channel(GenericChannel):
         """
         if not self.is_loaded():
             raise ValueError("Channel not loaded, cannot display.")
-        
-        import Image as pil
-        
+
+        from PIL import Image as pil
+
         data = ((self._data - self._data.min()) * 255.0 /
                 (self._data.max() - self._data.min()))
         if isinstance(data, np.ma.core.MaskedArray):
@@ -268,10 +263,10 @@ class Channel(GenericChannel):
                       data=None,
                       calibration_unit=self.unit)
         res.area = coverage_instance.out_area
-
+        res.info = self.info
         if self.is_loaded():
-            LOG.info("Projecting channel %s (%fμm)..."
-                     %(self.name, self.wavelength_range[1]))
+            LOG.info("Projecting channel %s (%fμm)...",
+                     self.name, self.wavelength_range[1])
             data = coverage_instance.project_array(self._data)
             res.data = data
             return res
@@ -338,7 +333,7 @@ class Channel(GenericChannel):
             lons, lats = self.area.get_lonlats()
         else:
             lons, lats = lonlats
-    
+
         # Calculate Sun zenith angles and the cosine
         cos_zen = astronomy.cos_zen(time_slot, lons, lats)
 
@@ -349,7 +344,7 @@ class Channel(GenericChannel):
         new_ch.name += '_SZC'
 
         if mode == 'cos':
-            new_ch.data = mpop.tools.sunzen_corr_cos(new_ch.data, 
+            new_ch.data = mpop.tools.sunzen_corr_cos(new_ch.data,
                                                      cos_zen, limit=limit)
         else:
             # Placeholder for other correction methods

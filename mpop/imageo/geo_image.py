@@ -50,7 +50,7 @@ class GeoImage(Image):
     """This class defines geographic images. As such, it contains not only data
     of the different *channels* of the image, but also the area on which it is
     defined (*area* parameter) and *time_slot* of the snapshot.
-    
+
     The channels are considered to contain floating point values in the range
     [0.0,1.0]. In order to normalize the input data, the *crange* parameter
     defines the original range of the data. The conversion to the classical
@@ -67,8 +67,8 @@ class GeoImage(Image):
         self.tags = {}
         self.gdal_options = {}
 
-        super(GeoImage, self).__init__(channels, mode, crange,
-                                      fill_value, palette)
+        Image.__init__(self, channels, mode, crange,
+                       fill_value, palette)
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,
@@ -97,7 +97,7 @@ class GeoImage(Image):
                                      gdal_options, blocksize, **kwargs)
         try:
             # Let image.pil_save it ?
-            super(GeoImage, self).save(filename, compression, fformat=fformat)
+            Image.save(self, filename, compression, fformat=fformat)
         except UnknownImageFormat:
             # No ... last resort, try to import an external module. 
             logger.info("Importing image writer module '%s'" % fformat)
@@ -149,16 +149,33 @@ class GeoImage(Image):
         
         raster = gdal.GetDriverByName("GTiff")
 
+        tags = tags or {}
+
         if floating_point:
             if self.mode != "L":
                 raise ValueError("Image must be in 'L' mode for floating point"
                                  " geotif saving")
+            if self.fill_value is None:
+                logger.warning("Image with floats cannot be transparent, "
+                               "so setting fill_value to 0")
+                self.fill_value = 0
             channels = [self.channels[0].astype(np.float64)]
-            fill_value = self.fill_value or 0
+            fill_value = self.fill_value or [0]
             gformat = gdal.GDT_Float64
+            opacity = 0
         else:
-            channels, fill_value = self._finalize()
-            gformat = gdal.GDT_Byte
+            nbits = int(tags.get("NBITS", "8"))
+            if nbits > 16:
+                dtype = np.uint32
+                gformat = gdal.GDT_UInt32
+            elif nbits > 8:
+                dtype = np.uint16
+                gformat = gdal.GDT_UInt16
+            else:
+                dtype = np.uint8
+                gformat = gdal.GDT_Byte
+            opacity = np.iinfo(dtype).max
+            channels, fill_value = self._finalize(dtype)
 
         logger.debug("Saving to GeoTiff.")
 
@@ -177,7 +194,6 @@ class GeoImage(Image):
             g_opts.append("TILED=YES")
             g_opts.append("BLOCKXSIZE=" + str(blocksize))
             g_opts.append("BLOCKYSIZE=" + str(blocksize))
-            
 
         if(self.mode == "L"):
             ensure_dir(filename)
@@ -196,7 +212,8 @@ class GeoImage(Image):
                                        2, 
                                        gformat,
                                        g_opts)
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      opacity, fill_value)
         elif(self.mode == "LA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
@@ -227,7 +244,8 @@ class GeoImage(Image):
                                        gformat,
                                        g_opts)
 
-            self._gdal_write_channels(dst_ds, channels, 255, fill_value)
+            self._gdal_write_channels(dst_ds, channels,
+                                      opacity, fill_value)
 
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
@@ -239,7 +257,9 @@ class GeoImage(Image):
                                    gformat,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds, channels[:-1], channels[3], fill_value)
+            self._gdal_write_channels(dst_ds,
+                                      channels[:-1], channels[3],
+                                      fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
                                       " %s is not implemented."%self.mode)
@@ -247,7 +267,7 @@ class GeoImage(Image):
 
                 
         # Create raster GeoTransform based on upper left corner and pixel
-        # resolution ... if not overwritten by argument geotranform.
+        # resolution ... if not overwritten by argument geotransform.
 
         if geotransform:
             dst_ds.SetGeoTransform(geotransform)
@@ -256,10 +276,9 @@ class GeoImage(Image):
                     spatialref = spatialref.ExportToWkt()
                 dst_ds.SetProjection(spatialref)
         else:
+            from pyresample import utils
+            from mpop.projector import get_area_def
             try:
-                from pyresample import utils
-                from mpop.projector import get_area_def
-            
                 area = get_area_def(self.area)
             except (utils.AreaNotFound, AttributeError):
                 area = self.area
@@ -270,6 +289,7 @@ class GeoImage(Image):
                                    area.area_extent[3], 0, -area.pixel_size_y]
                 dst_ds.SetGeoTransform(adfgeotransform)
                 srs = osr.SpatialReference()
+
                 srs.ImportFromProj4(area.proj4_string)
                 srs.SetProjCS(area.proj_id)
                 try:
