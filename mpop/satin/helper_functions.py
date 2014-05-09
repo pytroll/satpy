@@ -27,6 +27,7 @@
 import numpy as np
 from mpop.projector import get_area_def
 from pyresample.geometry import Boundary
+from pyresample.utils import AreaNotFound
 import logging
 from pyproj import Proj
 
@@ -55,7 +56,13 @@ def area_def_names_to_extent(area_def_names, proj4_str,
 
     for name in area_def_names:
 
-        boundaries = get_area_def(name).get_boundary_lonlats()
+        try:
+            boundaries = get_area_def(name).get_boundary_lonlats()
+        except AreaNotFound:
+            LOGGER.warning('Area definition not found')
+            return default_extent
+        except AttributeError:
+            boundaries = name.get_boundary_lonlats()
 
         # extents for edges
         _, up_y = pro(boundaries[0].side1, boundaries[1].side1)
