@@ -92,7 +92,8 @@ class TestSatinHelpers(unittest.TestCase):
 
         area_defs = afghanistan
 
-        correct_values = [-5567248.07, -5570248.48, 5570248.48, 5567248.07]
+        correct_values = [3053894.9120365814, 1619269.0985270864,
+                          5570248.48, 4155907.3122006715]
 
         max_extent = area_def_names_to_extent(area_defs,
                                               proj4_str,
