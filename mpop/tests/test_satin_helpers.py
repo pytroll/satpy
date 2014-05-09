@@ -32,6 +32,8 @@ class TestSatinHelpers(unittest.TestCase):
     def test_area_def_names_to_extent(self):
         '''Test conversion of area definition names to maximal area
         extent.'''
+        
+        from mpop.satin.helper_functions import area_def_names_to_extent
 
         # MSG3 proj4 string from 
         #  xrit.sat.load(..., only_metadata=True).proj4_params
@@ -46,10 +48,9 @@ class TestSatinHelpers(unittest.TestCase):
         correct_values = [-3182169.2947746729, 1935792.2825874905,
                            3263159.1568166986, 5388866.0573552148]
 
-        max_extent = \
-            mpop.satin.helper_functions.area_def_names_to_extent(area_def_names,
-                                                                 proj4_str,
-                                                                 msg_extent)
+        max_extent = area_def_names_to_extent(area_def_names,
+                                              proj4_str,
+                                              msg_extent)
 
         for i in range(len(max_extent)):
             self.assertAlmostEqual(max_extent[i], correct_values[i], 2)
@@ -63,10 +64,9 @@ class TestSatinHelpers(unittest.TestCase):
 
         correct_values = [-5567248.07, -5570248.48, 5570248.48, 5567248.07]
 
-        max_extent = \
-            mpop.satin.helper_functions.area_def_names_to_extent(area_def_names,
-                                                                 proj4_str,
-                                                                 msg_extent)
+        max_extent = area_def_names_to_extent(area_def_names,
+                                              proj4_str,
+                                              msg_extent)
 
         for i in range(len(max_extent)):
             self.assertAlmostEqual(max_extent[i], correct_values[i], 2)
