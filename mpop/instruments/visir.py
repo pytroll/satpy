@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Lars Ørum Rasmussen <ras@dmi.dk>
 
@@ -30,6 +30,8 @@ from mpop.compositer import Compositer
 # remove warnings for unused prerequisites
 
 class VisirCompositer(Compositer):
+    """Compositer for Visual-IR instruments
+    """
 
     def __call__(self, *channels, **keys):
         """Build a geoimage.
@@ -41,7 +43,7 @@ class VisirCompositer(Compositer):
         area = None
         inv = []
         new_channels = []
-        
+
         for channel in channels:
             if isinstance(channel, str):
                 if channel.startswith("-"):
@@ -57,9 +59,9 @@ class VisirCompositer(Compositer):
                     inv.append(False)
 
             new_channels.append(channel)
-                
+
             data.append(self[channel].data)
-            
+
             new_area = self[channel].area
             if area and (new_area != area):
                 raise ValueError("Channels should have the same area")
@@ -72,12 +74,13 @@ class VisirCompositer(Compositer):
                                  area=area,
                                  time_slot=self.time_slot,
                                  fill_value=keys.get("fill_value", None),
+                                 crange=keys.get("crange", None),
                                  mode=keys.get("mode", None))
 
         img.enhance(inverse=inv,
                     gamma=keys.get("gamma", 1.0),
                     stretch=keys.get("stretch", "no"))
-        
+
         return img
 
     def channel_image(self, channel, fill_value=0):
@@ -115,7 +118,7 @@ class VisirCompositer(Compositer):
         ch1 = self[0.635].check_range()
         ch2 = self[0.85].check_range()
         ch3 = -self[10.8].data
-        
+
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
@@ -133,7 +136,7 @@ class VisirCompositer(Compositer):
 
     def night_overview(self, stretch='histogram', gamma=None):
         """Make an overview RGB image composite using IR channels.
-        
+
         +--------------------+--------------------+
         | Channels           | Gamma              |
         +====================+====================+
@@ -165,7 +168,7 @@ class VisirCompositer(Compositer):
         +--------------------+--------------------+--------------------+
         """
         self.check_channels(0.635, 0.85, 1.63)
-        
+
         ch1 = self[1.63].check_range()
         ch2 = self[0.85].check_range()
         ch3 = self[0.635].check_range()
@@ -185,12 +188,12 @@ class VisirCompositer(Compositer):
             img.enhance(gamma=gamma)
 
         return img
-    
+
     natural.prerequisites = set([0.635, 0.85, 1.63])
 
     def airmass(self):
         """Make an airmass RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
@@ -216,7 +219,7 @@ class VisirCompositer(Compositer):
                                          (-40, 5),
                                          (243, 208)))
         return img
-            
+
     airmass.prerequisites = set([6.7, 7.3, 9.7, 10.8])
 
 
@@ -256,14 +259,14 @@ class VisirCompositer(Compositer):
         """
         self.check_channels(6.7)
 
-        img =  geo_image.GeoImage(self[6.7].data,
-                                  self.area,
-                                  self.time_slot,
-                                  fill_value=0,
-                                  mode="L")
-        img.enhance(inverse = True, stretch = "linear")
+        img = geo_image.GeoImage(self[6.7].data,
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=0,
+                                 mode="L")
+        img.enhance(inverse=True, stretch="linear")
         return img
-    
+
     wv_high.prerequisites = set([6.7])
 
     def wv_low(self):
@@ -279,11 +282,11 @@ class VisirCompositer(Compositer):
                                  self.time_slot,
                                  fill_value=0,
                                  mode="L")
-        img.enhance(inverse = True, stretch = "linear")
+        img.enhance(inverse=True, stretch="linear")
         return img
 
     wv_low.prerequisites = set([7.3])
-        
+
     def green_snow(self):
         """Make a Green Snow RGB image composite.
 
@@ -304,15 +307,15 @@ class VisirCompositer(Compositer):
         ch1 = self[1.63].check_range()
         ch2 = self[0.635].check_range()
         ch3 = -self[10.8].data
-        
+
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch = "crude")
-        img.enhance(gamma = 1.6)
+        img.enhance(stretch="crude")
+        img.enhance(gamma=1.6)
 
         return img
 
@@ -346,14 +349,14 @@ class VisirCompositer(Compositer):
                                  mode="RGB")
 
         img.enhance(stretch = "crude")
-        
+
         return img
 
     red_snow.prerequisites = set([0.635, 1.63, 10.8])
 
     def convection(self):
         """Make a Severe Convection RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Span               | Gamma              |
         +====================+====================+====================+
@@ -387,7 +390,7 @@ class VisirCompositer(Compositer):
 
     def dust(self):
         """Make a Dust RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
@@ -413,7 +416,7 @@ class VisirCompositer(Compositer):
                                          (261, 289)))
 
         img.enhance(gamma=(1.0, 2.5, 1.0))
-        
+
         return img
 
     dust.prerequisites = set([8.7, 10.8, 12.0])
@@ -421,7 +424,7 @@ class VisirCompositer(Compositer):
 
     def ash(self):
         """Make a Ash RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
@@ -453,7 +456,7 @@ class VisirCompositer(Compositer):
 
     def fog(self):
         """Make a Fog RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
@@ -479,14 +482,14 @@ class VisirCompositer(Compositer):
                                          (243, 283)))
 
         img.enhance(gamma=(1.0, 2.0, 1.0))
-        
+
         return img
 
     fog.prerequisites = set([8.7, 10.8, 12.0])
 
     def night_fog(self):
         """Make a Night Fog RGB image composite.
-        
+
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
@@ -502,7 +505,7 @@ class VisirCompositer(Compositer):
         ch1 = self[12.0].data - self[10.8].data
         ch2 = self[10.8].data - self[3.75].data
         ch3 = self[10.8].data
-        
+
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
@@ -511,7 +514,7 @@ class VisirCompositer(Compositer):
                                  crange=((-4, 2),
                                          (0, 6),
                                          (243, 293)))
-        
+
         img.enhance(gamma=(1.0, 2.0, 1.0))
 
         return img
@@ -520,7 +523,7 @@ class VisirCompositer(Compositer):
 
     def cloudtop(self, stretch=(0.005, 0.005), gamma=None):
         """Make a Cloudtop RGB image composite.
-        
+
         +--------------------+--------------------+
         | Channels           | Gamma              |
         +====================+====================+

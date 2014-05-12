@@ -3,7 +3,7 @@
 # Copyright (c) 2010, 2011, 2012, 2013, 2014.
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
 
@@ -53,7 +53,7 @@ try:
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
-    
+
 
 class Satellite(object):
     """This is the satellite class. It contains information on the satellite.
@@ -108,39 +108,39 @@ class SatelliteScene(Satellite):
                  orbit=None, satellite=(None, None, None)):
 
         Satellite.__init__(self, satellite)
-        
+
         if(time_slot is not None and
            not isinstance(time_slot, datetime.datetime)):
             raise TypeError("Time_slot must be a datetime.datetime instance.")
-        
+
         self.time_slot = time_slot
 
 
         self.area_id = None
         self.area_def = None
-        
-        if(area_id is not None):
+
+        if area_id is not None:
             from warnings import warn
             warn("The *area_id* attribute is deprecated."
                  "Please use *area* instead.",
                  DeprecationWarning)
-            if(not isinstance(area_id, str)):
+            if not isinstance(area_id, str):
                 raise TypeError("Area must be a string.")
 
         self.area = area_id
 
         if area is not None:
             self.area = area
-        
+
         if(orbit is not None and
            not isinstance(orbit, str)):
             raise TypeError("Orbit must be a string.")
-        
+
         self.orbit = orbit
 
 
         self.info = {}
-        
+
         self.lat = None
         self.lon = None
 
@@ -153,10 +153,10 @@ class SatelliteScene(Satellite):
     def set_area(self, area):
         """Setter for area.
         """
-        if (area is None):
+        if area is None:
             self.area_def = None
             self.area_id = None
-        elif(isinstance(area, str)):
+        elif isinstance(area, str):
             self.area_id = area
             self.area_def = None
         else:
@@ -197,12 +197,12 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         SatelliteScene.__init__(self, time_slot, area_id, area,
                                 orbit, satellite)
-        
+
         try:
             self.instrument_name = instrument or self.instrument_name
         except AttributeError:
             self.instrument_name = None
-            
+
         self.channels = []
 
         try:
@@ -234,34 +234,34 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         self.channels_to_load = set([])
 
-    def __getitem__(self, key, aslist = False):
-        if(isinstance(key, float)):
+    def __getitem__(self, key, aslist=False):
+        if isinstance(key, float):
             channels = [chn for chn in self.channels
                         if(hasattr(chn, "wavelength_range") and
                            chn.wavelength_range[0] <= key and
                            chn.wavelength_range[2] >= key)]
             channels = sorted(channels,
-                              lambda ch1,ch2:
+                              lambda ch1, ch2:
                                   ch1.__cmp__(ch2, key))
-            
-        elif(isinstance(key, str)):
+
+        elif isinstance(key, str):
             channels = [chn for chn in self.channels
                         if chn.name == key]
             channels = sorted(channels)
 
-        elif(isinstance(key, int)):
+        elif isinstance(key, int):
             channels = [chn for chn in self.channels
                         if int(np.round(chn.resolution)) == key]
             channels = sorted(channels)
 
-        elif(isinstance(key, (tuple, list))):
+        elif isinstance(key, (tuple, list)):
             if len(key) == 0:
                 raise KeyError("Key list must contain at least one element.")
-            channels = self.__getitem__(key[0], aslist = True)
-            if(len(key) > 1 and len(channels) > 0):
+            channels = self.__getitem__(key[0], aslist=True)
+            if len(key) > 1 and len(channels) > 0:
                 dummy_instance = SatelliteInstrumentScene()
                 dummy_instance.channels = channels
-                channels = dummy_instance.__getitem__(key[1:], aslist = True)
+                channels = dummy_instance.__getitem__(key[1:], aslist=True)
         else:
             raise TypeError("Malformed key: " + str(key))
 
@@ -312,8 +312,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         #         self[key].data = data
         #     except KeyError:
         #         self.channels.append(Channel(name=key))
-        #         self[key].data = data                             
-                
+        #         self[key].data = data
+
 
 
     def __str__(self):
@@ -327,7 +327,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         """Gets the reader for *pformat* format, and puts it in the `reader`
         attribute.
         """
-       
+
         elements = pformat.split(".")
         if len(elements) == 1:
             reader_module = pformat
@@ -364,7 +364,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         else:
             reader_module = ".".join(elements[:-1])
             reader_class = elements[-1]
-        
+
             reader = "mpop.satin."+reader_module
             try:
                 # Look for builtin reader
@@ -407,7 +407,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             for chn in self.channels:
                 self.channels_to_load |= set([chn.name])
 
-        elif(isinstance(channels, (list, tuple, set))):
+        elif isinstance(channels, (list, tuple, set)):
             self.channels_to_load = set()
             for chn in channels:
                 try:
@@ -442,7 +442,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             LOG.warning("Can't load data, no config file for " + self.fullname)
             self.channels_to_load = set()
             return
-        
+
         levels.sort()
 
         if levels[0] == self.instrument_name+"-level1":
@@ -476,11 +476,11 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         raise ValueError("Area extent must be a sequence of "
                                          "four numbers.")
-                    
+
                 reader_instance.load(self, **kwargs)
-            except ImportError, e:
+            except ImportError, err:
                 LOG.exception("ImportError while loading "+reader_name+": "
-                              + str(e))
+                              + str(err))
                 continue
             loaded_channels = set([chn.name for chn in self.loaded_channels()])
             just_loaded = loaded_channels & self.channels_to_load
@@ -488,7 +488,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 LOG.info("No channels loaded with " + reader + ".")
             self.channels_to_load -= loaded_channels
             LOG.debug("Successfully loaded: "+str(just_loaded))
-            
+
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "
                         + str(self.channels_to_load))
@@ -498,7 +498,7 @@ class SatelliteInstrumentScene(SatelliteScene):
     def save(self, filename, to_format="netcdf4", **options):
         """Saves the current scene into a file of format *to_format*. Supported
         formats are:
-        
+
         - *netcdf4*: NetCDF4 with CF conventions.
         """
 
@@ -520,8 +520,8 @@ class SatelliteInstrumentScene(SatelliteScene):
                 self[chn].data = None
             except AttributeError:
                 LOG.warning("Can't unload channel" + str(chn))
-        
-        
+
+
     def add_to_history(self, message):
         """Adds a message to history info.
         """
@@ -531,7 +531,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             self.info["history"] = timed_message
         else:
             self.info["history"] += "\n" + timed_message
-            
+
 
     def check_channels(self, *channels):
         """Check if the *channels* are loaded, raise an error otherwise.
@@ -548,7 +548,8 @@ class SatelliteInstrumentScene(SatelliteScene):
         """
         return set([chan for chan in self.channels if chan.is_loaded()])
 
-    def project(self, dest_area, channels=None, precompute=False, mode=None, radius=None, nprocs=1):
+    def project(self, dest_area, channels=None, precompute=False, mode=None,
+                radius=None, nprocs=1):
         """Make a copy of the current snapshot projected onto the
         *dest_area*. Available areas are defined in the region configuration
         file (ACPG). *channels* tells which channels are to be projected, and
@@ -570,18 +571,18 @@ class SatelliteInstrumentScene(SatelliteScene):
         Note: channels have to be loaded to be projected, otherwise an
         exception is raised.
         """
-        
+
         if not is_pyresample_loaded:
-            # Not much point in proceeding then 
+            # Not much point in proceeding then
             return self
-        
+
         _channels = set([])
 
         if channels is None:
             for chn in self.loaded_channels():
                 _channels |= set([chn])
 
-        elif(isinstance(channels, (list, tuple, set))):
+        elif isinstance(channels, (list, tuple, set)):
             for chn in channels:
                 try:
                     _channels |= set([self[chn]])
@@ -598,16 +599,16 @@ class SatelliteInstrumentScene(SatelliteScene):
         if isinstance(dest_area, str):
             dest_area = mpop.projector.get_area_def(dest_area)
 
-        
+
         res.area = dest_area
         res.channels = []
 
         if not _channels <= self.loaded_channels():
-            LOG.warning("Cannot project nonloaded channels: %s."
-                        %(_channels - self.loaded_channels()))
+            LOG.warning("Cannot project nonloaded channels: %s.",
+                        _channels - self.loaded_channels())
             LOG.info("Will project the other channels though.")
             _channels = _channels and self.loaded_channels()
-        
+
         cov = {}
 
         for chn in sorted(_channels, key=lambda x: x.resolution, reverse=True):
@@ -619,7 +620,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     chn.area = area_name
                 else:
                     if is_pyresample_loaded:
-                        try:                            
+                        try:
                             chn.area = AreaDefinition(
                                 self.area.area_id + str(chn.shape),
                                 self.area.name,
@@ -629,7 +630,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                                 chn.shape[0],
                                 self.area.area_extent,
                                 self.area.nprocs)
-    
+
                         except AttributeError:
                             try:
                                 dummy = self.area.lons
@@ -645,7 +646,6 @@ class SatelliteInstrumentScene(SatelliteScene):
                         chn.area = self.area + str(chn.shape)
             else: #chn.area is not None
                 if (is_pyresample_loaded and
-                    isinstance(chn.area, SwathDefinition) and
                     (not hasattr(chn.area, "area_id") or
                      not chn.area.area_id)):
                     area_name = ("swath_" + self.fullname + "_" +
@@ -681,7 +681,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             except NotLoadedError:
                 LOG.warning("Channel "+str(chn.name)+" not loaded, "
                             "thus not projected.")
-        
+
         # Compose with image object
         try:
             if res._CompositerClass is not None:
@@ -689,7 +689,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                 res.image = res._CompositerClass(weakref.proxy(res))
         except AttributeError:
             pass
-        
+
         return res
 
 if sys.version_info < (2, 5):
@@ -705,17 +705,17 @@ def assemble_segments(segments):
     resulting scene object.
     """
     from mpop.satellites import GenericFactory
-    
+
     channels = set([])
     for seg in segments:
         channels |= set([chn.name for chn in seg.loaded_channels()])
 
     seg = segments[0]
-    
+
     new_scene = GenericFactory.create_scene(seg.satname, seg.number,
                                             seg.instrument_name, seg.time_slot,
                                             seg.orbit, variant=seg.variant)
-    
+
     swath_definitions = {}
 
     for chn in channels:
@@ -728,7 +728,7 @@ def assemble_segments(segments):
                                 for seg in segments
                                 if seg[chn].is_loaded()])
             if area_names not in swath_definitions:
-            
+
                 lons = np.ma.concatenate([seg[chn].area.lons[:]
                                           for seg in segments
                                           if seg[chn].is_loaded()])

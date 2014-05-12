@@ -1,13 +1,46 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2014
+
+# SMHI,
+# Folkborgsvägen 1,
+# Norrköping, 
+# Sweden
+
+# Author(s):
+ 
+#   Martin Raspaud <martin.raspaud@smhi.se>
+
+# This file is part of mpop.
+
+# mpop is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# mpop is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with mpop.  If not, see <http://www.gnu.org/licenses/>.
+
 """Module for testing the pp.geo_image module.
 """
 import datetime
 import unittest
-import os
+import sys
 
 import numpy as np
+from mock import patch, MagicMock
+
+# Mock some modules, so we don't need them for tests.
+
+sys.modules['osgeo'] = MagicMock()
+sys.modules['pyresample'] = MagicMock()
 
 import mpop.imageo.geo_image as geo_image
-
 
 class TestGeoImage(unittest.TestCase):
     """Class for testing pp.geo_image.
@@ -15,101 +48,388 @@ class TestGeoImage(unittest.TestCase):
     def setUp(self):
         """Setup the test.
         """
-        time_slot = datetime.datetime(2009, 10, 8, 14, 30)
-        self.img = geo_image.GeoImage(np.zeros((512, 512), dtype=np.uint8),
-                                      area="euro", time_slot=time_slot)
         
+        self.time_slot = datetime.datetime(2009, 10, 8, 14, 30)
+        self.data = np.zeros((512, 512), dtype=np.uint8)
+        self.img = geo_image.GeoImage(self.data,
+                                      area="euro",
+                                      time_slot=self.time_slot)
 
-#     def test_add_overlay(self):
-#         """Add overlay to the image.
-#         """
-#         self.img.add_overlay((1,1,1))
 
-#         model = np.array([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-#                           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+    @patch.object(geo_image.GeoImage, 'geotiff_save')
+    def test_save(self, mock_save):
+        """Save a geo image.
+        """
         
-#         self.assert_(np.all(self.img.channels[0][300:310, 300:310] == model))
-        
-    def test_save_geotiff(self):
+        self.img.save("test.tif", compression=0)
+        mock_save.assert_called_once_with("test.tif", 0, None, None, 256)
+        mock_save.reset_mock()
+        self.img.save("test.tif", compression=9)
+        mock_save.assert_called_once_with("test.tif", 9, None, None, 256)
+        mock_save.reset_mock()
+        self.img.save("test.tif", compression=9, floating_point=True)
+        mock_save.assert_called_once_with("test.tif", 9, None, None, 256,
+                                          floating_point=True)
+
+        mock_save.reset_mock()
+        self.img.save("test.tif", compression=9, tags={"NBITS": 20})
+        mock_save.assert_called_once_with("test.tif", 9, {"NBITS": 20},
+                                          None, 256)
+
+        with patch.object(geo_image.Image, 'save') as mock_isave:
+            self.img.save("test.png")
+            mock_isave.assert_called_once_with(self.img, 'test.png', 6,
+                                               fformat='png')
+            mock_isave.side_effect = geo_image.UnknownImageFormat("Boom!")
+            self.assertRaises(geo_image.UnknownImageFormat,
+                              self.img.save, "test.dummy")
+
+
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
         """Save to geotiff format.
         """
-        # self.img.save("test.tif", compression = 0)
-        # self.assertEqual(str(os.popen("tiffdump test.tif").read()),
-        #                  "test.tif:\n"
-        #                  "Magic: 0x4949 <little-endian> Version: 0x2a\n"
-        #                  "Directory 0: offset 524688 (0x80190) next 0 (0)\n"
-        #                  "ImageWidth (256) SHORT (3) 1<512>\n"
-        #                  "ImageLength (257) SHORT (3) 1<512>\n"
-        #                  "BitsPerSample (258) SHORT (3) 2<8 8>\n"
-        #                  "Compression (259) SHORT (3) 1<1>\n"
-        #                  "Photometric (262) SHORT (3) 1<1>\n"
-        #                  "SamplesPerPixel (277) SHORT (3) 1<2>\n"
-        #                  "PlanarConfig (284) SHORT (3) 1<1>\n"
-        #                  "DateTime (306) ASCII (2) 20<2009:10:08 14:30:00\\0>\n"
-        #                  "TileWidth (322) SHORT (3) 1<256>\n"
-        #                  "TileLength (323) SHORT (3) 1<256>\n"
-        #                  "TileOffsets (324) LONG (4) 4<400 131472 262544 393616"
-        #                  ">\n"
-        #                  "TileByteCounts (325) LONG (4) 4<131072 131072 131072 "
-        #                  "131072>\n"
-        #                  "ExtraSamples (338) SHORT (3) 1<0>\n"
-        #                  "SampleFormat (339) SHORT (3) 2<1 1>\n"
-        #                  "33550 (0x830e) DOUBLE (12) 3<8000 8000 0>\n"
-        #                  "33922 (0x8482) DOUBLE (12) 6<0 0 0 -2.71718e+06 -1.47"
-        #                  "505e+06 0>\n"
-        #                  "34735 (0x87af) SHORT (3) 64<1 1 0 15 1024 0 1 1 1025 "
-        #                  "0 1 1 1026 34737 8 0 2048 0 1 4326 2049 34737 7 8 ..."
-        #                  ">\n"
-        #                  "34736 (0x87b0) DOUBLE (12) 5<60 14 1 0 0>\n"
-        #                  "34737 (0x87b1) ASCII (2) 16<unnamed|WGS 84|\\0>\n"
-        #                  "42112 (0xa480) ASCII (2) 154<<GDALMetadata>\\n  <Item"
-        #                  " n ...>\n")
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
 
+        # test with 0 compression
+
+        raster = gtbn.return_value
         
-        # os.remove("test.tif")
+        self.img.geotiff_save("test.tif", 0, None, {"BLA": "09"}, 256)
+        gtbn.assert_called_once_with("GTiff")
 
-        # self.img.save("test.tif", compression = 6)
-        # self.assertEqual(os.popen("tiffdump test.tif").read(),
-        #                  "test.tif:\n"
-        #                  "Magic: 0x4949 <little-endian> Version: 0x2a\n"
-        #                  "Directory 0: offset 8 (0x8) next 0 (0)\n"
-        #                  "ImageWidth (256) SHORT (3) 1<512>\n"
-        #                  "ImageLength (257) SHORT (3) 1<512>\n"
-        #                  "BitsPerSample (258) SHORT (3) 2<8 8>\n"
-        #                  "Compression (259) SHORT (3) 1<8>\n"
-        #                  "Photometric (262) SHORT (3) 1<1>\n"
-        #                  "SamplesPerPixel (277) SHORT (3) 1<2>\n"
-        #                  "PlanarConfig (284) SHORT (3) 1<1>\n"
-        #                  "DateTime (306) ASCII (2) 20<2009:10:08 14:30:00\\0>\n"
-        #                  "Predictor (317) SHORT (3) 1<1>\n"
-        #                  "TileWidth (322) SHORT (3) 1<256>\n"
-        #                  "TileLength (323) SHORT (3) 1<256>\n"
-        #                  "TileOffsets (324) LONG (4) 4<703 853 1003 1153>\n"
-        #                  "TileByteCounts (325) LONG (4) 4<150 150 150 150>\n"
-        #                  "ExtraSamples (338) SHORT (3) 1<1>\n"
-        #                  "SampleFormat (339) SHORT (3) 2<1 1>\n"
-        #                  "33550 (0x830e) DOUBLE (12) 3<8000 8000 0>\n"
-        #                  "33922 (0x8482) DOUBLE (12) 6<0 0 0 -2.71718e+06 -1.47"
-        #                  "505e+06 0>\n"
-        #                  "34735 (0x87af) SHORT (3) 88<1 1 0 20 1024 0 1 1 1025 "
-        #                  "0 1 1 1026 34737 6 0 2048 0 1 32767 2049 34737 78 6 "
-        #                  "...>\n"
-        #                  "34736 (0x87b0) DOUBLE (12) 8<60 14 1 0 0 6.3774e+06 "
-        #                  "299.153 0>\n"
-        #                  "34737 (0x87b1) ASCII (2) 85<ps60n|GCS Name = Bessel"
-        #                  "  ...>\n")
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              2,
+                                              gby,
+                                              ["BLA=09",
+                                               'TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256',
+                                               'ALPHA=YES'])
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 255)
+        self.assertTrue(mock_write_channels.call_args[0][3] is None)
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1]
+                               == self.data))
+        
+        
+        dst_ds.SetGeoTransform.assert_called_once_with([1, 10, 0, 4, 0, -11])
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S")}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
+
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff_compress(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
+        """Save to geotiff format with compression.
+        """
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
+
+        raster = gtbn.return_value
+
+        self.img.geotiff_save("test.tif", 9, None, None, 256)
+        gtbn.assert_called_once_with("GTiff")
+
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              2,
+                                              gby,
+                                              ['COMPRESS=DEFLATE',
+                                               'ZLEVEL=9',
+                                               'TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256',
+                                               'ALPHA=YES'])
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 255)
+        self.assertTrue(mock_write_channels.call_args[0][3] is None)
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1] == self.data))
+        
+        dst_ds.SetGeoTransform.assert_called_once_with([1, 10, 0, 4, 0, -11])
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S")}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
+        
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff_floats(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
+        """Save to geotiff format with floats.
+        """
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
+        # test with floats
+
+        raster = gtbn.return_value
+        
+        self.img.geotiff_save("test.tif", 0, None, None, 256,
+                              floating_point=True)
+        gtbn.assert_called_once_with("GTiff")
+
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              1,
+                                              gf,
+                                              ['TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256'])
+
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 0)
+        self.assertEquals(mock_write_channels.call_args[0][3], [0])
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1]
+                               == self.data))
+        
+        
+        dst_ds.SetGeoTransform.assert_called_once_with([1, 10, 0, 4, 0, -11])
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S")}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
+
+        self.fill_value = None
+        self.img.mode = "RGB"
+        self.assertRaises(ValueError, self.img.geotiff_save, "test.tif", 0,
+                          None, None, 256,
+                          floating_point=True)
+        
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff_32(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
+        """Save to geotiff 32-bits format.
+        """
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
+
+        raster = gtbn.return_value
+        
+
+        self.img.geotiff_save("test.tif", 9, {"NBITS": 20}, None, 256)
+        gtbn.assert_called_once_with("GTiff")
+
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              2,
+                                              gui32,
+                                              ['COMPRESS=DEFLATE',
+                                               'ZLEVEL=9',
+                                               'TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256',
+                                               'ALPHA=YES'])
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 2**32 - 1)
+        self.assertTrue(mock_write_channels.call_args[0][3] is None)
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1] == self.data))
+        
+        dst_ds.SetGeoTransform.assert_called_once_with([1, 10, 0, 4, 0, -11])
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S"),
+                    "NBITS": 20}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
 
 
-        # os.remove("test.tif")
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff_16(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
+        """Save to geotiff 16-bits format.
+        """
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
 
+        raster = gtbn.return_value
+        
+
+        self.img.geotiff_save("test.tif", 9, {"NBITS": 15}, None, 256)
+        gtbn.assert_called_once_with("GTiff")
+
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              2,
+                                              gui16,
+                                              ['COMPRESS=DEFLATE',
+                                               'ZLEVEL=9',
+                                               'TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256',
+                                               'ALPHA=YES'])
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 2**16 - 1)
+        self.assertTrue(mock_write_channels.call_args[0][3] is None)
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1] == self.data))
+        
+        dst_ds.SetGeoTransform.assert_called_once_with([1, 10, 0, 4, 0, -11])
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S"),
+                    "NBITS": 15}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
+
+
+    @patch('osgeo.osr.SpatialReference')
+    @patch('mpop.projector.get_area_def')
+    @patch('osgeo.gdal.GDT_Float64')
+    @patch('osgeo.gdal.GDT_Byte')
+    @patch('osgeo.gdal.GDT_UInt16')
+    @patch('osgeo.gdal.GDT_UInt32')
+    @patch('osgeo.gdal.GetDriverByName')
+    @patch.object(geo_image.GeoImage, '_gdal_write_channels')
+    def test_save_geotiff_geotransform(self, mock_write_channels, gtbn, gui32, gui16, gby, gf, gad, spaceref):
+        """Save to geotiff format with custom geotransform
+        """
+        gadr = gad.return_value
+        gadr.area_extent = [1, 2, 3, 4]
+        gadr.pixel_size_x = 10
+        gadr.pixel_size_y = 11
+        gadr.proj4_string = "+proj=geos +ellps=WGS84"
+        gadr.proj_dict = {"proj": "geos", "ellps": "WGS84"}
+        gadr.proj_id = "geos0"
+
+        # test with 0 compression
+
+        raster = gtbn.return_value
+        
+        self.img.geotiff_save("test.tif", 0, None, None, 256,
+                              geotransform="best geotransform of the world",
+                              spatialref=spaceref())
+        gtbn.assert_called_once_with("GTiff")
+
+        raster.Create.assert_called_once_with("test.tif",
+                                              self.data.shape[0],
+                                              self.data.shape[1],
+                                              2,
+                                              gby,
+                                              ['TILED=YES',
+                                               'BLOCKXSIZE=256',
+                                               'BLOCKYSIZE=256',
+                                               'ALPHA=YES'])
+        dst_ds = raster.Create.return_value
+
+        #mock_write_channels.assert_called_once_with(dst_ds, self.data,
+        #                                            255, None)
+
+        self.assertEquals(mock_write_channels.call_count, 1)
+        self.assertEquals(mock_write_channels.call_args[0][0], dst_ds)
+        self.assertEquals(mock_write_channels.call_args[0][2], 255)
+        self.assertTrue(mock_write_channels.call_args[0][3] is None)
+        self.assertTrue(np.all(mock_write_channels.call_args[0][1]
+                               == self.data))
+        
+        
+        dst_ds.SetGeoTransform.assert_called_once_with("best geotransform of"
+                                                       " the world")
+        srs = spaceref.return_value.ExportToWkt.return_value
+        dst_ds.SetProjection.assert_called_once_with(srs)
+
+        time_tag = {"TIFFTAG_DATETIME":
+                    self.img.time_slot.strftime("%Y:%m:%d %H:%M:%S")}
+        dst_ds.SetMetadata.assert_called_once_with(time_tag, '')
 
 
 def suite():
