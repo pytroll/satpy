@@ -27,15 +27,18 @@
 import numpy as np
 from mpop.projector import get_area_def
 from pyresample.geometry import Boundary
-from pyresample.utils import AreaNotFound
+# from pyresample.utils import AreaNotFound
+
+import pyresample
+
 import logging
 from pyproj import Proj
 
 LOGGER = logging.getLogger(__name__)
 
 
-def area_def_names_to_extent(area_def_names, proj4_str, 
-                             default_extent=(-5567248.07, -5570248.48, 
+def area_def_names_to_extent(area_def_names, proj4_str,
+                             default_extent=(-5567248.07, -5570248.48,
                                               5570248.48, 5567248.07)):
     '''Convert a list of *area_def_names* to maximal area extent in
     destination projection defined by *proj4_str*. *default_extent*
@@ -47,8 +50,9 @@ def area_def_names_to_extent(area_def_names, proj4_str,
         area_def_names = [area_def_names]
 
     # proj4-ify the projection string
-    global_proj4_str = proj4_str.split(' ')
-    global_proj4_str = '+' + ' +'.join(global_proj4_str)
+    if '+' not in proj4_str:
+        global_proj4_str = proj4_str.split(' ')
+        global_proj4_str = '+' + ' +'.join(global_proj4_str)
 
     pro = Proj(global_proj4_str)
 
@@ -58,9 +62,9 @@ def area_def_names_to_extent(area_def_names, proj4_str,
 
         try:
             boundaries = get_area_def(name).get_boundary_lonlats()
-        except AreaNotFound:
-            LOGGER.warning('Area definition not found')
-            return default_extent
+        except pyresample.utils.AreaNotFound:
+            LOGGER.warning('Area definition not found ' + name)
+            continue
         except AttributeError:
             boundaries = name.get_boundary_lonlats()
 
