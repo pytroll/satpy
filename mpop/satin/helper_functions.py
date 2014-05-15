@@ -26,7 +26,6 @@
 
 import numpy as np
 from mpop.projector import get_area_def
-from pyresample.geometry import Boundary
 # from pyresample.utils import AreaNotFound
 
 import pyresample
@@ -49,14 +48,7 @@ def area_def_names_to_extent(area_def_names, proj4_str,
     if type(area_def_names) is not list:
         area_def_names = [area_def_names]
 
-    # proj4-ify the projection string
-    if '+' not in proj4_str:
-        global_proj4_str = proj4_str.split(' ')
-        global_proj4_str = '+' + ' +'.join(global_proj4_str)
-
-    pro = Proj(global_proj4_str)
-
-    maximum_area_extent = None
+    maximum_extent = None
 
     for name in area_def_names:
 
@@ -68,47 +60,67 @@ def area_def_names_to_extent(area_def_names, proj4_str,
         except AttributeError:
             boundaries = name.get_boundary_lonlats()
 
-        # extents for edges
-        _, up_y = pro(boundaries[0].side1, boundaries[1].side1)
-        right_x, _ = pro(boundaries[0].side2, boundaries[1].side2)
-        _, down_y = pro(boundaries[0].side3, boundaries[1].side3)
-        left_x, _ = pro(boundaries[0].side4, boundaries[1].side4)
-
-        # replace invalid values with NaN
-        up_y[np.abs(up_y) > 1e20] = np.nan
-        right_x[np.abs(right_x) > 1e20] = np.nan
-        down_y[np.abs(down_y) > 1e20] = np.nan
-        left_x[np.abs(left_x) > 1e20] = np.nan
-
-        # Get the maximum needed extent from different corners.
-        extent = [np.nanmin(left_x),
-                  np.nanmin(down_y),
-                  np.nanmax(right_x),
-                  np.nanmax(up_y)]
-
-        # Replace "infinity" values with default extent
-        for i in range(4):
-            if extent[i] is np.nan:
-                extent[i] = default_extent[i]
-
-        # update maximum extent
-        if maximum_area_extent is None:
-            maximum_area_extent = extent
-        else:
-            if maximum_area_extent[0] > extent[0]:
-                maximum_area_extent[0] = extent[0]
-            if maximum_area_extent[1] > extent[1]:
-                maximum_area_extent[1] = extent[1]
-            if maximum_area_extent[2] < extent[2]:
-                maximum_area_extent[2] = extent[2]
-            if maximum_area_extent[3] < extent[3]:
-                maximum_area_extent[3] = extent[3]
-
-        # Replace "infinity" values with default extent
-        for i in range(4):
-            if not np.isfinite(maximum_area_extent[i]):
-                maximum_area_extent[i] = default_extent[i]
+        lon_sides = (boundaries[0].side1, boundaries[0].side2,
+                     boundaries[0].side3, boundaries[0].side4)
+        lat_sides = (boundaries[1].side1, boundaries[1].side2,
+                     boundaries[1].side3, boundaries[1].side4)
 
 
-    return maximum_area_extent
+        maximum_extent = boundaries_to_extent(proj4_str, maximum_extent,
+                                              default_extent,
+                                              lon_sides, lat_sides)
+
+    return maximum_extent
+
+
+def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
+                         lon_sides, lat_sides):
+    '''Get area extent from given boundaries.
+    '''
+
+    # proj4-ify the projection string
+    if '+' not in proj4_str:
+        proj4_str = proj4_str.split(' ')
+        proj4_str = '+' + ' +'.join(proj4_str)
+
+    pro = Proj(proj4_str)
+
+    # extents for edges
+    x_dir, y_dir = pro(np.concatenate(lon_sides),
+                       np.concatenate(lat_sides))
+
+    # replace invalid values with NaN
+    x_dir[np.abs(x_dir) > 1e20] = np.nan
+    y_dir[np.abs(y_dir) > 1e20] = np.nan
+
+    # Get the maximum needed extent from different corners.
+    extent = [np.nanmin(x_dir),
+              np.nanmin(y_dir),
+              np.nanmax(x_dir),
+              np.nanmax(y_dir)]
+
+    # Replace "infinity" values with default extent
+    for i in range(4):
+        if extent[i] is np.nan:
+            extent[i] = default_extent[i]
+
+    # update maximum extent
+    if maximum_extent is None:
+        maximum_extent = extent
+    else:
+        if maximum_extent[0] > extent[0]:
+            maximum_extent[0] = extent[0]
+        if maximum_extent[1] > extent[1]:
+            maximum_extent[1] = extent[1]
+        if maximum_extent[2] < extent[2]:
+            maximum_extent[2] = extent[2]
+        if maximum_extent[3] < extent[3]:
+            maximum_extent[3] = extent[3]
+
+    # Replace "infinity" values with default extent
+    for i in range(4):
+        if not np.isfinite(maximum_extent[i]):
+            maximum_extent[i] = default_extent[i]
+
+    return maximum_extent
 
