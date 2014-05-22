@@ -11,6 +11,7 @@
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
 
 # This file is part of mpop.
 
@@ -30,6 +31,7 @@
 """
 import ConfigParser
 import os
+from pyproj import Proj
 
 from mipp import xrit
 from mipp import CalibrationError, ReaderError
@@ -37,28 +39,31 @@ from mipp import CalibrationError, ReaderError
 from mpop import CONFIG_PATH
 import logging
 
-LOG = logging.getLogger(__name__)
+from mpop.satin.helper_functions import area_def_names_to_extent
+
+LOGGER = logging.getLogger(__name__)
 
 try:
     # Work around for on demand import of pyresample. pyresample depends 
     # on scipy.spatial which memory leaks on multiple imports
-    is_pyresample_loaded = False
+    IS_PYRESAMPLE_LOADED = False
     from pyresample import geometry
     from mpop.projector import get_area_def
-    is_pyresample_loaded = True
+    IS_PYRESAMPLE_LOADED = True
 except ImportError:
-    LOG.warning("pyresample missing. Can only work in satellite projection")
+    LOGGER.warning("pyresample missing. Can only work in satellite projection")
 
 from mpop.plugin_base import Reader
 
 class XritReader(Reader):
-
+    '''Class for reading XRIT data.
+    '''
     pformat = "mipp_xrit"
     
     def load(self, *args, **kwargs):
         load(*args, **kwargs)
 
-def load(satscene, calibrate=True, area_extent=None):
+def load(satscene, calibrate=True, area_extent=None, area_def_names=None):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
@@ -75,18 +80,23 @@ def load(satscene, calibrate=True, area_extent=None):
            not section[:-1].endswith("-level") and
            not section.endswith("-granules")):
             options[section] = conf.items(section)
+
     CASES.get(satscene.instrument_name, load_generic)(satscene,
                                                       options,
                                                       calibrate,
-                                                      area_extent)
+                                                      area_extent,
+                                                      area_def_names)
 
-def load_generic(satscene, options, calibrate=True, area_extent=None):
+
+def load_generic(satscene, options, calibrate=True, area_extent=None,
+                 area_def_names=None):
     """Read imager data from file and load it into *satscene*.
     """
     del options
+
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
-    LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,
+    LOGGER.debug("Channels to load from %s: %s"%(satscene.instrument_name,
                                               satscene.channels_to_load))
     
     # Compulsory global attributes
@@ -107,20 +117,41 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
         area_extent = satscene.area.area_extent
         from_area = True
     
+    area_converted_to_extent = False
     for chn in satscene.channels_to_load:
         if from_area:
             try:
                 metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
                                          chn, only_metadata=True)
                 if(satscene.area_def.proj_dict["proj"] != "geos" or
-                   float(satscene.area_def.proj_dict["lon_0"]) != metadata.sublon):
+                   float(satscene.area_def.proj_dict["lon_0"]) != \
+                       metadata.sublon):
                     raise ValueError("Slicing area must be in "
-                                     "geos projection, and lon_0 should match the"
-                                     " satellite's position.")
-            except ReaderError, e:
+                                     "geos projection, and lon_0 should match "
+                                     "the satellite's position.")
+            except ReaderError, err:
                 # if channel can't be found, go on with next channel
-                LOG.error(str(e))
+                LOGGER.error(str(err))
                 continue
+
+        # Convert area definitions to maximal area_extent
+        if not area_converted_to_extent and area_def_names is not None:
+            metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
+                                     chn, only_metadata=True)
+            # if area_extent is given, assume it gives the maximum
+            # extent of the satellite view
+            if area_extent is not None:
+                area_extent = area_def_names_to_extent(area_def_names, 
+                                                       metadata.proj4_params,
+                                                       area_extent)
+            # otherwise use the default value (MSG3 extent at
+            # lon0=0.0), that is, do not pass default_extent=area_extent
+            else:
+                area_extent = area_def_names_to_extent(area_def_names, 
+                                                       metadata.proj4_params)
+
+            area_converted_to_extent = True
+
         try:
             image = xrit.sat.load(satscene.fullname,
                                   satscene.time_slot,
@@ -132,7 +163,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             else:
                 metadata, data = image()
         except CalibrationError:
-            LOG.warning("Loading non calibrated data since calibration failed.")
+            LOGGER.warning("Loading non calibrated data since calibration failed.")
             image = xrit.sat.load(satscene.fullname,
                                   satscene.time_slot,
                                   chn,
@@ -143,9 +174,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             else:
                 metadata, data = image()
 
-        except ReaderError, e:
+        except ReaderError, err:
             # if channel can't be found, go on with next channel
-            LOG.error(str(e))
+            LOGGER.error(str(err))
             continue
 
         satscene[chn] = data
@@ -159,7 +190,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
             key, val = param.split("=")
             proj_dict[key] = val
             
-        if is_pyresample_loaded:
+        if IS_PYRESAMPLE_LOADED:
             # Build area_def on-the-fly
             satscene[chn].area = geometry.AreaDefinition(
                 satscene.satname + satscene.instrument_name +
@@ -172,7 +203,6 @@ def load_generic(satscene, options, calibrate=True, area_extent=None):
                 data.shape[0],
                 metadata.area_extent)
         else:
-            LOG.info("Could not build area, pyresample missing...")
+            LOGGER.info("Could not build area, pyresample missing...")
 
 CASES = {}
-

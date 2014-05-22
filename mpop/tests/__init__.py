@@ -23,7 +23,8 @@
 """The tests package.
 """
 
-from mpop.tests import (#test_pp_core, # crash
+from mpop.tests import (test_satin_helpers,
+                        #test_pp_core, # crash
                         test_channel,
                         test_image,
                         test_geo_image,
@@ -43,6 +44,7 @@ def suite():
     """
 
     mysuite = unittest.TestSuite()
+    mysuite.addTests(test_satin_helpers.suite())
     #mysuite.addTests(test_pp_core.suite())
     mysuite.addTests(test_channel.suite())
     mysuite.addTests(test_image.suite())
