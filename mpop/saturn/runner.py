@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -157,7 +157,7 @@ class SequentialRunner(object):
         self.satellite = satellite[0]
         self.number = satellite[1]
         self.variant = satellite[2]
-        self.instrument = instrument 
+        self.instrument = instrument
 
         self.klass = get_sat_instr_compositer((self.satellite,
                                                self.number,
@@ -175,9 +175,9 @@ class SequentialRunner(object):
         """Batch run mpop.
         """
         time_slots, mode, areas, composites = parse_options()
-                
+
         tasklist = self.tasklist.shape(self.klass, mode, areas, composites)
-        
+
         for time_slot in time_slots:
             self.data = GenericFactory.create_scene(self.satellite,
                                                     self.number,
@@ -188,7 +188,7 @@ class SequentialRunner(object):
             prerequisites = tasklist.get_prerequisites(self.klass)
             self.data.load(prerequisites)
             self.run_from_data(tasklist, hook)
-                                
+
 
     def run_from_data(self, tasklist=None, radius=None, hook=None):
         """Run on given data.
@@ -222,6 +222,11 @@ class SequentialRunner(object):
                         return
                     img = fun()
                     img.info["product_name"] = product
+                    img.info["instrument_name"] = metadata["instrument_name"]
+                    img.info["start_time"] = self.data.info.get("start_time",
+                                                                self.data.time_slot)
+                    img.info["end_time"] = self.data.info.get("end_time",
+                                                              self.data.time_slot)
                     flist.save_object(img, hook)
                     del img
                 except (NotLoadedError, KeyError, ValueError), err:
@@ -235,7 +240,7 @@ class SequentialRunner(object):
         if tasklist is None:
             tasklist = self.tasklist
         metadata = {}
-            
+
         area_name = self.data.area_id or self.data.area_def.area_id
         tasks, dummy = tasklist.split(area_name)
         if area_name not in tasks:
@@ -261,14 +266,19 @@ class SequentialRunner(object):
                 LOG.debug("Doing "+product+".")
                 img = fun()
                 img.info["product_name"] = product
+                img.info["instrument_name"] = metadata["instrument_name"]
+                img.info["start_time"] = self.data.info.get("start_time",
+                                                            self.data.time_slot)
+                img.info["end_time"] = self.data.info.get("end_time",
+                                                            self.data.time_slot)
                 if extra_tags:
                     img.tags.update(extra_tags)
                 flist.save_object(img, hook)
                 del img
             except (NotLoadedError, KeyError), err:
                 LOG.warning("Error in "+product+": "+str(err))
-                LOG.info("Skipping "+product) 
-        
+                LOG.info("Skipping "+product)
+
 if __name__ == "__main__":
     pass
-    
+
