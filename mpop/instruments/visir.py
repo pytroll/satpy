@@ -26,6 +26,13 @@
 from mpop.imageo import geo_image
 from mpop.compositer import Compositer
 
+import numpy as np
+
+try:
+    from pyorbital.astronomy import sun_zenith_angle as sza
+except ImportError:
+    sza = None
+
 #pylint: disable=W0612
 # remove warnings for unused prerequisites
 
@@ -116,6 +123,44 @@ class VisirCompositer(Compositer):
         return img
 
     overview.prerequisites = set([0.635, 0.85, 10.8])
+
+
+
+    def overview_sun(self, stretch='crude', gamma=1.6):
+        """Make an overview RGB image composite normalising with cosine to the
+        sun zenith angle.
+        """
+        self.check_channels(0.635, 0.85, 10.8)
+
+        lonlats = self[10.8].area.get_lonlats()
+
+        sunz = sza(self.time_slot, lonlats[0], lonlats[1])
+        sunz = np.ma.masked_outside(sunz, 0.0, 88.0)
+        sunzmask = sunz.mask
+        sunz = sunz.filled(88.)
+
+        costheta = np.cos(np.deg2rad(sunz))
+
+        red = np.ma.masked_where(sunzmask, self[0.635].data / costheta)
+        green = np.ma.masked_where(sunzmask, self[0.85].data / costheta)
+        blue = -self[10.8].data
+        
+        img = geo_image.GeoImage((red, green, blue),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=(0, 0, 0),
+                                 mode="RGB")
+
+        if stretch:
+            img.enhance(stretch=stretch)
+        if gamma:
+            img.enhance(gamma=gamma)
+
+        return img
+
+    overview_sun.prerequisites = set([0.635, 0.85, 10.8])
+
+
 
     def night_overview(self, stretch='histogram', gamma=None):
         """Make an overview RGB image composite using IR channels.
