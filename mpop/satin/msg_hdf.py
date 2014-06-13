@@ -1311,7 +1311,7 @@ def get_best_products(filename, area_extent):
                     LOG.info("MSG file found: %s"%fname)
                     filenames.append(fname)
             LOG.info("Did not find any MSG file for specified area")
-    return filenames
+    return sorted(filenames)
 
 def get_area_from_file(filename):
     """Get the area from the h5 file.
