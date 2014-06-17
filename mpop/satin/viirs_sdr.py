@@ -4,7 +4,7 @@
 
 # Author(s):
 
-# 
+#
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Kristian Rune Larsen <krl@dmi.dk>
 #   Lars Ørum Rasmussen <ras@dmi.dk>
@@ -50,7 +50,7 @@ VIIRS_DNB_GRANULE_SIZE = (768, 4064)
 VIIRS_IBAND_GRANULE_SIZE = (768*2, 3200*2)
 
 VIIRS_IR_BANDS = ('M16', 'M15', 'M14', 'M13', 'M12', 'I5', 'I4')
-VIIRS_VIS_BANDS = ('M1', 'M2', 'M3', 'M4', 'M5', 'M6', 
+VIIRS_VIS_BANDS = ('M1', 'M2', 'M3', 'M4', 'M5', 'M6',
                    'M7', 'M8', 'M9', 'M10', 'M11',
                    'I1', 'I2', 'I3')
 VIIRS_DNB_BANDS = ('DNB', )
@@ -64,7 +64,7 @@ class HDF5MetaData(object):
     data. It is developed for JPSS/NPP data but is really generic and should
     work on most other hdf5 files.
 
-    Supports 
+    Supports
 
     """
 
@@ -87,7 +87,7 @@ class HDF5MetaData(object):
                 self.metadata["%s/attr/%s" % (name, key)] = value[0]
             else:
                 self.metadata["%s/attr/%s" % (name, key)] = value
-    
+
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
             self.metadata["%s/shape" % name] = obj.shape
@@ -106,7 +106,7 @@ class HDF5MetaData(object):
 
     def keys(self):
         return self.metadata.keys()
-    
+
     def get_data_keys(self):
 
         data_keys = []
@@ -117,7 +117,7 @@ class HDF5MetaData(object):
         return data_keys
 
 class NPPMetaData(HDF5MetaData):
-    
+
     def _parse_npp_datatime(self, datestr, timestr):
         time_val = datetime.strptime(datestr + timestr, '%Y%m%d%H%M%S.%fZ')
         if abs(time_val - NO_DATE) < EPSILON_TIME:
@@ -125,11 +125,11 @@ class NPPMetaData(HDF5MetaData):
         return time_val
 
     def get_begin_time(self):
-        return self._parse_npp_datatime(self['AggregateBeginningDate'], 
+        return self._parse_npp_datatime(self['AggregateBeginningDate'],
                                         self['AggregateBeginningTime'])
 
     def get_end_time(self):
-        return self._parse_npp_datatime(self['AggregateEndingDate'], 
+        return self._parse_npp_datatime(self['AggregateEndingDate'],
                                         self['AggregateEndingTime'])
 
     def get_begin_orbit_number(self):
@@ -140,9 +140,9 @@ class NPPMetaData(HDF5MetaData):
 
     def get_geofilname(self):
         return self['N_GEO_Ref']
-    
+
     def get_shape(self):
-        
+
         shape = self['Radiance/shape']
         band = self['Band_ID']
         if band[0] == 'M':
@@ -159,7 +159,7 @@ class NPPMetaData(HDF5MetaData):
                 (shape[1] % VIIRS_IBAND_GRANULE_SIZE[1] != 0)):
                 raise ValueError("Unsupported granule size %s for %s" % (shape, band))
 
-        return shape 
+        return shape
 
 
     def get_band_description(self):
@@ -192,7 +192,7 @@ class NPPMetaData(HDF5MetaData):
 
     def get_reflectance_keys(self):
         return self._band_data_keys("Reflectance")
-        
+
     def get_radiance_keys(self):
         return self._band_data_keys("Radiance")
 
@@ -205,7 +205,7 @@ class NPPMetaData(HDF5MetaData):
         if calibrate == 2 and  band not in VIIRS_DNB_BANDS:
             return "W m-2 um-1 sr-1"
 
-        if band in VIIRS_IR_BANDS:  
+        if band in VIIRS_IR_BANDS:
             return "K"
         elif band in VIIRS_VIS_BANDS:
             return '%'
@@ -222,20 +222,20 @@ class GeolocationFlyweight(object):
     def __init__(self, cls):
         self._cls = cls
         self._instances = dict()
-    
+
     def __call__(self, *args, **kargs):
-        """ 
+        """
         we assume that this is only used for the gelocation object,
         filenames are listed in the second argument
-        
+
         """
-        return self._instances.setdefault(tuple(args[1]), 
+        return self._instances.setdefault(tuple(args[1]),
                                           self._cls(*args, **kargs))
 
     def clear_cache(self):
         del self._instances
         self._instances = dict()
-        
+
 
 @GeolocationFlyweight
 class ViirsGeolocationData(object):
@@ -247,18 +247,18 @@ class ViirsGeolocationData(object):
         self.mask = None
 
     def read(self):
-        """ 
+        """
         Read longitudes and latitudes from geo filenames and assemble
         """
 
         if self.longitudes is not None:
             return self
-        
-        self.longitudes = np.empty(self.shape, 
+
+        self.longitudes = np.empty(self.shape,
                                    dtype=np.float32)
-        self.latitudes = np.empty(self.shape, 
+        self.latitudes = np.empty(self.shape,
                                   dtype=np.float32)
-        self.mask = np.zeros(self.shape, 
+        self.mask = np.zeros(self.shape,
                              dtype=np.bool)
 
         granule_length = self.shape[0]/len(self.filenames)
@@ -267,10 +267,10 @@ class ViirsGeolocationData(object):
 
             swath_index = index * granule_length
             y0_ = swath_index
-            y1_ = swath_index+granule_length 
+            y1_ = swath_index+granule_length
 
             #lon, lat = get_lonlat(filename)
-            #self.longitudes[y0_:y1_, :] = lon 
+            #self.longitudes[y0_:y1_, :] = lon
             #self.latitudes[y0_:y1_, :] = lat
             get_lonlat_into(filename,
                             self.longitudes[y0_:y1_, :],
@@ -305,8 +305,8 @@ def _get_invalid_info(granule_data):
     """
     if issubclass(granule_data.dtype.type, np.integer):
         msg = ("na:" + str((granule_data == 65535).sum()) +
-               " miss:" + str((granule_data == 65534).sum()) + 
-               " obpt:" + str((granule_data == 65533).sum()) + 
+               " miss:" + str((granule_data == 65534).sum()) +
+               " obpt:" + str((granule_data == 65533).sum()) +
                " ogpt:" + str((granule_data == 65532).sum()) +
                " err:" + str((granule_data == 65531).sum()) +
                " elint:" + str((granule_data == 65530).sum()) +
@@ -314,15 +314,15 @@ def _get_invalid_info(granule_data):
                " soub:" + str((granule_data == 65528).sum()))
     if issubclass(granule_data.dtype.type, np.floating):
         msg = ("na:" + str((granule_data == -999.9).sum()) +
-               " miss:" + str((granule_data == -999.8).sum()) + 
-               " obpt:" + str((granule_data == -999.7).sum()) + 
+               " miss:" + str((granule_data == -999.8).sum()) +
+               " obpt:" + str((granule_data == -999.7).sum()) +
                " ogpt:" + str((granule_data == -999.6).sum()) +
                " err:" + str((granule_data == -999.5).sum()) +
                " elint:" + str((granule_data == -999.4).sum()) +
                " vdne:" + str((granule_data == -999.3).sum()) +
                " soub:" + str((granule_data == -999.2).sum()))
     return msg
-    
+
 
 class ViirsBandData(object):
     """Placeholder for the VIIRS M&I-band data.
@@ -331,7 +331,7 @@ class ViirsBandData(object):
     """
     def __init__(self, filenames, calibrate=1):
         self.begin_time = 0
-        self.end_time = 0 
+        self.end_time = 0
         self.orbit_begin = 0
         self.orbit_end = 0
         self.band_id = 'unknown'
@@ -375,7 +375,7 @@ class ViirsBandData(object):
             # if os.path.exists(geofilename):
             #     self.geo_filenames.append(geofilename)
             # else:
-            #     logger.warning("Geo file defined in metadata header " + 
+            #     logger.warning("Geo file defined in metadata header " +
             #                    "does not exist: " + str(geofilename))
 
         #
@@ -403,23 +403,23 @@ class ViirsBandData(object):
 
         - *calibrate* set to 1 (default) returns reflectances for visual bands,
            tb for ir bands, and radiance for dnb.
-           
+
         - *calibrate* set to 2 returns radiances.
         """
 
-        granule_length, swath_width= self.metadata[0].get_shape()
+        granule_length, swath_width = self.metadata[0].get_shape()
 
         for index, md in enumerate(self.metadata):
             h5f = h5py.File(md.filename, 'r')
 
-            # find appropiate band data to insert 
+            # find appropiate band data to insert
             data_key = None
             factors_key = None
             if self.calibrate == 1:
                 data_key, factors_key = md.get_reflectance_keys()
                 if data_key is None:
                     data_key, factors_key = md.get_brightness_temperature_keys()
-                    logger.debug("data and factors keys: " + 
+                    logger.debug("data and factors keys: " +
                                  str(data_key) + str(factors_key))
                 # handle dnb data
                 if data_key is None and self.band_id == "DNB":
@@ -445,14 +445,14 @@ class ViirsBandData(object):
                     raise
                 if self.band_id == "DNB":
                     # The unit is W/sr cm-2 in the file! but we need 'W sr-1 m-2'
-                    granule_factors_data = (10000., 0.) 
+                    granule_factors_data = (10000., 0.)
                 else:
                     # M13 is stored in floats with no scale or offset:
                     granule_factors_data = (1., 0.)
 
             granule_data = h5f[data_key].value
 
-            self.scale, self.offset = granule_factors_data[0:2] 
+            self.scale, self.offset = granule_factors_data[0:2]
 
             # The VIIRS reflectances are between 0 and 1.
             # mpop standard is '%'
@@ -463,7 +463,7 @@ class ViirsBandData(object):
 
             swath_index = index * granule_length
             y0_ = swath_index
-            y1_ = swath_index+granule_length 
+            y1_ = swath_index+granule_length
 
             self.raw_data[y0_:y1_, :] = granule_data
             self.raw_data[y0_:y1_, :] *= self.scale
@@ -494,11 +494,11 @@ class ViirsBandData(object):
                 geodir = os.path.dirname(self.metadata[0].filename)
 
             logger.debug("Geo-files = " + str(self.geo_filenames))
-            geofilepaths = [os.path.join(geodir, geofilepath) 
+            geofilepaths = [os.path.join(geodir, geofilepath)
                             for geofilepath in self.geo_filenames]
-        
+
         logger.debug("Geo-files = " + str(geofilepaths))
-        self.geolocation = ViirsGeolocationData(self.data.shape, 
+        self.geolocation = ViirsGeolocationData(self.data.shape,
                                                 geofilepaths).read()
 
 
@@ -516,7 +516,7 @@ class ViirsSDRReader(Reader):
         """
         if satscene.instrument_name != "viirs":
             raise ValueError("Wrong instrument, expecting viirs")
-        
+
         conf = ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
         options = {}
@@ -556,36 +556,42 @@ class ViirsSDRReader(Reader):
             logger.debug("Looking for files in directory " + str(directory))
             directories = glob.glob(directory)
             if len(directories) > 1:
-                raise IOError("More than one directory for npp scene... " + 
+                raise IOError("More than one directory for npp scene... " +
                               "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
             elif len(directories) == 0:
-                raise IOError("No directory found for npp scene. " + 
+                raise IOError("No directory found for npp scene. " +
                               "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
             else:
                 directory = directories[0]
 
         file_list = glob.glob(os.path.join(directory, filename_tmpl))
         # Only take the files in the interval given:
-        logger.debug("Number of files before segment selection: " + str(len(file_list)))
+        logger.debug("Number of files before segment selection: "
+                     + str(len(file_list)))
         for fname in file_list:
             if os.path.basename(fname).startswith("SVM14"):
-                logger.debug("File before segmenting: " + os.path.basename(fname))
+                logger.debug("File before segmenting: "
+                             + os.path.basename(fname))
         file_list = _get_swathsegment(file_list, time_start, time_end)
-        logger.debug("Number of files after segment selection: " + str(len(file_list)))
+        logger.debug("Number of files after segment selection: "
+                     + str(len(file_list)))
 
         for fname in file_list:
             if os.path.basename(fname).startswith("SVM14"):
-                logger.debug("File after segmenting: " + os.path.basename(fname))
+                logger.debug("File after segmenting: "
+                             + os.path.basename(fname))
 
         filenames = [ os.path.basename(s) for s in file_list ]
 
         logger.debug("Template = " + str(filename_tmpl))
-        if len(file_list) % 22 != 0: # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
+
+        # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
+        if len(file_list) % 22 != 0:
             logger.warning("Number of SDR files is not divisible by 22!")
         if len(file_list) == 0:
             logger.debug("File template = " + str(os.path.join(directory, filename_tmpl)))
-            raise IOError("No VIIRS SDR file matching!: " + 
-                          "Start time = " + str(time_start) + 
+            raise IOError("No VIIRS SDR file matching!: " +
+                          "Start time = " + str(time_start) +
                           "  End time = " + str(time_end))
 
         geo_dir_string = options.get("geo_dir", None)
@@ -598,15 +604,15 @@ class ViirsSDRReader(Reader):
         geofile_list = []
         geo_filenames_string = options.get("geo_filenames", None)
         if geo_filenames_string:
-            geo_filenames_tmpl = strftime(satscene.time_slot, 
+            geo_filenames_tmpl = strftime(satscene.time_slot,
                                           geo_filenames_string) % values
-            geofile_list = glob.glob(os.path.join(geodirectory, 
+            geofile_list = glob.glob(os.path.join(geodirectory,
                                                   geo_filenames_tmpl))
             logger.debug("List of geo-files: " + str(geofile_list))
             # Only take the files in the interval given:
             geofile_list = _get_swathsegment(geofile_list, time_start, time_end)
 
-        logger.debug("List of geo-files (after time interval selection): " 
+        logger.debug("List of geo-files (after time interval selection): "
                      + str(geofile_list))
 
         glob_info = {}
@@ -644,37 +650,37 @@ class ViirsSDRReader(Reader):
                 # exist and issue a warning if they do not:
                 for geofilename in geofilenames_band:
                     if not os.path.exists(geofilename):
-                        logger.warning("Geo file defined in metadata header " + 
+                        logger.warning("Geo file defined in metadata header " +
                                        "does not exist: " + str(geofilename))
 
-            elif band.band_id.find('M') == 0:
-                geofilenames_band = [ geofile for geofile in geofile_list 
+            elif band.band_id.startswith('M'):
+                geofilenames_band = [ geofile for geofile in geofile_list
                                       if os.path.basename(geofile).startswith('GMTCO') ]
                 if len(geofilenames_band) != len(filename_band):
                     # Try the geoid instead:
-                    geofilenames_band = [ geofile for geofile in geofile_list 
+                    geofilenames_band = [ geofile for geofile in geofile_list
                                           if os.path.basename(geofile).startswith('GMODO') ]
                     if len(geofilenames_band) != len(filename_band):
-                        raise IOError("Not all geo location files " + 
-                                      "for this scene are present for band " + 
+                        raise IOError("Not all geo location files " +
+                                      "for this scene are present for band " +
                                       band.band_id + "!")
-            elif band.band_id.find('I') == 0:
-                geofilenames_band = [ geofile for geofile in geofile_list 
+            elif band.band_id.startswith('I'):
+                geofilenames_band = [ geofile for geofile in geofile_list
                                       if os.path.basename(geofile).startswith('GITCO') ]
                 if len(geofilenames_band) != len(filename_band):
                     # Try the geoid instead:
-                    geofilenames_band = [ geofile for geofile in geofile_list 
+                    geofilenames_band = [ geofile for geofile in geofile_list
                                           if os.path.basename(geofile).startswith('GIMGO') ]
                     if len(geofilenames_band) != len(filename_band):
-                        raise IOError("Not all geo location files " + 
-                                      "for this scene are present for band " + 
+                        raise IOError("Not all geo location files " +
+                                      "for this scene are present for band " +
                                       band.band_id + "!")
-            elif band.band_id.find('D') == 0:
-                geofilenames_band = [ geofile for geofile in geofile_list 
+            elif band.band_id.startswith('D'):
+                geofilenames_band = [ geofile for geofile in geofile_list
                                       if os.path.basename(geofile).startswith('GDNBO') ]
                 if len(geofilenames_band) != len(filename_band):
-                    raise IOError("Not all geo-location files " + 
-                                  "for this scene are present for " + 
+                    raise IOError("Not all geo-location files " +
+                                  "for this scene are present for " +
                                   "the Day Night Band!")
 
             band.read_lonlat(geofilepaths=geofilenames_band)
@@ -687,6 +693,8 @@ class ViirsSDRReader(Reader):
             satscene[chn].data = band.data
             satscene[chn].info['units'] = band.units
             satscene[chn].info['band_id'] = band.band_id
+            satscene[chn].info['start_time'] = band.begin_time
+            satscene[chn].info['end_time'] = band.end_time
 
             # We assume the same geolocation should apply to all M-bands!
             # ...and the same to all I-bands:
@@ -721,7 +729,7 @@ class ViirsSDRReader(Reader):
         ViirsGeolocationData.clear_cache()
 
         # Compulsory global attribudes
-        satscene.info["title"] = (satscene.satname.capitalize() + 
+        satscene.info["title"] = (satscene.satname.capitalize() +
                                   " satellite, " +
                                   satscene.instrument_name.capitalize() +
                                   " instrument.")
@@ -729,14 +737,19 @@ class ViirsSDRReader(Reader):
             satscene.info["institution"] = glob_info['institution']
 
         if 'mission_name' in glob_info:
-            satscene.add_to_history(glob_info['mission_name'] + 
-                                    " VIIRS SDR read by mpop") 
+            satscene.add_to_history(glob_info['mission_name'] +
+                                    " VIIRS SDR read by mpop")
         else:
             satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
 
         satscene.info["references"] = "No reference."
         satscene.info["comments"] = "No comment."
-        
+
+        satscene.info["start_time"] = min([satscene[chn].info["start_time"]
+                                           for chn in satscene.channels_to_load])
+        satscene.info["end_time"] = max([satscene[chn].info["end_time"]
+                                         for chn in satscene.channels_to_load])
+
 
 def get_lonlat(filename):
     """Read lon,lat from hdf5 file"""
@@ -752,7 +765,7 @@ def get_lonlat(filename):
         if key.endswith("Longitude"):
             lons = h5f[key].value
 
-    return (np.ma.masked_less(lons, -999, False), 
+    return (np.ma.masked_less(lons, -999, False),
             np.ma.masked_less(lats, -999, False))
 
 def get_lonlat_into(filename, out_lons, out_lats, out_mask):
@@ -784,9 +797,9 @@ def _get_times_from_npp(filename):
 
     bname = os.path.basename(filename)
     sll = bname.split('_')
-    start_time = datetime.strptime(sll[2] + sll[3][:-1], 
+    start_time = datetime.strptime(sll[2] + sll[3][:-1],
                                    "d%Y%m%dt%H%M%S")
-    end_time = datetime.strptime(sll[2] + sll[4][:-1], 
+    end_time = datetime.strptime(sll[2] + sll[4][:-1],
                                  "d%Y%m%de%H%M%S")
     if end_time < start_time:
         end_time += timedelta(days=1)
@@ -810,7 +823,7 @@ def _get_swathsegment(filelist, time_start, time_end=None):
                 segment_files.append(filename)
                 continue
 
-        # search for multiple granules 
+        # search for multiple granules
         else:
             # check that granule start time is inside interval
             if timetup[0] >= time_start and timetup[0] <= time_end:
