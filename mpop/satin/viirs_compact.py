@@ -50,7 +50,7 @@ def load(satscene, *args, **kwargs):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name+"-level2",
-                                    raw = True):
+                                    raw=True):
         options[option] = value
 
 
@@ -74,7 +74,7 @@ def load(satscene, *args, **kwargs):
 
     else:
         files_to_load = glob.glob(time_start.strftime(template))
-    
+
     chan_dict = {"M01": "M1",
                  "M02": "M2",
                  "M03": "M3",
@@ -99,7 +99,8 @@ def load(satscene, *args, **kwargs):
 
     for fname in files_to_load:
         h5f = h5py.File(fname, "r")
-        datas.append(read(h5f, chans))
+        arr, units = read(h5f, chans)
+        datas.append(arr)
         lonlats.append(navigate(h5f))
         h5f.close()
 
@@ -109,21 +110,23 @@ def load(satscene, *args, **kwargs):
     for nb, chn in enumerate(satscene.channels_to_load):
         data = np.ma.vstack([dat[nb] for dat in datas])
         satscene[chn] = data
-        
+        satscene[chn].info["units"] = units[nb]
+
     area_def = SwathDefinition(np.ma.masked_where(data.mask, lons),
                                np.ma.masked_where(data.mask, lats))
 
     for chn in satscene.channels_to_load:
         satscene[chn].area = area_def
-    
+
 def read(h5f, channels, calibrate=1):
-    
+
     chan_dict = dict([(key.split("-")[1], key)
                       for key in h5f["All_Data"].keys()
                       if key.startswith("VIIRS")])
-        
+
     scans = h5f["All_Data"]["NumberOfScans"][0]
     res = []
+    units = []
 
     for channel in channels:
         rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
@@ -131,6 +134,7 @@ def read(h5f, channels, calibrate=1):
         arr = np.ma.where(arr <= rads.attrs['Threshold'],
                           arr * rads.attrs['RadianceScaleLow'] + rads.attrs['RadianceOffsetLow'],
                           arr * rads.attrs['RadianceScaleHigh'] + rads.attrs['RadianceOffsetHigh'],)
+        unit = "W m-2 sr-1 μm-1"
         if calibrate == 0:
             raise NotImplementedError("Can't get counts from this data")
         if calibrate == 1:
@@ -140,6 +144,7 @@ def read(h5f, channels, calibrate=1):
                 b_vis = rads.attrs['IntegratedSolarIrradiance']
                 dse = rads.attrs['EarthSunDistanceNormalised']
                 arr *= 100 * np.pi * a_vis / b_vis * (dse ** 2)
+                unit = "%"
             except KeyError:
                 a_ir = rads.attrs['BandCorrectionCoefficientA']
                 b_ir = rads.attrs['BandCorrectionCoefficientB']
@@ -150,10 +155,42 @@ def read(h5f, channels, calibrate=1):
                                                      ((lambda_c**5) * arr)))
                 arr *= a_ir
                 arr += b_ir
+                unit = "K"
         elif calibrate != 2:
             raise ValueError("Calibrate parameter should be 1 or 2")
         res.append(arr)
-    return res
+        units.append(unit)
+    return res, units
+
+def expand_array(data, scans, geostuff, c_align, c_exp):
+    s_track, s_scan = ((np.mgrid[0:scans*16, 0:3200] % 16) + 0.5) / 16
+    s_track = s_track.reshape(scans, 16, 200, 16)
+    s_scan = s_scan.reshape(scans, 16, 200, 16)
+
+    a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
+    a_track = s_track
+
+    data_a = data[:scans*2:2, np.newaxis, :-1, np.newaxis]
+    data_b = data[:scans*2:2, np.newaxis, 1:, np.newaxis]
+    data_c = data[1:scans*2:2, np.newaxis, 1:, np.newaxis]
+    data_d = data[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+
+    fdata = ((1 - a_track) * ((1 - a_scan) * data_a + a_scan * data_b) +
+            a_track * ((1 - a_scan) * data_d + a_scan * data_c))
+    return fdata.reshape(scans*16, 3200)
+
+def lonlat2xyz(lon, lat):
+    lat = np.deg2rad(lat)
+    lon = np.deg2rad(lon)
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+
+def xyz2lonlat(x, y, z):
+    lon = np.rad2deg(np.arctan2(y, x))
+    lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    return lon, lat
 
 def navigate(h5f):
     scans = h5f["All_Data"]["NumberOfScans"][0]
@@ -164,27 +201,38 @@ def navigate(h5f):
                                                    :, np.newaxis]
     lon = geostuff["Longitude"].value
     lat = geostuff["Latitude"].value
-    s_track, s_scan = ((np.mgrid[0:scans*16, 0:3200] % 16) + 0.5) / 16
-    s_track = s_track.reshape(scans, 16, 200, 16)
-    s_scan = s_scan.reshape(scans, 16, 200, 16)
-    
-    a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
-    a_track = s_track
 
-    lon_a = lon[:scans*2:2, np.newaxis, :-1, np.newaxis]
-    lon_b = lon[:scans*2:2, np.newaxis, 1:, np.newaxis]
-    lon_c = lon[1:scans*2:2, np.newaxis, 1:, np.newaxis]
-    lon_d = lon[1:scans*2:2, np.newaxis, :-1, np.newaxis]
-    lat_a = lat[:scans*2:2, np.newaxis, :-1, np.newaxis]
-    lat_b = lat[:scans*2:2, np.newaxis, 1:, np.newaxis]
-    lat_c = lat[1:scans*2:2, np.newaxis, 1:, np.newaxis]
-    lat_d = lat[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+    if (np.max(lon) - np.min(lon) > 90) or (np.max(abs(lat)) > 60):
+        x, y, z = lonlat2xyz(lon, lat)
+        x, y, z = (expand_array(x, scans, geostuff, c_align, c_exp),
+                   expand_array(y, scans, geostuff, c_align, c_exp),
+                   expand_array(z, scans, geostuff, c_align, c_exp))
+        return xyz2lonlat(x, y, z)
+    else:
+        return (expand_array(lon, scans, geostuff, c_align, c_exp),
+                expand_array(lat, scans, geostuff, c_align, c_exp))
 
-    flon = ((1 - a_track) * ((1 - a_scan) * lon_a + a_scan * lon_b) +
-            a_track * ((1 - a_scan) * lon_d + a_scan * lon_c))
-    flat = ((1 - a_track) * ((1 - a_scan) * lat_a + a_scan * lat_b) +
-            a_track * ((1 - a_scan) * lat_d + a_scan * lat_c))
-    return flon.reshape(scans*16, 3200), flat.reshape(scans*16, 3200)
+    # s_track, s_scan = ((np.mgrid[0:scans*16, 0:3200] % 16) + 0.5) / 16
+    # s_track = s_track.reshape(scans, 16, 200, 16)
+    # s_scan = s_scan.reshape(scans, 16, 200, 16)
+
+    # a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
+    # a_track = s_track
+
+    # lon_a = lon[:scans*2:2, np.newaxis, :-1, np.newaxis]
+    # lon_b = lon[:scans*2:2, np.newaxis, 1:, np.newaxis]
+    # lon_c = lon[1:scans*2:2, np.newaxis, 1:, np.newaxis]
+    # lon_d = lon[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+    # lat_a = lat[:scans*2:2, np.newaxis, :-1, np.newaxis]
+    # lat_b = lat[:scans*2:2, np.newaxis, 1:, np.newaxis]
+    # lat_c = lat[1:scans*2:2, np.newaxis, 1:, np.newaxis]
+    # lat_d = lat[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+
+    # flon = ((1 - a_track) * ((1 - a_scan) * lon_a + a_scan * lon_b) +
+    #         a_track * ((1 - a_scan) * lon_d + a_scan * lon_c))
+    # flat = ((1 - a_track) * ((1 - a_scan) * lat_a + a_scan * lat_b) +
+    #         a_track * ((1 - a_scan) * lat_d + a_scan * lat_c))
+    # return flon.reshape(scans*16, 3200), flat.reshape(scans*16, 3200)
 
 if __name__ == '__main__':
     #filename = "/local_disk/data/satellite/polar/compact_viirs/SVMC_npp_d20140114_t1245125_e1246367_b11480_c20140114125427496143_eum_ops.h5"
