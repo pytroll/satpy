@@ -35,12 +35,14 @@ import types
 import weakref
 import sys
 import logging
+import imp
 
 import numpy as np
 
 from mpop import CONFIG_PATH
 from mpop.channel import Channel, NotLoadedError
 from mpop.utils import OrderedConfigParser
+import mpop.satin
 
 LOG = logging.getLogger(__name__)
 
@@ -331,19 +333,25 @@ class SatelliteInstrumentScene(SatelliteScene):
         elements = pformat.split(".")
         if len(elements) == 1:
             reader_module = pformat
+            reading_element = 'load'
+
             reader = "mpop.satin."+reader_module
 
             # Loading old style plugins
             reader_module = pformat
             LOG.info("old style plugin: " + pformat)
+
             try:
                 # Look for builtin reader
-                loader = __import__(reader, globals(),
-                                    locals(), ['load'])
+                imp.find_module(reader_module, mpop.satin.__path__)
             except ImportError:
                 # Look for custom reader
                 loader = __import__(reader_module, globals(),
-                                    locals(), ['load'])
+                                    locals(), [reading_element])
+            else:
+                loader = __import__(reader, globals(),
+                                    locals(), [reading_element])
+
 
             # Build a custom Reader plugin on the fly...
             from mpop.plugin_base import Reader
@@ -355,26 +363,29 @@ class SatelliteInstrumentScene(SatelliteScene):
 
             # ... and set its "load" attribute with the "load" function of the
             # loader module
-            loader = getattr(loader, "load")
-            setattr(reader_instance, "load", loader)
+            loader = getattr(loader, reading_element)
+            setattr(reader_instance, reading_element, loader)
 
             setattr(self, elements[-1] + "_reader", reader_instance)
 
 
         else:
             reader_module = ".".join(elements[:-1])
-            reader_class = elements[-1]
+            reading_element = elements[-1]
 
             reader = "mpop.satin."+reader_module
             try:
                 # Look for builtin reader
-                loader = __import__(reader, globals(),
-                                    locals(), [reader_class])
+                imp.find_module(reader_module, mpop.satin.__path__)
             except ImportError:
                 # Look for custom reader
                 loader = __import__(reader_module, globals(),
-                                    locals(), [reader_class])
-            loader = getattr(loader, reader_class)
+                                    locals(), [reading_element])
+            else:
+                loader = __import__(reader, globals(),
+                                    locals(), [reading_element])
+
+            loader = getattr(loader, reading_element)
             reader_instance = loader(self)
             setattr(self, loader.pformat + "_reader", reader_instance)
 
