@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
@@ -60,7 +60,7 @@ class GeoImage(Image):
     See also :class:`image.Image` for more information.
     """
 
-    def __init__(self, channels, area, time_slot, 
+    def __init__(self, channels, area, time_slot,
                  mode="L", crange=None, fill_value=None, palette=None):
         self.area = area
         self.time_slot = time_slot
@@ -85,7 +85,7 @@ class GeoImage(Image):
 
         If the specified format *fformat* is not know to MPOP (and PIL), we
         will try to import module *fformat* and call the method `fformat.save`.
-        
+
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
@@ -99,7 +99,7 @@ class GeoImage(Image):
             # Let image.pil_save it ?
             Image.save(self, filename, compression, fformat=fformat)
         except UnknownImageFormat:
-            # No ... last resort, try to import an external module. 
+            # No ... last resort, try to import an external module.
             logger.info("Importing image writer module '%s'" % fformat)
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
@@ -121,14 +121,13 @@ class GeoImage(Image):
             i = 0
             for i, chan in enumerate(channels):
                 dst_ds.GetRasterBand(i + 1).WriteArray(chan.filled(0))
-                mask |= np.ma.getmaskarray(chan) 
-            
+                mask |= np.ma.getmaskarray(chan)
             try:
                 mask |= np.ma.getmaskarray(opacity)
             except AttributeError:
                 pass
-            
-            alpha = np.where(mask, 0, opacity).astype(np.uint8)
+
+            alpha = np.where(mask, 0, opacity).astype(chan.dtype)
             dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
     def geotiff_save(self, filename, compression=6,
@@ -142,11 +141,11 @@ class GeoImage(Image):
         spatialref information, this can be overwritten by the arguments
         *geotransform* and *spatialref*. *floating_point* allows the saving of
         'L' mode images in floating point format if set to True.
-        
+
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         from osgeo import gdal, osr
-        
+
         raster = gdal.GetDriverByName("GTiff")
 
         tags = tags or {}
@@ -198,18 +197,18 @@ class GeoImage(Image):
         if(self.mode == "L"):
             ensure_dir(filename)
             if fill_value is not None:
-                dst_ds = raster.Create(filename, 
+                dst_ds = raster.Create(filename,
                                        self.width,
-                                       self.height, 
-                                       1, 
+                                       self.height,
+                                       1,
                                        gformat,
                                        g_opts)
             else:
                 g_opts.append("ALPHA=YES")
-                dst_ds = raster.Create(filename, 
-                                       self.width, 
-                                       self.height, 
-                                       2, 
+                dst_ds = raster.Create(filename,
+                                       self.width,
+                                       self.height,
+                                       2,
                                        gformat,
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels,
@@ -217,10 +216,10 @@ class GeoImage(Image):
         elif(self.mode == "LA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename, 
-                                   self.width, 
-                                   self.height, 
-                                   2, 
+            dst_ds = raster.Create(filename,
+                                   self.width,
+                                   self.height,
+                                   2,
                                    gformat,
                                    g_opts)
             self._gdal_write_channels(dst_ds,
@@ -229,18 +228,18 @@ class GeoImage(Image):
         elif(self.mode == "RGB"):
             ensure_dir(filename)
             if fill_value is not None:
-                dst_ds = raster.Create(filename, 
-                                       self.width, 
-                                       self.height, 
-                                       3, 
+                dst_ds = raster.Create(filename,
+                                       self.width,
+                                       self.height,
+                                       3,
                                        gformat,
                                        g_opts)
             else:
                 g_opts.append("ALPHA=YES")
-                dst_ds = raster.Create(filename, 
-                                       self.width, 
-                                       self.height, 
-                                       4, 
+                dst_ds = raster.Create(filename,
+                                       self.width,
+                                       self.height,
+                                       4,
                                        gformat,
                                        g_opts)
 
@@ -250,10 +249,10 @@ class GeoImage(Image):
         elif(self.mode == "RGBA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename, 
-                                   self.width, 
-                                   self.height, 
-                                   4, 
+            dst_ds = raster.Create(filename,
+                                   self.width,
+                                   self.height,
+                                   4,
                                    gformat,
                                    g_opts)
 
@@ -265,7 +264,7 @@ class GeoImage(Image):
                                       " %s is not implemented."%self.mode)
 
 
-                
+
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution ... if not overwritten by argument geotransform.
 
@@ -312,9 +311,9 @@ class GeoImage(Image):
                           self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
 
         dst_ds.SetMetadata(self.tags, '')
-        
+
         # Close the dataset
-        
+
         dst_ds = None
 
 
@@ -322,10 +321,10 @@ class GeoImage(Image):
         """Add coastline and political borders to image, using *color* (tuple
         of integers between 0 and 255).
         Warning: Loses the masks !
-        
+
         *resolution* is chosen automatically if None (default), otherwise it should be one of:
         +-----+-------------------------+---------+
-        | 'f' | Full resolution         | 0.04 km | 
+        | 'f' | Full resolution         | 0.04 km |
         | 'h' | High resolution         | 0.2 km  |
         | 'i' | Intermediate resolution | 1.0 km  |
         | 'l' | Low resolution          | 5.0 km  |
@@ -334,7 +333,7 @@ class GeoImage(Image):
         """
 
 
-        
+
         img = self.pil_image()
 
         import ConfigParser
@@ -350,12 +349,12 @@ class GeoImage(Image):
 
         from mpop.projector import get_area_def
         if isinstance(self.area, str):
-            self.area = get_area_def(self.area) 
+            self.area = get_area_def(self.area)
         logger.info("Add coastlines and political borders to image.")
         logger.debug("Area = " + str(self.area))
 
         if resolution is None:
-        
+
             x_resolution = ((self.area.area_extent[2] -
                              self.area.area_extent[0]) /
                             self.area.x_size)
@@ -376,7 +375,7 @@ class GeoImage(Image):
                 resolution = "f"
 
             logger.debug("Automagically choose resolution " + resolution)
-        
+
         from pycoast import ContourWriterAGG
         cw_ = ContourWriterAGG(coast_dir)
         cw_.add_coastlines(img, self.area, outline=color,
