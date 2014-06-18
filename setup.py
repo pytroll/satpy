@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
@@ -64,8 +64,8 @@ setup(name=NAME,
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo',
                 'mpop.imageo.formats'],
-      data_files=[('etc',[os.path.join('etc', 'geo_image.cfg')],
-                   'etc',[os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
+      data_files=[('etc', [os.path.join('etc', 'geo_image.cfg')],
+                   'etc', [os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
                   (os.path.join('share', 'doc', NAME),
                    [os.path.join('doc', 'Makefile'),
                     os.path.join('doc', 'source', 'conf.py'),
@@ -82,8 +82,12 @@ setup(name=NAME,
       zip_safe=False,
       install_requires=requires,
       test_requires=["mock"],
-      extras_require={ 'xRIT': ['mipp >= 0.6.0'],
-                       'hdf_eos': ['pyhdf'],
-                       'viirs': ['h5py'],
-                       'nc': ['netCDF4']}
+      extras_require={'xRIT': ['mipp >= 0.6.0'],
+                      'hdf_eos': ['pyhdf'],
+                      'viirs': ['h5py'],
+                      'nc': ['netCDF4'],
+                      'proj': ['pyresample'],
+                      'pyspectral': ['pyspectral'],
+                      'pyorbital': ['pyorbital >= v0.2.3']}
+
       )
