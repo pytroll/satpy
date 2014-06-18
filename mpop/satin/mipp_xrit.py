@@ -100,8 +100,8 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
 
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
-    LOG.debug("Channels to load from %s: %s" % (satscene.instrument_name,
-                                                satscene.channels_to_load))
+    LOGGER.debug("Channels to load from %s: %s" % (satscene.instrument_name,
+                                                   satscene.channels_to_load))
 
     # Compulsory global attributes
     satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
@@ -168,7 +168,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
             else:
                 metadata, data = image()
         except CalibrationError:
-            LOG.warning(
+            LOGGER.warning(
                 "Loading non calibrated data since calibration failed.")
             image = xrit.sat.load(satscene.fullname,
                                   satscene.time_slot,
