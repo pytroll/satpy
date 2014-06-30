@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -44,9 +44,15 @@ class Compositer(object):
 
     @property
     def time_slot(self):
-        """Get the current area.
+        """Get the current time slot.
         """
         return self._data_holder.time_slot
+
+    @property
+    def fullname(self):
+        """Get the full satellite name (ex 'meteosat10') of the scene.
+        """
+        return self._data_holder.fullname
 
     def __getitem__(self, *args, **kwargs):
         return self._data_holder.__getitem__(*args, **kwargs)

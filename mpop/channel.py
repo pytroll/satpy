@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014.
+
+# SMHI,
+# Folkborgsvägen 1,
+# Norrköping,
+# Sweden
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This file is part of mpop.
 
@@ -29,18 +35,32 @@ import numpy as np
 
 from mpop.logger import LOG
 
+try:
+    from pyorbital.astronomy import sun_zenith_angle as sza
+except ImportError:
+    sza = None
+
+try:
+    from pyspectral.near_infrared_reflectance import Calculator
+except ImportError:
+    LOG.info("Couldn't load pyspectral")
+
 
 class NotLoadedError(Exception):
+
     """Exception to be raised when attempting to use a non-loaded channel.
     """
     pass
 
+
 class GenericChannel(object):
+
     """This is an abstract channel class. It can be a super class for
     calibrated channels data or more elaborate channels such as cloudtype or
     CTTH.
     """
-    def __init__(self, name = None):
+
+    def __init__(self, name=None):
         object.__init__(self)
 
         # Channel name
@@ -73,7 +93,6 @@ class GenericChannel(object):
             return 1
         else:
             return cmp(self.name, ch2.name)
-
 
     def _get_area(self):
         """Getter for area.
@@ -108,9 +127,11 @@ class GenericChannel(object):
 
     area = property(_get_area, _set_area)
 
+
 class Channel(GenericChannel):
+
     """This is the satellite channel class. It defines satellite channels as a
-    container for calibrated channel data. 
+    container for calibrated channel data.
 
     The *resolution* sets the resolution of the channel, in meters. The
     *wavelength_range* is a triplet, containing the lowest-, center-, and
@@ -120,8 +141,8 @@ class Channel(GenericChannel):
 
     def __init__(self,
                  name=None,
-                 resolution=0, 
-                 wavelength_range=[-np.inf, -np.inf, -np.inf], 
+                 resolution=0,
+                 wavelength_range=[-np.inf, -np.inf, -np.inf],
                  data=None,
                  calibration_unit=None):
 
@@ -129,8 +150,6 @@ class Channel(GenericChannel):
 
         self._data = None
         self.wavelength_range = None
-
-
 
         if(name is None and
            wavelength_range == [-np.inf, -np.inf, -np.inf]):
@@ -149,16 +168,40 @@ class Channel(GenericChannel):
            not isinstance(wavelength_range[2], float)):
             raise TypeError("Wavelength_range should be a triplet of floats.")
         elif(not (wavelength_range[0] <= wavelength_range[1]) or
-             not (wavelength_range[1] <= wavelength_range[2])):            
+             not (wavelength_range[1] <= wavelength_range[2])):
             raise ValueError("Wavelength_range should be a sorted triplet.")
 
         self.wavelength_range = list(wavelength_range)
-
         self.unit = calibration_unit
-
         self.data = data
 
-    def __cmp__(self, ch2, key = 0):
+    def get_reflectance(self, tb11, sun_zenith=None, tb13_4=None):
+        """Get the reflectance part of an NIR channel"""
+
+        # Check the wavelength, and if outside 3-4 microns this functionality
+        # doesn't give any meaning and should not be supported
+        if (self.wavelength_range[1] < 3.0 or self.wavelength_range[1] > 4.0):
+            LOG.warning("Deriving the near infrared reflectance" +
+                        " of a band that is outside the 3-4 micron range" +
+                        " is not supported!\n\tWill do nothing...")
+            return
+
+        # Check if the sun-zenith angle was provided:
+        if sun_zenith is None:
+            lonlats = self.area.get_lonlats()
+            sun_zenith = sza(self.info['time'], lonlats[0], lonlats[1])
+
+        try:
+            refl39 = Calculator(self.info['satname'], self.info['satnumber'],
+                                self.info['instrument_name'], self.name)
+        except NameError:
+            LOG.warning("pyspectral missing!")
+            return
+
+        return refl39.reflectance_from_tbs(sun_zenith, self.data,
+                                           tb11, tb13_4)
+
+    def __cmp__(self, ch2, key=0):
         if(isinstance(ch2, str)):
             return cmp(self.name, ch2)
         elif(ch2.name is not None and
@@ -172,8 +215,8 @@ class Channel(GenericChannel):
              self.name[0] == "_"):
             return 1
         else:
-            res =  cmp(abs(self.wavelength_range[1] - key),
-                       abs(ch2.wavelength_range[1] - key))
+            res = cmp(abs(self.wavelength_range[1] - key),
+                      abs(ch2.wavelength_range[1] - key))
             if res == 0:
                 return cmp(self.name, ch2.name)
             else:
@@ -181,28 +224,27 @@ class Channel(GenericChannel):
 
     def __str__(self):
         if self.shape is not None:
-            return ("'%s: (%.3f,%.3f,%.3f)μm, shape %s, resolution %sm'"%
-                    (self.name, 
-                     self.wavelength_range[0], 
-                     self.wavelength_range[1], 
-                     self.wavelength_range[2], 
-                     self.shape, 
+            return ("'%s: (%.3f,%.3f,%.3f)μm, shape %s, resolution %sm'" %
+                    (self.name,
+                     self.wavelength_range[0],
+                     self.wavelength_range[1],
+                     self.wavelength_range[2],
+                     self.shape,
                      self.resolution))
         else:
-            return ("'%s: (%.3f,%.3f,%.3f)μm, resolution %sm, not loaded'"%
-                    (self.name, 
-                     self.wavelength_range[0], 
-                     self.wavelength_range[1], 
-                     self.wavelength_range[2], 
+            return ("'%s: (%.3f,%.3f,%.3f)μm, resolution %sm, not loaded'" %
+                    (self.name,
+                     self.wavelength_range[0],
+                     self.wavelength_range[1],
+                     self.wavelength_range[2],
                      self.resolution))
-
 
     def is_loaded(self):
         """Tells if the channel contains loaded data.
         """
         return self._data is not None
 
-    def check_range(self, min_range = 1.0):
+    def check_range(self, min_range=1.0):
         """Check that the data of the channels has a definition domain broader
         than *min_range* and return the data, otherwise return zeros.
         """
@@ -212,12 +254,11 @@ class Channel(GenericChannel):
         if not isinstance(min_range, (float, int)):
             raise TypeError("Min_range must be a single number.")
 
-
         if isinstance(self._data, np.ma.core.MaskedArray):
             if self._data.mask.all():
                 return self._data
 
-        if (self._data.max() - self._data.min()) < min_range:
+        if((self._data.max() - self._data.min()) < min_range):
             return np.ma.zeros(self.shape)
         else:
             return self._data
@@ -258,21 +299,21 @@ class Channel(GenericChannel):
         See also the :mod:`mpop.projector` module.
         """
         res = Channel(name=self.name,
-                      resolution=self.resolution, 
-                      wavelength_range=self.wavelength_range, 
+                      resolution=self.resolution,
+                      wavelength_range=self.wavelength_range,
                       data=None,
                       calibration_unit=self.unit)
         res.area = coverage_instance.out_area
         res.info = self.info
         if self.is_loaded():
-            LOG.info("Projecting channel %s (%fμm)...",
-                     self.name, self.wavelength_range[1])
+            LOG.info("Projecting channel %s (%fμm)..."
+                     % (self.name, self.wavelength_range[1]))
             data = coverage_instance.project_array(self._data)
             res.data = data
             return res
         else:
             raise NotLoadedError("Can't project, channel %s (%fμm) not loaded."
-                                 %(self.name, self.wavelength_range[1]))
+                                 % (self.name, self.wavelength_range[1]))
 
     def get_data(self):
         """Getter for channel data.
@@ -292,7 +333,6 @@ class Channel(GenericChannel):
 
     data = property(get_data, set_data)
 
-
     @property
     def shape(self):
         """Shape of the channel.
@@ -301,7 +341,6 @@ class Channel(GenericChannel):
             return None
         else:
             return self.data.shape
-
 
     def sunzen_corr(self, time_slot, lonlats=None, limit=80., mode='cos'):
         '''Perform Sun zenith angle correction for the channel at
@@ -352,10 +391,9 @@ class Channel(GenericChannel):
 
         # Add information about the corrected version to original
         # channel
-        self.info["sun_zen_corrected"] = self.name+'_SZC'
+        self.info["sun_zen_corrected"] = self.name + '_SZC'
 
         return new_ch
-
 
     # Arithmetic operations on channels.
 
