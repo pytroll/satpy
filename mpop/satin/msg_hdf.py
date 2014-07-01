@@ -41,27 +41,30 @@ from mpop.projector import get_area_def
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6
 
+
 def pcs_def_from_region(region):
     items = region.proj_dict.items()
-    return ' '.join([ t[0] + '=' + t[1] for t in items])
+    return ' '.join([t[0] + '=' + t[1] for t in items])
+
 
 def _get_area_extent(cfac, lfac, coff, loff, numcols, numlines):
     """Get the area extent from msg parameters.
     """
 
-    xur = (numcols - coff) * 2**16 / (cfac * 1.0)
+    xur = (numcols - coff) * 2 ** 16 / (cfac * 1.0)
     xur = np.deg2rad(xur) * 35785831.0
-    xll = (-1 - coff) * 2**16 / (cfac * 1.0)
+    xll = (-1 - coff) * 2 ** 16 / (cfac * 1.0)
     xll = np.deg2rad(xll) * 35785831.0
     xres = (xur - xll) / numcols
-    xur, xll = xur - xres/2, xll + xres/2
-    yll = (numlines - loff) * 2**16 / (-lfac * 1.0)
+    xur, xll = xur - xres / 2, xll + xres / 2
+    yll = (numlines - loff) * 2 ** 16 / (-lfac * 1.0)
     yll = np.deg2rad(yll) * 35785831.0
-    yur = (-1 - loff) * 2**16 / (-lfac * 1.0)
+    yur = (-1 - loff) * 2 ** 16 / (-lfac * 1.0)
     yur = np.deg2rad(yur) * 35785831.0
     yres = (yur - yll) / numlines
-    yll, yur = yll + yres/2, yur - yres/2
+    yll, yur = yll + yres / 2, yur - yres / 2
     return xll, yll, xur, yur
+
 
 def get_area_extent(filename):
     """Get the area extent of the data in *filename*.
@@ -77,6 +80,7 @@ def get_area_extent(filename):
     h5f.close()
     return aex
 
+
 def _get_palette(h5f, dsname):
     try:
         p = h5f[dsname].attrs['PALETTE']
@@ -84,7 +88,9 @@ def _get_palette(h5f, dsname):
     except KeyError:
         return None
 
+
 class PpsCloudType(mpop.channel.GenericChannel):
+
     def __init__(self):
         mpop.channel.GenericChannel.__init__(self, "CloudType")
         self.region = None
@@ -107,7 +113,9 @@ class PpsCloudType(mpop.channel.GenericChannel):
         import epshdf
         epshdf.write_cloudtype(filename, self, COMPRESS_LVL)
 
+
 class PpsCTTH(mpop.channel.GenericChannel):
+
     def __init__(self):
         mpop.channel.GenericChannel.__init__(self, "CTTH")
         self.region = None
@@ -147,9 +155,13 @@ class PpsCTTH(mpop.channel.GenericChannel):
         epshdf.write_cloudtop(filename, self, COMPRESS_LVL)
 
 # ----------------------------------------
+
+
 class MsgCloudTypeData(object):
+
     """NWCSAF/MSG Cloud Type data layer
     """
+
     def __init__(self):
         self.data = None
         self.scaling_factor = 1
@@ -159,10 +171,13 @@ class MsgCloudTypeData(object):
         self.product = ""
         self.id = ""
 
+
 class MsgCloudType(mpop.channel.GenericChannel):
+
     """NWCSAF/MSG Cloud Type data structure as retrieved from HDF5
     file. Resolution sets the nominal resolution of the data.
     """
+
     def __init__(self):
         mpop.channel.GenericChannel.__init__(self, "CloudType")
         self.filled = False
@@ -201,7 +216,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.qc_straylight = -1
 
     def __str__(self):
-        return ("'%s: shape %s, resolution %sm'"%
+        return ("'%s: shape %s, resolution %sm'" %
                 (self.name,
                  self.cloudtype.shape,
                  self.resolution))
@@ -220,7 +235,6 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.cloudtype = MsgCloudTypeData()
         self.processing_flags = MsgCloudTypeData()
         self.cloudphase = MsgCloudTypeData()
-
 
         h5f = h5py.File(filename, 'r')
         # pylint: disable-msg=W0212
@@ -277,7 +291,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         h5d = h5f['CT_QUALITY']
         self.processing_flags.data = h5d[:, :]
         self.processing_flags.scaling_factor = \
-                          h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.processing_flags.offset = h5d.attrs["OFFSET"]
         self.processing_flags.num_of_lines = h5d.attrs["N_LINES"]
         self.processing_flags.num_of_columns = h5d.attrs["N_COLS"]
@@ -295,7 +309,6 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         self.filled = True
 
-
     def save(self, filename):
         """Save the current cloudtype object to hdf *filename*, in pps format.
         """
@@ -308,12 +321,11 @@ class MsgCloudType(mpop.channel.GenericChannel):
         h5f.close()
         LOG.info("Saving CType hdf file done !")
 
-
     def project(self, coverage):
         """Remaps the NWCSAF/MSG Cloud Type to cartographic map-projection on
         area give by a pre-registered area-id. Faster version of msg_remap!
         """
-        LOG.info("Projecting channel %s..."%(self.name))
+        LOG.info("Projecting channel %s..." % (self.name))
 
         region = coverage.out_area
         dest_area = region.area_id
@@ -336,7 +348,6 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.sgs_product_quality = self.sgs_product_quality
         retv.sgs_product_completeness = self.sgs_product_completeness
         retv.product_algorithm_version = self.product_algorithm_version
-
 
         retv.cloudtype = coverage.project_array(self.cloudtype)
 
@@ -406,9 +417,12 @@ class MsgCloudType(mpop.channel.GenericChannel):
     def convert2nordrad(self):
         return NordRadCType(self)
 
+
 class MsgCTTHData(object):
+
     """CTTH data object.
     """
+
     def __init__(self):
         self.data = None
         self.scaling_factor = 1
@@ -418,10 +432,13 @@ class MsgCTTHData(object):
         self.product = ""
         self.id = ""
 
+
 class MsgCTTH(mpop.channel.GenericChannel):
+
     """CTTH channel.
     """
-    def __init__(self, resolution = None):
+
+    def __init__(self, resolution=None):
         mpop.channel.GenericChannel.__init__(self, "CTTH")
         self.filled = False
         self.name = "CTTH"
@@ -445,7 +462,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.sgs_product_quality = 0
         self.sgs_product_completeness = 0
         self.product_algorithm_version = ""
-        self.cloudiness = None # Effective cloudiness
+        self.cloudiness = None  # Effective cloudiness
         self.processing_flags = None
         self.height = None
         self.temperature = None
@@ -453,7 +470,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.satid = ""
 
     def __str__(self):
-        return ("'%s: shape %s, resolution %sm'"%
+        return ("'%s: shape %s, resolution %sm'" %
                 (self.name,
                  self.shape,
                  self.resolution))
@@ -466,7 +483,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
     def read(self, filename, calibrate=True):
         import h5py
 
-        self.cloudiness = MsgCTTHData() # Effective cloudiness
+        self.cloudiness = MsgCTTHData()  # Effective cloudiness
         self.temperature = MsgCTTHData()
         self.height = MsgCTTHData()
         self.pressure = MsgCTTHData()
@@ -502,7 +519,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         h5d = h5f['CTTH_EFFECT']
         self.cloudiness.data = h5d[:, :]
         self.cloudiness.scaling_factor = \
-                             h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.cloudiness.offset = h5d.attrs["OFFSET"]
         self.cloudiness.num_of_lines = h5d.attrs["N_LINES"]
         self.cloudiness.num_of_columns = h5d.attrs["N_COLS"]
@@ -519,7 +536,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         h5d = h5f['CTTH_TEMPER']
         self.temperature.data = h5d[:, :]
         self.temperature.scaling_factor = \
-                               h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.temperature.offset = h5d.attrs["OFFSET"]
         self.temperature.num_of_lines = h5d.attrs["N_LINES"]
         self.shape = (self.temperature.num_of_lines,
@@ -543,7 +560,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         h5d = h5f['CTTH_PRESS']
         self.pressure.data = h5d[:, :]
         self.pressure.scaling_factor = \
-                                     h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.pressure.offset = h5d.attrs["OFFSET"]
         self.pressure.num_of_lines = h5d.attrs["N_LINES"]
         self.pressure.num_of_columns = h5d.attrs["N_COLS"]
@@ -566,7 +583,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         h5d = h5f['CTTH_HEIGHT']
         self.height.data = h5d[:, :]
         self.height.scaling_factor = \
-                                   h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.height.offset = h5d.attrs["OFFSET"]
         self.height.num_of_lines = h5d.attrs["N_LINES"]
         self.height.num_of_columns = h5d.attrs["N_COLS"]
@@ -583,24 +600,23 @@ class MsgCTTH(mpop.channel.GenericChannel):
             self.height = self.height.data
         self.height_palette = _get_palette(h5f, 'CTTH_HEIGHT')
 
-
         # ------------------------
 
         # The CTTH processing/quality flags
         h5d = h5f['CTTH_QUALITY']
         self.processing_flags.data = h5d[:, :]
         self.processing_flags.scaling_factor = \
-                                h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.processing_flags.offset = h5d.attrs["OFFSET"]
         self.processing_flags.num_of_lines = \
-                                h5d.attrs["N_LINES"]
+            h5d.attrs["N_LINES"]
         self.processing_flags.num_of_columns = \
-                                h5d.attrs["N_COLS"]
+            h5d.attrs["N_COLS"]
         self.processing_flags.product = h5d.attrs["PRODUCT"]
         self.processing_flags.id = h5d.attrs["ID"]
 
         self.processing_flags = \
-             np.ma.masked_equal(self.processing_flags.data, 0)
+            np.ma.masked_equal(self.processing_flags.data, 0)
 
         h5f.close()
 
@@ -609,7 +625,6 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.area = get_area_from_file(filename)
 
         self.filled = True
-
 
     def save(self, filename):
         """Save the current CTTH channel to HDF5 format.
@@ -624,7 +639,6 @@ class MsgCTTH(mpop.channel.GenericChannel):
         """
         dest_area = coverage.out_area
         dest_area_id = dest_area.area_id
-
 
         retv = MsgCTTH()
 
@@ -694,7 +708,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
                          retv.p_gain).filled(retv.p_nodata).astype('B')
 
         retv.cloudiness = self.cloudiness.astype('B')
-        retv.c_nodata = 255 # Is this correct? FIXME
+        retv.c_nodata = 255  # Is this correct? FIXME
 
         retv.processingflag = ctth_procflags2pps(self.processing_flags)
 
@@ -702,9 +716,12 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
 # ----------------------------------------
 
+
 class MsgPCData(object):
+
     """NWCSAF/MSG Precipitating Clouds data layer
     """
+
     def __init__(self):
         self.data = None
         self.scaling_factor = 1
@@ -714,10 +731,13 @@ class MsgPCData(object):
         self.product = ""
         self.id = ""
 
+
 class MsgPC(mpop.channel.GenericChannel):
+
     """NWCSAF/MSG Precipitating Clouds data structure as retrieved from HDF5
     file. Resolution sets the nominal resolution of the data.
     """
+
     def __init__(self):
         mpop.channel.GenericChannel.__init__(self, "PC")
         self.filled = False
@@ -755,7 +775,7 @@ class MsgPC(mpop.channel.GenericChannel):
         self.qc_straylight = -1
 
     def __str__(self):
-        return ("'%s: shape %s, resolution %sm'"%
+        return ("'%s: shape %s, resolution %sm'" %
                 (self.name,
                  self.probability_1.shape,
                  self.resolution))
@@ -773,7 +793,6 @@ class MsgPC(mpop.channel.GenericChannel):
 
         self.probability_1 = MsgPCData()
         self.processing_flags = MsgPCData()
-
 
         h5f = h5py.File(filename, 'r')
         # pylint: disable-msg=W0212
@@ -810,7 +829,8 @@ class MsgPC(mpop.channel.GenericChannel):
                       self.probability_1.num_of_columns)
         self.probability_1.product = h5d.attrs["PRODUCT"]
         self.probability_1.id = h5d.attrs["ID"]
-        self.probability_1.data = np.ma.masked_equal(self.probability_1.data, 0)
+        self.probability_1.data = np.ma.masked_equal(
+            self.probability_1.data, 0)
         if calibrate:
             self.probability_1 = (self.probability_1.data *
                                   self.probability_1.scaling_factor +
@@ -819,20 +839,20 @@ class MsgPC(mpop.channel.GenericChannel):
             self.probability_1 = self.probability_1.data
         self.probability_1_palette = _get_palette(h5f, 'PC_PROB1')
 
-
         # ------------------------
 
         # The cloudtype processing/quality flags
         h5d = h5f['PC_QUALITY']
         self.processing_flags.data = h5d[:, :]
         self.processing_flags.scaling_factor = \
-                          h5d.attrs["SCALING_FACTOR"]
+            h5d.attrs["SCALING_FACTOR"]
         self.processing_flags.offset = h5d.attrs["OFFSET"]
         self.processing_flags.num_of_lines = h5d.attrs["N_LINES"]
         self.processing_flags.num_of_columns = h5d.attrs["N_COLS"]
         self.processing_flags.product = h5d.attrs["PRODUCT"]
         self.processing_flags.id = h5d.attrs["ID"]
-        self.processing_flags = np.ma.masked_equal(self.processing_flags.data, 0)
+        self.processing_flags = np.ma.masked_equal(
+            self.processing_flags.data, 0)
 
         # ------------------------
         h5f.close()
@@ -855,7 +875,7 @@ def ctth_procflags2pps(data):
     """Convert ctth processing flags from MSG to PPS format.
     """
 
-    ones = np.ones(data.shape,"h")
+    ones = np.ones(data.shape, "h")
 
     # 2 bits to define processing status
     # (maps to pps bits 0 and 1:)
@@ -879,7 +899,6 @@ def ctth_procflags2pps(data):
     retv = np.array(arr)
     del proc
 
-
     # 1 bit to define if RTTOV-simulations are available?
     # (maps to pps bit 3:)
     is_bit2_set = get_bit_from_flags(data, 2)
@@ -901,13 +920,13 @@ def ctth_procflags2pps(data):
                 is_bit4_set * np.left_shift(ones, 1) +
                 is_bit5_set * np.left_shift(ones, 2))
     arr = np.where(np.logical_and(np.greater_equal(nwp_bits, 3),
-                                        np.less_equal(nwp_bits, 5)),
-                      np.left_shift(ones, 4),
-                      0)
+                                  np.less_equal(nwp_bits, 5)),
+                   np.left_shift(ones, 4),
+                   0)
     arr = np.add(arr, np.where(np.logical_or(np.equal(nwp_bits, 2),
-                                                      np.equal(nwp_bits, 4)),
-                                     np.left_shift(ones, 5),
-                                     0))
+                                             np.equal(nwp_bits, 4)),
+                               np.left_shift(ones, 5),
+                               0))
 
     retv = np.add(retv, arr)
     del is_bit3_set
@@ -922,7 +941,7 @@ def ctth_procflags2pps(data):
     seviri_bits = (is_bit6_set * np.left_shift(ones, 0) +
                    is_bit7_set * np.left_shift(ones, 1))
     arr = np.where(np.greater_equal(seviri_bits, 2),
-                      np.left_shift(ones, 6), 0)
+                   np.left_shift(ones, 6), 0)
 
     retv = np.add(retv, arr)
     del is_bit6_set
@@ -941,20 +960,20 @@ def ctth_procflags2pps(data):
                    is_bit11_set * np.left_shift(ones, 3))
     arr = np.where(np.logical_or(
         np.logical_and(np.greater_equal(method_bits, 1),
-                          np.less_equal(method_bits, 2)),
+                       np.less_equal(method_bits, 2)),
         np.equal(method_bits, 13)),
-                      np.left_shift(ones, 2),
-                      0)
+        np.left_shift(ones, 2),
+        0)
     arr = np.add(arr,
-                    np.where(np.equal(method_bits, 1),
-                                np.left_shift(ones, 7),
-                                0))
+                 np.where(np.equal(method_bits, 1),
+                          np.left_shift(ones, 7),
+                          0))
     arr = np.add(arr,
-                    np.where(np.logical_and(
-                        np.greater_equal(method_bits, 3),
-                        np.less_equal(method_bits, 12)),
-                                np.left_shift(ones, 8),
-                                0))
+                 np.where(np.logical_and(
+                     np.greater_equal(method_bits, 3),
+                     np.less_equal(method_bits, 12)),
+                     np.left_shift(ones, 8),
+                     0))
 
     # (Maps directly - as well - to the spare bits 9-12)
     arr = np.add(arr, np.where(is_bit8_set, np.left_shift(ones, 9), 0))
@@ -1001,7 +1020,7 @@ def ctype_procflags2pps(data):
     PPS and MSG cloud type contents.
     """
 
-    ones = np.ones(data.shape,"h")
+    ones = np.ones(data.shape, "h")
 
     # msg illumination bit 0,1,2 (undefined,night,twilight,day,sunglint) maps
     # to pps bits 2, 3 and 4:
@@ -1009,8 +1028,8 @@ def ctype_procflags2pps(data):
     is_bit1_set = get_bit_from_flags(data, 1)
     is_bit2_set = get_bit_from_flags(data, 2)
     illum = is_bit0_set * np.left_shift(ones, 0) + \
-            is_bit1_set * np.left_shift(ones, 1) + \
-            is_bit2_set * np.left_shift(ones, 2)
+        is_bit1_set * np.left_shift(ones, 1) + \
+        is_bit2_set * np.left_shift(ones, 2)
     del is_bit0_set
     del is_bit1_set
     del is_bit2_set
@@ -1038,7 +1057,7 @@ def ctype_procflags2pps(data):
 
     arr = np.where(np.equal(nwp, 1), np.left_shift(ones, 7), 0)
     arr = np.where(np.equal(nwp, 2), np.left_shift(ones, 7) +
-                      np.left_shift(ones, 6), arr)
+                   np.left_shift(ones, 6), arr)
     arr = np.where(np.equal(nwp, 3), 0, arr)
     retv = np.add(arr, retv)
     del nwp
@@ -1052,16 +1071,16 @@ def ctype_procflags2pps(data):
     del is_bit6_set
 
     retv = np.add(retv,
-                     np.where(np.logical_or(np.equal(seviri, 2),
-                                                  np.equal(seviri, 3)),
-                                 np.left_shift(ones, 8), 0))
+                  np.where(np.logical_or(np.equal(seviri, 2),
+                                         np.equal(seviri, 3)),
+                           np.left_shift(ones, 8), 0))
     del seviri
 
     # msg quality bits 7&8 maps to pps bit 9&10:
     is_bit7_set = get_bit_from_flags(data, 7)
     is_bit8_set = get_bit_from_flags(data, 8)
     quality = (is_bit7_set * np.left_shift(ones, 0) +
-               is_bit8_set * np.left_shift(ones,1))
+               is_bit8_set * np.left_shift(ones, 1))
     del is_bit7_set
     del is_bit8_set
 
@@ -1073,9 +1092,9 @@ def ctype_procflags2pps(data):
     # msg bit 9 (stratiform-cumuliform distinction?) maps to pps bit 11:
     is_bit9_set = get_bit_from_flags(data, 9)
     retv = np.add(retv,
-                     np.where(is_bit9_set,
-                                 np.left_shift(ones, 11),
-                                 0))
+                  np.where(is_bit9_set,
+                           np.left_shift(ones, 11),
+                           0))
     del is_bit9_set
 
     return retv.astype('h')
@@ -1133,14 +1152,15 @@ def pps_luts():
 
     return ctype_lut, phase_lut, quality_lut
 
+
 class NordRadCType(object):
+
     """Wrapper aroud the msg_ctype channel.
     """
 
     def __init__(self, ctype_instance):
         self.ctype = ctype_instance
         self.datestr = ctype_instance.image_acquisition_time
-
 
     def save(self, filename):
         """Save the current instance to nordrad hdf format.
@@ -1166,7 +1186,7 @@ class NordRadCType(object):
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.ATTRIBUTE_ID, "/what/date")
         yyyymmdd = self.datestr[0:8]
-        hourminsec = self.datestr[8:12]+'00'
+        hourminsec = self.datestr[8:12] + '00'
         node.setScalarValue(-1, yyyymmdd, "string", -1)
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.ATTRIBUTE_ID, "/what/time")
@@ -1222,7 +1242,7 @@ class NordRadCType(object):
         node = _pyhl.node(_pyhl.GROUP_ID, "/image1/what")
         node_list.addNode(node)
         node = _pyhl.node(_pyhl.ATTRIBUTE_ID, "/image1/what/product")
-        #We should eventually try to use the msg-parameters "package",
+        # We should eventually try to use the msg-parameters "package",
         #"product_algorithm_version", and "product_name":
         node.setScalarValue(1, 'MSGCT', "string", -1)
         node_list.addNode(node)
@@ -1264,6 +1284,7 @@ class NordRadCType(object):
 
 MSG_PGE_EXTENTIONS = ["PLAX.CTTH.0.h5", "PLAX.CLIM.0.h5", "h5"]
 
+
 def get_best_product(filename, area_extent):
     """Get the best of the available products for the *filename* template.
     """
@@ -1273,7 +1294,7 @@ def get_best_product(filename, area_extent):
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
-                        %ext)
+                        % ext)
         else:
             # File found:
             if area_extent is None:
@@ -1283,9 +1304,10 @@ def get_best_product(filename, area_extent):
                 aex = get_area_extent(fname)
                 if np.all(np.max(np.abs(np.array(aex) -
                                         np.array(area_extent))) < 1000):
-                    LOG.info("MSG file found: %s"%fname)
+                    LOG.info("MSG file found: %s" % fname)
                     return fname
             LOG.info("Did not find any MSG file for specified area")
+
 
 def get_best_products(filename, area_extent):
     """Get the best of the available products for the *filename* template.
@@ -1298,20 +1320,25 @@ def get_best_products(filename, area_extent):
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
-                        %ext)
+                        % ext)
         else:
             # File found:
             if area_extent is None:
                 LOG.warning("Didn't specify an area, taking " + flist[0])
                 filenames.append(flist[0])
-            for fname in flist:
-                aex = get_area_extent(fname)
-                if np.all(np.max(np.abs(np.array(aex) -
-                                        np.array(area_extent))) < 1000):
-                    LOG.info("MSG file found: %s"%fname)
-                    filenames.append(fname)
-            LOG.info("Did not find any MSG file for specified area")
+            else:
+                found = False
+                for fname in flist:
+                    aex = get_area_extent(fname)
+                    if np.all(np.max(np.abs(np.array(aex) -
+                                            np.array(area_extent))) < 1000):
+                        found = True
+                        LOG.info("MSG file found: %s" % fname)
+                        filenames.append(fname)
+                    if not found:
+                        LOG.info("Did not find any MSG file for specified area")
     return sorted(filenames)
+
 
 def get_area_from_file(filename):
     """Get the area from the h5 file.
@@ -1342,8 +1369,6 @@ def get_area_from_file(filename):
     return area_def
 
 
-
-
 def load(scene, **kwargs):
     """Load data into the *channels*. *Channels* is a list or a tuple
     containing channels we will load data into. If None, all channels are
@@ -1351,20 +1376,20 @@ def load(scene, **kwargs):
     """
 
     area_extent = kwargs.get("area_extent")
-
+    print area_extent
     conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, scene.fullname+".cfg"))
-    directory = conf.get(scene.instrument_name+"-level3",
+    conf.read(os.path.join(CONFIG_PATH, scene.fullname + ".cfg"))
+    directory = conf.get(scene.instrument_name + "-level3",
                          "dir",
                          raw=True)
-    filename = conf.get(scene.instrument_name+"-level3", "filename",
+    filename = conf.get(scene.instrument_name + "-level3", "filename",
                         raw=True)
     pathname = os.path.join(directory, filename)
 
     if "CTTH" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
-                    %{"number": "03",
-                      "product": "CTTH_"})
+                    % {"number": "03",
+                       "product": "CTTH_"})
         ct_chan = MsgCTTH()
         ct_chan.read(get_best_product(filename, area_extent))
         ct_chan.satid = (scene.satname.capitalize() +
@@ -1374,14 +1399,15 @@ def load(scene, **kwargs):
 
     if "CloudType" in scene.channels_to_load:
         filename = (scene.time_slot.strftime(pathname)
-                    %{"number": "02",
-                      "product": "CT___"})
+                    % {"number": "02",
+                       "product": "CT___"})
         products = get_best_products(filename, area_extent)
+        print products
         ct_chan_plax = MsgCloudType()
         ct_chan_plax.read(products[0])
         ct_chan_plax.name = "CloudType_plax"
         ct_chan_plax.satid = (scene.satname.capitalize() +
-                         str(int(scene.number)).rjust(2))
+                              str(int(scene.number)).rjust(2))
         ct_chan_plax.resolution = ct_chan_plax.area.pixel_size_x
         scene.channels.append(ct_chan_plax)
 
@@ -1392,6 +1418,5 @@ def load(scene, **kwargs):
                          str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
-
 
     LOG.info("Loading channels done.")
