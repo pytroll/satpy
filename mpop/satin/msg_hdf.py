@@ -1337,6 +1337,7 @@ def get_best_products(filename, area_extent):
                         filenames.append(fname)
                     if not found:
                         LOG.info("Did not find any MSG file for specified area")
+    LOG.debug("Sorted filenames: %s", str(sorted(filenames)))
     return sorted(filenames)
 
 
@@ -1404,6 +1405,7 @@ def load(scene, **kwargs):
         products = get_best_products(filename, area_extent)
         print products
         ct_chan_plax = MsgCloudType()
+        LOG.debug("Parallax corrected file: %s", products[0])
         ct_chan_plax.read(products[0])
         ct_chan_plax.name = "CloudType_plax"
         ct_chan_plax.satid = (scene.satname.capitalize() +
@@ -1413,6 +1415,7 @@ def load(scene, **kwargs):
 
         ct_chan = MsgCloudType()
         ct_chan.read(products[-1])
+        LOG.debug("Uncorrected file: %s", products[-1])
         ct_chan.name = "CloudType"
         ct_chan.satid = (scene.satname.capitalize() +
                          str(int(scene.number)).rjust(2))
