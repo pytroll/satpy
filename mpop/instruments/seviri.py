@@ -297,7 +297,7 @@ class SeviriCompositer(VisirCompositer):
                                  self.area,
                                  self.time_slot,
                                  crange=((0, 100), (0, 70), (0, 30)),
-                                 fill_value=(0, 0, 0), mode="RGB")
+                                 fill_value=None, mode="RGB")
         img.gamma((1.7, 1.7, 1.7))
 
         return img
@@ -340,7 +340,7 @@ class SeviriCompositer(VisirCompositer):
                                  self.area,
                                  self.time_slot,
                                  crange=crange,
-                                 fill_value=(0, 0, 0), mode="RGB")
+                                 fill_value=None, mode="RGB")
         if wintertime:
             img.gamma((1.0, 1.5, 1.0))
         else:
