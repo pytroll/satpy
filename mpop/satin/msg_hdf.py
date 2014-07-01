@@ -332,6 +332,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         retv = MsgCloudType()
 
+        retv.name = self.name
         retv.package = self.package
         retv.saf = self.saf
         retv.product_name = self.product_name
