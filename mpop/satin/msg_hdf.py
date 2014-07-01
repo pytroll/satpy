@@ -1403,16 +1403,6 @@ def load(scene, **kwargs):
                     % {"number": "02",
                        "product": "CT___"})
         products = get_best_products(filename, area_extent)
-        print products
-        ct_chan_plax = MsgCloudType()
-        LOG.debug("Parallax corrected file: %s", products[0])
-        ct_chan_plax.read(products[0])
-        ct_chan_plax.name = "CloudType_plax"
-        ct_chan_plax.satid = (scene.satname.capitalize() +
-                              str(int(scene.number)).rjust(2))
-        ct_chan_plax.resolution = ct_chan_plax.area.pixel_size_x
-        scene.channels.append(ct_chan_plax)
-
         ct_chan = MsgCloudType()
         ct_chan.read(products[-1])
         LOG.debug("Uncorrected file: %s", products[-1])
@@ -1421,5 +1411,18 @@ def load(scene, **kwargs):
                          str(int(scene.number)).rjust(2))
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
+    if "CloudType_plax" in scene.channels_to_load:
+        filename = (scene.time_slot.strftime(pathname)
+                    % {"number": "02",
+                       "product": "CT___"})
+        products = get_best_products(filename, area_extent)
+        ct_chan_plax = MsgCloudType()
+        LOG.debug("Parallax corrected file: %s", products[0])
+        ct_chan_plax.read(products[0])
+        ct_chan_plax.name = "CloudType_plax"
+        ct_chan_plax.satid = (scene.satname.capitalize() +
+                              str(int(scene.number)).rjust(2))
+        ct_chan_plax.resolution = ct_chan_plax.area.pixel_size_x
+        scene.channels.append(ct_chan_plax)
 
     LOG.info("Loading channels done.")
