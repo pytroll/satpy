@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011 SMHI
+# Copyright (c) 2011, 2014 SMHI
 
 # Author(s):
 
@@ -49,6 +49,8 @@ We take the case of HRIT data from meteosat 9, as send through eumetcast.
 
 """
 
+from mpop.utils import debug_on
+debug_on()
 from mpop.satellites import GeostationaryFactory
 
 import sys
@@ -56,6 +58,7 @@ from datetime import datetime
 
 if sys.version_info < (2, 5):
     import time
+
     def strptime(string, fmt=None):
         """This function is available in the datetime module only
         from Python >= 2.5.
