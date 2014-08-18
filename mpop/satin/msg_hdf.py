@@ -1292,6 +1292,7 @@ def get_best_product(filename, area_extent):
 
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
+        LOG.debug('Match string = ' + str(match_str))
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
@@ -1318,6 +1319,7 @@ def get_best_products(filename, area_extent):
 
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
+        LOG.debug('Match string = ' + str(match_str))
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
@@ -1337,7 +1339,8 @@ def get_best_products(filename, area_extent):
                         LOG.info("MSG file found: %s" % fname)
                         filenames.append(fname)
                     if not found:
-                        LOG.info("Did not find any MSG file for specified area")
+                        LOG.info(
+                            "Did not find any MSG file for specified area")
     LOG.debug("Sorted filenames: %s", str(sorted(filenames)))
     return sorted(filenames)
 
