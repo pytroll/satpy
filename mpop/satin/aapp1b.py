@@ -493,9 +493,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
-        logger.info("Suspicious scan lines: " + str(suspect_line_nums))
-
-
+        LOGGER.info("Suspicious scan lines: " + str(suspect_line_nums))
 
     if calib_type == 2:
         return rad
