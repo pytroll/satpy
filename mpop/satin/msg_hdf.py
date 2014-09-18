@@ -214,6 +214,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.shape = None
         self.satid = ""
         self.qc_straylight = -1
+        self.cloudtype_palette = None
+        self.cloudphase_palette = None
 
     def __str__(self):
         return ("'%s: shape %s, resolution %sm'" %
@@ -236,6 +238,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.processing_flags = MsgCloudTypeData()
         self.cloudphase = MsgCloudTypeData()
 
+        LOG.debug("Filename = <" + str(filename) + ">")
         h5f = h5py.File(filename, 'r')
         # pylint: disable-msg=W0212
         self.package = h5f.attrs["PACKAGE"]
@@ -351,8 +354,11 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.product_algorithm_version = self.product_algorithm_version
 
         retv.cloudtype = coverage.project_array(self.cloudtype)
+        retv.cloudtype_palette = self.cloudtype_palette
 
         retv.cloudphase = coverage.project_array(self.cloudphase)
+        retv.cloudphase_palette = self.cloudphase_palette
+
         retv.processing_flags = \
             coverage.project_array(self.processing_flags)
 
@@ -1292,6 +1298,7 @@ def get_best_product(filename, area_extent):
 
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
+        LOG.debug("glob-string for filename: " + str(match_str))
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
@@ -1303,6 +1310,8 @@ def get_best_product(filename, area_extent):
                 return flist[0]
             for fname in flist:
                 aex = get_area_extent(fname)
+                #import pdb
+                # pdb.set_trace()
                 if np.all(np.max(np.abs(np.array(aex) -
                                         np.array(area_extent))) < 1000):
                     LOG.info("MSG file found: %s" % fname)
@@ -1318,6 +1327,7 @@ def get_best_products(filename, area_extent):
 
     for ext in MSG_PGE_EXTENTIONS:
         match_str = filename + "." + ext
+        LOG.debug('Match string = ' + str(match_str))
         flist = glob.glob(match_str)
         if len(flist) == 0:
             LOG.warning("No matching .%s input MSG file."
@@ -1337,7 +1347,8 @@ def get_best_products(filename, area_extent):
                         LOG.info("MSG file found: %s" % fname)
                         filenames.append(fname)
                     if not found:
-                        LOG.info("Did not find any MSG file for specified area")
+                        LOG.info(
+                            "Did not find any MSG file for specified area")
     LOG.debug("Sorted filenames: %s", str(sorted(filenames)))
     return sorted(filenames)
 
@@ -1404,6 +1415,7 @@ def load(scene, **kwargs):
                     % {"number": "02",
                        "product": "CT___"})
         products = get_best_products(filename, area_extent)
+
         ct_chan = MsgCloudType()
         ct_chan.read(products[-1])
         LOG.debug("Uncorrected file: %s", products[-1])

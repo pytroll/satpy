@@ -40,11 +40,6 @@ try:
 except ImportError:
     sza = None
 
-try:
-    from pyspectral.near_infrared_reflectance import Calculator
-except ImportError:
-    LOG.info("Couldn't load pyspectral")
-
 
 class NotLoadedError(Exception):
 
@@ -177,6 +172,11 @@ class Channel(GenericChannel):
 
     def get_reflectance(self, tb11, sun_zenith=None, tb13_4=None):
         """Get the reflectance part of an NIR channel"""
+
+        try:
+            from pyspectral.near_infrared_reflectance import Calculator
+        except ImportError:
+            LOG.info("Couldn't load pyspectral")
 
         # Check the wavelength, and if outside 3-4 microns this functionality
         # doesn't give any meaning and should not be supported
