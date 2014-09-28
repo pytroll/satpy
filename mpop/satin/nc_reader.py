@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
@@ -59,7 +59,7 @@ MAPPING_ATTRIBUTES = {'grid_mapping_name': "proj",
                       'semi_major_axis': "a",
                       'semi_minor_axis': "b",
                       'inverse_flattening': "rf",
-                      'ellipsoid': "ellps", # not in CF conventions...
+                      'ellipsoid': "ellps",  # not in CF conventions...
                       }
 
 # To be completed, get from appendix F of cf conventions
@@ -71,37 +71,61 @@ PROJNAME = {"vertical_perspective": "nsper",
             "transverse_mercator": "tmerc",
             "stereographic": "stere",
             "general_oblique_transformation": "ob_tran"
-    }
+            }
 
-def _load02(filename):
+PLATFORMS = {'NOAA19': 'noaa 19',
+             'NOAA18': 'noaa 18',
+             'NOAA17': 'noaa 17',
+             'NOAA16': 'noaa 16',
+             'NOAA15': 'noaa 15',
+             'NPP': 'npp'
+             }
+
+
+def _load02(filename, otime=None):
     """Load data from a netcdf4 file, cf-satellite v0.2 (2012-02-03).
     """
 
-    
     rootgrp = Dataset(filename, 'r')
-    
+
     # processed variables
     processed = set()
 
     # Currently MPOP does not like unicode (so much).
-    satellite_name, satellite_number = [str(i) for i in rootgrp.platform.rsplit("-", 1)]
+    try:
+        satellite_name, satellite_number = [
+            str(i) for i in rootgrp.platform.rsplit("-", 1)]
+    except ValueError:
+        platform = PLATFORMS.get(str(rootgrp.platform), str(rootgrp.platform))
+        tup = platform.split()
+        satellite_name = tup[0]
+        if len(tup) > 1:
+            satellite_number = tup[1]
+        else:
+            satellite_number = ""
 
-    time_slot = rootgrp.variables["time"].getValue()[0]
-    time_slot = num2date(time_slot, TIME_UNITS)
+    if otime:
+        time_slot = otime
+    else:
+        time_slot = rootgrp.variables["time"].getValue()[0]
+        time_slot = num2date(time_slot, TIME_UNITS)
 
     processed |= set(["time"])
-
-
 
     try:
         service = str(rootgrp.service)
     except AttributeError:
         service = ""
 
-    instrument_name = str(rootgrp.instrument)
+    try:
+        instrument_name = str(rootgrp.instrument)
+    except AttributeError:
+        # Hardcoded! FIXME!
+        instrument_name = 'avhrr'
 
     try:
-        orbit = str(rootgrp.orbit)
+        orbit = str(rootgrp.orbit_number)
+        #orbit = str(rootgrp.orbit)
     except AttributeError:
         orbit = None
 
@@ -144,14 +168,14 @@ def _load02(filename):
 
             data = var
             data.set_auto_maskandscale(False)
-                
+
             area = None
             try:
-                area_var_name = getattr(var,"grid_mapping")
+                area_var_name = getattr(var, "grid_mapping")
                 area_var = rootgrp.variables[area_var_name]
                 proj4_dict = {}
                 for attr, projattr in MAPPING_ATTRIBUTES.items():
-                    try: 
+                    try:
                         the_attr = getattr(area_var, attr)
                         if projattr == "proj":
                             proj4_dict[projattr] = PROJNAME[the_attr]
@@ -198,9 +222,9 @@ def _load02(filename):
                 LOG.debug("Grid mapping found and used.")
             except AttributeError:
                 LOG.debug("No grid mapping found.")
-                
+
             try:
-                area_var = getattr(var,"coordinates")
+                area_var = getattr(var, "coordinates")
                 coordinates_vars = area_var.split(" ")
                 lons = None
                 lats = None
@@ -208,11 +232,11 @@ def _load02(filename):
                     coord_var = rootgrp.variables[coord_var_name]
                     units = getattr(coord_var, "units")
                     if(coord_var_name.lower().startswith("lon") or
-                       units.lower().endswith("east") or 
+                       units.lower().endswith("east") or
                        units.lower().endswith("west")):
                         lons = coord_var[:]
                     elif(coord_var_name.lower().startswith("lat") or
-                         units.lower().endswith("north") or 
+                         units.lower().endswith("north") or
                          units.lower().endswith("south")):
                         lats = coord_var[:]
                 if lons.any() and lats.any():
@@ -223,19 +247,20 @@ def _load02(filename):
                     except ImportError:
                         LOG.warning("Pyresample not found, "
                                     "cannot load area descrition")
-                
+
                 processed |= set(coordinates_vars)
                 LOG.debug("Lon/lat found and used.")
             except AttributeError:
-                LOG.debug("No lon/lat found.")         
-            
+                LOG.debug("No lon/lat found.")
+
             names = rootgrp.variables[dim][:]
             scales = data.scale_factor
             offsets = data.add_offset
             if len(names) == 1:
                 scales = np.array([scales])
                 offsets = np.array([offsets])
-            LOG.info("Scales and offsets: %s %s %s" % (str(names), str(scales), str(offsets)))
+            LOG.info("Scales and offsets: %s %s %s" %
+                     (str(names), str(scales), str(offsets)))
             for nbr, name in enumerate(names):
                 name = str(name)
                 try:
@@ -252,7 +277,7 @@ def _load02(filename):
                 except KeyError:
                     from mpop.channel import Channel
                     scene.channels.append(Channel(name))
-                
+
                 if area is not None:
                     scene[name].area = area
 
@@ -273,8 +298,10 @@ def _load02(filename):
             continue
 
         dim = dims[0]
-        if var.standard_name == "radiation_wavelength":
-        
+        # if var.standard_name == "radiation_wavelength":
+        if var.standard_name in ["radiation_wavelength",
+                                 "cloud_binary_mask"]:
+
             names = rootgrp.variables[dim][:]
             for nbr, name in enumerate(names):
                 name = str(name)
@@ -291,15 +318,14 @@ def _load02(filename):
 
             processed |= set([var_name])
 
-
-    
     non_processed = set(rootgrp.variables.keys()) - processed
     if len(non_processed) > 0:
         LOG.warning("Remaining non-processed variables: " + str(non_processed))
-        
+
     return scene
-    
-def load_from_nc4(filename):
+
+
+def load_from_nc4(filename, otime=None):
     """Load data from a netcdf4 file, cf-satellite v0.1
     """
 
@@ -307,10 +333,10 @@ def load_from_nc4(filename):
 
     try:
         rootgrp.satellite_number
-        warnings.warn("You are loading old style netcdf files...", DeprecationWarning)
+        warnings.warn(
+            "You are loading old style netcdf files...", DeprecationWarning)
     except AttributeError:
-        return _load02(filename)
-    
+        return _load02(filename, otime)
 
     if not isinstance(rootgrp.satellite_number, str):
         satellite_number = "%02d" % rootgrp.satellite_number
@@ -327,7 +353,8 @@ def load_from_nc4(filename):
     instrument_name = str(rootgrp.instrument_name)
 
     try:
-        orbit = str(rootgrp.orbit)
+        #orbit = str(rootgrp.orbit)
+        orbit = str(rootgrp.orbit_number)
     except AttributeError:
         orbit = None
 
@@ -345,15 +372,14 @@ def load_from_nc4(filename):
         scene.number = satellite_number
         scene.service = service
 
-
     for var_name, var in rootgrp.variables.items():
         area = None
 
         if var_name.startswith("band_data"):
             resolution = var.resolution
             str_res = str(int(resolution)) + "m"
-            
-            names = rootgrp.variables["bandname"+str_res][:]
+
+            names = rootgrp.variables["bandname" + str_res][:]
 
             data = var[:, :, :].astype(var.dtype)
 
@@ -362,11 +388,11 @@ def load_from_nc4(filename):
                                         var.valid_range[1])
 
             try:
-                area_var = getattr(var,"grid_mapping")
+                area_var = getattr(var, "grid_mapping")
                 area_var = rootgrp.variables[area_var]
                 proj4_dict = {}
                 for attr, projattr in MAPPING_ATTRIBUTES.items():
-                    try: 
+                    try:
                         the_attr = getattr(area_var, attr)
                         if projattr == "proj":
                             proj4_dict[projattr] = PROJNAME[the_attr]
@@ -381,8 +407,8 @@ def load_from_nc4(filename):
                     except AttributeError:
                         pass
 
-                x__ = rootgrp.variables["x"+str_res][:]
-                y__ = rootgrp.variables["y"+str_res][:]
+                x__ = rootgrp.variables["x" + str_res][:]
+                y__ = rootgrp.variables["y" + str_res][:]
 
                 x_pixel_size = abs((x__[1] - x__[0]))
                 y_pixel_size = abs((y__[1] - y__[0]))
@@ -408,9 +434,9 @@ def load_from_nc4(filename):
 
             except AttributeError:
                 LOG.debug("No grid mapping found.")
-                
+
             try:
-                area_var = getattr(var,"coordinates")
+                area_var = getattr(var, "coordinates")
                 coordinates_vars = area_var.split(" ")
                 lons = None
                 lats = None
@@ -418,11 +444,11 @@ def load_from_nc4(filename):
                     coord_var = rootgrp.variables[coord_var_name]
                     units = getattr(coord_var, "units")
                     if(coord_var_name.lower().startswith("lon") or
-                       units.lower().endswith("east") or 
+                       units.lower().endswith("east") or
                        units.lower().endswith("west")):
                         lons = coord_var[:]
                     elif(coord_var_name.lower().startswith("lat") or
-                         units.lower().endswith("north") or 
+                         units.lower().endswith("north") or
                          units.lower().endswith("south")):
                         lats = coord_var[:]
                 if lons and lats:
@@ -433,10 +459,10 @@ def load_from_nc4(filename):
                     except ImportError:
                         LOG.warning("Pyresample not found, "
                                     "cannot load area descrition")
-                
+
             except AttributeError:
                 LOG.debug("No lon/lat found.")
-            
+
             for i, name in enumerate(names):
                 name = str(name)
                 if var.dimensions[0].startswith("band"):
@@ -449,15 +475,15 @@ def load_from_nc4(filename):
                     raise ValueError("Invalid dimension names for band data")
                 try:
                     scene[name] = (chn_data *
-                                   rootgrp.variables["scale"+str_res][i] +
-                                   rootgrp.variables["offset"+str_res][i])
-                    #FIXME complete this
-                    #scene[name].info
+                                   rootgrp.variables["scale" + str_res][i] +
+                                   rootgrp.variables["offset" + str_res][i])
+                    # FIXME complete this
+                    # scene[name].info
                 except KeyError:
                     # build the channel on the fly
 
                     from mpop.channel import Channel
-                    wv_var = rootgrp.variables["nominal_wavelength"+str_res]
+                    wv_var = rootgrp.variables["nominal_wavelength" + str_res]
                     wb_var = rootgrp.variables[getattr(wv_var, "bounds")]
                     minmax = wb_var[i]
                     scene.channels.append(Channel(name,
@@ -466,9 +492,9 @@ def load_from_nc4(filename):
                                                    wv_var[i][0],
                                                    minmax[1])))
                     scene[name] = (chn_data *
-                                   rootgrp.variables["scale"+str_res][i] +
-                                   rootgrp.variables["offset"+str_res][i])
-                    
+                                   rootgrp.variables["scale" + str_res][i] +
+                                   rootgrp.variables["offset" + str_res][i])
+
                 if area is not None:
                     scene[name].area = area
         area = None
