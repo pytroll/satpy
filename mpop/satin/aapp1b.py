@@ -58,7 +58,7 @@ def load(satscene, *args, **kwargs):
                                     raw=True):
         options[option] = value
 
-    if "filename" in kwargs:
+    if kwargs.get("filename") is not None:
         options["filename"] = kwargs["filename"]
         options["dir"] = None
 

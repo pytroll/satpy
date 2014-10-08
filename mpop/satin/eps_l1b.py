@@ -433,7 +433,7 @@ def load(scene, *args, **kwargs):
         raise ValueError('calibrate=0 is not supported! ' +
                          'This reader cannot return counts')
 
-    if "filename" in kwargs:
+    if kwargs.get("filename") is not None:
         filename = kwargs["filename"]
     else:
         filename = (kwargs.get("filename", None) or
