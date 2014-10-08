@@ -42,6 +42,7 @@ from mpop import CONFIG_PATH
 
 LOGGER = logging.getLogger('aapp1b')
 
+
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
     A possible *calibrate* keyword argument is passed to the AAPP reader. 
@@ -54,8 +55,12 @@ def load(satscene, *args, **kwargs):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw = True):
+                                    raw=True):
         options[option] = value
+
+    if "filename" in kwargs:
+        options["filename"] = kwargs["filename"]
+        options["dir"] = None
 
     options["calibrate"] = kwargs.get("calibrate", True)
 
@@ -65,6 +70,7 @@ def load(satscene, *args, **kwargs):
         CASES[satscene.instrument_name](satscene, options)
     except KeyError:
         raise KeyError("Unknown instrument '%s'" % satscene.instrument_name)
+
 
 def load_avhrr(satscene, options):
     """Read avhrr data from file and load it into *satscene*.
@@ -85,19 +91,22 @@ def load_avhrr(satscene, options):
               "satellite": satscene.fullname
               }
 
-    filename = os.path.join(satscene.time_slot.strftime(options["dir"])%values,
-                            satscene.time_slot.strftime(options["filename"])
-                            %values)
+    if options["dir"] is None:
+        filename = options["filename"]
+    else:
+        filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
+                                satscene.time_slot.strftime(
+                                    options["filename"])
+                                % values)
 
-    file_list = glob.glob(filename)
+        file_list = glob.glob(filename)
 
-    if len(file_list) > 1:
-        raise IOError("More than one l1b file matching!")
-    elif len(file_list) == 0:
-        raise IOError("No l1b file matching!: " + filename)
+        if len(file_list) > 1:
+            raise IOError("More than one l1b file matching!")
+        elif len(file_list) == 0:
+            raise IOError("No l1b file matching!: " + filename)
 
-    
-    filename = file_list[0]
+        filename = file_list[0]
 
     LOGGER.debug("Loading from " + filename)
 
@@ -262,7 +271,7 @@ _HEADERTYPE = np.dtype([("siteid", "S3"),
                         ("reserved21", "<i2"),
                         ("refvolt", "<i2", (5, )),
                         ("reserved22", "<i2"),
-])
+                        ])
 
 # AAPP 1b scanline
 
@@ -304,9 +313,12 @@ _SCANTYPE = np.dtype([("scnlin", "<i2"),
                       ("filler7", "<i2", (67, )),
                       ])
 
+
 class AAPP1b(object):
+
     """AAPP-level 1b data reader
     """
+
     def __init__(self, fname):
         self.filename = fname
         self.channels = dict([(i, None) for i in AVHRR_CHANNEL_NAMES])
@@ -323,7 +335,7 @@ class AAPP1b(object):
         """
         tic = datetime.datetime.now()
         with open(self.filename, "rb") as fp_:
-            header =  np.fromfile(fp_, dtype=_HEADERTYPE, count=1)
+            header = np.fromfile(fp_, dtype=_HEADERTYPE, count=1)
             fp_.seek(10664 * 2, 1)
             data = np.fromfile(fp_, dtype=_SCANTYPE)
 
@@ -343,7 +355,7 @@ class AAPP1b(object):
             from geotiepoints import SatelliteInterpolator
         except ImportError:
             LOGGER.warning("Could not interpolate lon/lats, "
-                        "python-geotiepoints missing.")
+                           "python-geotiepoints missing.")
             self.lons, self.lats = lons40km, lats40km
         else:
             cols40km = np.arange(24, 2048, 40)
@@ -361,7 +373,8 @@ class AAPP1b(object):
                                            along_track_order,
                                            cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            LOGGER.debug("Navigation time " + str(datetime.datetime.now() - tic))
+            LOGGER.debug(
+                "Navigation time " + str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
                   calibrate=1):
@@ -375,7 +388,7 @@ class AAPP1b(object):
                 self.units['1'] = ''
             else:
                 self.units['1'] = '%'
-            
+
         if "2" in chns:
             self.channels['2'] = _vis_calibrate(self._data, 1, calibrate)
             if calibrate == 0:
@@ -393,16 +406,16 @@ class AAPP1b(object):
             ch3a = _vis_calibrate(self._data, 2, calibrate)
             self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
             if calibrate == 0:
-                self.units['3A'] = ''		
+                self.units['3A'] = ''
             else:
                 self.units['3A'] = '%'
 
         if "3B" in chns:
             ch3b = _ir_calibrate(self._header, self._data, 0, calibrate)
-            self.channels['3B'] = np.ma.masked_array(ch3b, 
-                                                     np.logical_or((is3b==False)
-                                                                   * ch3b, 
-                                                                   ch3b<0.1))
+            self.channels['3B'] = np.ma.masked_array(ch3b,
+                                                     np.logical_or((is3b == False)
+                                                                   * ch3b,
+                                                                   ch3b < 0.1))
             if calibrate == 1:
                 self.units['3B'] = 'K'
             elif calibrate == 2:
@@ -411,7 +424,7 @@ class AAPP1b(object):
                 self.units['3B'] = ''
 
         if "4" in chns:
-            self.channels['4'] = _ir_calibrate(self._header, 
+            self.channels['4'] = _ir_calibrate(self._header,
                                                self._data, 1, calibrate)
             if calibrate == 1:
                 self.units['4'] = 'K'
@@ -420,9 +433,8 @@ class AAPP1b(object):
             else:
                 self.units['4'] = ''
 
-
         if "5" in chns:
-            self.channels['5'] = _ir_calibrate(self._header, 
+            self.channels['5'] = _ir_calibrate(self._header,
                                                self._data, 2, calibrate)
             if calibrate == 1:
                 self.units['5'] = 'K'
@@ -432,7 +444,7 @@ class AAPP1b(object):
                 self.units['5'] = ''
 
         LOGGER.debug("Calibration time " + str(datetime.datetime.now() - tic))
-        
+
 
 def _vis_calibrate(data, chn, calib_type):
     """Visible channel calibration only.
@@ -442,26 +454,26 @@ def _vis_calibrate(data, chn, calib_type):
     """
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-    
+
     channel = data["hrpt"][:, :, chn].astype(np.float)
     if calib_type == 0:
         return channel
 
     if calib_type == 2:
-        LOGGER.info("Radiances are not yet supported for " + 
-                 "the VIS/NIR channels!")
+        LOGGER.info("Radiances are not yet supported for " +
+                    "the VIS/NIR channels!")
 
     mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
     mask2 = channel > np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
 
-    channel[mask1] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 0] * 
-                                               1e-10, 1) + 
-                      np.expand_dims(data["calvis"][:, chn, 2, 1] * 
+    channel[mask1] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 0] *
+                                               1e-10, 1) +
+                      np.expand_dims(data["calvis"][:, chn, 2, 1] *
                                      1e-7, 1))[mask1]
 
-    channel[mask2] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 2] * 
+    channel[mask2] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 2] *
                                                1e-10, 1) +
-                      np.expand_dims(data["calvis"][:, chn, 2, 3] * 
+                      np.expand_dims(data["calvis"][:, chn, 2, 3] *
                                      1e-7, 1))[mask2]
 
     channel[channel < 0] = np.nan
@@ -485,11 +497,11 @@ def _ir_calibrate(header, data, irchn, calib_type):
     k3_ = np.expand_dims(data['calir'][:, irchn, 0, 2] / 1.0e6, 1)
 
     # Count to radiance conversion:
-    rad = k1_ * count*count + k2_*count + k3_
+    rad = k1_ * count * count + k2_ * count + k3_
 
     all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
                                              np.equal(k2_, 0)),
-                              np.equal(k3_, 0))    
+                              np.equal(k3_, 0))
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
@@ -501,22 +513,22 @@ def _ir_calibrate(header, data, irchn, calib_type):
     # Central wavenumber:
     cwnum = header['radtempcnv'][0, irchn, 0]
     if irchn == 0:
-        cwnum = cwnum/1.0e2
+        cwnum = cwnum / 1.0e2
     else:
-        cwnum = cwnum/1.0e3
+        cwnum = cwnum / 1.0e3
 
-    bandcor_2 = header['radtempcnv'][0, irchn, 1]/1e5
-    bandcor_3 = header['radtempcnv'][0, irchn, 2]/1e6
+    bandcor_2 = header['radtempcnv'][0, irchn, 1] / 1e5
+    bandcor_3 = header['radtempcnv'][0, irchn, 2] / 1e6
 
     # Count to radiance conversion:
-    rad = k1_ * count*count + k2_*count + k3_
+    rad = k1_ * count * count + k2_ * count + k3_
 
     if calib_type == 2:
         return rad
 
     all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
                                              np.equal(k2_, 0)),
-                              np.equal(k3_, 0))    
+                              np.equal(k3_, 0))
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
@@ -525,13 +537,14 @@ def _ir_calibrate(header, data, irchn, calib_type):
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
 
-    t_planck = (ir_const_2*cwnum) / np.log(1 + ir_const_1*cwnum*cwnum*cwnum/rad)
+    t_planck = (ir_const_2 * cwnum) / \
+        np.log(1 + ir_const_1 * cwnum * cwnum * cwnum / rad)
 
     # Band corrections applied to t_planck to get correct
     # brightness temperature for channel:
-    if bandcor_2 < 0: # Post AAPP-v4
+    if bandcor_2 < 0:  # Post AAPP-v4
         tb_ = bandcor_2 + bandcor_3 * t_planck
-    else: # AAPP 1 to 4
+    else:  # AAPP 1 to 4
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
     #tb_[tb_ <= 0] = np.nan
@@ -556,7 +569,7 @@ def show(data, negate=False):
 
 CASES = {
     "avhrr": load_avhrr,
-    }
+}
 
 if __name__ == "__main__":
 
@@ -574,16 +587,16 @@ if __name__ == "__main__":
     print "starttime:", starttime
     endtime = datetime.datetime(SCENE._header[0]["enddatayr"], 1, 1, 0, 0)
     endtime += datetime.timedelta(days=int(SCENE._header[0]["enddatady"]) - 1,
-                                    seconds=SCENE._header[0]["enddatatime"] / 1000.0)
+                                  seconds=SCENE._header[0]["enddatatime"] / 1000.0)
     print "endtime:", endtime
-    #print SCENE._data['hrpt'].shape
+    # print SCENE._data['hrpt'].shape
     #show(SCENE._data['hrpt'][:, :, 4].astype(np.float))
-    #raw_input()
+    # raw_input()
     SCENE.calibrate()
     SCENE.navigate()
     for i_ in AVHRR_CHANNEL_NAMES:
         data_ = SCENE.channels[i_]
         print >> sys.stderr, "%-3s" % i_, \
-            "%6.2f%%" % (100.*(float(np.ma.count(data_))/data_.size)), \
-            "%6.2f, %6.2f, %6.2f" % (data_.min(), data_.mean(), data_.max())    
+            "%6.2f%%" % (100. * (float(np.ma.count(data_)) / data_.size)), \
+            "%6.2f, %6.2f, %6.2f" % (data_.min(), data_.mean(), data_.max())
     show(SCENE.channels['2'], negate=False)
