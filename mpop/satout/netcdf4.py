@@ -30,6 +30,9 @@
 __revision__ = 0.1
 
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def save(scene, filename, compression=True, dtype=np.int16, band_axis=2):
@@ -243,7 +246,11 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             else:
                 # handle global attributes
                 for j, k in attribute_dispenser(info):
-                    setattr(rootgrp, j, k)
+                    try:
+                        setattr(rootgrp, j, k)
+                    except TypeError as err:
+                        logger.warning("Not saving %s with value %s because %s",
+                                       str(j), str(k), str(err))
 
         # insert data
 
