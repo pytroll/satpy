@@ -127,6 +127,13 @@ def load_avhrr(satscene, options):
     else:
         satscene.area = geometry.SwathDefinition(lons=scene.lons,
                                                  lats=scene.lats)
+        area_name = ("swath_" + satscene.fullname + "_" +
+                     str(satscene.time_slot) + "_"
+                     + str(scene.lats.shape))
+        satscene.area.area_id = area_name
+        satscene.area.name = "Satellite projection"
+        satscene.area_id = area_name
+
     for chn in chns:
         if scene.channels.has_key(chn) and np.ma.count(scene.channels[chn]) > 0:
             satscene[chn].data = scene.channels[chn]
