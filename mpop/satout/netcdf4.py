@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # Author(s):
- 
+
 #   Kristian Rune Larssen <krl@dmi.dk>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Martin Raspaud <martin.raspaud@smhi.se>
@@ -27,7 +27,7 @@
 """mpop netcdf4 writer interface.
 """
 
-__revision__ = 0.1 
+__revision__ = 0.1
 
 import numpy as np
 
@@ -46,11 +46,12 @@ def save(scene, filename, compression=True, dtype=np.int16, band_axis=2):
 
 
 class WriterDimensionError(Exception):
+
     """ Basic writer exception """
     pass
 
 
-def attribute_dispenser( info ):
+def attribute_dispenser(info):
     """ returns valid attribute key value pairs
     (for cosmetic reasons, sorted is better than random)"""
     for k, v in sorted(info.iteritems()):
@@ -59,7 +60,7 @@ def attribute_dispenser( info ):
         yield (k, v)
 
 
-def variable_dispenser( root_object, object_list ):
+def variable_dispenser(root_object, object_list):
     """ Assembles a list of meta info objects """
     # Handle members with info objects
     for v in dir(root_object):
@@ -68,7 +69,7 @@ def variable_dispenser( root_object, object_list ):
             continue
 
         # Try to find members with 'info' attribute defined
-        # if in list members search through list to find 
+        # if in list members search through list to find
         # elements with the 'info' attribute defined
         try:
             # test for info attribute on list elements
@@ -80,13 +81,13 @@ def variable_dispenser( root_object, object_list ):
                     pass
         except TypeError:
             try:
-                # test for info attribute scalar members 
-                obj.info 
+                # test for info attribute scalar members
+                obj.info
                 variable_dispenser(obj, object_list)
 
             except AttributeError:
                 pass
-    
+
     # Handle local info objects
     try:
         # handle output of member variables without info attribute
@@ -98,25 +99,27 @@ def variable_dispenser( root_object, object_list ):
     except AttributeError:
         pass
 
-def find_tag(info_list , tag):
+
+def find_tag(info_list, tag):
     """ 
         Iterates through info objects to find specific tag. 
         Returns list of matching values.
     """
     tag_data = []
-    for info in info_list: 
+    for info in info_list:
         try:
             tag_data.append(info[tag])
         except KeyError:
             pass
     return tag_data
 
-def find_FillValue_tags(info_list ):
+
+def find_FillValue_tags(info_list):
     """ 
         Iterates through info objects to find _FillValue tags for var_names
     """
-    fill_value_dict={} 
-    for info in info_list: 
+    fill_value_dict = {}
+    for info in info_list:
         try:
             fill_value_dict[info['var_name']] = info['_FillValue']
         except KeyError:
@@ -127,16 +130,18 @@ def find_FillValue_tags(info_list ):
                 pass
     return fill_value_dict
 
+
 def find_info(info_list, tag):
     """ 
         Iterates through info objects to find specific tag.
         Return list of matching info objects.
     """
     tag_info_objects = []
-    for info in info_list: 
+    for info in info_list:
         if tag in info:
             tag_info_objects.append(info)
     return tag_info_objects
+
 
 def dtype(element):
     """
@@ -147,7 +152,8 @@ def dtype(element):
         return element.dtype
     else:
         return type(element)
-    
+
+
 def shape(element):
     """
         Return the shape of an array or empty tuple if not an array.
@@ -158,6 +164,7 @@ def shape(element):
     else:
         return ()
 
+
 def netcdf_cf_writer(filename, root_object, compression=True):
     """ Write data to file to netcdf file. """
     from netCDF4 import Dataset
@@ -165,10 +172,10 @@ def netcdf_cf_writer(filename, root_object, compression=True):
     rootgrp = Dataset(filename, 'w')
     try:
         info_list = []
-        variable_dispenser( root_object, info_list )
+        variable_dispenser(root_object, info_list)
 
         # find available dimensions
-        dim_names = find_tag( info_list , 'var_dim_names' )
+        dim_names = find_tag(info_list, 'var_dim_names')
 
         # go through all cases of 'var_callback' and create objects which are
         # linked to by the 'var_data' keyword. This ensures that data are only
@@ -180,12 +187,12 @@ def netcdf_cf_writer(filename, root_object, compression=True):
             # execute the callback functors
             info['var_data'] = info['var_callback']()
 
-        var_data = find_tag(info_list , 'var_data')
+        var_data = find_tag(info_list, 'var_data')
 
         # create dimensions in NetCDF file, dimension lengths are based on
         # array sizes
         used_dim_names = {}
-        for names, values in zip(dim_names, [ shape(v) for v in var_data ] ):
+        for names, values in zip(dim_names, [shape(v) for v in var_data]):
 
             # case of a scalar
             if len(names) == 0:
@@ -206,23 +213,22 @@ def netcdf_cf_writer(filename, root_object, compression=True):
 
         # create variables
 
-
-        var_names = find_tag(info_list , 'var_name')
+        var_names = find_tag(info_list, 'var_name')
 
         nc_vars = []
 
-        fill_value_dict=find_FillValue_tags(info_list)
+        fill_value_dict = find_FillValue_tags(info_list)
         for name, vtype, dim_name in zip(var_names,
-                                         [dtype(vt) for vt in var_data ],
-                                         dim_names ):
+                                         [dtype(vt) for vt in var_data],
+                                         dim_names):
 
             # in the case of arrays containing strings:
             if str(vtype) == "object":
                 vtype = str
             nc_vars.append(rootgrp.createVariable(
-                    name, vtype, dim_name, 
-                    zlib=compression,
-                    fill_value=fill_value_dict[name]))
+                name, vtype, dim_name,
+                zlib=compression,
+                fill_value=fill_value_dict[name]))
 
         # insert attributes, search through info objects and create global
         # attributes and attributes for each variable.
@@ -233,20 +239,19 @@ def netcdf_cf_writer(filename, root_object, compression=True):
                 nc_var.set_auto_maskandscale(False)
                 for j, k in attribute_dispenser(info):
                     if j not in ["_FillValue"]:
-                        setattr( nc_var, j, k)
+                        setattr(nc_var, j, k)
             else:
                 # handle global attributes
                 for j, k in attribute_dispenser(info):
-                    setattr( rootgrp, j, k)
+                    setattr(rootgrp, j, k)
 
-
-        # insert data 
+        # insert data
 
         for name, vname, vdata in zip(var_names, nc_vars, var_data):
             vname[:] = vdata
     finally:
         rootgrp.close()
-    
+
 
 if __name__ == '__main__':
     from mpop.satellites.meteosat09 import Meteosat09SeviriScene
@@ -257,4 +262,3 @@ if __name__ == '__main__':
     GLOB.load([0.6, 10.8])
 
     save(GLOB, 'tester.nc')
-
