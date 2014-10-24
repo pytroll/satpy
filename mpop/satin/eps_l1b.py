@@ -438,15 +438,40 @@ def load(scene, *args, **kwargs):
     else:
         filename = (kwargs.get("filename", None) or
                     get_filename(scene, "level2"))
-    LOG.debug("Using file " + filename)
-    reader = EpsAvhrrL1bReader(filename)
-    for chname, arr in reader.get_channels(scene.channels_to_load,
-                                           calibrate).items():
-        scene[chname] = arr
 
-    scene.orbit = str(int(reader["ORBIT_START"]))
+    if isinstance(filename, (list, tuple, set)):
+        filenames = filename
+    else:
+        filenames = [filename]
+    LOG.debug("Using file(s) %s", str(filename))
+    readers = [EpsAvhrrL1bReader(filename) for filename in filenames]
 
-    lons, lats = reader.get_full_lonlats()
+    arrs = {}
+    llons = []
+    llats = []
+
+    for reader in readers:
+
+        for chname, arr in reader.get_channels(scene.channels_to_load,
+                                               calibrate).items():
+            arrs.setdefault(chname, []).append(arr)
+
+        scene.orbit = scene.orbit or str(int(reader["ORBIT_START"]))
+
+        lons, lats = reader.get_full_lonlats()
+        llons.append(lons)
+        llats.append(lats)
+
+    for chname in scene.channels_to_load:
+        scene[chname] = np.vstack(arrs[chname])
+        if chname in ["1", "2", "3A"]:
+            scene[chname].info["units"] = "%"
+        elif chname in ["4", "5", "3B"]:
+            scene[chname].info["units"] = "K"
+
+    lons = np.vstack(llons)
+    lats = np.vstack(llats)
+
     try:
         scene.area = geometry.SwathDefinition(lons, lats)
     except NameError:
@@ -464,7 +489,7 @@ def norm255(a__):
 def show(a__):
     """show array.
     """
-    import Image
+    from PIL import Image
     Image.fromarray(norm255(a__), "L").show()
 
 if __name__ == '__main__':
