@@ -113,7 +113,6 @@ def load_avhrr(satscene, options):
     scene = AAPP1b(filename)
     scene.read()
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
-
     scene.navigate()
 
     try:
@@ -135,7 +134,7 @@ def load_avhrr(satscene, options):
         satscene.area_id = area_name
 
     for chn in chns:
-        if scene.channels.has_key(chn) and np.ma.count(scene.channels[chn]) > 0:
+        if (chn in scene.channels) and np.ma.count(scene.channels[chn]) > 0:
             satscene[chn].data = scene.channels[chn]
             satscene[chn].info['units'] = scene.units[chn]
             satscene[chn].area = satscene.area
