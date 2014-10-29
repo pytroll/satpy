@@ -47,7 +47,7 @@ import mpop.satin
 LOG = logging.getLogger(__name__)
 
 try:
-    # Work around for on demand import of pyresample. pyresample depends 
+    # Work around for on demand import of pyresample. pyresample depends
     # on scipy.spatial which memory leaks on multiple imports
     is_pyresample_loaded = False
     from pyresample.geometry import AreaDefinition, SwathDefinition
@@ -58,6 +58,7 @@ except ImportError:
 
 
 class Satellite(object):
+
     """This is the satellite class. It contains information on the satellite.
     """
 
@@ -102,6 +103,7 @@ class Satellite(object):
 
 
 class SatelliteScene(Satellite):
+
     """This is the satellite scene class. It is a capture of the satellite
     (channels) data at given *time_slot* and *area_id*/*area*.
     """
@@ -116,7 +118,6 @@ class SatelliteScene(Satellite):
             raise TypeError("Time_slot must be a datetime.datetime instance.")
 
         self.time_slot = time_slot
-
 
         self.area_id = None
         self.area_def = None
@@ -140,12 +141,10 @@ class SatelliteScene(Satellite):
 
         self.orbit = orbit
 
-
         self.info = {}
 
         self.lat = None
         self.lon = None
-
 
     def get_area(self):
         """Getter for area.
@@ -178,12 +177,14 @@ class SatelliteScene(Satellite):
                     self.area_id = None
                 except AttributeError:
                     raise TypeError(("Malformed area argument. "
-                                    "Should be a string or an area object. "
-                                    "Not %s") % type(area))
+                                     "Should be a string or an area object. "
+                                     "Not %s") % type(area))
 
     area = property(get_area, set_area)
 
+
 class SatelliteInstrumentScene(SatelliteScene):
+
     """This is the satellite instrument class. It is an abstract channel
     container, from which all concrete satellite scenes should be derived.
 
@@ -209,7 +210,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         try:
             conf = OrderedConfigParser()
-            conf.read(os.path.join(CONFIG_PATH, self.fullname+".cfg"))
+            conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
 
             for section in conf.sections():
                 if(not section[:-1].endswith("level") and
@@ -268,11 +269,18 @@ class SatelliteInstrumentScene(SatelliteScene):
             raise TypeError("Malformed key: " + str(key))
 
         if len(channels) == 0:
-            raise KeyError("No channel corresponding to "+str(key)+".")
+            raise KeyError("No channel corresponding to " + str(key) + ".")
         elif aslist:
             return channels
         else:
             return channels[0]
+
+    def __delitem__(self, key):
+        """Delete a channel.
+        """
+        chan = self[key]
+        self.channels.remove(chan)
+        del chan
 
     def __setitem__(self, key, data):
         # Add a channel if it is not already in the scene. Works only if key is
@@ -302,8 +310,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             except AttributeError:
                 self[key].data = data
 
-
-
         # if isinstance(data, Channel):
         #     self.channels.append(Channel(name=key,
         #                              wavelength_range=data.wavelength_range,
@@ -316,14 +322,11 @@ class SatelliteInstrumentScene(SatelliteScene):
         #         self.channels.append(Channel(name=key))
         #         self[key].data = data
 
-
-
     def __str__(self):
         return "\n".join([str(chn) for chn in self.channels])
 
     def __iter__(self):
         return self.channels.__iter__()
-
 
     def _set_reader(self, pformat):
         """Gets the reader for *pformat* format, and puts it in the `reader`
@@ -335,7 +338,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             reader_module = pformat
             reading_element = 'load'
 
-            reader = "mpop.satin."+reader_module
+            reader = "mpop.satin." + reader_module
 
             # Loading old style plugins
             reader_module = pformat
@@ -352,7 +355,6 @@ class SatelliteInstrumentScene(SatelliteScene):
                 loader = __import__(reader, globals(),
                                     locals(), [reading_element])
 
-
             # Build a custom Reader plugin on the fly...
             from mpop.plugin_base import Reader
             reader_class = type(elements[-1].capitalize() + "Reader",
@@ -368,12 +370,11 @@ class SatelliteInstrumentScene(SatelliteScene):
 
             setattr(self, elements[-1] + "_reader", reader_instance)
 
-
         else:
             reader_module = ".".join(elements[:-1])
             reading_element = elements[-1]
 
-            reader = "mpop.satin."+reader_module
+            reader = "mpop.satin." + reader_module
             try:
                 # Look for builtin reader
                 imp.find_module(reader_module, mpop.satin.__path__)
@@ -390,10 +391,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             setattr(self, loader.pformat + "_reader", reader_instance)
 
         return reader_instance
-
-
-
-
 
     def load(self, channels=None, load_again=False, area_extent=None, **kwargs):
         """Load instrument data into the *channels*. *Channels* is a list or a
@@ -446,9 +443,9 @@ class SatelliteInstrumentScene(SatelliteScene):
             conf.read(os.path.join(CONFIG_PATH, self.fullname + ".cfg"))
             if len(conf.sections()) == 0:
                 raise ConfigParser.NoSectionError(("Config file did "
-                                                    "not make sense"))
+                                                   "not make sense"))
             levels = [section for section in conf.sections()
-                      if section.startswith(self.instrument_name+"-level")]
+                      if section.startswith(self.instrument_name + "-level")]
         except ConfigParser.NoSectionError:
             LOG.warning("Can't load data, no config file for " + self.fullname)
             self.channels_to_load = set()
@@ -456,28 +453,28 @@ class SatelliteInstrumentScene(SatelliteScene):
 
         levels.sort()
 
-        if levels[0] == self.instrument_name+"-level1":
+        if levels[0] == self.instrument_name + "-level1":
             levels = levels[1:]
 
         if len(levels) == 0:
             raise ConfigParser.NoSectionError(
-                self.instrument_name+"-levelN (N>1) to tell me how to"+
+                self.instrument_name + "-levelN (N>1) to tell me how to" +
                 " read data... Not reading anything.")
 
         for level in levels:
             if len(self.channels_to_load) == 0:
                 return
 
-            LOG.debug("Looking for sources in section "+level)
+            LOG.debug("Looking for sources in section " + level)
             reader_name = conf.get(level, 'format')
             try:
                 reader_name = eval(reader_name)
             except NameError:
                 reader_name = str(reader_name)
-            LOG.debug("Using plugin mpop.satin."+reader_name)
+            LOG.debug("Using plugin mpop.satin." + reader_name)
 
             # read the data
-            reader = "mpop.satin."+reader_name
+            reader = "mpop.satin." + reader_name
             try:
                 reader_instance = self._set_reader(reader_name)
                 if area_extent is not None:
@@ -490,7 +487,7 @@ class SatelliteInstrumentScene(SatelliteScene):
 
                 reader_instance.load(self, **kwargs)
             except ImportError, err:
-                LOG.exception("ImportError while loading "+reader_name+": "
+                LOG.exception("ImportError while loading " + reader_name + ": "
                               + str(err))
                 continue
             loaded_channels = set([chn.name for chn in self.loaded_channels()])
@@ -498,7 +495,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             if len(just_loaded) == 0:
                 LOG.info("No channels loaded with " + reader + ".")
             self.channels_to_load -= loaded_channels
-            LOG.debug("Successfully loaded: "+str(just_loaded))
+            LOG.debug("Successfully loaded: " + str(just_loaded))
 
         if len(self.channels_to_load) > 0:
             LOG.warning("Unable to import channels "
@@ -517,7 +514,7 @@ class SatelliteInstrumentScene(SatelliteScene):
         try:
             writer_module = __import__(writer, globals(), locals(), ["save"])
         except ImportError, err:
-            raise ImportError("Cannot load "+writer+" writer: "+str(err))
+            raise ImportError("Cannot load " + writer + " writer: " + str(err))
 
         return writer_module.save(self, filename, **options)
 
@@ -532,7 +529,6 @@ class SatelliteInstrumentScene(SatelliteScene):
             except AttributeError:
                 LOG.warning("Can't unload channel" + str(chn))
 
-
     def add_to_history(self, message):
         """Adds a message to history info.
         """
@@ -543,14 +539,13 @@ class SatelliteInstrumentScene(SatelliteScene):
         else:
             self.info["history"] += "\n" + timed_message
 
-
     def check_channels(self, *channels):
         """Check if the *channels* are loaded, raise an error otherwise.
         """
         for chan in channels:
             if not self[chan].is_loaded():
                 raise NotLoadedError("Required channel %s not loaded,"
-                                     " aborting."%chan)
+                                     " aborting." % chan)
 
         return True
 
@@ -598,18 +593,16 @@ class SatelliteInstrumentScene(SatelliteScene):
                 try:
                     _channels |= set([self[chn]])
                 except KeyError:
-                    LOG.warning("Channel "+str(chn)+" not found,"
+                    LOG.warning("Channel " + str(chn) + " not found,"
                                 "thus not projected.")
         else:
             raise TypeError("Channels must be a list/"
                             "tuple/set of channel keys!")
 
-
         res = copy.copy(self)
 
         if isinstance(dest_area, str):
             dest_area = mpop.projector.get_area_def(dest_area)
-
 
         res.area = dest_area
         res.channels = []
@@ -655,7 +648,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                                 chn.area = self.area + str(chn.shape)
                     else:
                         chn.area = self.area + str(chn.shape)
-            else: #chn.area is not None
+            else:  # chn.area is not None
                 if (is_pyresample_loaded and
                     (not hasattr(chn.area, "area_id") or
                      not chn.area.area_id)):
@@ -690,7 +683,7 @@ class SatelliteInstrumentScene(SatelliteScene):
             try:
                 res.channels.append(chn.project(cov[area_id]))
             except NotLoadedError:
-                LOG.warning("Channel "+str(chn.name)+" not loaded, "
+                LOG.warning("Channel " + str(chn.name) + " not loaded, "
                             "thus not projected.")
 
         # Compose with image object
