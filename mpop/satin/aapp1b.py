@@ -584,6 +584,7 @@ def show(data, negate=False):
 
 CASES = {
     "avhrr": load_avhrr,
+    "avhrr/3": load_avhrr,
 }
 
 if __name__ == "__main__":
