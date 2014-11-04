@@ -91,7 +91,7 @@ class ModisReader(Reader):
         if isinstance(kwargs.get("filename"), (list, set, tuple)):
             # we got the entire dataset.
             for fname in kwargs["filename"]:
-                if fnmatch(fname, "M?D02?km*"):
+                if fnmatch(os.path.basename(fname), "M?D02?km*"):
                     resolution = self.res[os.path.basename(fname)[5]]
                     self.datafiles[resolution] = fname
                 else:
