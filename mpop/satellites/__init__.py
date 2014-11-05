@@ -115,7 +115,9 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     fullname = variant + satellite + number
 
     conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+    config_file = os.path.join(CONFIG_PATH, fullname + ".cfg")
+    LOG.debug("Looking for config file %s", config_file)
+    conf.read(config_file)
 
     try:
         mod = __import__("mpop.instruments." + instrument,
