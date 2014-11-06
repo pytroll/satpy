@@ -78,18 +78,6 @@ class Projector(object):
     mode.
     """
 
-    conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
-
-    try:
-        area_file = os.path.join(conf.get("projector", "area_directory") or
-                                 CONFIG_PATH,
-                                 conf.get("projector", "area_file"))
-    except ConfigParser.NoSectionError:
-        area_file = ""
-        logger.warning("Couldn't find the mpop.cfg file. "
-                       "Do you have one ? is it in $PPP_CONFIG_DIR ?")
-
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode=None,
                  radius=10000, nprocs=1):
@@ -97,6 +85,19 @@ class Projector(object):
         if (mode is not None and
                 mode not in ["quick", "nearest"]):
             raise ValueError("Projector mode must be 'nearest' or 'quick'")
+
+        conf = ConfigParser.ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+        try:
+            self.area_file = os.path.join(conf.get("projector",
+                                                   "area_directory") or
+                                          CONFIG_PATH,
+                                          conf.get("projector", "area_file"))
+        except ConfigParser.NoSectionError:
+            self.area_file = ""
+            logger.warning("Couldn't find the mpop.cfg file. "
+                           "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
         self.in_area = None
         self.out_area = None
