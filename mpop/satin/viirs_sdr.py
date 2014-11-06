@@ -781,10 +781,10 @@ class ViirsSDRReader(Reader):
         satscene.info["references"] = "No reference."
         satscene.info["comments"] = "No comment."
 
-        satscene.info["start_time"] = min([satscene[chn].info["start_time"]
-                                           for chn in satscene.channels_to_load])
-        satscene.info["end_time"] = max([satscene[chn].info["end_time"]
-                                         for chn in satscene.channels_to_load])
+        satscene.info["start_time"] = min([chn.info["start_time"]
+                                           for chn in satscene])
+        satscene.info["end_time"] = max([chn.info["end_time"]
+                                         for chn in satscene])
 
 
 def get_lonlat(filename):
