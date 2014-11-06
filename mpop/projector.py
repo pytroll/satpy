@@ -116,6 +116,8 @@ class Projector(object):
         self._filename = None
         self.mode = "quick"
         self.radius = radius
+        self.conf = ConfigParser.ConfigParser()
+        self.conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
         # TODO:
         # - Rework so that in_area and out_area can be lonlats.
