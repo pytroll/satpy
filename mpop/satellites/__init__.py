@@ -118,6 +118,9 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     conf = ConfigParser()
     config_file = os.path.join(CONFIG_PATH, fullname + ".cfg")
     LOG.debug("Looking for config file %s", config_file)
+    if not os.path.exists(config_file):
+        LOG.error("Can't find config file %s, is PPP_CONFIG_DIR set?",
+                  config_file)
     conf.read(config_file)
 
     try:
