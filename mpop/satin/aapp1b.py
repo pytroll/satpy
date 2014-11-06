@@ -78,7 +78,11 @@ def load_avhrr(satscene, options):
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
 
-    chns = satscene.channels_to_load & set(AVHRR_CHANNEL_NAMES)
+    loaded = set([chn.name for chn in satscene.loaded_channels()])
+
+    chns = (satscene.channels_to_load &
+            (set(AVHRR_CHANNEL_NAMES) - loaded))
+
     LOGGER.info("Loading channels " + str(sorted(list(chns))))
 
     if len(chns) == 0:
@@ -113,31 +117,35 @@ def load_avhrr(satscene, options):
     scene = AAPP1b(filename)
     scene.read()
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
-    scene.navigate()
 
-    try:
-        from pyresample import geometry
-    except ImportError, ex_:
+    if satscene.area is None:
+        scene.navigate()
 
-        LOGGER.debug("Could not load pyresample: " + str(ex_))
+        try:
+            from pyresample import geometry
+        except ImportError, ex_:
 
-        satscene.lat = scene.lats
-        satscene.lon = scene.lons
-    else:
-        satscene.area = geometry.SwathDefinition(lons=scene.lons,
-                                                 lats=scene.lats)
-        area_name = ("swath_" + satscene.fullname + "_" +
-                     str(satscene.time_slot) + "_"
-                     + str(scene.lats.shape))
-        satscene.area.area_id = area_name
-        satscene.area.name = "Satellite projection"
-        satscene.area_id = area_name
+            LOGGER.debug("Could not load pyresample: " + str(ex_))
+
+            satscene.lat = scene.lats
+            satscene.lon = scene.lons
+        else:
+            satscene.area = geometry.SwathDefinition(lons=scene.lons,
+                                                     lats=scene.lats)
+            area_name = ("swath_" + satscene.fullname + "_" +
+                         str(satscene.time_slot) + "_"
+                         + str(scene.lats.shape))
+            satscene.area.area_id = area_name
+            satscene.area.name = "Satellite projection"
+            satscene.area_id = area_name
 
     for chn in chns:
         if (chn in scene.channels) and np.ma.count(scene.channels[chn]) > 0:
             satscene[chn].data = scene.channels[chn]
             satscene[chn].info['units'] = scene.units[chn]
             satscene[chn].area = satscene.area
+        else:
+            del satscene[chn]
 
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3A", "3B", "4", "5")
@@ -341,9 +349,10 @@ class AAPP1b(object):
         """
         tic = datetime.datetime.now()
         with open(self.filename, "rb") as fp_:
-            header = np.fromfile(fp_, dtype=_HEADERTYPE, count=1)
-            fp_.seek(10664 * 2, 1)
-            data = np.fromfile(fp_, dtype=_SCANTYPE)
+            header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r",
+                               shape=(_HEADERTYPE.itemsize, ))
+            data = np.memmap(
+                fp_, dtype=_SCANTYPE, offset=688 + 10664 * 2, mode="r")
 
         LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
 
@@ -575,6 +584,7 @@ def show(data, negate=False):
 
 CASES = {
     "avhrr": load_avhrr,
+    "avhrr/3": load_avhrr,
 }
 
 if __name__ == "__main__":

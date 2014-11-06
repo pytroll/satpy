@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -36,13 +36,16 @@ from ConfigParser import ConfigParser
 
 import math
 import numpy as np
+import logging
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+
+LOG = logging.getLogger(__name__)
 
 # Using ahamap: FIXME!
 
 EPSILON = 0.001
+
 
 def load(satscene, *args, **kwargs):
     """Read data from file and load it into *satscene*.
@@ -52,17 +55,17 @@ def load(satscene, *args, **kwargs):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw = True):
+                                    raw=True):
         options[option] = value
     CASES[satscene.instrument_name](satscene, options)
+
 
 def load_avhrr(satscene, options):
     """Read avhrr data from file and load it into *satscene*.
     """
-    
+
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
-
 
     chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
     if len(chns) == 0:
@@ -75,24 +78,23 @@ def load_avhrr(satscene, options):
               "satellite": satscene.fullname
               }
 
-    filename = os.path.join(satscene.time_slot.strftime(options["dir"])%values,
+    filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
                             satscene.time_slot.strftime(options["filename"])
-                            %values)
+                            % values)
 
     file_list = glob.glob(filename)
 
     if len(file_list) > 1:
         raise IOError("More than one l1b file matching!")
     elif len(file_list) == 0:
-        raise IOError("No l1b file matching!: "+
+        raise IOError("No l1b file matching!: " +
                       filename)
 
-    
     filename = file_list[0]
 
     LOG.debug("Loading from " + filename)
 
-    import avhrr # AHAMAP module
+    import avhrr  # AHAMAP module
 
     avh = avhrr.avhrr(filename)
     avh.get_unprojected()
@@ -128,14 +130,14 @@ def load_avhrr(satscene, options):
                                             no_data + EPSILON)
 
             satscene[chn] = chn_array
-            satscene[chn].data =  np.ma.masked_less(satscene[chn].data *
-                                                    gain +
-                                                    intercept,
-                                                    0)
+            satscene[chn].data = np.ma.masked_less(satscene[chn].data *
+                                                   gain +
+                                                   intercept,
+                                                   0)
 
             satscene[chn].info['units'] = units
         else:
-            LOG.warning("Channel "+str(chn)+" not available, not loaded.")
+            LOG.warning("Channel " + str(chn) + " not available, not loaded.")
 
     # Compulsory global attribudes
     satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
@@ -158,9 +160,7 @@ def load_avhrr(satscene, options):
         satscene.lat = lats
         satscene.lon = lons
 
-    
 
 CASES = {
     "avhrr": load_avhrr
-    }
-
+}

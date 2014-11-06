@@ -25,9 +25,13 @@
 import numpy as np
 
 from mpop.compositer import Compositer
-from mpop.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
+
 
 class SarxCompositer(Compositer):
+
     """This class sets up the SAR-X instrument channel list.
     """
 
@@ -57,8 +61,8 @@ class SarxCompositer(Compositer):
         if average_window == None:
             average_window = downscaling_factor
 
-        LOG.info("Downsampling a factor %d and averaging "%downscaling_factor +
-                 "in a window of %dx%d"%(average_window, average_window))
+        LOG.info("Downsampling a factor %d and averaging " % downscaling_factor +
+                 "in a window of %dx%d" % (average_window, average_window))
 
         ch = self[9.65]
 
@@ -70,7 +74,7 @@ class SarxCompositer(Compositer):
 
         # avg kernel
         kernel = (np.ones((average_window, average_window), dtype=np.float)
-                  / (average_window*average_window))
+                  / (average_window * average_window))
         # do convolution
         data = ndi.filters.correlate(ch.data.astype(np.float), kernel,
                                      mode='nearest')
@@ -78,12 +82,12 @@ class SarxCompositer(Compositer):
         data = data[1::downscaling_factor, 1::downscaling_factor]
 
         # New area, and correct for integer truncation.
-        p_size_x, p_size_y = (ch.area.pixel_size_x*downscaling_factor,
-                              ch.area.pixel_size_y*downscaling_factor)
+        p_size_x, p_size_y = (ch.area.pixel_size_x * downscaling_factor,
+                              ch.area.pixel_size_y * downscaling_factor)
         area_extent = (ch.area.area_extent[0],
                        ch.area.area_extent[1],
-                       ch.area.area_extent[0] + data.shape[1]*p_size_x,
-                       ch.area.area_extent[1] + data.shape[0]*p_size_y)
+                       ch.area.area_extent[0] + data.shape[1] * p_size_x,
+                       ch.area.area_extent[1] + data.shape[0] * p_size_y)
 
         area = geometry.AreaDefinition(self._data_holder.satname +
                                        self._data_holder.instrument_name +
@@ -97,4 +101,4 @@ class SarxCompositer(Compositer):
         return GeoImage(data, area, self.time_slot,
                         fill_value=(0,), mode='L')
 
-    average.prerequisites = set([9.65,])
+    average.prerequisites = set([9.65, ])

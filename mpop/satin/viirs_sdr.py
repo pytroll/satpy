@@ -522,12 +522,16 @@ class ViirsSDRReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, satscene, calibrate=1, time_interval=None, area=None):
+    def load(self, satscene, calibrate=1, time_interval=None, area=None, filename=None, **kwargs):
         """Read viirs SDR reflectances and Tbs from file and load it into
         *satscene*.
         """
         if satscene.instrument_name != "viirs":
             raise ValueError("Wrong instrument, expecting viirs")
+
+        if kwargs:
+            logger.warning(
+                "Unsupported options for viirs reader: %s", str(kwargs))
 
         conf = ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
@@ -558,80 +562,96 @@ class ViirsSDRReader(Reader):
                   #"satellite": satscene.fullname
                   }
 
-        filename_tmpl = strftime(
-            satscene.time_slot, options["filename"]) % values
+        if filename is not None:
+            file_list = []
+            geofile_list = []
+            for fname in filename:
+                if os.path.basename(fname).startswith("SV"):
+                    file_list.append(fname)
+                elif os.path.basename(fname).startswith("G"):
+                    geofile_list.append(fname)
+                else:
+                    logger.info("Unrecognized SDR file: %s", fname)
+            directory = os.path.dirname(file_list[0])
+            geodirectory = os.path.dirname(geofile_list[0])
+        else:
 
-        directory = strftime(satscene.time_slot, options["dir"]) % values
+            filename_tmpl = strftime(
+                satscene.time_slot, options["filename"]) % values
 
-        if not os.path.exists(directory):
-            #directory = globify(options["dir"]) % values
-            directory = globify(
-                strftime(satscene.time_slot, options["dir"])) % values
-            logger.debug("Looking for files in directory " + str(directory))
-            directories = glob.glob(directory)
-            if len(directories) > 1:
-                raise IOError("More than one directory for npp scene... " +
-                              "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
-            elif len(directories) == 0:
-                raise IOError("No directory found for npp scene. " +
-                              "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+            directory = strftime(satscene.time_slot, options["dir"]) % values
+
+            if not os.path.exists(directory):
+                #directory = globify(options["dir"]) % values
+                directory = globify(
+                    strftime(satscene.time_slot, options["dir"])) % values
+                logger.debug(
+                    "Looking for files in directory " + str(directory))
+                directories = glob.glob(directory)
+                if len(directories) > 1:
+                    raise IOError("More than one directory for npp scene... " +
+                                  "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+                elif len(directories) == 0:
+                    raise IOError("No directory found for npp scene. " +
+                                  "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
+                else:
+                    directory = directories[0]
+
+            file_list = glob.glob(os.path.join(directory, filename_tmpl))
+
+            # Only take the files in the interval given:
+            logger.debug("Number of files before segment selection: "
+                         + str(len(file_list)))
+            for fname in file_list:
+                if os.path.basename(fname).startswith("SVM14"):
+                    logger.debug("File before segmenting: "
+                                 + os.path.basename(fname))
+            file_list = _get_swathsegment(
+                file_list, time_start, time_end, area)
+            logger.debug("Number of files after segment selection: "
+                         + str(len(file_list)))
+
+            for fname in file_list:
+                if os.path.basename(fname).startswith("SVM14"):
+                    logger.debug("File after segmenting: "
+                                 + os.path.basename(fname))
+
+            logger.debug("Template = " + str(filename_tmpl))
+
+            # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
+            if len(file_list) % 22 != 0:
+                logger.warning("Number of SDR files is not divisible by 22!")
+            if len(file_list) == 0:
+                logger.debug(
+                    "File template = " + str(os.path.join(directory, filename_tmpl)))
+                raise IOError("No VIIRS SDR file matching!: " +
+                              "Start time = " + str(time_start) +
+                              "  End time = " + str(time_end))
+
+            geo_dir_string = options.get("geo_dir", None)
+            if geo_dir_string:
+                geodirectory = strftime(
+                    satscene.time_slot, geo_dir_string) % values
             else:
-                directory = directories[0]
+                geodirectory = directory
+            logger.debug("Geodir = " + str(geodirectory))
 
-        file_list = glob.glob(os.path.join(directory, filename_tmpl))
+            geofile_list = []
+            geo_filenames_string = options.get("geo_filenames", None)
+            if geo_filenames_string:
+                geo_filenames_tmpl = strftime(satscene.time_slot,
+                                              geo_filenames_string) % values
+                geofile_list = glob.glob(os.path.join(geodirectory,
+                                                      geo_filenames_tmpl))
+                logger.debug("List of geo-files: " + str(geofile_list))
+                # Only take the files in the interval given:
+                geofile_list = _get_swathsegment(
+                    geofile_list, time_start, time_end)
 
-        # Only take the files in the interval given:
-        logger.debug("Number of files before segment selection: "
-                     + str(len(file_list)))
-        for fname in file_list:
-            if os.path.basename(fname).startswith("SVM14"):
-                logger.debug("File before segmenting: "
-                             + os.path.basename(fname))
-        file_list = _get_swathsegment(file_list, time_start, time_end, area)
-        logger.debug("Number of files after segment selection: "
-                     + str(len(file_list)))
-
-        for fname in file_list:
-            if os.path.basename(fname).startswith("SVM14"):
-                logger.debug("File after segmenting: "
-                             + os.path.basename(fname))
+            logger.debug("List of geo-files (after time interval selection): "
+                         + str(geofile_list))
 
         filenames = [os.path.basename(s) for s in file_list]
-
-        logger.debug("Template = " + str(filename_tmpl))
-
-        # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
-        if len(file_list) % 22 != 0:
-            logger.warning("Number of SDR files is not divisible by 22!")
-        if len(file_list) == 0:
-            logger.debug(
-                "File template = " + str(os.path.join(directory, filename_tmpl)))
-            raise IOError("No VIIRS SDR file matching!: " +
-                          "Start time = " + str(time_start) +
-                          "  End time = " + str(time_end))
-
-        geo_dir_string = options.get("geo_dir", None)
-        if geo_dir_string:
-            geodirectory = strftime(
-                satscene.time_slot, geo_dir_string) % values
-        else:
-            geodirectory = directory
-        logger.debug("Geodir = " + str(geodirectory))
-
-        geofile_list = []
-        geo_filenames_string = options.get("geo_filenames", None)
-        if geo_filenames_string:
-            geo_filenames_tmpl = strftime(satscene.time_slot,
-                                          geo_filenames_string) % values
-            geofile_list = glob.glob(os.path.join(geodirectory,
-                                                  geo_filenames_tmpl))
-            logger.debug("List of geo-files: " + str(geofile_list))
-            # Only take the files in the interval given:
-            geofile_list = _get_swathsegment(
-                geofile_list, time_start, time_end)
-
-        logger.debug("List of geo-files (after time interval selection): "
-                     + str(geofile_list))
 
         glob_info = {}
 

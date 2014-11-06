@@ -27,7 +27,9 @@ import numpy as np
 
 import mpop.imageo.geo_image as geo_image
 from mpop.instruments.visir import VisirCompositer
-from mpop.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 import os.path
 

@@ -31,12 +31,13 @@ itself, it hold the mighty :meth:`mpop.satellites.get_satellite_class` method.
 import os.path
 import weakref
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+import logging
 
-import mpop.utils
 from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
-LOG = mpop.utils.get_logger("satellites")
+
+LOG = logging.getLogger(__name__)
 
 
 def get_custom_composites(name):
@@ -115,7 +116,12 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     fullname = variant + satellite + number
 
     conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+    config_file = os.path.join(CONFIG_PATH, fullname + ".cfg")
+    LOG.debug("Looking for config file %s", config_file)
+    if not os.path.exists(config_file):
+        LOG.error("Can't find config file %s, is PPP_CONFIG_DIR set?",
+                  config_file)
+    conf.read(config_file)
 
     try:
         mod = __import__("mpop.instruments." + instrument,
