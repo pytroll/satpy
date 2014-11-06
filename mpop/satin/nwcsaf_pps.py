@@ -42,6 +42,10 @@ NEW_PRODNAMES = {'cloudtype': 'CT',
                  'cpp': 'CPP',
                  'ctth': 'CTTH'}
 
+PPS_DATASETS = ['Cloud Type',
+                'Multilayer Cloud Detection',
+                ]
+
 
 class Region(object):
 
@@ -216,6 +220,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             # FIXME!
             if hasattr(var, "standard_name"):
                 self._projectables.append(var_name)
+            elif hasattr(var, "long_name"):
+                for item in PPS_DATASETS:
+                    if var.long_name.find(item) >= 0:
+                        self._projectables.append(var_name)
 
             setattr(self, var_name, InfoObject())
             dataset = var[:]
@@ -399,8 +407,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             pcs_def = ",".join([key + "=" + val
                                 for key, val in area.proj_dict.iteritems()])
             region["pcs_def"] = pcs_def
-            import pdb
-            pdb.set_trace()
+            #import pdb
+            # pdb.set_trace()
 
             try:
                 res.region.data = region
@@ -415,6 +423,15 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                 res._keys.remove("lat")
             except AttributeError:
                 pass
+            try:
+                delattr(res.area, "lons")
+                delattr(res.area, "lats")
+            except AttributeError:
+                pass
+
+            # pdb.set_trace()
+
+            res.area = area
 
         except AttributeError:
             # It's a swath
@@ -502,7 +519,7 @@ class CloudType(NwcSafPpsChannel):
 
     def __init__(self):
         NwcSafPpsChannel.__init__(self)
-        self.name = "CloudType"
+        self.name = "CT"
 
 
 class CloudTopTemperatureHeight(NwcSafPpsChannel):
@@ -516,7 +533,7 @@ class CloudMask(NwcSafPpsChannel):
 
     def __init__(self):
         NwcSafPpsChannel.__init__(self)
-        self.name = "CMa"
+        self.name = "CMA"
 
 
 class PrecipitationClouds(NwcSafPpsChannel):
@@ -543,9 +560,9 @@ def load(scene, geofilename=None, **kwargs):
     products = []
     if "CTTH" in scene.channels_to_load:
         products.append("ctth")
-    if "CloudType" in scene.channels_to_load:
+    if "CT" in scene.channels_to_load:
         products.append("cloudtype")
-    if "CMa" in scene.channels_to_load:
+    if "CMA" in scene.channels_to_load:
         products.append("cloudmask")
     if "PC" in scene.channels_to_load:
         products.append("precipclouds")
@@ -608,6 +625,7 @@ def load(scene, geofilename=None, **kwargs):
     nodata_mask = False
 
     chn = None
+    shape = None
     for product in products:
         LOG.debug("Loading " + product)
         if not scene.orbit:
@@ -660,6 +678,8 @@ def load(scene, geofilename=None, **kwargs):
         if hasattr(chn, '_projectables'):
             for key in chn._projectables:
                 projectable = getattr(chn,  key)
+                if not shape:
+                    shape = projectable.data.shape
                 if key in ['cloudtype']:
                     nodata_array = np.ma.array(projectable.data)
                     nodata_mask = np.ma.masked_equal(nodata_array, 0).mask
@@ -671,8 +691,8 @@ def load(scene, geofilename=None, **kwargs):
     if chn is None:
         return
 
-    # Is this safe!? AD 2012-08-25
-    shape = chn.shape
+    if not shape:
+        shape = chn.shape
 
     interpolate = False
     if geofilename:
@@ -681,7 +701,7 @@ def load(scene, geofilename=None, **kwargs):
         if lons.shape != shape or lats.shape != shape:
             interpolate = True
             row_indices = geodict['row_indices']
-            column_indices = geodict['column_indices']
+            column_indices = geodict['col_indices']
 
         lonlat_is_loaded = True
     else:
