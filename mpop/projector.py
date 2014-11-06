@@ -43,13 +43,35 @@ from mpop import CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
+area_file = None
+
+
+def get_area_file():
+    global area_file
+    if area_file:
+        return area_file
+
+    conf = ConfigParser.ConfigParser()
+    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+    try:
+        area_file = os.path.join(conf.get("projector",
+                                          "area_directory") or
+                                 CONFIG_PATH,
+                                 conf.get("projector", "area_file"))
+    except ConfigParser.NoSectionError:
+        area_file = ""
+        logger.warning("Couldn't find the mpop.cfg file. "
+                       "Do you have one ? is it in $PPP_CONFIG_DIR ?")
+    return area_file
+
 
 def get_area_def(area_name):
     """Get the definition of *area_name* from file. The file is defined to use
     is to be placed in the $PPP_CONFIG_DIR directory, and its name is defined
     in mpop's configuration file.
     """
-    return utils.parse_area_file(Projector.area_file, area_name)[0]
+    return utils.parse_area_file(get_area_file(), area_name)[0]
 
 
 def _get_area_hash(area):
@@ -86,18 +108,7 @@ class Projector(object):
                 mode not in ["quick", "nearest"]):
             raise ValueError("Projector mode must be 'nearest' or 'quick'")
 
-        conf = ConfigParser.ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
-
-        try:
-            self.area_file = os.path.join(conf.get("projector",
-                                                   "area_directory") or
-                                          CONFIG_PATH,
-                                          conf.get("projector", "area_file"))
-        except ConfigParser.NoSectionError:
-            self.area_file = ""
-            logger.warning("Couldn't find the mpop.cfg file. "
-                           "Do you have one ? is it in $PPP_CONFIG_DIR ?")
+        self.area_file = get_area_file()
 
         self.in_area = None
         self.out_area = None
