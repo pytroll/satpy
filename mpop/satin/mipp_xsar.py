@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012.
+# Copyright (c) 2010, 2011, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
 #   Lars Orum Rasmussen <ras@dmi.dk>
@@ -36,10 +36,12 @@ from mipp import xsar
 from mipp import ReaderError, CalibrationError
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 try:
-    # Work around for on demand import of pyresample. pyresample depends 
+    # Work around for on demand import of pyresample. pyresample depends
     # on scipy.spatial which memory leaks on multiple imports
     is_pyresample_loaded = False
     from pyresample import geometry
@@ -47,13 +49,13 @@ try:
     is_pyresample_loaded = True
 except ImportError:
     LOG.warning("pyresample missing. Can only work in satellite projection")
-    
+
 
 def load(satscene, calibrate=True):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
-    """    
+    """
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
@@ -71,14 +73,15 @@ def load(satscene, calibrate=True):
                                                       options,
                                                       calibrate)
 
+
 def load_generic(satscene, options, calibrate=True):
     """Read sar data from file and load it into *satscene*.
     """
     os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
 
-    LOG.debug("Channels to load from %s: %s"%(satscene.instrument_name,
-                                              satscene.channels_to_load))
-    
+    LOG.debug("Channels to load from %s: %s" % (satscene.instrument_name,
+                                                satscene.channels_to_load))
+
     # Compulsory global attribudes
     satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
                               " satellite, " +
@@ -88,7 +91,7 @@ def load_generic(satscene, options, calibrate=True):
     satscene.add_to_history("SAR data read by mipp/mpop.")
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
-    
+
     for chn in satscene.channels_to_load:
         try:
             metadata, data = xsar.sat.load(satscene.fullname,
@@ -97,7 +100,8 @@ def load_generic(satscene, options, calibrate=True):
                                            mask=True,
                                            calibrate=calibrate)
         except CalibrationError:
-            LOG.warning("Loading non calibrated data since calibration failed.")
+            LOG.warning(
+                "Loading non calibrated data since calibration failed.")
             metadata, data = xsar.sat.load(satscene.fullname,
                                            satscene.time_slot,
                                            chn,
@@ -109,7 +113,7 @@ def load_generic(satscene, options, calibrate=True):
 
         satscene[chn] = data
         satscene[chn].info['units'] = metadata.calibration_unit
-        
+
         if is_pyresample_loaded:
             # Build an area on the fly from the mipp metadata
             proj_params = getattr(metadata, "proj4_params").split()
@@ -117,7 +121,7 @@ def load_generic(satscene, options, calibrate=True):
             for param in proj_params:
                 key, val = [i.strip() for i in param.split("=")]
                 proj_dict[key] = val
-            
+
             # Build area_def on-the-fly
             satscene[chn].area = geometry.AreaDefinition(
                 satscene.satname + satscene.instrument_name +
@@ -133,4 +137,3 @@ def load_generic(satscene, options, calibrate=True):
             LOG.info("Could not build area, pyresample missing...")
 
 CASES = {}
-

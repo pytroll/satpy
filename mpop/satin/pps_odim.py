@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012.
+# Copyright (c) 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This file is part of mpop.
@@ -35,25 +35,31 @@ import math
 import numpy as np
 
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 import h5py
 
 
 EPSILON = 0.001
 
+
 class InfoObject(object):
+
     """Simple data and info container.
     """
+
     def __init__(self):
         self.info = {}
         self.data = None
 
+
 def pack_signed(data, data_type):
     bits = np.iinfo(data_type).bits
-    scale_factor = (data.max() - data.min()) / (2**bits - 2)
+    scale_factor = (data.max() - data.min()) / (2 ** bits - 2)
     add_offset = (data.max() - data.min()) / 2
-    no_data = - 2**(bits - 1)
+    no_data = - 2 ** (bits - 1)
     pack = ((data - add_offset) / scale_factor).astype(data_type)
     return pack, scale_factor, add_offset, no_data
 
@@ -66,24 +72,26 @@ def load(satscene, *args, **kwargs):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw = True):
+                                    raw=True):
         options[option] = value
     CASES[satscene.instrument_name](satscene, options)
+
 
 def load_channels(satscene, options):
     """Read avhrr/viirs/modis radiance (tb's and refl) data from file and load
     it into *satscene*.
     """
-    
+
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
 
     LOG.debug("Start loading channels")
 
     if satscene.instrument_name in ['avhrr']:
-        chns = satscene.channels_to_load & set(["1", "2", "3A", "3B", "4", "5"])
+        chns = satscene.channels_to_load & set(
+            ["1", "2", "3A", "3B", "4", "5"])
     elif satscene.instrument_name in ['viirs']:
-        chns = satscene.channels_to_load & set(["M05", "M07", "M10", 
+        chns = satscene.channels_to_load & set(["M05", "M07", "M10",
                                                 "M12", "M14", "M15", "M16"])
 
     if len(chns) == 0:
@@ -96,9 +104,9 @@ def load_channels(satscene, options):
               "satellite": satscene.fullname
               }
 
-    filename = os.path.join(satscene.time_slot.strftime(options["dir"])%values,
+    filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
                             satscene.time_slot.strftime(options["filename"])
-                            %values)
+                            % values)
 
     file_list = glob.glob(filename)
 
@@ -108,17 +116,14 @@ def load_channels(satscene, options):
         raise IOError("No PPS level 1 file matching!: " +
                       filename)
 
-    
     filename = file_list[0]
 
     LOG.debug("Loading from " + filename)
-
 
     available_channels = set([])
     data_channels = {}
     info_channels = {}
     instrument_data = NwcSafPpsOdim(filename)
-
 
     idx = 1
     while hasattr(instrument_data, 'image%d' % idx):
@@ -137,7 +142,7 @@ def load_channels(satscene, options):
             elif info_channels[chn]['quantity'] in ["TB"]:
                 units = "K"
             else:
-                LOG.warning("Units not known! Unit = " + 
+                LOG.warning("Units not known! Unit = " +
                             str(info_channels[chn]['quantity']))
 
             gain = info_channels[chn]["gain"]
@@ -154,14 +159,14 @@ def load_channels(satscene, options):
                                             no_data + EPSILON)
 
             satscene[chn] = chn_array
-            satscene[chn].data =  np.ma.masked_less(satscene[chn].data *
-                                                    gain +
-                                                    intercept,
-                                                    0)
+            satscene[chn].data = np.ma.masked_less(satscene[chn].data *
+                                                   gain +
+                                                   intercept,
+                                                   0)
 
             satscene[chn].info['units'] = units
         else:
-            LOG.warning("Channel "+str(chn)+" not available, not loaded.")
+            LOG.warning("Channel " + str(chn) + " not available, not loaded.")
 
     # Compulsory global attributes
     satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
@@ -173,10 +178,9 @@ def load_channels(satscene, options):
     satscene.info["references"] = "No reference."
     satscene.info["comments"] = "No comment."
 
-
     lons = (instrument_data.lon.data * instrument_data.lon.info['gain'] +
             instrument_data.lon.info['offset'])
-    lats = (instrument_data.lat.data * instrument_data.lat.info['gain'] + 
+    lats = (instrument_data.lat.data * instrument_data.lat.info['gain'] +
             instrument_data.lat.info['offset'])
 
     try:
@@ -186,9 +190,6 @@ def load_channels(satscene, options):
         satscene.area = None
         satscene.lat = lats
         satscene.lon = lons
-
-
-
 
 
 class NwcSafPpsOdim(object):
@@ -204,8 +205,7 @@ class NwcSafPpsOdim(object):
         self.shape = None
         if filename:
             self.read(filename)
-            
-    
+
     def read(self, filename):
         """Read data in hdf5 format from *filename*
         """
@@ -220,28 +220,27 @@ class NwcSafPpsOdim(object):
         # Which one to use?:
         self._how["time_slot"] = (timedelta(seconds=long(h5f['how'].attrs['startepochs']))
                                   + datetime(1970, 1, 1, 0, 0))
-        self._what["time_slot"] = datetime.strptime(h5f['what'].attrs['date'] + 
+        self._what["time_slot"] = datetime.strptime(h5f['what'].attrs['date'] +
                                                     h5f['what'].attrs['time'],
                                                     "%Y%m%d%H%M%S")
 
-         # Read the data and attributes
+        # Read the data and attributes
         #   This covers only one level of data. This could be made recursive.
         for key, dataset in h5f.iteritems():
             if "how" in dataset.name or "what" in dataset.name:
                 continue
-                
+
             if "image" in dataset.name:
                 setattr(self, key, InfoObject())
                 getattr(self, key).info = dict(dataset.attrs)
                 getattr(self, key).data = dataset['data'][:]
-            
+
                 if 'how' in dataset:
                     for skey, value in dataset['how'].attrs.iteritems():
                         getattr(self, key).info[skey] = value
-                if 'what' in dataset:                    
+                if 'what' in dataset:
                     for skey, value in dataset['what'].attrs.iteritems():
                         getattr(self, key).info[skey] = value
-
 
             if "where" in dataset.name:
                 setattr(self, 'lon', InfoObject())
@@ -260,7 +259,6 @@ class NwcSafPpsOdim(object):
 
         h5f.close()
 
-
         # Setup geolocation
 
         try:
@@ -269,12 +267,13 @@ class NwcSafPpsOdim(object):
             return
 
         if hasattr(self, "lon") and hasattr(self, "lat"):
-            lons = self.lon.data * self.lon.info["gain"] + self.lon.info["gain"]
-            lats = self.lat.data * self.lat.info["gain"] + self.lat.info["gain"]
+            lons = self.lon.data * \
+                self.lon.info["gain"] + self.lon.info["gain"]
+            lats = self.lat.data * \
+                self.lat.info["gain"] + self.lat.info["gain"]
             self.area = geometry.SwathDefinition(lons=lons, lats=lats)
         else:
             LOG.warning("No longitudes or latitudes for data")
-
 
     # def project(self, coverage):
     #     """Project what can be projected in the product.
@@ -284,15 +283,15 @@ class NwcSafPpsOdim(object):
 
     #     area = coverage.out_area
 
-    #     # Project the data
+    # Project the data
     #     for var in self._projectables:
     #         LOG.info("Projecting " + str(var))
     #         res.__dict__[var] = copy.copy(self.__dict__[var])
     #         res.__dict__[var].data = coverage.project_array(
     #             self.__dict__[var].data)
 
-    #     # Take care of geolocation
-    #     # We support only swath data with full lon,lat arrays
+    # Take care of geolocation
+    # We support only swath data with full lon,lat arrays
     #     lons, scale_factor, add_offset, no_data = \
     #         pack_signed(area.lons[:], np.int16)
     #     res.lon = InfoObject()
@@ -325,5 +324,4 @@ class NwcSafPpsOdim(object):
 CASES = {
     "avhrr": load_channels,
     "viirs": load_channels
-    }
-
+}

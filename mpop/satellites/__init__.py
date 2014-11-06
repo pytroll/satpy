@@ -31,12 +31,13 @@ itself, it hold the mighty :meth:`mpop.satellites.get_satellite_class` method.
 import os.path
 import weakref
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+import logging
 
-import mpop.utils
 from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
-LOG = mpop.utils.get_logger("satellites")
+
+LOG = logging.getLogger(__name__)
 
 
 def get_custom_composites(name):

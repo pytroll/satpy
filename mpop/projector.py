@@ -39,10 +39,10 @@ import logging
 
 import numpy as np
 from pyresample import image, utils, geometry, kd_tree
-from zipfile import BadZipfile
 from mpop import CONFIG_PATH
 
 logger = logging.getLogger(__name__)
+
 
 def get_area_def(area_name):
     """Get the definition of *area_name* from file. The file is defined to use
@@ -50,6 +50,7 @@ def get_area_def(area_name):
     in mpop's configuration file.
     """
     return utils.parse_area_file(Projector.area_file, area_name)[0]
+
 
 def _get_area_hash(area):
     """Calculate a (close to) unique hash value for a given area.
@@ -62,7 +63,9 @@ def _get_area_hash(area):
         except AttributeError:
             return hash(str(area))
 
+
 class Projector(object):
+
     """This class define projector objects. They contain the mapping
     information necessary for projection purposes. For efficiency reasons,
     generated projectors can be saved to disk for later reuse. Use the
@@ -87,14 +90,12 @@ class Projector(object):
         logger.warning("Couldn't find the mpop.cfg file. "
                        "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 
-
-
     def __init__(self, in_area, out_area,
                  in_latlons=None, mode=None,
                  radius=10000, nprocs=1):
 
         if (mode is not None and
-            mode not in ["quick", "nearest"]):
+                mode not in ["quick", "nearest"]):
             raise ValueError("Projector mode must be 'nearest' or 'quick'")
 
         self.in_area = None
@@ -103,7 +104,6 @@ class Projector(object):
         self._filename = None
         self.mode = "quick"
         self.radius = radius
-
 
         # TODO:
         # - Rework so that in_area and out_area can be lonlats.
@@ -130,7 +130,6 @@ class Projector(object):
                                              ", be an area object"
                                              " or longitudes/latitudes must be "
                                              "provided.")
-
 
         # Setting up the output area
         try:
@@ -161,8 +160,6 @@ class Projector(object):
         else:
             self.mode = mode
 
-
-
         filename = (in_id + "2" + out_id + "_" +
                     str(_get_area_hash(self.in_area)) + "to" +
                     str(_get_area_hash(self.out_area)) + "_" +
@@ -171,7 +168,7 @@ class Projector(object):
         projections_directory = "/var/tmp"
         try:
             projections_directory = self.conf.get("projector",
-                                             "projections_directory")
+                                                  "projections_directory")
         except ConfigParser.NoSectionError:
             pass
 
@@ -184,14 +181,13 @@ class Projector(object):
             logger.info("Computing projection from %s to %s...",
                         in_id, out_id)
 
-
             if self.mode == "nearest":
                 valid_index, valid_output_index, index_array, distance_array = \
-                             kd_tree.get_neighbour_info(self.in_area,
-                                                        self.out_area,
-                                                        self.radius,
-                                                        neighbours=1,
-                                                        nprocs=nprocs)
+                    kd_tree.get_neighbour_info(self.in_area,
+                                               self.out_area,
+                                               self.radius,
+                                               neighbours=1,
+                                               nprocs=nprocs)
                 del distance_array
                 self._cache = {}
                 self._cache['valid_index'] = valid_index
@@ -200,12 +196,11 @@ class Projector(object):
 
             elif self.mode == "quick":
                 ridx, cidx = \
-                      utils.generate_quick_linesample_arrays(self.in_area,
-                                                             self.out_area)
+                    utils.generate_quick_linesample_arrays(self.in_area,
+                                                           self.out_area)
                 self._cache = {}
                 self._cache['row_idx'] = ridx
                 self._cache['col_idx'] = cidx
-
 
     def save(self, resave=False):
         """Save the precomputation to disk, and overwrite existing file in case
@@ -224,13 +219,13 @@ class Projector(object):
             if not 'valid_index' in self._cache:
                 self._cache['valid_index'] = self._file_cache['valid_index']
                 self._cache['valid_output_index'] = \
-                                        self._file_cache['valid_output_index']
+                    self._file_cache['valid_output_index']
                 self._cache['index_array'] = self._file_cache['index_array']
 
             valid_index, valid_output_index, index_array = \
-                         (self._cache['valid_index'],
-                          self._cache['valid_output_index'],
-                          self._cache['index_array'])
+                (self._cache['valid_index'],
+                 self._cache['valid_output_index'],
+                 self._cache['index_array'])
 
             res = kd_tree.get_sample_from_neighbour_info('nn',
                                                          self.out_area.shape,

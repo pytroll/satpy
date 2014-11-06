@@ -29,9 +29,10 @@ from ConfigParser import ConfigParser
 
 import numpy as np
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
 from mpop.satin.xmlformat import XMLFormat
+import logging
 
+LOG = logging(__name__)
 
 try:
     from pyresample import geometry

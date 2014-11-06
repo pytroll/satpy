@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -35,12 +35,16 @@ from threading import Thread, Condition
 
 import time
 
-from mpop.saturn import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 ZERO = datetime.timedelta(seconds=0)
 
+
 class FileWatcher(Thread):
+
     """Looks for new files, and queues them.
     """
 
@@ -67,14 +71,14 @@ class FileWatcher(Thread):
     def wait(self, secs):
         if self.running:
             self.cond.wait(secs)
-            
+
     def run(self):
         """Run the file watcher.
         """
 
         filelist = set()
         sleep_time = 8
-        
+
         while self.running:
             self.cond.acquire()
             if isinstance(self.template, (list, tuple)):
@@ -92,13 +96,13 @@ class FileWatcher(Thread):
                 files_dict[fil] = os.path.getmtime(fil)
 
             files_to_process.sort(lambda x, y: cmp(files_dict[x],
-                                                  files_dict[y]))
+                                                   files_dict[y]))
 
             if len(files_to_process) != 0 and self.running:
                 sleep_time = 8
                 times = []
                 for i in files_to_process:
-                    LOG.debug("queueing %s..."%i)
+                    LOG.debug("queueing %s..." % i)
                     self.queue.put(i)
                     times.append(os.stat(i).st_ctime)
                 times.sort()
@@ -108,14 +112,15 @@ class FileWatcher(Thread):
                 if(self.frequency > since_creation):
                     to_wait = self.frequency - since_creation
 
-                    LOG.info("Waiting at least "+str(to_wait)+" for next file")
+                    LOG.info(
+                        "Waiting at least " + str(to_wait) + " for next file")
                     sleep_time = (to_wait.seconds +
                                   to_wait.microseconds / 1000000.0)
                     self.wait(sleep_time)
                     sleep_time = 8
             elif self.running:
                 LOG.info("no new file has come, waiting %s secs"
-                         %str(sleep_time))
+                         % str(sleep_time))
                 self.wait(sleep_time)
                 if sleep_time < 60:
                     sleep_time *= 2
@@ -123,11 +128,14 @@ class FileWatcher(Thread):
             self.cond.release()
         LOG.info("FileWatcher terminated.")
 
+
 class FileProcessor(Thread):
+
     """Execute *fun* on filenames provided by from *file_queue*. If *refresh*
     is a positive number, run *fun* every given number of seconds with None as
     argument.
     """
+
     def __init__(self, file_queue, fun, refresh=None):
         Thread.__init__(self)
         self.queue = file_queue
@@ -148,20 +156,17 @@ class FileProcessor(Thread):
         while self.running:
             try:
                 filename = self.queue.get(block=True, timeout=self.refresh)
-                LOG.debug("processing %s"%filename)
+                LOG.debug("processing %s" % filename)
             except Empty:
                 filename = None
             try:
                 self.fun(filename)
             except:
                 LOG.exception("Something wrong happened in %s for %s. Skipping."
-                              %(str(self.fun), filename))
+                              % (str(self.fun), filename))
         LOG.info("FileProcessor terminated.")
 
     def stop(self):
         """Stops a running process.
         """
         self.running = False
-
-
-
