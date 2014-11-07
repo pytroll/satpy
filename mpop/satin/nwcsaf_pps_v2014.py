@@ -6,6 +6,7 @@
  
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   Sara Hornquist <sara.hornquist@smhi.se>
 
 # This file is part of mpop.
 
@@ -22,7 +23,7 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 """Plugin for reading PPS's cloud products hdf files, in the fileformat used
-in PPS v2012, and before.
+in PPS v2014.
 """
 import ConfigParser
 from ConfigParser import NoOptionError
@@ -102,7 +103,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         # Read the global attributes
 
         self._md = dict(h5f.attrs)
-        self._md["satellite"] = h5f.attrs['satellite_id']
+        self._md["satellite"] = h5f.attrs['platform']
         self._md["orbit"] = h5f.attrs['orbit_number']
         self._md["time_slot"] = (timedelta(seconds=long(h5f.attrs['sec_1970']))
                                  + datetime(1970, 1, 1, 0, 0))
@@ -403,15 +404,15 @@ def load(scene, geofilename=None, **kwargs):
 
     products = []
     if "CTTH" in scene.channels_to_load:
-        products.append("ctth")
+        products.append("CTTH")
     if "CloudType" in scene.channels_to_load:
-        products.append("cloudtype")
+        products.append("CT")
     if "CMa" in scene.channels_to_load:
-        products.append("cloudmask")
+        products.append("CMA")
     if "PC" in scene.channels_to_load:
-        products.append("precipclouds")
+        products.append("PC")
     if "CPP" in scene.channels_to_load:
-        products.append("cpp")
+        products.append("CPP")
 
     if len(products) == 0:
         return
@@ -462,11 +463,11 @@ def load(scene, geofilename=None, **kwargs):
             geofilename = None
 
 
-    classes = {"ctth": CloudTopTemperatureHeight,
-               "cloudtype": CloudType,
-               "cloudmask": CloudMask,
-               "precipclouds": PrecipitationClouds,
-               "cpp": CloudPhysicalProperties
+    classes = {"CTTH": CloudTopTemperatureHeight,
+               "CT": CloudType,
+               "CMA": CloudMask,
+               "PC": PrecipitationClouds,
+               "CPP": CloudPhysicalProperties
                }
 
     nodata_mask = False
@@ -512,9 +513,10 @@ def load(scene, geofilename=None, **kwargs):
         if hasattr(chn, '_projectables'):
             for key in chn._projectables:
                 projectable = getattr(chn,  key)
-                if key in ['cloudtype']:
+                if key in ['ct']:
                     nodata_array = np.ma.array(projectable.data)
-                    nodata_mask =  np.ma.masked_equal(nodata_array, 0).mask
+                    nodata_mask =  np.ma.masked_equal(\
+                        nodata_array, projectable.info["_FillValue"]).mask
                     break
         else:
             LOG.warning("Channel has no '_projectables' member." + 
