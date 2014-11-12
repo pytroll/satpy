@@ -541,12 +541,16 @@ def _finalize(geo_image):
 
     **Notes**:
         physic_val = image*scale + offset
+
+    **Bug**:
+        We do not handle different fill values for different channels.
     """
     if geo_image.mode == 'L':
         # PFE: mpop.satout.cfscene
         dtype = np.uint8
         data = geo_image.channels[0]
-        fill_value = geo_image.fill_value or 0
+        fill_value = geo_image.fill_value or [0]
+        fill_value = fill_value[0]
         if np.ma.count_masked(data) == data.size:
             # All data is masked
             data = np.ones(data.shape, dtype=dtype) * fill_value
