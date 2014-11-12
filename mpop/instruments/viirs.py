@@ -268,6 +268,28 @@ class ViirsCompositer(VisirCompositer):
 
     hr_red_snow.prerequisites = set(['I01', 'I03', 'I05'])
 
+    def dnb_overview(self):
+        """Make an Overview RGB image composite from VIIRS
+        channels.
+        """
+        self.check_channels('DNB', 'M15')
+
+        ch1 = self['DNB'].data
+        ch2 = self['DNB'].data
+        ch3 = -self['M15'].data
+
+        img = geo_image.GeoImage((ch1, ch2, ch3),
+                                 self.area,
+                                 self.time_slot,
+                                 fill_value=None,
+                                 mode="RGB")
+
+        img.enhance(stretch="linear")
+
+        return img
+
+    dnb_overview.prerequisites = set(['DNB', 'M15'])
+
     def night_color(self):
         """Make a Night Overview RGB image composite.
         Same as cloudtop ... just different.
