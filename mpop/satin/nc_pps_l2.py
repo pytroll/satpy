@@ -28,6 +28,8 @@ from ConfigParser import ConfigParser
 from ConfigParser import NoOptionError
 
 from datetime import datetime
+import glob
+import numpy as np
 
 import mpop.channel
 from mpop import CONFIG_PATH
@@ -184,14 +186,10 @@ class PPSReader(Reader):
     def load(self, satscene, *args, **kwargs):
         """Read data from file and load it into *satscene*.
         """
-        import glob
-        import numpy as np
-
         lonlat_is_loaded = False
-        if 'geofilename' in kwargs:
-            geofilename = kwargs['geofilename']
-        else:
-            geofilename = None
+
+        geofilename = kwargs.get('geofilename')
+        prodfilename = kwargs.get('filename')
 
         products = []
         if "CTTH" in satscene.channels_to_load:
@@ -213,19 +211,23 @@ class PPSReader(Reader):
         except AttributeError:
             area_name = "satproj_?????_?????"
 
+        # Looking for geolocation file
+
         conf = ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-        directory = conf.get(satscene.instrument_name + "-level3", "dir")
+
         try:
             geodir = conf.get(satscene.instrument_name + "-level3", "geodir")
         except NoOptionError:
             LOG.warning("No option 'geodir' in level3 section")
             geodir = None
 
-        filename = conf.get(satscene.instrument_name + "-level3", "filename",
-                            raw=True)
-        pathname_tmpl = os.path.join(directory, filename)
-        LOG.debug("Path = " + str(pathname_tmpl))
+        if not prodfilename:
+            filename = conf.get(satscene.instrument_name + "-level3", "filename",
+                                raw=True)
+            directory = conf.get(satscene.instrument_name + "-level3", "dir")
+            pathname_tmpl = os.path.join(directory, filename)
+            LOG.debug("Path = " + str(pathname_tmpl))
 
         if not geofilename and geodir:
             # Load geo file from config file:
@@ -253,6 +255,8 @@ class PPSReader(Reader):
             except NoOptionError:
                 geofilename = None
 
+        # Reading the products
+
         classes = {"ctth": CloudTopTemperatureHeight,
                    "cloudtype": CloudType,
                    "cloudmask": CloudMask,
@@ -262,52 +266,61 @@ class PPSReader(Reader):
 
         nodata_mask = False
 
+        area = None
+        lons = None
+        lats = None
         chn = None
         shape = None
         read_external_geo = {}
         for product in products:
             LOG.debug("Loading " + product)
-            if not satscene.orbit:
-                orbit = ""
+
+            if (prodfilename and
+                    os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
+                filename = prodfilename
             else:
-                orbit = satscene.orbit
+                if not satscene.orbit:
+                    orbit = ""
+                else:
+                    orbit = satscene.orbit
 
-            filename_tmpl = (satscene.time_slot.strftime(pathname_tmpl)
-                             % {"orbit": orbit.zfill(5) or "*",
-                                "area": area_name,
-                                "satellite": satscene.satname + satscene.number,
-                                "product": product})
-
-            file_list = glob.glob(filename_tmpl)
-            if len(file_list) == 0:
-                product_name = NEW_PRODNAMES.get(product, product)
-                LOG.info("No " + str(product) +
-                         " product in old format matching")
                 filename_tmpl = (satscene.time_slot.strftime(pathname_tmpl)
                                  % {"orbit": orbit.zfill(5) or "*",
                                     "area": area_name,
                                     "satellite": satscene.satname + satscene.number,
-                                    "product": product_name})
+                                    "product": product})
 
                 file_list = glob.glob(filename_tmpl)
+                if len(file_list) == 0:
+                    product_name = NEW_PRODNAMES.get(product, product)
+                    LOG.info("No " + str(product) +
+                             " product in old format matching")
+                    filename_tmpl = (satscene.time_slot.strftime(pathname_tmpl)
+                                     % {"orbit": orbit.zfill(5) or "*",
+                                        "area": area_name,
+                                        "satellite": satscene.satname + satscene.number,
+                                        "product": product_name})
 
-            if len(file_list) > 1:
-                LOG.warning("More than 1 file matching for " + product + "! "
-                            + str(file_list))
-                continue
-            elif len(file_list) == 0:
-                LOG.warning("No " + product + " matching!: " + filename_tmpl)
-                continue
-            else:
-                filename = file_list[0]
+                    file_list = glob.glob(filename_tmpl)
 
-                chn = classes[product]()
-                chn.read(filename, lonlat_is_loaded == False)
-                satscene.channels.append(chn)
-                # Check if geolocation is loaded:
-                if not chn.area:
-                    read_external_geo[product] = chn
-                    shape = chn.shape
+                if len(file_list) > 1:
+                    LOG.warning("More than 1 file matching for " + product + "! "
+                                + str(file_list))
+                    continue
+                elif len(file_list) == 0:
+                    LOG.warning(
+                        "No " + product + " matching!: " + filename_tmpl)
+                    continue
+                else:
+                    filename = file_list[0]
+
+            chn = classes[product]()
+            chn.read(filename, lonlat_is_loaded == False)
+            satscene.channels.append(chn)
+            # Check if geolocation is loaded:
+            if not chn.area:
+                read_external_geo[product] = chn
+                shape = chn.shape
 
         # Check if some 'channel'/product needs geolocation. If some product does
         # not have geolocation, get it from the geofilename:
@@ -353,7 +366,7 @@ class PPSReader(Reader):
             except ImportError:
                 area = None
 
-        for product, chn in read_external_geo.items():
+        for chn in read_external_geo.values():
             if area:
                 chn.area = area
             else:
