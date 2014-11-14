@@ -851,15 +851,15 @@ def _get_swathsegment(filelist, time_start, time_end=None, area=None):
     """
     if area is not None:
         from trollsched.spherical import SphPolygon
-        from trollsched.satpass import Boundary
+        from trollsched.boundary import AreaBoundary
 
         lons, lats = area.get_boundary_lonlats()
-        area_boundary = Boundary((lons.side1, lats.side1),
-                                 (lons.side2, lats.side2),
-                                 (lons.side3, lats.side3),
-                                 (lons.side4, lats.side4))
+        area_boundary = AreaBoundary((lons.side1, lats.side1),
+                                     (lons.side2, lats.side2),
+                                     (lons.side3, lats.side3),
+                                     (lons.side4, lats.side4))
         area_boundary.decimate(500)
-        contour_poly = area_boundary.contour_poly()
+        contour_poly = area_boundary.contour_poly
 
     segment_files = []
     for filename in filelist:

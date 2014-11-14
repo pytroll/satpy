@@ -45,6 +45,9 @@ k = 1.380658e-23  # m2kg.s-2.K-1
 def load(satscene, *args, **kwargs):
     del args
 
+    files_to_load = []
+    files_to_delete = []
+
     filename = kwargs.get("filename")
     logger.debug("reading " + str(filename))
     if filename is not None:
@@ -63,6 +66,7 @@ def load(satscene, *args, **kwargs):
                         fp_.write(zipfile.read())
                 zipfile.close()
                 files_to_load.append(newname)
+                files_to_delete.append(newname)
             else:
                 files_to_load.append(filename)
     else:
@@ -114,7 +118,13 @@ def load(satscene, *args, **kwargs):
                  "M15": "M15",
                  "M16": "M16"}
 
-    chans = [chan_dict[chn] for chn in satscene.channels_to_load]
+    channels = [(chn, chan_dict[chn])
+                for chn in satscene.channels_to_load
+                if chn in chan_dict]
+    try:
+        channels_to_load, chans = zip(*channels)
+    except ValueError:
+        return
 
     datas = []
     lonlats = []
@@ -129,7 +139,7 @@ def load(satscene, *args, **kwargs):
     lons = np.ma.vstack([lonlat[0] for lonlat in lonlats])
     lats = np.ma.vstack([lonlat[1] for lonlat in lonlats])
 
-    for nb, chn in enumerate(satscene.channels_to_load):
+    for nb, chn in enumerate(channels_to_load):
         data = np.ma.vstack([dat[nb] for dat in datas])
         satscene[chn] = data
         satscene[chn].info["units"] = units[nb]
@@ -137,7 +147,7 @@ def load(satscene, *args, **kwargs):
     area_def = SwathDefinition(np.ma.masked_where(data.mask, lons),
                                np.ma.masked_where(data.mask, lats))
 
-    for chn in satscene.channels_to_load:
+    for chn in channels_to_load:
         satscene[chn].area = area_def
 
 
