@@ -37,12 +37,14 @@ import glob
 from fnmatch import fnmatch
 import os.path
 from ConfigParser import ConfigParser
+import multiprocessing
 
 import math
 import numpy as np
 from pyhdf.SD import SD
 from pyhdf.error import HDF4Error
 import hashlib
+from pyresample import geometry
 
 from mpop import CONFIG_PATH
 from mpop.plugin_base import Reader
@@ -127,7 +129,7 @@ class ModisReader(Reader):
                                options['geofile'])
 
         resolution = options["resolution"]
-        cores = options.get("cores", 1)
+        cores = options.get("cores", max(multiprocessing.cpu_count() / 4, 1))
 
         datadict = {
             1000: ['EV_250_Aggr1km_RefSB',
@@ -194,7 +196,6 @@ class ModisReader(Reader):
 
         for band_name in loaded_bands:
             lon, lat = self.get_lonlat(satscene[band_name].resolution, cores)
-            from pyresample import geometry
             area = geometry.SwathDefinition(lons=lon, lats=lat)
             satscene[band_name].area = area
 
@@ -515,7 +516,6 @@ def load_generic(satscene, filename, resolution, cores):
     #    return
 
     lat, lon = get_lat_lon(satscene, resolution, filename, cores)
-    from pyresample import geometry
     area = geometry.SwathDefinition(lons=lon, lats=lat)
     for band_name in loaded_bands:
         satscene[band_name].area = area
