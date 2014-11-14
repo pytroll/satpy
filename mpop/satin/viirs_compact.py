@@ -31,49 +31,75 @@ import glob
 from ConfigParser import ConfigParser
 import os
 import logging
+import bz2
 
 from mpop import CONFIG_PATH
-from mpop.imageo.geo_image import GeoImage
 
 logger = logging.getLogger(__name__)
 
-c = 299792458 # m.s-1
-h = 6.6260755e-34 # m2kg.s-1
-k = 1.380658e-23 # m2kg.s-2.K-1
+c = 299792458  # m.s-1
+h = 6.6260755e-34  # m2kg.s-1
+k = 1.380658e-23  # m2kg.s-2.K-1
+
 
 def load(satscene, *args, **kwargs):
+    del args
 
-    time_start, time_end = kwargs.get("time_interval",
-                                      (satscene.time_slot, None))
-
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
-    for option, value in conf.items(satscene.instrument_name+"-level2",
-                                    raw=True):
-        options[option] = value
-
-
-    template = os.path.join(options["dir"], options["filename"])
-
-    second = timedelta(seconds=1)
     files_to_load = []
+    files_to_delete = []
 
-    if time_end is not None:
-        time = time_start - second * 85
+    filename = kwargs.get("filename")
+    logger.debug("reading " + str(filename))
+    if filename is not None:
+        if isinstance(filename, (list, set, tuple)):
+            files = filename
+        else:
+            files = [filename]
         files_to_load = []
-        while time <= time_end:
-            fname = time.strftime(template)
-            flist = glob.glob(fname)
-            try:
-                files_to_load.append(flist[0])
-                time += second*80
-            except IndexError:
-                pass
-            time += second
-
+        for filename in files:
+            pathname, ext = os.path.splitext(filename)
+            if ext == ".bz2":
+                zipfile = bz2.BZ2File(filename)
+                newname = os.path.join("/tmp", os.path.basename(pathname))
+                if not os.path.exists(newname):
+                    with open(newname, "wb") as fp_:
+                        fp_.write(zipfile.read())
+                zipfile.close()
+                files_to_load.append(newname)
+                files_to_delete.append(newname)
+            else:
+                files_to_load.append(filename)
     else:
-        files_to_load = glob.glob(time_start.strftime(template))
+        time_start, time_end = kwargs.get("time_interval",
+                                          (satscene.time_slot, None))
+
+        conf = ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+        options = {}
+        for option, value in conf.items(satscene.instrument_name + "-level2",
+                                        raw=True):
+            options[option] = value
+
+        template = os.path.join(options["dir"], options["filename"])
+
+        second = timedelta(seconds=1)
+        files_to_load = []
+
+        if time_end is not None:
+            time = time_start - second * 85
+            files_to_load = []
+            while time <= time_end:
+                fname = time.strftime(template)
+                flist = glob.glob(fname)
+                try:
+                    files_to_load.append(flist[0])
+                    time += second * 80
+                except IndexError:
+                    pass
+                time += second
+
+        else:
+            files_to_load = glob.glob(time_start.strftime(template))
 
     chan_dict = {"M01": "M1",
                  "M02": "M2",
@@ -92,7 +118,13 @@ def load(satscene, *args, **kwargs):
                  "M15": "M15",
                  "M16": "M16"}
 
-    chans = [chan_dict[chn] for chn in satscene.channels_to_load]
+    channels = [(chn, chan_dict[chn])
+                for chn in satscene.channels_to_load
+                if chn in chan_dict]
+    try:
+        channels_to_load, chans = zip(*channels)
+    except ValueError:
+        return
 
     datas = []
     lonlats = []
@@ -107,7 +139,7 @@ def load(satscene, *args, **kwargs):
     lons = np.ma.vstack([lonlat[0] for lonlat in lonlats])
     lats = np.ma.vstack([lonlat[1] for lonlat in lonlats])
 
-    for nb, chn in enumerate(satscene.channels_to_load):
+    for nb, chn in enumerate(channels_to_load):
         data = np.ma.vstack([dat[nb] for dat in datas])
         satscene[chn] = data
         satscene[chn].info["units"] = units[nb]
@@ -115,8 +147,9 @@ def load(satscene, *args, **kwargs):
     area_def = SwathDefinition(np.ma.masked_where(data.mask, lons),
                                np.ma.masked_where(data.mask, lats))
 
-    for chn in satscene.channels_to_load:
+    for chn in channels_to_load:
         satscene[chn].area = area_def
+
 
 def read(h5f, channels, calibrate=1):
 
@@ -130,9 +163,10 @@ def read(h5f, channels, calibrate=1):
 
     for channel in channels:
         rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
-        arr = np.ma.masked_greater(rads[:scans*16, :], 65526)
+        arr = np.ma.masked_greater(rads[:scans * 16, :], 65526)
         arr = np.ma.where(arr <= rads.attrs['Threshold'],
-                          arr * rads.attrs['RadianceScaleLow'] + rads.attrs['RadianceOffsetLow'],
+                          arr * rads.attrs['RadianceScaleLow'] +
+                          rads.attrs['RadianceOffsetLow'],
                           arr * rads.attrs['RadianceScaleHigh'] + rads.attrs['RadianceOffsetHigh'],)
         unit = "W m-2 sr-1 μm-1"
         if calibrate == 0:
@@ -150,9 +184,9 @@ def read(h5f, channels, calibrate=1):
                 b_ir = rads.attrs['BandCorrectionCoefficientB']
                 lambda_c = rads.attrs['CentralWaveLength']
                 arr *= 1e6
-                arr = (h*c) / (k * lambda_c * np.log(1 +
-                                                     (2 * h * c**2) /
-                                                     ((lambda_c**5) * arr)))
+                arr = (h * c) / (k * lambda_c * np.log(1 +
+                                                       (2 * h * c ** 2) /
+                                                       ((lambda_c ** 5) * arr)))
                 arr *= a_ir
                 arr += b_ir
                 unit = "K"
@@ -162,22 +196,25 @@ def read(h5f, channels, calibrate=1):
         units.append(unit)
     return res, units
 
+
 def expand_array(data, scans, geostuff, c_align, c_exp):
-    s_track, s_scan = ((np.mgrid[0:scans*16, 0:3200] % 16) + 0.5) / 16
+    s_track, s_scan = ((np.mgrid[0:scans * 16, 0:3200] % 16) + 0.5) / 16
     s_track = s_track.reshape(scans, 16, 200, 16)
     s_scan = s_scan.reshape(scans, 16, 200, 16)
 
-    a_scan = s_scan + s_scan*(1-s_scan)*c_exp + s_track*(1 - s_track) * c_align
+    a_scan = s_scan + s_scan * \
+        (1 - s_scan) * c_exp + s_track * (1 - s_track) * c_align
     a_track = s_track
 
-    data_a = data[:scans*2:2, np.newaxis, :-1, np.newaxis]
-    data_b = data[:scans*2:2, np.newaxis, 1:, np.newaxis]
-    data_c = data[1:scans*2:2, np.newaxis, 1:, np.newaxis]
-    data_d = data[1:scans*2:2, np.newaxis, :-1, np.newaxis]
+    data_a = data[:scans * 2:2, np.newaxis, :-1, np.newaxis]
+    data_b = data[:scans * 2:2, np.newaxis, 1:, np.newaxis]
+    data_c = data[1:scans * 2:2, np.newaxis, 1:, np.newaxis]
+    data_d = data[1:scans * 2:2, np.newaxis, :-1, np.newaxis]
 
     fdata = ((1 - a_track) * ((1 - a_scan) * data_a + a_scan * data_b) +
-            a_track * ((1 - a_scan) * data_d + a_scan * data_c))
-    return fdata.reshape(scans*16, 3200)
+             a_track * ((1 - a_scan) * data_d + a_scan * data_c))
+    return fdata.reshape(scans * 16, 3200)
+
 
 def lonlat2xyz(lon, lat):
     lat = np.deg2rad(lat)
@@ -187,10 +224,12 @@ def lonlat2xyz(lon, lat):
     z = np.sin(lat)
     return x, y, z
 
+
 def xyz2lonlat(x, y, z):
     lon = np.rad2deg(np.arctan2(y, x))
-    lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    lat = np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
     return lon, lat
+
 
 def navigate(h5f):
     scans = h5f["All_Data"]["NumberOfScans"][0]

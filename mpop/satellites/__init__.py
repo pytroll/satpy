@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011.
+# Copyright (c) 2010, 2011, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -31,12 +31,14 @@ itself, it hold the mighty :meth:`mpop.satellites.get_satellite_class` method.
 import os.path
 import weakref
 from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+import logging
 
-import mpop.utils
 from mpop import CONFIG_PATH
 from mpop.scene import SatelliteInstrumentScene
 
-LOG = mpop.utils.get_logger("satellites")
+
+LOG = logging.getLogger(__name__)
+
 
 def get_custom_composites(name):
     """Get the home made methods for building composites for a given satellite
@@ -58,7 +60,6 @@ def get_custom_composites(name):
         return getattr(module, name)
     except AttributeError:
         return []
-        
 
 
 def get_sat_instr_compositer((satellite, number, variant), instrument):
@@ -83,9 +84,9 @@ def get_sat_instr_compositer((satellite, number, variant), instrument):
         return klass
     except (ImportError, AttributeError):
         return build_sat_instr_compositer((satellite, number,
-                                                      variant),
+                                           variant),
                                           instrument)
-        
+
 
 def build_instrument_compositer(instrument_name):
     """Automatically generate an instrument compositer class from its
@@ -99,9 +100,10 @@ def build_instrument_compositer(instrument_name):
                             {"instrument_name": instrument_name})
     for i in get_custom_composites(instrument_name):
         instrument_class.add_method(i)
-        
+
     return instrument_class
-                     
+
+
 def build_sat_instr_compositer((satellite, number, variant), instrument):
     """Build a compositer class for the given satellite (defined by the three
     strings *satellite*, *number*, and *variant*) and *instrument* on the fly,
@@ -112,9 +114,14 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
     """
 
     fullname = variant + satellite + number
-    
+
     conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, fullname + ".cfg"))
+    config_file = os.path.join(CONFIG_PATH, fullname + ".cfg")
+    LOG.debug("Looking for config file %s", config_file)
+    if not os.path.exists(config_file):
+        LOG.error("Can't find config file %s, is PPP_CONFIG_DIR set?",
+                  config_file)
+    conf.read(config_file)
 
     try:
         mod = __import__("mpop.instruments." + instrument,
@@ -126,73 +133,76 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
 
     except (ImportError, AttributeError):
         instrument_class = build_instrument_compositer(instrument)
-                
-    sat_class = type(variant.capitalize() +
-                     satellite.capitalize() +
-                     number.capitalize() +
-                     instrument.capitalize() +
-                     "Compositer",
+
+    sat_class = type(str(variant.capitalize() +
+                         satellite.capitalize() +
+                         number.capitalize() +
+                         instrument.capitalize() +
+                         "Compositer"),
                      (instrument_class,),
                      {})
 
     for i in get_custom_composites(variant + satellite +
                                    number + instrument):
         sat_class.add_method(i)
-            
+
     return sat_class
 
 
 class GeostationaryFactory(object):
+
     """Factory for geostationary satellite scenes.
     """
 
-
     @staticmethod
-    def create_scene(satname, satnumber, instrument, time_slot, area=None, 
+    def create_scene(satname, satnumber, instrument, time_slot, area=None,
                      variant=''):
         """Create a compound satellite scene.
         """
-        
+
         return GenericFactory.create_scene(satname, satnumber, instrument,
                                            time_slot, None, area, variant)
 
+
 class PolarFactory(object):
+
     """Factory for polar satellite scenes.
     """
-
 
     @staticmethod
     def create_scene(satname, satnumber, instrument, time_slot, orbit=None,
                      area=None, variant=''):
         """Create a compound satellite scene.
         """
-        
+
         return GenericFactory.create_scene(satname, satnumber, instrument,
                                            time_slot, orbit, area, variant)
 
+
 class GenericFactory(object):
+
     """Factory for generic satellite scenes.
     """
-
 
     @staticmethod
     def create_scene(satname, satnumber, instrument, time_slot, orbit,
                      area=None, variant=''):
         """Create a compound satellite scene.
         """
-        
+
         satellite = (satname, satnumber, variant)
-        
+
         instrument_scene = SatelliteInstrumentScene(satellite=satellite,
                                                     instrument=instrument,
                                                     area=area,
                                                     orbit=orbit,
                                                     time_slot=time_slot)
-        
+
         compositer = get_sat_instr_compositer(satellite, instrument)
         instrument_scene._CompositerClass = compositer
-        
+
         if compositer is not None:
             # Pass weak ref to compositor to allow garbage collection
-            instrument_scene.image = compositer(weakref.proxy(instrument_scene))
-        return instrument_scene 
+            instrument_scene.image = compositer(
+                weakref.proxy(instrument_scene))
+        return instrument_scene

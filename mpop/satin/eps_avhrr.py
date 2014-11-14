@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012.
+# Copyright (c) 2010, 2012, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -40,7 +40,9 @@ import os.path
 import glob
 from ConfigParser import ConfigParser
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 RECORD_CLASS = ["Reserved", "MPHR", "SPHR",
                 "IPR", "GEADR", "GIADR",
@@ -62,10 +64,12 @@ GIADR_SUB = [None, "GIADR-RADIANCE", "GIADR-ANALOG"]
 
 MAX_SCAN_LINES = 2000
 
+
 def get_bit(bitstring, bit):
     """Get a given *bit* from *bitstring*.
     """
     return bitstring & (2 ** bit)
+
 
 def read_u_bytes(fdes, size):
     """Read unsigned bytes, and scale it by 10 ** *sf_*.
@@ -75,8 +79,9 @@ def read_u_bytes(fdes, size):
         2: ">H",
         4: ">I",
         8: ">Q"
-        }
+    }
     return struct.unpack(cases[size], fdes.read(size))[0]
+
 
 def read_bytes(fdes, size, sf_=0):
     """Read signed bytes, and scale it by 10 ** *sf_*.
@@ -86,11 +91,12 @@ def read_bytes(fdes, size, sf_=0):
         2: ">h",
         4: ">i",
         8: ">q"
-        }
+    }
     if sf_ != 0:
         return struct.unpack(cases[size], fdes.read(size))[0] * 10.0 ** sf_
     else:
         return struct.unpack(cases[size], fdes.read(size))[0]
+
 
 def read_short_cds(fdes):
     """Read a short cds date.
@@ -101,6 +107,7 @@ def read_short_cds(fdes):
     epoch = datetime.datetime(2000, 1, 1)
     return epoch + difference
 
+
 def read_long_cds(fdes):
     """Read a long cds date.
     """
@@ -108,10 +115,9 @@ def read_long_cds(fdes):
     difference = datetime.timedelta(days=read_u_bytes(fdes, 2),
                                     milliseconds=read_u_bytes(fdes, 4),
                                     microseconds=read_u_bytes(fdes, 2))
-                                    
+
     epoch = datetime.datetime(2000, 1, 1)
     return epoch + difference
-
 
 
 def read_ascii_field(fdes, size):
@@ -122,7 +128,8 @@ def read_ascii_field(fdes, size):
     field_value = fdes.read(size - 33).strip()
     fdes.read(1)
     return (field_name, field_value)
-    
+
+
 def read_bitstring(fdes, size):
     """Read a bit string.
     """
@@ -131,16 +138,17 @@ def read_bitstring(fdes, size):
         2: ">H",
         4: ">I",
         8: ">Q"
-        }
+    }
     return struct.unpack(cases[size], fdes.read(size))[0]
+
 
 def print_bitstring(s__):
     """Print a bitstring.
     """
-    
+
     res = ""
     ts_ = s__
-    
+
     i = 0
     for i in range(16):
         res = str(ts_ & 1) + res
@@ -149,7 +157,7 @@ def print_bitstring(s__):
     del i
     print res
 
-    
+
 def read_grh(fdes):
     """Read GRH.
     """
@@ -166,7 +174,8 @@ def read_grh(fdes):
     grh["RECORD_START_TIME"] = read_short_cds(fdes)
     grh["RECORD_STOP_TIME"] = read_short_cds(fdes)
     return grh
-    
+
+
 def read_mphr(fdes, grh, metadata):
     """Read MPHR.
     """
@@ -181,6 +190,7 @@ def read_mphr(fdes, grh, metadata):
             metadata[field_name] = str(field_value)
 
     return metadata
+
 
 def read_sphr(fdes, grh, metadata):
     """Read SPHR.
@@ -199,6 +209,7 @@ def read_sphr(fdes, grh, metadata):
         except:
             metadata[field_name] = str(field_value)
 
+
 def read_ipr(fdes, grh, metadata):
     """Read IPR.
     """
@@ -212,16 +223,18 @@ def read_ipr(fdes, grh, metadata):
     ipr["TARGET_RECORD_OFFSET"] = read_u_bytes(fdes, 4)
     return ipr
 
+
 def read_geadr(fdes, grh, metadata):
     """Read GEADR.
     """
 
     del metadata
-    
+
     geadr = {}
     field_name, field_val = read_ascii_field(fdes, grh["RECORD_SIZE"] - 20)
     geadr[field_name] = field_val
     return geadr
+
 
 def read_giadr(fdes, grh, metadata):
     """Read GIADR.
@@ -230,7 +243,7 @@ def read_giadr(fdes, grh, metadata):
         raise NotImplementedError("Only Avhrr for now...")
     if(metadata["PROCESSING_LEVEL"] != "1B"):
         raise NotImplementedError("Only level 1B for now...")
-    
+
     if grh["RECORD_SUBCLASS"] == 1:
         return read_giadr_radiance(fdes, grh, metadata)
     elif grh["RECORD_SUBCLASS"] == 2:
@@ -241,10 +254,10 @@ def read_giadr(fdes, grh, metadata):
     else:
         raise ValueError("Undefined subclass " +
                          str(grh["RECORD_SUBCLASS"]) +
-                         ", version "+
+                         ", version " +
                          str(grh["RECORD_SUBCLASS_VERSION"]) +
                          "...")
-        
+
 
 def read_giadr_radiance(fdes, grh, metadata):
     """Read GIADR.
@@ -252,7 +265,7 @@ def read_giadr_radiance(fdes, grh, metadata):
 
     del grh
     del metadata
-    
+
     giadr = {}
     giadr["RAMP_CALIBRATION_COEFFICIENT"] = read_bitstring(fdes, 2)
     giadr["YEAR_RECENT_CALIBRATION"] = read_u_bytes(fdes, 2)
@@ -296,12 +309,13 @@ def read_giadr_radiance(fdes, grh, metadata):
     giadr["CH3B_CONSTANT2_SLOPE"] = read_bytes(fdes, 4, -6)
     giadr["CH4_CENTRAL_WAVENUMBER"] = read_bytes(fdes, 4, -3)
     giadr["CH4_CONSTANT1"] = read_bytes(fdes, 4, -5)
-    giadr["CH4_CONSTANT2_SLOPE"] =  read_bytes(fdes, 4, -6)
-    giadr["CH5_CENTRAL_WAVENUMBER"] =  read_bytes(fdes, 4, -3)
+    giadr["CH4_CONSTANT2_SLOPE"] = read_bytes(fdes, 4, -6)
+    giadr["CH5_CENTRAL_WAVENUMBER"] = read_bytes(fdes, 4, -3)
     giadr["CH5_CONSTANT1"] = read_bytes(fdes, 4, -5)
-    giadr["CH5_CONSTANT2_SLOPE"] =  read_bytes(fdes, 4, -6)
+    giadr["CH5_CONSTANT2_SLOPE"] = read_bytes(fdes, 4, -6)
 
     return giadr
+
 
 def read_giadr_analog(fdes, grh, metadata):
     """Read GIADR.
@@ -421,6 +435,7 @@ def read_giadr_analog(fdes, grh, metadata):
 
     return giadr
 
+
 def read_veadr(fdes, grh, metadata):
     """Read VEADR.
     """
@@ -429,6 +444,7 @@ def read_veadr(fdes, grh, metadata):
     veadr[field_name] = field_val
     return veadr
 
+
 def read_mdr(fdes, grh, metadata):
     """Read MDR.
     """
@@ -436,6 +452,7 @@ def read_mdr(fdes, grh, metadata):
         raise ValueError("Only l1b supported for now")
 
     return read_mdr_1b(fdes, grh, metadata)
+
 
 def read_mdr_1b(fdes, grh, metadata):
     """Read MDR section, 1B type.
@@ -446,7 +463,7 @@ def read_mdr_1b(fdes, grh, metadata):
     mdr["DEGRADED_PROC_MDR"] = read_u_bytes(fdes, 1)
     mdr["EARTH_VIEWS_PER_SCANLINE"] = read_bytes(fdes, 2)
     scanlength = mdr["EARTH_VIEWS_PER_SCANLINE"]
-    array = (np.fromfile(file = fdes, dtype = ">i2", count = scanlength * 5) *
+    array = (np.fromfile(file=fdes, dtype=">i2", count=scanlength * 5) *
              10 ** -2)
     array = array.reshape(5, scanlength)
     array[2, :] *= 10 ** -2
@@ -456,7 +473,7 @@ def read_mdr_1b(fdes, grh, metadata):
     # Channels 3b, 4, 5 in units of mW/(m^2.sr.cm^-1).
     # Channels 1, 2, 4 & 5 with scale factor = 2.
     # Channels 3a or 3b with scale factor = 4.
-    
+
     mdr["TIME_ATTITUDE"] = read_u_bytes(fdes, 4)
     mdr["EULER_ANGLE"] = (read_bytes(fdes, 2), read_bytes(fdes, 2),
                           read_bytes(fdes, 2))
@@ -472,11 +489,11 @@ def read_mdr_1b(fdes, grh, metadata):
                                            read_bytes(fdes, 4, -4)))
 
     mdr["NUM_NAVIGATION_POINTS"] = read_bytes(fdes, 2)
-    mdr["ANGULAR_RELATIONS"] = np.fromfile(file = fdes, dtype = ">i2",
-                                           count = 412) * 10 ** -2
+    mdr["ANGULAR_RELATIONS"] = np.fromfile(file=fdes, dtype=">i2",
+                                           count=412) * 10 ** -2
 
-    mdr["EARTH_LOCATIONS"] = np.fromfile(file = fdes, dtype = ">i4",
-                                         count = 206) * 10 ** -4
+    mdr["EARTH_LOCATIONS"] = np.fromfile(file=fdes, dtype=">i4",
+                                         count=206) * 10 ** -4
 
     mdr["QUALITY_INDICATOR"] = read_bitstring(fdes, 4)
     mdr["SCAN_LINE_QUALITY"] = read_bitstring(fdes, 4)
@@ -547,9 +564,8 @@ def read_mdr_1b(fdes, grh, metadata):
     mdr["CH3B45_TEST_ZEROTH_TERM"] = (read_bytes(fdes, 4),
                                       read_bytes(fdes, 4),
                                       read_bytes(fdes, 4))
-    mdr["CLOUD_INFORMATION"] = np.fromfile(file = fdes, dtype = "<i2",
-                                           count = scanlength)
-
+    mdr["CLOUD_INFORMATION"] = np.fromfile(file=fdes, dtype="<i2",
+                                           count=scanlength)
 
     mdr["FRAME_SYNCHRONISATION"] = (read_u_bytes(fdes, 2),
                                     read_u_bytes(fdes, 2),
@@ -558,7 +574,7 @@ def read_mdr_1b(fdes, grh, metadata):
                                     read_u_bytes(fdes, 2),
                                     read_u_bytes(fdes, 2))
     mdr["FRAME_INDICATOR"] = (read_bitstring(fdes, 2), read_bitstring(fdes, 2))
-    
+
     mdr["TIME_CODE"] = (read_bitstring(fdes, 2), read_bitstring(fdes, 2),
                         read_bitstring(fdes, 2), read_bitstring(fdes, 2))
     mdr["RAMP_CALIB"] = (read_bitstring(fdes, 2), read_bitstring(fdes, 2),
@@ -597,11 +613,11 @@ def read_mdr_1b(fdes, grh, metadata):
     mdr["CH5_BLACKBODY_VIEW"] = read_u_bytes(fdes, 2)
     mdr["REFERENCE_VOLTAGE"] = read_u_bytes(fdes, 2)
 
-
     return mdr
 
-C1 = 1.191062e-05 # mW/(m2*sr*cm-4)
-C2 = 1.4387863 # K/cm-1
+C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
+C2 = 1.4387863  # K/cm-1
+
 
 def to_bt(arr, wc_, a__, b__):
     """Convert to BT.
@@ -610,11 +626,12 @@ def to_bt(arr, wc_, a__, b__):
     t_star = C2 * wc_ / val
     return a__ + b__ * t_star
 
+
 def to_refl(arr, solar_flux):
     """Convert to reflectances.
     """
     return arr * math.pi * 100.0 / solar_flux
-    
+
 
 def calibrate(channels, info_giadr):
     """convert the radiances to reflectances and bts.
@@ -626,23 +643,22 @@ def calibrate(channels, info_giadr):
     channels[2, :, :] = to_refl(channels[2, :, :],
                                 info_giadr["CH3A_SOLAR_FILTERED_IRRADIANCE"])
     channels[3, :, :] = to_bt(channels[3, :, :],
-                      info_giadr["CH3B_CENTRAL_WAVENUMBER"],
-                      info_giadr["CH3B_CONSTANT1"],
-                      info_giadr["CH3B_CONSTANT2_SLOPE"])
+                              info_giadr["CH3B_CENTRAL_WAVENUMBER"],
+                              info_giadr["CH3B_CONSTANT1"],
+                              info_giadr["CH3B_CONSTANT2_SLOPE"])
     channels[4, :, :] = to_bt(channels[4, :, :],
-                      info_giadr["CH4_CENTRAL_WAVENUMBER"],
-                      info_giadr["CH4_CONSTANT1"],
-                      info_giadr["CH4_CONSTANT2_SLOPE"])
+                              info_giadr["CH4_CENTRAL_WAVENUMBER"],
+                              info_giadr["CH4_CONSTANT1"],
+                              info_giadr["CH4_CONSTANT2_SLOPE"])
     channels[5, :, :] = to_bt(channels[5, :, :],
-                      info_giadr["CH5_CENTRAL_WAVENUMBER"],
-                      info_giadr["CH5_CONSTANT1"],
-                      info_giadr["CH5_CONSTANT2_SLOPE"])
+                              info_giadr["CH5_CENTRAL_WAVENUMBER"],
+                              info_giadr["CH5_CONSTANT1"],
+                              info_giadr["CH5_CONSTANT2_SLOPE"])
+
 
 def read(fdes):
     """Read the entire file.
     """
-
-
 
     metadata = {}
 
@@ -658,7 +674,7 @@ def read(fdes):
 
     g3a = False
     g3b = False
-    
+
     while True:
 
         grh = read_grh(fdes)
@@ -675,17 +691,17 @@ def read(fdes):
             scanlength = metadata["EARTH_VIEWS_PER_SCANLINE"]
             llats = np.zeros((MAX_SCAN_LINES, scanlength))
             llons = np.zeros((MAX_SCAN_LINES, scanlength))
-    
+
             channels = np.ma.ones((6, MAX_SCAN_LINES, scanlength),
-                                  dtype = np.float) * np.infty
-            geo_samples = np.round(scanlength / metadata["NAV_SAMPLE_RATE"]) + 3
+                                  dtype=np.float) * np.infty
+            geo_samples = np.round(
+                scanlength / metadata["NAV_SAMPLE_RATE"]) + 3
             samples = np.zeros(geo_samples, dtype=np.intp)
             samples[1:-1] = np.arange(geo_samples - 2) * 20 + 5 - 1
             samples[-1] = scanlength - 1
             lats = np.zeros((MAX_SCAN_LINES, geo_samples))
             lons = np.zeros((MAX_SCAN_LINES, geo_samples))
-            
-            
+
         if record_class == "GIADR" and grh["RECORD_SUBCLASS"] == 1:
             info_giadr = res
 
@@ -701,11 +717,11 @@ def read(fdes):
                 g3b = True
 
             lats[cnt, 1:-1] = res["EARTH_LOCATIONS"]\
-                              [np.arange(geo_samples - 2) * 2]
+                [np.arange(geo_samples - 2) * 2]
             lats[cnt, 0] = res["EARTH_LOCATION_FIRST"][0]
             lats[cnt, -1] = res["EARTH_LOCATION_LAST"][0]
             lons[cnt, 1:-1] = res["EARTH_LOCATIONS"]\
-                              [np.arange(geo_samples - 2) * 2 + 1]
+                [np.arange(geo_samples - 2) * 2 + 1]
             lons[cnt, 0] = res["EARTH_LOCATION_FIRST"][1]
             lons[cnt, -1] = res["EARTH_LOCATION_LAST"][1]
             # unwraping datum shift line
@@ -716,14 +732,14 @@ def read(fdes):
             llats[cnt, :] = interpolate.splev(xnew, tck, der=0)
             tck = interpolate.splrep(samples, lons[cnt, :], s=0)
             llons[cnt, :] = interpolate.splev(xnew, tck, der=0)
-            
+
             cnt += 1
 
     channels = channels[:, :cnt, :]
     llats = llats[:cnt, :]
     llons = llons[:cnt, :]
-    llons[llons>180] -= 360
-    llons[llons<-180] += 360
+    llons[llons > 180] -= 360
+    llons[llons < -180] += 360
 
     calibrate(channels, info_giadr)
     return channels, llats, llons, g3a, g3b, metadata["ORBIT_START"]
@@ -740,21 +756,23 @@ CASES = {"MPHR": read_mphr,
 
 EPSILON = 0.001
 
+
 def load(satscene):
     """Read data from file and load it into *satscene*.
-    """    
+    """
     conf = ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw = True):
+                                    raw=True):
         options[option] = value
     LOAD_CASES[satscene.instrument_name](satscene, options)
+
 
 def load_avhrr(satscene, options):
     """Read avhrr data from file and load it into *satscene*.
     """
-    
+
     if "filename" not in options:
         raise IOError("No filename given, cannot load.")
     values = {"INSTRUMENT": satscene.instrument_name[:4].upper(),
@@ -762,8 +780,8 @@ def load_avhrr(satscene, options):
               }
     filename = os.path.join(
         options["dir"],
-        (satscene.time_slot.strftime(options["filename"])%values))
-    LOG.debug("Looking for file %s"%satscene.time_slot.strftime(filename))
+        (satscene.time_slot.strftime(options["filename"]) % values))
+    LOG.debug("Looking for file %s" % satscene.time_slot.strftime(filename))
     file_list = glob.glob(satscene.time_slot.strftime(filename))
 
     if len(file_list) > 1:
@@ -774,12 +792,12 @@ def load_avhrr(satscene, options):
     try:
         fdes = open(file_list[0])
         channels, lats, lons, g3a, g3b, orbit = read(fdes)
-    
+
     finally:
         fdes.close()
 
     channels = np.ma.masked_invalid(channels)
-    
+
     satscene["1"] = channels[0, :, :]
     satscene["2"] = channels[1, :, :]
     satscene["4"] = channels[4, :, :]
@@ -805,7 +823,7 @@ def load_avhrr(satscene, options):
 def get_lonlat(satscene, row, col):
     try:
         if (satscene.area is None and
-            (satscene.lat is None or satscene.lon is None)):
+                (satscene.lat is None or satscene.lon is None)):
             load(satscene)
     except AttributeError:
         load(satscene)
@@ -819,27 +837,25 @@ def get_lat_lon(satscene, resolution):
     """Read lat and lon.
     """
     del resolution
-    
+
     return LAT_LON_CASES[satscene.instrument_name](satscene, None)
+
 
 def get_lat_lon_avhrr(satscene, options):
     """Read lat and lon.
     """
     del options
-    
+
     return satscene.lat, satscene.lon
 
 
 LAT_LON_CASES = {
     "avhrr": get_lat_lon_avhrr
-    }
+}
 
 LOAD_CASES = {
     "avhrr": load_avhrr
-    }
-
-
-
+}
 
 
 if __name__ == "__main__":

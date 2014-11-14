@@ -32,8 +32,9 @@ inherited when needed.
 import copy
 
 import numpy as np
+import logging
 
-from mpop.logger import LOG
+LOG = logging.getLogger(__name__)
 
 try:
     from pyorbital.astronomy import sun_zenith_angle as sza

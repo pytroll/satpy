@@ -50,7 +50,7 @@ except KeyError:
 from mpop.satellites import GeostationaryFactory
 import mpop.utils
 
-#mpop.utils.debug_on()
+mpop.utils.debug_on()
 LOG = mpop.utils.get_logger(__name__)
 
 # Handle argument.

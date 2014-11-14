@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010.
+# Copyright (c) 2010, 2014.
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
@@ -33,7 +33,9 @@ import numpy as np
 
 import mpop.imageo.geo_image as geo_image
 from mpop.instruments.visir import VisirCompositer
-from mpop.logger import LOG
+import logging
+
+LOG = logging.getLogger(__name__)
 
 MODIS = [["8", (0.405, 0.4125, 0.420), 1000],
          ["9", (0.438, 0.443, 0.488), 1000],
@@ -48,7 +50,10 @@ MODIS = [["8", (0.405, 0.4125, 0.420), 1000],
 
 # MODIS
 #
+
+
 class ModisCompositer(VisirCompositer):
+
     """This class sets up the Modis channel list and
     instrument specific composite methods.
     """
@@ -65,11 +70,11 @@ class ModisCompositer(VisirCompositer):
         ch1 = self[0.645].data / 100.
         ch2 = self[0.555].data / 100.
         ch3 = self[0.469].data / 100.
-        
+
         img = geo_image.GeoImage((ch1, ch2, ch3),
                                  self.area,
                                  self.time_slot,
-                                 fill_value = None,
+                                 fill_value=None,
                                  mode="RGB")
 
         img.enhance(stretch="histogram")

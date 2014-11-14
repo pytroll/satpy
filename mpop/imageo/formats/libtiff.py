@@ -82,8 +82,16 @@ def get_header_defs(libtiff=None, lib_fn=None):
     if tiff_h is None:
         include_tiff_h = os.path.join(os.path.split(lib_fn)[0], '..', 'include', 'tiff.h')
         if not os.path.isfile(include_tiff_h):
+            include_tiff_h =  include_tiff_h.replace('/usr/lib/', '/usr/include/')
+        if not os.path.isfile(include_tiff_h):
             # fix me for windows:
             include_tiff_h = os.path.join('/usr','include','tiff.h')
+        if not os.path.isfile(include_tiff_h):
+            # fix me for windows:
+            include_tiff_h = os.path.join('/usr','include', 'x86_64-linux-gnu', 'tiff.h')
+        if not os.path.isfile(include_tiff_h):
+            # fix me for windows:
+            include_tiff_h = os.path.join('/usr','include', 'x86_32-linux-gnu', 'tiff.h')
         if not os.path.isfile(include_tiff_h):
             # Base it off of the python called
             include_tiff_h = os.path.realpath(os.path.join(os.path.split(sys.executable)[0], '..', 'include', 'tiff.h'))
@@ -94,12 +102,19 @@ def get_header_defs(libtiff=None, lib_fn=None):
         l = []
         d = {}
         for line in f.readlines():
-            if not line.startswith('#define'): continue
-            words = line[7:].lstrip().split()[:2]
-            if len (words)!=2: continue
-            name, value = words
-            i = value.find('/*')
-            if i!=-1: value = value[:i]
+            if not line.startswith('#define'):
+                continue
+            line = line[7:].strip()
+            i = line.find('/*')
+            if i != -1:
+                line = line[:i]
+            words = line.split()
+            if len(words) < 2:
+                continue
+            try:
+                name, value = words[0], ''.join(words[1:])
+            except:
+                continue
             if value in d:
                 value = d[value]
             else:
@@ -1410,9 +1425,10 @@ def _test_copy():
     print 'test copy ok'
 
 if __name__=='__main__':
+    pass
     #_test_custom_tags()
-    _test_tile_write()
-    _test_tile_read("/tmp/libtiff_test_tile_write.tiff")
+    #_test_tile_write()
+    #_test_tile_read("/tmp/libtiff_test_tile_write.tiff")
     #_test_write_float()
     #_test_write()
     #_test_read()

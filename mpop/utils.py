@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
@@ -38,43 +38,45 @@ import logging
 
 from mpop import CONFIG_PATH
 
+
 class OrderedConfigParser(object):
+
     """Intercepts read and stores ordered section names.
     Cannot use inheritance and super as ConfigParser use old style classes.
     """
 
-    def __init__(self, *args, **kwargs):        
+    def __init__(self, *args, **kwargs):
         self.config_parser = ConfigParser.ConfigParser(*args, **kwargs)
-    
+
     def __getattr__(self, name):
         return getattr(self.config_parser, name)
 
     def read(self, filename):
         """Reads config file
         """
-        
+
         try:
             conf_file = open(filename, 'r')
             config = conf_file.read()
             config_keys = re.findall(r'\[.*\]', config)
             self.section_keys = [key[1:-1] for key in config_keys]
-        except IOError, e:        
+        except IOError, e:
             # Pass if file not found
             if e.errno != 2:
                 raise
-            
+
         return self.config_parser.read(filename)
 
     def sections(self):
         """Get sections from config file
         """
-        
+
         try:
             return self.section_keys
         except:
             return self.config_parser.sections()
-    
-    
+
+
 def ensure_dir(filename):
     """Checks if the dir of f exists, otherwise create it.
     """
@@ -85,20 +87,37 @@ def ensure_dir(filename):
 
 
 class NullHandler(logging.Handler):
+
     """Empty handler.
     """
+
     def emit(self, record):
         """Record a message.
         """
         pass
-    
+
+
 def debug_on():
     """Turn debugging logging on.
     """
     logging_on(logging.DEBUG)
 
 _is_logging_on = False
-def logging_on(level=logging.INFO):
+
+# Read default log level from mpop's config file
+_config = ConfigParser.ConfigParser()
+_config.read(os.path.join(CONFIG_PATH, 'mpop.cfg'))
+try:
+    default_loglevel = _config.get('general', 'loglevel')
+except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+    default_loglevel = 'WARNING'
+default_loglevel = getattr(logging, default_loglevel.upper())
+del _config
+
+# logging_on(default_loglevel)
+
+
+def logging_on(level=default_loglevel):
     """Turn logging on.
     """
     global _is_logging_on
@@ -117,37 +136,28 @@ def logging_on(level=logging.INFO):
     for h in log.handlers:
         h.setLevel(level)
 
+
 def logging_off():
     """Turn logging off.
     """
     logging.getLogger('').handlers = [NullHandler()]
-    
+
+
 def get_logger(name):
     """Return logger with null handle
     """
-    
+
     log = logging.getLogger(name)
     if not log.handlers:
         log.addHandler(NullHandler())
     return log
 
-# Read default log level from mpop's config file
-_config = ConfigParser.ConfigParser()
-_config.read(os.path.join(CONFIG_PATH, 'mpop.cfg'))
-try:
-    default_loglevel = _config.get('general', 'loglevel')
-except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-    default_loglevel = 'WARNING'
-default_loglevel = getattr(logging, default_loglevel.upper())
-del _config
-
-logging_on(default_loglevel)
-
-
 
 ###
 
 import re
+
+
 def strftime(utctime, format_string):
     """Like datetime.strftime, except it works with string formatting
     conversion specifier items on windows, making the assumption that all

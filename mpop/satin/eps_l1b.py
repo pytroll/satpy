@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013 Martin Raspaud
+# Copyright (c) 2012, 2013, 2014 Martin Raspaud
 
 # Author(s):
 
@@ -29,9 +29,10 @@ from ConfigParser import ConfigParser
 
 import numpy as np
 from mpop import CONFIG_PATH
-from mpop.satin.logger import LOG
 from mpop.satin.xmlformat import XMLFormat
+import logging
 
+LOG = logging(__name__)
 
 try:
     from pyresample import geometry
@@ -43,8 +44,9 @@ try:
 except ImportError:
     pass
 
-C1 = 1.191062e-05 # mW/(m2*sr*cm-4)
-C2 = 1.4387863 # K/cm-1
+C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
+C2 = 1.4387863  # K/cm-1
+
 
 def to_bt(arr, wc_, a__, b__):
     """Convert to BT.
@@ -55,10 +57,12 @@ def to_bt(arr, wc_, a__, b__):
     except NameError:
         return a__ + b__ * (C2 * wc_ / np.log(1 + (C1 * (wc_ ** 3) / arr)))
 
+
 def to_refl(arr, solar_flux):
     """Convert to reflectances.
     """
     return arr * np.pi * 100.0 / solar_flux
+
 
 def read_raw(filename):
     """Read *filename* without scaling it afterwards.
@@ -77,7 +81,6 @@ def read_raw(filename):
     record_class = ["Reserved", "mphr", "sphr",
                     "ipr", "geadr", "giadr",
                     "veadr", "viadr", "mdr"]
-
 
     records = []
 
@@ -107,15 +110,15 @@ def get_filename(satscene, level):
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}
     for option, value in conf.items(satscene.instrument_name + "-" + level,
-                                    raw = True):
+                                    raw=True):
         options[option] = value
     values = {"INSTRUMENT": satscene.instrument_name[:4].upper(),
               "FNAME": satscene.satname[0].upper() + satscene.number
               }
     filename = os.path.join(
         options["dir"],
-        (satscene.time_slot.strftime(options["filename"])%values))
-    LOG.debug("Looking for file %s"%satscene.time_slot.strftime(filename))
+        (satscene.time_slot.strftime(options["filename"]) % values))
+    LOG.debug("Looking for file %s" % satscene.time_slot.strftime(filename))
     file_list = glob.glob(satscene.time_slot.strftime(filename))
 
     if len(file_list) > 1:
@@ -123,6 +126,7 @@ def get_filename(satscene, level):
     elif len(file_list) == 0:
         raise IOError("No l1b file matching!")
     return file_list[0]
+
 
 class EpsAvhrrL1bReader(object):
 
@@ -144,7 +148,7 @@ class EpsAvhrrL1bReader(object):
             else:
                 self.sections[(record[0], record[2])] = record[1]
         self.lons, self.lats = None, None
-        
+
     def __getitem__(self, key):
         for altkey in self.form.scales.keys():
             try:
@@ -165,18 +169,18 @@ class EpsAvhrrL1bReader(object):
         for val in self.form.scales.values():
             keys += val.dtype.fields.keys()
         return keys
-    
+
     def get_full_lonlats(self):
         """Get the interpolated lons/lats.
         """
         lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                           self["EARTH_LOCATIONS"][:, :, 0],
                           self["EARTH_LOCATION_LAST"][:, [0]]))
-        
+
         lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
                           self["EARTH_LOCATIONS"][:, :, 1],
                           self["EARTH_LOCATION_LAST"][:, [1]]))
-        
+
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
@@ -197,12 +201,12 @@ class EpsAvhrrL1bReader(object):
             self.lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                                    self["EARTH_LOCATIONS"][:, :, 0],
                                    self["EARTH_LOCATION_LAST"][:, [0]]))
-        
+
             self.lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
                                    self["EARTH_LOCATIONS"][:, :, 1],
                                    self["EARTH_LOCATION_LAST"][:, [1]]))
         return self.lons[row, col], self.lats[row, col]
-        
+
     def get_channels(self, channels, calib_type):
         """Get calibrated channel data.
         *calib_type* = 0: Counts
@@ -214,28 +218,27 @@ class EpsAvhrrL1bReader(object):
             raise ValueError('calibrate=0 is not supported! ' +
                              'This reader cannot return counts')
         elif calib_type != 1 and calib_type != 2:
-            raise ValueError('calibrate=' + str(calib_type) + 
+            raise ValueError('calibrate=' + str(calib_type) +
                              'is not supported!')
 
-
         if ("3a" in channels or
-            "3A" in channels or
-            "3b" in channels or
-            "3B" in channels):
-            three_a = ((self["FRAME_INDICATOR"] & 2**16) == 2**16)
-            three_b = ((self["FRAME_INDICATOR"] & 2**16) == 0)
+                "3A" in channels or
+                "3b" in channels or
+                "3B" in channels):
+            three_a = ((self["FRAME_INDICATOR"] & 2 ** 16) == 2 ** 16)
+            three_b = ((self["FRAME_INDICATOR"] & 2 ** 16) == 0)
 
         chans = {}
         for chan in channels:
             if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
                 LOG.info("Can't load channel in eps_l1b: " + str(chan))
-            
+
             if chan == "1":
                 if calib_type == 1:
                     chans[chan] = np.ma.array(
                         to_refl(self["SCENE_RADIANCES"][:, 0, :],
                                 self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
-                else: 
+                else:
                     chans[chan] = np.ma.array(
                         self["SCENE_RADIANCES"][:, 0, :])
             if chan == "2":
@@ -254,7 +257,7 @@ class EpsAvhrrL1bReader(object):
                                 self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
                 else:
                     chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 2, :])
-                    
+
                 chans[chan][three_b, :] = np.nan
                 chans[chan] = np.ma.masked_invalid(chans[chan])
             if chan.lower() == "3b":
@@ -278,7 +281,7 @@ class EpsAvhrrL1bReader(object):
                 else:
                     chans[chan] = np.ma.array(
                         self["SCENE_RADIANCES"][:, 3, :])
-                    
+
             if chan == "5":
                 if calib_type == 1:
                     chans[chan] = np.ma.array(
@@ -290,7 +293,8 @@ class EpsAvhrrL1bReader(object):
                     chans[chan] = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
         return chans
-    
+
+
 def get_lonlat(scene, row, col):
     """Get the longitutes and latitudes for the give *rows* and *cols*.
     """
@@ -298,7 +302,7 @@ def get_lonlat(scene, row, col):
         filename = get_filename(scene, "granules")
     except IOError:
         #from mpop.satin.eps1a import get_lonlat_avhrr
-        #return get_lonlat_avhrr(scene, row, col)
+        # return get_lonlat_avhrr(scene, row, col)
         from pyorbital.orbital import Orbital
         import pyproj
         from datetime import timedelta
@@ -308,15 +312,14 @@ def get_lonlat(scene, row, col):
         orbital = Orbital("METOP-A")
         track_start = orbital.get_lonlatalt(start_time)
         track_end = orbital.get_lonlatalt(end_time)
-        
+
         geod = pyproj.Geod(ellps='WGS84')
         az_fwd, az_back, dist = geod.inv(track_start[0], track_start[1],
                                          track_end[0], track_end[1])
 
         del dist
-        
-        M02_WIDTH = 2821885.8962408099
 
+        M02_WIDTH = 2821885.8962408099
 
         pos = ((col - 1024) * M02_WIDTH) / 2048.0
         if row > 520:
@@ -324,16 +327,10 @@ def get_lonlat(scene, row, col):
                                   az_back - 86.253533216206648,  -pos)
         else:
             lonlatdist = geod.fwd(track_start[0], track_start[1],
-                                  az_fwd - 86.253533216206648,  pos) 
+                                  az_fwd - 86.253533216206648,  pos)
 
         return lonlatdist[0], lonlatdist[1]
-        
 
-
-
-
-
-    
     try:
         if scene.lons is None or scene.lats is None:
             records, form = read_raw(filename)
@@ -361,7 +358,6 @@ def _get_lonlats(mdrs, sphr, form):
     """Get sparse arrays of lon/lats.
     """
 
-    
     scanlines = len(mdrs)
     mdrs = np.concatenate(mdrs)
 
@@ -371,7 +367,7 @@ def _get_lonlats(mdrs, sphr, form):
                       * form.scales[("mdr", 2)]["EARTH_LOCATIONS"][:, :, 0],
                       mdrs["EARTH_LOCATION_LAST"][:, [0]]
                       * form.scales[("mdr", 2)]["EARTH_LOCATION_LAST"][:, 0]))
-    
+
     lons = np.hstack((mdrs["EARTH_LOCATION_FIRST"][:, [1]]
                       * form.scales[("mdr", 2)]["EARTH_LOCATION_FIRST"][:, 1],
                       mdrs["EARTH_LOCATIONS"][:, :, 1]
@@ -381,7 +377,7 @@ def _get_lonlats(mdrs, sphr, form):
 
     nav_sample_rate = int(sphr["NAV_SAMPLE_RATE"][0].split("=")[1])
     earth_views_per_scanline = \
-               int(sphr["EARTH_VIEWS_PER_SCANLINE"][0].split("=")[1])
+        int(sphr["EARTH_VIEWS_PER_SCANLINE"][0].split("=")[1])
 
     geo_samples = np.round(earth_views_per_scanline / nav_sample_rate) + 3
     samples = np.zeros(geo_samples, dtype=np.intp)
@@ -397,9 +393,10 @@ def _get_lonlats(mdrs, sphr, form):
     geolons = np.ma.empty((scanlines, earth_views_per_scanline),
                           dtype=lons.dtype)
     geolons.mask = mask
-    geolons[:, samples] = lons 
+    geolons[:, samples] = lons
 
     return geolons, geolats
+
 
 def get_corners(filename):
     """Get the corner lon/lats of the file.
@@ -420,8 +417,7 @@ def get_corners(filename):
            * form.scales[("mdr", 2)]["EARTH_LOCATION_LAST"])
 
     return ul_, ur_, ll_, lr_
-    
-    
+
 
 def load(scene, *args, **kwargs):
     """Loads the *channels* into the satellite *scene*.
@@ -438,22 +434,50 @@ def load(scene, *args, **kwargs):
         raise ValueError('calibrate=0 is not supported! ' +
                          'This reader cannot return counts')
 
-    filename = (kwargs.get("filename", None) or
-                get_filename(scene, "level2"))
-    LOG.debug("Using file " + filename)
-    reader = EpsAvhrrL1bReader(filename)
-    for chname, arr in reader.get_channels(scene.channels_to_load, 
-                                           calibrate).items():
-        scene[chname] = arr
+    if kwargs.get("filename") is not None:
+        filename = kwargs["filename"]
+    else:
+        filename = (kwargs.get("filename", None) or
+                    get_filename(scene, "level2"))
 
-    scene.orbit = str(int(reader["ORBIT_START"]))
+    if isinstance(filename, (list, tuple, set)):
+        filenames = filename
+    else:
+        filenames = [filename]
+    LOG.debug("Using file(s) %s", str(filename))
+    readers = [EpsAvhrrL1bReader(filename) for filename in filenames]
 
-    lons, lats = reader.get_full_lonlats()
+    arrs = {}
+    llons = []
+    llats = []
+
+    for reader in readers:
+
+        for chname, arr in reader.get_channels(scene.channels_to_load,
+                                               calibrate).items():
+            arrs.setdefault(chname, []).append(arr)
+
+        scene.orbit = scene.orbit or str(int(reader["ORBIT_START"]))
+
+        lons, lats = reader.get_full_lonlats()
+        llons.append(lons)
+        llats.append(lats)
+
+    for chname in scene.channels_to_load:
+        scene[chname] = np.vstack(arrs[chname])
+        if chname in ["1", "2", "3A"]:
+            scene[chname].info["units"] = "%"
+        elif chname in ["4", "5", "3B"]:
+            scene[chname].info["units"] = "K"
+
+    lons = np.vstack(llons)
+    lats = np.vstack(llats)
+
     try:
         scene.area = geometry.SwathDefinition(lons, lats)
     except NameError:
         scene.lons, scene.lats = lons, lats
-        
+
 
 def norm255(a__):
     """normalize array to uint8.
@@ -462,10 +486,11 @@ def norm255(a__):
     arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
     return arr.astype(np.uint8)
 
+
 def show(a__):
     """show array.
     """
-    import Image
+    from PIL import Image
     Image.fromarray(norm255(a__), "L").show()
 
 if __name__ == '__main__':
