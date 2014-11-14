@@ -122,6 +122,9 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     continue
 
             setattr(self, var_name, InfoObject())
+            for item in var.ncattrs():
+                getattr(self, var_name).info[item] = getattr(var, item)
+
             dataset = var[:]
             getattr(self, var_name).data = dataset
 
