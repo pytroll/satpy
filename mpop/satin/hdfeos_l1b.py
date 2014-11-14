@@ -97,12 +97,15 @@ class ModisReader(Reader):
                 if fnmatch(os.path.basename(fname), "M?D02?km*"):
                     resolution = self.res[os.path.basename(fname)[5]]
                     self.datafiles[resolution] = fname
-                else:
+                elif fnmatch(os.path.basename(fname), "M?D03*"):
                     self.geofile = fname
         elif kwargs.get("filename") is not None:
             # read just one file
             logger.debug("Reading from file: " + str(options["filename"]))
             filename = options["filename"]
+            if not fnmatch(os.path.basename(filename), "M?D02?km*"):
+                logger.info("Not a l1 MODIS file, can't load")
+                return
             resolution = self.res[os.path.basename(filename)[5]]
             self.datafiles[resolution] = filename
         else:
