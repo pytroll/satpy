@@ -115,7 +115,11 @@ def load_avhrr(satscene, options):
     LOGGER.debug("Loading from " + filename)
 
     scene = AAPP1b(filename)
-    scene.read()
+    try:
+        scene.read()
+    except ValueError:
+        LOGGER.info("Can't read " + filename)
+        return
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
 
     if satscene.area is None:
@@ -351,8 +355,9 @@ class AAPP1b(object):
         with open(self.filename, "rb") as fp_:
             header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r",
                                shape=(_HEADERTYPE.itemsize, ))
-            data = np.memmap(
-                fp_, dtype=_SCANTYPE, offset=688 + 10664 * 2, mode="r")
+            data = np.memmap(fp_,
+                             dtype=_SCANTYPE,
+                             offset=22016, mode="r")
 
         LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
 
