@@ -225,13 +225,6 @@ class PPSReader(Reader):
             LOG.warning("No option 'geodir' in level3 section")
             geodir = None
 
-        if not prodfilename:
-            filename = conf.get(satscene.instrument_name + "-level3", "filename",
-                                raw=True)
-            directory = conf.get(satscene.instrument_name + "-level3", "dir")
-            pathname_tmpl = os.path.join(directory, filename)
-            LOG.debug("Path = " + str(pathname_tmpl))
-
         if not geofilename and geodir:
             # Load geo file from config file:
             try:
@@ -283,9 +276,17 @@ class PPSReader(Reader):
                     kwargs['filename'] = fname
                     self.load(satscene, *args, **kwargs)
             elif (prodfilename and
-                    os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
+                  os.path.basename(prodfilename).startswith('S_NWC') and
+                  os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
                 filename = prodfilename
             else:
+                filename = conf.get(satscene.instrument_name + "-level3", "filename",
+                                    raw=True)
+                directory = conf.get(
+                    satscene.instrument_name + "-level3", "dir")
+                pathname_tmpl = os.path.join(directory, filename)
+                LOG.debug("Path = " + str(pathname_tmpl))
+
                 if not satscene.orbit:
                     orbit = ""
                 else:
