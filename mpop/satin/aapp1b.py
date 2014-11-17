@@ -59,8 +59,7 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     if kwargs.get("filename") is not None:
-        options["filename"] = kwargs["filename"]
-        options["dir"] = None
+        options["full_filename"] = kwargs["filename"]
 
     options["calibrate"] = kwargs.get("calibrate", True)
 
@@ -95,17 +94,19 @@ def load_avhrr(satscene, options):
               "satellite": satscene.fullname
               }
 
-    if options["dir"] is None:
-        filename = options["filename"]
+    done_reading = False
+
+    if "full_filename" in options:
+        filename = options["full_filename"]
         LOGGER.debug("Loading from " + filename)
         scene = AAPP1b(filename)
         try:
             scene.read()
+            done_reading = True
         except ValueError:
             LOGGER.info("Can't read " + filename)
-            filename = None
 
-    if filename is None:
+    if not done_reading:
         filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
                                 satscene.time_slot.strftime(
                                     options["filename"])
