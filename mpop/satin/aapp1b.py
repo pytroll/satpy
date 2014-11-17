@@ -97,7 +97,15 @@ def load_avhrr(satscene, options):
 
     if options["dir"] is None:
         filename = options["filename"]
-    else:
+        LOGGER.debug("Loading from " + filename)
+        scene = AAPP1b(filename)
+        try:
+            scene.read()
+        except ValueError:
+            LOGGER.info("Can't read " + filename)
+            filename = None
+
+    if filename is None:
         filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
                                 satscene.time_slot.strftime(
                                     options["filename"])
@@ -112,14 +120,14 @@ def load_avhrr(satscene, options):
 
         filename = file_list[0]
 
-    LOGGER.debug("Loading from " + filename)
+        LOGGER.debug("Loading from " + filename)
+        scene = AAPP1b(filename)
+        try:
+            scene.read()
+        except ValueError:
+            LOGGER.info("Can't read %s, exiting.", filename)
+            return
 
-    scene = AAPP1b(filename)
-    try:
-        scene.read()
-    except ValueError:
-        LOGGER.info("Can't read " + filename)
-        return
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
 
     if satscene.area is None:
