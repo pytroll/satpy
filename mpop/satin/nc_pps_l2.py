@@ -275,6 +275,7 @@ class PPSReader(Reader):
                 for fname in prodfilename:
                     kwargs['filename'] = fname
                     self.load(satscene, *args, **kwargs)
+                return
             elif (prodfilename and
                   os.path.basename(prodfilename).startswith('S_NWC') and
                   os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
