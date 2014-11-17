@@ -52,6 +52,7 @@ def get_custom_composites(name):
         return []
 
     try:
+        name = name.replace("/", "")
         module = __import__(module_name, globals(), locals(), [name])
     except ImportError:
         return []
