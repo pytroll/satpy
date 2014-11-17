@@ -245,9 +245,9 @@ class ModisReader(Reader):
     def get_lonlat(self, resolution, cores=1):
         """Read lat and lon.
         """
-        logger.debug("generating lon, lat at %d", resolution)
         if resolution in self.areas:
             return self.areas[resolution]
+        logger.debug("generating lon, lat at %d", resolution)
         if self.geofile is not None:
             coarse_resolution = 1000
             filename = self.geofile
