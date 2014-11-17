@@ -562,8 +562,10 @@ class ViirsSDRReader(Reader):
                   #"satellite": satscene.fullname
                   }
 
+        file_list = []
         if filename is not None:
-            file_list = []
+            if not isinstance(filename, (list, set, tuple)):
+                filename = [filename]
             geofile_list = []
             for fname in filename:
                 if os.path.basename(fname).startswith("SV"):
@@ -572,10 +574,12 @@ class ViirsSDRReader(Reader):
                     geofile_list.append(fname)
                 else:
                     logger.info("Unrecognized SDR file: %s", fname)
-            directory = os.path.dirname(file_list[0])
-            geodirectory = os.path.dirname(geofile_list[0])
-        else:
+            if file_list:
+                directory = os.path.dirname(file_list[0])
+            if geofile_list:
+                geodirectory = os.path.dirname(geofile_list[0])
 
+        if not file_list:
             filename_tmpl = strftime(
                 satscene.time_slot, options["filename"]) % values
 
