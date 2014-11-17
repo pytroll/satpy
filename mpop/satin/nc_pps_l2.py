@@ -278,7 +278,11 @@ class PPSReader(Reader):
         for product in products:
             LOG.debug("Loading " + product)
 
-            if (prodfilename and
+            if isinstance(prodfilename, (list, tuple, set)):
+                for fname in prodfilename:
+                    kwargs['filename'] = fname
+                    self.load(satscene, *args, **kwargs)
+            elif (prodfilename and
                     os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
                 filename = prodfilename
             else:
