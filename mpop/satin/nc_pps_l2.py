@@ -280,9 +280,11 @@ class PPSReader(Reader):
                     self.load(satscene, *args, **kwargs)
                 return
             elif (prodfilename and
-                  os.path.basename(prodfilename).startswith('S_NWC') and
-                  os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]):
-                filename = prodfilename
+                  os.path.basename(prodfilename).startswith('S_NWC')):
+                if os.path.basename(prodfilename).split("_")[2] == NEW_PRODNAMES[product]:
+                    filename = prodfilename
+                else:
+                    continue
             else:
                 filename = conf.get(satscene.instrument_name + "-level3", "filename",
                                     raw=True)
