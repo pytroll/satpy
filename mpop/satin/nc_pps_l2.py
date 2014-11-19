@@ -46,6 +46,9 @@ NEW_PRODNAMES = {'cloudtype': 'CT',
 
 PPS_DATASETS = ['Cloud Type',
                 'Multilayer Cloud Detection',
+                "SAFNWC PPS PC likelihood of intense precipitation",
+                "SAFNWC PPS PC likelihood of moderate precipitation",
+                "SAFNWC PPS PC likelihood of light precipitation",
                 ]
 
 
@@ -389,36 +392,36 @@ class PPSReader(Reader):
 
 class CloudType(NwcSafPpsChannel):
 
-    def __init__(self):
-        NwcSafPpsChannel.__init__(self)
+    def __init__(self, filename=None):
+        NwcSafPpsChannel.__init__(self, filename)
         self.name = "CT"
 
 
 class CloudTopTemperatureHeight(NwcSafPpsChannel):
 
-    def __init__(self):
-        NwcSafPpsChannel.__init__(self)
+    def __init__(self, filename=None):
+        NwcSafPpsChannel.__init__(self, filename)
         self.name = "CTTH"
 
 
 class CloudMask(NwcSafPpsChannel):
 
-    def __init__(self):
-        NwcSafPpsChannel.__init__(self)
+    def __init__(self, filename=None):
+        NwcSafPpsChannel.__init__(self, filename)
         self.name = "CMA"
 
 
 class PrecipitationClouds(NwcSafPpsChannel):
 
-    def __init__(self):
-        NwcSafPpsChannel.__init__(self)
+    def __init__(self, filename=None):
+        NwcSafPpsChannel.__init__(self, filename)
         self.name = "PC"
 
 
 class CloudPhysicalProperties(NwcSafPpsChannel):
 
-    def __init__(self):
-        NwcSafPpsChannel.__init__(self)
+    def __init__(self, filename=None):
+        NwcSafPpsChannel.__init__(self, filename)
         self.name = "CPP"
 
 
