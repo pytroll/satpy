@@ -66,7 +66,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
     def __init__(self, filename=None):
         mpop.channel.GenericChannel.__init__(self)
-        self._md = {}
+        self.mda = {}
         self._projectables = []
         self._keys = []
         self._refs = {}
@@ -81,12 +81,12 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
         rootgrp = Dataset(filename, 'r')
         for item in rootgrp.ncattrs():
-            self._md[item] = getattr(rootgrp, item)
+            self.mda[item] = getattr(rootgrp, item)
 
-        self._md["satellite"] = rootgrp.platform
-        self._md["orbit"] = rootgrp.orbit_number
+        self.mda["satellite"] = rootgrp.platform
+        self.mda["orbit"] = rootgrp.orbit_number
         try:
-            self._md["time_slot"] = datetime.strptime(rootgrp.start_time[:-2],
+            self.mda["time_slot"] = datetime.strptime(rootgrp.start_time[:-2],
                                                       "%Y%m%dT%H%M%S")
         except AttributeError:
             LOG.debug("No time information in product file!")
@@ -119,11 +119,11 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                         dset_found = True
                         break
                 if not dset_found:
-                    self._md[var_name] = var[:]
+                    self.mda[var_name] = var[:]
                     # try:
-                    #     self._md[var_name] = var[:].filled(0)
+                    #     self.mda[var_name] = var[:].filled(0)
                     # except AttributeError:
-                    #     self._md[var_name] = var[:]
+                    #     self.mda[var_name] = var[:]
                     continue
 
             setattr(self, var_name, InfoObject())
@@ -160,7 +160,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         return
 
     def project(self, coverage):
-        """Projct the data"""
+        """Project the data"""
         LOG.debug("Projecting channel %s..." % (self.name))
         import copy
         res = copy.copy(self)
@@ -429,7 +429,6 @@ class CloudPhysicalProperties(NwcSafPpsChannel):
 
 def get_lonlat(filename):
     """Read lon,lat from netCDF4 CF file"""
-    import numpy as np
     from netCDF4 import Dataset
 
     col_indices = None
