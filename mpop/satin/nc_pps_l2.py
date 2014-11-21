@@ -86,7 +86,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         self.mda["satellite"] = rootgrp.platform
         self.mda["orbit"] = rootgrp.orbit_number
         try:
-            self.mda["time_slot"] = datetime.strptime(rootgrp.start_time[:-2],
+            self.mda["time_slot"] = datetime.strptime(rootgrp.time_coverage_start[:-2],
                                                       "%Y%m%dT%H%M%S")
         except AttributeError:
             LOG.debug("No time information in product file!")
@@ -175,7 +175,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         res.name = self.name
         res.resolution = self.resolution
         res.filled = True
-
+        res.area = coverage.out_area
         return res
 
     def is_loaded(self):
