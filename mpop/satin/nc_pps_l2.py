@@ -443,6 +443,22 @@ def get_lonlat(filename):
     lat = rootgrp.variables['lat']
     lats = np.ma.masked_equal(lat[:], lat._FillValue)
 
+    # FIXME: this is to mask out the npp bowtie deleted pixels...
+    if rootgrp.platform == "Suomi-NPP":
+
+        new_mask = np.zeros((16, 3200), dtype=bool)
+        new_mask[0, :1008] = True
+        new_mask[1, :640] = True
+        new_mask[14, :640] = True
+        new_mask[15, :1008] = True
+        new_mask[14, 2560:] = True
+        new_mask[1, 2560:] = True
+        new_mask[0, 2192:] = True
+        new_mask[15, 2192:] = True
+        new_mask = np.tile(new_mask, (lons.shape[0] / 16, 1))
+        lons = np.ma.masked_where(new_mask, lons)
+        lats = np.ma.masked_where(new_mask, lats)
+
     if "column_indices" in rootgrp.variables:
         col_indices = rootgrp.variables["column_indices"][:]
     if "row_indices" in rootgrp.variables:
