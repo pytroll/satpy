@@ -413,6 +413,15 @@ class CloudMask(NwcSafPpsChannel):
         self.name = "CMA"
 
 
+    def save(self, filename, old=False):
+        if old:
+            from nwcsaf_formats.ppsv2014_to_oldformat import write_cloudtype
+            write_cloudtype(self, filename)
+
+        else:
+            raise NotImplementedError("Can't save to new pps format yet.")
+
+
 class PrecipitationClouds(NwcSafPpsChannel):
 
     def __init__(self, filename=None):
