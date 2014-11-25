@@ -223,7 +223,9 @@ class PPSReader(Reader):
         conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
 
         try:
-            geodir = conf.get(satscene.instrument_name + "-level3", "geodir")
+            geodir = conf.get(satscene.instrument_name + "-level3",
+                              "cloud_product_geodir",
+                              vars=os.environ)
         except NoOptionError:
             LOG.warning("No option 'geodir' in level3 section")
             geodir = None
@@ -236,7 +238,9 @@ class PPSReader(Reader):
                 else:
                     orbit = satscene.orbit
                 geoname_tmpl = conf.get(satscene.instrument_name + "-level3",
-                                        "geofilename", raw=True)
+                                        "cloud_product_geofilename",
+                                        raw=True,
+                                        vars=os.environ)
                 filename_tmpl = (satscene.time_slot.strftime(geoname_tmpl)
                                  % {"orbit": orbit.zfill(5) or "*",
                                     "area": area_name,
@@ -286,10 +290,13 @@ class PPSReader(Reader):
                 else:
                     continue
             else:
-                filename = conf.get(satscene.instrument_name + "-level3", "filename",
-                                    raw=True)
-                directory = conf.get(
-                    satscene.instrument_name + "-level3", "dir")
+                filename = conf.get(satscene.instrument_name + "-level3",
+                                    "cloud_product_filename",
+                                    raw=True,
+                                    vars=os.environ)
+                directory = conf.get(satscene.instrument_name + "-level3",
+                                     "cloud_product_dir",
+                                     vars=os.environ)
                 pathname_tmpl = os.path.join(directory, filename)
                 LOG.debug("Path = " + str(pathname_tmpl))
 
