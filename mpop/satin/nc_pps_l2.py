@@ -184,6 +184,15 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         return True
         # return len(self._projectables) > 0
 
+    def save(self, filename, old=True, **kwargs):
+        del kwargs
+        if old:
+            from nwcsaf_formats.ppsv2014_to_oldformat import write_product
+            write_product(self, filename)
+
+        else:
+            raise NotImplementedError("Can't save to new pps format yet.")
+
 
 class PPSReader(Reader):
 
@@ -405,14 +414,6 @@ class CloudType(NwcSafPpsChannel):
         NwcSafPpsChannel.__init__(self, filename)
         self.name = "CT"
 
-    def save(self, filename, old=True, **kwargs):
-        del kwargs
-        if old:
-            from nwcsaf_formats.ppsv2014_to_oldformat import write_cloudtype
-            write_cloudtype(self, filename)
-
-        else:
-            raise NotImplementedError("Can't save to new pps format yet.")
 
 class CloudTopTemperatureHeight(NwcSafPpsChannel):
 
@@ -426,15 +427,6 @@ class CloudMask(NwcSafPpsChannel):
     def __init__(self, filename=None):
         NwcSafPpsChannel.__init__(self, filename)
         self.name = "CMA"
-
-
-    def save(self, filename, old=False):
-        if old:
-            from nwcsaf_formats.ppsv2014_to_oldformat import write_cloudtype
-            write_cloudtype(self, filename)
-
-        else:
-            raise NotImplementedError("Can't save to new pps format yet.")
 
 
 class PrecipitationClouds(NwcSafPpsChannel):
