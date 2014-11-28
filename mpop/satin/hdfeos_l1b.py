@@ -37,12 +37,14 @@ import glob
 from fnmatch import fnmatch
 import os.path
 from ConfigParser import ConfigParser
+import multiprocessing
 
 import math
 import numpy as np
 from pyhdf.SD import SD
 from pyhdf.error import HDF4Error
 import hashlib
+from pyresample import geometry
 
 from mpop import CONFIG_PATH
 from mpop.plugin_base import Reader
@@ -75,6 +77,7 @@ class ModisReader(Reader):
         self.geofile = None
         self.filename = None
         self.data = None
+        self.areas = {}
 
     def load(self, satscene, *args, **kwargs):
         """Read data from file and load it into *satscene*.
@@ -94,9 +97,10 @@ class ModisReader(Reader):
                 if fnmatch(os.path.basename(fname), "M?D02?km*"):
                     resolution = self.res[os.path.basename(fname)[5]]
                     self.datafiles[resolution] = fname
-                else:
+                elif fnmatch(os.path.basename(fname), "M?D03*"):
                     self.geofile = fname
-        elif kwargs.get("filename") is not None:
+        elif ((kwargs.get("filename") is not None) and
+              fnmatch(os.path.basename(options["filename"]), "M?D02?km*")):
             # read just one file
             logger.debug("Reading from file: " + str(options["filename"]))
             filename = options["filename"]
@@ -125,19 +129,8 @@ class ModisReader(Reader):
                 logger.warning("Can't find geofile with template: %s",
                                options['geofile'])
 
-        self.filename = self.datafiles[options["resolution"]]
-
         resolution = options["resolution"]
-        cores = options.get("cores", 1)
-
-        logger.debug("Using " + str(cores) + " cores for interpolation")
-
-        try:
-            self.data = SD(str(self.filename))
-        except HDF4Error as err:
-            logger.warning("Could not load data from " + str(self.filename)
-                           + ": " + str(err))
-            return
+        cores = options.get("cores", max(multiprocessing.cpu_count() / 4, 1))
 
         datadict = {
             1000: ['EV_250_Aggr1km_RefSB',
@@ -148,30 +141,48 @@ class ModisReader(Reader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
-        datasets = datadict[resolution]
-
         loaded_bands = []
 
         # process by dataset, reflective and emissive datasets separately
 
-        for dataset in datasets:
-            subdata = self.data.select(dataset)
-            band_names = subdata.attributes()["band_names"].split(",")
-            if len(satscene.channels_to_load & set(band_names)) > 0:
-                # get the relative indices of the desired channels
-                indices = [i for i, band in enumerate(band_names)
-                           if band in satscene.channels_to_load]
-                uncertainty = self.data.select(dataset + "_Uncert_Indexes")
-                if dataset.endswith('Emissive'):
-                    array = calibrate_tb(
-                        subdata, uncertainty, indices, band_names)
-                else:
-                    array = calibrate_refl(subdata, uncertainty, indices)
-                for (i, idx) in enumerate(indices):
-                    satscene[band_names[idx]] = array[i]
-                    # fix the resolution to match the loaded data.
-                    satscene[band_names[idx]].resolution = resolution
-                    loaded_bands.append(band_names[idx])
+        resolutions = [250, 500, 1000]
+
+        for res in resolutions:
+            if res < resolution:
+                continue
+            logger.debug("Working on resolution %d", res)
+            self.filename = self.datafiles[res]
+
+            logger.debug("Using " + str(cores) + " cores for interpolation")
+
+            try:
+                self.data = SD(str(self.filename))
+            except HDF4Error as err:
+                logger.warning("Could not load data from " + str(self.filename)
+                               + ": " + str(err))
+                continue
+
+            datasets = datadict[res]
+            for dataset in datasets:
+                subdata = self.data.select(dataset)
+                band_names = subdata.attributes()["band_names"].split(",")
+                if len(satscene.channels_to_load & set(band_names)) > 0:
+                    # get the relative indices of the desired channels
+                    indices = [i for i, band in enumerate(band_names)
+                               if band in satscene.channels_to_load]
+                    uncertainty = self.data.select(dataset + "_Uncert_Indexes")
+                    if dataset.endswith('Emissive'):
+                        array = calibrate_tb(
+                            subdata, uncertainty, indices, band_names)
+                    else:
+                        array = calibrate_refl(subdata, uncertainty, indices)
+                    for (i, idx) in enumerate(indices):
+                        if band_names[idx] in loaded_bands:
+                            continue
+                        satscene[band_names[idx]] = array[i]
+                        # fix the resolution to match the loaded data.
+                        satscene[band_names[idx]].resolution = res
+                        loaded_bands.append(band_names[idx])
 
         # Get the orbit number
         if not satscene.orbit:
@@ -184,10 +195,9 @@ class ModisReader(Reader):
         #    logger.warning("Cannot load geolocation at this resolution (yet).")
         #    return
 
-        lon, lat = self.get_lonlat(resolution, cores)
-        from pyresample import geometry
-        area = geometry.SwathDefinition(lons=lon, lats=lat)
         for band_name in loaded_bands:
+            lon, lat = self.get_lonlat(satscene[band_name].resolution, cores)
+            area = geometry.SwathDefinition(lons=lon, lats=lat)
             satscene[band_name].area = area
 
         # Trimming out dead sensor lines (detectors) on aqua:
@@ -235,6 +245,9 @@ class ModisReader(Reader):
     def get_lonlat(self, resolution, cores=1):
         """Read lat and lon.
         """
+        if resolution in self.areas:
+            return self.areas[resolution]
+        logger.debug("generating lon, lat at %d", resolution)
         if self.geofile is not None:
             coarse_resolution = 1000
             filename = self.geofile
@@ -257,6 +270,7 @@ class ModisReader(Reader):
         lon = np.ma.masked_equal(lon.get(), fill_value)
 
         if resolution == coarse_resolution:
+            self.areas[resolution] = lon, lat
             return lon, lat
 
         from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
@@ -269,6 +283,7 @@ class ModisReader(Reader):
         if resolution == 250:
             lon, lat = modis1kmto250m(lon, lat, cores)
 
+        self.areas[resolution] = lon, lat
         return lon, lat
 
     # These have to be interpolated...
@@ -502,7 +517,6 @@ def load_generic(satscene, filename, resolution, cores):
     #    return
 
     lat, lon = get_lat_lon(satscene, resolution, filename, cores)
-    from pyresample import geometry
     area = geometry.SwathDefinition(lons=lon, lats=lat)
     for band_name in loaded_bands:
         satscene[band_name].area = area

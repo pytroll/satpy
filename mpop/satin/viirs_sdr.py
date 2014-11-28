@@ -562,8 +562,10 @@ class ViirsSDRReader(Reader):
                   #"satellite": satscene.fullname
                   }
 
+        file_list = []
         if filename is not None:
-            file_list = []
+            if not isinstance(filename, (list, set, tuple)):
+                filename = [filename]
             geofile_list = []
             for fname in filename:
                 if os.path.basename(fname).startswith("SV"):
@@ -572,10 +574,12 @@ class ViirsSDRReader(Reader):
                     geofile_list.append(fname)
                 else:
                     logger.info("Unrecognized SDR file: %s", fname)
-            directory = os.path.dirname(file_list[0])
-            geodirectory = os.path.dirname(geofile_list[0])
-        else:
+            if file_list:
+                directory = os.path.dirname(file_list[0])
+            if geofile_list:
+                geodirectory = os.path.dirname(geofile_list[0])
 
+        if not file_list:
             filename_tmpl = strftime(
                 satscene.time_slot, options["filename"]) % values
 
@@ -781,10 +785,12 @@ class ViirsSDRReader(Reader):
         satscene.info["references"] = "No reference."
         satscene.info["comments"] = "No comment."
 
-        satscene.info["start_time"] = min([satscene[chn].info["start_time"]
-                                           for chn in satscene.channels_to_load])
-        satscene.info["end_time"] = max([satscene[chn].info["end_time"]
-                                         for chn in satscene.channels_to_load])
+        satscene.info["start_time"] = min([chn.info["start_time"]
+                                           for chn in satscene
+                                           if chn.is_loaded()])
+        satscene.info["end_time"] = max([chn.info["end_time"]
+                                         for chn in satscene
+                                         if chn.is_loaded()])
 
 
 def get_lonlat(filename):
@@ -849,15 +855,15 @@ def _get_swathsegment(filelist, time_start, time_end=None, area=None):
     """
     if area is not None:
         from trollsched.spherical import SphPolygon
-        from trollsched.satpass import Boundary
+        from trollsched.boundary import AreaBoundary
 
         lons, lats = area.get_boundary_lonlats()
-        area_boundary = Boundary((lons.side1, lats.side1),
-                                 (lons.side2, lats.side2),
-                                 (lons.side3, lats.side3),
-                                 (lons.side4, lats.side4))
+        area_boundary = AreaBoundary((lons.side1, lats.side1),
+                                     (lons.side2, lats.side2),
+                                     (lons.side3, lats.side3),
+                                     (lons.side4, lats.side4))
         area_boundary.decimate(500)
-        contour_poly = area_boundary.contour_poly()
+        contour_poly = area_boundary.contour_poly
 
     segment_files = []
     for filename in filelist:

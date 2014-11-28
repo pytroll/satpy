@@ -59,8 +59,7 @@ def load(satscene, *args, **kwargs):
         options[option] = value
 
     if kwargs.get("filename") is not None:
-        options["filename"] = kwargs["filename"]
-        options["dir"] = None
+        options["full_filename"] = kwargs["filename"]
 
     options["calibrate"] = kwargs.get("calibrate", True)
 
@@ -95,9 +94,19 @@ def load_avhrr(satscene, options):
               "satellite": satscene.fullname
               }
 
-    if options["dir"] is None:
-        filename = options["filename"]
-    else:
+    done_reading = False
+
+    if "full_filename" in options:
+        filename = options["full_filename"]
+        LOGGER.debug("Loading from " + filename)
+        scene = AAPP1b(filename)
+        try:
+            scene.read()
+            done_reading = True
+        except ValueError:
+            LOGGER.info("Can't read " + filename)
+
+    if not done_reading:
         filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
                                 satscene.time_slot.strftime(
                                     options["filename"])
@@ -112,10 +121,14 @@ def load_avhrr(satscene, options):
 
         filename = file_list[0]
 
-    LOGGER.debug("Loading from " + filename)
+        LOGGER.debug("Loading from " + filename)
+        scene = AAPP1b(filename)
+        try:
+            scene.read()
+        except ValueError:
+            LOGGER.info("Can't read %s, exiting.", filename)
+            return
 
-    scene = AAPP1b(filename)
-    scene.read()
     scene.calibrate(chns, calibrate=options.get('calibrate', 1))
 
     if satscene.area is None:
@@ -351,8 +364,9 @@ class AAPP1b(object):
         with open(self.filename, "rb") as fp_:
             header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r",
                                shape=(_HEADERTYPE.itemsize, ))
-            data = np.memmap(
-                fp_, dtype=_SCANTYPE, offset=688 + 10664 * 2, mode="r")
+            data = np.memmap(fp_,
+                             dtype=_SCANTYPE,
+                             offset=22016, mode="r")
 
         LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
 
