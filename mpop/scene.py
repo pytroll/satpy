@@ -135,10 +135,6 @@ class SatelliteScene(Satellite):
         if area is not None:
             self.area = area
 
-        if(orbit is not None and
-           not isinstance(orbit, str)):
-            raise TypeError("Orbit must be a string.")
-
         self.orbit = orbit
 
         self.info = {}
