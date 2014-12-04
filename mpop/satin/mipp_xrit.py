@@ -67,11 +67,13 @@ class XritReader(Reader):
         load(*args, **kwargs)
 
 
-def load(satscene, calibrate=True, area_extent=None, area_def_names=None):
+def load(satscene, calibrate=True, area_extent=None, area_def_names=None,
+         **kwargs):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
     radiances only).
     """
+    del kwargs
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
     options = {}

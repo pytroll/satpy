@@ -32,7 +32,7 @@ from mpop import CONFIG_PATH
 from mpop.satin.xmlformat import XMLFormat
 import logging
 
-LOG = logging(__name__)
+LOG = logging.getLogger(__name__)
 
 try:
     from pyresample import geometry
@@ -232,6 +232,7 @@ class EpsAvhrrL1bReader(object):
         for chan in channels:
             if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
                 LOG.info("Can't load channel in eps_l1b: " + str(chan))
+                continue
 
             if chan == "1":
                 if calib_type == 1:
@@ -450,20 +451,23 @@ def load(scene, *args, **kwargs):
     arrs = {}
     llons = []
     llats = []
+    loaded_channels = set()
 
     for reader in readers:
 
         for chname, arr in reader.get_channels(scene.channels_to_load,
                                                calibrate).items():
             arrs.setdefault(chname, []).append(arr)
+            loaded_channels.add(chname)
 
-        scene.orbit = scene.orbit or str(int(reader["ORBIT_START"]))
-
+        if scene.orbit is None:
+            scene.orbit = int(reader["ORBIT_START"][0])
+            scene.info["orbit_number"] = scene.orbit
         lons, lats = reader.get_full_lonlats()
         llons.append(lons)
         llats.append(lats)
 
-    for chname in scene.channels_to_load:
+    for chname in loaded_channels:
         scene[chname] = np.vstack(arrs[chname])
         if chname in ["1", "2", "3A"]:
             scene[chname].info["units"] = "%"
