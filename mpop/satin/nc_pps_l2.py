@@ -251,7 +251,7 @@ class PPSReader(Reader):
                                         raw=True,
                                         vars=os.environ)
                 filename_tmpl = (satscene.time_slot.strftime(geoname_tmpl)
-                                 % {"orbit": orbit.zfill(5) or "*",
+                                 % {"orbit": str(orbit).zfill(5) or "*",
                                     "area": area_name,
                                     "satellite": satscene.satname + satscene.number})
 
@@ -315,7 +315,7 @@ class PPSReader(Reader):
                     orbit = satscene.orbit
 
                 filename_tmpl = (satscene.time_slot.strftime(pathname_tmpl)
-                                 % {"orbit": orbit.zfill(5) or "*",
+                                 % {"orbit": str(orbit).zfill(5) or "*",
                                     "area": area_name,
                                     "satellite": satscene.satname + satscene.number,
                                     "product": product})
@@ -326,7 +326,7 @@ class PPSReader(Reader):
                     LOG.info("No " + str(product) +
                              " product in old format matching")
                     filename_tmpl = (satscene.time_slot.strftime(pathname_tmpl)
-                                     % {"orbit": orbit.zfill(5) or "*",
+                                     % {"orbit": str(orbit).zfill(5) or "*",
                                         "area": area_name,
                                         "satellite": satscene.satname + satscene.number,
                                         "product": product_name})
