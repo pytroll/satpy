@@ -406,8 +406,7 @@ class GeoImage(Image):
 
         coast_dir = conf.get('shapes', 'dir')
 
-        logger.debug("Getting area for overlay: " + str(self.area))
-
+        logger.debug("Getting area for overlay: " + str(self.area.area_id))
 
         try:
             import aggdraw
@@ -434,7 +433,7 @@ class GeoImage(Image):
         if isinstance(self.area, str):
             self.area = get_area_def(self.area)
         logger.info("Add overlays to image.")
-        logger.debug("Area = " + str(self.area))
+        logger.debug("Area = " + str(self.area.area_id))
 
         foreground=cw_.add_overlay_from_config(config_file, self.area)
         img.paste(foreground,mask=foreground.split()[-1])
