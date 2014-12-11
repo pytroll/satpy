@@ -77,44 +77,50 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
     def read(self, filename, load_lonlat=True):
         """Read the PPS v2014 formatet data"""
         LOG.debug("New netCDF CF file format!")
-        from netCDF4 import Dataset
 
-        rootgrp = Dataset(filename, 'r')
-        for item in rootgrp.ncattrs():
-            self.mda[item] = getattr(rootgrp, item)
+        import h5py
 
-        self.mda["satellite"] = rootgrp.platform
-        self.mda["orbit"] = rootgrp.orbit_number
+        h5f = h5py.File(filename, 'r')
+        self.mda.update(h5f.attrs.items())
+
+        self.mda["satellite"] = h5f.attrs['platform']
+        self.mda["orbit"] = h5f.attrs['orbit_number']
         try:
-            self.mda["time_slot"] = datetime.strptime(rootgrp.time_coverage_start[:-2],
+            self.mda["time_slot"] = datetime.strptime(h5f.attrs['time_coverage_start'][:-2],
                                                       "%Y%m%dT%H%M%S")
         except AttributeError:
             LOG.debug("No time information in product file!")
 
+        variables = {}
+
+        for key, item in h5f.items():
+            if item.attrs.get("CLASS") != 'DIMENSION_SCALE':
+                variables[key] = item
+
         # processed variables
         processed = set()
 
-        non_processed = set(rootgrp.variables.keys()) - processed
+        non_processed = set(variables.keys()) - processed
 
         for var_name in non_processed:
             if var_name in ['lon', 'lat']:
                 continue
 
-            var = rootgrp.variables[var_name]
-            if not (hasattr(var, "standard_name") or
-                    hasattr(var, "long_name")):
+            var = variables[var_name]
+            if ("standard_name" not in var.attrs.keys() and
+                    "long_name" not in var.attrs.keys()):
                 LOG.info("Delayed processing of " + var_name)
                 continue
 
             # Don't know how to unambiguously decide if the array is really a
             # data array or a palette or something else!
             # FIXME!
-            if hasattr(var, "standard_name"):
+            if "standard_name" in var.attrs.keys():
                 self._projectables.append(var_name)
-            elif hasattr(var, "long_name"):
+            elif "long_name" in var.attrs.keys():
                 dset_found = False
                 for item in PPS_DATASETS:
-                    if var.long_name.find(item) >= 0:
+                    if var.attrs['long_name'].find(item) >= 0:
                         self._projectables.append(var_name)
                         dset_found = True
                         break
@@ -127,13 +133,21 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     continue
 
             setattr(self, var_name, InfoObject())
-            for item in var.ncattrs():
-                getattr(self, var_name).info[item] = getattr(var, item)
+            for key, item in var.attrs.items():
+                if key != "DIMENSION_LIST":
+                    getattr(self, var_name).info[key] = item
 
-            dataset = var[:]
+            data = var[:]
+            if 'valid_range' in var.attrs.keys():
+                data = np.ma.masked_outside(data, *var.attrs['valid_range'])
+            elif '_FillValue' in var.attrs.keys():
+                data = np.ma.masked_where(data, var.attrs['_FillValue'])
+            dataset = (data * var.attrs.get("scale_factor", 1)
+                       + var.attrs.get("add_offset", 0))
+
             getattr(self, var_name).data = dataset
 
-            LOG.debug("long_name: " + str(var.long_name))
+            LOG.debug("long_name: " + str(var.attrs['long_name']))
             LOG.debug("Var=" + str(var_name) + " shape=" + str(dataset.shape))
 
             if self.shape is None:
@@ -148,7 +162,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
             processed |= set([var_name])
 
-        non_processed = set(rootgrp.variables.keys()) - processed
+        non_processed = set(variables.keys()) - processed
         if len(non_processed) > 0:
             LOG.warning(
                 "Remaining non-processed variables: " + str(non_processed))
