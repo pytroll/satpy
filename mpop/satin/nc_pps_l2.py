@@ -459,21 +459,26 @@ class CloudPhysicalProperties(NwcSafPpsChannel):
 
 def get_lonlat(filename):
     """Read lon,lat from netCDF4 CF file"""
-    from netCDF4 import Dataset
+    import h5py
 
     col_indices = None
     row_indices = None
 
     LOG.debug("Geo File = " + filename)
-    rootgrp = Dataset(filename, 'r')
 
-    lon = rootgrp.variables['lon']
-    lons = np.ma.masked_equal(lon[:], lon._FillValue)
-    lat = rootgrp.variables['lat']
-    lats = np.ma.masked_equal(lat[:], lat._FillValue)
+    h5f = h5py.File(filename, 'r')
+
+    lon = h5f['lon']
+    lons = (lon[:] * lon.attrs.get("scale_factor", 1)
+            + lon.attrs.get("add_offset", 0))
+    lons = np.ma.masked_equal(lons, lon.attrs["_FillValue"])
+    lat = h5f['lat']
+    lats = (lat[:] * lat.attrs.get("scale_factor", 1)
+            + lat.attrs.get("add_offset", 0))
+    lats = np.ma.masked_equal(lats, lat.attrs["_FillValue"])
 
     # FIXME: this is to mask out the npp bowtie deleted pixels...
-    if rootgrp.platform == "Suomi-NPP":
+    if h5f.attrs['platform'] == "Suomi-NPP":
 
         new_mask = np.zeros((16, 3200), dtype=bool)
         new_mask[0, :1008] = True
@@ -488,10 +493,10 @@ def get_lonlat(filename):
         lons = np.ma.masked_where(new_mask, lons)
         lats = np.ma.masked_where(new_mask, lats)
 
-    if "column_indices" in rootgrp.variables:
-        col_indices = rootgrp.variables["column_indices"][:]
-    if "row_indices" in rootgrp.variables:
-        row_indices = rootgrp.variables["row_indices"][:]
+    if "column_indices" in h5f.keys():
+        col_indices = h5f["column_indices"][:]
+    if "row_indices" in h5f.keys():
+        row_indices = h5f["row_indices"][:]
 
     return {'lon': lons,
             'lat': lats,
