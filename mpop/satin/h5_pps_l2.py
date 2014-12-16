@@ -494,7 +494,7 @@ def get_lonlat(filename):
     lats = lats * scale_factor + add_offset
 
     # FIXME: this is to mask out the npp bowtie deleted pixels...
-    if h5f["how"].attrs['platform'] == "Suomi-NPP":
+    if h5f["how"].attrs['platform'] == "npp":
 
         new_mask = np.zeros((16, 3200), dtype=bool)
         new_mask[0, :1008] = True
