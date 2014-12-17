@@ -109,13 +109,15 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
             var = variables[var_name]
             if ("standard_name" not in var.attrs.keys() and
-                    "long_name" not in var.attrs.keys()):
+                    "long_name" not in var.attrs.keys() and
+                    var.attrs.get("CLASS") != "PALETTE"):
                 LOG.info("Delayed processing of " + var_name)
                 continue
 
             # Don't know how to unambiguously decide if the array is really a
             # data array or a palette or something else!
             # FIXME!
+            print var_name, var.attrs.get("CLASS")
             if "standard_name" in var.attrs.keys():
                 self._projectables.append(var_name)
             elif "long_name" in var.attrs.keys():
@@ -132,6 +134,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     # except AttributeError:
                     #     self.mda[var_name] = var[:]
                     continue
+            elif var.attrs.get("CLASS") == "PALETTE":
+                print "hej", var_name
+                self.mda[var_name] = var[:]
+                continue
 
             setattr(self, var_name, InfoObject())
             for key, item in var.attrs.items():
@@ -276,7 +282,8 @@ class PPSReader(Reader):
                                 + str(file_list))
                 elif len(file_list) == 0:
                     LOG.warning(
-                        "No geolocation file matching!: " + filename_tmpl)
+                        "No geolocation file matching!: "
+                        + os.path.join(geodir, filename_tmpl))
                 else:
                     geofilename = file_list[0]
             except NoOptionError:
