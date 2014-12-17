@@ -27,6 +27,11 @@
 
 """Reader for aapp level 1b data.
 
+Options for loading:
+
+ - pre_launch_coeffs (False): use pre-launch coefficients if True, operational
+   otherwise (if available).
+
 http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/
 NWPSAF-MF-UD-003_Formats.pdf
 """
@@ -62,6 +67,7 @@ def load(satscene, *args, **kwargs):
         options["full_filename"] = kwargs["filename"]
 
     options["calibrate"] = kwargs.get("calibrate", True)
+    options["pre_launch_coeffs"] = kwargs.get("pre_launch_coeffs", False)
 
     LOGGER.info("Loading instrument '%s'" % satscene.instrument_name)
 
@@ -129,7 +135,8 @@ def load_avhrr(satscene, options):
             LOGGER.info("Can't read %s, exiting.", filename)
             return
 
-    scene.calibrate(chns, calibrate=options.get('calibrate', 1))
+    scene.calibrate(chns, calibrate=options.get('calibrate', 1),
+                    pre_launch_coeffs=options["pre_launch_coeffs"])
 
     if satscene.area is None:
         scene.navigate()
@@ -406,20 +413,22 @@ class AAPP1b(object):
                 "Navigation time " + str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
-                  calibrate=1):
+                  calibrate=1, pre_launch_coeffs=False):
         """Calibrate the data
         """
         tic = datetime.datetime.now()
 
         if "1" in chns:
-            self.channels['1'] = _vis_calibrate(self._data, 0, calibrate)
+            self.channels['1'] = _vis_calibrate(self._data, 0,
+                                                calibrate, pre_launch_coeffs)
             if calibrate == 0:
                 self.units['1'] = ''
             else:
                 self.units['1'] = '%'
 
         if "2" in chns:
-            self.channels['2'] = _vis_calibrate(self._data, 1, calibrate)
+            self.channels['2'] = _vis_calibrate(self._data, 1,
+                                                calibrate, pre_launch_coeffs)
             if calibrate == 0:
                 self.units['2'] = ''
             else:
@@ -432,7 +441,8 @@ class AAPP1b(object):
             self._is3b = is3b
 
         if "3A" in chns:
-            ch3a = _vis_calibrate(self._data, 2, calibrate)
+            ch3a = _vis_calibrate(self._data, 2,
+                                  calibrate, pre_launch_coeffs)
             self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
             if calibrate == 0:
                 self.units['3A'] = ''
@@ -475,7 +485,7 @@ class AAPP1b(object):
         LOGGER.debug("Calibration time " + str(datetime.datetime.now() - tic))
 
 
-def _vis_calibrate(data, chn, calib_type):
+def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False):
     """Visible channel calibration only.
     *calib_type* = 0: Counts
     *calib_type* = 1: Reflectances
@@ -492,21 +502,35 @@ def _vis_calibrate(data, chn, calib_type):
         LOGGER.info("Radiances are not yet supported for " +
                     "the VIS/NIR channels!")
 
-    mask1 = channel <= np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
-    mask2 = channel > np.expand_dims(data["calvis"][:, chn, 2, 4], 1)
+    if pre_launch_coeffs:
+        coeff_idx = 2
+    else:
+        # check that coeffs are valid
+        if np.all(data["calvis"][:, chn, 0, 4] == 0):
+            LOGGER.info(
+                "No valid operational coefficients, fall back to pre-launch")
+            coeff_idx = 2
+        else:
+            coeff_idx = 0
 
-    channel[mask1] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 0] *
-                                               1e-10, 1) +
-                      np.expand_dims(data["calvis"][:, chn, 2, 1] *
-                                     1e-7, 1))[mask1]
+    intersection = data["calvis"][:, chn, coeff_idx, 4]
+    slope1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
+    intercept1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
+    slope2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
+    intercept2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
 
-    channel[mask2] = (channel * np.expand_dims(data["calvis"][:, chn, 2, 2] *
-                                               1e-10, 1) +
-                      np.expand_dims(data["calvis"][:, chn, 2, 3] *
-                                     1e-7, 1))[mask2]
+    if chn == 2:
+        slope2[slope2 < 0] += 0.4294967296
+
+    mask1 = channel <= np.expand_dims(intersection, 1)
+    mask2 = channel > np.expand_dims(intersection, 1)
+
+    channel[mask1] = (channel * slope1 + intercept1)[mask1]
+
+    channel[mask2] = (channel * slope2 + intercept2)[mask2]
 
     channel[channel < 0] = np.nan
-    return np.ma.masked_array(channel, np.isnan(channel))
+    return np.ma.masked_invalid(channel)
 
 
 def _ir_calibrate(header, data, irchn, calib_type):
