@@ -117,7 +117,6 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             # Don't know how to unambiguously decide if the array is really a
             # data array or a palette or something else!
             # FIXME!
-            print var_name, var.attrs.get("CLASS")
             if "standard_name" in var.attrs.keys():
                 self._projectables.append(var_name)
             elif "long_name" in var.attrs.keys():
@@ -135,7 +134,6 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     #     self.mda[var_name] = var[:]
                     continue
             elif var.attrs.get("CLASS") == "PALETTE":
-                print "hej", var_name
                 self.mda[var_name] = var[:]
                 continue
 
