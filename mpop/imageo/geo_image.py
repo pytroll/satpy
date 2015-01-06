@@ -12,6 +12,8 @@
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
+#   Stefano Cerino <s.cerino@vitrociset.it>
+#   Katja Hungershofer <katja.Hungershoefer@dwd.de>
 
 # This file is part of mpop.
 
@@ -382,6 +384,59 @@ class GeoImage(Image):
                            resolution=resolution, width=width)
         cw_.add_borders(img, self.area, outline=color,
                         resolution=resolution, width=width)
+
+        arr = np.array(img)
+
+        if len(self.channels) == 1:
+            self.channels[0] = np.ma.array(arr[:, :] / 255.0)
+        else:
+            for idx in range(len(self.channels)):
+                self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+
+
+    def add_overlay_config(self, config_file):
+        """Add overlay to image parsing a configuration file.
+           
+        """
+
+
+        import ConfigParser
+        conf = ConfigParser.ConfigParser()
+        conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
+
+        coast_dir = conf.get('shapes', 'dir')
+
+        logger.debug("Getting area for overlay: " + str(self.area.area_id))
+
+        try:
+            import aggdraw
+            from pycoast import ContourWriterAGG
+            cw_ = ContourWriterAGG(coast_dir)
+        except ImportError:
+            logger.warning("AGGdraw lib not installed...width and opacity properties are not available for overlays.")
+            from pycoast import ContourWriter
+            cw_ = ContourWriter(coast_dir)
+            
+
+        logger.debug("Getting area for overlay: " + str(self.area))
+
+        if self.area is None:
+            raise ValueError("Area of image is None, can't add overlay.")
+
+        if self.mode != "RGB":
+            self.convert("RGB")
+
+        img = self.pil_image()
+
+
+        from mpop.projector import get_area_def
+        if isinstance(self.area, str):
+            self.area = get_area_def(self.area)
+        logger.info("Add overlays to image.")
+        logger.debug("Area = " + str(self.area.area_id))
+
+        foreground=cw_.add_overlay_from_config(config_file, self.area)
+        img.paste(foreground,mask=foreground.split()[-1])
 
         arr = np.array(img)
 

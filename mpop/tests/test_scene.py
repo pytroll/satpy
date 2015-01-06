@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
@@ -56,15 +56,18 @@ def random_string(length,
 EPSILON = 0.0001
 DUMMY_STRING = "test_plugin"
 
+
 def patch_configparser():
     """Patch to fake ConfigParser.
     """
     class FakeConfigParser:
+
         """Dummy ConfigParser class.
         """
+
         def __init__(self, *args, **kwargs):
             pass
-        
+
         def read(self, *args, **kwargs):
             """Dummy read method
             """
@@ -77,15 +80,16 @@ def patch_configparser():
             del args, kwargs
             self = self
             return DUMMY_STRING
-        
+
         def sections(self):
             """Dummy sections method
             """
-            #return ["satellite", "udlptou-4"]
+            # return ["satellite", "udlptou-4"]
             raise ConfigParser.NoSectionError("Dummy sections.")
 
     ConfigParser.OldConfigParser = ConfigParser.ConfigParser
     ConfigParser.ConfigParser = FakeConfigParser
+
 
 def unpatch_configparser():
     """Unpatch fake ConfigParser.
@@ -98,8 +102,10 @@ def patch_projector():
     """Patch to fake projector.
     """
     class FakeProjector:
+
         """Dummy Projector class.
         """
+
         def __init__(self, *args, **kwargs):
             del args, kwargs
             self.out_area = None
@@ -117,6 +123,7 @@ def patch_projector():
     mpop.projector.old_get_area_def = mpop.projector.get_area_def
     mpop.projector.get_area_def = fake_get_area_def
 
+
 def unpatch_projector():
     """Unpatch fake projector
     """
@@ -124,8 +131,10 @@ def unpatch_projector():
     delattr(mpop.projector, "OldProjector")
     mpop.projector.get_area_def = mpop.projector.old_get_area_def
     delattr(mpop.projector, "old_get_area_def")
-    
+
+
 class TestSatelliteScene(unittest.TestCase):
+
     """Class for testing the SatelliteScene class.
     """
 
@@ -148,7 +157,7 @@ class TestSatelliteScene(unittest.TestCase):
 
         time_slot = datetime.datetime.now()
 
-        self.scene = SatelliteScene(time_slot = time_slot)
+        self.scene = SatelliteScene(time_slot=time_slot)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.time_slot, time_slot)
@@ -159,19 +168,19 @@ class TestSatelliteScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          time_slot = random_string(4))
-        
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          time_slot = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          time_slot = int(np.random.uniform(1000)))
+                          time_slot=random_string(4))
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          time_slot = [])
+                          time_slot=np.random.uniform(1000))
+
+        self.assertRaises(TypeError,
+                          SatelliteScene,
+                          time_slot=int(np.random.uniform(1000)))
+
+        self.assertRaises(TypeError,
+                          SatelliteScene,
+                          time_slot=[])
 
         # area
 
@@ -188,23 +197,21 @@ class TestSatelliteScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          area = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          area = int(np.random.uniform(1000)))
+                          area=np.random.uniform(1000))
 
         self.assertRaises(TypeError,
                           SatelliteScene,
-                          area = [])
+                          area=int(np.random.uniform(1000)))
 
+        self.assertRaises(TypeError,
+                          SatelliteScene,
+                          area=[])
 
-        
         # orbit
 
         orbit = random_string(int(np.random.uniform(9)) + 1)
 
-        self.scene = SatelliteScene(orbit = orbit)
+        self.scene = SatelliteScene(orbit=orbit)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.orbit, orbit)
@@ -212,19 +219,6 @@ class TestSatelliteScene(unittest.TestCase):
         self.assert_(self.scene.time_slot is None)
         self.assert_(self.scene.lat is None)
         self.assert_(self.scene.lon is None)
-
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          orbit = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          orbit = int(np.random.uniform(1000)))
-
-        self.assertRaises(TypeError,
-                          SatelliteScene,
-                          orbit = [])
-
 
     def test_fullname(self):
         """Fullname of a sat scene.
@@ -238,8 +232,10 @@ class TestSatelliteScene(unittest.TestCase):
                           self.scene.variant +
                           self.scene.satname +
                           self.scene.number)
-        
+
+
 class TestSatelliteInstrumentScene(unittest.TestCase):
+
     """Class for testing the SatelliteInstrumentScene class.
     """
 
@@ -259,6 +255,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
@@ -283,20 +280,16 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          area = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          area = int(np.random.uniform(1000)))
+                          area=np.random.uniform(1000))
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          area = [])
+                          area=int(np.random.uniform(1000)))
 
+        self.assertRaises(TypeError,
+                          SatelliteInstrumentScene2,
+                          area=[])
 
-
-
-        
     def test_init_orbit(self):
         """Creation of a satellite instrument scene.
         """
@@ -305,16 +298,16 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
 
-        
         # orbit
 
         orbit = random_string(int(np.random.uniform(9)) + 1)
 
-        self.scene = SatelliteInstrumentScene2(orbit = orbit)
+        self.scene = SatelliteInstrumentScene2(orbit=orbit)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.orbit, orbit)
@@ -329,19 +322,6 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
             self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          orbit = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          orbit = int(np.random.uniform(1000)))
-
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          orbit = [])
-
-        
     def test_init_time_slot(self):
         """Creation of a satellite instrument scene.
         """
@@ -350,15 +330,16 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
-        
+
         # time_slot
 
         time_slot = datetime.datetime.now()
 
-        self.scene = SatelliteInstrumentScene2(time_slot = time_slot)
+        self.scene = SatelliteInstrumentScene2(time_slot=time_slot)
         self.assertEquals(self.scene.satname, "")
         self.assertEquals(self.scene.number, "")
         self.assertEquals(self.scene.time_slot, time_slot)
@@ -375,22 +356,20 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          time_slot = random_string(4))
-        
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          time_slot = np.random.uniform(1000))
-        
-        self.assertRaises(TypeError,
-                          SatelliteInstrumentScene2,
-                          time_slot = int(np.random.uniform(1000)))
+                          time_slot=random_string(4))
 
         self.assertRaises(TypeError,
                           SatelliteInstrumentScene2,
-                          time_slot = [])
+                          time_slot=np.random.uniform(1000))
 
-        
-        
+        self.assertRaises(TypeError,
+                          SatelliteInstrumentScene2,
+                          time_slot=int(np.random.uniform(1000)))
+
+        self.assertRaises(TypeError,
+                          SatelliteInstrumentScene2,
+                          time_slot=[])
+
     def test_init(self):
         """Creation of a satellite instrument scene.
         """
@@ -400,6 +379,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
@@ -419,7 +399,6 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
             self.assertEquals(chn.wavelength_range, list(channels[i][1]))
             self.assertEquals(chn.resolution, channels[i][2])
 
-
     def test_setitem(self):
         """__setitem__ for sat scenes.
         """
@@ -429,6 +408,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
@@ -439,15 +419,15 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         a = np.ma.array([1, 2, 3])
         self.scene[6.4] = a
-        self.assertTrue(isinstance(self.scene[6.4].data, np.ma.core.MaskedArray))
-        
+        self.assertTrue(
+            isinstance(self.scene[6.4].data, np.ma.core.MaskedArray))
 
     def test_getitem(self):
         """__getitem__ for sat scenes.
         """
 
         # empty scene
-        self.scene = SatelliteInstrumentScene()        
+        self.scene = SatelliteInstrumentScene()
 
         self.assertRaises(KeyError, self.scene.__getitem__,
                           np.random.uniform(100))
@@ -463,6 +443,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
@@ -481,9 +462,9 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertRaises(TypeError, self.scene.__getitem__, set([]))
         self.assertRaises(KeyError, self.scene.__getitem__, 5.0)
 
-        self.assertEquals(len(self.scene.__getitem__(5000, aslist = True)), 2)
+        self.assertEquals(len(self.scene.__getitem__(5000, aslist=True)), 2)
 
-        chans = self.scene.__getitem__(5000, aslist = True)
+        chans = self.scene.__getitem__(5000, aslist=True)
         self.assertEquals(self.scene[chans[0].name].name, channels[1][0])
         self.assertEquals(self.scene[chans[1].name].name, channels[2][0])
 
@@ -498,32 +479,36 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
 
         self.scene = SatelliteInstrumentScene2()
         for chn in channels:
-            self.assertRaises(NotLoadedError, self.scene.check_channels, chn[0])
-            self.assertRaises(NotLoadedError, self.scene.check_channels, chn[2])
+            self.assertRaises(
+                NotLoadedError, self.scene.check_channels, chn[0])
+            self.assertRaises(
+                NotLoadedError, self.scene.check_channels, chn[2])
             for i in range(3):
                 self.assertRaises(NotLoadedError,
                                   self.scene.check_channels,
                                   chn[1][i])
 
         # With data
-        
+
         self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
-                                       mask = np.array(np.random.rand(3, 3) * 2,
-                                                       dtype = int))
+                                       mask=np.array(np.random.rand(3, 3) * 2,
+                                                     dtype=int))
         self.assertTrue(self.scene.check_channels(0.7, 6.4, 11.5))
-        self.assertRaises(KeyError, self.scene.check_channels, random_string(5))
+        self.assertRaises(
+            KeyError, self.scene.check_channels, random_string(5))
 
     def test_loaded_channels(self):
         """Loaded channels list.
@@ -535,27 +520,29 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             channel_list = channels
 
         self.scene = SatelliteInstrumentScene2()
         self.assertEquals(self.scene.loaded_channels(), set([]))
-        
+
         # With data
-        
+
         self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
-                                       mask = np.array(np.random.rand(3, 3) * 2,
-                                                       dtype = int))
+                                       mask=np.array(np.random.rand(3, 3) * 2,
+                                                     dtype=int))
 
         self.assertEquals(set([chn.name for chn in self.scene.loaded_channels()]),
                           set(["00_7", "06_4", "11_5"]))
+
     def test_project(self):
         """Projecting a scene.
         """
@@ -568,6 +555,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             instrument_name = random_string(8)
@@ -578,13 +566,13 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.scene = SatelliteInstrumentScene2(area=None)
 
         # With data
-        
+
         self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4].area = MagicMock()
 
         res = self.scene.project(area2)
@@ -601,30 +589,27 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.assertEquals(res[0.7].shape, (3, 3))
         self.assertRaises(KeyError, res.__getitem__, 11.5)
 
-
         res = self.scene.project(area2, channels=[])
         self.assertRaises(KeyError, res.__getitem__, 0.7)
 
         self.assertRaises(TypeError, self.scene.project,
                           area2, channels=11.5)
 
-
-
         # case of a grid
 
         self.scene = SatelliteInstrumentScene2(area=area)
 
         # With data
-        
+
         self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
-                                       mask = np.array(np.random.rand(3, 3) * 2,
-                                                       dtype = int))
+                                       mask=np.array(np.random.rand(3, 3) * 2,
+                                                     dtype=int))
 
         res = self.scene.project(area2)
         self.assertEquals(res[11.5].shape, (3, 3))
@@ -638,22 +623,22 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         self.scene[11.5].area = MagicMock()
         res = self.scene.project(area2)
         self.assertEquals(res[0.7].shape, (3, 3))
-        
+
         # case of self projection
 
         self.scene = SatelliteInstrumentScene2(area=area)
 
         # With data
-        
+
         self.scene[0.7] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[6.4] = np.ma.array(np.random.rand(3, 3),
-                                      mask = np.array(np.random.rand(3, 3) * 2,
-                                                      dtype = int))
+                                      mask=np.array(np.random.rand(3, 3) * 2,
+                                                    dtype=int))
         self.scene[11.5] = np.ma.array(np.random.rand(3, 3),
-                                       mask = np.array(np.random.rand(3, 3) * 2,
-                                                       dtype = int))
+                                       mask=np.array(np.random.rand(3, 3) * 2,
+                                                     dtype=int))
 
         self.scene[6.4].area = MagicMock()
         res = self.scene.project(area)
@@ -677,6 +662,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
                     ["11_5", (10.5, 11.5, 12.5), 5000]]
 
         class SatelliteInstrumentScene2(SatelliteInstrumentScene):
+
             """Dummy satinst class.
             """
             instrument_name = random_string(8)
@@ -696,7 +682,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
 
         self.scene.load(["CTTH"])
 
-        # ### Test the reinitialization of channels_to_load
+        # Test the reinitialization of channels_to_load
         # self.scene = SatelliteInstrumentScene2()
 
         # self.assertRaises(ValueError, self.scene.load, ["00_7"], area_extent="bla")
@@ -709,7 +695,7 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
         # self.assertEquals(self.scene.loaded_channels()[0].name, "06_4")
 
         # self.scene.load(["CTTH"])
-        
+
     # def test_assemble_segments(self):
     #     """Assembling segments in a single satscene object.
     #     """
@@ -802,13 +788,12 @@ class TestSatelliteInstrumentScene(unittest.TestCase):
     #     self.assertTrue(np.ma.allclose(data0, np.ma.concatenate((data1, data2)),
     #                                    rtol = EPSILON))
 
-        
-
     def tearDown(self):
         """Unpatch foreign modules.
         """
         unpatch_configparser()
         unpatch_projector()
+
 
 def suite():
     """The test suite for test_scene.
@@ -817,5 +802,5 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSatelliteScene))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSatelliteInstrumentScene))
-    
+
     return mysuite

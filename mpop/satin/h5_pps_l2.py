@@ -5,7 +5,8 @@
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c14526.ad.smhi.se>
+#   Adam.Dybbroe <adam.dybbroe@smhi.se>
+#   Martin.Raspaud <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -108,7 +109,8 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
             var = variables[var_name]
             if ("standard_name" not in var.attrs.keys() and
-                    "long_name" not in var.attrs.keys()):
+                    "long_name" not in var.attrs.keys() and
+                    var.attrs.get("CLASS") != "PALETTE"):
                 LOG.info("Delayed processing of " + var_name)
                 continue
 
@@ -131,6 +133,9 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     # except AttributeError:
                     #     self.mda[var_name] = var[:]
                     continue
+            elif var.attrs.get("CLASS") == "PALETTE":
+                self.mda[var_name] = var[:]
+                continue
 
             setattr(self, var_name, InfoObject())
             for key, item in var.attrs.items():
@@ -155,10 +160,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             elif self.shape != dataset.shape:
                 LOG.debug("Shape=" + str(dataset.shape) +
                           " Not the same shape as previous field...")
-                #raise ValueError("Different variable shapes !")
+                # raise ValueError("Different variable shapes !")
 
-            #dims = var.dimensions
-            #dim = dims[0]
+            # dims = var.dimensions
+            # dim = dims[0]
 
             processed |= set([var_name])
 
@@ -210,7 +215,7 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
 
 class PPSReader(Reader):
 
-    pformat = "nc_pps_l2"
+    pformat = "h5_pps_l2"
 
     def load(self, satscene, *args, **kwargs):
         """Read data from file and load it into *satscene*.
@@ -275,7 +280,8 @@ class PPSReader(Reader):
                                 + str(file_list))
                 elif len(file_list) == 0:
                     LOG.warning(
-                        "No geolocation file matching!: " + filename_tmpl)
+                        "No geolocation file matching!: "
+                        + os.path.join(geodir, filename_tmpl))
                 else:
                     geofilename = file_list[0]
             except NoOptionError:
@@ -398,7 +404,7 @@ class PPSReader(Reader):
                                                (row_indices,
                                                 column_indices),
                                                (rows_full, cols_full))
-                #satint.fill_borders("y", "x")
+                # satint.fill_borders("y", "x")
                 lons, lats = satint.interpolate()
 
             try:
@@ -468,17 +474,32 @@ def get_lonlat(filename):
 
     h5f = h5py.File(filename, 'r')
 
-    lon = h5f['lon']
-    lons = (lon[:] * lon.attrs.get("scale_factor", 1)
-            + lon.attrs.get("add_offset", 0))
-    lons = np.ma.masked_equal(lons, lon.attrs["_FillValue"])
-    lat = h5f['lat']
-    lats = (lat[:] * lat.attrs.get("scale_factor", 1)
-            + lat.attrs.get("add_offset", 0))
-    lats = np.ma.masked_equal(lats, lat.attrs["_FillValue"])
+    lon = h5f["where"]["lon"]["data"]
+    no_data = h5f["where"]["lon"]["what"].attrs["nodata"]
+    missing_data = h5f["where"]["lon"]["what"].attrs["missingdata"]
+
+    lons = np.ma.masked_equal(lon[:], no_data)
+    lons = np.ma.masked_equal(lons, missing_data)
+
+    scale_factor = h5f["where"]["lon"]["what"].attrs["gain"]
+    add_offset = h5f["where"]["lon"]["what"].attrs["offset"]
+
+    lons = lons * scale_factor + add_offset
+
+    lat = h5f["where"]["lat"]["data"]
+    no_data = h5f["where"]["lat"]["what"].attrs["nodata"]
+    missing_data = h5f["where"]["lat"]["what"].attrs["missingdata"]
+
+    lats = np.ma.masked_equal(lat[:], no_data)
+    lats = np.ma.masked_equal(lats, missing_data)
+
+    scale_factor = h5f["where"]["lat"]["what"].attrs["gain"]
+    add_offset = h5f["where"]["lat"]["what"].attrs["offset"]
+
+    lats = lats * scale_factor + add_offset
 
     # FIXME: this is to mask out the npp bowtie deleted pixels...
-    if h5f.attrs['platform'] == "Suomi-NPP":
+    if h5f["how"].attrs['platform'] == "npp":
 
         new_mask = np.zeros((16, 3200), dtype=bool)
         new_mask[0, :1008] = True
@@ -493,11 +514,20 @@ def get_lonlat(filename):
         lons = np.ma.masked_where(new_mask, lons)
         lats = np.ma.masked_where(new_mask, lats)
 
-    if "column_indices" in h5f.keys():
-        col_indices = h5f["column_indices"][:]
-    if "row_indices" in h5f.keys():
-        row_indices = h5f["row_indices"][:]
-
     return {'lon': lons,
             'lat': lats,
             'col_indices': col_indices, 'row_indices': row_indices}
+
+
+if __name__ == '__main__':
+
+    from mpop.utils import debug_on
+    debug_on()
+
+    # cpp = CloudPhysicalProperties(
+    #    "/data/proj/safutv/data/polar_out/direct_readout/S_NWC_CPP_eos2_66743_20141120T1143140Z_20141120T1156542Z.nc")
+    ct = CloudType(
+        "S_NWC_CT_noaa19_30165_20141216T0135195Z_20141216T0151114Z.h5")
+
+    res = get_lonlat(
+        "S_NWC_avhrr_noaa19_30165_20141216T0135195Z_20141216T0151114Z.h5")
