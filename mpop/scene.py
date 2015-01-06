@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013, 2014.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014, 2015.
 
 # Author(s):
 
@@ -645,14 +645,25 @@ class SatelliteInstrumentScene(SatelliteScene):
                     else:
                         chn.area = self.area + str(chn.shape)
             else:  # chn.area is not None
-                if (is_pyresample_loaded and
-                    (not hasattr(chn.area, "area_id") or
-                     not chn.area.area_id)):
+                # if (is_pyresample_loaded and
+                #     (not hasattr(chn.area, "area_id") or
+                #      not chn.area.area_id)):
+                #     area_name = ("swath_" + self.fullname + "_" +
+                #                  str(self.time_slot) + "_"
+                #                  + str(chn.shape) + "_"
+                #                  + str(chn.name))
+                #     chn.area.area_id = area_name
+                LOG.debug("chn.area = " + str(chn.area))
+                LOG.debug("type(chn.area) = " + str(type(chn.area)))
+                if is_pyresample_loaded:
                     area_name = ("swath_" + self.fullname + "_" +
-                                 str(self.time_slot) + "_"
-                                 + str(chn.shape) + "_"
-                                 + str(chn.name))
-                    chn.area.area_id = area_name
+                                 str(self.time_slot) + "_" +
+                                 str(chn.shape) + "_" +
+                                 str(chn.name))
+                    if hasattr(chn.area, "area_id") and not chn.area.area_id:
+                        chn.area.area_id = area_name
+                    elif not hasattr(chn.area, "area_id"):
+                        setattr(chn.area, 'area_id', area_name)
 
             if isinstance(chn.area, str):
                 area_id = chn.area
