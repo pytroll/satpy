@@ -660,7 +660,10 @@ class SatelliteInstrumentScene(SatelliteScene):
                                  str(self.time_slot) + "_" +
                                  str(chn.shape) + "_" +
                                  str(chn.name))
+                    LOG.debug("pyresample is loaded... area-name = " +
+                              str(area_name))
                     if hasattr(chn.area, "area_id") and not chn.area.area_id:
+                        LOG.debug("chn.area has area_id attribute...")
                         chn.area.area_id = area_name
                     elif not hasattr(chn.area, "area_id"):
                         setattr(chn.area, 'area_id', area_name)
