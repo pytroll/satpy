@@ -185,7 +185,7 @@ class SatelliteInstrumentScene(SatelliteScene):
     container, from which all concrete satellite scenes should be derived.
 
     The constructor accepts as optional arguments the *time_slot* of the scene,
-    the *area* on which the scene is defined (this can be use for slicing of
+    the *area* on which the scene is defined (this can be used for slicing of
     big datasets, or can be set automatically when loading), and *orbit* which
     is a string giving the orbit number.
     """
@@ -665,7 +665,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                     if hasattr(chn.area, "area_id") and not chn.area.area_id:
                         LOG.debug("chn.area has area_id attribute...")
                         chn.area.area_id = area_name
-                    elif not hasattr(chn.area, "area_id"):
+                    elif not hasattr(chn.area, "area_id") and not isinstance(chn.area, str):
                         setattr(chn.area, 'area_id', area_name)
 
             if isinstance(chn.area, str):
