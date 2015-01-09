@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013, 2014 SMHI
+# Copyright (c) 2012, 2013, 2014, 2015 SMHI
 
 # Author(s):
 
@@ -121,7 +121,7 @@ def load_avhrr(satscene, options):
         file_list = glob.glob(filename)
 
         if len(file_list) > 1:
-            raise IOError("More than one l1b file matching!")
+            raise IOError("More than one l1b file found: " + str(file_list))
         elif len(file_list) == 0:
             raise IOError("No l1b file matching!: " + filename)
 
