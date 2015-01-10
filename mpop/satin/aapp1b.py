@@ -121,11 +121,31 @@ def load_avhrr(satscene, options):
         file_list = glob.glob(filename)
 
         if len(file_list) > 1:
-            raise IOError("More than one l1b file found: " + str(file_list))
+            LOGGER.info("More than one l1b file found: " + str(file_list))
+            # hrpt_noaa18_20150110_1658_49685.l1b
+            candidate = ('hrpt_' + satscene.fullname +
+                         satscene.time_slot.strftime('_%Y%m%d_%H%M_') +
+                         str(satscene.orbit) + '.l1b')
+            LOGGER.debug("Suggested filename = " + str(candidate))
+            candidate_found = False
+            for fname in file_list:
+                l1bname = os.path.basename(fname)
+                if l1bname == candidate:
+                    filename = fname
+                    candidate_found = True
+                    LOGGER.info(
+                        'The l1b file chosen is this: ' + str(filename))
+                    break
+            if not candidate_found:
+                LOGGER.info("More than one l1b file found: " + str(file_list))
+                LOGGER.warning("Couldn't decide which one to take. " +
+                               "Try take the first one: " + str(filename))
+                filename = file_list[0]
+
         elif len(file_list) == 0:
             raise IOError("No l1b file matching!: " + filename)
-
-        filename = file_list[0]
+        else:
+            filename = file_list[0]
 
         LOGGER.debug("Loading from " + filename)
         scene = AAPP1b(filename)
