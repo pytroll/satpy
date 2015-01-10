@@ -123,7 +123,8 @@ def load_avhrr(satscene, options):
         if len(file_list) > 1:
             LOGGER.info("More than one l1b file found: " + str(file_list))
             # hrpt_noaa18_20150110_1658_49685.l1b
-            candidate = ('hrpt_' + satscene.fullname +
+            candidate = ('hrpt_' +
+                         str(satscene.satname) + str(satscene.number) +
                          satscene.time_slot.strftime('_%Y%m%d_%H%M_') +
                          str(satscene.orbit) + '.l1b')
             LOGGER.debug("Suggested filename = " + str(candidate))
