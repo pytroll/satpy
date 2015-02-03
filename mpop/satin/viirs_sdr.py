@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014.
+# Copyright (c) 2011, 2012, 2013, 2014, 2015.
 
 # Author(s):
 
@@ -80,6 +80,7 @@ class HDF5MetaData(object):
         h5f = h5py.File(self.filename, 'r')
         h5f.visititems(self.collect_metadata)
         self._collect_attrs('/', h5f.attrs)
+        h5f.close()
         return self
 
     def _collect_attrs(self, name, attrs):
@@ -497,6 +498,8 @@ class ViirsBandData(object):
 
         self.band_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
 
+        h5f.close()
+
     def read_lonlat(self, geofilepaths=None, geodir=None):
 
         if geofilepaths is None:
@@ -806,6 +809,7 @@ def get_lonlat(filename):
             lats = h5f[key].value
         if key.endswith("Longitude"):
             lons = h5f[key].value
+    h5f.close()
 
     return (np.ma.masked_less(lons, -999, False),
             np.ma.masked_less(lats, -999, False))
@@ -824,6 +828,7 @@ def get_lonlat_into(filename, out_lons, out_lats, out_mask):
             out_mask = out_lats < -999
         if key.endswith("Longitude"):
             h5f[key].read_direct(out_lons)
+    h5f.close()
 
 
 def globify(filename):
