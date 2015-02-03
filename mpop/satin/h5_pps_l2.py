@@ -98,10 +98,6 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
             if item.attrs.get("CLASS") != 'DIMENSION_SCALE':
                 variables[key] = item
 
-        # close the h5 file.
-        h5f.close()
-        del h5f
-
         # processed variables
         processed = set()
 
@@ -179,6 +175,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         # Get lon,lat:
         # from pyresample import geometry
         # area = geometry.SwathDefinition(lons=lon, lats=lat)
+
+        # close the h5 file.
+        h5f.close()
+        del h5f
 
         return
 
