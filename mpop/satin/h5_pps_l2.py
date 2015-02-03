@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Adam.Dybbroe
+# Copyright (c) 2014, 2015 Adam.Dybbroe
 
 # Author(s):
 
@@ -97,6 +97,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
         for key, item in h5f.items():
             if item.attrs.get("CLASS") != 'DIMENSION_SCALE':
                 variables[key] = item
+
+        # close the h5 file.
+        h5f.close()
+        del h5f
 
         # processed variables
         processed = set()
@@ -513,6 +517,10 @@ def get_lonlat(filename):
         new_mask = np.tile(new_mask, (lons.shape[0] / 16, 1))
         lons = np.ma.masked_where(new_mask, lons)
         lats = np.ma.masked_where(new_mask, lats)
+
+    # close the h5 file.
+    h5f.close()
+    del h5f
 
     return {'lon': lons,
             'lat': lats,
