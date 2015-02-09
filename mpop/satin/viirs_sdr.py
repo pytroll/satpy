@@ -494,11 +494,12 @@ class ViirsBandData(object):
             # Is it necessary to mask negatives?
             #self.mask[y0_:y1_, :] |= self.raw_data[y0_:y1_, :] < 0
 
+            h5f.close()
+
         self.data = np.ma.array(self.raw_data, mask=self.mask, copy=False)
 
         self.band_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
 
-        h5f.close()
 
     def read_lonlat(self, geofilepaths=None, geodir=None):
 
