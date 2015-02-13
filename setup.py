@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2014.
+# Copyright (c) 2009-2015.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -64,8 +64,8 @@ setup(name=NAME,
       packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.satin',
                 'mpop.satout', 'mpop.saturn', 'mpop.imageo',
                 'mpop.imageo.formats'],
-      data_files=[('etc', [os.path.join('etc', 'geo_image.cfg')],
-                   'etc', [os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
+      data_files=[('etc', [os.path.join('etc', 'geo_image.cfg'),
+                           os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
                   (os.path.join('share', 'doc', NAME),
                    [os.path.join('doc', 'Makefile'),
                     os.path.join('doc', 'source', 'conf.py'),
