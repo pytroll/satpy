@@ -677,15 +677,20 @@ def write(image_data, output_fn, area_def, product_name=None, **kwargs):
         options = {}
     options['meridian_west'] = upper_left[0]
     options['meridian_east'] = lower_right[0]
-    if area_def.proj_dict.has_key('lat_0'):        
-        options['ref_lat1'] = area_def.proj_dict['lat_0']
-        options['ref_lat2'] = 0
+    if kwargs['projection'].endswith("POL"):
+        if area_def.proj_dict.has_key('lat_ts'):        
+            options['ref_lat1'] = area_def.proj_dict['lat_ts']
+            options['ref_lat2'] = 0
+    else:
+        if area_def.proj_dict.has_key('lat_0'):        
+            options['ref_lat1'] = area_def.proj_dict['lat_0']
+            options['ref_lat2'] = 0
     if area_def.proj_dict.has_key('lon_0'):        
         options['central_meridian'] = area_def.proj_dict['lon_0']
     if area_def.proj_dict.has_key('a'):        
         options['radius_a'] = area_def.proj_dict['a']
     if area_def.proj_dict.has_key('b'):        
-        options['radius_b'] = area_def.proj_dict['a']
+        options['radius_b'] = area_def.proj_dict['b']
     options['origin_lon'] = upper_left[0]
     options['origin_lat'] = upper_left[1]
     options['min_gray_val'] = image_data.min()
