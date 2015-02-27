@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Martin Raspaud
+# Copyright (c) 2014, 2015 Martin Raspaud
 
 # Author(s):
 
@@ -149,6 +149,10 @@ def load(satscene, *args, **kwargs):
 
     for chn in channels_to_load:
         satscene[chn].area = area_def
+
+    for fname in files_to_delete:
+        if os.path.exists(fname):
+            os.remove(fname)
 
 
 def read(h5f, channels, calibrate=1):
