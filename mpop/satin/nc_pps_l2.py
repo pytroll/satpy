@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Adam.Dybbroe
+# Copyright (c) 2014, 2015 Adam.Dybbroe
 
 # Author(s):
 
@@ -133,8 +133,10 @@ class NwcSafPpsChannel(mpop.channel.GenericChannel):
                     continue
 
             setattr(self, var_name, InfoObject())
-            for key, item in var.attrs.items():
+            # for key, item in var.attrs.items():
+            for key in var.attrs.keys():
                 if key != "DIMENSION_LIST":
+                    item = var.attrs[key]
                     getattr(self, var_name).info[key] = item
 
             data = var[:]
