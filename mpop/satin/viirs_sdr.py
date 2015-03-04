@@ -500,7 +500,6 @@ class ViirsBandData(object):
 
         self.band_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
 
-
     def read_lonlat(self, geofilepaths=None, geodir=None):
 
         if geofilepaths is None:
@@ -826,7 +825,7 @@ def get_lonlat_into(filename, out_lons, out_lats, out_mask):
     for key in md.get_data_keys():
         if key.endswith("Latitude"):
             h5f[key].read_direct(out_lats)
-            out_mask = out_lats < -999
+            out_mask[:] = out_lats < -999
         if key.endswith("Longitude"):
             h5f[key].read_direct(out_lons)
     h5f.close()
