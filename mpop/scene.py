@@ -212,7 +212,10 @@ class SatelliteInstrumentScene(SatelliteScene):
                 if(not section[:-1].endswith("level") and
                    not section.endswith("granules") and
                    section.startswith(self.instrument_name)):
-                    name = eval(conf.get(section, "name"))
+                    try:
+                        name = eval(conf.get(section, "name"))
+                    except NameError:
+                        name = conf.get(section, "name")
                     try:
                         w_range = eval(conf.get(section, "frequency"))
                     except ConfigParser.NoOptionError:
