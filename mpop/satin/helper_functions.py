@@ -68,10 +68,10 @@ def area_def_names_to_extent(area_def_names, proj4_str,
             maximum_extent = list(default_extent)
             continue
 
-        lon_sides = np.concatenate((boundaries[0].side1, boundaries[0].side2,
-                                    boundaries[0].side3, boundaries[0].side4))
-        lat_sides = np.concatenate((boundaries[1].side1, boundaries[1].side2,
-                                    boundaries[1].side3, boundaries[1].side4))
+        lon_sides = (boundaries[0].side1, boundaries[0].side2,
+                     boundaries[0].side3, boundaries[0].side4)
+        lat_sides = (boundaries[1].side1, boundaries[1].side2,
+                     boundaries[1].side3, boundaries[1].side4)
 
         maximum_extent = boundaries_to_extent(proj4_str, maximum_extent,
                                               default_extent,
@@ -98,7 +98,8 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
     pro = Proj(proj4_str)
 
     # extents for edges
-    x_dir, y_dir = pro(lon_sides, lat_sides)
+    x_dir, y_dir = pro(np.concatenate(lon_sides),
+                       np.concatenate(lat_sides))
 
     # replace invalid values with NaN
     x_dir[np.abs(x_dir) > 1e20] = np.nan
