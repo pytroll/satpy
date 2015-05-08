@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014.
+# Copyright (c) 2014, 2015.
 #
 # Author(s):
 #
@@ -40,10 +40,10 @@ LOGGER = logging.getLogger(__name__)
 def area_def_names_to_extent(area_def_names, proj4_str,
                              default_extent=(-5567248.07, -5570248.48,
                                              5570248.48, 5567248.07)):
-    '''Convert a list of *area_def_names* to maximal area extent in
-    destination projection defined by *proj4_str*. *default_extent*
-    gives the extreme values.  Default value is MSG3 extents at
-    lat0=0.0.
+    '''Convert a list of *area_def_names* to maximal area extent in destination
+    projection defined by *proj4_str*. *default_extent* gives the extreme
+    values.  Default value is MSG3 extents at lat0=0.0. If a boundary of one of
+    the area_defs is entirely invalid, the *default_extent* is taken.
     '''
 
     if type(area_def_names) is not list:
@@ -61,11 +61,17 @@ def area_def_names_to_extent(area_def_names, proj4_str,
         except AttributeError:
             boundaries = name.get_boundary_lonlats()
 
-        lon_sides = (boundaries[0].side1, boundaries[0].side2,
-                     boundaries[0].side3, boundaries[0].side4)
-        lat_sides = (boundaries[1].side1, boundaries[1].side2,
-                     boundaries[1].side3, boundaries[1].side4)
+        if (all(boundaries[0].side1 > 1e20) or
+                all(boundaries[0].side2 > 1e20) or
+                all(boundaries[0].side3 > 1e20) or
+                all(boundaries[0].side4 > 1e20)):
+            maximum_extent = list(default_extent)
+            continue
 
+        lon_sides = np.concatenate((boundaries[0].side1, boundaries[0].side2,
+                                    boundaries[0].side3, boundaries[0].side4))
+        lat_sides = np.concatenate((boundaries[1].side1, boundaries[1].side2,
+                                    boundaries[1].side3, boundaries[1].side4))
 
         maximum_extent = boundaries_to_extent(proj4_str, maximum_extent,
                                               default_extent,
@@ -92,8 +98,7 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
     pro = Proj(proj4_str)
 
     # extents for edges
-    x_dir, y_dir = pro(np.concatenate(lon_sides),
-                       np.concatenate(lat_sides))
+    x_dir, y_dir = pro(lon_sides, lat_sides)
 
     # replace invalid values with NaN
     x_dir[np.abs(x_dir) > 1e20] = np.nan
@@ -129,4 +134,3 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
             maximum_extent[i] = default_extent[i]
 
     return maximum_extent
-
