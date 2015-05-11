@@ -79,8 +79,7 @@ def get_sat_instr_compositer((satellite, number, variant), instrument):
     try:
         module = __import__(module_name, globals(), locals(), [class_name])
         klass = getattr(module, class_name)
-        for k in get_custom_composites(variant + satellite +
-                                       number + instrument):
+        for k in get_custom_composites(instrument):
             klass.add_method(k)
         return klass
     except (ImportError, AttributeError):
@@ -143,8 +142,7 @@ def build_sat_instr_compositer((satellite, number, variant), instrument):
                      (instrument_class,),
                      {})
 
-    for i in get_custom_composites(variant + satellite +
-                                   number + instrument):
+    for i in get_custom_composites(instrument):
         sat_class.add_method(i)
 
     return sat_class
