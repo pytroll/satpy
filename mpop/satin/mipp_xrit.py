@@ -146,7 +146,7 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
             try:
                 metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
                                          chn, only_metadata=True)
-            except mipp.ReaderError as err:
+            except ReaderError as err:
                 LOGGER.warning(str(err))
                 continue
             # if area_extent is given, assume it gives the maximum
