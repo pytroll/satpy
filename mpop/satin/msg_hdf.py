@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012, 2014.
+# Copyright (c) 2010, 2012, 2014, 2015.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -1405,8 +1405,7 @@ def load(scene, **kwargs):
                        "product": "CTTH_"})
         ct_chan = MsgCTTH()
         ct_chan.read(get_best_product(filename, area_extent))
-        ct_chan.satid = (scene.satname.capitalize() +
-                         str(int(scene.number)).rjust(2))
+        ct_chan.satid = (scene.fullname.capitalize())
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
 
@@ -1420,8 +1419,7 @@ def load(scene, **kwargs):
         ct_chan.read(products[-1])
         LOG.debug("Uncorrected file: %s", products[-1])
         ct_chan.name = "CloudType"
-        ct_chan.satid = (scene.satname.capitalize() +
-                         str(int(scene.number)).rjust(2))
+        ct_chan.satid = (scene.fullname.capitalize())
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
     if "CloudType_plax" in scene.channels_to_load:
@@ -1433,8 +1431,7 @@ def load(scene, **kwargs):
         LOG.debug("Parallax corrected file: %s", products[0])
         ct_chan_plax.read(products[0])
         ct_chan_plax.name = "CloudType_plax"
-        ct_chan_plax.satid = (scene.satname.capitalize() +
-                              str(int(scene.number)).rjust(2))
+        ct_chan_plax.satid = (scene.fullname.capitalize())
         ct_chan_plax.resolution = ct_chan_plax.area.pixel_size_x
         scene.channels.append(ct_chan_plax)
 
