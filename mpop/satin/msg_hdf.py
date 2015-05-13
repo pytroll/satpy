@@ -107,7 +107,7 @@ class PpsCloudType(mpop.channel.GenericChannel):
         self.qualityflag = None
         self.phaseflag = None
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save to *filename*.
         """
         import epshdf
@@ -148,7 +148,7 @@ class PpsCTTH(mpop.channel.GenericChannel):
         self.c_nodata = 255
         self.processingflag = None
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save to *filename*.
         """
         import epshdf
@@ -312,13 +312,13 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         self.filled = True
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current cloudtype object to hdf *filename*, in pps format.
         """
         import h5py
         ctype = self.convert2pps()
         LOG.info("Saving CType hdf file...")
-        ctype.save(filename)
+        ctype.save(filename, **kwargs)
         h5f = h5py.File(filename, mode="a")
         h5f.attrs["straylight_contaminated"] = self.qc_straylight
         h5f.close()
@@ -633,12 +633,12 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         self.filled = True
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current CTTH channel to HDF5 format.
         """
         ctth = self.convert2pps()
         LOG.info("Saving CTTH hdf file...")
-        ctth.save(filename)
+        ctth.save(filename, **kwargs)
         LOG.info("Saving CTTH hdf file done !")
 
     def project(self, coverage):
@@ -1169,7 +1169,7 @@ class NordRadCType(object):
         self.ctype = ctype_instance
         self.datestr = ctype_instance.image_acquisition_time
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current instance to nordrad hdf format.
         """
         import _pyhl
