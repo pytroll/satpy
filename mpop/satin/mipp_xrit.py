@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2013, 2014.
+# Copyright (c) 2010, 2011, 2013, 2014, 2015.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -143,8 +143,12 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
 
         # Convert area definitions to maximal area_extent
         if not area_converted_to_extent and area_def_names is not None:
-            metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
-                                     chn, only_metadata=True)
+            try:
+                metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
+                                         chn, only_metadata=True)
+            except mipp.ReaderError as err:
+                LOGGER.warning(str(err))
+                continue
             # if area_extent is given, assume it gives the maximum
             # extent of the satellite view
             if area_extent is not None:
@@ -182,9 +186,9 @@ def load_generic(satscene, options, calibrate=True, area_extent=None,
             else:
                 metadata, data = image()
 
-        except ReaderError, err:
+        except ReaderError as err:
             # if channel can't be found, go on with next channel
-            LOGGER.error(str(err))
+            LOGGER.warning(str(err))
             continue
 
         satscene[chn] = data
