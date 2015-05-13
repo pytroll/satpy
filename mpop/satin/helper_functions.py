@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014.
+# Copyright (c) 2014, 2015.
 #
 # Author(s):
 #
@@ -66,7 +66,6 @@ def area_def_names_to_extent(area_def_names, proj4_str,
         lat_sides = (boundaries[1].side1, boundaries[1].side2,
                      boundaries[1].side3, boundaries[1].side4)
 
-
         maximum_extent = boundaries_to_extent(proj4_str, maximum_extent,
                                               default_extent,
                                               lon_sides, lat_sides)
@@ -130,3 +129,26 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
 
     return maximum_extent
 
+from trollsift import Parser
+import glob
+import ConfigParser
+
+
+def get_filenames(filepattern):
+    parser = Parser(filepattern)
+    for filename in glob.iglob(parser.globify()):
+        yield filename, parser.parse(filename)
+
+
+def get_filenames_from_config(config_file, section):
+    conf = ConfigParser.ConfigParser()
+    conf.read(config_file)
+    for res in get_filenames(conf.get(section, "pattern", raw=True)):
+        yield res
+
+
+def get_filenames_from_interval(config_file, section, (start, end),
+                                key="start_time"):
+    for filename, metadata in get_filenames_from_config(config_file, section):
+        if metadata[key] > start and metadata[key] < end:
+            yield filename, metadata
