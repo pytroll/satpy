@@ -37,9 +37,56 @@ import pyresample.utils
 import glob
 from mpop.utils import get_logger
 from mpop.projector import get_area_def
+from datetime import datetime
 
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6
+
+ctype_lut = ['0: Not processed',
+             '1: Cloud free land',
+             '2: Cloud free sea',
+             '3: Snow/ice contaminated land',
+             '4: Snow/ice contaminated sea',
+             '5: Very low cumiliform cloud',
+             '6: Very low stratiform cloud',
+             '7: Low cumiliform cloud',
+             '8: Low stratiform cloud',
+             '9: Medium level cumiliform cloud',
+             '10: Medium level stratiform cloud',
+             '11: High and opaque cumiliform cloud',
+             '12: High and opaque stratiform cloud',
+             '13:Very high and opaque cumiliform cloud',
+             '14: Very high and opaque stratiform cloud',
+             '15: Very thin cirrus cloud',
+             '16: Thin cirrus cloud',
+             '17: Thick cirrus cloud',
+             '18: Cirrus above low or medium level cloud',
+             '19: Fractional or sub-pixel cloud',
+             '20: Undefined']
+phase_lut = ['1: Not processed or undefined',
+             '2: Water',
+             '4: Ice',
+             '8: Tb11 below 260K',
+             '16: value not defined',
+             '32: value not defined',
+             '64: value not defined',
+             '128: value not defined']
+quality_lut = ['1: Land',
+               '2: Coast',
+               '4: Night',
+               '8: Twilight',
+               '16: Sunglint',
+               '32: High terrain',
+               '64: Low level inversion',
+               '128: Nwp data present',
+               '256: Avhrr channel missing',
+               '512: Low quality',
+               '1024: Reclassified after spatial smoothing',
+               '2048: Stratiform-Cumuliform Distinction performed',
+               '4096: bit not defined',
+               '8192: bit not defined',
+               '16384: bit not defined',
+               '32768: bit not defined']
 
 
 def pcs_def_from_region(region):
@@ -89,70 +136,14 @@ def _get_palette(h5f, dsname):
         return None
 
 
-class PpsCloudType(mpop.channel.GenericChannel):
+class InfoObject(object):
+
+    """Simple data and info container.
+    """
 
     def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CloudType")
-        self.region = None
-        self.des = ""
-        self.cloudtype_des = ""
-        self.qualityflag_des = ""
-        self.phaseflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.cloudtype_lut = []
-        self.qualityflag_lut = []
-        self.phaseflag_lut = []
-        self.cloudtype = None
-        self.qualityflag = None
-        self.phaseflag = None
-
-    def save(self, filename, **kwargs):
-        """Save to *filename*.
-        """
-        import epshdf
-        epshdf.write_cloudtype(filename, self, COMPRESS_LVL)
-
-
-class PpsCTTH(mpop.channel.GenericChannel):
-
-    def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CTTH")
-        self.region = None
-        self.des = ""
-        self.ctt_des = ""
-        self.cth_des = ""
-        self.ctp_des = ""
-        self.cloudiness_des = ""
-        self.processingflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.processingflag_lut = []
-
-        self.temperature = None
-        self.t_gain = 1.0
-        self.t_intercept = 0.0
-        self.t_nodata = 255
-
-        self.pressure = None
-        self.p_gain = 1.0
-        self.p_intercept = 0.0
-        self.p_nodata = 255
-
-        self.height = None
-        self.h_gain = 1.0
-        self.h_intercept = 0.0
-        self.h_nodata = 255
-
-        self.cloudiness = None
-        self.c_nodata = 255
-        self.processingflag = None
-
-    def save(self, filename, **kwargs):
-        """Save to *filename*.
-        """
-        import epshdf
-        epshdf.write_cloudtop(filename, self, COMPRESS_LVL)
+        self.info = {}
+        self.data = None
 
 # ----------------------------------------
 
@@ -256,7 +247,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
@@ -391,13 +383,12 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         return retv
 
-    def convert2pps(self):
+    def oldconvert2pps(self):
         """Converts the NWCSAF/MSG Cloud Type to the PPS format,
         in order to have consistency in output format between PPS and MSG.
         """
-        import epshdf
         retv = PpsCloudType()
-        retv.region = epshdf.SafRegion()
+        retv.region = SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
         retv.region.id = self.region_name
@@ -418,6 +409,61 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.cloudtype = self.cloudtype.astype('B')
         retv.phaseflag = self.cloudphase.astype('B')
         retv.qualityflag = ctype_procflags2pps(self.processing_flags)
+
+        return retv
+
+    def convert2pps(self):
+        from mpop.satin.nwcsaf_pps import CloudType
+        retv = CloudType()
+
+        region_type = np.dtype([('area_extent', '<f8', (4,)),
+                                ('xsize', '<i4'),
+                                ('ysize', '<i4'),
+                                ('xscale', '<f4'),
+                                ('yscale', '<f4'),
+                                ('lat_0', '<f4'),
+                                ('lon_0', '<f4'),
+                                ('lat_ts', '<f4'),
+                                ('id', 'S64'),
+                                ('name', 'S64'),
+                                ('pcs_id', 'S128'),
+                                ('pcs_def', 'S128')])
+
+        region = np.zeros((1, ), dtype=region_type)
+
+        region["xsize"] = self.num_of_columns
+        region["ysize"] = self.num_of_lines
+        region["id"] = self.region_name
+        region["pcs_id"] = self.projection_name
+
+        region["pcs_def"] = pcs_def_from_region(self.area)
+        region["area_extent"] = self.area.area_extent
+
+        retv.region = InfoObject()
+        retv.region.data = region
+        retv._keys.append("region")
+
+        retv._md["satellite"] = self.satid
+        retv._md["time_slot"] = self.nominal_product_time
+
+        retv.cloudtype = InfoObject()
+        retv.cloudtype.info["output_value_nameslist"] = ctype_lut
+        retv.cloudtype.info["description"] = "MSG SEVIRI Cloud Type"
+        retv.cloudtype.data = self.cloudtype.astype('B')
+        retv._projectables.append("cloudtype")
+
+        retv.phase_flag = InfoObject()
+        retv.phase_flag.info["output_value_nameslist"] = phase_lut
+        retv.phase_flag.info["description"] = 'MSG SEVIRI Cloud phase flags'
+        retv.phase_flag.data = self.cloudphase.astype('B')
+        retv._projectables.append("phase_flag")
+
+        retv.quality_flag = InfoObject()
+        retv.quality_flag.info["output_value_nameslist"] = quality_lut
+        retv.quality_flag.info[
+            "description"] = 'MSG SEVIRI bitwise quality/processing flags'
+        retv.quality_flag.data = ctype_procflags2pps(self.processing_flags)
+        retv._projectables.append("quality_flag")
 
         return retv
 
@@ -515,7 +561,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
@@ -671,12 +718,11 @@ class MsgCTTH(mpop.channel.GenericChannel):
         return retv
 
 # ------------------------------------------------------------------
-    def convert2pps(self):
+    def oldconvert2pps(self):
         """Convert the current CTTH channel to pps format.
         """
-        import epshdf
         retv = PpsCTTH()
-        retv.region = epshdf.SafRegion()
+        retv.region = SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
         retv.region.id = self.region_name
@@ -718,6 +764,91 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.c_nodata = 255  # Is this correct? FIXME
 
         retv.processingflag = ctth_procflags2pps(self.processing_flags)
+
+        return retv
+
+    def convert2pps(self):
+        """Convert the current CTTH channel to pps format.
+        """
+        from mpop.satin.nwcsaf_pps import CloudTopTemperatureHeight
+        retv = CloudTopTemperatureHeight()
+
+        region_type = np.dtype([('area_extent', '<f8', (4,)),
+                                ('xsize', '<i4'),
+                                ('ysize', '<i4'),
+                                ('xscale', '<f4'),
+                                ('yscale', '<f4'),
+                                ('lat_0', '<f4'),
+                                ('lon_0', '<f4'),
+                                ('lat_ts', '<f4'),
+                                ('id', 'S64'),
+                                ('name', 'S64'),
+                                ('pcs_id', 'S128'),
+                                ('pcs_def', 'S128')])
+
+        region = np.zeros((1, ), dtype=region_type)
+
+        region["xsize"] = self.num_of_columns
+        region["ysize"] = self.num_of_lines
+        region["id"] = self.region_name
+        region["pcs_id"] = self.projection_name
+
+        region["pcs_def"] = pcs_def_from_region(self.area)
+        region["area_extent"] = self.area.area_extent
+
+        retv.region = InfoObject()
+        retv.region.data = region
+        retv._keys.append("region")
+
+        retv._md["satellite"] = self.satid
+        retv._md["time_slot"] = self.nominal_product_time
+        retv._md["description"] = "MSG SEVIRI Cloud Top Temperature & Height"
+        retv.processingflag_lut = []
+
+        retv.cloudiness = InfoObject()
+        retv.cloudiness.info["description"] = \
+            "MSG SEVIRI effective cloudiness (%)"
+        retv.cloudiness.info["gain"] = 0.0
+        retv.cloudiness.info["intercept"] = 0.0
+        retv.cloudiness.info["no_data_value"] = np.uint8(255)
+        retv.cloudiness.data = self.cloudiness.astype('B')
+        retv._projectables.append("cloudiness")
+
+        retv.height = InfoObject()
+        retv.height.info["description"] = "MSG SEVIRI cloud top height (m)"
+        retv.height.info["gain"] = 200.0
+        retv.height.info["intercept"] = 0.0
+        retv.height.info["no_data_value"] = np.uint8(255)
+        retv.height.data = ((self.height - 0.0) /
+                            200.0).filled(255).astype('B')
+        retv._projectables.append("height")
+
+        retv.pressure = InfoObject()
+        retv.pressure.info["description"] = \
+            "MSG SEVIRI cloud top pressure (hPa)"
+        retv.pressure.info["gain"] = 25.0
+        retv.pressure.info["intercept"] = 0.0
+        retv.pressure.info["no_data_value"] = np.uint8(255)
+        retv.pressure.data = ((self.pressure - 0.0) /
+                              25.0).filled(255).astype('B')
+        retv._projectables.append("pressure")
+
+        retv.temperature = InfoObject()
+        retv.temperature.info["description"] = \
+            "MSG SEVIRI cloud top temperature (K)"
+        retv.temperature.info["gain"] = 1.0
+        retv.temperature.info["intercept"] = 100.0
+        retv.temperature.info["no_data_value"] = np.uint8(255)
+        retv.temperature.data = ((self.temperature - 100.0) /
+                                 1.0).filled(255).astype('B')
+        retv._projectables.append("temperature")
+
+        retv.processing_flag = InfoObject()
+        #retv.processing_flag.info["output_value_nameslist"] = processing_lut
+        retv.processing_flag.info[
+            "description"] = 'MSG SEVIRI bitwise quality/processing flags'
+        retv.processing_flag.data = ctth_procflags2pps(self.processing_flags)
+        retv._projectables.append("processing_flag")
 
         return retv
 
@@ -818,7 +949,8 @@ class MsgPC(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
@@ -1107,57 +1239,12 @@ def ctype_procflags2pps(data):
     return retv.astype('h')
 
 
-def pps_luts():
-    """Gets the LUTs for the PPS Cloud Type data fields.
-    Returns a tuple with Cloud Type lut, Cloud Phase lut, Processing flags lut
-    """
-    ctype_lut = ['0: Not processed',
-                 '1: Cloud free land',
-                 '2: Cloud free sea',
-                 '3: Snow/ice contaminated land',
-                 '4: Snow/ice contaminated sea',
-                 '5: Very low cumiliform cloud',
-                 '6: Very low stratiform cloud',
-                 '7: Low cumiliform cloud',
-                 '8: Low stratiform cloud',
-                 '9: Medium level cumiliform cloud',
-                 '10: Medium level stratiform cloud',
-                 '11: High and opaque cumiliform cloud',
-                 '12: High and opaque stratiform cloud',
-                 '13:Very high and opaque cumiliform cloud',
-                 '14: Very high and opaque stratiform cloud',
-                 '15: Very thin cirrus cloud',
-                 '16: Thin cirrus cloud',
-                 '17: Thick cirrus cloud',
-                 '18: Cirrus above low or medium level cloud',
-                 '19: Fractional or sub-pixel cloud',
-                 '20: Undefined']
-    phase_lut = ['1: Not processed or undefined',
-                 '2: Water',
-                 '4: Ice',
-                 '8: Tb11 below 260K',
-                 '16: value not defined',
-                 '32: value not defined',
-                 '64: value not defined',
-                 '128: value not defined']
-    quality_lut = ['1: Land',
-                   '2: Coast',
-                   '4: Night',
-                   '8: Twilight',
-                   '16: Sunglint',
-                   '32: High terrain',
-                   '64: Low level inversion',
-                   '128: Nwp data present',
-                   '256: Avhrr channel missing',
-                   '512: Low quality',
-                   '1024: Reclassified after spatial smoothing',
-                   '2048: Stratiform-Cumuliform Distinction performed',
-                   '4096: bit not defined',
-                   '8192: bit not defined',
-                   '16384: bit not defined',
-                   '32768: bit not defined']
+# def pps_luts():
+#     """Gets the LUTs for the PPS Cloud Type data fields.
+#     Returns a tuple with Cloud Type lut, Cloud Phase lut, Processing flags lut
+#     """
 
-    return ctype_lut, phase_lut, quality_lut
+#     return ctype_lut, phase_lut, quality_lut
 
 
 class NordRadCType(object):
@@ -1310,7 +1397,7 @@ def get_best_product(filename, area_extent):
                 return flist[0]
             for fname in flist:
                 aex = get_area_extent(fname)
-                #import pdb
+                # import pdb
                 # pdb.set_trace()
                 if np.all(np.max(np.abs(np.array(aex) -
                                         np.array(area_extent))) < 1000):
