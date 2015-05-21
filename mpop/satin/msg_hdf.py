@@ -465,6 +465,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.quality_flag.data = ctype_procflags2pps(self.processing_flags)
         retv._projectables.append("quality_flag")
 
+        retv.save = retv.write
         return retv
 
     def convert2nordrad(self):
@@ -849,6 +850,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
             "description"] = 'MSG SEVIRI bitwise quality/processing flags'
         retv.processing_flag.data = ctth_procflags2pps(self.processing_flags)
         retv._projectables.append("processing_flag")
+
+        retv.save = retv.write
 
         return retv
 
