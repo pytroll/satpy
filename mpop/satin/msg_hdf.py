@@ -414,6 +414,9 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
     def convert2pps(self):
         from mpop.satin.nwcsaf_pps import CloudType
+        from nwcsaf_formats.pps_conversions import (old_ctype_palette,
+                                                    old_ctype_palette_data)
+
         retv = CloudType()
 
         region_type = np.dtype([('area_extent', '<f8', (4,)),
@@ -446,22 +449,46 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv._md["satellite"] = self.satid
         retv._md["time_slot"] = self.nominal_product_time
 
+        retv.PALETTE = InfoObject()
+        retv.PALETTE.data = old_ctype_palette_data()
+        retv.PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("PALETTE")
+
         retv.cloudtype = InfoObject()
         retv.cloudtype.info["output_value_nameslist"] = ctype_lut
-        retv.cloudtype.info["description"] = "MSG SEVIRI Cloud Type"
+        retv.cloudtype.info["CLASS"] = "IMAGE"
+        retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE")
+        retv.cloudtype.info["description"] = np.string_(
+            "MSG SEVIRI Cloud Type")
         retv.cloudtype.data = self.cloudtype.astype('B')
         retv._projectables.append("cloudtype")
 
+        retv.PHASE_PALETTE = InfoObject()
+        retv.PHASE_PALETTE.data = self.cloudphase_palette
+        retv.PHASE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.PHASE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.PHASE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.PHASE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("PHASE_PALETTE")
+
         retv.phase_flag = InfoObject()
         retv.phase_flag.info["output_value_nameslist"] = phase_lut
-        retv.phase_flag.info["description"] = 'MSG SEVIRI Cloud phase flags'
+        retv.phase_flag.info["CLASS"] = "IMAGE"
+        retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
+        retv.phase_flag.info["description"] = np.string_(
+            'MSG SEVIRI Cloud phase flags')
         retv.phase_flag.data = self.cloudphase.astype('B')
         retv._projectables.append("phase_flag")
 
         retv.quality_flag = InfoObject()
         retv.quality_flag.info["output_value_nameslist"] = quality_lut
         retv.quality_flag.info[
-            "description"] = 'MSG SEVIRI bitwise quality/processing flags'
+            "description"] = np.string_('MSG SEVIRI bitwise quality/processing flags')
         retv.quality_flag.data = ctype_procflags2pps(self.processing_flags)
         retv._projectables.append("quality_flag")
 
@@ -772,6 +799,10 @@ class MsgCTTH(mpop.channel.GenericChannel):
         """Convert the current CTTH channel to pps format.
         """
         from mpop.satin.nwcsaf_pps import CloudTopTemperatureHeight
+        from nwcsaf_formats.pps_conversions import (old_ctth_press_palette_data,
+                                                    old_ctth_temp_palette_data,
+                                                    old_ctth_height_palette_data)
+
         retv = CloudTopTemperatureHeight()
 
         region_type = np.dtype([('area_extent', '<f8', (4,)),
@@ -815,6 +846,14 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.cloudiness.data = self.cloudiness.astype('B')
         retv._projectables.append("cloudiness")
 
+        retv.HEIGHT_PALETTE = InfoObject()
+        retv.HEIGHT_PALETTE.data = old_ctth_height_palette_data()
+        retv.HEIGHT_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.HEIGHT_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.HEIGHT_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.HEIGHT_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("HEIGHT_PALETTE")
+
         retv.height = InfoObject()
         retv.height.info["description"] = "MSG SEVIRI cloud top height (m)"
         retv.height.info["gain"] = 200.0
@@ -822,7 +861,18 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.height.info["no_data_value"] = np.uint8(255)
         retv.height.data = ((self.height - 0.0) /
                             200.0).filled(255).astype('B')
+        retv.height.info["CLASS"] = "IMAGE"
+        retv.height.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("height", "PALETTE")] = np.string_("HEIGHT_PALETTE")
         retv._projectables.append("height")
+
+        retv.PRESSURE_PALETTE = InfoObject()
+        retv.PRESSURE_PALETTE.data = old_ctth_press_palette_data()
+        retv.PRESSURE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.PRESSURE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.PRESSURE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.PRESSURE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("PRESSURE_PALETTE")
 
         retv.pressure = InfoObject()
         retv.pressure.info["description"] = \
@@ -832,7 +882,18 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.pressure.info["no_data_value"] = np.uint8(255)
         retv.pressure.data = ((self.pressure - 0.0) /
                               25.0).filled(255).astype('B')
+        retv.pressure.info["CLASS"] = "IMAGE"
+        retv.pressure.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("pressure", "PALETTE")] = np.string_("PRESSURE_PALETTE")
         retv._projectables.append("pressure")
+
+        retv.TEMPERATURE_PALETTE = InfoObject()
+        retv.TEMPERATURE_PALETTE.data = old_ctth_temp_palette_data()
+        retv.TEMPERATURE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.TEMPERATURE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.TEMPERATURE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.TEMPERATURE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("TEMPERATURE_PALETTE")
 
         retv.temperature = InfoObject()
         retv.temperature.info["description"] = \
@@ -842,10 +903,14 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.temperature.info["no_data_value"] = np.uint8(255)
         retv.temperature.data = ((self.temperature - 100.0) /
                                  1.0).filled(255).astype('B')
+        retv.temperature.info["CLASS"] = "IMAGE"
+        retv.temperature.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("temperature", "PALETTE")] = np.string_(
+            "TEMPERATURE_PALETTE")
         retv._projectables.append("temperature")
 
         retv.processing_flag = InfoObject()
-        #retv.processing_flag.info["output_value_nameslist"] = processing_lut
+        # retv.processing_flag.info["output_value_nameslist"] = processing_lut
         retv.processing_flag.info[
             "description"] = 'MSG SEVIRI bitwise quality/processing flags'
         retv.processing_flag.data = ctth_procflags2pps(self.processing_flags)
@@ -1479,7 +1544,6 @@ def load(scene, **kwargs):
     """
 
     area_extent = kwargs.get("area_extent")
-    print area_extent
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname + ".cfg"))
     directory = conf.get(scene.instrument_name + "-level3",
