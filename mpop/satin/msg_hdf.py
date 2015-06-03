@@ -863,7 +863,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.height.info["no_data_value"] = np.uint8(255)
         retv.height.data = ((self.height - 0.0) /
                             200.0).filled(255).astype('B')
-        retv.height.info["CLASS"] = np.string("IMAGE")
+        retv.height.info["CLASS"] = np.string_("IMAGE")
         retv.height.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("height", "PALETTE")] = np.string_("HEIGHT_PALETTE")
         retv._projectables.append("height")
@@ -884,7 +884,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.pressure.info["no_data_value"] = np.uint8(255)
         retv.pressure.data = ((self.pressure - 0.0) /
                               25.0).filled(255).astype('B')
-        retv.pressure.info["CLASS"] = np.string("IMAGE")
+        retv.pressure.info["CLASS"] = np.string_("IMAGE")
         retv.pressure.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("pressure", "PALETTE")] = np.string_("PRESSURE_PALETTE")
         retv._projectables.append("pressure")
@@ -905,7 +905,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.temperature.info["no_data_value"] = np.uint8(255)
         retv.temperature.data = ((self.temperature - 100.0) /
                                  1.0).filled(255).astype('B')
-        retv.temperature.info["CLASS"] = np.string("IMAGE")
+        retv.temperature.info["CLASS"] = np.string_("IMAGE")
         retv.temperature.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("temperature", "PALETTE")] = np.string_(
             "TEMPERATURE_PALETTE")
@@ -1592,3 +1592,20 @@ def load(scene, **kwargs):
         scene.channels.append(ct_chan_plax)
 
     LOG.info("Loading channels done.")
+
+
+if __name__ == '__main__':
+
+    filename = "/data/proj/safutv/geo_out/0deg/SAFNWC_MSG3_CT___201505260615_MSG-N_______.h5"
+
+    ct = MsgCloudType()
+    ct.read(filename)
+
+    ct.convert2pps().save("blact.h5")
+
+    filename = "/data/proj/safutv/geo_out/0deg/SAFNWC_MSG3_CTTH_201505260615_MSG-N_______.h5"
+    filename = "/data/24/saf/geo_out/0deg/SAFNWC_MSG3_CTTH_201505260615_EuropeCanary.h5"
+    ct = MsgCTTH()
+    ct.read(filename)
+
+    ct.convert2pps().save("blactth.h5")
