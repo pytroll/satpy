@@ -459,7 +459,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         retv.cloudtype = InfoObject()
         retv.cloudtype.info["output_value_nameslist"] = ctype_lut
-        retv.cloudtype.info["CLASS"] = "IMAGE"
+        retv.cloudtype.info["CLASS"] = np.string_("IMAGE")
         retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE")
         retv.cloudtype.info["description"] = np.string_(
@@ -477,7 +477,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         retv.phase_flag = InfoObject()
         retv.phase_flag.info["output_value_nameslist"] = phase_lut
-        retv.phase_flag.info["CLASS"] = "IMAGE"
+        retv.phase_flag.info["CLASS"] = np.string_("IMAGE")
         retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
         retv.phase_flag.info["description"] = np.string_(
@@ -834,14 +834,15 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         retv._md["satellite"] = self.satid
         retv._md["time_slot"] = self.nominal_product_time
-        retv._md["description"] = "MSG SEVIRI Cloud Top Temperature & Height"
+        retv._md["description"] = np.string_(
+            "MSG SEVIRI Cloud Top Temperature & Height")
         retv.processingflag_lut = []
 
         retv.cloudiness = InfoObject()
         retv.cloudiness.info["description"] = \
             "MSG SEVIRI effective cloudiness (%)"
-        retv.cloudiness.info["gain"] = 0.0
-        retv.cloudiness.info["intercept"] = 0.0
+        retv.cloudiness.info["gain"] = np.float32(0.0)
+        retv.cloudiness.info["intercept"] = np.float32(0.0)
         retv.cloudiness.info["no_data_value"] = np.uint8(255)
         retv.cloudiness.data = self.cloudiness.astype('B')
         retv._projectables.append("cloudiness")
@@ -855,13 +856,14 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv._keys.append("HEIGHT_PALETTE")
 
         retv.height = InfoObject()
-        retv.height.info["description"] = "MSG SEVIRI cloud top height (m)"
-        retv.height.info["gain"] = 200.0
-        retv.height.info["intercept"] = 0.0
+        retv.height.info["description"] = np.string_(
+            "MSG SEVIRI cloud top height (m)")
+        retv.height.info["gain"] = np.float32(200.0)
+        retv.height.info["intercept"] = np.float32(0.0)
         retv.height.info["no_data_value"] = np.uint8(255)
         retv.height.data = ((self.height - 0.0) /
                             200.0).filled(255).astype('B')
-        retv.height.info["CLASS"] = "IMAGE"
+        retv.height.info["CLASS"] = np.string("IMAGE")
         retv.height.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("height", "PALETTE")] = np.string_("HEIGHT_PALETTE")
         retv._projectables.append("height")
@@ -876,13 +878,13 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         retv.pressure = InfoObject()
         retv.pressure.info["description"] = \
-            "MSG SEVIRI cloud top pressure (hPa)"
-        retv.pressure.info["gain"] = 25.0
-        retv.pressure.info["intercept"] = 0.0
+            np.string_("MSG SEVIRI cloud top pressure (hPa)")
+        retv.pressure.info["gain"] = np.float32(25.0)
+        retv.pressure.info["intercept"] = np.float32(0.0)
         retv.pressure.info["no_data_value"] = np.uint8(255)
         retv.pressure.data = ((self.pressure - 0.0) /
                               25.0).filled(255).astype('B')
-        retv.pressure.info["CLASS"] = "IMAGE"
+        retv.pressure.info["CLASS"] = np.string("IMAGE")
         retv.pressure.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("pressure", "PALETTE")] = np.string_("PRESSURE_PALETTE")
         retv._projectables.append("pressure")
@@ -897,13 +899,13 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         retv.temperature = InfoObject()
         retv.temperature.info["description"] = \
-            "MSG SEVIRI cloud top temperature (K)"
-        retv.temperature.info["gain"] = 1.0
-        retv.temperature.info["intercept"] = 100.0
+            np.string_("MSG SEVIRI cloud top temperature (K)")
+        retv.temperature.info["gain"] = np.float32(1.0)
+        retv.temperature.info["intercept"] = np.float32(100.0)
         retv.temperature.info["no_data_value"] = np.uint8(255)
         retv.temperature.data = ((self.temperature - 100.0) /
                                  1.0).filled(255).astype('B')
-        retv.temperature.info["CLASS"] = "IMAGE"
+        retv.temperature.info["CLASS"] = np.string("IMAGE")
         retv.temperature.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("temperature", "PALETTE")] = np.string_(
             "TEMPERATURE_PALETTE")
@@ -911,8 +913,8 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         retv.processing_flag = InfoObject()
         # retv.processing_flag.info["output_value_nameslist"] = processing_lut
-        retv.processing_flag.info[
-            "description"] = 'MSG SEVIRI bitwise quality/processing flags'
+        retv.processing_flag.info["description"] = np.string_(
+            'MSG SEVIRI bitwise quality/processing flags')
         retv.processing_flag.data = ctth_procflags2pps(self.processing_flags)
         retv._projectables.append("processing_flag")
 
