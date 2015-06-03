@@ -429,7 +429,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
                                 ('lat_ts', '<f4'),
                                 ('id', 'S64'),
                                 ('name', 'S64'),
-                                ('pcs_id', 'S128'),
+                                ('pcs_id', 'S64'),
                                 ('pcs_def', 'S128')])
 
         region = np.zeros((1, ), dtype=region_type)
@@ -446,6 +446,9 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.region.data = region
         retv._keys.append("region")
 
+        retv.Region = region_type
+        retv._keys.append("Region")
+
         retv._md["satellite"] = self.satid
         retv._md["time_slot"] = self.nominal_product_time
 
@@ -457,8 +460,14 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.PALETTE.info["PAL_VERSION"] = np.string_("1.2")
         retv._keys.append("PALETTE")
 
+        namelist = np.dtype([('desc', 'S128')])
+        retv.OutputValueNameList = namelist
+        retv._keys.append("OutputValueNameList")
+
         retv.cloudtype = InfoObject()
-        retv.cloudtype.info["output_value_nameslist"] = ctype_lut
+        #retv.cloudtype.info["output_value_namelist"] = ctype_lut
+        retv.cloudtype.info["output_value_namelist"] = np.zeros((21, ),
+                                                                dtype=namelist)
         retv.cloudtype.info["CLASS"] = np.string_("IMAGE")
         retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2")
         retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE")
