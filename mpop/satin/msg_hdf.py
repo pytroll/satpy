@@ -467,19 +467,19 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.cloudtype.data = self.cloudtype.astype('B')
         retv._projectables.append("cloudtype")
 
-        retv.PHASE_PALETTE = InfoObject()
-        retv.PHASE_PALETTE.data = self.cloudphase_palette
-        retv.PHASE_PALETTE.info["CLASS"] = np.string_("PALETTE")
-        retv.PHASE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
-        retv.PHASE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
-        retv.PHASE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
-        retv._keys.append("PHASE_PALETTE")
+        # retv.PHASE_PALETTE = InfoObject()
+        # retv.PHASE_PALETTE.data = self.cloudphase_palette
+        # retv.PHASE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        # retv.PHASE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        # retv.PHASE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        # retv.PHASE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        # retv._keys.append("PHASE_PALETTE")
 
         retv.phase_flag = InfoObject()
         retv.phase_flag.info["output_value_nameslist"] = phase_lut
-        retv.phase_flag.info["CLASS"] = np.string_("IMAGE")
-        retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
-        retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
+        # retv.phase_flag.info["CLASS"] = np.string_("IMAGE")
+        # retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
+        # retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
         retv.phase_flag.info["description"] = np.string_(
             'MSG SEVIRI Cloud phase flags')
         retv.phase_flag.data = self.cloudphase.astype('B')
