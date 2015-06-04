@@ -449,8 +449,11 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.Region = region_type
         retv._keys.append("Region")
 
-        retv._md["satellite"] = self.satid
         retv._md["time_slot"] = self.nominal_product_time
+        retv._md["description"] = np.string_(
+            "MSG SEVIRI Cloud Type")
+        retv._md["satellite_id"] = np.string_(self.satid)
+        retv._md["sec_1970"] = np.uint64(0)
 
         retv.PALETTE = InfoObject()
         retv.PALETTE.data = old_ctype_palette_data()
@@ -841,10 +844,12 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.region.data = region
         retv._keys.append("region")
 
-        retv._md["satellite"] = self.satid
         retv._md["time_slot"] = self.nominal_product_time
         retv._md["description"] = np.string_(
             "MSG SEVIRI Cloud Top Temperature & Height")
+        retv._md["satellite_id"] = np.string_(self.satid)
+        retv._md["sec_1970"] = np.uint64(0)
+
         retv.processingflag_lut = []
 
         retv.cloudiness = InfoObject()
