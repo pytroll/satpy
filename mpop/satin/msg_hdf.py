@@ -454,13 +454,13 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         retv.PALETTE = InfoObject()
         retv.PALETTE.data = old_ctype_palette_data()
-        retv.PALETTE.info["CLASS"] = np.string_("PALETTE")
-        retv.PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
-        retv.PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
-        retv.PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv.PALETTE.info["CLASS"] = np.string_("PALETTE\0")
+        retv.PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB\0")
+        retv.PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8\0")
+        retv.PALETTE.info["PAL_VERSION"] = np.string_("1.2\0")
         retv._keys.append("PALETTE")
 
-        namelist = np.dtype([('desc', 'S128')])
+        namelist = np.dtype([('outval_name', 'S128')])
         retv.OutputValueNameList = namelist
         retv._keys.append("OutputValueNameList")
 
@@ -468,9 +468,9 @@ class MsgCloudType(mpop.channel.GenericChannel):
         #retv.cloudtype.info["output_value_namelist"] = ctype_lut
         retv.cloudtype.info["output_value_namelist"] = np.zeros((21, ),
                                                                 dtype=namelist)
-        retv.cloudtype.info["CLASS"] = np.string_("IMAGE")
-        retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2")
-        retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE")
+        retv.cloudtype.info["CLASS"] = np.string_("IMAGE\0")
+        retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2\0")
+        retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE\0")
         retv.cloudtype.info["description"] = np.string_(
             "MSG SEVIRI Cloud Type")
         retv.cloudtype.data = self.cloudtype.astype('B')
