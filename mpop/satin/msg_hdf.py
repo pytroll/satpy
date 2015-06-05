@@ -468,8 +468,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv._keys.append("OutputValueNameList")
 
         retv.cloudtype = InfoObject()
-        #retv.cloudtype.info["output_value_namelist"] = ctype_lut
-        retv.cloudtype.info["output_value_namelist"] = np.zeros((21, ),
+        retv.cloudtype.info["output_value_namelist"] = np.array(ctype_lut,
                                                                 dtype=namelist)
         retv.cloudtype.info["CLASS"] = np.string_("IMAGE\0")
         retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2\0")
@@ -488,7 +487,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         # retv._keys.append("PHASE_PALETTE")
 
         retv.phase_flag = InfoObject()
-        retv.phase_flag.info["output_value_nameslist"] = phase_lut
+        retv.phase_flag.info["output_value_nameslist"] = np.array(phase_lut,
+                                                                  dtype=namelist)
         # retv.phase_flag.info["CLASS"] = np.string_("IMAGE")
         # retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
         # retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
@@ -498,7 +498,8 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv._projectables.append("phase_flag")
 
         retv.quality_flag = InfoObject()
-        retv.quality_flag.info["output_value_nameslist"] = quality_lut
+        retv.quality_flag.info["output_value_nameslist"] = np.array(quality_lut,
+                                                                    dtype=namelist)
         retv.quality_flag.info[
             "description"] = np.string_('MSG SEVIRI bitwise quality/processing flags')
         retv.quality_flag.data = ctype_procflags2pps(self.processing_flags)
