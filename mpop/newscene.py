@@ -30,21 +30,17 @@ import trollsift
 import glob
 import fnmatch
 import weakref
+import numpy as np
+import imp
+import mpop.satin
+from mpop.utils import debug_on
+debug_on()
 
 
 class InfoObject(object):
 
     def __init__(self, **attributes):
         self.info = attributes
-
-    def __getattr__(self, name):
-        try:
-            return self.info[name]
-        except KeyError:
-            raise AttributeError
-
-    def get(self, key, default=None):
-        return self.info.get(key, default)
 
 
 class Dataset(InfoObject):
@@ -73,20 +69,32 @@ class Projectable(Dataset):
 
     def __init__(self, uid, data=None, **info):
         Dataset.__init__(self, data, uid=uid, **info)
-        self.callback = None
-
-    def __call__(self, *args, **kwargs):
-        try:
-            self.callback(*args, **kwargs)
-        except TypeError:
-            raise TypeError("No callback defined")
 
     def project(self, destination_area):
         # call the projection stuff here
         pass
 
+    def is_loaded(self):
+        return self.data is not None
+
 
 class Channel(Projectable):
+
+    def show(self):
+        """Display the channel as an image.
+        """
+        if not self.is_loaded():
+            raise ValueError("Channel not loaded, cannot display.")
+
+        from PIL import Image as pil
+
+        data = ((self.data - self.data.min()) * 255.0 /
+                (self.data.max() - self.data.min()))
+        if isinstance(data, np.ma.core.MaskedArray):
+            img = pil.fromarray(np.array(data.filled(0), np.uint8))
+        else:
+            img = pil.fromarray(np.array(data, np.uint8))
+        img.show()
 
     def __str__(self):
 
@@ -152,22 +160,17 @@ class ProductHolder(object):
 
 class Scene(InfoObject):
 
-    def __init__(self, **info):
-        self.projectables = []
-
+    def __init__(self, filenames=None, **info):
         InfoObject.__init__(self, **info)
-        self.product = ProductHolder(weakref.proxy(self))
+        self.projectables = []
+        if filenames is not None:
+            self.open(*filenames)
+            self.filenames = filenames
+        # self.product = ProductHolder(weakref.proxy(self))
+        self.products = {}
 
-    # Black magic to add methods on the fly
-    def add_method_to_instance(self, func):
-        """Add a method to the instance.
-        """
-        return setattr(self, func.__name__,
-                       types.MethodType(func, self.__class__))
-
-    def add_product(self, func):
-        return setattr(self, func.__name__,
-                       types.MethodType(func, self.__class__))
+    def add_product(self, name, obj):
+        self.products[name] = obj
 
     def _read_config(self, cfg_file):
         conf = ConfigParser.RawConfigParser()
@@ -177,9 +180,11 @@ class Scene(InfoObject):
 
         conf.read(cfg_file)
 
-        self.info["platform_name"] = conf.get("satellite", "satname")
+        self.info["platform_name"] = conf.get("platform", "platform_name")
+        self.info["sensors"] = conf.get(
+            "platform", "sensors").split(",")
 
-        instruments = conf.get("satellite", "instruments").split(",")
+        instruments = self.info["sensors"]
         for instrument in instruments:
             for section in sorted(conf.sections()):
                 if not section.startswith(instrument):
@@ -203,17 +208,20 @@ class Scene(InfoObject):
     def __str__(self):
         return "\n".join((str(prj) for prj in self.projectables))
 
+    def __iter__(self):
+        return self.projectables.__iter__()
+
     def __getitem__(self, key):
         # get by wavelength
         if isinstance(key, numbers.Number):
             channels = [chn for chn in self.projectables
                         if("wavelength_range" in chn.info and
-                           chn.wavelength_range[0] <= key and
-                           chn.wavelength_range[2] >= key)]
+                           chn.info["wavelength_range"][0] <= key and
+                           chn.info["wavelength_range"][2] >= key)]
             channels = sorted(channels,
                               lambda ch1, ch2:
-                              cmp(abs(ch1.wavelength_range[1] - key),
-                                  abs(ch2.wavelength_range[1] - key)))
+                              cmp(abs(ch1.info["wavelength_range"][1] - key),
+                                  abs(ch2.info["wavelength_range"][1] - key)))
 
             for chn in channels:
                 # FIXME: is this reasonable ?
@@ -223,7 +231,7 @@ class Scene(InfoObject):
         # get by name
         else:
             for chn in self.projectables:
-                if chn.get("uid", None) == key:
+                if chn.info.get("uid", None) == key:
                     return chn
         raise KeyError("No channel corresponding to " + str(key) + ".")
 
@@ -239,8 +247,8 @@ class Scene(InfoObject):
                                                   "*.cfg")):
             conf = ConfigParser.RawConfigParser()
             conf.read(config_file)
-            if "satellite" in conf.sections():
-                instruments = conf.get("satellite", "instruments").split(",")
+            if "platform" in conf.sections():
+                instruments = conf.get("platform", "sensors").split(",")
                 for instrument in instruments:
                     for section in sorted(conf.sections()):
                         if section.startswith(instrument + "-level"):
@@ -255,14 +263,72 @@ class Scene(InfoObject):
                                 pass
         raise IOError("Don't know how to open that file")
 
-    def load(self, *channels, **kwargs):
+    def read(self, *projectable_names, **kwargs):
         # get reader
-        reader(channels, **kwargs)
+        for input_config in self.info["inputs"]:
+            try:
+                pattern = trollsift.globify(input_config["pattern"])
+            except KeyError:
+                continue
+
+            if fnmatch.fnmatch(os.path.basename(self.filenames[0]),
+                               os.path.basename(pattern)):
+                reader = input_config["format"]
+                break
+        reader_module, reading_element = reader.rsplit(".", 1)
+        reader = "mpop.satin." + reader_module
+
+        try:
+            # Look for builtin reader
+            imp.find_module(reader_module, mpop.satin.__path__)
+        except ImportError:
+            # Look for custom reader
+            loader = __import__(reader_module, globals(),
+                                locals(), [reading_element])
+        else:
+            loader = __import__(reader, globals(),
+                                locals(), [reading_element])
+
+        loader = getattr(loader, reading_element)
+        reader_instance = loader(self)
+        setattr(self, loader.pformat + "_reader", reader_instance)
+
+        reader_instance.load(
+            self, set(projectable_names), filename=self.filenames)
 
     def project(self, destination, channels, **kwargs):
         new_scene = self.__class__(**self.info)
         for proj in set(self.projectables) & set(channels):
             new_scene.projectables.append(proj.project(destination))
+
+
+class CompositeBase(object):
+
+    def __init__(self, **kwargs):
+        self.prerequisites = []
+
+    def __call__(self, scene):
+        raise NotImplementedError()
+
+
+class VIIRSFog(CompositeBase):
+
+    def __call__(self, scene):
+        return scene["i05"] - scene["i04"]
+
+
+class VIIRSTrueColor(CompositeBase):
+
+    def __init__(self, name="true_color"):
+        CompositeBase.__init__(self)
+        self.name = name
+        self.prerequisites = ["m01", "m03", "m04"]
+
+    def __call__(self, scene):
+        return Projectable(uid="true_color",
+                           data=np.dstack(
+                               (scene["m04"], scene["m03"], scene["m01"])),
+                           **scene["m04"].info)
 
 
 import unittest
@@ -306,38 +372,44 @@ if __name__ == '__main__':
     scn = Scene()
     scn._read_config("/home/a001673/usr/src/pytroll-config/etc/Suomi-NPP.cfg")
 
-    myfile = "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM02_npp_d20150420_t0536333_e0537575_b18015_c20150420054512262557_cspp_dev.h5"
+    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM02_npp_d20150420_t0536333_e0537575_b18015_c20150420054512262557_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/GMTCO_npp_d20150420_t0536333_e0537575_b18015_c20150420054511332482_cspp_dev.h5"]
 
-    scn = Scene()
+    scn = Scene(filenames=myfiles)
 
-    scn.open(myfile)
+    scn.add_product("fog", VIIRSFog())
+    scn.add_product("true_color", VIIRSTrueColor())
 
-    unittest.main()
+    scn.read("fog", "I01", "M02", "true_color")
+
+    scn["M02"].show()
+
+    # unittest.main()
 
     #########
     #
     # this part can be put in a user-owned file
 
-    def nice_composite(self, some_param=None):
-        # do something here
-        return self
+    # def nice_composite(self, some_param=None):
+    #     # do something here
+    #     return self
 
-    nice_composite.prerequisites = ["i05", "dnb", "fog"]
+    # nice_composite.prerequisites = ["i05", "dnb", "fog"]
 
-    scn.add_product(nice_composite)
+    # scn.add_product(nice_composite)
 
-    def fog(self):
-        return self["i05"] - self["i04"]
+    # def fog(self):
+    #     return self["i05"] - self["i04"]
 
-    fog.prerequisites = ["i05", "i04"]
+    # fog.prerequisites = ["i05", "i04"]
 
-    scn.add_product(fog)
+    # scn.add_product(fog)
 
-    # end of this part
-    #
-    ##########
+    # # end of this part
+    # #
+    # ##########
 
-    # nice composite uses fog
-    scn.load("nice_composite", area="europe")
+    # # nice composite uses fog
+    # scn.load("nice_composite", area="europe")
 
-    scn.products.nice_composite
+    # scn.products.nice_composite

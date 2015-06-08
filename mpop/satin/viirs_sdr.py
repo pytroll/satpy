@@ -525,11 +525,11 @@ class ViirsSDRReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, satscene, calibrate=1, time_interval=None, area=None, filename=None, **kwargs):
+    def load(self, satscene, channels_to_load, calibrate=1, time_interval=None, area=None, filename=None, **kwargs):
         """Read viirs SDR reflectances and Tbs from file and load it into
         *satscene*.
         """
-        if satscene.instrument_name != "viirs":
+        if "viirs" not in satscene.info["sensors"]:
             raise ValueError("Wrong instrument, expecting viirs")
 
         if kwargs:
@@ -537,33 +537,35 @@ class ViirsSDRReader(Reader):
                 "Unsupported options for viirs reader: %s", str(kwargs))
 
         conf = ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
+        conf.read(
+            os.path.join(CONFIG_PATH, satscene.info["platform_name"] + ".cfg"))
         options = {}
-        for option, value in conf.items(satscene.instrument_name + "-level2",
-                                        raw=True):
-            options[option] = value
+        for sensor in satscene.info["sensors"]:
+            for option, value in conf.items(sensor + "-level2",
+                                            raw=True):
+                options[option] = value
 
-        band_list = [s.name for s in satscene.channels]
-        chns = satscene.channels_to_load & set(band_list)
+        band_list = [s.info["uid"] for s in satscene.projectables]
+        chns = channels_to_load & set(band_list)
         if len(chns) == 0:
             return
 
-        if time_interval:
-            time_start, time_end = time_interval
-        else:
-            time_start, time_end = satscene.time_slot, None
+        if filename is None:
+            if time_interval:
+                time_start, time_end = time_interval
+            else:
+                time_start, time_end = satscene.time_slot, None
 
-        import glob
+            import glob
+            if "filename" not in options:
+                raise IOError("No filename given, cannot load")
 
-        if "filename" not in options:
-            raise IOError("No filename given, cannot load")
-
-        values = {"orbit": satscene.orbit,
-                  "satname": satscene.satname,
-                  "instrument": satscene.instrument_name,
-                  "satellite": satscene.satname
-                  #"satellite": satscene.fullname
-                  }
+            values = {"orbit": satscene.orbit,
+                      "satname": satscene.satname,
+                      "instrument": satscene.instrument_name,
+                      "satellite": satscene.satname
+                      #"satellite": satscene.fullname
+                      }
 
         file_list = []
         if filename is not None:
@@ -581,7 +583,7 @@ class ViirsSDRReader(Reader):
                 directory = os.path.dirname(file_list[0])
             if geofile_list:
                 geodirectory = os.path.dirname(geofile_list[0])
-
+        logger.debug("The filelist is: %s", str(file_list))
         if not file_list:
             filename_tmpl = strftime(
                 satscene.time_slot, options["filename"]) % values
@@ -662,8 +664,8 @@ class ViirsSDRReader(Reader):
 
         glob_info = {}
 
-        logger.debug("Channels to load: " + str(satscene.channels_to_load))
-        for chn in satscene.channels_to_load:
+        logger.debug("Channels to load: " + str(channels_to_load))
+        for chn in channels_to_load:
             # Take only those files in the list matching the band:
             # (Filename starts with 'SV' and then the band-name)
             fnames_band = []
@@ -753,8 +755,8 @@ class ViirsSDRReader(Reader):
                 lats=np.ma.masked_where(band.data.mask,
                                         band.geolocation.latitudes,
                                         copy=False))
-            area_name = ("swath_" + satscene.fullname + "_" +
-                         str(satscene.time_slot) + "_"
+            area_name = ("swath_" + satscene.info["platform_name"] + "_" +
+                         str(satscene[chn].info['start_time']) + "_"
                          + str(satscene[chn].data.shape) + "_" +
                          band.band_uid)
             satscene[chn].area.area_id = area_name
@@ -772,18 +774,18 @@ class ViirsSDRReader(Reader):
         ViirsGeolocationData.clear_cache()
 
         # Compulsory global attribudes
-        satscene.info["title"] = (satscene.satname.capitalize() +
-                                  " satellite, " +
-                                  satscene.instrument_name.capitalize() +
-                                  " instrument.")
-        if 'institution' in glob_info:
-            satscene.info["institution"] = glob_info['institution']
+        # satscene.info["title"] = (satscene.info["platform_name"] +
+        #                           " satellite, " +
+        #                           satscene.sensors +
+        #                           " instrument.")
+        # if 'institution' in glob_info:
+        #     satscene.info["institution"] = glob_info['institution']
 
-        if 'mission_name' in glob_info:
-            satscene.add_to_history(glob_info['mission_name'] +
-                                    " VIIRS SDR read by mpop")
-        else:
-            satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
+        # if 'mission_name' in glob_info:
+        #     satscene.add_to_history(glob_info['mission_name'] +
+        #                             " VIIRS SDR read by mpop")
+        # else:
+        #     satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
 
         satscene.info["references"] = "No reference."
         satscene.info["comments"] = "No comment."
