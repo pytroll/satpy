@@ -1,6 +1,6 @@
 [satellite]
 satname = npp
-variant = 
+variant = EARS
 number = 
 instruments = ('viirs',)
 
