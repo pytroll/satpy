@@ -53,7 +53,7 @@ provided with mpop in the `etc` directory):
         
 
    [seviri-level2]
-   format='mipp'
+   format='mipp_xrit'
 
 
 The different levels indicate different steps of the reading. The `level2`

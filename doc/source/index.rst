@@ -16,9 +16,8 @@ Get to the project_ page, with source and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins. In the base distribution, we provide support for
-Meteosat 7, 8, 9, MTSAT1R, MTSAT2, GOES 11, GOES 12, GOES 13 through the use of
-mipp_, and Noaa 15, 16, 17, 18, 19, and Metop A through the use of aapp and
-ahamap.
+Meteosat-7, -8, -9, -10, Himawari-6 (MTSAT-1R), Himawari-7 (MTSAT-2), GOES-11, GOES-12, GOES-13 through the use of
+mipp_, and NOAA-15, -16, -17, -18, -19, Metop-A and -B through the use of AAPP.
 
 Reprojection of data is also available through the use of pyresample_.
 
@@ -34,7 +33,6 @@ Reprojection of data is also available through the use of pyresample_.
    pp
    input
    image
-   saturn
 
 Indices and tables
 ==================

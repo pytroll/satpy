@@ -1,6 +1,4 @@
 [satellite]
-satname = noaa
-number = 19
 variant = EARS
 instruments = ('avhrr/3',)
 

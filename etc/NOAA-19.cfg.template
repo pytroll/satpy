@@ -1,7 +1,5 @@
 [satellite]
-satname = noaa
 variant = 
-number = 19
 instruments = ('avhrr/3',)
 
 [avhrr/3-level2]

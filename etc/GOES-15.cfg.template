@@ -11,8 +11,6 @@
 #
 
 [satellite]
-satname = 'goes'
-number = '15'
 instruments = ('imager15',)
 projection = 'geos(-135.0)'
 

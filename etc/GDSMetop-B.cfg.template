@@ -1,7 +1,5 @@
 [satellite]
-satname = metop
 variant = GDS
-number = 01
 instruments = ('avhrr/3',)
 
 [avhrr/3-1]

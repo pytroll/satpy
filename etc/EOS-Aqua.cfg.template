@@ -1,6 +1,4 @@
 [satellite]
-satname = 'aqua'
-number = ''
 instruments = ('modis',)
 
 [modis-level2]

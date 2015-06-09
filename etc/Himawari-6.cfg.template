@@ -11,8 +11,6 @@
 #
 
 [satellite]
-satname = 'mtsat'
-number = '1r'
 instruments = ('mviri',)
 projection = 'geos(140.0)'
 

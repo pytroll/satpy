@@ -1,7 +1,4 @@
 [satellite]
-satname = npp
-variant = 
-number = 
 instruments = ('viirs',)
 
 [viirs-level2]

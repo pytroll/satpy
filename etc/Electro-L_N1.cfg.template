@@ -11,8 +11,6 @@
 #
 
 [satellite]
-satname = 'electro-l'
-number = 'n1'
 instruments = ('msu-gs',)
 projection = 'geos(+76.0)'
 

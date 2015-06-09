@@ -1,6 +1,4 @@
 [satellite]
-satname = 'tsx'
-number = '1'
 instruments = ('sarx',)
 
 [sarx-level1]

@@ -1,6 +1,4 @@
 [satellite]
-satname = metop
-number = a
 variant = EARS
 instruments = ('avhrr/3',)
 
