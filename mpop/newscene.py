@@ -6,6 +6,7 @@
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   David Hoese <david.hoese@ssec.wisc.edu>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,90 +34,13 @@ import weakref
 import numpy as np
 import imp
 import mpop.satin
+from mpop.imageo.geo_image import GeoImage
 from mpop.utils import debug_on
 debug_on()
+from mpop.projectable import Projectable, InfoObject
 
-
-class InfoObject(object):
-
-    def __init__(self, **attributes):
-        self.info = attributes
-
-
-class Dataset(InfoObject):
-
-    def __init__(self, data, **attributes):
-        InfoObject.__init__(self, **attributes)
-        self.data = data
-
-    def __str__(self):
-        return str(self.data) + "\n" + str(self.info)
-
-    def __repr__(self):
-        return repr(self.data) + "\n" + repr(self.info)
-
-    def copy(self, copy_data=True):
-        if copy_data:
-            data = self.data.copy()
-        else:
-            data = self.data
-        return Dataset(data, **self.info)
-
-# the generic projectable dataset class
-
-
-class Projectable(Dataset):
-
-    def __init__(self, uid, data=None, **info):
-        Dataset.__init__(self, data, uid=uid, **info)
-
-    def project(self, destination_area):
-        # call the projection stuff here
-        pass
-
-    def is_loaded(self):
-        return self.data is not None
-
-
-class Channel(Projectable):
-
-    def show(self):
-        """Display the channel as an image.
-        """
-        if not self.is_loaded():
-            raise ValueError("Channel not loaded, cannot display.")
-
-        from PIL import Image as pil
-
-        data = ((self.data - self.data.min()) * 255.0 /
-                (self.data.max() - self.data.min()))
-        if isinstance(data, np.ma.core.MaskedArray):
-            img = pil.fromarray(np.array(data.filled(0), np.uint8))
-        else:
-            img = pil.fromarray(np.array(data, np.uint8))
-        img.show()
-
-    def __str__(self):
-
-        res = ["{0}/{1}".format(self.info["instrument"], self.info["uid"])]
-
-        if "wavelength_range" in self.info:
-            res.append("{0} μm".format(self.info["wavelength_range"]))
-        if "resolution" in self.info:
-            res.append("{0} m".format(self.info["resolution"]))
-        for key in self.info:
-            if key not in ["wavelength_range", "resolution", "uid"]:
-                res.append(str(self.info[key]))
-        if self.data is not None:
-            try:
-                res.append("{0}".format(self.data.shape))
-            except AttributeError:
-                pass
-        else:
-            res.append("not loaded")
-
-        return ", ".join(res)
-
+class IncompatibleAreas(StandardError):
+    pass
 
 def get_custom_composites(name):
     """Get the home made methods for building composites for a given satellite
@@ -141,23 +65,6 @@ def get_custom_composites(name):
         return []
 
 
-class ProductHolder(object):
-
-    def __init__(self, scene):
-        self.scene = scene
-
-    def product(self, func):
-        def inner(*args, **kwargs):
-            return func(self.scene, *args, **kwargs)
-
-        inner.prerequisites = func.prerequisites
-        return inner
-
-    def add(self, func):
-        return setattr(self, func.__name__,
-                       self.product(func))
-
-
 class Scene(InfoObject):
 
     def __init__(self, filenames=None, **info):
@@ -166,7 +73,6 @@ class Scene(InfoObject):
         if filenames is not None:
             self.open(*filenames)
             self.filenames = filenames
-        # self.product = ProductHolder(weakref.proxy(self))
         self.products = {}
 
     def add_product(self, name, obj):
@@ -197,10 +103,12 @@ class Scene(InfoObject):
                           for elt in conf.get(section, "frequency").split(",")]
                     res = conf.getint(section, "resolution")
                     uid = conf.get(section, "name")
-                    new_chn = Channel(wavelength_range=wl,
-                                      resolution=res,
-                                      uid=uid,
-                                      instrument=instrument)
+                    new_chn = Projectable(wavelength_range=wl,
+                                          resolution=res,
+                                          uid=uid,
+                                          sensor=instrument,
+                                          platform_name=self.info["platform_name"]
+                                          )
                     self.projectables.append(new_chn)
             # for method in get_custom_composites(instrument):
             #    self.add_method_to_instance(method)
@@ -264,6 +172,7 @@ class Scene(InfoObject):
         raise IOError("Don't know how to open that file")
 
     def read(self, *projectable_names, **kwargs):
+        self.info["wishlist"] = projectable_names
         # get reader
         for input_config in self.info["inputs"]:
             try:
@@ -293,18 +202,67 @@ class Scene(InfoObject):
         reader_instance = loader(self)
         setattr(self, loader.pformat + "_reader", reader_instance)
 
+        # compute the depencies to load from file
+        pnames = set(projectable_names)
+        needed_bands = None
+        rerun = True
+        while rerun:
+            rerun = False
+            needed_bands = set()
+            for band in pnames:
+                if band in self.products:
+                    needed_bands |= set(self.products[band].prerequisites)
+                    rerun = True
+                else:
+                    needed_bands.add(band)
+            pnames = needed_bands
+
         reader_instance.load(
-            self, set(projectable_names), filename=self.filenames)
+            self, set(pnames), filename=self.filenames)
+
+    def compute(self, *requirements):
+        if not requirements:
+            requirements = self.info["wishlist"]
+        for requirement in requirements:
+            if requirement not in self.products:
+                continue
+            if requirement in [p.info["uid"] for p in self.projectables]:
+                continue
+            self.compute(*self.products[requirement].prerequisites)
+            try:
+                self.projectables.append(self.products[requirement](scn))
+            except IncompatibleAreas:
+                for projectable in self.projectables:
+                    if projectable.info["uid"] in self.products[requirement].prerequisites:
+                        projectable.info["keep"] = True
+
+    def unload(self):
+        to_del = [projectable for projectable in self.projectables
+                  if projectable.info["uid"] not in self.info["wishlist"] and
+                      not projectable.info.get("keep", False)]
+        for projectable in to_del:
+            self.projectables.remove(projectable)
+
+    def load(self, *wishlist, **kwargs):
+        self.read(*wishlist, **kwargs)
+        if kwargs.get("compute", True):
+            self.compute()
+        if kwargs.get("unload", True):
+            self.unload()
 
     def project(self, destination, channels, **kwargs):
-        new_scene = self.__class__(**self.info)
-        for proj in set(self.projectables) & set(channels):
-            new_scene.projectables.append(proj.project(destination))
+        pass
+
+    def images(self):
+        for projectable in self.projectables:
+            if projectable.info["uid"] in self.info["wishlist"]:
+                yield projectable
 
 
-class CompositeBase(object):
+class CompositeBase(InfoObject):
 
     def __init__(self, **kwargs):
+        InfoObject.__init__(self, **kwargs)
         self.prerequisites = []
 
     def __call__(self, scene):
@@ -313,22 +271,39 @@ class CompositeBase(object):
 
 class VIIRSFog(CompositeBase):
 
+    def __init__(self, uid="fog", **kwargs):
+        CompositeBase.__init__(self, **kwargs)
+        self.uid = uid
+        self.prerequisites = ["I04", "I05"]
+
     def __call__(self, scene):
-        return scene["i05"] - scene["i04"]
+        fog = scene["I05"] - scene["I04"]
+        fog.info["uid"] = self.uid
+        return fog
 
 
 class VIIRSTrueColor(CompositeBase):
 
-    def __init__(self, name="true_color"):
-        CompositeBase.__init__(self)
-        self.name = name
-        self.prerequisites = ["m01", "m03", "m04"]
+    def __init__(self, uid="true_color", image_config=None, **kwargs):
+        default_image_config={"mode": "RGB",
+                              "stretch": "log"}
+        if image_config is not None:
+            default_image_config.update(image_config)
+
+        CompositeBase.__init__(self, **kwargs)
+        self.uid = uid
+        self.prerequisites = ["M02", "M04", "M05"]
+        self.info["image_config"] = default_image_config
 
     def __call__(self, scene):
-        return Projectable(uid="true_color",
-                           data=np.dstack(
-                               (scene["m04"], scene["m03"], scene["m01"])),
-                           **scene["m04"].info)
+        # raise IncompatibleAreas
+        return Projectable(uid=self.uid,
+                           data=np.concatenate(
+                               ([scene["M05"].data], [scene["M04"].data], [scene["M02"].data]), axis=0),
+                           area=scene["M05"].info["area"],
+                           time_slot=scene.info["start_time"],
+                           **self.info)
+
 
 
 import unittest
@@ -372,17 +347,45 @@ if __name__ == '__main__':
     scn = Scene()
     scn._read_config("/home/a001673/usr/src/pytroll-config/etc/Suomi-NPP.cfg")
 
-    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM02_npp_d20150420_t0536333_e0537575_b18015_c20150420054512262557_cspp_dev.h5",
+    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM16_npp_d20150420_t0536333_e0537575_b18015_c20150420054512738521_cspp_dev.h5",
                "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/GMTCO_npp_d20150420_t0536333_e0537575_b18015_c20150420054511332482_cspp_dev.h5"]
+
+    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI01_npp_d20150311_t1125112_e1126354_b17451_c20150311113328862761_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI02_npp_d20150311_t1125112_e1126354_b17451_c20150311113328951540_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI03_npp_d20150311_t1125112_e1126354_b17451_c20150311113329042562_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI04_npp_d20150311_t1125112_e1126354_b17451_c20150311113329143755_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI05_npp_d20150311_t1125112_e1126354_b17451_c20150311113329234947_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM01_npp_d20150311_t1125112_e1126354_b17451_c20150311113329326838_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM02_npp_d20150311_t1125112_e1126354_b17451_c20150311113329360063_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM03_npp_d20150311_t1125112_e1126354_b17451_c20150311113329390738_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM04_npp_d20150311_t1125112_e1126354_b17451_c20150311113329427332_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM05_npp_d20150311_t1125112_e1126354_b17451_c20150311113329464787_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM06_npp_d20150311_t1125112_e1126354_b17451_c20150311113329503232_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM07_npp_d20150311_t1125112_e1126354_b17451_c20150311113330249624_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM08_npp_d20150311_t1125112_e1126354_b17451_c20150311113329572000_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM09_npp_d20150311_t1125112_e1126354_b17451_c20150311113329602050_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM10_npp_d20150311_t1125112_e1126354_b17451_c20150311113329632503_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM11_npp_d20150311_t1125112_e1126354_b17451_c20150311113329662488_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM12_npp_d20150311_t1125112_e1126354_b17451_c20150311113329692444_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM13_npp_d20150311_t1125112_e1126354_b17451_c20150311113329722069_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM14_npp_d20150311_t1125112_e1126354_b17451_c20150311113329767340_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM15_npp_d20150311_t1125112_e1126354_b17451_c20150311113329796873_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM16_npp_d20150311_t1125112_e1126354_b17451_c20150311113329826626_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GDNBO_npp_d20150311_t1125112_e1126354_b17451_c20150311113327046285_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GITCO_npp_d20150311_t1125112_e1126354_b17451_c20150311113327852159_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GMTCO_npp_d20150311_t1125112_e1126354_b17451_c20150311113328505792_cspp_dev.h5",
+               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVDNB_npp_d20150311_t1125112_e1126354_b17451_c20150311113326791425_cspp_dev.h5",
+               ]
 
     scn = Scene(filenames=myfiles)
 
     scn.add_product("fog", VIIRSFog())
     scn.add_product("true_color", VIIRSTrueColor())
 
-    scn.read("fog", "I01", "M02", "true_color")
+    scn.load("fog", "I01", "M16", "true_color")
 
-    scn["M02"].show()
+    img = scn["true_color"].to_image()
+    #img.show()
 
     # unittest.main()
 

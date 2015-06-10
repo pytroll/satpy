@@ -62,15 +62,22 @@ class GeoImage(Image):
     See also :class:`image.Image` for more information.
     """
 
-    def __init__(self, channels, area, time_slot,
-                 mode="L", crange=None, fill_value=None, palette=None):
+    def __init__(self, channels, area, time_slot, copy=True,
+                 mode="L", crange=None, fill_value=None, palette=None, **enhance_args):
         self.area = area
         self.time_slot = time_slot
         self.tags = {}
         self.gdal_options = {}
 
-        Image.__init__(self, channels, mode, crange,
-                       fill_value, palette)
+        Image.__init__(self,
+                       channels=channels,
+                       mode=mode,
+                       color_range=crange,
+                       fill_value=fill_value,
+                       palette=palette,
+                       copy=copy)
+
+        self.enhance(**enhance_args)
 
     def save(self, filename, compression=6,
              tags=None, gdal_options=None,

@@ -554,7 +554,7 @@ class ViirsSDRReader(Reader):
             if time_interval:
                 time_start, time_end = time_interval
             else:
-                time_start, time_end = satscene.time_slot, None
+                time_start, time_end = satscene.info["time_slot"], None
 
             import glob
             if "filename" not in options:
@@ -586,14 +586,14 @@ class ViirsSDRReader(Reader):
         logger.debug("The filelist is: %s", str(file_list))
         if not file_list:
             filename_tmpl = strftime(
-                satscene.time_slot, options["filename"]) % values
+                satscene.info["time_slot"], options["filename"]) % values
 
-            directory = strftime(satscene.time_slot, options["dir"]) % values
+            directory = strftime(satscene["time_slot"], options["dir"]) % values
 
             if not os.path.exists(directory):
                 #directory = globify(options["dir"]) % values
                 directory = globify(
-                    strftime(satscene.time_slot, options["dir"])) % values
+                    strftime(satscene.info["time_slot"], options["dir"])) % values
                 logger.debug(
                     "Looking for files in directory " + str(directory))
                 directories = glob.glob(directory)
@@ -640,7 +640,7 @@ class ViirsSDRReader(Reader):
             geo_dir_string = options.get("geo_dir", None)
             if geo_dir_string:
                 geodirectory = strftime(
-                    satscene.time_slot, geo_dir_string) % values
+                    satscene.info["time_slot"], geo_dir_string) % values
             else:
                 geodirectory = directory
             logger.debug("Geodir = " + str(geodirectory))
@@ -648,7 +648,7 @@ class ViirsSDRReader(Reader):
             geofile_list = []
             geo_filenames_string = options.get("geo_filenames", None)
             if geo_filenames_string:
-                geo_filenames_tmpl = strftime(satscene.time_slot,
+                geo_filenames_tmpl = strftime(satscene.info["time_slot"],
                                               geo_filenames_string) % values
                 geofile_list = glob.glob(os.path.join(geodirectory,
                                                       geo_filenames_tmpl))
@@ -748,7 +748,7 @@ class ViirsSDRReader(Reader):
 
             from pyresample import geometry
 
-            satscene[chn].area = geometry.SwathDefinition(
+            satscene[chn].info["area"] = geometry.SwathDefinition(
                 lons=np.ma.masked_where(band.data.mask,
                                         band.geolocation.longitudes,
                                         copy=False),
@@ -759,8 +759,8 @@ class ViirsSDRReader(Reader):
                          str(satscene[chn].info['start_time']) + "_"
                          + str(satscene[chn].data.shape) + "_" +
                          band.band_uid)
-            satscene[chn].area.area_id = area_name
-            satscene[chn].area_id = area_name
+            satscene[chn].info["area"].area_id = area_name
+            satscene[chn].info["area_id"] = area_name
             # except ImportError:
             #    satscene[chn].area = None
             #    satscene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
