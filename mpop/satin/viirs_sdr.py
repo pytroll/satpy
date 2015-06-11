@@ -42,6 +42,8 @@ import logging
 
 from mpop.utils import strftime
 
+from mpop import CONFIG_PATH
+
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
 VIIRS_MBAND_GRANULE_SIZE = (768, 3200)
@@ -522,148 +524,61 @@ class ViirsSDRReader(Reader):
     pformat = "viirs_sdr"
 
     def __init__(self, *args, **kwargs):
+        print args, kwargs
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, satscene, channels_to_load, calibrate=1, time_interval=None, area=None, filename=None, **kwargs):
+    def load(self, channels_to_load, filenames, calibrate=1, time_interval=None, area=None, **kwargs):
         """Read viirs SDR reflectances and Tbs from file and load it into
-        *satscene*.
+        *self._scene*.
         """
-        if "viirs" not in satscene.info["sensors"]:
-            raise ValueError("Wrong instrument, expecting viirs")
-
         if kwargs:
             logger.warning(
                 "Unsupported options for viirs reader: %s", str(kwargs))
 
         conf = ConfigParser()
-        conf.read(
-            os.path.join(CONFIG_PATH, satscene.info["platform_name"] + ".cfg"))
-        options = {}
-        for sensor in satscene.info["sensors"]:
-            for option, value in conf.items(sensor + "-level2",
-                                            raw=True):
-                options[option] = value
+        conf.read(self.config_file)
 
-        band_list = [s.info["uid"] for s in satscene.projectables]
+        band_list = [conf.get(section, "name") for section in conf.sections() if section.startswith("channel:")]
         chns = channels_to_load & set(band_list)
+        print chns, channels_to_load, band_list
         if len(chns) == 0:
             return
 
-        if filename is None:
-            if time_interval:
-                time_start, time_end = time_interval
-            else:
-                time_start, time_end = satscene.info["time_slot"], None
-
-            import glob
-            if "filename" not in options:
-                raise IOError("No filename given, cannot load")
-
-            values = {"orbit": satscene.orbit,
-                      "satname": satscene.satname,
-                      "instrument": satscene.instrument_name,
-                      "satellite": satscene.satname
-                      #"satellite": satscene.fullname
-                      }
-
+        # TODO: don't hardcode the file prefixes
         file_list = []
-        if filename is not None:
-            if not isinstance(filename, (list, set, tuple)):
-                filename = [filename]
-            geofile_list = []
-            for fname in filename:
-                if os.path.basename(fname).startswith("SV"):
-                    file_list.append(fname)
-                elif os.path.basename(fname).startswith("G"):
-                    geofile_list.append(fname)
-                else:
-                    logger.info("Unrecognized SDR file: %s", fname)
-            if file_list:
-                directory = os.path.dirname(file_list[0])
-            if geofile_list:
-                geodirectory = os.path.dirname(geofile_list[0])
-        logger.debug("The filelist is: %s", str(file_list))
-        if not file_list:
-            filename_tmpl = strftime(
-                satscene.info["time_slot"], options["filename"]) % values
+        geofile_list = []
 
-            directory = strftime(satscene["time_slot"], options["dir"]) % values
-
-            if not os.path.exists(directory):
-                #directory = globify(options["dir"]) % values
-                directory = globify(
-                    strftime(satscene.info["time_slot"], options["dir"])) % values
-                logger.debug(
-                    "Looking for files in directory " + str(directory))
-                directories = glob.glob(directory)
-                if len(directories) > 1:
-                    raise IOError("More than one directory for npp scene... " +
-                                  "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
-                elif len(directories) == 0:
-                    raise IOError("No directory found for npp scene. " +
-                                  "\nSearch path = %s\n\tPlease check npp.cfg file!" % directory)
-                else:
-                    directory = directories[0]
-
-            file_list = glob.glob(os.path.join(directory, filename_tmpl))
-
-            # Only take the files in the interval given:
-            logger.debug("Number of files before segment selection: "
-                         + str(len(file_list)))
-            for fname in file_list:
-                if os.path.basename(fname).startswith("SVM14"):
-                    logger.debug("File before segmenting: "
-                                 + os.path.basename(fname))
-            file_list = _get_swathsegment(
-                file_list, time_start, time_end, area)
-            logger.debug("Number of files after segment selection: "
-                         + str(len(file_list)))
-
-            for fname in file_list:
-                if os.path.basename(fname).startswith("SVM14"):
-                    logger.debug("File after segmenting: "
-                                 + os.path.basename(fname))
-
-            logger.debug("Template = " + str(filename_tmpl))
-
-            # 22 VIIRS bands (16 M-bands + 5 I-bands + DNB)
-            if len(file_list) % 22 != 0:
-                logger.warning("Number of SDR files is not divisible by 22!")
-            if len(file_list) == 0:
-                logger.debug(
-                    "File template = " + str(os.path.join(directory, filename_tmpl)))
-                raise IOError("No VIIRS SDR file matching!: " +
-                              "Start time = " + str(time_start) +
-                              "  End time = " + str(time_end))
-
-            geo_dir_string = options.get("geo_dir", None)
-            if geo_dir_string:
-                geodirectory = strftime(
-                    satscene.info["time_slot"], geo_dir_string) % values
+        for fname in filenames:
+            if os.path.basename(fname).startswith("SV"):
+                file_list.append(fname)
+            elif os.path.basename(fname).startswith("G"):
+                geofile_list.append(fname)
             else:
-                geodirectory = directory
-            logger.debug("Geodir = " + str(geodirectory))
+                logger.info("Unrecognized SDR file: %s", fname)
+        if file_list:
+            directory = os.path.dirname(file_list[0])
+        if geofile_list:
+            geodirectory = os.path.dirname(geofile_list[0])
+        logger.debug("The filelist is: %s", str(file_list))
 
-            geofile_list = []
-            geo_filenames_string = options.get("geo_filenames", None)
-            if geo_filenames_string:
-                geo_filenames_tmpl = strftime(satscene.info["time_slot"],
-                                              geo_filenames_string) % values
-                geofile_list = glob.glob(os.path.join(geodirectory,
-                                                      geo_filenames_tmpl))
-                logger.debug("List of geo-files: " + str(geofile_list))
-                # Only take the files in the interval given:
-                geofile_list = _get_swathsegment(
-                    geofile_list, time_start, time_end)
+        file_list = _get_swathsegment(file_list, time_start, time_end, area)
+        geofile_list = _get_swathsegment(geofile_list, time_start, time_end, area)
+        logger.debug("Number of files after segment selection: "
+                     + str(len(file_list)))
 
-            logger.debug("List of geo-files (after time interval selection): "
-                         + str(geofile_list))
+        if len(file_list) == 0:
+            logger.debug(
+                "File template = " + str(os.path.join(directory, filename_tmpl)))
+            raise IOError("No VIIRS SDR file matching!: " +
+                          "Start time = " + str(time_start) +
+                          "  End time = " + str(time_end))
 
         filenames = [os.path.basename(s) for s in file_list]
 
         glob_info = {}
 
         logger.debug("Channels to load: " + str(channels_to_load))
+        areas = {}
         for chn in channels_to_load:
             # Take only those files in the list matching the band:
             # (Filename starts with 'SV' and then the band-name)
@@ -736,34 +651,39 @@ class ViirsSDRReader(Reader):
                 logger.warning('Band name = ' + band.band_id)
                 raise AttributeError('Band description not supported!')
 
-            satscene[chn].data = band.data
-            satscene[chn].info['units'] = band.units
-            satscene[chn].info['band_id'] = band.band_id
-            satscene[chn].info['start_time'] = band.begin_time
-            satscene[chn].info['end_time'] = band.end_time
+            self._scene[chn].data = band.data
+            self._scene[chn].info['units'] = band.units
+            self._scene[chn].info['band_id'] = band.band_id
+            self._scene[chn].info['start_time'] = band.begin_time
+            self._scene[chn].info['end_time'] = band.end_time
 
             # We assume the same geolocation should apply to all M-bands!
             # ...and the same to all I-bands:
 
             from pyresample import geometry
 
-            satscene[chn].info["area"] = geometry.SwathDefinition(
-                lons=np.ma.masked_where(band.data.mask,
-                                        band.geolocation.longitudes,
-                                        copy=False),
-                lats=np.ma.masked_where(band.data.mask,
-                                        band.geolocation.latitudes,
-                                        copy=False))
-            area_name = ("swath_" + satscene.info["platform_name"] + "_" +
-                         str(satscene[chn].info['start_time']) + "_"
-                         + str(satscene[chn].data.shape) + "_" +
-                         band.band_uid)
-            satscene[chn].info["area"].area_id = area_name
-            satscene[chn].info["area_id"] = area_name
+            if band.band_uid in areas:
+                self._scene[chn].info["area"] = areas[band.band_uid]
+            else:
+
+                area = geometry.SwathDefinition(
+                    lons=np.ma.masked_where(band.data.mask,
+                                            band.geolocation.longitudes,
+                                            copy=False),
+                    lats=np.ma.masked_where(band.data.mask,
+                                            band.geolocation.latitudes,
+                                            copy=False))
+                area_name = ("swath_" + self._scene.info["platform_name"] + "_" +
+                             str(self._scene[chn].info['start_time']) + "_"
+                             + str(self._scene[chn].data.shape) + "_" +
+                             band.band_uid)
+                area.area_id = area_name
+                self._scene[chn].info["area"] = area
+                areas[band.band_uid] = area
             # except ImportError:
-            #    satscene[chn].area = None
-            #    satscene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
-            #    satscene[chn].lon = np.ma.array(band.longitude, mask=band.data.mask)
+            #    self._scene[chn].area = None
+            #    self._scene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
+            #    self._scene[chn].lon = np.ma.array(band.longitude, mask=band.data.mask)
 
             # if 'institution' not in glob_info:
             ##    glob_info['institution'] = band.global_info['N_Dataset_Source']
@@ -773,27 +693,27 @@ class ViirsSDRReader(Reader):
         ViirsGeolocationData.clear_cache()
 
         # Compulsory global attribudes
-        # satscene.info["title"] = (satscene.info["platform_name"] +
+        # self._scene.info["title"] = (self._scene.info["platform_name"] +
         #                           " satellite, " +
-        #                           satscene.sensors +
+        #                           self._scene.sensors +
         #                           " instrument.")
         # if 'institution' in glob_info:
-        #     satscene.info["institution"] = glob_info['institution']
+        #     self._scene.info["institution"] = glob_info['institution']
 
         # if 'mission_name' in glob_info:
-        #     satscene.add_to_history(glob_info['mission_name'] +
+        #     self._scene.add_to_history(glob_info['mission_name'] +
         #                             " VIIRS SDR read by mpop")
         # else:
-        #     satscene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
+        #     self._scene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
 
-        satscene.info["references"] = "No reference."
-        satscene.info["comments"] = "No comment."
+        self._scene.info["references"] = "No reference."
+        self._scene.info["comments"] = "No comment."
 
-        satscene.info["start_time"] = min([chn.info["start_time"]
-                                           for chn in satscene
+        self._scene.info["start_time"] = min([chn.info["start_time"]
+                                           for chn in self._scene
                                            if chn.is_loaded()])
-        satscene.info["end_time"] = max([chn.info["end_time"]
-                                         for chn in satscene
+        self._scene.info["end_time"] = max([chn.info["end_time"]
+                                         for chn in self._scene
                                          if chn.is_loaded()])
 
 

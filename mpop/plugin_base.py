@@ -36,15 +36,17 @@ class Reader(Plugin):
     """
     ptype = "reader"
 
-    def __init__(self, scene, file_patterns=None):
+    #TODO make config_file optional
+    def __init__(self, scene, config_file, **kwargs):
         """The reader plugin takes as input a satellite scene to fill in.
         
         Arguments:
         - `scene`: the scene to fill.
         """
         Plugin.__init__(self)
-        self.file_patterns = file_patterns
+        self.config_file = config_file
         self._scene = weakref.proxy(scene)
+        self.info = kwargs
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.
