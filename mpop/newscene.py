@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 Martin Raspaud
+# Copyright (c) 2015
 
 # Author(s):
 
@@ -38,6 +38,10 @@ from mpop.imageo.geo_image import GeoImage
 from mpop.utils import debug_on
 debug_on()
 from mpop.projectable import Projectable, InfoObject
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class IncompatibleAreas(StandardError):
     pass
@@ -250,13 +254,22 @@ class Scene(InfoObject):
         if kwargs.get("unload", True):
             self.unload()
 
-    def project(self, destination, channels, **kwargs):
-        pass
+    def resample(self, destination, channels=None, **kwargs):
+        """Resample the projectables and return a new scene.
+        """
+        new_scn = Scene()
+        new_scn.info = self.info.copy()
+        for projectable in self.projectables:
+            logger.debug("Resampling %s", projectable.info["uid"])
+            if channels and not projectable.info["uid"] in channels:
+                continue
+            new_scn.projectables.append(projectable.resample(destination, **kwargs))
+        return new_scn
 
     def images(self):
         for projectable in self.projectables:
             if projectable.info["uid"] in self.info["wishlist"]:
-                yield projectable
+                yield projectable.to_image()
 
 
 class CompositeBase(InfoObject):
@@ -278,6 +291,7 @@ class VIIRSFog(CompositeBase):
 
     def __call__(self, scene):
         fog = scene["I05"] - scene["I04"]
+        fog.info["area"] = scene["I05"].info["area"]
         fog.info["uid"] = self.uid
         return fog
 
@@ -384,8 +398,12 @@ if __name__ == '__main__':
 
     scn.load("fog", "I01", "M16", "true_color")
 
-    img = scn["true_color"].to_image()
+    #img = scn["true_color"].to_image()
     #img.show()
+
+    from mpop.projector import get_area_def
+    eurol = get_area_def("eurol")
+    newscn = scn.resample(eurol, radius_of_influence=2000)
 
     # unittest.main()
 

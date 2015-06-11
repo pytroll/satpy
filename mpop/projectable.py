@@ -26,16 +26,14 @@
 
 import numpy as np
 from mpop.imageo.geo_image import GeoImage
-
+from mpop.resample import resample_kd_tree_nearest
 
 class InfoObject(object):
-
     def __init__(self, **attributes):
         self.info = attributes
 
 
 class Dataset(InfoObject):
-
     def __init__(self, data, **attributes):
         InfoObject.__init__(self, **attributes)
         self.data = data
@@ -89,17 +87,34 @@ class Dataset(InfoObject):
     def __abs__(self):
         return self.__class__(data=abs(self.data))
 
+
 # the generic projectable dataset class
 
 
 class Projectable(Dataset):
-
     def __init__(self, data=None, uid="undefined", **info):
         Dataset.__init__(self, data, uid=uid, **info)
 
-    def project(self, destination_area):
+    def resample(self, destination_area, **kwargs):
         # call the projection stuff here
-        pass
+        source_area = self.info["area"]
+        if self.data.ndim == 3:
+            data = np.rollaxis(self.data, 0, 3)
+        else:
+            data = self.data
+        from pyresample import kd_tree
+        #new_data = kd_tree.resample_nearest(source_area, data, destination_area, **kwargs)
+        #res = resample(self, destination_area, **kwargs)
+        new_data = resample_kd_tree_nearest(source_area, data, destination_area, **kwargs)
+
+
+        if new_data.ndim == 3:
+            new_data = np.rollaxis(new_data, 2)
+
+        res = Projectable(new_data, **self.info)
+        res.info["area"] = destination_area
+        return res
+
 
     def is_loaded(self):
         return self.data is not None
@@ -139,10 +154,8 @@ class Projectable(Dataset):
                             copy=copy,
                             **kwargs)
 
-
-
     def __str__(self):
-        res = []
+        res = list()
         res.append(self.info["uid"])
 
         if "sensor" in self.info:
@@ -164,4 +177,3 @@ class Projectable(Dataset):
             res.append("not loaded")
 
         return ", ".join(res)
-
