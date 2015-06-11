@@ -30,7 +30,6 @@ import os
 import trollsift
 import glob
 import fnmatch
-import weakref
 import numpy as np
 import imp
 import mpop.satin
@@ -46,34 +45,17 @@ logger = logging.getLogger(__name__)
 class IncompatibleAreas(StandardError):
     pass
 
-def get_custom_composites(name):
-    """Get the home made methods for building composites for a given satellite
-    or instrument *name*.
-    """
-    conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
-    try:
-        module_name = conf.get("composites", "module")
-    except (NoSectionError, NoOptionError):
-        return []
-
-    try:
-        name = name.replace("/", "")
-        module = __import__(module_name, globals(), locals(), [name])
-    except ImportError:
-        return []
-
-    try:
-        return getattr(module, name)
-    except AttributeError:
-        return []
-
-
 class Scene(InfoObject):
 
     def __init__(self, filenames=None, **info):
+        # Get PPP_CONFIG_DIR
+        self.ppp_config_dir = info.pop("ppp_config_dir", None) or os.environ.get("PPP_CONFIG_DIR", '.')
+        # Set the PPP_CONFIG_DIR in the environment in case it's used else where in pytroll
+        logger.debug("Setting 'PPP_CONFIG_DIR' to '%s'", self.ppp_config_dir)
+        os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir
+
         InfoObject.__init__(self, **info)
-        self.projectables = []
+        self.projectables = {}
         if filenames is not None:
             self.open(*filenames)
             self.filenames = filenames
@@ -100,8 +82,11 @@ class Scene(InfoObject):
                 if not section.startswith(instrument):
                     continue
                 elif section.startswith(instrument + "-level"):
-                    self.info.setdefault("inputs", []).append(
-                        dict(conf.items(section)))
+                    reader_info = dict(conf.items(section))
+                    reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
+                    reader_format = reader_info.pop("format")
+                    self.info.setdefault("reader_info", {})[reader_format] = reader_info
+
                 else:
                     wl = [float(elt)
                           for elt in conf.get(section, "frequency").split(",")]
@@ -113,20 +98,20 @@ class Scene(InfoObject):
                                           sensor=instrument,
                                           platform_name=self.info["platform_name"]
                                           )
-                    self.projectables.append(new_chn)
+                    self.projectables[uid] = new_chn
             # for method in get_custom_composites(instrument):
             #    self.add_method_to_instance(method)
 
     def __str__(self):
-        return "\n".join((str(prj) for prj in self.projectables))
+        return "\n".join((str(prj) for prj in self.projectables.values()))
 
     def __iter__(self):
-        return self.projectables.__iter__()
+        return iter(self.projectables.values())
 
     def __getitem__(self, key):
         # get by wavelength
         if isinstance(key, numbers.Number):
-            channels = [chn for chn in self.projectables
+            channels = [chn for chn in self.projectables.values()
                         if("wavelength_range" in chn.info and
                            chn.info["wavelength_range"][0] <= key and
                            chn.info["wavelength_range"][2] >= key)]
@@ -135,28 +120,32 @@ class Scene(InfoObject):
                               cmp(abs(ch1.info["wavelength_range"][1] - key),
                                   abs(ch2.info["wavelength_range"][1] - key)))
 
-            for chn in channels:
-                # FIXME: is this reasonable ?
-                if not chn.info.get("uid", "").startswith("_"):
-                    return chn
-            raise KeyError("Can't find any projectable at %gum" % key)
+            if not channels:
+                raise KeyError("Can't find any projectable at %gum" % key)
+            return channels[0]
         # get by name
         else:
-            for chn in self.projectables:
-                if chn.info.get("uid", None) == key:
-                    return chn
+            return self.projectables[key]
         raise KeyError("No channel corresponding to " + str(key) + ".")
 
+    def __setitem__(self, key, value):
+        # TODO: Set item in projectables dictionary(!) and make sure metadata in info is changed to new name
+        # TODO: Copy the projectable? No, don't copy
+        raise NotImplementedError()
+
+    def __delitem__(self, key):
+        # TODO: Delete item from projectables dictionary(!)
+        raise NotImplementedError()
+
     def __contains__(self, uid):
-        for prj in self.projectables:
-            if prj.uid == uid:
-                return True
-        return False
+        return uid in self.projectables
 
     def open(self, *files):
+        # Assume that the instrument can be determined from one of the files
+        # FIXME: This doesn't work if the first file is not a data file (i.e. geolocation)
         filename = files[0]
-        for config_file in glob.glob(os.path.join(os.environ.get("PPP_CONFIG_DIR", "."),
-                                                  "*.cfg")):
+        logger.debug("Using file '%s' to search for config files", filename)
+        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "*.cfg")):
             conf = ConfigParser.RawConfigParser()
             conf.read(config_file)
             if "platform" in conf.sections():
@@ -165,30 +154,33 @@ class Scene(InfoObject):
                     for section in sorted(conf.sections()):
                         if section.startswith(instrument + "-level"):
                             try:
-                                pattern = trollsift.globify(
-                                    conf.get(section, "pattern"))
-                                if fnmatch.fnmatch(os.path.basename(filename),
-                                                   os.path.basename(pattern)):
-                                    self._read_config(config_file)
-                                    return
+                                for file_pattern in conf.get(section, "pattern").split(","):
+                                    pattern = trollsift.globify(file_pattern)
+                                    if fnmatch.fnmatch(os.path.basename(filename),
+                                                       os.path.basename(pattern)):
+                                        self._read_config(config_file)
+                                        return
                             except ConfigParser.NoOptionError:
+                                logger.debug("Option 'pattern' missing from '%s' section of config '%s'", section, config_file)
                                 pass
-        raise IOError("Don't know how to open that file")
+        raise IOError("Don't know how to open the files provided")
+
+    def _find_reader_format(self):
+        # get reader
+        for reader, reader_config in self.info["reader_info"].items():
+            for pattern in reader_config["file_patterns"]:
+                pattern = trollsift.globify(pattern)
+                if fnmatch.fnmatch(os.path.basename(self.filenames[0]),
+                                   os.path.basename(pattern)):
+                    return reader
+        raise RuntimeError("No reader found for filename %s" % (self.filenames[0],))
 
     def read(self, *projectable_names, **kwargs):
         self.info["wishlist"] = projectable_names
-        # get reader
-        for input_config in self.info["inputs"]:
-            try:
-                pattern = trollsift.globify(input_config["pattern"])
-            except KeyError:
-                continue
 
-            if fnmatch.fnmatch(os.path.basename(self.filenames[0]),
-                               os.path.basename(pattern)):
-                reader = input_config["format"]
-                break
-        reader_module, reading_element = reader.rsplit(".", 1)
+        # FIXME: Assumes we found a reader in the previous loop
+        reader_format = self._find_reader_format()
+        reader_module, reading_element = reader_format.rsplit(".", 1)
         reader = "mpop.satin." + reader_module
 
         try:
@@ -230,22 +222,22 @@ class Scene(InfoObject):
         for requirement in requirements:
             if requirement not in self.products:
                 continue
-            if requirement in [p.info["uid"] for p in self.projectables]:
+            if requirement in self.projectables:
                 continue
             self.compute(*self.products[requirement].prerequisites)
             try:
-                self.projectables.append(self.products[requirement](scn))
+                self.projectables[requirement] = self.products[requirement](scn)
             except IncompatibleAreas:
-                for projectable in self.projectables:
-                    if projectable.info["uid"] in self.products[requirement].prerequisites:
+                for uid, projectable in self.projectables.item():
+                    if uid in self.products[requirement].prerequisites:
                         projectable.info["keep"] = True
 
     def unload(self):
-        to_del = [projectable for projectable in self.projectables
-                  if projectable.info["uid"] not in self.info["wishlist"] and
-                      not projectable.info.get("keep", False)]
-        for projectable in to_del:
-            self.projectables.remove(projectable)
+        to_del = [uid for uid, projectable in self.projectables.items()
+                  if uid not in self.info["wishlist"] and
+                  not projectable.info.get("keep", False)]
+        for uid in to_del:
+            del self.projectables[uid]
 
     def load(self, *wishlist, **kwargs):
         self.read(*wishlist, **kwargs)
@@ -259,16 +251,16 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        for projectable in self.projectables:
-            logger.debug("Resampling %s", projectable.info["uid"])
-            if channels and not projectable.info["uid"] in channels:
+        for uid, projectable in self.projectables.items():
+            logger.debug("Resampling %s", uid)
+            if channels and not uid in channels:
                 continue
-            new_scn.projectables.append(projectable.resample(destination, **kwargs))
+            new_scn.projectables[uid] = projectable.resample(destination, **kwargs)
         return new_scn
 
     def images(self):
-        for projectable in self.projectables:
-            if projectable.info["uid"] in self.info["wishlist"]:
+        for uid, projectable in self.projectables.items():
+            if uid in self.info["wishlist"]:
                 yield projectable.to_image()
 
 

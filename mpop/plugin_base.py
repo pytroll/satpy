@@ -35,13 +35,15 @@ class Reader(Plugin):
     the *load* method. This is an abstract class to be inherited.
     """
     ptype = "reader"
-    def __init__(self, scene):
+
+    def __init__(self, scene, file_patterns=None):
         """The reader plugin takes as input a satellite scene to fill in.
         
         Arguments:
         - `scene`: the scene to fill.
         """
         Plugin.__init__(self)
+        self.file_patterns = file_patterns
         self._scene = weakref.proxy(scene)
 
     def load(self, channels_to_load):

@@ -36,8 +36,6 @@ import re
 import ConfigParser
 import logging
 
-from mpop import CONFIG_PATH
-
 
 class OrderedConfigParser(object):
 
@@ -104,20 +102,8 @@ def debug_on():
 
 _is_logging_on = False
 
-# Read default log level from mpop's config file
-_config = ConfigParser.ConfigParser()
-_config.read(os.path.join(CONFIG_PATH, 'mpop.cfg'))
-try:
-    default_loglevel = _config.get('general', 'loglevel')
-except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-    default_loglevel = 'WARNING'
-default_loglevel = getattr(logging, default_loglevel.upper())
-del _config
 
-# logging_on(default_loglevel)
-
-
-def logging_on(level=default_loglevel):
+def logging_on(level=logging.WARNING):
     """Turn logging on.
     """
     global _is_logging_on

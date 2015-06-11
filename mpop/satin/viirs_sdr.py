@@ -40,7 +40,6 @@ import h5py
 import hashlib
 import logging
 
-from mpop import CONFIG_PATH
 from mpop.utils import strftime
 
 NO_DATE = datetime(1958, 1, 1)
