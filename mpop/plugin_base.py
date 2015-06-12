@@ -22,6 +22,7 @@
 
 """The :mod:`mpop.plugin_base` module defines the plugin API.
 """
+from ConfigParser import ConfigParser
 import weakref
 
 class Plugin(object):
@@ -37,7 +38,7 @@ class Reader(Plugin):
     ptype = "reader"
 
     #TODO make config_file optional
-    def __init__(self, scene, config_file, **kwargs):
+    def __init__(self, config_file, **kwargs):
         """The reader plugin takes as input a satellite scene to fill in.
         
         Arguments:
@@ -45,8 +46,30 @@ class Reader(Plugin):
         """
         Plugin.__init__(self)
         self.config_file = config_file
-        self._scene = weakref.proxy(scene)
-        self.info = kwargs
+        self.info = self.load_config()
+        # Update info after loading the config in case a user provided option overrides config file
+        self.info.update(kwargs)
+
+    def load_config(self):
+        conf = ConfigParser()
+        conf.read(self.config_file)
+        # Assumes only one section with "reader:" prefix
+        info = {
+            "channels": {},
+        }
+        for section_name in conf.sections():
+            if section_name.startswith("reader:"):
+                info.update(dict(conf.items(section_name)))
+            elif section_name.startswith("channel:"):
+                channel_info = self.parse_channel_section(section_name, dict(conf.items(section_name)))
+                info["channels"][channel_info["uid"]] = channel_info
+        return info
+
+    def parse_channel_section(self, section_name, section_options):
+        # Allow subclasses to make up their own rules about channels, but this is a good starting point
+        if "file_patterns" in section_options:
+            section_options["file_patterns"] = section_options["file_patterns"].split(",")
+        return section_options
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.

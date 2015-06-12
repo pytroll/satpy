@@ -92,28 +92,24 @@ class Scene(InfoObject):
             info.pop("start_time", None)
             info.pop("end_time", None)
             info.pop("creation_time", None)
+            reader_start = reader_info["start_time"]
+            reader_end = reader_info["end_time"]
             for filename in glob.iglob(parser.globify(info)):
                 metadata = parser.parse(filename)
-                if "end_time" in self.info:
+                if reader_end:
                     # get the data within the time interval
                     end_time = metadata.get("end_time", epoch)
-                    if ((self.info["start_time"] <= metadata["start_time"] <= self.info["end_time"]) or
-                            (self.info["start_time"] <=  end_time <= self.info["end_time"])):
+                    if ((reader_start <= metadata["start_time"] <= reader_end) or
+                            (reader_start <=  end_time <= reader_end)):
                         filenames.append(filename)
                 else:
                     # get the data containing start_time
-                    if "end_time" in metadata and metadata["start_time"] <= self.info["start_time"] <= metadata["end_time"]:
+                    if "end_time" in metadata and metadata["start_time"] <= reader_start <= metadata["end_time"]:
                         filenames.append(filename)
-                    elif metadata["start_time"] == self.info["start_time"]:
+                    elif metadata["start_time"] == reader_start:
                         filenames.append(filename)
                         break
         return filenames
-
-
-
-
-
-
 
     def add_product(self, name, obj):
         self.products[name] = obj
@@ -132,6 +128,9 @@ class Scene(InfoObject):
             if section.startswith("reader:"):
                 reader_info = dict(conf.items(section))
                 reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
+                # XXX: Readers can have separate start/end times from the rest fo the scene...might be a bad idea?
+                reader_info.setdefault("start_time", self.info.get("start_time", None))
+                reader_info.setdefault("end_time", self.info.get("end_time", None))
                 try:
                     reader_format = reader_info["format"]
                 except KeyError:
@@ -212,19 +211,24 @@ class Scene(InfoObject):
                     reader_info.setdefault("filenames", []).append(filename)
                     files.remove(filename)
 
+        return files
 
     def find_readers(self, *files):
         """Find the reader info for the provided *files*.
         """
         for config_file in glob.glob(os.path.join(self.ppp_config_dir, "*.cfg")):
-            reader_info = self._read_config(config_file)
+            try:
+                reader_info = self._read_config(config_file)
+            except ValueError:
+                logger.debug("Invalid reader config found: %s", config_file, exc_info=True)
+                continue
 
             files = self.assign_matching_files(reader_info, *files)
 
             if not files:
                 break
         if files:
-            raise IOError("Don't know how to open the following files: %s"%str(files))
+            raise IOError("Don't know how to open the following files: %s" % str(files))
 
     # def _find_reader_format(self):
     #     # get reader
@@ -240,8 +244,6 @@ class Scene(InfoObject):
 
     def read(self, *projectable_names, **kwargs):
         self.info["wishlist"] = projectable_names
-
-        # FIXME: Assumes we found a reader in the previous loop
 
         for reader_info in self.info["reader_info"].values():
             reader_module, reading_element = reader_info["format"].rsplit(".", 1)
@@ -259,8 +261,8 @@ class Scene(InfoObject):
                                     locals(), [reading_element])
 
             loader = getattr(loader, reading_element)
-            reader_instance = loader(self, **reader_info)
-            setattr(self, loader.pformat + "_reader", reader_instance)
+            reader_instance = loader(**reader_info)
+            setattr(self, reader_info["name"], reader_instance)
 
             # compute the depencies to load from file
             pnames = set(projectable_names)
@@ -277,7 +279,13 @@ class Scene(InfoObject):
                         needed_bands.add(band)
                 pnames = needed_bands
 
-            reader_instance.load(set(pnames), filenames=reader_info["filenames"])
+            # Create projectables in reader and update the scenes projectables
+            self.projectables.update(reader_instance.load(set(pnames), filenames=reader_info["filenames"]))
+
+        # Update the scene with information contained in the files
+        self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
+        self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])
+        # TODO: comments and history
 
     def compute(self, *requirements):
         if not requirements:
@@ -413,7 +421,7 @@ class TestProjectable(unittest.TestCase):
     pass
 
 if __name__ == '__main__':
-    scn = Scene()
+    #scn = Scene()
     #scn._read_config("/home/a001673/usr/src/pytroll-config/etc/Suomi-NPP.cfg")
 
     myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM16_npp_d20150420_t0536333_e0537575_b18015_c20150420054512738521_cspp_dev.h5",
@@ -446,6 +454,8 @@ if __name__ == '__main__':
                "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVDNB_npp_d20150311_t1125112_e1126354_b17451_c20150311113326791425_cspp_dev.h5",
                ]
 
+    # myfiles = glob.glob("/no_backup/data/viirs/conus_day/*.h5")
+
     scn = Scene(filenames=myfiles)
 
     scn.add_product("fog", VIIRSFog())
@@ -458,8 +468,11 @@ if __name__ == '__main__':
 
     from mpop.projector import get_area_def
     eurol = get_area_def("eurol")
+    # eurol = get_area_def("davidh_test")
     newscn = scn.resample(eurol, radius_of_influence=2000)
 
+    img = newscn["true_color"].to_image()
+    img.save("true_color.png")
     # unittest.main()
 
     #########

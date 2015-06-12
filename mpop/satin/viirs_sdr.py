@@ -41,6 +41,7 @@ import hashlib
 import logging
 
 from mpop.utils import strftime
+from mpop.projectable import Projectable
 
 from mpop import CONFIG_PATH
 
@@ -360,7 +361,7 @@ class ViirsBandData(object):
         self.geolocation = None
 
         self.band_desc = None
-        self.band_uid = None
+        self.mask_uid = None
         self.metadata = []
 
     def read(self):
@@ -499,7 +500,7 @@ class ViirsBandData(object):
 
         self.data = np.ma.array(self.raw_data, mask=self.mask, copy=False)
 
-        self.band_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
+        self.mask_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
 
     def read_lonlat(self, geofilepaths=None, geodir=None):
 
@@ -524,7 +525,6 @@ class ViirsSDRReader(Reader):
     pformat = "viirs_sdr"
 
     def __init__(self, *args, **kwargs):
-        print args, kwargs
         Reader.__init__(self, *args, **kwargs)
 
     def load(self, channels_to_load, filenames, calibrate=1, time_interval=None, area=None, **kwargs):
@@ -532,16 +532,14 @@ class ViirsSDRReader(Reader):
         *self._scene*.
         """
         if kwargs:
-            logger.warning(
-                "Unsupported options for viirs reader: %s", str(kwargs))
+            logger.warning("Unsupported options for viirs reader: %s", str(kwargs))
 
-        conf = ConfigParser()
-        conf.read(self.config_file)
+        # FIXME: These should come from kwargs on load
+        start_time = self.info["start_time"]
+        end_time = self.info["end_time"]
 
-        band_list = [conf.get(section, "name") for section in conf.sections() if section.startswith("channel:")]
-        chns = channels_to_load & set(band_list)
-        print chns, channels_to_load, band_list
-        if len(chns) == 0:
+        channels_to_load = channels_to_load & set(self.info["channels"].keys())
+        if len(channels_to_load) == 0:
             return
 
         # TODO: don't hardcode the file prefixes
@@ -561,24 +559,23 @@ class ViirsSDRReader(Reader):
             geodirectory = os.path.dirname(geofile_list[0])
         logger.debug("The filelist is: %s", str(file_list))
 
-        file_list = _get_swathsegment(file_list, time_start, time_end, area)
-        geofile_list = _get_swathsegment(geofile_list, time_start, time_end, area)
+        file_list = _get_swathsegment(file_list, start_time, end_time, area)
+        geofile_list = _get_swathsegment(geofile_list, start_time, end_time, area)
         logger.debug("Number of files after segment selection: "
                      + str(len(file_list)))
 
         if len(file_list) == 0:
-            logger.debug(
-                "File template = " + str(os.path.join(directory, filename_tmpl)))
+            # logger.debug(
+            #     "File template = " + str(os.path.join(directory, filename_tmpl)))
             raise IOError("No VIIRS SDR file matching!: " +
-                          "Start time = " + str(time_start) +
-                          "  End time = " + str(time_end))
+                          "Start time = " + str(start_time) +
+                          "  End time = " + str(end_time))
 
         filenames = [os.path.basename(s) for s in file_list]
 
-        glob_info = {}
-
         logger.debug("Channels to load: " + str(channels_to_load))
         areas = {}
+        channels_loaded = {}
         for chn in channels_to_load:
             # Take only those files in the list matching the band:
             # (Filename starts with 'SV' and then the band-name)
@@ -651,19 +648,17 @@ class ViirsSDRReader(Reader):
                 logger.warning('Band name = ' + band.band_id)
                 raise AttributeError('Band description not supported!')
 
-            self._scene[chn].data = band.data
-            self._scene[chn].info['units'] = band.units
-            self._scene[chn].info['band_id'] = band.band_id
-            self._scene[chn].info['start_time'] = band.begin_time
-            self._scene[chn].info['end_time'] = band.end_time
+            # Create a projectable from info from the file data and the config file
+            projectable = self.create_projectable(chn, band, **self.info["channels"][chn])
 
             # We assume the same geolocation should apply to all M-bands!
             # ...and the same to all I-bands:
 
             from pyresample import geometry
 
-            if band.band_uid in areas:
-                self._scene[chn].info["area"] = areas[band.band_uid]
+            # FIXME: When is an area equal to another area in remapping?
+            if band.mask_uid in areas:
+                projectable.info["area"] = areas[band.mask_uid]
             else:
 
                 area = geometry.SwathDefinition(
@@ -673,13 +668,13 @@ class ViirsSDRReader(Reader):
                     lats=np.ma.masked_where(band.data.mask,
                                             band.geolocation.latitudes,
                                             copy=False))
-                area_name = ("swath_" + self._scene.info["platform_name"] + "_" +
-                             str(self._scene[chn].info['start_time']) + "_"
-                             + str(self._scene[chn].data.shape) + "_" +
-                             band.band_uid)
+                area_name = ("swath_" +
+                             str(projectable.info['start_time']) + "_"
+                             + str(projectable.data.shape) + "_" +
+                             band.mask_uid)
                 area.area_id = area_name
-                self._scene[chn].info["area"] = area
-                areas[band.band_uid] = area
+                projectable.info["area"] = area
+                areas[band.mask_uid] = area
             # except ImportError:
             #    self._scene[chn].area = None
             #    self._scene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
@@ -689,6 +684,7 @@ class ViirsSDRReader(Reader):
             ##    glob_info['institution'] = band.global_info['N_Dataset_Source']
             # if 'mission_name' not in glob_info:
             ##    glob_info['mission_name'] = band.global_info['Mission_Name']
+            channels_loaded[chn] = projectable
 
         ViirsGeolocationData.clear_cache()
 
@@ -706,16 +702,25 @@ class ViirsSDRReader(Reader):
         # else:
         #     self._scene.add_to_history("NPP/JPSS VIIRS SDR read by mpop")
 
-        self._scene.info["references"] = "No reference."
-        self._scene.info["comments"] = "No comment."
+        # FIXME
+        # self._scene.info["references"] = "No reference."
+        # self._scene.info["comments"] = "No comment."
 
-        self._scene.info["start_time"] = min([chn.info["start_time"]
-                                           for chn in self._scene
-                                           if chn.is_loaded()])
-        self._scene.info["end_time"] = max([chn.info["end_time"]
-                                         for chn in self._scene
-                                         if chn.is_loaded()])
+        # self._scene.info["start_time"] = min([chn.info["start_time"]
+        #                                    for chn in self._scene
+        #                                    if chn.is_loaded()])
+        # self._scene.info["end_time"] = max([chn.info["end_time"]
+        #                                  for chn in self._scene
+        #                                  if chn.is_loaded()])
+        return channels_loaded
 
+    def create_projectable(self, chn, band, **kwargs):
+        projectable = Projectable(data=band.data, **kwargs)
+        projectable.info['units'] = band.units
+        projectable.info['band_id'] = band.band_id
+        projectable.info['start_time'] = band.begin_time
+        projectable.info['end_time'] = band.end_time
+        return projectable
 
 def get_lonlat(filename):
     """Read lon,lat from hdf5 file"""
@@ -763,6 +768,7 @@ def globify(filename):
 
 
 def _get_times_from_npp(filename):
+    # FIXME: This information should be taken from the data in the file
 
     bname = os.path.basename(filename)
     sll = bname.split('_')
@@ -775,7 +781,7 @@ def _get_times_from_npp(filename):
     return start_time, end_time
 
 
-def _get_swathsegment(filelist, time_start, time_end=None, area=None):
+def _get_swathsegment(filelist, start_time=None, end_time=None, area=None):
     """
     Return only the granule files for the time interval or area.
     """
@@ -806,21 +812,26 @@ def _get_swathsegment(filelist, time_start, time_end=None, area=None):
                 segment_files.append(filename)
             continue
 
+        if start_time is None:
+            # if no start_time, assume no time filtering
+            segment_files.append(filename)
+            continue
+
         # Search for single granule using time start
-        if time_end is None:
-            if time_start >= timetup[0] and time_start <= timetup[1]:
+        if end_time is None:
+            if start_time >= timetup[0] and start_time <= timetup[1]:
                 segment_files.append(filename)
                 continue
 
         # search for multiple granules
         else:
             # check that granule start time is inside interval
-            if timetup[0] >= time_start and timetup[0] <= time_end:
+            if timetup[0] >= start_time and timetup[0] <= end_time:
                 segment_files.append(filename)
                 continue
 
             # check that granule end time is inside interval
-            if timetup[1] >= time_start and timetup[1] <= time_end:
+            if timetup[1] >= start_time and timetup[1] <= end_time:
                 segment_files.append(filename)
                 continue
 

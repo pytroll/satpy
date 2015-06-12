@@ -249,7 +249,7 @@ class Image(object):
     modes = ["L", "LA", "RGB", "RGBA", "YCbCr", "YCbCrA", "P", "PA"]
 
     def __init__(self, channels=None, mode="L", color_range=None,
-                 fill_value=None, palette=None):
+                 fill_value=None, palette=None, copy=True):
 
         self.channels = None
         self.mode = None
@@ -259,6 +259,9 @@ class Image(object):
         self.palette = None
         self.shape = None
         self.info = {}
+
+        if copy:
+            logging.warning("Image copy not implemented yet")
 
         self._secondary_mode = "RGB"
 
