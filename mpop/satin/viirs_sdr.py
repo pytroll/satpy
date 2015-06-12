@@ -538,7 +538,7 @@ class ViirsSDRReader(Reader):
         start_time = self.info["start_time"]
         end_time = self.info["end_time"]
 
-        channels_to_load = channels_to_load & set(self.info["channels"].keys())
+        channels_to_load = set(channels_to_load) & set(self.info["channels"].keys())
         if len(channels_to_load) == 0:
             return
 

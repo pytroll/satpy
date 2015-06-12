@@ -111,8 +111,41 @@ class Scene(InfoObject):
                         break
         return filenames
 
-    def add_product(self, name, obj):
-        self.products[name] = obj
+    def add_product(self, uid, obj):
+        self.products[uid] = obj
+
+    def read_composites_config(self, composite_config=None, sensor=None, uids=None):
+        if composite_config is None:
+            composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
+
+        conf = ConfigParser.ConfigParser()
+        conf.read(composite_config)
+        compositors = {}
+        for section_name in conf.sections():
+            if section_name.startswith("composite:"):
+                options = dict(conf.items(section_name))
+                options["sensor"] = options.setdefault("sensor", "").split(",")
+                comp_cls = options["format"]
+
+                # Check if the caller only wants composites for a certain sensor
+                if sensor is not None and sensor not in options["sensor"]:
+                    continue
+                # Check if the caller only wants composites with certain uids
+                if not uids and options["uid"] not in uids:
+                    continue
+
+                if options["uid"] in self.products:
+                    logger.warning("Duplicate composite found, previous composite '%s' will be overwritten", options["uid"])
+
+                try:
+                    loader = self._runtime_import(comp_cls)
+                except ImportError:
+                    logger.warning("Could not import composite class '%s' for compositor '%s'" % (comp_cls, options["uid"]))
+                    continue
+
+                comp = loader(**options)
+                compositors[options["uid"]] = comp
+        return compositors
 
     def _read_config(self, cfg_file):
         conf = ConfigParser.RawConfigParser()
@@ -146,6 +179,15 @@ class Scene(InfoObject):
             raise ValueError("Malformed config file %s: missing reader format"%cfg_file)
         reader_info["file_patterns"] = file_patterns
         reader_info["config_file"] = cfg_file
+
+        try:
+            loader = self._runtime_import(reader_info["format"])
+        except ImportError:
+            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["format"], reader_info["name"]))
+
+        reader_instance = loader(**reader_info)
+        setattr(self, reader_info["name"], reader_instance)
+
         return reader_info
 
             #     wl = [float(elt)
@@ -220,7 +262,7 @@ class Scene(InfoObject):
             try:
                 reader_info = self._read_config(config_file)
             except ValueError:
-                logger.debug("Invalid reader config found: %s", config_file, exc_info=True)
+                logger.debug("Invalid reader config found: %s", config_file)
                 continue
 
             files = self.assign_matching_files(reader_info, *files)
@@ -242,45 +284,82 @@ class Scene(InfoObject):
     #                 return reader
     #     raise RuntimeError("No reader found for filename %s" % (self.filenames[0],))
 
+    def _runtime_import(self, object_path):
+        obj_module, obj_element = object_path.rsplit(".", 1)
+        loader = __import__(obj_module, globals(), locals(), [obj_element])
+        return getattr(loader, obj_element)
+
+    def load_compositors(self, composite_names, sensor_names):
+        # Check the composites for each particular sensor first
+        for sensor_name in sensor_names:
+            sensor_composite_config = os.path.join(self.ppp_config_dir, "composites_" + sensor_name + ".cfg")
+            if not os.path.isfile(sensor_composite_config):
+                logger.debug("No sensor composite config found at %s", sensor_composite_config)
+                continue
+
+            # Load all the compositors for this sensor for the needed names from the specified config
+            sensor_compositors = self.read_composites_config(sensor_composite_config, sensor_name, composite_names)
+            # Update the list of composites the scene knows about
+            self.products.update(sensor_compositors)
+            # Remove the names we know how to create now
+            composite_names -= set(sensor_compositors.keys())
+
+            if not composite_names:
+                # we found them all!
+                break
+        else:
+            # we haven't found them all yet, let's check the global composites config
+            composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
+            if os.path.isfile(composite_config):
+                global_compositors = self.read_composites_config(composite_config, uids=composite_names)
+                self.products.update(global_compositors)
+                composite_names -= set(global_compositors.keys())
+            else:
+                logger.warning("No global composites.cfg file found in config directory")
+
+        return composite_names
+
     def read(self, *projectable_names, **kwargs):
         self.info["wishlist"] = projectable_names
 
+        # Get set of all projectable names that can't be satisfied by the readers we've loaded
+        composite_names = set(projectable_names)
+        sensor_names = set()
         for reader_info in self.info["reader_info"].values():
-            reader_module, reading_element = reader_info["format"].rsplit(".", 1)
-            reader = "mpop.satin." + reader_module
+            reader_instance = getattr(self, reader_info["name"])
+            composite_names -= set(reader_instance.info["channels"].keys())
+            sensor_names |= set([sensor_name for chn_info in reader_instance.info["channels"].values() for sensor_name in chn_info["sensor"].split(",")])
 
-            try:
-                # Look for builtin reader
-                imp.find_module(reader_module, mpop.satin.__path__)
-            except ImportError:
-                # Look for custom reader
-                loader = __import__(reader_module, globals(),
-                                    locals(), [reading_element])
-            else:
-                loader = __import__(reader, globals(),
-                                    locals(), [reading_element])
+        # If we have any composites that need to be made, then let's create the composite objects
+        if composite_names:
+            composite_names = self.load_compositors(composite_names, sensor_names)
 
-            loader = getattr(loader, reading_element)
-            reader_instance = loader(**reader_info)
-            setattr(self, reader_info["name"], reader_instance)
+        for composite_name in composite_names:
+            logger.warning("Unknown channel or compositor: %s", composite_name)
+
+        # Don't include any of the 'unknown' projectable names
+        projectable_names = set(projectable_names) - composite_names
+        composites_needed = set(self.products.keys())
+
+        for reader_info in self.info["reader_info"].values():
+            reader_instance = getattr(self, reader_info["name"])
+            all_reader_channels = set(reader_instance.info["channels"].keys())
 
             # compute the depencies to load from file
-            pnames = set(projectable_names)
-            needed_bands = None
-            rerun = True
-            while rerun:
-                rerun = False
-                needed_bands = set()
-                for band in pnames:
-                    if band in self.products:
-                        needed_bands |= set(self.products[band].prerequisites)
-                        rerun = True
-                    else:
-                        needed_bands.add(band)
-                pnames = needed_bands
+            needed_bands = all_reader_channels & projectable_names
+            while composites_needed:
+                for band in composites_needed.copy():
+                    # Add the
+                    needed_bands |= set(self.products[band].prerequisites)
+                    composites_needed.remove(band)
+
+            # A composite might use a product from another reader, so only pass along the ones we know about
+            needed_bands &= all_reader_channels
 
             # Create projectables in reader and update the scenes projectables
-            self.projectables.update(reader_instance.load(set(pnames), filenames=reader_info["filenames"]))
+            needed_bands = sorted(needed_bands)
+            logger.debug("Asking reader '%s' for the following channels %s", reader_info["name"], str(needed_bands))
+            self.projectables.update(reader_instance.load(needed_bands, filenames=reader_info["filenames"]))
 
         # Update the scene with information contained in the files
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
@@ -333,53 +412,6 @@ class Scene(InfoObject):
         for uid, projectable in self.projectables.items():
             if uid in self.info["wishlist"]:
                 yield projectable.to_image()
-
-
-class CompositeBase(InfoObject):
-
-    def __init__(self, **kwargs):
-        InfoObject.__init__(self, **kwargs)
-        self.prerequisites = []
-
-    def __call__(self, scene):
-        raise NotImplementedError()
-
-
-class VIIRSFog(CompositeBase):
-
-    def __init__(self, uid="fog", **kwargs):
-        CompositeBase.__init__(self, **kwargs)
-        self.uid = uid
-        self.prerequisites = ["I04", "I05"]
-
-    def __call__(self, scene):
-        fog = scene["I05"] - scene["I04"]
-        fog.info["area"] = scene["I05"].info["area"]
-        fog.info["uid"] = self.uid
-        return fog
-
-
-class VIIRSTrueColor(CompositeBase):
-
-    def __init__(self, uid="true_color", image_config=None, **kwargs):
-        default_image_config={"mode": "RGB",
-                              "stretch": "log"}
-        if image_config is not None:
-            default_image_config.update(image_config)
-
-        CompositeBase.__init__(self, **kwargs)
-        self.uid = uid
-        self.prerequisites = ["M02", "M04", "M05"]
-        self.info["image_config"] = default_image_config
-
-    def __call__(self, scene):
-        # raise IncompatibleAreas
-        return Projectable(uid=self.uid,
-                           data=np.concatenate(
-                               ([scene["M05"].data], [scene["M04"].data], [scene["M02"].data]), axis=0),
-                           area=scene["M05"].info["area"],
-                           time_slot=scene.info["start_time"],
-                           **self.info)
 
 
 
@@ -458,8 +490,8 @@ if __name__ == '__main__':
 
     scn = Scene(filenames=myfiles)
 
-    scn.add_product("fog", VIIRSFog())
-    scn.add_product("true_color", VIIRSTrueColor())
+    # scn.add_product("fog", VIIRSFog())
+    # scn.add_product("true_color", VIIRSTrueColor())
 
     scn.load("fog", "I01", "M16", "true_color")
 
@@ -471,8 +503,12 @@ if __name__ == '__main__':
     # eurol = get_area_def("davidh_test")
     newscn = scn.resample(eurol, radius_of_influence=2000)
 
-    img = newscn["true_color"].to_image()
-    img.save("true_color.png")
+    if "true_color" in newscn:
+        img = newscn["true_color"].to_image()
+        img.save("true_color.png")
+    if "fog" in newscn:
+        img = newscn["fog"].to_image()
+        img.save("fog.png")
     # unittest.main()
 
     #########

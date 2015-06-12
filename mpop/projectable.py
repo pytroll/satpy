@@ -139,18 +139,17 @@ class Projectable(Dataset):
             img.show()
 
     def to_image(self, copy=True, **kwargs):
-        kwargs.update(self.info["image_config"])
-        print self.data.shape
+        kwargs.update(self.info)
         if self.data.ndim == 2:
             return GeoImage([self.data],
-                            self.info["area"],
-                            self.info["time_slot"],
+                            # self.info["area"],
+                            time_slot=self.info["start_time"],
                             copy=copy,
                             **kwargs)
         elif self.data.ndim == 3:
             return GeoImage([band for band in self.data],
-                            self.info["area"],
-                            self.info["time_slot"],
+                            # self.info["area"],
+                            time_slot=self.info["start_time"],
                             copy=copy,
                             **kwargs)
 

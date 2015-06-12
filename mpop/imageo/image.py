@@ -921,12 +921,13 @@ class Image(object):
             self.channels[0] = luminance
             self.convert(mode)
 
-    def enhance(self, inverse=False, gamma=1.0, stretch="no"):
+    def enhance(self, inverse=False, gamma=1.0, stretch="no", **kwargs):
         """Image enhancement function. It applies **in this order** inversion,
         gamma correction, and stretching to the current image, with parameters
         *inverse* (see :meth:`Image.invert`), *gamma* (see
         :meth:`Image.gamma`), and *stretch* (see :meth:`Image.stretch`).
         """
+        print(inverse, gamma, stretch, kwargs)
         self.invert(inverse)
         self.gamma(gamma)
         self.stretch(stretch)
