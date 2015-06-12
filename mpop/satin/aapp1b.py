@@ -164,7 +164,6 @@ def load_avhrr(satscene, options):
 
     if options["use_extern_calib"]:
         import h5py
-        import datetime as dt
         LOGGER.info("Reading external calibration coefficients.")
         fid = h5py.File(os.path.join(CONFIG_PATH,
                                      satscene.satname + '_calibration_data.h5'))
@@ -173,14 +172,14 @@ def load_avhrr(satscene, options):
             date_diffs = []
             for dat in fid[key]['datetime']:
                 date_diffs.append(np.abs(satscene.time_slot - \
-                                         dt.datetime(dat[0],
-                                                     dat[1],
-                                                     dat[2])))
+                                         datetime.datetime(dat[0],
+                                                           dat[1],
+                                                           dat[2])))
             idx = date_diffs.index(min(date_diffs))
-            date_diff = \
-                satscene.time_slot - dt.datetime(fid[key]['datetime'][idx][0],
-                                                 fid[key]['datetime'][idx][1],
-                                                 fid[key]['datetime'][idx][2])
+            date_diff = satscene.time_slot - \
+                        datetime.datetime(fid[key]['datetime'][idx][0],
+                                          fid[key]['datetime'][idx][1],
+                                          fid[key]['datetime'][idx][2])
             if date_diff.days > 0:
                 older_or_newer = "newer"
             else:
@@ -494,10 +493,9 @@ class AAPP1b(object):
             self.channels['1'] = _vis_calibrate(self._data, 0,
                                                 calibrate, pre_launch_coeffs,
                                                 coeffs)
+            self.units['1'] = '%'
             if calibrate == 0:
                 self.units['1'] = ''
-            else:
-                self.units['1'] = '%'
 
         if "2" in chns:
             if calib_coeffs is not None:
@@ -507,10 +505,9 @@ class AAPP1b(object):
             self.channels['2'] = _vis_calibrate(self._data, 1,
                                                 calibrate, pre_launch_coeffs,
                                                 coeffs)
+            self.units['2'] = '%'
             if calibrate == 0:
                 self.units['2'] = ''
-            else:
-                self.units['2'] = '%'
 
         if "3A" in chns or "3B" in chns:
             # Is it 3A or 3B:
@@ -527,17 +524,17 @@ class AAPP1b(object):
                                   calibrate, pre_launch_coeffs,
                                   coeffs)
             self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
+
+            self.units['3A'] = '%'
             if calibrate == 0:
                 self.units['3A'] = ''
-            else:
-                self.units['3A'] = '%'
 
         if "3B" in chns:
             ch3b = _ir_calibrate(self._header, self._data, 0, calibrate)
             self.channels['3B'] = \
                 np.ma.masked_array(ch3b,
-                                   np.logical_or((is3b == False)
-                                                 * ch3b,
+                                   np.logical_or((is3b is False) * \
+                                                 ch3b,
                                                  ch3b < 0.1))
             if calibrate == 1:
                 self.units['3B'] = 'K'
