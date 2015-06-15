@@ -200,7 +200,7 @@ class SequentialRunner(object):
             if not self.running:
                 LOG.info("Running interrupted")
                 return
-            local_data = self.data.project(area, prerequisites, self.precompute,
+            local_data = self.data.resample(area, prerequisites, self.precompute,
                                            mode="nearest", radius=radius)
             for product, flist in productlist.items():
                 fun = getattr(local_data.image, product)

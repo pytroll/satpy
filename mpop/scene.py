@@ -694,7 +694,7 @@ class SatelliteInstrumentScene(SatelliteScene):
                         LOG.exception("Could not save projection.")
 
             try:
-                res.channels.append(chn.project(cov[area_id]))
+                res.channels.append(chn.resample(cov[area_id]))
             except NotLoadedError:
                 LOG.warning("Channel " + str(chn.name) + " not loaded, "
                             "thus not projected.")

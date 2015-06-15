@@ -65,7 +65,7 @@ def memoize(func, keys):
 
 def resample_kd_tree_nearest(source_geo_def, data, target_geo_def,
                              radius_of_influence, epsilon=0, weight_funcs=None,
-                             fill_value=0, reduce_data=True, nprocs=1, segments=None, with_uncert=False,
+                             fill_value=None, reduce_data=True, nprocs=1, segments=None, with_uncert=False,
                              precompute=False):
     """Resamples using kd-tree approach"""
 

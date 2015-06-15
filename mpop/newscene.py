@@ -37,7 +37,7 @@ from mpop.imageo.geo_image import GeoImage
 from mpop.utils import debug_on
 debug_on()
 from mpop.projectable import Projectable, InfoObject
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -89,26 +89,33 @@ class Scene(InfoObject):
             parser = trollsift.parser.Parser(pattern)
             # FIXME: what if we are browsing a huge archive ?
             info = self.info.copy()
-            info.pop("start_time", None)
-            info.pop("end_time", None)
-            info.pop("creation_time", None)
+            for key in info.keys():
+                if key.endswith("_time"):
+                    info.pop(key, None)
             reader_start = reader_info["start_time"]
             reader_end = reader_info["end_time"]
-            for filename in glob.iglob(parser.globify(info)):
+            globber = parser.globify(info.copy())
+            for filename in glob.iglob(globber):
                 metadata = parser.parse(filename)
+                if "end_time" in metadata and metadata["start_time"] > metadata["end_time"]:
+                    mdate = metadata["start_time"].date()
+                    mtime = metadata["end_time"].time()
+                    if mtime < metadata["start_time"].time():
+                        mdate += timedelta(days=1)
+                    metadata["end_time"] = datetime.combine(mdate, mtime)
+                meta_start = metadata.get("start_time", metadata.get("nominal_time", None))
+                meta_end = metadata.get("end_time", epoch)
                 if reader_end:
                     # get the data within the time interval
-                    end_time = metadata.get("end_time", epoch)
-                    if ((reader_start <= metadata["start_time"] <= reader_end) or
-                            (reader_start <=  end_time <= reader_end)):
+                    if ((reader_start <= meta_start <= reader_end) or
+                            (reader_start <=  meta_end <= reader_end)):
                         filenames.append(filename)
                 else:
                     # get the data containing start_time
-                    if "end_time" in metadata and metadata["start_time"] <= reader_start <= metadata["end_time"]:
+                    if "end_time" in metadata and meta_start <= reader_start <= meta_end:
                         filenames.append(filename)
-                    elif metadata["start_time"] == reader_start:
+                    elif meta_start == reader_start:
                         filenames.append(filename)
-                        break
         return filenames
 
     def add_product(self, uid, obj):
@@ -148,14 +155,15 @@ class Scene(InfoObject):
         return compositors
 
     def _read_config(self, cfg_file):
-        conf = ConfigParser.RawConfigParser()
-
         if not os.path.exists(cfg_file):
             raise IOError("No such file: " + cfg_file)
+
+        conf = ConfigParser.RawConfigParser()
 
         conf.read(cfg_file)
         file_patterns = []
         reader_format = None
+        reader_info = None
         # Only one reader: section per config file
         for section in conf.sections():
             if section.startswith("reader:"):
@@ -175,6 +183,8 @@ class Scene(InfoObject):
                     file_patterns.extend(conf.get(section, "file_patterns").split(","))
                 except ConfigParser.NoOptionError:
                     pass
+        if reader_info is None:
+            raise ValueError("Empty config file ? %s"%cfg_file)
         if reader_format is None:
             raise ValueError("Malformed config file %s: missing reader format"%cfg_file)
         reader_info["file_patterns"] = file_patterns
@@ -187,7 +197,7 @@ class Scene(InfoObject):
 
         reader_instance = loader(**reader_info)
         setattr(self, reader_info["name"], reader_instance)
-
+        reader_info.update(reader_instance.info)
         return reader_info
 
             #     wl = [float(elt)
@@ -319,11 +329,23 @@ class Scene(InfoObject):
 
         return composite_names
 
-    def read(self, *projectable_names, **kwargs):
-        self.info["wishlist"] = projectable_names
+    def read(self, *projectable_keys, **kwargs):
+        self.info["wishlist"] = projectable_keys
 
-        # Get set of all projectable names that can't be satisfied by the readers we've loaded
+        projectable_names = set()
+
+        for reader_info in self.info["reader_info"].values():
+            reader_instance = getattr(self, reader_info["name"])
+            for key in projectable_keys:
+                try:
+                    projectable_names.add(reader_instance.get_channel(key)["uid"])
+                except KeyError:
+                    projectable_names.add(key)
+                    logger.debug("Can't find channel %s in reader %s",
+                                 str(key), reader_info["name"])
+       # Get set of all projectable names that can't be satisfied by the readers we've loaded
         composite_names = set(projectable_names)
+        #composite_names = set()
         sensor_names = set()
         for reader_info in self.info["reader_info"].values():
             reader_instance = getattr(self, reader_info["name"])
@@ -349,8 +371,7 @@ class Scene(InfoObject):
             needed_bands = all_reader_channels & projectable_names
             while composites_needed:
                 for band in composites_needed.copy():
-                    # Add the
-                    needed_bands |= set(self.products[band].prerequisites)
+                    needed_bands |= set([reader_instance.get_channel(prereq)["uid"] for prereq in self.products[band].prerequisites])
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -363,7 +384,10 @@ class Scene(InfoObject):
 
         # Update the scene with information contained in the files
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
-        self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])
+        try:
+            self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])
+        except KeyError:
+            pass
         # TODO: comments and history
 
     def compute(self, *requirements):

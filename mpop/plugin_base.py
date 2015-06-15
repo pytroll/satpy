@@ -24,6 +24,7 @@
 """
 from ConfigParser import ConfigParser
 import weakref
+import numbers
 
 class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
@@ -39,10 +40,7 @@ class Reader(Plugin):
 
     #TODO make config_file optional
     def __init__(self, config_file, **kwargs):
-        """The reader plugin takes as input a satellite scene to fill in.
-        
-        Arguments:
-        - `scene`: the scene to fill.
+        """The reader plugin takes as input a configuration file to read.
         """
         Plugin.__init__(self)
         self.config_file = config_file
@@ -69,7 +67,30 @@ class Reader(Plugin):
         # Allow subclasses to make up their own rules about channels, but this is a good starting point
         if "file_patterns" in section_options:
             section_options["file_patterns"] = section_options["file_patterns"].split(",")
+        if "wavelength_range" in section_options:
+            section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
         return section_options
+
+    def get_channel(self, key):
+        """Get the channel corresponding to *key*, either by name or centerwavelength.
+        """
+        if isinstance(key, numbers.Number):
+            channels = [chn for chn in self.info["channels"].values()
+                        if("wavelength_range" in chn and
+                           chn["wavelength_range"][0] <= key <=chn["wavelength_range"][2])]
+            channels = sorted(channels,
+                              lambda ch1, ch2:
+                              cmp(abs(ch1["wavelength_range"][1] - key),
+                                  abs(ch2["wavelength_range"][1] - key)))
+
+            if not channels:
+                raise KeyError("Can't find any projectable at %gum" % key)
+            return channels[0]
+        # get by name
+        else:
+            return self.info["channels"]["key"]
+        raise KeyError("No channel corresponding to " + str(key) + ".")
+
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.

@@ -41,12 +41,12 @@ try:
 except ImportError:
     from mpop.imageo.image import Image, UnknownImageFormat
 
-
 from mpop import CONFIG_PATH
 import logging
 from mpop.utils import ensure_dir
 
 logger = logging.getLogger(__name__)
+
 
 class GeoImage(Image):
     """This class defines geographic images. As such, it contains not only data
@@ -113,7 +113,7 @@ class GeoImage(Image):
             try:
                 saver = __import__(fformat, globals(), locals(), ['save'])
             except ImportError:
-                raise  UnknownImageFormat(
+                raise UnknownImageFormat(
                     "Unknown image format '%s'" % fformat)
             saver.save(self, filename, **kwargs)
 
@@ -203,7 +203,7 @@ class GeoImage(Image):
             g_opts.append("BLOCKXSIZE=" + str(blocksize))
             g_opts.append("BLOCKYSIZE=" + str(blocksize))
 
-        if(self.mode == "L"):
+        if self.mode == "L":
             ensure_dir(filename)
             if fill_value is not None:
                 dst_ds = raster.Create(filename,
@@ -222,7 +222,7 @@ class GeoImage(Image):
                                        g_opts)
             self._gdal_write_channels(dst_ds, channels,
                                       opacity, fill_value)
-        elif(self.mode == "LA"):
+        elif self.mode == "LA":
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename,
@@ -234,7 +234,7 @@ class GeoImage(Image):
             self._gdal_write_channels(dst_ds,
                                       channels[:-1], channels[1],
                                       fill_value)
-        elif(self.mode == "RGB"):
+        elif (self.mode == "RGB"):
             ensure_dir(filename)
             if fill_value is not None:
                 dst_ds = raster.Create(filename,
@@ -255,7 +255,7 @@ class GeoImage(Image):
             self._gdal_write_channels(dst_ds, channels,
                                       opacity, fill_value)
 
-        elif(self.mode == "RGBA"):
+        elif (self.mode == "RGBA"):
             ensure_dir(filename)
             g_opts.append("ALPHA=YES")
             dst_ds = raster.Create(filename,
@@ -270,9 +270,7 @@ class GeoImage(Image):
                                       fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode"
-                                      " %s is not implemented."%self.mode)
-
-
+                                      " %s is not implemented." % self.mode)
 
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution ... if not overwritten by argument geotransform.
@@ -286,11 +284,11 @@ class GeoImage(Image):
         else:
             from pyresample import utils
             from mpop.projector import get_area_def
+
             try:
                 area = get_area_def(self.area)
             except (utils.AreaNotFound, AttributeError):
                 area = self.area
-
 
             try:
                 adfgeotransform = [area.area_extent[0], area.pixel_size_x, 0,
@@ -317,14 +315,13 @@ class GeoImage(Image):
                 logger.exception("Could not load geographic data, invalid area")
 
         self.tags.update({'TIFFTAG_DATETIME':
-                          self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
+                              self.time_slot.strftime("%Y:%m:%d %H:%M:%S")})
 
         dst_ds.SetMetadata(self.tags, '')
 
         # Close the dataset
 
         dst_ds = None
-
 
     def add_overlay(self, color=(0, 0, 0), width=0.5, resolution=None):
         """Add coastline and political borders to image, using *color* (tuple
@@ -341,11 +338,10 @@ class GeoImage(Image):
         +-----+-------------------------+---------+
         """
 
-
-
         img = self.pil_image()
 
         import ConfigParser
+
         conf = ConfigParser.ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
@@ -357,6 +353,7 @@ class GeoImage(Image):
             raise ValueError("Area of image is None, can't add overlay.")
 
         from mpop.projector import get_area_def
+
         if isinstance(self.area, str):
             self.area = get_area_def(self.area)
         logger.info("Add coastlines and political borders to image.")
@@ -386,6 +383,7 @@ class GeoImage(Image):
             logger.debug("Automagically choose resolution " + resolution)
 
         from pycoast import ContourWriterAGG
+
         cw_ = ContourWriterAGG(coast_dir)
         cw_.add_coastlines(img, self.area, outline=color,
                            resolution=resolution, width=width)
@@ -400,14 +398,13 @@ class GeoImage(Image):
             for idx in range(len(self.channels)):
                 self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
-
     def add_overlay_config(self, config_file):
         """Add overlay to image parsing a configuration file.
            
         """
 
-
         import ConfigParser
+
         conf = ConfigParser.ConfigParser()
         conf.read(os.path.join(CONFIG_PATH, "mpop.cfg"))
 
@@ -418,12 +415,13 @@ class GeoImage(Image):
         try:
             import aggdraw
             from pycoast import ContourWriterAGG
+
             cw_ = ContourWriterAGG(coast_dir)
         except ImportError:
             logger.warning("AGGdraw lib not installed...width and opacity properties are not available for overlays.")
             from pycoast import ContourWriter
+
             cw_ = ContourWriter(coast_dir)
-            
 
         logger.debug("Getting area for overlay: " + str(self.area))
 
@@ -435,15 +433,15 @@ class GeoImage(Image):
 
         img = self.pil_image()
 
-
         from mpop.projector import get_area_def
+
         if isinstance(self.area, str):
             self.area = get_area_def(self.area)
         logger.info("Add overlays to image.")
         logger.debug("Area = " + str(self.area.area_id))
 
-        foreground=cw_.add_overlay_from_config(config_file, self.area)
-        img.paste(foreground,mask=foreground.split()[-1])
+        foreground = cw_.add_overlay_from_config(config_file, self.area)
+        img.paste(foreground, mask=foreground.split()[-1])
 
         arr = np.array(img)
 
@@ -452,4 +450,3 @@ class GeoImage(Image):
         else:
             for idx in range(len(self.channels)):
                 self.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
-

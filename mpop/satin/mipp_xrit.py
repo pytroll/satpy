@@ -39,10 +39,13 @@ from mipp import CalibrationError, ReaderError
 
 from mpop import CONFIG_PATH
 import logging
+from trollsift.parser import Parser
 
 from mpop.satin.helper_functions import area_def_names_to_extent
+from mpop.projectable import Projectable
 
 LOGGER = logging.getLogger(__name__)
+
 
 try:
     # Work around for on demand import of pyresample. pyresample depends
@@ -63,11 +66,133 @@ class XritReader(Reader):
     '''
     pformat = "mipp_xrit"
 
-    def load(self, *args, **kwargs):
-        load(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        Reader.__init__(self, *args, **kwargs)
 
 
-def load(satscene, calibrate=True, area_extent=None, area_def_names=None,
+    def load(self, channels_to_load, calibrate=True, area_extent=None,
+             area_def_names=None, **kwargs):
+        """Read imager data from file and return projectables.
+        """
+        LOGGER.debug("Channels to load: %s" % channels_to_load)
+
+        # Compulsory global attributes
+        # satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
+        #                           " satellite, " +
+        #                           satscene.instrument_name.capitalize() +
+        #                           " instrument.")
+        # satscene.info["institution"] = "Original data disseminated by EumetCast."
+        # satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
+        # satscene.info["references"] = "No reference."
+        # satscene.info["comments"] = "No comment."
+
+        area_converted_to_extent = False
+        filename = kwargs["filenames"][0]
+        pattern = self.info["file_patterns"][0]
+
+        parser = Parser(pattern)
+
+        file_info = parser.parse(filename)
+
+        platforms = {"MSG1": "Meteosat-8",
+                     "MSG2": "Meteosat-9",
+                     "MSG3": "Meteosat-10",
+                     "MSG4": "Meteosat-11",
+                     }
+
+        self.load_config()
+        short_name = file_info["platform_shortname"]
+        fullname = platforms.get(short_name, short_name)
+        projectables = {}
+        for chn in channels_to_load:
+
+            # Convert area definitions to maximal area_extent
+            if not area_converted_to_extent and area_def_names is not None:
+                metadata = xrit.sat.load(fullname, self.info["start_time"],
+                                         chn, only_metadata=True)
+                # if area_extent is given, assume it gives the maximum
+                # extent of the satellite view
+                if area_extent is not None:
+                    area_extent = area_def_names_to_extent(area_def_names,
+                                                           metadata.proj4_params,
+                                                           area_extent)
+                # otherwise use the default value (MSG3 extent at
+                # lon0=0.0), that is, do not pass default_extent=area_extent
+                else:
+                    area_extent = area_def_names_to_extent(area_def_names,
+                                                           metadata.proj4_params)
+
+                area_converted_to_extent = True
+
+            try:
+                image = xrit.sat.load(fullname,
+                                      self.info["start_time"],
+                                      chn,
+                                      mask=True,
+                                      calibrate=calibrate)
+                if area_extent:
+                    metadata, data = image(area_extent)
+                else:
+                    metadata, data = image()
+            except CalibrationError:
+                LOGGER.warning(
+                    "Loading non calibrated data since calibration failed.")
+                image = xrit.sat.load(fullname,
+                                      self.info["start_time"],
+                                      chn,
+                                      mask=True,
+                                      calibrate=False)
+                if area_extent:
+                    metadata, data = image(area_extent)
+                else:
+                    metadata, data = image()
+
+            except ReaderError, err:
+                # if channel can't be found, go on with next channel
+                LOGGER.error(str(err))
+                continue
+
+            projectable = Projectable(data,
+                                      uid=chn,
+                                      units=metadata.calibration_unit,
+                                      wavelength_range=self.info["channels"][chn]["wavelength_range"],
+                                      start_time=self.info["start_time"])
+
+            # satscene[chn] = data
+            #
+            # satscene[chn].info['units'] = metadata.calibration_unit
+            # satscene[chn].info['satname'] = satscene.satname
+            # satscene[chn].info['satnumber'] = satscene.number
+            # satscene[chn].info['instrument_name'] = satscene.instrument_name
+            # satscene[chn].info['time'] = satscene.time_slot
+
+            # Build an area on the fly from the mipp metadata
+            proj_params = getattr(metadata, "proj4_params").split(" ")
+            proj_dict = {}
+            for param in proj_params:
+                key, val = param.split("=")
+                proj_dict[key] = val
+
+            if IS_PYRESAMPLE_LOADED:
+                # Build area_def on-the-fly
+                projectable.info["area"] = geometry.AreaDefinition(
+                    #satscene.satname + satscene.instrument_name +
+                    str(metadata.area_extent) +
+                    str(data.shape),
+                    "On-the-fly area",
+                    proj_dict["proj"],
+                    proj_dict,
+                    data.shape[1],
+                    data.shape[0],
+                    metadata.area_extent)
+            else:
+                LOGGER.info("Could not build area, pyresample missing...")
+
+            projectables[chn] = projectable
+        return projectables
+
+
+def load(channels_to_load, calibrate=True, area_extent=None, area_def_names=None,
          **kwargs):
     """Read data from file and load it into *satscene*. The *calibrate*
     argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
@@ -94,127 +219,5 @@ def load(satscene, calibrate=True, area_extent=None, area_def_names=None,
                                                       area_def_names)
 
 
-def load_generic(satscene, options, calibrate=True, area_extent=None,
-                 area_def_names=None):
-    """Read imager data from file and load it into *satscene*.
-    """
-    del options
-
-    os.environ["PPP_CONFIG_DIR"] = CONFIG_PATH
-
-    LOGGER.debug("Channels to load from %s: %s" % (satscene.instrument_name,
-                                                   satscene.channels_to_load))
-
-    # Compulsory global attributes
-    satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
-                              " satellite, " +
-                              satscene.instrument_name.capitalize() +
-                              " instrument.")
-    satscene.info["institution"] = "Original data disseminated by EumetCast."
-    satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
-    satscene.info["references"] = "No reference."
-    satscene.info["comments"] = "No comment."
-
-    from_area = False
-
-    if area_extent is None and satscene.area is not None:
-        if not satscene.area_def:
-            satscene.area = get_area_def(satscene.area_id)
-        area_extent = satscene.area.area_extent
-        from_area = True
-
-    area_converted_to_extent = False
-
-    for chn in satscene.channels_to_load:
-        if from_area:
-            try:
-                metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
-                                         chn, only_metadata=True)
-                if(satscene.area_def.proj_dict["proj"] != "geos" or
-                   float(satscene.area_def.proj_dict["lon_0"]) !=
-                   metadata.sublon):
-                    raise ValueError("Slicing area must be in "
-                                     "geos projection, and lon_0 should match "
-                                     "the satellite's position.")
-            except ReaderError, err:
-                # if channel can't be found, go on with next channel
-                LOGGER.error(str(err))
-                continue
-
-        # Convert area definitions to maximal area_extent
-        if not area_converted_to_extent and area_def_names is not None:
-            metadata = xrit.sat.load(satscene.fullname, satscene.time_slot,
-                                     chn, only_metadata=True)
-            # if area_extent is given, assume it gives the maximum
-            # extent of the satellite view
-            if area_extent is not None:
-                area_extent = area_def_names_to_extent(area_def_names,
-                                                       metadata.proj4_params,
-                                                       area_extent)
-            # otherwise use the default value (MSG3 extent at
-            # lon0=0.0), that is, do not pass default_extent=area_extent
-            else:
-                area_extent = area_def_names_to_extent(area_def_names,
-                                                       metadata.proj4_params)
-
-            area_converted_to_extent = True
-
-        try:
-            image = xrit.sat.load(satscene.fullname,
-                                  satscene.time_slot,
-                                  chn,
-                                  mask=True,
-                                  calibrate=calibrate)
-            if area_extent:
-                metadata, data = image(area_extent)
-            else:
-                metadata, data = image()
-        except CalibrationError:
-            LOGGER.warning(
-                "Loading non calibrated data since calibration failed.")
-            image = xrit.sat.load(satscene.fullname,
-                                  satscene.time_slot,
-                                  chn,
-                                  mask=True,
-                                  calibrate=False)
-            if area_extent:
-                metadata, data = image(area_extent)
-            else:
-                metadata, data = image()
-
-        except ReaderError, err:
-            # if channel can't be found, go on with next channel
-            LOGGER.error(str(err))
-            continue
-
-        satscene[chn] = data
-
-        satscene[chn].info['units'] = metadata.calibration_unit
-        satscene[chn].info['satname'] = satscene.satname
-        satscene[chn].info['satnumber'] = satscene.number
-        satscene[chn].info['instrument_name'] = satscene.instrument_name
-        satscene[chn].info['time'] = satscene.time_slot
-
-        # Build an area on the fly from the mipp metadata
-        proj_params = getattr(metadata, "proj4_params").split(" ")
-        proj_dict = {}
-        for param in proj_params:
-            key, val = param.split("=")
-            proj_dict[key] = val
-
-        if IS_PYRESAMPLE_LOADED:
-            # Build area_def on-the-fly
-            satscene[chn].area = geometry.AreaDefinition(
-                satscene.satname + satscene.instrument_name +
-                str(metadata.area_extent) +
-                str(data.shape),
-                "On-the-fly area",
-                proj_dict["proj"],
-                proj_dict,
-                data.shape[1],
-                data.shape[0],
-                metadata.area_extent)
-        else:
-            LOGGER.info("Could not build area, pyresample missing...")
 
 CASES = {}

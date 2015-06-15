@@ -24,16 +24,25 @@
 """Base classes for composite objects.
 """
 
-from mpop.projectable import InfoObject
+from mpop.projectable import InfoObject, Projectable
+import numpy as np
 
 class CompositeBase(InfoObject):
 
-    def __init__(self, uid, format, prerequisites, **kwargs):
+    def __init__(self, uid, format, prerequisites, default_image_config={},
+                 **kwargs):
         # Required info
         kwargs["uid"] = uid
         kwargs["format"] = format
-        kwargs["prerequisites"] = prerequisites.split(",")
+        kwargs["prerequisites"] = []
+        for prerequisite in prerequisites.split(","):
+            try:
+                kwargs["prerequisites"].append(float(prerequisite))
+            except ValueError:
+                kwargs["prerequisites"].append(prerequisite)
         InfoObject.__init__(self, **kwargs)
+        for key, value in default_image_config.iteritems():
+            self.info.setdefault(key, value)
 
     @property
     def prerequisites(self):
@@ -43,4 +52,19 @@ class CompositeBase(InfoObject):
     def __call__(self, scene):
         raise NotImplementedError()
 
+
+class Overview(CompositeBase):
+    def __init__(self, *args, **kwargs):
+        default_image_config={"mode": "RGB",
+                              "stretch": "linear"}
+        kwargs.setdefault("default_image_config", default_image_config)
+        CompositeBase.__init__(self, *args, **kwargs)
+
+    def __call__(self, scene):
+        # raise IncompatibleAreas
+        the_data = np.rollaxis(np.ma.dstack((scene[0.6].data, scene[0.8].data, -scene[10.8].data)), axis=2)
+        return Projectable(data=the_data,
+                           area=scene[0.6].info["area"],
+                           start_time=scene.info["start_time"],
+                           **self.info)
 
