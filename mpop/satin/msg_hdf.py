@@ -251,7 +251,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
                                                       "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.product_algorithm_version = h5f.attrs["PACKAGE"] + h5f.attrs["PRODUCT_NAME"] + h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
 
@@ -454,6 +454,7 @@ class MsgCloudType(mpop.channel.GenericChannel):
             "MSG SEVIRI Cloud Type")
         retv._md["satellite_id"] = np.string_(self.satid)
         retv._md["sec_1970"] = np.uint64(0)
+        retv._md["version"] = np.string_(self.product_algorithm_version)
 
         retv.PALETTE = InfoObject()
         retv.PALETTE.data = old_ctype_palette_data()
@@ -606,7 +607,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
                                                       "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.product_algorithm_version = h5f.attrs["PACKAGE"] + h5f.attrs["PRODUCT_NAME"] + h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
 
@@ -850,6 +851,7 @@ class MsgCTTH(mpop.channel.GenericChannel):
             "MSG SEVIRI Cloud Top Temperature & Height")
         retv._md["satellite_id"] = np.string_(self.satid)
         retv._md["sec_1970"] = np.uint64(0)
+        retv._md["version"] = np.string_(self.product_algorithm_version)
 
         retv.processingflag_lut = []
 
