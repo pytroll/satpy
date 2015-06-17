@@ -63,11 +63,17 @@ class Dataset(InfoObject):
         else:
             return self.__class__(data=self.data * other)
 
+    def __rmul__(self, other):
+        return self.__class__(data=self.data * other)
+
     def __sub__(self, other):
         if isinstance(other, Dataset):
             return self.__class__(data=self.data - other.data)
         else:
             return self.__class__(data=self.data - other)
+
+    def __rsub__(self, other):
+        return self.__class__(data=other - self.data)
 
     def __add__(self, other):
         if isinstance(other, Dataset):
@@ -75,11 +81,18 @@ class Dataset(InfoObject):
         else:
             return self.__class__(data=self.data + other)
 
+    def __radd__(self, other):
+        return self.__class__(data=self.data + other)
+
     def __div__(self, other):
         if isinstance(other, Dataset):
             return self.__class__(data=self.data / other.data)
         else:
             return self.__class__(data=self.data / other)
+
+    def __rdiv__(self, other):
+        return self.__class__(data=other / self.data)
+
 
     def __neg__(self):
         return self.__class__(data=-self.data)
@@ -119,39 +132,32 @@ class Projectable(Dataset):
     def is_loaded(self):
         return self.data is not None
 
-    def show(self, filename=None):
+    def show(self, filename=None, stretch="crude", **kwargs):
         """Display the channel as an image.
         """
         if not self.is_loaded():
             raise ValueError("Channel not loaded, cannot display.")
 
-        from PIL import Image as pil
-
-        data = ((self.data - self.data.min()) * 255.0 /
-                (self.data.max() - self.data.min()))
-        if isinstance(data, np.ma.core.MaskedArray):
-            img = pil.fromarray(np.array(data.filled(0), np.uint8))
-        else:
-            img = pil.fromarray(np.array(data, np.uint8))
+        img = self.to_image(stretch=stretch, **kwargs)
         if filename is not None:
             img.save(filename)
         else:
             img.show()
 
     def to_image(self, copy=True, **kwargs):
-        kwargs.update(self.info)
+        info = self.info.copy()
+        info.update(kwargs)
         if self.data.ndim == 2:
             return GeoImage([self.data],
-                            # self.info["area"],
-                            time_slot=self.info["start_time"],
                             copy=copy,
-                            **kwargs)
+                            **info)
         elif self.data.ndim == 3:
             return GeoImage([band for band in self.data],
-                            # self.info["area"],
-                            time_slot=self.info["start_time"],
                             copy=copy,
-                            **kwargs)
+                            **info)
+        else:
+            raise ValueError("Don't know how to convert array with ndim %d to image"%self.data.ndim)
+
 
     def __str__(self):
         res = list()
