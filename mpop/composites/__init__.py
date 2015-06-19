@@ -49,22 +49,23 @@ class CompositeBase(InfoObject):
         # Semi-backward compatible
         return self.info["prerequisites"]
 
-    def __call__(self, scene):
+    def __call__(self, projectables, nonprojectables=None, **info):
         raise NotImplementedError()
 
 
 class Overview(CompositeBase):
     def __init__(self, *args, **kwargs):
-        default_image_config={"mode": "RGB",
-                              "stretch": "linear"}
-        kwargs.setdefault("default_image_config", default_image_config)
         CompositeBase.__init__(self, *args, **kwargs)
 
-    def __call__(self, scene):
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 projectables, got %d" % (len(projectables),))
+
         # raise IncompatibleAreas
-        the_data = np.rollaxis(np.ma.dstack((scene[0.6].data, scene[0.8].data, -scene[10.8].data)), axis=2)
+        p0_6, p0_8, p10_8 = projectables
+        the_data = np.rollaxis(np.ma.dstack((p0_6.data, p0_8.data, -p10_8.data)), axis=2)
         return Projectable(data=the_data,
-                           area=scene[0.6].info["area"],
-                           start_time=scene.info["start_time"],
+                           area=p0_6.info["area"],
+                           start_time=p0_6.info["start_time"],
                            **self.info)
 

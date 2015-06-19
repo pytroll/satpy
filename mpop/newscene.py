@@ -59,6 +59,9 @@ class Scene(InfoObject):
         self.projectables = {}
         self.products = {}
 
+        if filenames is not None and not filenames:
+            raise ValueError("Filenames are specified but empty")
+
         if "sensor" in self.info:
             config = ConfigParser.ConfigParser()
             config.read(os.path.join(self.ppp_config_dir, "mpop.cfg"))
@@ -74,7 +77,7 @@ class Scene(InfoObject):
                 reader_info["filenames"] = self.get_filenames(reader_info)
             else:
                 self.assign_matching_files(reader_info, *filenames)
-            reader_instance = self._load_reader(reader_info)
+            self._load_reader(reader_info)
         elif filenames is not None:
             self.find_readers(*filenames)
 
@@ -252,9 +255,10 @@ class Scene(InfoObject):
             return self.projectables[key]
 
     def __setitem__(self, key, value):
-        # TODO: Set item in projectables dictionary(!) and make sure metadata in info is changed to new name
-        # TODO: Copy the projectable? No, don't copy
-        raise NotImplementedError()
+        if not isinstance(value, Projectable):
+            raise ValueError("Only 'Projectable' objects can be assigned")
+        self.projectables[key] = value
+        value.info["uid"] = key
 
     def __delitem__(self, key):
         # TODO: Delete item from projectables dictionary(!)
@@ -281,6 +285,7 @@ class Scene(InfoObject):
         for config_file in glob.glob(os.path.join(self.ppp_config_dir, "*.cfg")):
             try:
                 reader_info = self._read_config(config_file)
+                logger.debug("Successfully read reader config: %s", config_file)
             except ValueError:
                 logger.debug("Invalid reader config found: %s", config_file)
                 continue
@@ -410,8 +415,11 @@ class Scene(InfoObject):
             if requirement in self.projectables:
                 continue
             self.compute(*self.products[requirement].prerequisites)
+
+            # TODO: Get nonprojectable dependencies like moon illumination fraction
+            prereq_projectables = [self[prereq] for prereq in self.products[requirement].prerequisites]
             try:
-                self.projectables[requirement] = self.products[requirement](self)
+                self.projectables[requirement] = self.products[requirement](prereq_projectables, **self.info)
             except IncompatibleAreas:
                 for uid, projectable in self.projectables.item():
                     if uid in self.products[requirement].prerequisites:
@@ -438,9 +446,9 @@ class Scene(InfoObject):
         new_scn.info = self.info.copy()
         for uid, projectable in self.projectables.items():
             logger.debug("Resampling %s", uid)
-            if channels and not uid in channels:
+            if channels and uid not in channels:
                 continue
-            new_scn.projectables[uid] = projectable.resample(destination, **kwargs)
+            new_scn[uid] = projectable.resample(destination, **kwargs)
         return new_scn
 
     def images(self):

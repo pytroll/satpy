@@ -33,14 +33,16 @@ class VIIRSFog(CompositeBase):
     def __init__(self, *args, **kwargs):
         CompositeBase.__init__(self, *args, **kwargs)
 
-    def __call__(self, scene):
-        p1 = self.info["prerequisites"][0]
-        p2 = self.info["prerequisites"][1]
-        fog = scene[p1] - scene[p2]
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 projectables, got %d" % (len(projectables),))
+
+        p1, p2 = projectables
+        fog = p1 - p2
         fog.info.update(self.info)
-        fog.info["area"] = scene[p1].info["area"]
-        fog.info["start_time"] = scene[p1].info["start_time"]
-        fog.info["end_time"] = scene[p1].info["end_time"]
+        fog.info["area"] = p1.info["area"]
+        fog.info["start_time"] = p1.info["start_time"]
+        fog.info["end_time"] = p1.info["end_time"]
         fog.info["uid"] = self.info["uid"]
         return fog
 
@@ -48,22 +50,18 @@ class VIIRSFog(CompositeBase):
 class VIIRSTrueColor(CompositeBase):
     def __init__(self, *args, **kwargs):
         CompositeBase.__init__(self, *args, **kwargs)
-        default_image_config={"mode": "RGB",
-                              "stretch": "log"}
-        # if image_config is not None:
-        #     default_image_config.update(image_config)
 
-        # self.uid = uid
-        # self.prerequisites = ["M02", "M04", "M05"]
-        # self.info["image_config"] = default_image_config
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 projectables, got %d" % (len(projectables),))
 
-    def __call__(self, scene):
         # raise IncompatibleAreas
+        p1, p2, p3 = projectables
         return Projectable(uid=self.info["uid"],
                            data=np.concatenate(
-                               ([scene["M05"].data], [scene["M04"].data], [scene["M02"].data]), axis=0),
-                           area=scene["M05"].info["area"],
-                           time_slot=scene.info["start_time"],
+                               ([p1.data], [p2.data], [p2.data]), axis=0),
+                           area=p1.info["area"],
+                           time_slot=p1.info["start_time"],
                            **self.info)
 
 
