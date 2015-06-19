@@ -70,11 +70,11 @@ class Scene(InfoObject):
                 config_file = os.path.join(self.ppp_config_dir, config_file)
 
             reader_info = self._read_config(config_file)
+            reader_instance = self._load_reader(reader_info)
             if filenames is None:
-                reader_info["filenames"] = self.get_filenames(reader_info)
+                reader_info["filenames"] = self.get_filenames(reader_instance)
             else:
                 self.assign_matching_files(reader_info, *filenames)
-            self._load_reader(reader_info)
         elif filenames is not None:
             self.find_readers(*filenames)
 
@@ -486,90 +486,3 @@ class TestScene(unittest.TestCase):
 
 class TestProjectable(unittest.TestCase):
     pass
-
-if __name__ == '__main__':
-    #scn = Scene()
-    #scn._read_config("/home/a001673/usr/src/pytroll-config/etc/Suomi-NPP.cfg")
-
-    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM16_npp_d20150420_t0536333_e0537575_b18015_c20150420054512738521_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/GMTCO_npp_d20150420_t0536333_e0537575_b18015_c20150420054511332482_cspp_dev.h5"]
-
-    myfiles = ["/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI01_npp_d20150311_t1125112_e1126354_b17451_c20150311113328862761_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI02_npp_d20150311_t1125112_e1126354_b17451_c20150311113328951540_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI03_npp_d20150311_t1125112_e1126354_b17451_c20150311113329042562_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI04_npp_d20150311_t1125112_e1126354_b17451_c20150311113329143755_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVI05_npp_d20150311_t1125112_e1126354_b17451_c20150311113329234947_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM01_npp_d20150311_t1125112_e1126354_b17451_c20150311113329326838_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM02_npp_d20150311_t1125112_e1126354_b17451_c20150311113329360063_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM03_npp_d20150311_t1125112_e1126354_b17451_c20150311113329390738_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM04_npp_d20150311_t1125112_e1126354_b17451_c20150311113329427332_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM05_npp_d20150311_t1125112_e1126354_b17451_c20150311113329464787_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM06_npp_d20150311_t1125112_e1126354_b17451_c20150311113329503232_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM07_npp_d20150311_t1125112_e1126354_b17451_c20150311113330249624_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM08_npp_d20150311_t1125112_e1126354_b17451_c20150311113329572000_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM09_npp_d20150311_t1125112_e1126354_b17451_c20150311113329602050_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM10_npp_d20150311_t1125112_e1126354_b17451_c20150311113329632503_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM11_npp_d20150311_t1125112_e1126354_b17451_c20150311113329662488_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM12_npp_d20150311_t1125112_e1126354_b17451_c20150311113329692444_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM13_npp_d20150311_t1125112_e1126354_b17451_c20150311113329722069_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM14_npp_d20150311_t1125112_e1126354_b17451_c20150311113329767340_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM15_npp_d20150311_t1125112_e1126354_b17451_c20150311113329796873_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVM16_npp_d20150311_t1125112_e1126354_b17451_c20150311113329826626_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GDNBO_npp_d20150311_t1125112_e1126354_b17451_c20150311113327046285_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GITCO_npp_d20150311_t1125112_e1126354_b17451_c20150311113327852159_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/GMTCO_npp_d20150311_t1125112_e1126354_b17451_c20150311113328505792_cspp_dev.h5",
-               "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR/SVDNB_npp_d20150311_t1125112_e1126354_b17451_c20150311113326791425_cspp_dev.h5",
-               ]
-
-    # myfiles = glob.glob("/no_backup/data/viirs/conus_day/*.h5")
-
-    scn = Scene(filenames=myfiles)
-
-    # scn.add_product("fog", VIIRSFog())
-    # scn.add_product("true_color", VIIRSTrueColor())
-
-    scn.load("fog", "I01", "M16", "true_color")
-
-    #img = scn["true_color"].to_image()
-    #img.show()
-
-    from mpop.projector import get_area_def
-    eurol = get_area_def("eurol")
-    # eurol = get_area_def("davidh_test")
-    newscn = scn.resample(eurol, radius_of_influence=2000)
-
-    if "true_color" in newscn:
-        img = newscn["true_color"].to_image()
-        img.save("true_color.png")
-    if "fog" in newscn:
-        img = newscn["fog"].to_image()
-        img.save("fog.png")
-    # unittest.main()
-
-    #########
-    #
-    # this part can be put in a user-owned file
-
-    # def nice_composite(self, some_param=None):
-    #     # do something here
-    #     return self
-
-    # nice_composite.prerequisites = ["i05", "dnb", "fog"]
-
-    # scn.add_product(nice_composite)
-
-    # def fog(self):
-    #     return self["i05"] - self["i04"]
-
-    # fog.prerequisites = ["i05", "i04"]
-
-    # scn.add_product(fog)
-
-    # # end of this part
-    # #
-    # ##########
-
-    # # nice composite uses fog
-    # scn.load("nice_composite", area="europe")
-
-    # scn.products.nice_composite
