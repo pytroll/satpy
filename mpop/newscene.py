@@ -70,29 +70,29 @@ class Scene(InfoObject):
                 config_file = os.path.join(self.ppp_config_dir, config_file)
 
             reader_info = self._read_config(config_file)
-            reader_instance = self._load_reader(reader_info)
             if filenames is None:
-                reader_info["filenames"] = self.get_filenames(reader_instance)
+                reader_info["filenames"] = self.get_filenames(reader_info)
             else:
                 self.assign_matching_files(reader_info, *filenames)
+            reader_instance = self._load_reader(reader_info)
         elif filenames is not None:
             self.find_readers(*filenames)
 
-    def get_filenames(self, reader_instance):
+    def get_filenames(self, reader_info):
         """Get the filenames from disk given the patterns in *reader_info*.
         This assumes that the scene info contains start_time at least (possibly end_time too).
         """
         epoch = datetime(1950, 1, 1)
         filenames = []
-        for pattern in reader_instance.file_patterns:
+        for pattern in reader_info["file_patterns"]:
             parser = trollsift.parser.Parser(pattern)
             # FIXME: what if we are browsing a huge archive ?
             info = self.info.copy()
             for key in info.keys():
                 if key.endswith("_time"):
                     info.pop(key, None)
-            reader_start = reader_instance.start_time
-            reader_end = reader_instance.end_time
+            reader_start = reader_info["start_time"]
+            reader_end = reader_info["end_time"]
             globber = parser.globify(info.copy())
             for filename in glob.iglob(globber):
                 metadata = parser.parse(filename)
@@ -411,7 +411,7 @@ class Scene(InfoObject):
                 continue
             self.compute(*self.products[requirement].prerequisites)
             try:
-                self.projectables[requirement] = self.products[requirement](scn)
+                self.projectables[requirement] = self.products[requirement](self)
             except IncompatibleAreas:
                 for uid, projectable in self.projectables.item():
                     if uid in self.products[requirement].prerequisites:

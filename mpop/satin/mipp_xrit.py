@@ -86,7 +86,8 @@ class XritReader(Reader):
         # satscene.info["comments"] = "No comment."
 
         area_converted_to_extent = False
-        filename = self.filenames[0]
+        # FIXME: that's way too specific...
+        filename = list(self.filenames)[0]
         pattern = self.file_patterns[0]
 
         parser = Parser(pattern)
