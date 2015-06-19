@@ -38,7 +38,7 @@ version = imp.load_source('mpop.version', 'mpop/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pyresample']
+requires = ['numpy >=1.4.1', 'pyresample', 'trollsift']
 
 try:
     from PIL import Image

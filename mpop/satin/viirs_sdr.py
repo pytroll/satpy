@@ -527,18 +527,14 @@ class ViirsSDRReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, channels_to_load, filenames, calibrate=1, time_interval=None, area=None, **kwargs):
+    def load(self, channels_to_load, calibrate=1, **kwargs):
         """Read viirs SDR reflectances and Tbs from file and load it into
         *self._scene*.
         """
         if kwargs:
             logger.warning("Unsupported options for viirs reader: %s", str(kwargs))
 
-        # FIXME: These should come from kwargs on load
-        start_time = self.info["start_time"]
-        end_time = self.info["end_time"]
-
-        channels_to_load = set(channels_to_load) & set(self.info["channels"].keys())
+        channels_to_load = set(channels_to_load) & set(self.channel_names)
         if len(channels_to_load) == 0:
             return
 
@@ -546,7 +542,7 @@ class ViirsSDRReader(Reader):
         file_list = []
         geofile_list = []
 
-        for fname in filenames:
+        for fname in self.filenames:
             if os.path.basename(fname).startswith("SV"):
                 file_list.append(fname)
             elif os.path.basename(fname).startswith("G"):
@@ -559,8 +555,8 @@ class ViirsSDRReader(Reader):
             geodirectory = os.path.dirname(geofile_list[0])
         logger.debug("The filelist is: %s", str(file_list))
 
-        file_list = _get_swathsegment(file_list, start_time, end_time, area)
-        geofile_list = _get_swathsegment(geofile_list, start_time, end_time, area)
+        file_list = _get_swathsegment(file_list, self.start_time, self.end_time, self.area)
+        geofile_list = _get_swathsegment(geofile_list, self.start_time, self.end_time, self.area)
         logger.debug("Number of files after segment selection: "
                      + str(len(file_list)))
 
@@ -568,8 +564,8 @@ class ViirsSDRReader(Reader):
             # logger.debug(
             #     "File template = " + str(os.path.join(directory, filename_tmpl)))
             raise IOError("No VIIRS SDR file matching!: " +
-                          "Start time = " + str(start_time) +
-                          "  End time = " + str(end_time))
+                          "Start time = " + str(self.start_time) +
+                          "  End time = " + str(self.end_time))
 
         filenames = [os.path.basename(s) for s in file_list]
 
@@ -649,14 +645,13 @@ class ViirsSDRReader(Reader):
                 raise AttributeError('Band description not supported!')
 
             # Create a projectable from info from the file data and the config file
-            projectable = self.create_projectable(chn, band, **self.info["channels"][chn])
+            projectable = self.create_projectable(chn, band, **self.channels[chn])
 
             # We assume the same geolocation should apply to all M-bands!
             # ...and the same to all I-bands:
 
             from pyresample import geometry
 
-            # FIXME: When is an area equal to another area in remapping?
             if band.mask_uid in areas:
                 projectable.info["area"] = areas[band.mask_uid]
             else:
@@ -705,13 +700,6 @@ class ViirsSDRReader(Reader):
         # FIXME
         # self._scene.info["references"] = "No reference."
         # self._scene.info["comments"] = "No comment."
-
-        # self._scene.info["start_time"] = min([chn.info["start_time"]
-        #                                    for chn in self._scene
-        #                                    if chn.is_loaded()])
-        # self._scene.info["end_time"] = max([chn.info["end_time"]
-        #                                  for chn in self._scene
-        #                                  if chn.is_loaded()])
         return channels_loaded
 
     def create_projectable(self, chn, band, **kwargs):

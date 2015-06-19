@@ -62,10 +62,11 @@ class GeoImage(Image):
     See also :class:`image.Image` for more information.
     """
 
-    def __init__(self, channels, area, time_slot, copy=True,
+    def __init__(self, channels, area, start_time, copy=True,
                  mode="L", crange=None, fill_value=None, palette=None, **enhance_args):
         self.area = area
-        self.time_slot = time_slot
+        # FIXME: Should we be concerned with start time and end time?
+        self.time_slot = start_time
         self.tags = {}
         self.gdal_options = {}
 

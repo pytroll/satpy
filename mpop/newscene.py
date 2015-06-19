@@ -30,10 +30,6 @@ import os
 import trollsift
 import glob
 import fnmatch
-import numpy as np
-import imp
-import mpop.satin
-from mpop.imageo.geo_image import GeoImage
 from mpop.utils import debug_on
 debug_on()
 from mpop.projectable import Projectable, InfoObject
@@ -42,8 +38,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class IncompatibleAreas(StandardError):
     pass
+
 
 class Scene(InfoObject):
 
@@ -57,7 +55,10 @@ class Scene(InfoObject):
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir
 
         InfoObject.__init__(self, **info)
+        self.readers = {}
         self.projectables = {}
+        self.products = {}
+
         if "sensor" in self.info:
             config = ConfigParser.ConfigParser()
             config.read(os.path.join(self.ppp_config_dir, "mpop.cfg"))
@@ -73,27 +74,25 @@ class Scene(InfoObject):
                 reader_info["filenames"] = self.get_filenames(reader_info)
             else:
                 self.assign_matching_files(reader_info, *filenames)
-
+            self._load_reader(reader_info)
         elif filenames is not None:
             self.find_readers(*filenames)
 
-        self.products = {}
-
-    def get_filenames(self, reader_info):
+    def get_filenames(self, reader_instance):
         """Get the filenames from disk given the patterns in *reader_info*.
         This assumes that the scene info contains start_time at least (possibly end_time too).
         """
         epoch = datetime(1950, 1, 1)
         filenames = []
-        for pattern in reader_info["file_patterns"]:
+        for pattern in reader_instance.file_patterns:
             parser = trollsift.parser.Parser(pattern)
             # FIXME: what if we are browsing a huge archive ?
             info = self.info.copy()
             for key in info.keys():
                 if key.endswith("_time"):
                     info.pop(key, None)
-            reader_start = reader_info["start_time"]
-            reader_end = reader_info["end_time"]
+            reader_start = reader_instance.start_time
+            reader_end = reader_instance.end_time
             globber = parser.globify(info.copy())
             for filename in glob.iglob(globber):
                 metadata = parser.parse(filename)
@@ -121,7 +120,7 @@ class Scene(InfoObject):
     def add_product(self, uid, obj):
         self.products[uid] = obj
 
-    def read_composites_config(self, composite_config=None, sensor=None, uids=None):
+    def read_composites_config(self, composite_config=None, sensor=None, uids=None, **kwargs):
         if composite_config is None:
             composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
 
@@ -142,14 +141,17 @@ class Scene(InfoObject):
                     continue
 
                 if options["uid"] in self.products:
-                    logger.warning("Duplicate composite found, previous composite '%s' will be overwritten", options["uid"])
+                    logger.warning("Duplicate composite found, previous composite '%s' will be overwritten",
+                                   options["uid"])
 
                 try:
                     loader = self._runtime_import(comp_cls)
                 except ImportError:
-                    logger.warning("Could not import composite class '%s' for compositor '%s'" % (comp_cls, options["uid"]))
+                    logger.warning("Could not import composite class '%s' for compositor '%s'" % (comp_cls,
+                                                                                                  options["uid"]))
                     continue
 
+                options.update(**kwargs)
                 comp = loader(**options)
                 compositors[options["uid"]] = comp
         return compositors
@@ -162,6 +164,7 @@ class Scene(InfoObject):
 
         conf.read(cfg_file)
         file_patterns = []
+        reader_name = None
         reader_format = None
         reader_info = None
         # Only one reader: section per config file
@@ -172,8 +175,10 @@ class Scene(InfoObject):
                 # XXX: Readers can have separate start/end times from the rest fo the scene...might be a bad idea?
                 reader_info.setdefault("start_time", self.info.get("start_time", None))
                 reader_info.setdefault("end_time", self.info.get("end_time", None))
+                reader_info.setdefault("area", self.info.get("area", None))
                 try:
                     reader_format = reader_info["format"]
+                    reader_name = reader_info["name"]
                 except KeyError:
                     break
                 self.info.setdefault("reader_info", {})[reader_format] = reader_info
@@ -183,39 +188,47 @@ class Scene(InfoObject):
                     file_patterns.extend(conf.get(section, "file_patterns").split(","))
                 except ConfigParser.NoOptionError:
                     pass
-        if reader_info is None:
-            raise ValueError("Empty config file ? %s"%cfg_file)
         if reader_format is None:
-            raise ValueError("Malformed config file %s: missing reader format"%cfg_file)
+            raise ValueError("Malformed config file %s: missing reader format" % cfg_file)
+        if reader_name is None:
+            raise ValueError("Malformed config file %s: missing reader name" % cfg_file)
         reader_info["file_patterns"] = file_patterns
         reader_info["config_file"] = cfg_file
+        reader_info["filenames"] = []
 
+        return reader_info
+
+    def _load_reader(self, reader_info):
         try:
             loader = self._runtime_import(reader_info["format"])
         except ImportError:
-            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["format"], reader_info["name"]))
+            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["format"],
+                                                                                      reader_info["name"]))
 
         reader_instance = loader(**reader_info)
-        setattr(self, reader_info["name"], reader_instance)
-        reader_info.update(reader_instance.info)
-        return reader_info
+        # setattr(self, reader_info["name"], reader_instance)
+        self.readers[reader_info["name"]] = reader_instance
+        return reader_instance
 
-            #     wl = [float(elt)
-            #           for elt in conf.get(section, "frequency").split(",")]
-            #     res = conf.getint(section, "resolution")
-            #     uid = conf.get(section, "name")
-            #     new_chn = Projectable(wavelength_range=wl,
-            #                           resolution=res,
-            #                           uid=uid,
-            #                           sensor=instrument,
-            #                           platform_name=self.info["platform_name"]
-            #                           )
-            #     self.projectables[uid] = new_chn
-            # # for method in get_custom_composites(instrument):
-            # #    self.add_method_to_instance(method)
+    def available_channels(self, reader_name=None):
+        try:
+            if reader_name:
+                readers = [getattr(self, reader_name)]
+            else:
+                readers = self.readers
+        except (AttributeError, KeyError):
+            raise KeyError("No reader '%s' found in scene")
+
+        return [channel_name for reader_name in readers for channel_name in reader_name.channel_names]
 
     def __str__(self):
-        return "\n".join((str(prj) for prj in self.projectables.values()))
+        res = []
+        for reader in self.readers:
+            res.append(reader.info["name"] + ":")
+            for channel_name in reader.channel_names:
+                res.append("\t%s" % (str(self.projectables.get(channel_name, "%s: Not loaded" % (channel_name,))),))
+
+        return "\n".join(res)
 
     def __iter__(self):
         return iter(self.projectables.values())
@@ -225,8 +238,7 @@ class Scene(InfoObject):
         if isinstance(key, numbers.Number):
             channels = [chn for chn in self.projectables.values()
                         if("wavelength_range" in chn.info and
-                           chn.info["wavelength_range"][0] <= key and
-                           chn.info["wavelength_range"][2] >= key)]
+                           chn.info["wavelength_range"][0] <= key <= chn.info["wavelength_range"][2])]
             channels = sorted(channels,
                               lambda ch1, ch2:
                               cmp(abs(ch1.info["wavelength_range"][1] - key),
@@ -238,7 +250,6 @@ class Scene(InfoObject):
         # get by name
         else:
             return self.projectables[key]
-        raise KeyError("No channel corresponding to " + str(key) + ".")
 
     def __setitem__(self, key, value):
         # TODO: Set item in projectables dictionary(!) and make sure metadata in info is changed to new name
@@ -257,12 +268,11 @@ class Scene(InfoObject):
         for file_pattern in reader_info["file_patterns"]:
             pattern = trollsift.globify(file_pattern)
             for filename in list(files):
-                if fnmatch.fnmatch(os.path.basename(filename),
-                                   os.path.basename(pattern)):
-                    self.info.setdefault("reader_info", {}).setdefault(reader_info["format"], reader_info)
-                    reader_info.setdefault("filenames", []).append(filename)
+                if fnmatch.fnmatch(os.path.basename(filename), os.path.basename(pattern)):
+                    reader_info["filenames"].append(filename)
                     files.remove(filename)
 
+        # return remaining/unmatched files
         return files
 
     def find_readers(self, *files):
@@ -276,6 +286,10 @@ class Scene(InfoObject):
                 continue
 
             files = self.assign_matching_files(reader_info, *files)
+
+            if reader_info["filenames"]:
+                # we have some files for this reader so let's create it
+                self._load_reader(reader_info)
 
             if not files:
                 break
@@ -299,7 +313,7 @@ class Scene(InfoObject):
         loader = __import__(obj_module, globals(), locals(), [obj_element])
         return getattr(loader, obj_element)
 
-    def load_compositors(self, composite_names, sensor_names):
+    def load_compositors(self, composite_names, sensor_names, **kwargs):
         # Check the composites for each particular sensor first
         for sensor_name in sensor_names:
             sensor_composite_config = os.path.join(self.ppp_config_dir, "composites_" + sensor_name + ".cfg")
@@ -308,7 +322,8 @@ class Scene(InfoObject):
                 continue
 
             # Load all the compositors for this sensor for the needed names from the specified config
-            sensor_compositors = self.read_composites_config(sensor_composite_config, sensor_name, composite_names)
+            sensor_compositors = self.read_composites_config(sensor_composite_config, sensor_name, composite_names,
+                                                             **kwargs)
             # Update the list of composites the scene knows about
             self.products.update(sensor_compositors)
             # Remove the names we know how to create now
@@ -321,7 +336,7 @@ class Scene(InfoObject):
             # we haven't found them all yet, let's check the global composites config
             composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
             if os.path.isfile(composite_config):
-                global_compositors = self.read_composites_config(composite_config, uids=composite_names)
+                global_compositors = self.read_composites_config(composite_config, uids=composite_names, **kwargs)
                 self.products.update(global_compositors)
                 composite_names -= set(global_compositors.keys())
             else:
@@ -334,27 +349,24 @@ class Scene(InfoObject):
 
         projectable_names = set()
 
-        for reader_info in self.info["reader_info"].values():
-            reader_instance = getattr(self, reader_info["name"])
+        for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
                     projectable_names.add(reader_instance.get_channel(key)["uid"])
                 except KeyError:
                     projectable_names.add(key)
-                    logger.debug("Can't find channel %s in reader %s",
-                                 str(key), reader_info["name"])
-       # Get set of all projectable names that can't be satisfied by the readers we've loaded
+                    logger.debug("Can't find channel %s in reader %s", str(key), reader_name)
+
+        # Get set of all projectable names that can't be satisfied by the readers we've loaded
         composite_names = set(projectable_names)
-        #composite_names = set()
         sensor_names = set()
-        for reader_info in self.info["reader_info"].values():
-            reader_instance = getattr(self, reader_info["name"])
-            composite_names -= set(reader_instance.info["channels"].keys())
-            sensor_names |= set([sensor_name for chn_info in reader_instance.info["channels"].values() for sensor_name in chn_info["sensor"].split(",")])
+        for reader_instance in self.readers.values():
+            composite_names -= set(reader_instance.channel_names)
+            sensor_names |= set(reader_instance.sensor_names)
 
         # If we have any composites that need to be made, then let's create the composite objects
         if composite_names:
-            composite_names = self.load_compositors(composite_names, sensor_names)
+            composite_names = self.load_compositors(composite_names, sensor_names, **kwargs)
 
         for composite_name in composite_names:
             logger.warning("Unknown channel or compositor: %s", composite_name)
@@ -363,9 +375,8 @@ class Scene(InfoObject):
         projectable_names = set(projectable_names) - composite_names
         composites_needed = set(self.products.keys())
 
-        for reader_info in self.info["reader_info"].values():
-            reader_instance = getattr(self, reader_info["name"])
-            all_reader_channels = set(reader_instance.info["channels"].keys())
+        for reader_name, reader_instance in self.readers.items():
+            all_reader_channels = set(reader_instance.channel_names)
 
             # compute the depencies to load from file
             needed_bands = all_reader_channels & projectable_names
@@ -379,8 +390,8 @@ class Scene(InfoObject):
 
             # Create projectables in reader and update the scenes projectables
             needed_bands = sorted(needed_bands)
-            logger.debug("Asking reader '%s' for the following channels %s", reader_info["name"], str(needed_bands))
-            self.projectables.update(reader_instance.load(needed_bands, filenames=reader_info["filenames"]))
+            logger.debug("Asking reader '%s' for the following channels %s", reader_name, str(needed_bands))
+            self.projectables.update(reader_instance.load(needed_bands, filenames=reader_instance.filenames))
 
         # Update the scene with information contained in the files
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])

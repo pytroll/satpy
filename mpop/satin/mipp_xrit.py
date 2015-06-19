@@ -69,7 +69,6 @@ class XritReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-
     def load(self, channels_to_load, calibrate=True, area_extent=None,
              area_def_names=None, **kwargs):
         """Read imager data from file and return projectables.
@@ -87,8 +86,8 @@ class XritReader(Reader):
         # satscene.info["comments"] = "No comment."
 
         area_converted_to_extent = False
-        filename = kwargs["filenames"][0]
-        pattern = self.info["file_patterns"][0]
+        filename = self.filenames[0]
+        pattern = self.file_patterns[0]
 
         parser = Parser(pattern)
 
@@ -100,7 +99,6 @@ class XritReader(Reader):
                      "MSG4": "Meteosat-11",
                      }
 
-        self.load_config()
         short_name = file_info["platform_shortname"]
         fullname = platforms.get(short_name, short_name)
         projectables = {}
@@ -108,7 +106,7 @@ class XritReader(Reader):
 
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and area_def_names is not None:
-                metadata = xrit.sat.load(fullname, self.info["start_time"],
+                metadata = xrit.sat.load(fullname, self.start_time,
                                          chn, only_metadata=True)
                 # if area_extent is given, assume it gives the maximum
                 # extent of the satellite view
@@ -126,7 +124,7 @@ class XritReader(Reader):
 
             try:
                 image = xrit.sat.load(fullname,
-                                      self.info["start_time"],
+                                      self.start_time,
                                       chn,
                                       mask=True,
                                       calibrate=calibrate)
@@ -138,7 +136,7 @@ class XritReader(Reader):
                 LOGGER.warning(
                     "Loading non calibrated data since calibration failed.")
                 image = xrit.sat.load(fullname,
-                                      self.info["start_time"],
+                                      self.start_time,
                                       chn,
                                       mask=True,
                                       calibrate=False)
@@ -155,8 +153,8 @@ class XritReader(Reader):
             projectable = Projectable(data,
                                       uid=chn,
                                       units=metadata.calibration_unit,
-                                      wavelength_range=self.info["channels"][chn]["wavelength_range"],
-                                      start_time=self.info["start_time"])
+                                      wavelength_range=self.channels[chn]["wavelength_range"],
+                                      start_time=self.start_time)
 
             # satscene[chn] = data
             #

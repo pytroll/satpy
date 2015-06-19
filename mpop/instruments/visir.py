@@ -79,7 +79,7 @@ class VisirCompositer(Compositer):
 
         img = geo_image.GeoImage(data,
                                  area=area,
-                                 time_slot=self.time_slot,
+                                 start_time=self.time_slot,
                                  fill_value=keys.get("fill_value", None),
                                  crange=keys.get("crange", None),
                                  mode=keys.get("mode", None))

@@ -927,7 +927,6 @@ class Image(object):
         *inverse* (see :meth:`Image.invert`), *gamma* (see
         :meth:`Image.gamma`), and *stretch* (see :meth:`Image.stretch`).
         """
-        print(inverse, gamma, stretch, kwargs)
         self.invert(inverse)
         self.gamma(gamma)
         self.stretch(stretch)

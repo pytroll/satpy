@@ -53,7 +53,7 @@ class TestGeoImage(unittest.TestCase):
         self.data = np.zeros((512, 512), dtype=np.uint8)
         self.img = geo_image.GeoImage(self.data,
                                       area="euro",
-                                      time_slot=self.time_slot)
+                                      start_time=self.time_slot)
 
 
     @patch.object(geo_image.GeoImage, 'geotiff_save')

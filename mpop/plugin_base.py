@@ -23,6 +23,7 @@
 """The :mod:`mpop.plugin_base` module defines the plugin API.
 """
 from ConfigParser import ConfigParser
+from mpop.projectable import Projectable
 import weakref
 import numbers
 
@@ -36,31 +37,54 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    ptype = "reader"
-
-    #TODO make config_file optional
-    def __init__(self, config_file, **kwargs):
-        """The reader plugin takes as input a configuration file to read.
+    def __init__(self, name, config_file, **kwargs):
+        """The reader plugin takes as input a satellite scene to fill in.
+        
+        Arguments:
+        - `scene`: the scene to fill.
         """
+        #TODO make config_file optional
         Plugin.__init__(self)
+        self.name = name
         self.config_file = config_file
-        self.info = self.load_config()
-        # Update info after loading the config in case a user provided option overrides config file
-        self.info.update(kwargs)
+        self.description = kwargs.pop("description", "")
+        self.file_patterns = kwargs.pop("file_patterns", None)
+        self.filenames = set(kwargs.pop("filenames", []))
+        self.start_time = kwargs.pop("start_time", None)
+        self.end_time = kwargs.pop("end_time", None)
+        self.area = kwargs.pop("area", None)
+        self.channels = {}
+
+        self.load_config()
+
+    def add_filenames(self, *filenames):
+        self.filenames |= set(filenames)
+
+    @property
+    def channel_names(self):
+        """Names of all channels configured for this reader.
+        """
+        return sorted(self.channels.keys())
+
+    @property
+    def sensor_names(self):
+        """Sensors supported by this reader.
+        """
+        return set([sensor_name for chn_info in self.channels.values()
+                    for sensor_name in chn_info["sensor"].split(",")])
 
     def load_config(self):
         conf = ConfigParser()
         conf.read(self.config_file)
         # Assumes only one section with "reader:" prefix
-        info = {
-            "channels": {},
-        }
+        info = {}
         for section_name in conf.sections():
-            if section_name.startswith("reader:"):
-                info.update(dict(conf.items(section_name)))
-            elif section_name.startswith("channel:"):
+            # Can't load the reader section because any options not specified in keywords don't use the default
+            # if section_name.startswith("reader:"):
+            #     info.update(dict(conf.items(section_name)))
+            if section_name.startswith("channel:"):
                 channel_info = self.parse_channel_section(section_name, dict(conf.items(section_name)))
-                info["channels"][channel_info["uid"]] = channel_info
+                self.channels[channel_info["uid"]] = channel_info
         return info
 
     def parse_channel_section(self, section_name, section_options):
@@ -75,7 +99,7 @@ class Reader(Plugin):
         """Get the channel corresponding to *key*, either by name or centerwavelength.
         """
         if isinstance(key, numbers.Number):
-            channels = [chn for chn in self.info["channels"].values()
+            channels = [chn for chn in self.channels.values()
                         if("wavelength_range" in chn and
                            chn["wavelength_range"][0] <= key <=chn["wavelength_range"][2])]
             channels = sorted(channels,
@@ -88,9 +112,8 @@ class Reader(Plugin):
             return channels[0]
         # get by name
         else:
-            return self.info["channels"]["key"]
+            return self.channels[key]
         raise KeyError("No channel corresponding to " + str(key) + ".")
-
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.

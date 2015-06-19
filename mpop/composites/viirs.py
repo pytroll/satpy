@@ -28,6 +28,7 @@ from mpop.composites import CompositeBase
 from mpop.projectable import Projectable
 import numpy as np
 
+
 class VIIRSFog(CompositeBase):
     def __init__(self, *args, **kwargs):
         CompositeBase.__init__(self, *args, **kwargs)

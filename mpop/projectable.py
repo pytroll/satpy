@@ -120,14 +120,12 @@ class Projectable(Dataset):
         #res = resample(self, destination_area, **kwargs)
         new_data = resample_kd_tree_nearest(source_area, data, destination_area, **kwargs)
 
-
         if new_data.ndim == 3:
             new_data = np.rollaxis(new_data, 2)
 
         res = Projectable(new_data, **self.info)
         res.info["area"] = destination_area
         return res
-
 
     def is_loaded(self):
         return self.data is not None
@@ -158,10 +156,9 @@ class Projectable(Dataset):
         else:
             raise ValueError("Don't know how to convert array with ndim %d to image"%self.data.ndim)
 
-
     def __str__(self):
         res = list()
-        res.append(self.info["uid"])
+        res.append(self.info["uid"] + ": ")
 
         if "sensor" in self.info:
             res[0] = self.info["sensor"] + "/" + res[0]
@@ -170,9 +167,9 @@ class Projectable(Dataset):
             res.append("{0} μm".format(self.info["wavelength_range"]))
         if "resolution" in self.info:
             res.append("{0} m".format(self.info["resolution"]))
-        for key in self.info:
-            if key not in ["sensor", "wavelength_range", "resolution", "uid"]:
-                res.append(str(self.info[key]))
+        # for key in self.info:
+        #     if key not in ["sensor", "wavelength_range", "resolution", "uid"]:
+        #         res.append(str(self.info[key]))
         if self.data is not None:
             try:
                 res.append("{0}".format(self.data.shape))
