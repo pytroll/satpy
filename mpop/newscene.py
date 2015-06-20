@@ -45,7 +45,7 @@ class IncompatibleAreas(StandardError):
 
 class Scene(InfoObject):
 
-    def __init__(self, filenames=None, ppp_config_dir=None, **info):
+    def __init__(self, filenames=None, ppp_config_dir=None, reader=None, **info):
         """platform_name=None, sensor=None, start_time=None, end_time=None,
         """
         # Get PPP_CONFIG_DIR
@@ -58,28 +58,86 @@ class Scene(InfoObject):
         self.readers = {}
         self.projectables = {}
         self.products = {}
+        self.wishlist = []
 
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        if "sensor" in self.info:
-            config = ConfigParser.ConfigParser()
-            config.read(os.path.join(self.ppp_config_dir, "mpop.cfg"))
-            try:
-                config_file = config.get("readers", self.info["sensor"])
-            except ConfigParser.NoOptionError:
-                raise NameError("No configuration file provided in mpop.cfg for sensor " + self.info["sensor"])
-            if not os.path.exists(config_file):
-                config_file = os.path.join(self.ppp_config_dir, config_file)
-
-            reader_info = self._read_config(config_file)
-            if filenames is None:
-                reader_info["filenames"] = self.get_filenames(reader_info)
-            else:
-                self.assign_matching_files(reader_info, *filenames)
-            self._load_reader(reader_info)
+        if reader is not None:
+            self._find_reader(reader, filenames)
+        elif "sensor" in self.info:
+            self._find_sensors_readers(self.info["sensor"], filenames)
         elif filenames is not None:
-            self.find_readers(*filenames)
+            self._find_files_readers(*filenames)
+
+    def _find_sensors_readers(self, sensor, filenames):
+        sensor_set = set([sensor]) if isinstance(sensor, str) else set(sensor)
+        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+            try:
+                reader_info = self._read_config(config_file)
+                logger.debug("Successfully read reader config: %s", config_file)
+            except ValueError:
+                logger.debug("Invalid reader config found: %s", config_file)
+                continue
+
+            if "sensor" in reader_info and (set(reader_info["sensor"]) & sensor_set):
+                # we want this reader
+                if filenames:
+                    # returns a copy of the filenames remaining to be matched
+                    filenames = self.assign_matching_files(reader_info, *filenames)
+                    if filenames:
+                        raise IOError("Don't know how to open the following files: %s" % str(filenames))
+                else:
+                    # find the files for this reader based on its file patterns
+                    reader_info["filenames"] = self.get_filenames(reader_info)
+                    if not reader_info["filenames"]:
+                        logger.warning("No filenames found for reader: %s", reader_info["name"])
+                        continue
+                self._load_reader(reader_info)
+
+    def _find_reader(self, reader, filenames):
+        config_file = reader
+        # were we given a path to a config file?
+        if not os.path.exists(config_file):
+            # no, we were given a name of a reader
+            config_fn = reader + ".cfg"  # assumes no extension was given on the reader name
+            config_file = os.path.join(self.ppp_config_dir, "readers", config_fn)
+            if not os.path.exists(config_file):
+                raise ValueError("Can't find config file for reader: %s" % (reader,))
+
+        reader_info = self._read_config(config_file)
+        if filenames:
+            filenames = self.assign_matching_files(reader_info, *filenames)
+            if filenames:
+                raise IOError("Don't know how to open the following files: %s" % str(filenames))
+        else:
+            reader_info["filenames"] = self.get_filenames(reader_info)
+            if not reader_info["filenames"]:
+                raise RuntimeError("No filenames found for reader: %s" % (reader_info["name"],))
+
+        self._load_reader(reader_info)
+
+    def _find_files_readers(self, *files):
+        """Find the reader info for the provided *files*.
+        """
+        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+            try:
+                reader_info = self._read_config(config_file)
+                logger.debug("Successfully read reader config: %s", config_file)
+            except ValueError:
+                logger.debug("Invalid reader config found: %s", config_file)
+                continue
+
+            files = self.assign_matching_files(reader_info, *files)
+
+            if reader_info["filenames"]:
+                # we have some files for this reader so let's create it
+                self._load_reader(reader_info)
+
+            if not files:
+                break
+        if files:
+            raise IOError("Don't know how to open the following files: %s" % str(files))
 
     def get_filenames(self, reader_info):
         """Get the filenames from disk given the patterns in *reader_info*.
@@ -87,15 +145,19 @@ class Scene(InfoObject):
         """
         epoch = datetime(1950, 1, 1)
         filenames = []
+        info = self.info.copy()
+        for key in info.keys():
+            if key.endswith("_time"):
+                info.pop(key, None)
+
+        reader_start = reader_info["start_time"]
+        reader_end = reader_info["end_time"]
+        if reader_start is None:
+            raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
+
         for pattern in reader_info["file_patterns"]:
             parser = trollsift.parser.Parser(pattern)
             # FIXME: what if we are browsing a huge archive ?
-            info = self.info.copy()
-            for key in info.keys():
-                if key.endswith("_time"):
-                    info.pop(key, None)
-            reader_start = reader_info["start_time"]
-            reader_end = reader_info["end_time"]
             globber = parser.globify(info.copy())
             for filename in glob.iglob(globber):
                 metadata = parser.parse(filename)
@@ -167,6 +229,7 @@ class Scene(InfoObject):
 
         conf.read(cfg_file)
         file_patterns = []
+        sensors = set()
         reader_name = None
         reader_format = None
         reader_info = None
@@ -184,13 +247,18 @@ class Scene(InfoObject):
                     reader_name = reader_info["name"]
                 except KeyError:
                     break
-                self.info.setdefault("reader_info", {})[reader_format] = reader_info
                 file_patterns.extend(reader_info["file_patterns"])
             else:
                 try:
                     file_patterns.extend(conf.get(section, "file_patterns").split(","))
                 except ConfigParser.NoOptionError:
                     pass
+
+                try:
+                    sensors |= set(conf.get(section, "sensor").split(","))
+                except ConfigParser.NoOptionError:
+                    pass
+
         if reader_format is None:
             raise ValueError("Malformed config file %s: missing reader format" % cfg_file)
         if reader_name is None:
@@ -198,6 +266,7 @@ class Scene(InfoObject):
         reader_info["file_patterns"] = file_patterns
         reader_info["config_file"] = cfg_file
         reader_info["filenames"] = []
+        reader_info["sensor"] = tuple(sensors)
 
         return reader_info
 
@@ -279,40 +348,6 @@ class Scene(InfoObject):
         # return remaining/unmatched files
         return files
 
-    def find_readers(self, *files):
-        """Find the reader info for the provided *files*.
-        """
-        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "*.cfg")):
-            try:
-                reader_info = self._read_config(config_file)
-                logger.debug("Successfully read reader config: %s", config_file)
-            except ValueError:
-                logger.debug("Invalid reader config found: %s", config_file)
-                continue
-
-            files = self.assign_matching_files(reader_info, *files)
-
-            if reader_info["filenames"]:
-                # we have some files for this reader so let's create it
-                self._load_reader(reader_info)
-
-            if not files:
-                break
-        if files:
-            raise IOError("Don't know how to open the following files: %s" % str(files))
-
-    # def _find_reader_format(self):
-    #     # get reader
-    #     print self.info["reader_info"]
-    #     for reader, reader_config in self.info["reader_info"].items():
-    #         for pattern in reader_config["file_patterns"]:
-    #             pattern = trollsift.globify(pattern)
-    #             print pattern
-    #             if fnmatch.fnmatch(os.path.basename(self.filenames[0]),
-    #                                os.path.basename(pattern)):
-    #                 return reader
-    #     raise RuntimeError("No reader found for filename %s" % (self.filenames[0],))
-
     def _runtime_import(self, object_path):
         obj_module, obj_element = object_path.rsplit(".", 1)
         loader = __import__(obj_module, globals(), locals(), [obj_element])
@@ -350,7 +385,7 @@ class Scene(InfoObject):
         return composite_names
 
     def read(self, *projectable_keys, **kwargs):
-        self.info["wishlist"] = projectable_keys
+        self.wishlist = projectable_keys
 
         projectable_names = set()
 
@@ -396,7 +431,7 @@ class Scene(InfoObject):
             # Create projectables in reader and update the scenes projectables
             needed_bands = sorted(needed_bands)
             logger.debug("Asking reader '%s' for the following channels %s", reader_name, str(needed_bands))
-            self.projectables.update(reader_instance.load(needed_bands, filenames=reader_instance.filenames))
+            self.projectables.update(reader_instance.load(needed_bands))
 
         # Update the scene with information contained in the files
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
@@ -408,7 +443,7 @@ class Scene(InfoObject):
 
     def compute(self, *requirements):
         if not requirements:
-            requirements = self.info["wishlist"]
+            requirements = self.wishlist
         for requirement in requirements:
             if requirement not in self.products:
                 continue
@@ -427,7 +462,7 @@ class Scene(InfoObject):
 
     def unload(self):
         to_del = [uid for uid, projectable in self.projectables.items()
-                  if uid not in self.info["wishlist"] and
+                  if uid not in self.wishlist and
                   not projectable.info.get("keep", False)]
         for uid in to_del:
             del self.projectables[uid]
@@ -453,7 +488,7 @@ class Scene(InfoObject):
 
     def images(self):
         for uid, projectable in self.projectables.items():
-            if uid in self.info["wishlist"]:
+            if uid in self.wishlist:
                 yield projectable.to_image()
 
 
@@ -484,12 +519,12 @@ class TestScene(unittest.TestCase):
 
     def test_open(self):
         scn = Scene()
-        scn.find_readers(
+        scn._find_readers(
             "/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/04/20/SDR/SVM02_npp_d20150420_t0536333_e0537575_b18015_c20150420054512262557_cspp_dev.h5")
 
         self.assertEqual(scn.info["platform_name"], "Suomi-NPP")
 
-        self.assertRaises(IOError, scn.find_readers, "bla")
+        self.assertRaises(IOError, scn._find_readers, "bla")
 
 
 class TestProjectable(unittest.TestCase):
