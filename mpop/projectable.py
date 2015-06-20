@@ -105,8 +105,8 @@ class Dataset(InfoObject):
 
 
 class Projectable(Dataset):
-    def __init__(self, data=None, uid="undefined", **info):
-        Dataset.__init__(self, data, uid=uid, **info)
+    def __init__(self, data=None, name="undefined", **info):
+        Dataset.__init__(self, data, name=name, **info)
 
     def resample(self, destination_area, **kwargs):
         # call the projection stuff here
@@ -158,7 +158,7 @@ class Projectable(Dataset):
 
     def __str__(self):
         res = list()
-        res.append(self.info["uid"] + ": ")
+        res.append(self.info["name"] + ": ")
 
         if "sensor" in self.info:
             res[0] = self.info["sensor"] + "/" + res[0]
@@ -168,7 +168,7 @@ class Projectable(Dataset):
         if "resolution" in self.info:
             res.append("{0} m".format(self.info["resolution"]))
         # for key in self.info:
-        #     if key not in ["sensor", "wavelength_range", "resolution", "uid"]:
+        #     if key not in ["sensor", "wavelength_range", "resolution", "name"]:
         #         res.append(str(self.info[key]))
         if self.data is not None:
             try:

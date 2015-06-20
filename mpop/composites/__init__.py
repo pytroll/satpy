@@ -29,10 +29,10 @@ import numpy as np
 
 class CompositeBase(InfoObject):
 
-    def __init__(self, uid, format, prerequisites, default_image_config={},
+    def __init__(self, name, format, prerequisites, default_image_config={},
                  **kwargs):
         # Required info
-        kwargs["uid"] = uid
+        kwargs["name"] = name
         kwargs["format"] = format
         kwargs["prerequisites"] = []
         for prerequisite in prerequisites.split(","):

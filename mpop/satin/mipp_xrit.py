@@ -143,7 +143,7 @@ class XritReader(Reader):
                 continue
 
             projectable = Projectable(data,
-                                      uid=chn,
+                                      name=chn,
                                       units=metadata.calibration_unit,
                                       wavelength_range=self.channels[chn]["wavelength_range"],
                                       start_time=self.start_time)

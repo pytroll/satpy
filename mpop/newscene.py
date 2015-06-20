@@ -182,10 +182,10 @@ class Scene(InfoObject):
                         filenames.append(filename)
         return filenames
 
-    def add_product(self, uid, obj):
-        self.products[uid] = obj
+    def add_product(self, name, obj):
+        self.products[name] = obj
 
-    def read_composites_config(self, composite_config=None, sensor=None, uids=None, **kwargs):
+    def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         if composite_config is None:
             composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
 
@@ -201,24 +201,24 @@ class Scene(InfoObject):
                 # Check if the caller only wants composites for a certain sensor
                 if sensor is not None and sensor not in options["sensor"]:
                     continue
-                # Check if the caller only wants composites with certain uids
-                if not uids and options["uid"] not in uids:
+                # Check if the caller only wants composites with certain names
+                if not names and options["name"] not in names:
                     continue
 
-                if options["uid"] in self.products:
+                if options["name"] in self.products:
                     logger.warning("Duplicate composite found, previous composite '%s' will be overwritten",
-                                   options["uid"])
+                                   options["name"])
 
                 try:
                     loader = self._runtime_import(comp_cls)
                 except ImportError:
                     logger.warning("Could not import composite class '%s' for compositor '%s'" % (comp_cls,
-                                                                                                  options["uid"]))
+                                                                                                  options["name"]))
                     continue
 
                 options.update(**kwargs)
                 comp = loader(**options)
-                compositors[options["uid"]] = comp
+                compositors[options["name"]] = comp
         return compositors
 
     def _read_config(self, cfg_file):
@@ -327,14 +327,14 @@ class Scene(InfoObject):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.projectables[key] = value
-        value.info["uid"] = key
+        value.info["name"] = key
 
     def __delitem__(self, key):
         # TODO: Delete item from projectables dictionary(!)
         raise NotImplementedError()
 
-    def __contains__(self, uid):
-        return uid in self.projectables
+    def __contains__(self, name):
+        return name in self.projectables
 
     def assign_matching_files(self, reader_info, *files):
         files = list(files)
@@ -376,7 +376,7 @@ class Scene(InfoObject):
             # we haven't found them all yet, let's check the global composites config
             composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
             if os.path.isfile(composite_config):
-                global_compositors = self.read_composites_config(composite_config, uids=composite_names, **kwargs)
+                global_compositors = self.read_composites_config(composite_config, names=composite_names, **kwargs)
                 self.products.update(global_compositors)
                 composite_names -= set(global_compositors.keys())
             else:
@@ -392,7 +392,7 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
-                    projectable_names.add(reader_instance.get_channel(key)["uid"])
+                    projectable_names.add(reader_instance.get_channel(key)["name"])
                 except KeyError:
                     projectable_names.add(key)
                     logger.debug("Can't find channel %s in reader %s", str(key), reader_name)
@@ -422,7 +422,7 @@ class Scene(InfoObject):
             needed_bands = all_reader_channels & projectable_names
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set([reader_instance.get_channel(prereq)["uid"] for prereq in self.products[band].prerequisites])
+                    needed_bands |= set([reader_instance.get_channel(prereq)["name"] for prereq in self.products[band].prerequisites])
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -457,16 +457,16 @@ class Scene(InfoObject):
             try:
                 self.projectables[requirement] = self.products[requirement](prereq_projectables, **self.info)
             except IncompatibleAreas:
-                for uid, projectable in self.projectables.item():
-                    if uid in self.products[requirement].prerequisites:
+                for name, projectable in self.projectables.item():
+                    if name in self.products[requirement].prerequisites:
                         projectable.info["keep"] = True
 
     def unload(self):
-        to_del = [uid for uid, projectable in self.projectables.items()
-                  if uid not in self.wishlist and
+        to_del = [name for name, projectable in self.projectables.items()
+                  if name not in self.wishlist and
                   not projectable.info.get("keep", False)]
-        for uid in to_del:
-            del self.projectables[uid]
+        for name in to_del:
+            del self.projectables[name]
 
     def load(self, *wishlist, **kwargs):
         self.read(*wishlist, **kwargs)
@@ -480,16 +480,16 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        for uid, projectable in self.projectables.items():
-            logger.debug("Resampling %s", uid)
-            if channels and uid not in channels:
+        for name, projectable in self.projectables.items():
+            logger.debug("Resampling %s", name)
+            if channels and name not in channels:
                 continue
-            new_scn[uid] = projectable.resample(destination, **kwargs)
+            new_scn[name] = projectable.resample(destination, **kwargs)
         return new_scn
 
     def images(self):
-        for uid, projectable in self.projectables.items():
-            if uid in self.wishlist:
+        for name, projectable in self.projectables.items():
+            if name in self.wishlist:
                 yield projectable.to_image()
 
 

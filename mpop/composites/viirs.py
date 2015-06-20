@@ -43,7 +43,7 @@ class VIIRSFog(CompositeBase):
         fog.info["area"] = p1.info["area"]
         fog.info["start_time"] = p1.info["start_time"]
         fog.info["end_time"] = p1.info["end_time"]
-        fog.info["uid"] = self.info["uid"]
+        fog.info["name"] = self.info["name"]
         fog.info.setdefault("mode", "L")
         return fog
 
@@ -60,7 +60,7 @@ class VIIRSTrueColor(CompositeBase):
         p1, p2, p3 = projectables
         info = p1.info.copy()
         info.update(**self.info)
-        info["uid"] = self.info["uid"]
+        info["name"] = self.info["name"]
         info.setdefault("mode", "RGB")
         return Projectable(
                            data=np.concatenate(

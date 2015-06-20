@@ -84,7 +84,7 @@ class Reader(Plugin):
             #     info.update(dict(conf.items(section_name)))
             if section_name.startswith("channel:"):
                 channel_info = self.parse_channel_section(section_name, dict(conf.items(section_name)))
-                self.channels[channel_info["uid"]] = channel_info
+                self.channels[channel_info["name"]] = channel_info
         return info
 
     def parse_channel_section(self, section_name, section_options):

@@ -361,7 +361,7 @@ class ViirsBandData(object):
         self.geolocation = None
 
         self.band_desc = None
-        self.mask_uid = None
+        self.mask_name = None
         self.metadata = []
 
     def read(self):
@@ -500,7 +500,7 @@ class ViirsBandData(object):
 
         self.data = np.ma.array(self.raw_data, mask=self.mask, copy=False)
 
-        self.mask_uid = self.band_desc + hashlib.sha1(self.mask).hexdigest()
+        self.mask_name = self.band_desc + hashlib.sha1(self.mask).hexdigest()
 
     def read_lonlat(self, geofilepaths=None, geodir=None):
 
@@ -652,8 +652,8 @@ class ViirsSDRReader(Reader):
 
             from pyresample import geometry
 
-            if band.mask_uid in areas:
-                projectable.info["area"] = areas[band.mask_uid]
+            if band.mask_name in areas:
+                projectable.info["area"] = areas[band.mask_name]
             else:
 
                 area = geometry.SwathDefinition(
@@ -666,10 +666,10 @@ class ViirsSDRReader(Reader):
                 area_name = ("swath_" +
                              str(projectable.info['start_time']) + "_"
                              + str(projectable.data.shape) + "_" +
-                             band.mask_uid)
+                             band.mask_name)
                 area.area_id = area_name
                 projectable.info["area"] = area
-                areas[band.mask_uid] = area
+                areas[band.mask_name] = area
             # except ImportError:
             #    self._scene[chn].area = None
             #    self._scene[chn].lat = np.ma.array(band.latitude, mask=band.data.mask)
