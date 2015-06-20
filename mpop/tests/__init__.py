@@ -23,15 +23,15 @@
 """The tests package.
 """
 
-from mpop.tests import (test_satin_helpers,
+from mpop.tests import (#test_satin_helpers,
                         #test_pp_core, # crash
-                        test_channel,
-                        test_image,
-                        test_geo_image,
+                        #test_channel,
+                        #test_image,
+                        #test_geo_image,
                         #test_mipp,
-                        test_projector,
+                        test_projectable,
                         #test_satellites,
-                        test_scene,
+                        #test_scene,
                         #test_seviri,
                         #test_viirs_sdr,
                         #test_visir,

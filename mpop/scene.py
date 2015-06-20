@@ -80,7 +80,7 @@ class Scene(InfoObject):
         """Find the readers for the given *sensor* and *filenames*
         """
         if isinstance(sensor, str):
-            sensor_set = {sensor}
+            sensor_set = set([sensor])
         else:
             sensor_set = set(sensor)
         for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):

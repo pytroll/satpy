@@ -76,7 +76,7 @@ class TestProjectable(unittest.TestCase):
         """
         Test initialization
         """
-        self.assert_('uid' in projectable.Projectable().info)
+        self.assert_('name' in projectable.Projectable().info)
 
     def test_isloaded(self):
         """
