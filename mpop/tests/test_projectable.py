@@ -26,6 +26,7 @@
 import unittest
 from mpop import projectable
 import numpy as np
+import sys
 
 class TestDataset(unittest.TestCase):
     """
@@ -39,15 +40,18 @@ class TestDataset(unittest.TestCase):
         ds = projectable.Dataset(np.arange(8), foo="bar")
         ds_copy = ds.copy(False)
         self.assert_(ds_copy.data is ds.data)
-        self.assertDictEqual(ds.info, ds_copy.info)
+        if sys.version >= "2.7":
+            self.assertDictEqual(ds.info, ds_copy.info)
         ds_copy = ds.copy(True)
         self.assert_(ds_copy.data is not ds.data
                      and all(ds.data == ds_copy.data))
-        self.assertDictEqual(ds.info, ds_copy.info)
+        if sys.version >= "2.7":
+            self.assertDictEqual(ds.info, ds_copy.info)
         ds_copy = ds.copy()
         self.assert_(ds_copy.data is not ds.data
                      and all(ds.data == ds_copy.data))
-        self.assertDictEqual(ds.info, ds_copy.info)
+        if sys.version >= "2.7":
+            self.assertDictEqual(ds.info, ds_copy.info)
 
     def test_arithmetics(self):
         """
