@@ -96,7 +96,15 @@ class TestProjectable(unittest.TestCase):
         p = projectable.Projectable(np.arange(75).reshape(3, 5, 5))
         #self.assertRaises(ValueError, p.to_image)
 
+def suite():
+    """The test suite for test_projector.
+    """
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestDataset))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestProjectable))
 
+    return mysuite
 
 if __name__ == "__main__":
     unittest.main()
