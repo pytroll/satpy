@@ -64,8 +64,11 @@ class Overview(CompositeBase):
         # raise IncompatibleAreas
         p0_6, p0_8, p10_8 = projectables
         the_data = np.rollaxis(np.ma.dstack((p0_6.data, p0_8.data, -p10_8.data)), axis=2)
+        info = p0_6.info.copy()
+        info.update(self.info)
+        info.setdefault("mode", "RGB")
         return Projectable(data=the_data,
                            area=p0_6.info["area"],
                            start_time=p0_6.info["start_time"],
-                           **self.info)
+                           **info)
 

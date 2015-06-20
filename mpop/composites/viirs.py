@@ -44,6 +44,7 @@ class VIIRSFog(CompositeBase):
         fog.info["start_time"] = p1.info["start_time"]
         fog.info["end_time"] = p1.info["end_time"]
         fog.info["uid"] = self.info["uid"]
+        fog.info.setdefault("mode", "L")
         return fog
 
 
@@ -57,11 +58,13 @@ class VIIRSTrueColor(CompositeBase):
 
         # raise IncompatibleAreas
         p1, p2, p3 = projectables
-        return Projectable(uid=self.info["uid"],
+        info = p1.info.copy()
+        info.update(**self.info)
+        info["uid"] = self.info["uid"]
+        info.setdefault("mode", "RGB")
+        return Projectable(
                            data=np.concatenate(
                                ([p1.data], [p2.data], [p2.data]), axis=0),
-                           area=p1.info["area"],
-                           time_slot=p1.info["start_time"],
-                           **self.info)
+                           **info)
 
 

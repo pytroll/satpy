@@ -273,7 +273,8 @@ class Image(object):
 
         if(isinstance(channels, (tuple, list)) and
            len(channels) != len(re.findall("[A-Z]", mode))):
-            raise ValueError("Number of channels does not match mode.")
+            expected = len(re.findall("[A-Z]", mode))
+            raise ValueError("Number of channels does not match mode, expected %d, got %d." % (expected, len(channels)))
 
         if mode not in self.modes:
             raise ValueError("Unknown mode.")
