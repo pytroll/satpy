@@ -27,9 +27,10 @@
 from mpop.projectable import InfoObject, Projectable
 import numpy as np
 
+
 class CompositeBase(InfoObject):
 
-    def __init__(self, name, format, prerequisites, default_image_config={},
+    def __init__(self, name, format, prerequisites, default_image_config=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
@@ -41,6 +42,8 @@ class CompositeBase(InfoObject):
             except ValueError:
                 kwargs["prerequisites"].append(prerequisite)
         InfoObject.__init__(self, **kwargs)
+        if default_image_config is None:
+            return
         for key, value in default_image_config.iteritems():
             self.info.setdefault(key, value)
 
