@@ -187,7 +187,7 @@ class Scene(InfoObject):
 
     def read_composites_config(self, composite_config=None, sensor=None, uids=None, **kwargs):
         if composite_config is None:
-            composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
+            composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
 
         conf = ConfigParser.ConfigParser()
         conf.read(composite_config)
@@ -356,7 +356,7 @@ class Scene(InfoObject):
     def load_compositors(self, composite_names, sensor_names, **kwargs):
         # Check the composites for each particular sensor first
         for sensor_name in sensor_names:
-            sensor_composite_config = os.path.join(self.ppp_config_dir, "composites_" + sensor_name + ".cfg")
+            sensor_composite_config = os.path.join(self.ppp_config_dir, "composites", sensor_name + ".cfg")
             if not os.path.isfile(sensor_composite_config):
                 logger.debug("No sensor composite config found at %s", sensor_composite_config)
                 continue
