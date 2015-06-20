@@ -52,22 +52,26 @@ class CompositeBase(InfoObject):
     def __call__(self, projectables, nonprojectables=None, **info):
         raise NotImplementedError()
 
-
-class Overview(CompositeBase):
-    def __init__(self, *args, **kwargs):
-        CompositeBase.__init__(self, *args, **kwargs)
-
+class RGBCompositor(CompositeBase):
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
             raise ValueError("Expected 3 projectables, got %d" % (len(projectables),))
-
-        # raise IncompatibleAreas
-        p0_6, p0_8, p10_8 = projectables
-        the_data = np.rollaxis(np.ma.dstack((p0_6.data, p0_8.data, -p10_8.data)), axis=2)
-        info = p0_6.info.copy()
+        the_data = np.rollaxis(np.ma.dstack([projectable.data for projectable in projectables]), axis=2)
+        info = projectables[0].info.copy()
+        info.update(projectables[1].info)
+        info.update(projectables[2].info)
         info.update(self.info)
-        info.setdefault("mode", "RGB")
-        info.setdefault("stretch", "linear")
-        return Projectable(data=the_data,
-                           **info)
+        info["mode"] = "RGB"
+        return Projectable(data=the_data, **info)
+
+class Overview(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        res = RGBCompositor.__call__(self,
+                                     (projectables[0],
+                                      projectables[1],
+                                      -projectables[2]),
+                                     *args, **kwargs)
+        res.info.setdefault("stretch", "linear")
+        return res
 

@@ -111,8 +111,6 @@ class XritReader(Reader):
                                          chn, only_metadata=True)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
-                print areas
-                raw_input()
                 area_extent = area_defs_to_extent(areas, metadata.proj4_params)
                 area_converted_to_extent = True
 
