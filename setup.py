@@ -38,7 +38,7 @@ version = imp.load_source('mpop.version', 'mpop/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pyresample', 'trollsift']
+requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage']
 
 try:
     from PIL import Image
@@ -61,8 +61,8 @@ setup(name=NAME,
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/mraspaud/mpop",
       test_suite='mpop.tests.suite',
-      packages=['mpop', 'mpop.satellites', 'mpop.instruments', 'mpop.readers',
-                'mpop.satout', 'mpop.saturn', 'mpop.imageo', 'mpop.tests',
+      packages=['mpop', 'mpop.instruments', 'mpop.readers',
+                'mpop.satout', 'mpop.imageo', 'mpop.tests',
                 'mpop.imageo.formats'],
       data_files=[(os.path.join('etc', 'pytroll'),
                    [os.path.join('etc', 'geo_image.cfg'),
