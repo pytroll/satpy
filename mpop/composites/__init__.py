@@ -67,8 +67,7 @@ class Overview(CompositeBase):
         info = p0_6.info.copy()
         info.update(self.info)
         info.setdefault("mode", "RGB")
+        info.setdefault("stretch", "linear")
         return Projectable(data=the_data,
-                           area=p0_6.info["area"],
-                           start_time=p0_6.info["start_time"],
                            **info)
 
