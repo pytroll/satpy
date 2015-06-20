@@ -28,6 +28,7 @@ import numpy as np
 from mpop.imageo.geo_image import GeoImage
 from mpop.resample import resample_kd_tree_nearest
 
+
 class InfoObject(object):
     def __init__(self, **attributes):
         self.info = attributes
@@ -93,7 +94,6 @@ class Dataset(InfoObject):
     def __rdiv__(self, other):
         return self.__class__(data=other / self.data)
 
-
     def __neg__(self):
         return self.__class__(data=-self.data)
 
@@ -115,9 +115,9 @@ class Projectable(Dataset):
             data = np.rollaxis(self.data, 0, 3)
         else:
             data = self.data
-        from pyresample import kd_tree
-        #new_data = kd_tree.resample_nearest(source_area, data, destination_area, **kwargs)
-        #res = resample(self, destination_area, **kwargs)
+        # from pyresample import kd_tree
+        # new_data = kd_tree.resample_nearest(source_area, data, destination_area, **kwargs)
+        # res = resample(self, destination_area, **kwargs)
         new_data = resample_kd_tree_nearest(source_area, data, destination_area, **kwargs)
 
         if new_data.ndim == 3:
@@ -154,7 +154,7 @@ class Projectable(Dataset):
                             copy=copy,
                             **info)
         else:
-            raise ValueError("Don't know how to convert array with ndim %d to image"%self.data.ndim)
+            raise ValueError("Don't know how to convert array with ndim %d to image" % self.data.ndim)
 
     def __str__(self):
         res = list()

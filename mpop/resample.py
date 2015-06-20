@@ -24,7 +24,6 @@
 """
 
 import collections
-
 from pyresample.kd_tree import get_neighbour_info, get_sample_from_neighbour_info
 
 cache = {}

@@ -26,7 +26,6 @@
 import unittest
 from mpop import projectable
 import numpy as np
-from mock import MagicMock, patch
 
 class TestDataset(unittest.TestCase):
     """

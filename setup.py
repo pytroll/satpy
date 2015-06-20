@@ -38,7 +38,7 @@ version = imp.load_source('mpop.version', 'mpop/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage']
+requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage', 'pykdtree']
 
 try:
     from PIL import Image
@@ -82,7 +82,7 @@ setup(name=NAME,
                     os.path.join('doc', 'examples', 'polar_segments.py')])],
       zip_safe=False,
       install_requires=requires,
-      test_requires=["mock"],
+      tests_require=["mock"],
       extras_require={'xRIT': ['mipp >= 0.6.0'],
                       'hdf_eos': ['pyhdf'],
                       'viirs': ['h5py'],
