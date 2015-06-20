@@ -431,9 +431,10 @@ class Scene(InfoObject):
             # Create projectables in reader and update the scenes projectables
             needed_bands = sorted(needed_bands)
             logger.debug("Asking reader '%s' for the following channels %s", reader_name, str(needed_bands))
-            self.projectables.update(reader_instance.load(needed_bands))
+            self.projectables.update(reader_instance.load(needed_bands, **kwargs))
 
         # Update the scene with information contained in the files
+        # FIXME: should this really be in the scene ?
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
         try:
             self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])

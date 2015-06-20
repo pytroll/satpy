@@ -46,20 +46,38 @@ def area_def_names_to_extent(area_def_names, proj4_str,
     lat0=0.0.
     '''
 
-    if type(area_def_names) is not list:
+    if not isinstance(area_def_names, (list, tuple, set)):
         area_def_names = [area_def_names]
 
-    maximum_extent = None
-
+    areas = []
     for name in area_def_names:
 
         try:
-            boundaries = get_area_def(name).get_boundary_lonlats()
+            areas.append(get_area_def(name))
         except pyresample.utils.AreaNotFound:
             LOGGER.warning('Area definition not found ' + name)
             continue
-        except AttributeError:
-            boundaries = name.get_boundary_lonlats()
+
+    return area_defs_to_extent(areas, proj4_str, default_extent)
+
+def area_defs_to_extent(area_defs, proj4_str,
+                             default_extent=(-5567248.07, -5570248.48,
+                                             5570248.48, 5567248.07)):
+    '''Convert a list of *area_def_names* to maximal area extent in
+    destination projection defined by *proj4_str*. *default_extent*
+    gives the extreme values.  Default value is MSG3 extents at
+    lat0=0.0.
+    '''
+
+    if not isinstance(area_defs, (list, tuple, set)):
+        area_defs = [area_defs]
+
+
+    maximum_extent = None
+
+    for area in area_defs:
+
+        boundaries = area.get_boundary_lonlats()
 
         lon_sides = (boundaries[0].side1, boundaries[0].side2,
                      boundaries[0].side3, boundaries[0].side4)

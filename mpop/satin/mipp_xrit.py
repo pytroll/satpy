@@ -41,7 +41,7 @@ from mpop import CONFIG_PATH
 import logging
 from trollsift.parser import Parser
 
-from mpop.satin.helper_functions import area_def_names_to_extent
+from mpop.satin.helper_functions import area_defs_to_extent
 from mpop.projectable import Projectable
 
 LOGGER = logging.getLogger(__name__)
@@ -69,8 +69,7 @@ class XritReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, channels_to_load, calibrate=True, area_extent=None,
-             area_def_names=None, **kwargs):
+    def load(self, channels_to_load, calibrate=True, areas=None, **kwargs):
         """Read imager data from file and return projectables.
         """
         LOGGER.debug("Channels to load: %s" % channels_to_load)
@@ -103,24 +102,18 @@ class XritReader(Reader):
         short_name = file_info["platform_shortname"]
         fullname = platforms.get(short_name, short_name)
         projectables = {}
+        area_extent = None
         for chn in channels_to_load:
 
             # Convert area definitions to maximal area_extent
-            if not area_converted_to_extent and area_def_names is not None:
+            if not area_converted_to_extent and areas is not None:
                 metadata = xrit.sat.load(fullname, self.start_time,
                                          chn, only_metadata=True)
-                # if area_extent is given, assume it gives the maximum
-                # extent of the satellite view
-                if area_extent is not None:
-                    area_extent = area_def_names_to_extent(area_def_names,
-                                                           metadata.proj4_params,
-                                                           area_extent)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
-                else:
-                    area_extent = area_def_names_to_extent(area_def_names,
-                                                           metadata.proj4_params)
-
+                print areas
+                raw_input()
+                area_extent = area_defs_to_extent(areas, metadata.proj4_params)
                 area_converted_to_extent = True
 
             try:
@@ -191,32 +184,4 @@ class XritReader(Reader):
         return projectables
 
 
-def load(channels_to_load, calibrate=True, area_extent=None, area_def_names=None,
-         **kwargs):
-    """Read data from file and load it into *satscene*. The *calibrate*
-    argument is passed to mipp (should be 0 for off, 1 for default, and 2 for
-    radiances only).
-    """
-    del kwargs
-    conf = ConfigParser.ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
-    for option, value in conf.items(satscene.instrument_name + "-level2"):
-        options[option] = value
 
-    for section in conf.sections():
-        if(section.startswith(satscene.instrument_name) and
-           not (section == "satellite") and
-           not section[:-1].endswith("-level") and
-           not section.endswith("-granules")):
-            options[section] = conf.items(section)
-
-    CASES.get(satscene.instrument_name, load_generic)(satscene,
-                                                      options,
-                                                      calibrate,
-                                                      area_extent,
-                                                      area_def_names)
-
-
-
-CASES = {}
