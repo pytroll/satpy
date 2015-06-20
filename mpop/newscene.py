@@ -374,7 +374,7 @@ class Scene(InfoObject):
                 break
         else:
             # we haven't found them all yet, let's check the global composites config
-            composite_config = os.path.join(self.ppp_config_dir, "composites.cfg")
+            composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
             if os.path.isfile(composite_config):
                 global_compositors = self.read_composites_config(composite_config, names=composite_names, **kwargs)
                 self.products.update(global_compositors)
