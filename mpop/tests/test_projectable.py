@@ -27,6 +27,7 @@ import unittest
 from mpop import projectable
 import numpy as np
 import sys
+import mock
 
 class TestDataset(unittest.TestCase):
     """
@@ -88,16 +89,29 @@ class TestProjectable(unittest.TestCase):
         self.assertFalse(projectable.Projectable().is_loaded())
         self.assertTrue(projectable.Projectable(data=1).is_loaded())
 
-    def test_to_image(self):
+    @mock.patch('mpop.projectable.GeoImage')
+    def test_to_image(self, mock_geoimage):
         """
         Conversion to image
         """
+        # 1D
         p = projectable.Projectable(np.arange(25))
         self.assertRaises(ValueError, p.to_image)
-        p = projectable.Projectable(np.arange(25).reshape((5,5)))
-        #self.assertRaises(ValueError, p.to_image)
-        p = projectable.Projectable(np.arange(75).reshape(3, 5, 5))
-        #self.assertRaises(ValueError, p.to_image)
+
+        # 2D
+        data = np.arange(25).reshape((5,5))
+        p = projectable.Projectable(data)
+        img = p.to_image()
+        np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
+        mock_geoimage.reset_mock()
+
+        # 3D
+        data = np.arange(75).reshape((3, 5, 5))
+        p = projectable.Projectable(data)
+        img = p.to_image()
+        np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
+        np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
+        np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
 def suite():
     """The test suite for test_projector.
@@ -108,6 +122,3 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestProjectable))
 
     return mysuite
-
-if __name__ == "__main__":
-    unittest.main()
