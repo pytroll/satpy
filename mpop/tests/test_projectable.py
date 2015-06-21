@@ -61,21 +61,21 @@ class TestDataset(unittest.TestCase):
         ds = projectable.Dataset(np.arange(1, 25), foo="bar")
         ref = np.arange(1, 25)
         ds2 = ds + 1
-        self.assert_(all((ds + 1).data == ref + 1))
-        self.assert_(all((1 + ds).data == ref + 1))
-        self.assert_(all((ds + ds).data == ref * 2))
-        self.assert_(all((ds * 2).data == ref * 2))
-        self.assert_(all((2 * ds).data == ref * 2))
-        self.assert_(all((ds * ds).data == ref ** 2))
-        self.assert_(all((ds - 1).data == ref - 1))
-        self.assert_(all((1 - ds).data == 1 - ref))
-        self.assert_(all((ds - ds).data == np.zeros_like(ref)))
-        self.assert_(all((ds / 2).data == ref / 2))
-        self.assert_(all((2 / ds).data == 2 / ref))
-        self.assert_(all((ds / ds).data == np.ones_like(ref)))
-        self.assert_(all((-ds).data == -ref))
-        self.assert_(all((abs(ds)).data == abs(ref)))
-        self.assert_(all((ds ** 2).data == ref ** 2))
+        np.testing.assert_array_equal((ds + 1).data, ref + 1)
+        np.testing.assert_array_equal((1 + ds).data, ref + 1)
+        np.testing.assert_array_equal((ds + ds).data, ref * 2)
+        np.testing.assert_array_equal((ds * 2).data, ref * 2)
+        np.testing.assert_array_equal((2 * ds).data, ref * 2)
+        np.testing.assert_array_equal((ds * ds).data, ref ** 2)
+        np.testing.assert_array_equal((ds - 1).data, ref - 1)
+        np.testing.assert_array_equal((1 - ds).data, 1 - ref)
+        np.testing.assert_array_equal((ds - ds).data, np.zeros_like(ref))
+        np.testing.assert_array_equal((ds / 2).data, ref / 2)
+        np.testing.assert_array_equal((2 / ds).data, 2 / ref)
+        np.testing.assert_array_equal((ds / ds).data, np.ones_like(ref))
+        np.testing.assert_array_equal((-ds).data, -ref)
+        np.testing.assert_array_equal((abs(ds)).data, abs(ref))
+        np.testing.assert_array_equal((ds ** 2).data, ref ** 2)
 
 class TestProjectable(unittest.TestCase):
     """
@@ -94,8 +94,7 @@ class TestProjectable(unittest.TestCase):
         self.assertFalse(projectable.Projectable().is_loaded())
         self.assertTrue(projectable.Projectable(data=1).is_loaded())
 
-    @mock.patch('mpop.projectable.GeoImage')
-    def test_to_image_1D(self, mock_geoimage):
+    def test_to_image_1D(self):
         """
         Conversion to image
         """
@@ -150,8 +149,10 @@ class TestProjectable(unittest.TestCase):
         source_area = "here"
         destination_area = "there"
         p.info["area"] = source_area
-        p.resample(destination_area)
+        res = p.resample(destination_area)
         mock_resampler.assert_called_once_with(source_area, data, destination_area)
+        self.assertIsInstance(res, projectable.Projectable)
+        self.assertEqual(res.data, mock_resampler.return_value)
 
     @mock.patch('mpop.projectable.resample_kd_tree_nearest')
     def test_resample_3D(self, mock_resampler):
@@ -160,19 +161,20 @@ class TestProjectable(unittest.TestCase):
         source_area = "here"
         destination_area = "there"
         p.info["area"] = source_area
-        p.resample(destination_area)
+        res = p.resample(destination_area)
         self.assertEqual(mock_resampler.call_args[0][0], source_area)
         np.testing.assert_array_equal(np.rollaxis(data, 0, 3), mock_resampler.call_args[0][1])
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
-            #(source_area, np.rollaxis(data, 0, 3), destination_area)
+        self.assertIsInstance(res, projectable.Projectable)
+        self.assertEqual(res.data, mock_resampler.return_value)
 
 
 def suite():
     """The test suite for test_projector.
     """
     loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDataset))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestProjectable))
+    my_suite = unittest.TestSuite()
+    my_suite.addTest(loader.loadTestsFromTestCase(TestDataset))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestProjectable))
 
-    return mysuite
+    return my_suite
