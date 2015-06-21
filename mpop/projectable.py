@@ -178,4 +178,4 @@ class Projectable(Dataset):
         else:
             res.append("not loaded")
 
-        return ", ".join(res)
+        return res[0] + ", ".join(res[1:])
