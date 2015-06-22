@@ -65,6 +65,7 @@ class Scene(InfoObject):
         self.projectables = {}
         self.products = {}
         self.wishlist = []
+        self._composite_configs = set()
 
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
@@ -385,9 +386,18 @@ class Scene(InfoObject):
     def load_compositors(self, composite_names, sensor_names, **kwargs):
         """Load the compositors for *composite_names* for the given *sensor_names*
         """
+        # Don't look for any composites that we may have loaded before
+        composite_names -= set(self.products.keys())
+        if not composite_names:
+            LOG.debug("Already loaded needed composites")
+            return composite_names
+
         # Check the composites for each particular sensor first
         for sensor_name in sensor_names:
             sensor_composite_config = os.path.join(self.ppp_config_dir, "composites", sensor_name + ".cfg")
+            if sensor_composite_config in self._composite_configs:
+                LOG.debug("Sensor composites already loaded, won't reload: %s", sensor_composite_config)
+                continue
             if not os.path.isfile(sensor_composite_config):
                 LOG.debug("No sensor composite config found at %s", sensor_composite_config)
                 continue
@@ -395,6 +405,8 @@ class Scene(InfoObject):
             # Load all the compositors for this sensor for the needed names from the specified config
             sensor_compositors = self.read_composites_config(sensor_composite_config, sensor_name, composite_names,
                                                              **kwargs)
+            # Update the set of configs we've read already
+            self._composite_configs.add(sensor_composite_config)
             # Update the list of composites the scene knows about
             self.products.update(sensor_compositors)
             # Remove the names we know how to create now
@@ -406,9 +418,15 @@ class Scene(InfoObject):
         else:
             # we haven't found them all yet, let's check the global composites config
             composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
-            if os.path.isfile(composite_config):
+            if composite_config in self._composite_configs:
+                LOG.debug("Generic composites already loaded, won't reload: %s", composite_config)
+            elif os.path.isfile(composite_config):
                 global_compositors = self.read_composites_config(composite_config, names=composite_names, **kwargs)
+                # Update the set of configs we've read already
+                self._composite_configs.add(composite_config)
+                # Update the lsit of composites the scene knows about
                 self.products.update(global_compositors)
+                # Remove the names we know how to create now
                 composite_names -= set(global_compositors.keys())
             else:
                 LOG.warning("No global composites.cfg file found in config directory")
@@ -442,13 +460,13 @@ class Scene(InfoObject):
 
         # If we have any composites that need to be made, then let's create the composite objects
         if composite_names:
-            composite_names = self.load_compositors(composite_names, sensor_names, **kwargs)
+            unknown_names = self.load_compositors(composite_names, sensor_names, **kwargs)
 
-        for composite_name in composite_names:
-            LOG.warning("Unknown channel or compositor: %s", composite_name)
+        for unknown_name in unknown_names:
+            LOG.warning("Unknown channel or compositor: %s", unknown_name)
 
         # Don't include any of the 'unknown' projectable names
-        projectable_names = set(projectable_names) - composite_names
+        projectable_names = set(projectable_names) - unknown_names
         composites_needed = set(composite for composite in self.products.keys()
                                 if composite not in self.projectables or not self[composite].is_loaded())
 
