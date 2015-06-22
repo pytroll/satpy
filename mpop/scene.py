@@ -221,6 +221,7 @@ class Scene(InfoObject):
                 if not names and options["name"] not in names:
                     continue
 
+                # FIXME: this warns also when rereading a composite.
                 if options["name"] in self.products:
                     LOG.warning("Duplicate composite found, previous composite '%s' will be overwritten",
                                 options["name"])
@@ -425,7 +426,9 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
-                    projectable_names.add(reader_instance.get_channel(key)["name"])
+                    projectable_name = reader_instance.get_channel(key)["name"]
+                    if not projectable_name in self.projectables or not self.projectables[projectable_name].is_loaded():
+                        projectable_names.add(projectable_name)
                 except KeyError:
                     projectable_names.add(key)
                     LOG.debug("Can't find channel %s in reader %s", str(key), reader_name)
@@ -446,13 +449,16 @@ class Scene(InfoObject):
 
         # Don't include any of the 'unknown' projectable names
         projectable_names = set(projectable_names) - composite_names
-        composites_needed = set(self.products.keys())
+        composites_needed = set(composite for composite in self.products.keys()
+                                if composite not in self.projectables or not self[composite].is_loaded())
 
         for reader_name, reader_instance in self.readers.items():
             all_reader_channels = set(reader_instance.channel_names)
 
             # compute the dependencies to load from file
             needed_bands = all_reader_channels & projectable_names
+            needed_bands = set(band for band in needed_bands
+                               if band not in self.projectables or not  self[band].is_loaded())
             while composites_needed:
                 for band in composites_needed.copy():
                     needed_bands |= set(reader_instance.get_channel(prereq)["name"]
