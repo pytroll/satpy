@@ -151,7 +151,7 @@ class TestProjectable(unittest.TestCase):
         p.info["area"] = source_area
         res = p.resample(destination_area)
         mock_resampler.assert_called_once_with(source_area, data, destination_area)
-        self.assertIsInstance(res, projectable.Projectable)
+        self.assertTrue(isinstance(res, projectable.Projectable))
         self.assertEqual(res.data, mock_resampler.return_value)
 
     @mock.patch('mpop.projectable.resample_kd_tree_nearest')
@@ -165,7 +165,7 @@ class TestProjectable(unittest.TestCase):
         self.assertEqual(mock_resampler.call_args[0][0], source_area)
         np.testing.assert_array_equal(np.rollaxis(data, 0, 3), mock_resampler.call_args[0][1])
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
-        self.assertIsInstance(res, projectable.Projectable)
+        self.assertTrue(isinstance(res, projectable.Projectable))
         self.assertEqual(res.data, mock_resampler.return_value)
 
 
