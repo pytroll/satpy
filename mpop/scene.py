@@ -63,7 +63,7 @@ class Scene(InfoObject):
         InfoObject.__init__(self, **info)
         self.readers = {}
         self.projectables = {}
-        self.products = {}
+        self.compositors = {}
         self.wishlist = []
         self._composite_configs = set()
 
@@ -198,7 +198,7 @@ class Scene(InfoObject):
     def add_product(self, name, obj):
         """Add the product *obj* called *name* to the scene.
         """
-        self.products[name] = obj
+        self.compositors[name] = obj
 
     def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
@@ -223,7 +223,7 @@ class Scene(InfoObject):
                     continue
 
                 # FIXME: this warns also when rereading a composite.
-                if options["name"] in self.products:
+                if options["name"] in self.compositors:
                     LOG.warning("Duplicate composite found, previous composite '%s' will be overwritten",
                                 options["name"])
 
@@ -387,7 +387,7 @@ class Scene(InfoObject):
         """Load the compositors for *composite_names* for the given *sensor_names*
         """
         # Don't look for any composites that we may have loaded before
-        composite_names -= set(self.products.keys())
+        composite_names -= set(self.compositors.keys())
         if not composite_names:
             LOG.debug("Already loaded needed composites")
             return composite_names
@@ -408,7 +408,7 @@ class Scene(InfoObject):
             # Update the set of configs we've read already
             self._composite_configs.add(sensor_composite_config)
             # Update the list of composites the scene knows about
-            self.products.update(sensor_compositors)
+            self.compositors.update(sensor_compositors)
             # Remove the names we know how to create now
             composite_names -= set(sensor_compositors.keys())
 
@@ -425,7 +425,7 @@ class Scene(InfoObject):
                 # Update the set of configs we've read already
                 self._composite_configs.add(composite_config)
                 # Update the lsit of composites the scene knows about
-                self.products.update(global_compositors)
+                self.compositors.update(global_compositors)
                 # Remove the names we know how to create now
                 composite_names -= set(global_compositors.keys())
             else:
@@ -454,6 +454,7 @@ class Scene(InfoObject):
         # Get set of all projectable names that can't be satisfied by the readers we've loaded
         composite_names = set(projectable_names)
         sensor_names = set()
+        unknown_names = set()
         for reader_instance in self.readers.values():
             composite_names -= set(reader_instance.channel_names)
             sensor_names |= set(reader_instance.sensor_names)
@@ -467,7 +468,7 @@ class Scene(InfoObject):
 
         # Don't include any of the 'unknown' projectable names
         projectable_names = set(projectable_names) - unknown_names
-        composites_needed = set(composite for composite in self.products.keys()
+        composites_needed = set(composite for composite in self.compositors.keys()
                                 if composite not in self.projectables or not self[composite].is_loaded())
 
         for reader_name, reader_instance in self.readers.items():
@@ -480,7 +481,7 @@ class Scene(InfoObject):
             while composites_needed:
                 for band in composites_needed.copy():
                     needed_bands |= set(reader_instance.get_channel(prereq)["name"]
-                                        for prereq in self.products[band].prerequisites)
+                                        for prereq in self.compositors[band].prerequisites)
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -506,19 +507,19 @@ class Scene(InfoObject):
         if not requirements:
             requirements = self.wishlist
         for requirement in requirements:
-            if requirement not in self.products:
+            if requirement not in self.compositors:
                 continue
             if requirement in self.projectables:
                 continue
-            self.compute(*self.products[requirement].prerequisites)
+            self.compute(*self.compositors[requirement].prerequisites)
 
             # TODO: Get non-projectable dependencies like moon illumination fraction
-            prereq_projectables = [self[prereq] for prereq in self.products[requirement].prerequisites]
+            prereq_projectables = [self[prereq] for prereq in self.compositors[requirement].prerequisites]
             try:
-                self.projectables[requirement] = self.products[requirement](prereq_projectables, **self.info)
+                self.projectables[requirement] = self.compositors[requirement](prereq_projectables, **self.info)
             except IncompatibleAreas:
                 for name, projectable in self.projectables.iteritems():
-                    if name in self.products[requirement].prerequisites:
+                    if name in self.compositors[requirement].prerequisites:
                         projectable.info["keep"] = True
 
     def unload(self):
