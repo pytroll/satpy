@@ -3,6 +3,8 @@ doc/build
 *.so
 *.pyc
 *~
+.idea
+.ropeproject
 RELEASE-VERSION
 dist
 mpop.egg-info
