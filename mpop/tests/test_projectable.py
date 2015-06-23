@@ -61,6 +61,7 @@ class TestDataset(unittest.TestCase):
         ds = projectable.Dataset(np.arange(1, 25), foo="bar")
         ref = np.arange(1, 25)
         ds2 = ds + 1
+        ds3 = projectable.Dataset(np.linspace(0, 1, 24), foo="bar")
         np.testing.assert_array_equal((ds + 1).data, ref + 1)
         np.testing.assert_array_equal((1 + ds).data, ref + 1)
         np.testing.assert_array_equal((ds + ds).data, ref * 2)
@@ -76,6 +77,12 @@ class TestDataset(unittest.TestCase):
         np.testing.assert_array_equal((-ds).data, -ref)
         np.testing.assert_array_equal((abs(ds)).data, abs(ref))
         np.testing.assert_array_equal((ds ** 2).data, ref ** 2)
+        np.testing.assert_array_equal((ds ** ds3).data, ref ** ds3.data)
+
+    def test_str_repr(self):
+        ds = projectable.Dataset(np.arange(1, 25), foo="bar")
+        ds_str = str(ds)
+        ds_repr = repr(ds)
 
 class TestProjectable(unittest.TestCase):
     """
@@ -101,6 +108,24 @@ class TestProjectable(unittest.TestCase):
         # 1D
         p = projectable.Projectable(np.arange(25))
         self.assertRaises(ValueError, p.to_image)
+
+    def test_str(self):
+        # Normal situation
+        p = projectable.Projectable(np.arange(25),
+                                    sensor="fake_sensor",
+                                    wavelength_range=500,
+                                    resolution=250,
+                                    )
+        p_str = str(p)
+
+        # Not loaded data
+        p = projectable.Projectable()
+        p_str = str(p)
+        self.assertIn("not loaded", p_str)
+
+        # Data that doesn't have a shape
+        p = projectable.Projectable(data=tuple())
+        p_str = str(p)
 
     @mock.patch('mpop.projectable.GeoImage')
     def test_to_image_2D(self, mock_geoimage):
@@ -142,9 +167,14 @@ class TestProjectable(unittest.TestCase):
         p.show(filename)
         mock_geoimage.return_value.save.assert_called_once_with(filename)
 
+    def test_show_unloaded(self):
+        p = projectable.Projectable()
+        self.assertRaises(ValueError, p.show)
+
     @mock.patch('mpop.projectable.resample_kd_tree_nearest')
     def test_resample_2D(self, mock_resampler):
         data = np.arange(25).reshape((5, 5))
+        mock_resampler.return_value = data
         p = projectable.Projectable(data)
         source_area = "here"
         destination_area = "there"
@@ -152,21 +182,23 @@ class TestProjectable(unittest.TestCase):
         res = p.resample(destination_area)
         mock_resampler.assert_called_once_with(source_area, data, destination_area)
         self.assertTrue(isinstance(res, projectable.Projectable))
-        self.assertEqual(res.data, mock_resampler.return_value)
+        np.testing.assert_array_equal(res.data, mock_resampler.return_value)
 
     @mock.patch('mpop.projectable.resample_kd_tree_nearest')
     def test_resample_3D(self, mock_resampler):
         data = np.arange(75).reshape((3, 5, 5))
+        mock_resampler.return_value = np.rollaxis(data, 0, 3)
         p = projectable.Projectable(data)
         source_area = "here"
         destination_area = "there"
         p.info["area"] = source_area
         res = p.resample(destination_area)
+        self.assertTrue(mock_resampler.called)
         self.assertEqual(mock_resampler.call_args[0][0], source_area)
         np.testing.assert_array_equal(np.rollaxis(data, 0, 3), mock_resampler.call_args[0][1])
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
         self.assertTrue(isinstance(res, projectable.Projectable))
-        self.assertEqual(res.data, mock_resampler.return_value)
+        np.testing.assert_array_equal(res.data, data)
 
 
 def suite():
