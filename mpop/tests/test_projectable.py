@@ -110,11 +110,17 @@ class TestProjectable(unittest.TestCase):
         self.assertRaises(ValueError, p.to_image)
 
     def test_str(self):
+        # FIXME: Is there a better way to fake the area?
+        class FakeArea(object):
+            name = "fake_area"
+
         # Normal situation
         p = projectable.Projectable(np.arange(25),
                                     sensor="fake_sensor",
                                     wavelength_range=500,
                                     resolution=250,
+                                    fake_attr="fakeattr",
+                                    area=FakeArea(),
                                     )
         p_str = str(p)
 

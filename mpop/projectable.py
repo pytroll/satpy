@@ -163,7 +163,6 @@ class Projectable(Dataset):
         if "sensor" in self.info:
             res[0] = str(self.info["sensor"]) + "/" + res[0]
 
-
         for key in sorted(self.info.keys()):
             if key == "wavelength_range":
                 res.append("{0}: {1} μm".format(key, self.info[key]))
@@ -176,13 +175,6 @@ class Projectable(Dataset):
             else:
                 res.append("{0}: {1}".format(key, self.info[key]))
 
-        # if "wavelength_range" in self.info:
-        #     res.append("{0} μm".format(self.info["wavelength_range"]))
-        # if "resolution" in self.info:
-        #     res.append("{0} m".format(self.info["resolution"]))
-        # for key in self.info:
-        #     if key not in ["sensor", "wavelength_range", "resolution", "name"]:
-        #         res.append(str(self.info[key]))
         if self.data is not None:
             try:
                 res.append("shape: {0}".format(self.data.shape))
