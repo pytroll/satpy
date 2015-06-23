@@ -22,10 +22,11 @@
 
 """The :mod:`mpop.plugin_base` module defines the plugin API.
 """
+
 from ConfigParser import ConfigParser
-from mpop.projectable import Projectable
 import weakref
 import numbers
+
 
 class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
@@ -37,7 +38,14 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    def __init__(self, name, config_file, **kwargs):
+    def __init__(self, name, config_file,
+                 file_patterns=None,
+                 filenames=None,
+                 description="",
+                 start_time=None,
+                 end_time=None,
+                 area=None,
+                 **kwargs):
         """The reader plugin takes as input a satellite scene to fill in.
         
         Arguments:
@@ -48,12 +56,13 @@ class Reader(Plugin):
         Plugin.__init__(self)
         self.name = name
         self.config_file = config_file
-        self.description = kwargs.pop("description", "")
-        self.file_patterns = kwargs.pop("file_patterns", None)
-        self.filenames = set(kwargs.pop("filenames", []))
-        self.start_time = kwargs.pop("start_time", None)
-        self.end_time = kwargs.pop("end_time", None)
-        self.area = kwargs.pop("area", None)
+        self.file_patterns = file_patterns
+        self.filenames = filenames or []
+        self.description = description
+        self.start_time = start_time
+        self.end_time = end_time
+        self.area = area
+        del kwargs
 
         self.channels = {}
 
@@ -100,6 +109,7 @@ class Reader(Plugin):
     def get_channel(self, key):
         """Get the channel corresponding to *key*, either by name or centerwavelength.
         """
+        # get by wavelength
         if isinstance(key, numbers.Number):
             channels = [chn for chn in self.channels.values()
                         if("wavelength_range" in chn and
@@ -115,7 +125,6 @@ class Reader(Plugin):
         # get by name
         else:
             return self.channels[key]
-        raise KeyError("No channel corresponding to " + str(key) + ".")
 
     def load(self, channels_to_load):
         """Loads the *channels_to_load* into the scene object.
@@ -129,17 +138,7 @@ class Writer(Plugin):
     """
     ptype = "writer"
     
-    def __init__(self, scene):
-        """The writer saves the *scene* to *filename*.
-        
-        Arguments:
-        - `scene`: the scene to save.
-        - `filename`: the place to save it.
-        """
-        Plugin.__init__(self)
-        self._scene = weakref.proxy(scene)
-
-    def save(self, filename):
-        """Saves the scene to a given *filename*.
+    def save(self, dataset, filename):
+        """Saves the *dataset* to a given *filename*.
         """
         raise NotImplementedError

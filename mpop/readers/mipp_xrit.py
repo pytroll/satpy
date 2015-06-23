@@ -69,7 +69,7 @@ class XritReader(Reader):
         """
         LOGGER.debug("Channels to load: %s" % channels_to_load)
 
-        # Compulsory global attributes
+        # Compulsory global attributes according to CF
         # satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
         #                           " satellite, " +
         #                           satscene.instrument_name.capitalize() +

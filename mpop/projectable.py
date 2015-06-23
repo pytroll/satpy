@@ -161,7 +161,7 @@ class Projectable(Dataset):
         res.append(self.info["name"] + ": ")
 
         if "sensor" in self.info:
-            res[0] = self.info["sensor"] + "/" + res[0]
+            res[0] = str(self.info["sensor"]) + "/" + res[0]
 
 
         for key in sorted(self.info.keys()):

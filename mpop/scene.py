@@ -66,7 +66,6 @@ class Scene(InfoObject):
         self.compositors = {}
         self.wishlist = []
         self._composite_configs = set()
-
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
@@ -80,7 +79,7 @@ class Scene(InfoObject):
     def _find_sensors_readers(self, sensor, filenames):
         """Find the readers for the given *sensor* and *filenames*
         """
-        if isinstance(sensor, str):
+        if isinstance(sensor, (str, unicode)):
             sensor_set = set([sensor])
         else:
             sensor_set = set(sensor)
@@ -318,12 +317,7 @@ class Scene(InfoObject):
         return [channel_name for reader_name in readers for channel_name in reader_name.channel_names]
 
     def __str__(self):
-        res = []
-        for reader in self.readers:
-            res.append(reader.info["name"] + ":")
-            for channel_name in reader.channel_names:
-                res.append("\t%s" % (str(self.projectables.get(channel_name, "%s: Not loaded" % (channel_name,))),))
-
+        res = (str(proj) for proj in self.projectables.values())
         return "\n".join(res)
 
     def __iter__(self):
