@@ -121,7 +121,7 @@ class TestProjectable(unittest.TestCase):
         # Not loaded data
         p = projectable.Projectable()
         p_str = str(p)
-        self.assertIn("not loaded", p_str)
+        self.assertTrue("not loaded" in p_str)
 
         # Data that doesn't have a shape
         p = projectable.Projectable(data=tuple())
