@@ -31,7 +31,7 @@ from mpop.tests import (#test_satin_helpers,
                         #test_mipp,
                         test_projectable,
                         #test_satellites,
-                        #test_scene,
+                        test_scene,
                         #test_seviri,
                         #test_viirs_sdr,
                         #test_visir,
@@ -52,7 +52,7 @@ def suite():
     #mysuite.addTests(test_mipp.suite())
     #mysuite.addTests(test_projector.suite())
     #mysuite.addTests(test_satellites.suite())
-    #mysuite.addTests(test_scene.suite())
+    mysuite.addTests(test_scene.suite())
     #mysuite.addTests(test_seviri.suite())
     #mysuite.addTests(test_viirs_sdr.suite())
     #mysuite.addTests(test_visir.suite())
