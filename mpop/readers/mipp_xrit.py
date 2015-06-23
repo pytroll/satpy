@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2013, 2014.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
+# Copyright (c) 2010, 2011, 2013, 2014, 2015.
 
 # Author(s):
 
@@ -146,6 +141,7 @@ class XritReader(Reader):
                                       name=chn,
                                       units=metadata.calibration_unit,
                                       wavelength_range=self.channels[chn]["wavelength_range"],
+                                      sensor=self.channels[chn]["sensor"],
                                       start_time=self.start_time)
 
             # satscene[chn] = data

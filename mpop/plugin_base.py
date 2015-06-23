@@ -44,6 +44,7 @@ class Reader(Plugin):
         - `scene`: the scene to fill.
         """
         #TODO make config_file optional
+        #TODO put times, area and description in .info (it's metadata)
         Plugin.__init__(self)
         self.name = name
         self.config_file = config_file
@@ -53,6 +54,7 @@ class Reader(Plugin):
         self.start_time = kwargs.pop("start_time", None)
         self.end_time = kwargs.pop("end_time", None)
         self.area = kwargs.pop("area", None)
+
         self.channels = {}
 
         self.load_config()

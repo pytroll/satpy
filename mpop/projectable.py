@@ -163,19 +163,32 @@ class Projectable(Dataset):
         if "sensor" in self.info:
             res[0] = self.info["sensor"] + "/" + res[0]
 
-        if "wavelength_range" in self.info:
-            res.append("{0} μm".format(self.info["wavelength_range"]))
-        if "resolution" in self.info:
-            res.append("{0} m".format(self.info["resolution"]))
+
+        for key in sorted(self.info.keys()):
+            if key == "wavelength_range":
+                res.append("{0}: {1} μm".format(key, self.info[key]))
+            elif key == "resolution":
+                res.append("{0}: {1} m".format(key, self.info[key]))
+            elif key == "area":
+                res.append("{0}: {1}".format(key, self.info[key].name))
+            elif key in ["name", "sensor"]:
+                continue
+            else:
+                res.append("{0}: {1}".format(key, self.info[key]))
+
+        # if "wavelength_range" in self.info:
+        #     res.append("{0} μm".format(self.info["wavelength_range"]))
+        # if "resolution" in self.info:
+        #     res.append("{0} m".format(self.info["resolution"]))
         # for key in self.info:
         #     if key not in ["sensor", "wavelength_range", "resolution", "name"]:
         #         res.append(str(self.info[key]))
         if self.data is not None:
             try:
-                res.append("{0}".format(self.data.shape))
+                res.append("shape: {0}".format(self.data.shape))
             except AttributeError:
                 pass
         else:
             res.append("not loaded")
 
-        return res[0] + ", ".join(res[1:])
+        return "\n\t".join(res)
