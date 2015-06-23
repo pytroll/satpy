@@ -1,5 +1,5 @@
 #
-# Level 1.5 configuration file for MTSAT1R
+# Level 1.5 configuration file for MTSAT2
 #
 # An item like:
 #   name = value
@@ -11,10 +11,8 @@
 #
 
 [satellite]
-satname = 'mtsat'
-number = '1r'
 instruments = ('mviri',)
-projection = 'geos(140.0)'
+projection = 'geos(145.0)'
 
 [mviri-level2]
 format = 'mipp_xrit'
@@ -22,7 +20,7 @@ format = 'mipp_xrit'
 [mviri-level1]
 format = 'mipp/xrit/SGS'
 dir = '/data/xrit/out'
-filename = 'L-000-MSG?__-MTSAT1R_____-%(channel)s_140E-%(segment)s-%Y%m%d%H%M-__'
+filename = 'L-000-MSG?__-MTSAT2______-%(channel)s_145E-%(segment)s-%Y%m%d%H%M-__'
 
 [mviri-1]
 name = '00_7'

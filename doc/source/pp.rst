@@ -10,16 +10,19 @@ Conventions about satellite names
 
 Throughout the document, we will use the following conventions: 
 
-- *satellite name* will designate the name of the platform, e.g. "noaa" in
-   satellite "noaa 19"
-
-- *satellite number* will refer to the number of the satellite in the series,
-   e.g. "19" for satellite "noaa 19"
+- *platform name* is the name of an individual satellite following the
+  OSCAR_ naming scheme, e.g. "NOAA-19".
 
 - *variant* will be used to differentiate the same data (from the same
    satellite and instrument) coming in different flavours. For example, we use
-   variant to distinguish data coming from the satellite metop 02 from direct
-   readout, regional coverage or global coverage.
+   variant to distinguish data coming from the satellite Metop-B from direct
+   readout (no variant), regional coverage (EARS) or global coverage (GDS).
+
+All the satellite configuration files in `PPP_CONFIG_DIR` should be
+named `<variant><platform name>.cfg`, e.g. `NOAA-19.cfg` or
+`GDSMetop-B.cfg`.
+
+.. _OSCAR: http://www.wmo-sat.info/oscar/satellites/
 
 Creating a scene object
 =======================
@@ -90,10 +93,10 @@ For instructions on how to write a new composites, see :ref:`geographic-images`.
 Adding a new satellite: configuration file
 ==========================================
 
-A satellite configuration file looks like the following (here meteosat 7, mviri
+A satellite configuration file looks like the following (here Meteosat-7, mviri
 instrument):
 
-.. literalinclude:: ../../../mpop-smhi/etc/meteosat07.cfg
+.. literalinclude:: ../../../mpop-smhi/etc/Meteosat-7.cfg
    :language: ini
    :linenos:
 

@@ -1,6 +1,4 @@
 [satellite]
-satname = 'terra'
-number = ''
 instruments = ('modis',)
 
 [modis-level2]

@@ -1,6 +1,4 @@
 [satellite]
-satname = 'fengyun'
-number = '3a'
 instruments = ('mersi',)
 
 [modis-level2]

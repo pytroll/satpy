@@ -53,6 +53,10 @@ def load(satscene, *args, **kwargs):
     A possible *calibrate* keyword argument is passed to the AAPP reader. 
     Should be 0 for off (counts), 1 for default (brightness temperatures and
     reflectances), and 2 for radiances only.
+
+    If *use_extern_calib* keyword argument is set True, use external
+    calibration data.
+
     """
     del args
 
@@ -68,8 +72,9 @@ def load(satscene, *args, **kwargs):
 
     options["calibrate"] = kwargs.get("calibrate", True)
     options["pre_launch_coeffs"] = kwargs.get("pre_launch_coeffs", False)
+    options["use_extern_calib"] = kwargs.get("use_extern_calib", False)
 
-    LOGGER.info("Loading instrument '%s'" % satscene.instrument_name)
+    LOGGER.info("Loading instrument '%s'", satscene.instrument_name)
 
     try:
         CASES[satscene.instrument_name](satscene, options)
@@ -88,7 +93,7 @@ def load_avhrr(satscene, options):
     chns = (satscene.channels_to_load &
             (set(AVHRR_CHANNEL_NAMES) - loaded))
 
-    LOGGER.info("Loading channels " + str(sorted(list(chns))))
+    LOGGER.info("Loading channels %s", str(sorted(list(chns))))
 
     if len(chns) == 0:
         return
@@ -104,51 +109,52 @@ def load_avhrr(satscene, options):
 
     if "full_filename" in options:
         filename = options["full_filename"]
-        LOGGER.debug("Loading from " + filename)
+        LOGGER.debug("Loading from %s", filename)
         scene = AAPP1b(filename)
         try:
             scene.read()
             done_reading = True
         except ValueError:
-            LOGGER.info("Can't read " + filename)
+            LOGGER.info("Can't read %s", filename)
 
     if not done_reading:
-        filename = os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
-                                satscene.time_slot.strftime(
-                                    options["filename"])
-                                % values)
+        filename = \
+            os.path.join(satscene.time_slot.strftime(options["dir"]) % values,
+                         satscene.time_slot.strftime(
+                             options["filename"])
+                         % values)
 
         file_list = glob.glob(filename)
 
         if len(file_list) > 1:
-            LOGGER.info("More than one l1b file found: " + str(file_list))
+            LOGGER.info("More than one l1b file found: %s", str(file_list))
             # hrpt_noaa18_20150110_1658_49685.l1b
             candidate = ('hrpt_' +
                          str(satscene.satname) + str(satscene.number) +
                          satscene.time_slot.strftime('_%Y%m%d_%H%M_') +
                          str(satscene.orbit) + '.l1b')
-            LOGGER.debug("Suggested filename = " + str(candidate))
+            LOGGER.debug("Suggested filename = %s", str(candidate))
             candidate_found = False
             for fname in file_list:
                 l1bname = os.path.basename(fname)
                 if l1bname == candidate:
                     filename = fname
                     candidate_found = True
-                    LOGGER.info(
-                        'The l1b file chosen is this: ' + str(filename))
+                    LOGGER.info('The l1b file chosen is this: %s',
+                                str(filename))
                     break
             if not candidate_found:
-                LOGGER.info("More than one l1b file found: " + str(file_list))
-                LOGGER.warning("Couldn't decide which one to take. " +
-                               "Try take the first one: " + str(filename))
+                LOGGER.info("More than one l1b file found: %s", str(file_list))
+                LOGGER.warning("Couldn't decide which one to take. "
+                               "Try take the first one: %s", str(filename))
                 filename = file_list[0]
 
         elif len(file_list) == 0:
-            raise IOError("No l1b file matching!: " + filename)
+            raise IOError("No l1b file matching!: %s", filename)
         else:
             filename = file_list[0]
 
-        LOGGER.debug("Loading from " + filename)
+        LOGGER.debug("Loading from %s", filename)
         scene = AAPP1b(filename)
         try:
             scene.read()
@@ -156,8 +162,48 @@ def load_avhrr(satscene, options):
             LOGGER.info("Can't read %s, exiting.", filename)
             return
 
+    if options["use_extern_calib"]:
+        import h5py
+        LOGGER.info("Reading external calibration coefficients.")
+        fid = h5py.File(os.path.join(CONFIG_PATH,
+                                     satscene.satname + '_calibration_data.h5'))
+        calib_coeffs = {}
+        for key in fid.keys():
+            date_diffs = []
+            for dat in fid[key]['datetime']:
+                date_diffs.append(np.abs(satscene.time_slot - \
+                                         datetime.datetime(dat[0],
+                                                           dat[1],
+                                                           dat[2])))
+            idx = date_diffs.index(min(date_diffs))
+            date_diff = satscene.time_slot - \
+                        datetime.datetime(fid[key]['datetime'][idx][0],
+                                          fid[key]['datetime'][idx][1],
+                                          fid[key]['datetime'][idx][2])
+            if date_diff.days > 0:
+                older_or_newer = "newer"
+            else:
+                older_or_newer = "older"
+            LOGGER.info("External calibration for %s is %d days %s than data.",
+                        key, date_diffs[idx].days, older_or_newer)
+            calib_coeffs[key] = (fid[key]['slope1'][idx],
+                                 fid[key]['intercept1'][idx],
+                                 fid[key]['slope2'][idx],
+                                 fid[key]['intercept2'][idx])
+        fid.close()
+
+        if 'ch1' not in calib_coeffs:
+            calib_coeffs['ch1'] = None
+        if 'ch2' not in calib_coeffs:
+            calib_coeffs['ch2'] = None
+        if 'ch3a' not in calib_coeffs:
+            calib_coeffs['ch3a'] = None
+    else:
+        calib_coeffs = None
+
     scene.calibrate(chns, calibrate=options.get('calibrate', 1),
-                    pre_launch_coeffs=options["pre_launch_coeffs"])
+                    pre_launch_coeffs=options["pre_launch_coeffs"],
+                    calib_coeffs=calib_coeffs)
 
     if satscene.area is None:
         scene.navigate()
@@ -166,7 +212,7 @@ def load_avhrr(satscene, options):
             from pyresample import geometry
         except ImportError, ex_:
 
-            LOGGER.debug("Could not load pyresample: " + str(ex_))
+            LOGGER.debug("Could not load pyresample: %s", str(ex_))
 
             satscene.lat = scene.lats
             satscene.lon = scene.lons
@@ -396,7 +442,7 @@ class AAPP1b(object):
                              dtype=_SCANTYPE,
                              offset=22016, mode="r")
 
-        LOGGER.debug("Reading time " + str(datetime.datetime.now() - tic))
+        LOGGER.debug("Reading time %s", str(datetime.datetime.now() - tic))
 
         self._header = header
         self._data = data
@@ -430,30 +476,38 @@ class AAPP1b(object):
                                            along_track_order,
                                            cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            LOGGER.debug(
-                "Navigation time " + str(datetime.datetime.now() - tic))
+            LOGGER.debug("Navigation time %s",
+                         str(datetime.datetime.now() - tic))
 
     def calibrate(self, chns=("1", "2", "3A", "3B", "4", "5"),
-                  calibrate=1, pre_launch_coeffs=False):
+                  calibrate=1, pre_launch_coeffs=False, calib_coeffs=None):
         """Calibrate the data
         """
         tic = datetime.datetime.now()
 
         if "1" in chns:
+            if calib_coeffs is not None:
+                coeffs = calib_coeffs['ch1']
+            else:
+                coeffs = None
             self.channels['1'] = _vis_calibrate(self._data, 0,
-                                                calibrate, pre_launch_coeffs)
+                                                calibrate, pre_launch_coeffs,
+                                                coeffs)
+            self.units['1'] = '%'
             if calibrate == 0:
                 self.units['1'] = ''
-            else:
-                self.units['1'] = '%'
 
         if "2" in chns:
+            if calib_coeffs is not None:
+                coeffs = calib_coeffs['ch2']
+            else:
+                coeffs = None
             self.channels['2'] = _vis_calibrate(self._data, 1,
-                                                calibrate, pre_launch_coeffs)
+                                                calibrate, pre_launch_coeffs,
+                                                coeffs)
+            self.units['2'] = '%'
             if calibrate == 0:
                 self.units['2'] = ''
-            else:
-                self.units['2'] = '%'
 
         if "3A" in chns or "3B" in chns:
             # Is it 3A or 3B:
@@ -462,20 +516,26 @@ class AAPP1b(object):
             self._is3b = is3b
 
         if "3A" in chns:
+            if calib_coeffs is not None:
+                coeffs = calib_coeffs['ch3a']
+            else:
+                coeffs = None
             ch3a = _vis_calibrate(self._data, 2,
-                                  calibrate, pre_launch_coeffs)
+                                  calibrate, pre_launch_coeffs,
+                                  coeffs)
             self.channels['3A'] = np.ma.masked_array(ch3a, is3b * ch3a)
+
+            self.units['3A'] = '%'
             if calibrate == 0:
                 self.units['3A'] = ''
-            else:
-                self.units['3A'] = '%'
 
         if "3B" in chns:
             ch3b = _ir_calibrate(self._header, self._data, 0, calibrate)
-            self.channels['3B'] = np.ma.masked_array(ch3b,
-                                                     np.logical_or((is3b == False)
-                                                                   * ch3b,
-                                                                   ch3b < 0.1))
+            self.channels['3B'] = \
+                np.ma.masked_array(ch3b,
+                                   np.logical_or((is3b is False) * \
+                                                 ch3b,
+                                                 ch3b < 0.1))
             if calibrate == 1:
                 self.units['3B'] = 'K'
             elif calibrate == 2:
@@ -503,10 +563,11 @@ class AAPP1b(object):
             else:
                 self.units['5'] = ''
 
-        LOGGER.debug("Calibration time " + str(datetime.datetime.now() - tic))
+        LOGGER.debug("Calibration time %s", str(datetime.datetime.now() - tic))
 
 
-def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False):
+def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False,
+                   calib_coeffs=None):
     """Visible channel calibration only.
     *calib_type* = 0: Counts
     *calib_type* = 1: Reflectances
@@ -535,13 +596,26 @@ def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False):
             coeff_idx = 0
 
     intersection = data["calvis"][:, chn, coeff_idx, 4]
-    slope1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
-    intercept1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
-    slope2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
-    intercept2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
 
-    if chn == 2:
-        slope2[slope2 < 0] += 0.4294967296
+    if calib_coeffs is not None:
+        LOGGER.info("Updating from external calibration coefficients.")
+        # intersection = np.expand_dims
+        slope1 = np.expand_dims(calib_coeffs[0], 1)
+        intercept1 = np.expand_dims(calib_coeffs[1], 1)
+        slope2 = np.expand_dims(calib_coeffs[2], 1)
+        intercept2 = np.expand_dims(calib_coeffs[3], 1)
+    else:
+        slope1 = \
+            np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
+        intercept1 = \
+            np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
+        slope2 = \
+            np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
+        intercept2 = \
+            np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
+
+        if chn == 2:
+            slope2[slope2 < 0] += 0.4294967296
 
     mask1 = channel <= np.expand_dims(intersection, 1)
     mask2 = channel > np.expand_dims(intersection, 1)
@@ -579,7 +653,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
-        LOGGER.info("Suspicious scan lines: " + str(suspect_line_nums))
+        LOGGER.info("Suspicious scan lines: %s", str(suspect_line_nums))
 
     if calib_type == 2:
         return rad
@@ -606,7 +680,7 @@ def _ir_calibrate(header, data, irchn, calib_type):
     idx = np.indices((all_zero.shape[0],))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
-        LOGGER.info("Suspect scan lines: " + str(suspect_line_nums))
+        LOGGER.info("Suspect scan lines: %s", str(suspect_line_nums))
 
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833

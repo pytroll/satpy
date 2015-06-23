@@ -40,10 +40,10 @@ LOGGER = logging.getLogger(__name__)
 def area_def_names_to_extent(area_def_names, proj4_str,
                              default_extent=(-5567248.07, -5570248.48,
                                              5570248.48, 5567248.07)):
-    '''Convert a list of *area_def_names* to maximal area extent in
-    destination projection defined by *proj4_str*. *default_extent*
-    gives the extreme values.  Default value is MSG3 extents at
-    lat0=0.0.
+    '''Convert a list of *area_def_names* to maximal area extent in destination
+    projection defined by *proj4_str*. *default_extent* gives the extreme
+    values.  Default value is MSG3 extents at lat0=0.0. If a boundary of one of
+    the area_defs is entirely invalid, the *default_extent* is taken.
     '''
 
     if not isinstance(area_def_names, (list, tuple, set)):
@@ -78,6 +78,13 @@ def area_defs_to_extent(area_defs, proj4_str,
     for area in area_defs:
 
         boundaries = area.get_boundary_lonlats()
+
+        if (all(boundaries[0].side1 > 1e20) or
+                all(boundaries[0].side2 > 1e20) or
+                all(boundaries[0].side3 > 1e20) or
+                all(boundaries[0].side4 > 1e20)):
+            maximum_extent = list(default_extent)
+            continue
 
         lon_sides = (boundaries[0].side1, boundaries[0].side2,
                      boundaries[0].side3, boundaries[0].side4)

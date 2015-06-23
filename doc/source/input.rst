@@ -18,7 +18,7 @@ Reader for for hrit/lrit formats. Recommends numexpr and pyresample.
 aapp1b
 ------
 
-Reader for aapp level 1b format. Requires numpy, recommends pyresample.
+Reader for AAPP level 1b format. Requires numpy, recommends pyresample.
 
 .. automodule:: mpop.satin.aapp1b
    :members:
@@ -27,7 +27,7 @@ Reader for aapp level 1b format. Requires numpy, recommends pyresample.
 
 eps_l1b
 -------
-Reader for eps level 1b format. Recommends pyresample.
+Reader for EPS level 1b format. Recommends pyresample.
 
 .. automodule:: mpop.satin.eps_l1b
    :members:
@@ -37,7 +37,7 @@ Reader for eps level 1b format. Recommends pyresample.
 
 viirs_sdr
 ---------
-Reader for the VIIRS SDR format. Require h5py.
+Reader for the VIIRS SDR format. Requires h5py.
 
 .. automodule:: mpop.satin.viirs_sdr
    :members:
@@ -45,7 +45,7 @@ Reader for the VIIRS SDR format. Require h5py.
 
 viirs_compact
 -------------
-Reader for the VIIRS compact format from EUMETSAT. Require h5py.
+Reader for the VIIRS compact format from EUMETSAT. Requires h5py.
 
 .. automodule:: mpop.satin.viirs_compact
    :members:
@@ -53,7 +53,7 @@ Reader for the VIIRS compact format from EUMETSAT. Require h5py.
 
 hdfeos_l1b
 ----------
-Reader for modis data format. Require pyhdf.
+Reader for Modis data format. Requires pyhdf.
 
 .. automodule:: mpop.satin.hdfeos_l1b
    :members:
@@ -62,7 +62,7 @@ Reader for modis data format. Require pyhdf.
 
 msg_hdf
 -------
-Reader for msg cloud products. Requires h5py, recommends acpg.
+Reader for MSG cloud products. Requires h5py, recommends acpg.
 
 .. automodule:: mpop.satin.msg_hdf
    :members:
@@ -71,7 +71,7 @@ Reader for msg cloud products. Requires h5py, recommends acpg.
 
 pps_hdf
 -------
-Reader for pps cloud products. Requires acpg.
+Reader for PPS cloud products. Requires acpg.
 
 .. automodule:: mpop.satin.pps_hdf
    :members:
@@ -89,7 +89,7 @@ Reader for level 0 hrpt format. Requires AAPP and pynav.
 
 eps1a
 -----
-Reader for level 1a metop segments. Requires AAPP, kai and eugene.
+Reader for level 1a Metop segments. Requires AAPP, kai and eugene.
 
 .. automodule:: mpop.satin.eps1a
    :members:

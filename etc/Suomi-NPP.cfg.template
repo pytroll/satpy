@@ -1,20 +1,21 @@
 [satellite]
-satname = npp
-variant = 
-number = 
 instruments = ('viirs',)
 
 [viirs-level2]
-filename = SVMC_npp_d%Y%m%d_t%H%M%S?_e*_eum_ops.h5
-dir = /local_disk/data/satellite/polar/compact_viirs
-format = viirs_compact
+filename = SV???_%(satellite)s_d*b%(orbit)s_c*.h5
+geo_filenames = G????_%(satellite)s_d*b%(orbit)s_c*.h5
+dir = /data/viirs/sdr
+geo_dir = /data/viirs/sdr
+format = viirs_sdr.ViirsSDRReader
+
 
 [viirs-level3]
-format = nwcsaf_pps
-geofilename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_satproj_*_*_viirs.h5
-filename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_satproj_*_*_%(product)s.h5
+filename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_*_%(product)s.h5
+geofilename = %(satellite)s_%Y%m%d_%H%M_%(orbit)s_*_viirs.h5
 geodir = /san1/pps/import/PPS_data/remapped
-dir = /local_disk/data/pps/export
+dir = /san1/pps/import/PPS_data/remapped
+format = nwcsaf_pps
+
 
 [viirs-m01]
 frequency = (0.402, 0.412, 0.422)
@@ -112,6 +113,7 @@ resolution = 742
 name = 'M16'
 size = (3200,)
 
+# I-bands:
 [viirs-i01]
 frequency = (0.600, 0.640, 0.680)
 resolution = 371
@@ -144,7 +146,6 @@ size = (6400,)
 
 [viirs-dnb]
 frequency = (0.500, 0.700, 0.900)
-resolution = 743
+resolution = 742
 name = 'DNB'
 size = (4064,)
-

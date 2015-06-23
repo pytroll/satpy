@@ -22,7 +22,7 @@ Ok, let's get it on::
     >>> from mpop.projector import get_area_def
     >>> import datetime
     >>> time_slot = datetime.datetime(2009, 10, 8, 14, 30)
-    >>> global_data = GeostationaryFactory.create_scene("meteosat", "09", "seviri", time_slot)
+    >>> global_data = GeostationaryFactory.create_scene("Meteosat-9", "", "seviri", time_slot)
     >>> europe = get_area_def("EuropeCanary")
     >>> global_data.load([0.6, 0.8, 10.8], area_extent=europe.area_extent)
     >>> print global_data
@@ -41,7 +41,7 @@ Ok, let's get it on::
 
 
 In this example, we create a scene object for the seviri instrument onboard
-meteosat 9, specifying the time of the snapshot of interest. The time is
+Meteosat-9, specifying the time of the snapshot of interest. The time is
 defined as a datetime object. 
 
 The next step is loading the data. This is done using mipp, which takes care of
@@ -71,12 +71,12 @@ save it as a png image. Instead of :meth:`save`, one could also use
 Available composites are listed in the :mod:`mpop.satellites.visir` module
 in the mpop documentation.
 
-We want more !
+We want more!
 ==============
 
 In the last example, the composite generation worked because the channels
 needed for the overview (0.6, 0.8, 10.8 μm) were loaded. If we try to generate
-a day natural color composite, which requires also the 1.6um channel, it will
+a day natural color composite, which requires also the 1.6 μm channel, it will
 result in an error::
 
    
@@ -205,7 +205,7 @@ possible to write them in a python module which name has to be specified in the
 `mpop.cfg` configuration file, under the *composites* section::
 
   [composites]
-  module=smhi_composites
+  module=mpop.smhi_composites
 
 The module has to be importable (i.e. it has to be in the pythonpath). 
 Here is an example of such a module::
@@ -249,15 +249,6 @@ Here is an example of such a module::
 
   seviri = [overview,
             hr_visual]
-
-Note the *seviri* variable in the end. This means that the composites it
-contains will be available to all scenes using the Seviri instrument. If we
-replace this by::
-
-  meteosat09seviri = [overview,
-                      hr_visual]
-
-then the composites will only be available for the Meteosat 9 satellite scenes.
 
 Projections
 ===========

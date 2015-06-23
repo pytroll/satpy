@@ -1,0 +1,51 @@
+[satellite]
+variant = GDS
+instruments = ('avhrr/3',)
+
+[avhrr/3-1]
+frequency = (0.58, 0.63, 0.68)
+resolution = 1090
+name = '1'
+size = (2048,)
+
+[avhrr/3-2]
+frequency = (0.725, 0.8625, 1.0)
+resolution = 1090
+name = '2'
+size = (2048,)
+
+[avhrr/3-3]
+frequency = (1.58, 1.61, 1.64)
+resolution = 1090
+name = '3A'
+size = (2048,)
+
+[avhrr/3-4]
+frequency = (3.55, 3.74, 3.93)
+resolution = 1090
+name = '3B'
+size = (2048,)
+
+[avhrr/3-5]
+frequency = (10.3, 10.8, 11.3)
+resolution = 1090
+name = '4'
+size = (2048,)
+
+[avhrr/3-6]
+frequency = (11.5, 12.0, 12.5)
+resolution = 1090
+name = '5'
+size = (2048,)
+
+[avhrr/3-level2]
+format=eps_l1b
+filename=AVHR_xxx_1B_M01_%Y%m%d%H%M%SZ*
+dir=/path/to/satellite/data/
+
+[avhrr/3-level3]
+format=h5_pps_l2.PPSReader
+cloud_product_filename=S_NWC_%(product)s_metopb_%(orbit)s_*.h5
+cloud_product_dir=/data/proj/safutv/data/polar_out/direct_readout/
+cloud_product_geofilename=S_NWC_avhrr_metopb_%(orbit)s_*.h5
+cloud_product_geodir=/san1/pps/import/PPS_data/remapped

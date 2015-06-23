@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2012, 2014.
+# Copyright (c) 2010, 2012, 2014, 2015.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -37,9 +37,56 @@ import pyresample.utils
 import glob
 from mpop.utils import get_logger
 from mpop.projector import get_area_def
+from datetime import datetime
 
 LOG = get_logger('satin/msg_hdf')
 COMPRESS_LVL = 6
+
+ctype_lut = ['0: Not processed',
+             '1: Cloud free land',
+             '2: Cloud free sea',
+             '3: Snow/ice contaminated land',
+             '4: Snow/ice contaminated sea',
+             '5: Very low cumiliform cloud',
+             '6: Very low stratiform cloud',
+             '7: Low cumiliform cloud',
+             '8: Low stratiform cloud',
+             '9: Medium level cumiliform cloud',
+             '10: Medium level stratiform cloud',
+             '11: High and opaque cumiliform cloud',
+             '12: High and opaque stratiform cloud',
+             '13:Very high and opaque cumiliform cloud',
+             '14: Very high and opaque stratiform cloud',
+             '15: Very thin cirrus cloud',
+             '16: Thin cirrus cloud',
+             '17: Thick cirrus cloud',
+             '18: Cirrus above low or medium level cloud',
+             '19: Fractional or sub-pixel cloud',
+             '20: Undefined']
+phase_lut = ['1: Not processed or undefined',
+             '2: Water',
+             '4: Ice',
+             '8: Tb11 below 260K',
+             '16: value not defined',
+             '32: value not defined',
+             '64: value not defined',
+             '128: value not defined']
+quality_lut = ['1: Land',
+               '2: Coast',
+               '4: Night',
+               '8: Twilight',
+               '16: Sunglint',
+               '32: High terrain',
+               '64: Low level inversion',
+               '128: Nwp data present',
+               '256: Avhrr channel missing',
+               '512: Low quality',
+               '1024: Reclassified after spatial smoothing',
+               '2048: Stratiform-Cumuliform Distinction performed',
+               '4096: bit not defined',
+               '8192: bit not defined',
+               '16384: bit not defined',
+               '32768: bit not defined']
 
 
 def pcs_def_from_region(region):
@@ -89,70 +136,14 @@ def _get_palette(h5f, dsname):
         return None
 
 
-class PpsCloudType(mpop.channel.GenericChannel):
+class InfoObject(object):
+
+    """Simple data and info container.
+    """
 
     def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CloudType")
-        self.region = None
-        self.des = ""
-        self.cloudtype_des = ""
-        self.qualityflag_des = ""
-        self.phaseflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.cloudtype_lut = []
-        self.qualityflag_lut = []
-        self.phaseflag_lut = []
-        self.cloudtype = None
-        self.qualityflag = None
-        self.phaseflag = None
-
-    def save(self, filename):
-        """Save to *filename*.
-        """
-        import epshdf
-        epshdf.write_cloudtype(filename, self, COMPRESS_LVL)
-
-
-class PpsCTTH(mpop.channel.GenericChannel):
-
-    def __init__(self):
-        mpop.channel.GenericChannel.__init__(self, "CTTH")
-        self.region = None
-        self.des = ""
-        self.ctt_des = ""
-        self.cth_des = ""
-        self.ctp_des = ""
-        self.cloudiness_des = ""
-        self.processingflag_des = ""
-        self.sec_1970 = 0
-        self.satellite_id = ""
-        self.processingflag_lut = []
-
-        self.temperature = None
-        self.t_gain = 1.0
-        self.t_intercept = 0.0
-        self.t_nodata = 255
-
-        self.pressure = None
-        self.p_gain = 1.0
-        self.p_intercept = 0.0
-        self.p_nodata = 255
-
-        self.height = None
-        self.h_gain = 1.0
-        self.h_intercept = 0.0
-        self.h_nodata = 255
-
-        self.cloudiness = None
-        self.c_nodata = 255
-        self.processingflag = None
-
-    def save(self, filename):
-        """Save to *filename*.
-        """
-        import epshdf
-        epshdf.write_cloudtop(filename, self, COMPRESS_LVL)
+        self.info = {}
+        self.data = None
 
 # ----------------------------------------
 
@@ -256,10 +247,11 @@ class MsgCloudType(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.product_algorithm_version = h5f.attrs["PACKAGE"] + h5f.attrs["PRODUCT_NAME"] + h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
 
@@ -312,13 +304,13 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         self.filled = True
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current cloudtype object to hdf *filename*, in pps format.
         """
         import h5py
         ctype = self.convert2pps()
         LOG.info("Saving CType hdf file...")
-        ctype.save(filename)
+        ctype.save(filename, **kwargs)
         h5f = h5py.File(filename, mode="a")
         h5f.attrs["straylight_contaminated"] = self.qc_straylight
         h5f.close()
@@ -391,13 +383,12 @@ class MsgCloudType(mpop.channel.GenericChannel):
 
         return retv
 
-    def convert2pps(self):
+    def oldconvert2pps(self):
         """Converts the NWCSAF/MSG Cloud Type to the PPS format,
         in order to have consistency in output format between PPS and MSG.
         """
-        import epshdf
         retv = PpsCloudType()
-        retv.region = epshdf.SafRegion()
+        retv.region = SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
         retv.region.id = self.region_name
@@ -419,6 +410,103 @@ class MsgCloudType(mpop.channel.GenericChannel):
         retv.phaseflag = self.cloudphase.astype('B')
         retv.qualityflag = ctype_procflags2pps(self.processing_flags)
 
+        return retv
+
+    def convert2pps(self):
+        from mpop.satin.nwcsaf_pps import CloudType
+        from nwcsaf_formats.pps_conversions import (old_ctype_palette,
+                                                    old_ctype_palette_data)
+
+        retv = CloudType()
+
+        region_type = np.dtype([('area_extent', '<f8', (4,)),
+                                ('xsize', '<i4'),
+                                ('ysize', '<i4'),
+                                ('xscale', '<f4'),
+                                ('yscale', '<f4'),
+                                ('lat_0', '<f4'),
+                                ('lon_0', '<f4'),
+                                ('lat_ts', '<f4'),
+                                ('id', 'S64'),
+                                ('name', 'S64'),
+                                ('pcs_id', 'S64'),
+                                ('pcs_def', 'S128')])
+
+        region = np.zeros((1, ), dtype=region_type)
+
+        region["xsize"] = self.num_of_columns
+        region["ysize"] = self.num_of_lines
+        region["id"] = self.region_name
+        region["pcs_id"] = self.projection_name
+
+        region["pcs_def"] = pcs_def_from_region(self.area)
+        region["area_extent"] = self.area.area_extent
+
+        retv.region = InfoObject()
+        retv.region.data = region
+        retv._keys.append("region")
+
+        retv.Region = region_type
+        retv._keys.append("Region")
+
+        retv._md["time_slot"] = self.nominal_product_time
+        retv._md["description"] = np.string_(
+            "MSG SEVIRI Cloud Type")
+        retv._md["satellite_id"] = np.string_(self.satid)
+        retv._md["sec_1970"] = np.uint64(0)
+        retv._md["version"] = np.string_(self.product_algorithm_version)
+
+        retv.PALETTE = InfoObject()
+        retv.PALETTE.data = old_ctype_palette_data()
+        retv.PALETTE.info["CLASS"] = np.string_("PALETTE\0")
+        retv.PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB\0")
+        retv.PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8\0")
+        retv.PALETTE.info["PAL_VERSION"] = np.string_("1.2\0")
+        retv._keys.append("PALETTE")
+
+        namelist = np.dtype([('outval_name', 'S128')])
+        retv.OutputValueNameList = namelist
+        retv._keys.append("OutputValueNameList")
+
+        retv.cloudtype = InfoObject()
+        retv.cloudtype.info["output_value_namelist"] = np.array(ctype_lut,
+                                                                dtype=namelist)
+        retv.cloudtype.info["CLASS"] = np.string_("IMAGE\0")
+        retv.cloudtype.info["IMAGE_VERSION"] = np.string_("1.2\0")
+        retv._refs[("cloudtype", "PALETTE")] = np.string_("PALETTE\0")
+        retv.cloudtype.info["description"] = np.string_(
+            "MSG SEVIRI Cloud Type")
+        retv.cloudtype.data = self.cloudtype.astype('B')
+        retv._projectables.append("cloudtype")
+
+        # retv.PHASE_PALETTE = InfoObject()
+        # retv.PHASE_PALETTE.data = self.cloudphase_palette
+        # retv.PHASE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        # retv.PHASE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        # retv.PHASE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        # retv.PHASE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        # retv._keys.append("PHASE_PALETTE")
+
+        retv.phase_flag = InfoObject()
+        retv.phase_flag.info["output_value_nameslist"] = np.array(phase_lut,
+                                                                  dtype=namelist)
+        # retv.phase_flag.info["CLASS"] = np.string_("IMAGE")
+        # retv.phase_flag.info["IMAGE_VERSION"] = np.string_("1.2")
+        # retv._refs[("phase_flag", "PALETTE")] = np.string_("PHASE_PALETTE")
+        retv.phase_flag.info["description"] = np.string_(
+            'MSG SEVIRI Cloud phase flags')
+        retv.phase_flag.data = self.cloudphase.astype('B')
+        retv._projectables.append("phase_flag")
+
+        retv.quality_flag = InfoObject()
+        retv.quality_flag.info["output_value_nameslist"] = np.array(quality_lut,
+                                                                    dtype=namelist)
+        retv.quality_flag.info[
+            "description"] = np.string_('MSG SEVIRI bitwise quality/processing flags')
+        retv.quality_flag.data = ctype_procflags2pps(self.processing_flags)
+        retv._projectables.append("quality_flag")
+
+        retv.save = retv.write
         return retv
 
     def convert2nordrad(self):
@@ -515,10 +603,11 @@ class MsgCTTH(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
-        self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
+        self.product_algorithm_version = h5f.attrs["PACKAGE"] + h5f.attrs["PRODUCT_NAME"] + h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
         # pylint: enable-msg=W0212
         # ------------------------
 
@@ -633,12 +722,12 @@ class MsgCTTH(mpop.channel.GenericChannel):
 
         self.filled = True
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current CTTH channel to HDF5 format.
         """
         ctth = self.convert2pps()
         LOG.info("Saving CTTH hdf file...")
-        ctth.save(filename)
+        ctth.save(filename, **kwargs)
         LOG.info("Saving CTTH hdf file done !")
 
     def project(self, coverage):
@@ -671,12 +760,11 @@ class MsgCTTH(mpop.channel.GenericChannel):
         return retv
 
 # ------------------------------------------------------------------
-    def convert2pps(self):
+    def oldconvert2pps(self):
         """Convert the current CTTH channel to pps format.
         """
-        import epshdf
         retv = PpsCTTH()
-        retv.region = epshdf.SafRegion()
+        retv.region = SafRegion()
         retv.region.xsize = self.num_of_columns
         retv.region.ysize = self.num_of_lines
         retv.region.id = self.region_name
@@ -718,6 +806,136 @@ class MsgCTTH(mpop.channel.GenericChannel):
         retv.c_nodata = 255  # Is this correct? FIXME
 
         retv.processingflag = ctth_procflags2pps(self.processing_flags)
+
+        return retv
+
+    def convert2pps(self):
+        """Convert the current CTTH channel to pps format.
+        """
+        from mpop.satin.nwcsaf_pps import CloudTopTemperatureHeight
+        from nwcsaf_formats.pps_conversions import (old_ctth_press_palette_data,
+                                                    old_ctth_temp_palette_data,
+                                                    old_ctth_height_palette_data)
+
+        retv = CloudTopTemperatureHeight()
+
+        region_type = np.dtype([('area_extent', '<f8', (4,)),
+                                ('xsize', '<i4'),
+                                ('ysize', '<i4'),
+                                ('xscale', '<f4'),
+                                ('yscale', '<f4'),
+                                ('lat_0', '<f4'),
+                                ('lon_0', '<f4'),
+                                ('lat_ts', '<f4'),
+                                ('id', 'S64'),
+                                ('name', 'S64'),
+                                ('pcs_id', 'S128'),
+                                ('pcs_def', 'S128')])
+
+        region = np.zeros((1, ), dtype=region_type)
+
+        region["xsize"] = self.num_of_columns
+        region["ysize"] = self.num_of_lines
+        region["id"] = self.region_name
+        region["pcs_id"] = self.projection_name
+
+        region["pcs_def"] = pcs_def_from_region(self.area)
+        region["area_extent"] = self.area.area_extent
+
+        retv.region = InfoObject()
+        retv.region.data = region
+        retv._keys.append("region")
+
+        retv._md["time_slot"] = self.nominal_product_time
+        retv._md["description"] = np.string_(
+            "MSG SEVIRI Cloud Top Temperature & Height")
+        retv._md["satellite_id"] = np.string_(self.satid)
+        retv._md["sec_1970"] = np.uint64(0)
+        retv._md["version"] = np.string_(self.product_algorithm_version)
+
+        retv.processingflag_lut = []
+
+        retv.cloudiness = InfoObject()
+        retv.cloudiness.info["description"] = \
+            "MSG SEVIRI effective cloudiness (%)"
+        retv.cloudiness.info["gain"] = np.float32(0.0)
+        retv.cloudiness.info["intercept"] = np.float32(0.0)
+        retv.cloudiness.info["no_data_value"] = np.uint8(255)
+        retv.cloudiness.data = self.cloudiness.astype('B')
+        retv._projectables.append("cloudiness")
+
+        retv.HEIGHT_PALETTE = InfoObject()
+        retv.HEIGHT_PALETTE.data = old_ctth_height_palette_data()
+        retv.HEIGHT_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.HEIGHT_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.HEIGHT_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.HEIGHT_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("HEIGHT_PALETTE")
+
+        retv.height = InfoObject()
+        retv.height.info["description"] = np.string_(
+            "MSG SEVIRI cloud top height (m)")
+        retv.height.info["gain"] = np.float32(200.0)
+        retv.height.info["intercept"] = np.float32(0.0)
+        retv.height.info["no_data_value"] = np.uint8(255)
+        retv.height.data = ((self.height - 0.0) /
+                            200.0).filled(255).astype('B')
+        retv.height.info["CLASS"] = np.string_("IMAGE")
+        retv.height.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("height", "PALETTE")] = np.string_("HEIGHT_PALETTE")
+        retv._projectables.append("height")
+
+        retv.PRESSURE_PALETTE = InfoObject()
+        retv.PRESSURE_PALETTE.data = old_ctth_press_palette_data()
+        retv.PRESSURE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.PRESSURE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.PRESSURE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.PRESSURE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("PRESSURE_PALETTE")
+
+        retv.pressure = InfoObject()
+        retv.pressure.info["description"] = \
+            np.string_("MSG SEVIRI cloud top pressure (hPa)")
+        retv.pressure.info["gain"] = np.float32(25.0)
+        retv.pressure.info["intercept"] = np.float32(0.0)
+        retv.pressure.info["no_data_value"] = np.uint8(255)
+        retv.pressure.data = ((self.pressure - 0.0) /
+                              25.0).filled(255).astype('B')
+        retv.pressure.info["CLASS"] = np.string_("IMAGE")
+        retv.pressure.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("pressure", "PALETTE")] = np.string_("PRESSURE_PALETTE")
+        retv._projectables.append("pressure")
+
+        retv.TEMPERATURE_PALETTE = InfoObject()
+        retv.TEMPERATURE_PALETTE.data = old_ctth_temp_palette_data()
+        retv.TEMPERATURE_PALETTE.info["CLASS"] = np.string_("PALETTE")
+        retv.TEMPERATURE_PALETTE.info["PAL_COLORMODEL"] = np.string_("RGB")
+        retv.TEMPERATURE_PALETTE.info["PAL_TYPE"] = np.string_("STANDARD8")
+        retv.TEMPERATURE_PALETTE.info["PAL_VERSION"] = np.string_("1.2")
+        retv._keys.append("TEMPERATURE_PALETTE")
+
+        retv.temperature = InfoObject()
+        retv.temperature.info["description"] = \
+            np.string_("MSG SEVIRI cloud top temperature (K)")
+        retv.temperature.info["gain"] = np.float32(1.0)
+        retv.temperature.info["intercept"] = np.float32(100.0)
+        retv.temperature.info["no_data_value"] = np.uint8(255)
+        retv.temperature.data = ((self.temperature - 100.0) /
+                                 1.0).filled(255).astype('B')
+        retv.temperature.info["CLASS"] = np.string_("IMAGE")
+        retv.temperature.info["IMAGE_VERSION"] = np.string_("1.2")
+        retv._refs[("temperature", "PALETTE")] = np.string_(
+            "TEMPERATURE_PALETTE")
+        retv._projectables.append("temperature")
+
+        retv.processing_flag = InfoObject()
+        # retv.processing_flag.info["output_value_nameslist"] = processing_lut
+        retv.processing_flag.info["description"] = np.string_(
+            'MSG SEVIRI bitwise quality/processing flags')
+        retv.processing_flag.data = ctth_procflags2pps(self.processing_flags)
+        retv._projectables.append("processing_flag")
+
+        retv.save = retv.write
 
         return retv
 
@@ -818,7 +1036,8 @@ class MsgPC(mpop.channel.GenericChannel):
         self.gp_sc_id = h5f.attrs["GP_SC_ID"]
         self.image_acquisition_time = h5f.attrs["IMAGE_ACQUISITION_TIME"]
         self.spectral_channel_id = h5f.attrs["SPECTRAL_CHANNEL_ID"]
-        self.nominal_product_time = h5f.attrs["NOMINAL_PRODUCT_TIME"]
+        self.nominal_product_time = datetime.strptime(h5f.attrs["NOMINAL_PRODUCT_TIME"],
+                                                      "%Y%m%d%H%M")
         self.sgs_product_quality = h5f.attrs["SGS_PRODUCT_QUALITY"]
         self.sgs_product_completeness = h5f.attrs["SGS_PRODUCT_COMPLETENESS"]
         self.product_algorithm_version = h5f.attrs["PRODUCT_ALGORITHM_VERSION"]
@@ -1107,57 +1326,12 @@ def ctype_procflags2pps(data):
     return retv.astype('h')
 
 
-def pps_luts():
-    """Gets the LUTs for the PPS Cloud Type data fields.
-    Returns a tuple with Cloud Type lut, Cloud Phase lut, Processing flags lut
-    """
-    ctype_lut = ['0: Not processed',
-                 '1: Cloud free land',
-                 '2: Cloud free sea',
-                 '3: Snow/ice contaminated land',
-                 '4: Snow/ice contaminated sea',
-                 '5: Very low cumiliform cloud',
-                 '6: Very low stratiform cloud',
-                 '7: Low cumiliform cloud',
-                 '8: Low stratiform cloud',
-                 '9: Medium level cumiliform cloud',
-                 '10: Medium level stratiform cloud',
-                 '11: High and opaque cumiliform cloud',
-                 '12: High and opaque stratiform cloud',
-                 '13:Very high and opaque cumiliform cloud',
-                 '14: Very high and opaque stratiform cloud',
-                 '15: Very thin cirrus cloud',
-                 '16: Thin cirrus cloud',
-                 '17: Thick cirrus cloud',
-                 '18: Cirrus above low or medium level cloud',
-                 '19: Fractional or sub-pixel cloud',
-                 '20: Undefined']
-    phase_lut = ['1: Not processed or undefined',
-                 '2: Water',
-                 '4: Ice',
-                 '8: Tb11 below 260K',
-                 '16: value not defined',
-                 '32: value not defined',
-                 '64: value not defined',
-                 '128: value not defined']
-    quality_lut = ['1: Land',
-                   '2: Coast',
-                   '4: Night',
-                   '8: Twilight',
-                   '16: Sunglint',
-                   '32: High terrain',
-                   '64: Low level inversion',
-                   '128: Nwp data present',
-                   '256: Avhrr channel missing',
-                   '512: Low quality',
-                   '1024: Reclassified after spatial smoothing',
-                   '2048: Stratiform-Cumuliform Distinction performed',
-                   '4096: bit not defined',
-                   '8192: bit not defined',
-                   '16384: bit not defined',
-                   '32768: bit not defined']
+# def pps_luts():
+#     """Gets the LUTs for the PPS Cloud Type data fields.
+#     Returns a tuple with Cloud Type lut, Cloud Phase lut, Processing flags lut
+#     """
 
-    return ctype_lut, phase_lut, quality_lut
+#     return ctype_lut, phase_lut, quality_lut
 
 
 class NordRadCType(object):
@@ -1169,7 +1343,7 @@ class NordRadCType(object):
         self.ctype = ctype_instance
         self.datestr = ctype_instance.image_acquisition_time
 
-    def save(self, filename):
+    def save(self, filename, **kwargs):
         """Save the current instance to nordrad hdf format.
         """
         import _pyhl
@@ -1310,7 +1484,7 @@ def get_best_product(filename, area_extent):
                 return flist[0]
             for fname in flist:
                 aex = get_area_extent(fname)
-                #import pdb
+                # import pdb
                 # pdb.set_trace()
                 if np.all(np.max(np.abs(np.array(aex) -
                                         np.array(area_extent))) < 1000):
@@ -1389,7 +1563,6 @@ def load(scene, **kwargs):
     """
 
     area_extent = kwargs.get("area_extent")
-    print area_extent
     conf = ConfigParser.ConfigParser()
     conf.read(os.path.join(CONFIG_PATH, scene.fullname + ".cfg"))
     directory = conf.get(scene.instrument_name + "-level3",
@@ -1405,8 +1578,7 @@ def load(scene, **kwargs):
                        "product": "CTTH_"})
         ct_chan = MsgCTTH()
         ct_chan.read(get_best_product(filename, area_extent))
-        ct_chan.satid = (scene.satname.capitalize() +
-                         str(int(scene.number)).rjust(2))
+        ct_chan.satid = (scene.fullname.capitalize())
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
 
@@ -1420,8 +1592,7 @@ def load(scene, **kwargs):
         ct_chan.read(products[-1])
         LOG.debug("Uncorrected file: %s", products[-1])
         ct_chan.name = "CloudType"
-        ct_chan.satid = (scene.satname.capitalize() +
-                         str(int(scene.number)).rjust(2))
+        ct_chan.satid = (scene.fullname.capitalize())
         ct_chan.resolution = ct_chan.area.pixel_size_x
         scene.channels.append(ct_chan)
     if "CloudType_plax" in scene.channels_to_load:
@@ -1433,9 +1604,25 @@ def load(scene, **kwargs):
         LOG.debug("Parallax corrected file: %s", products[0])
         ct_chan_plax.read(products[0])
         ct_chan_plax.name = "CloudType_plax"
-        ct_chan_plax.satid = (scene.satname.capitalize() +
-                              str(int(scene.number)).rjust(2))
+        ct_chan_plax.satid = (scene.fullname.capitalize())
         ct_chan_plax.resolution = ct_chan_plax.area.pixel_size_x
         scene.channels.append(ct_chan_plax)
 
     LOG.info("Loading channels done.")
+
+
+if __name__ == '__main__':
+
+    filename = "/data/proj/safutv/geo_out/0deg/SAFNWC_MSG3_CT___201505260615_MSG-N_______.h5"
+
+    ct = MsgCloudType()
+    ct.read(filename)
+
+    ct.convert2pps().save("blact.h5")
+
+    filename = "/data/proj/safutv/geo_out/0deg/SAFNWC_MSG3_CTTH_201505260615_MSG-N_______.h5"
+    filename = "/data/24/saf/geo_out/0deg/SAFNWC_MSG3_CTTH_201505260615_EuropeCanary.h5"
+    ct = MsgCTTH()
+    ct.read(filename)
+
+    ct.convert2pps().save("blactth.h5")
