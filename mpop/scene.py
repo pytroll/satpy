@@ -194,11 +194,6 @@ class Scene(InfoObject):
                         filenames.append(filename)
         return filenames
 
-    def add_product(self, name, obj):
-        """Add the product *obj* called *name* to the scene.
-        """
-        self.compositors[name] = obj
-
     def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
         """
