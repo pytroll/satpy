@@ -164,7 +164,7 @@ class Scene(InfoObject):
                 info.pop(key, None)
 
         reader_start = reader_info["start_time"]
-        reader_end = reader_info["end_time"]
+        reader_end = reader_info.get("end_time")
         if reader_start is None:
             raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
 

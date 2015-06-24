@@ -37,6 +37,12 @@ class TestScene(unittest.TestCase):
             Scene(filenames=filenames)
             methmock.assert_called_once_with(*filenames)
 
+    def test_init_with_empty_filenames(self):
+        from mpop.scene import Scene
+        filenames = []
+        with mock.patch('mpop.scene.Scene._find_files_readers') as methmock:
+            self.assertRaises(ValueError, Scene, filenames=filenames)
+
     def test_init_with_sensor(self):
         from mpop.scene import Scene
         sensors = ["bla", "foo", "bar"]
@@ -71,6 +77,126 @@ class TestScene(unittest.TestCase):
         scn = Scene(ppp_config_dir="foo")
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
+    def test_get_filenames_with_start_time_and_end_time(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 0),
+                       "end_time": datetime(2015, 6, 24, 0, 6)}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
+                                                                "end_time": datetime(2015, 6, 23, 23, 59),},
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
+                                                                "end_time": datetime(2015, 6, 24, 0, 1),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
+                                                                "end_time": datetime(2015, 6, 24, 0, 3),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
+                                                                "end_time": datetime(2015, 6, 24, 0, 5),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
+                                                                "end_time": datetime(2015, 6, 24, 0, 7),},
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+
+    def test_get_filenames_with_start_time_and_npp_style_end_time(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 0),
+                       "end_time": datetime(2015, 6, 24, 0, 6)}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
+                                                                "end_time": datetime(1950, 1, 1, 23, 59),},
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
+                                                                "end_time": datetime(1950, 1, 1, 0, 1),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
+                                                                "end_time": datetime(1950, 1, 1, 0, 3),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
+                                                                "end_time": datetime(1950, 1, 1, 0, 5),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
+                                                                "end_time": datetime(1950, 1, 1, 0, 7),},
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+
+    def test_get_filenames_with_start_time(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 0),
+                       "end_time": datetime(2015, 6, 24, 0, 6)}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), ["file3", "file4", "file5"])
+
+    def test_get_filenames_with_start_time_provided(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 0)}
+
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
+                                                                "end_time": datetime(2015, 6, 23, 23, 59),},
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
+                                                                "end_time": datetime(2015, 6, 24, 0, 1),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
+                                                                "end_time": datetime(2015, 6, 24, 0, 3),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
+                                                                "end_time": datetime(2015, 6, 24, 0, 5),},
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
+                                                                "end_time": datetime(2015, 6, 24, 0, 7),},
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), ["file2"])
+
+    def test_get_filenames_with_only_start_times_wrong(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 0)}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), [])
+
+    def test_get_filenames_with_only_start_times_right(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": datetime(2015, 6, 24, 0, 1)}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                                                              ]
+                self.assertEqual(scn.get_filenames(reader_info), ["file3"])
 
 def suite():
     """The test suite for test_scene.
