@@ -198,6 +198,24 @@ class TestScene(unittest.TestCase):
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file3"])
 
+    def test_get_filenames_to_error(self):
+        from mpop.scene import Scene
+        from datetime import datetime
+        scn = Scene()
+        reader_info = {"file_patterns": ["foo"],
+                       "start_time": None}
+        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
+            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+            with mock.patch("trollsift.parser.Parser") as mock_parser:
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
+                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
+                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
+                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
+                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                                                              ]
+                self.assertRaises(ValueError, scn.get_filenames, reader_info)
+
+
 def suite():
     """The test suite for test_scene.
     """
