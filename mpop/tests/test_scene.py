@@ -40,7 +40,7 @@ class TestScene(unittest.TestCase):
     def test_init_with_empty_filenames(self):
         from mpop.scene import Scene
         filenames = []
-        with mock.patch('mpop.scene.Scene._find_files_readers') as methmock:
+        with mock.patch('mpop.scene.Scene._find_files_readers'):
             self.assertRaises(ValueError, Scene, filenames=filenames)
 
     def test_init_with_sensor(self):
@@ -87,16 +87,16 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
-                                                                "end_time": datetime(2015, 6, 23, 23, 59),},
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
-                                                                "end_time": datetime(2015, 6, 24, 0, 1),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
-                                                                "end_time": datetime(2015, 6, 24, 0, 3),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
-                                                                "end_time": datetime(2015, 6, 24, 0, 5),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
-                                                                "end_time": datetime(2015, 6, 24, 0, 7),},
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
+                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
+                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
+                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
 
@@ -110,16 +110,16 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
-                                                                "end_time": datetime(1950, 1, 1, 23, 59),},
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
-                                                                "end_time": datetime(1950, 1, 1, 0, 1),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
-                                                                "end_time": datetime(1950, 1, 1, 0, 3),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
-                                                                "end_time": datetime(1950, 1, 1, 0, 5),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
-                                                                "end_time": datetime(1950, 1, 1, 0, 7),},
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+                                                               "end_time": datetime(1950, 1, 1, 23, 59)},
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+                                                               "end_time": datetime(1950, 1, 1, 0, 1)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
+                                                               "end_time": datetime(1950, 1, 1, 0, 3)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
+                                                               "end_time": datetime(1950, 1, 1, 0, 5)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
+                                                               "end_time": datetime(1950, 1, 1, 0, 7)},
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
 
@@ -133,11 +133,11 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file3", "file4", "file5"])
 
@@ -151,16 +151,16 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57), #file1
-                                                                "end_time": datetime(2015, 6, 23, 23, 59),},
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59),#file2
-                                                                "end_time": datetime(2015, 6, 24, 0, 1),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1),  #file3
-                                                                "end_time": datetime(2015, 6, 24, 0, 3),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3),  #file4
-                                                                "end_time": datetime(2015, 6, 24, 0, 5),},
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5),  #file5
-                                                                "end_time": datetime(2015, 6, 24, 0, 7),},
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
+                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
+                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
+                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file2"])
 
@@ -173,11 +173,11 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), [])
 
@@ -190,28 +190,28 @@ class TestScene(unittest.TestCase):
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
                                                               ]
                 self.assertEqual(scn.get_filenames(reader_info), ["file3"])
 
     def test_get_filenames_to_error(self):
         from mpop.scene import Scene
         from datetime import datetime
-        scn = Scene()
+        scn = Scene(start_time="bla")
         reader_info = {"file_patterns": ["foo"],
                        "start_time": None}
         with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
             mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
             with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)}, #file1
-                                                               {"start_time": datetime(2015, 6, 23, 23, 59)},#file2
-                                                               {"start_time": datetime(2015, 6, 24, 0, 1)},  #file3
-                                                               {"start_time": datetime(2015, 6, 24, 0, 3)},  #file4
-                                                               {"start_time": datetime(2015, 6, 24, 0, 5)},  #file5
+                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
                                                               ]
                 self.assertRaises(ValueError, scn.get_filenames, reader_info)
 
