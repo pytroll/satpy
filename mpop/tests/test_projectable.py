@@ -133,19 +133,19 @@ class TestProjectable(unittest.TestCase):
         p = projectable.Projectable(data=tuple())
         p_str = str(p)
 
-    @mock.patch('mpop.projectable.GeoImage')
+    @mock.patch('mpop.projectable.Image')
     def test_to_image_2D(self, mock_geoimage):
         """
         Conversion to image
         """
         # 2D
         data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data)
+        p = projectable.Projectable(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
         p.to_image()
         np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
         mock_geoimage.reset_mock()
 
-    @mock.patch('mpop.projectable.GeoImage')
+    @mock.patch('mpop.projectable.Image')
     def test_to_image_3D(self, mock_geoimage):
         """
         Conversion to image
@@ -158,14 +158,14 @@ class TestProjectable(unittest.TestCase):
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
         np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
-    @mock.patch('mpop.projectable.GeoImage')
+    @mock.patch('mpop.projectable.Image')
     def test_show_show(self, mock_geoimage):
         data = np.arange(25).reshape((5, 5))
         p = projectable.Projectable(data)
         p.show()
         self.assertTrue(mock_geoimage.return_value.show.called)
 
-    @mock.patch('mpop.projectable.GeoImage')
+    @mock.patch('mpop.projectable.Image')
     def test_show_save(self, mock_geoimage):
         data = np.arange(25).reshape((5, 5))
         p = projectable.Projectable(data)

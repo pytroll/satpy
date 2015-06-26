@@ -78,9 +78,8 @@ class OrderedConfigParser(object):
 def ensure_dir(filename):
     """Checks if the dir of f exists, otherwise create it.
     """
-    import os
     directory = os.path.dirname(filename)
-    if len(directory) and not os.path.isdir(directory):
+    if directory and not os.path.isdir(directory):
         os.makedirs(directory)
 
 

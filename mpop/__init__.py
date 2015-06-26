@@ -39,3 +39,6 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 
 CONFIG_PATH = (os.environ.get('PPP_CONFIG_DIR', '') or
                os.path.join(BASE_PATH, 'etc'))
+
+# FIXME: Use package_resources?
+PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')

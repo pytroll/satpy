@@ -30,11 +30,11 @@ import numpy as np
 
 class CompositeBase(InfoObject):
 
-    def __init__(self, name, format, prerequisites, default_image_config=None,
+    def __init__(self, name, compositor, prerequisites, default_image_config=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
-        kwargs["format"] = format
+        kwargs["compositor"] = compositor
         kwargs["prerequisites"] = []
         for prerequisite in prerequisites.split(","):
             try:

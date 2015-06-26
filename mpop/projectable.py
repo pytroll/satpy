@@ -25,8 +25,8 @@
 """
 
 import numpy as np
-from mpop.imageo.geo_image import GeoImage
 from mpop.resample import resample_kd_tree_nearest
+from trollimage.image import Image
 
 
 class InfoObject(object):
@@ -143,16 +143,22 @@ class Projectable(Dataset):
             img.show()
 
     def to_image(self, copy=True, **kwargs):
-        info = self.info.copy()
-        info.update(kwargs)
+        # Only add keywords if they are present
+        if "mode" in self.info:
+            kwargs.setdefault("mode", self.info["mode"])
+        if "fill_value" in self.info:
+            kwargs.setdefault("fill_value", self.info["fill_value"])
+        if "palette" in self.info:
+            kwargs.setdefault("palette", self.info["palette"])
+
         if self.data.ndim == 2:
-            return GeoImage([self.data],
+            return Image([self.data],
                             copy=copy,
-                            **info)
+                            **kwargs)
         elif self.data.ndim == 3:
-            return GeoImage([band for band in self.data],
+            return Image([band for band in self.data],
                             copy=copy,
-                            **info)
+                            **kwargs)
         else:
             raise ValueError("Don't know how to convert array with ndim %d to image" % self.data.ndim)
 

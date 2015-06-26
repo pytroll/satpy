@@ -206,8 +206,15 @@ class Scene(InfoObject):
         for section_name in conf.sections():
             if section_name.startswith("composite:"):
                 options = dict(conf.items(section_name))
-                options["sensor"] = options.setdefault("sensor", "").split(",")
-                comp_cls = options["format"]
+                options["sensor"] = options.setdefault("sensor", None) or []
+                if options["sensor"]:
+                    options["sensor"] = options["sensor"].split(",")
+                if len(options["sensor"]) == 1:
+                    # FIXME: Finalize how multiple sensors and platforms work
+                    options["sensor"] = options["sensor"][0]
+                comp_cls = options.get("compositor", None)
+                if not comp_cls:
+                    raise ValueError("'compositor' missing or empty in config file: %s" % (composite_config,))
 
                 # Check if the caller only wants composites for a certain sensor
                 if sensor is not None and sensor not in options["sensor"]:
@@ -245,7 +252,7 @@ class Scene(InfoObject):
         file_patterns = []
         sensors = set()
         reader_name = None
-        reader_format = None
+        reader_class = None
         reader_info = None
         # Only one reader: section per config file
         for section in conf.sections():
@@ -258,7 +265,7 @@ class Scene(InfoObject):
                 reader_info.setdefault("end_time", self.info.get("end_time", None))
                 reader_info.setdefault("area", self.info.get("area", None))
                 try:
-                    reader_format = reader_info["format"]
+                    reader_class = reader_info["reader"]
                     reader_name = reader_info["name"]
                 except KeyError:
                     break
@@ -274,10 +281,10 @@ class Scene(InfoObject):
                 except ConfigParser.NoOptionError:
                     pass
 
-        if reader_format is None:
-            raise ValueError("Malformed config file %s: missing reader format" % cfg_file)
+        if reader_class is None:
+            raise ValueError("Malformed config file %s: missing reader 'reader'" % cfg_file)
         if reader_name is None:
-            raise ValueError("Malformed config file %s: missing reader name" % cfg_file)
+            raise ValueError("Malformed config file %s: missing reader 'name'" % cfg_file)
         reader_info["file_patterns"] = file_patterns
         reader_info["config_file"] = cfg_file
         reader_info["filenames"] = []
@@ -289,9 +296,9 @@ class Scene(InfoObject):
         """Import and setup the reader from *reader_info*
         """
         try:
-            loader = self._runtime_import(reader_info["format"])
+            loader = self._runtime_import(reader_info["reader"])
         except ImportError:
-            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["format"],
+            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["reader"],
                                                                                       reader_info["name"]))
 
         reader_instance = loader(**reader_info)
@@ -547,3 +554,24 @@ class Scene(InfoObject):
         for name, projectable in self.projectables.items():
             if name in self.wishlist:
                 yield projectable.to_image()
+
+    def load_writer_config(self, config_file, **kwargs):
+        if not os.path.isfile(config_file):
+            raise IOError("Writer configuration file does not exist: %s" % (config_file,))
+
+        conf = ConfigParser.ConfigParser()
+        conf.read(config_file)
+        for section_name in conf.sections():
+            if section_name.startswith("writer:"):
+                options = dict(conf.items(section_name))
+                writer_class_name = options["writer"]
+                writer_class = self._runtime_import(writer_class_name)
+                writer = writer_class(config_file=config_file, **kwargs)
+                return writer
+
+    def save_images(self, writer="geotiff", **kwargs):
+        kwargs.setdefault("config_file", os.path.join(self.ppp_config_dir, "writers", writer + ".cfg"))
+        writer = self.load_writer_config(**kwargs)
+        for projectable in self.projectables.values():
+            writer.save_dataset(projectable, **kwargs)
+
