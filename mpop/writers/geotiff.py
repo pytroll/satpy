@@ -68,6 +68,7 @@ class GeoTIFFWriter(Writer):
 
     def __init__(self, tags=None, **kwargs):
         kwargs.setdefault("name", "geotiff")
+        # XXX: Can't use the ppp_config_dir since it isn't defined until 'Writer.__init__', better way?
         kwargs.setdefault("config_file", os.path.join(PACKAGE_CONFIG_PATH, "writers", "geotiff.cfg"))
         Writer.__init__(self, **kwargs)
 

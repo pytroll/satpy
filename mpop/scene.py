@@ -566,7 +566,7 @@ class Scene(InfoObject):
                 options = dict(conf.items(section_name))
                 writer_class_name = options["writer"]
                 writer_class = self._runtime_import(writer_class_name)
-                writer = writer_class(config_file=config_file, **kwargs)
+                writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_file, **kwargs)
                 return writer
 
     def save_images(self, writer="geotiff", **kwargs):
