@@ -24,13 +24,11 @@
 """
 
 import os
-import weakref
 import numbers
 import logging
 from ConfigParser import ConfigParser
 from trollsift import parser
-from mpop import PACKAGE_CONFIG_PATH
-from mpop.writers import EnhancementDecisionTree
+from mpop.writers import EnhancementDecisionTree, Enhancer
 
 LOG = logging.getLogger(__name__)
 
@@ -138,44 +136,6 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-class Enhancer(object):
-    def __init__(self, **kwargs):
-        self.ppp_config_dir = kwargs.get("ppp_config_dir", PACKAGE_CONFIG_PATH)
-        self.enhancement_config = kwargs.get("enhancement_config", None)
-        # FIXME I don't like this, we should have a special enhancement_config value to say not to apply any enhancement
-        if self.enhancement_config is None and "enhancement_config" not in kwargs:
-            # it wasn't specified in the config or in the kwargs, we should provide a default
-            self.enhancement_config = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
-
-        if self.enhancement_config is not None:
-            self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config)
-        else:
-            # They don't want any automatic enhancements
-            self.enhancement_tree = None
-
-        self.sensor_enhancement_configs = []
-
-    def get_sensor_enhancement_config(self, sensor):
-        if isinstance(sensor, str):
-            # one single sensor
-            sensor = [sensor]
-
-        for sensor_name in sensor:
-            config_file = os.path.join(self.ppp_config_dir, "enhancements", sensor_name + ".cfg")
-            if os.path.isfile(config_file):
-                yield config_file
-
-    def add_sensor_enhancements(self, sensor):
-        # XXX: Should we just load all enhancements from the base directory?
-        new_configs = []
-        for config_file in self.get_sensor_enhancement_config(sensor):
-            if config_file not in self.sensor_enhancement_configs.append(config_file):
-                self.sensor_enhancement_configs.append(config_file)
-                new_configs.append(config_file)
-
-        if new_configs:
-            self.enhancement_tree.add_config_to_tree(config_file)
-
 
 class Writer(Plugin):
     """Writer plugins. They must implement the *save* method. This is an
@@ -191,6 +151,7 @@ class Writer(Plugin):
         else:
             self.config_options = {}
 
+        self.fill_value = None
         self.options = self.config_options.copy()
         self.options.update(kwargs)
 
@@ -201,6 +162,8 @@ class Writer(Plugin):
         self.file_pattern = self.options.get("file_pattern", None)
         # Set a way to create filenames if we were given a pattern
         self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
+
+        self.enhancer = Enhancer(**self.options)
 
     def load_config(self):
         conf = ConfigParser()
@@ -239,8 +202,6 @@ class Writer(Plugin):
         mode = self._determine_mode(dataset)
 
 
-        self.enhancer = Enhancer(**self.options)
-
         if self.enhancer.enhancement_tree is None:
             raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
 
@@ -248,16 +209,22 @@ class Writer(Plugin):
         if dataset.info.get("sensor", None):
             self.enhancer.add_sensor_enhancements(dataset.info["sensor"])
 
-        enh_kwargs = self.enhancer.enhancement_tree.find_match(**dataset.info)
-
         # Create an image for enhancement
         img = dataset.to_image(mode=mode, fill_value=fill_value)
-        LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
-        img.enhance(**enh_kwargs)
+        self.apply_enhancements(img, **dataset.info)
 
         img.info.update(dataset.info)
 
         self.save_image(img, **kwargs)
+
+    def get_enhancements(self, **info):
+        return self.enhancer.enhancement_tree.find_match(**info)
+
+    def apply_enhancements(self, img, **info):
+        enh_kwargs = self.get_enhancements(**info)
+        LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
+        img.enhance(**enh_kwargs)
+
 
     def save_image(self, img, *args, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))

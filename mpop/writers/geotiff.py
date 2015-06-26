@@ -115,7 +115,7 @@ class GeoTIFFWriter(Writer):
 
         metadata = img.info
 
-        filename = kwargs.pop("filename", self.get_filename(**metadata))
+        filename = kwargs.pop("filename", self.get_filename(**img.info))
 
         # Update global GDAL options with these specific ones
         gdal_options = self.gdal_options.copy()
@@ -123,9 +123,9 @@ class GeoTIFFWriter(Writer):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
 
-        if "area" not in metadata:
+        if "area" not in img.info:
             raise ValueError("Image metadata must have an 'area' defined for geotiff creation")
-        area = metadata["area"]
+        area = img.info["area"]
         floating_point = floating_point if floating_point is not None else self.floating_point
 
         if "alpha" in kwargs:
@@ -257,8 +257,8 @@ class GeoTIFFWriter(Writer):
             LOG.exception("Could not load geographic data, invalid area")
 
         tags = self.tags.copy()
-        if "start_time" in metadata:
-            tags.update({'TIFFTAG_DATETIME': metadata["start_time"].strftime("%Y:%m:%d %H:%M:%S")})
+        if "start_time" in img.info:
+            tags.update({'TIFFTAG_DATETIME': img.info["start_time"].strftime("%Y:%m:%d %H:%M:%S")})
 
         dst_ds.SetMetadata(tags, '')
 

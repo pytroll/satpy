@@ -27,6 +27,8 @@ For now, this includes enhancement configuration utilities.
 
 import logging
 import ConfigParser
+from mpop import PACKAGE_CONFIG_PATH
+import os
 
 LOG = logging.getLogger(__name__)
 
@@ -89,9 +91,53 @@ class EnhancementDecisionTree(object):
         except StandardError:
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching enhancement section")
+            match = None
 
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No enhancement configuration found for %s" % (kwargs.get("uid", None),))
         return match
+
+class Enhancer(object):
+
+    """
+    Helper class to get enhancement information for images.
+    """
+
+    def __init__(self, **kwargs):
+        self.ppp_config_dir = kwargs.get("ppp_config_dir", PACKAGE_CONFIG_PATH)
+        self.enhancement_config = kwargs.get("enhancement_config", None)
+        # FIXME I don't like this, we should have a special enhancement_config value to say not to apply any enhancement
+        if self.enhancement_config is None and "enhancement_config" not in kwargs:
+            # it wasn't specified in the config or in the kwargs, we should provide a default
+            self.enhancement_config = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
+
+        if self.enhancement_config is not None:
+            self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config)
+        else:
+            # They don't want any automatic enhancements
+            self.enhancement_tree = None
+
+        self.sensor_enhancement_configs = []
+
+    def get_sensor_enhancement_config(self, sensor):
+        if isinstance(sensor, str):
+            # one single sensor
+            sensor = [sensor]
+
+        for sensor_name in sensor:
+            config_file = os.path.join(self.ppp_config_dir, "enhancements", sensor_name + ".cfg")
+            if os.path.isfile(config_file):
+                yield config_file
+
+    def add_sensor_enhancements(self, sensor):
+        # XXX: Should we just load all enhancements from the base directory?
+        new_configs = []
+        for config_file in self.get_sensor_enhancement_config(sensor):
+            if config_file not in self.sensor_enhancement_configs.append(config_file):
+                self.sensor_enhancement_configs.append(config_file)
+                new_configs.append(config_file)
+
+        if new_configs:
+            self.enhancement_tree.add_config_to_tree(config_file)
 
