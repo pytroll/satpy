@@ -138,34 +138,12 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-class Writer(Plugin):
-    """Writer plugins. They must implement the *save* method. This is an
-    abstract class to be inherited.
-    """
-    ptype = "writer"
-
-    def __init__(self, config_file=None, **kwargs):
-        self.config_file = config_file
-        if config_file is not None:
-            # If given a config file then load defaults from it
-            self.config_options = self.load_config()
-        else:
-            self.config_options = {}
-
-        self.options = self.config_options.copy()
-        self.options.update(kwargs)
-        self.ppp_config_dir = self.options.get("ppp_config_dir", PACKAGE_CONFIG_PATH)
-
-        self.name = self.options.get("name", None)
-        if self.name is None:
-            raise ValueError("Writer 'name' not set by config file or user")
-
-        self.file_pattern = self.options.get("file_pattern", None)
-        # Set a way to create filenames if we were given a pattern
-        self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
-
-        self.enhancement_config = self.options.get("enhancement_config", None)
-        if self.enhancement_config is None and "enhancement_config" not in self.options:
+class Enhancer(object):
+    def __init__(self, **kwargs):
+        self.ppp_config_dir = kwargs.get("ppp_config_dir", PACKAGE_CONFIG_PATH)
+        self.enhancement_config = kwargs.get("enhancement_config", None)
+        # FIXME I don't like this, we should have a special enhancement_config value to say not to apply any enhancement
+        if self.enhancement_config is None and "enhancement_config" not in kwargs:
             # it wasn't specified in the config or in the kwargs, we should provide a default
             self.enhancement_config = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
 
@@ -197,6 +175,32 @@ class Writer(Plugin):
 
         if new_configs:
             self.enhancement_tree.add_config_to_tree(config_file)
+
+
+class Writer(Plugin):
+    """Writer plugins. They must implement the *save* method. This is an
+    abstract class to be inherited.
+    """
+    ptype = "writer"
+
+    def __init__(self, config_file=None, **kwargs):
+        self.config_file = config_file
+        if config_file is not None:
+            # If given a config file then load defaults from it
+            self.config_options = self.load_config()
+        else:
+            self.config_options = {}
+
+        self.options = self.config_options.copy()
+        self.options.update(kwargs)
+
+        self.name = self.options.get("name", None)
+        if self.name is None:
+            raise ValueError("Writer 'name' not set by config file or user")
+
+        self.file_pattern = self.options.get("file_pattern", None)
+        # Set a way to create filenames if we were given a pattern
+        self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
 
     def load_config(self):
         conf = ConfigParser()
@@ -234,27 +238,27 @@ class Writer(Plugin):
         fill_value = fill_value if fill_value is not None else self.fill_value
         mode = self._determine_mode(dataset)
 
-        if self.enhancement_tree is None:
+
+        self.enhancer = Enhancer(**self.options)
+
+        if self.enhancer.enhancement_tree is None:
             raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
 
         # Load any additional enhancement configs that are specific to this datasets sensors
         if dataset.info.get("sensor", None):
-            self.add_sensor_enhancements(dataset.info["sensor"])
+            self.enhancer.add_sensor_enhancements(dataset.info["sensor"])
 
-        enh_kwargs = self.enhancement_tree.find_match(**dataset.info)
+        enh_kwargs = self.enhancer.enhancement_tree.find_match(**dataset.info)
 
         # Create an image for enhancement
         img = dataset.to_image(mode=mode, fill_value=fill_value)
         LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
         img.enhance(**enh_kwargs)
 
-        # if dataset.data.ndim == 3:
-        #     img.enhance(stretch="histogram")
-        # else:
-        #     img.enhance(stretch="linear")
+        img.info.update(dataset.info)
 
-        self.save_image(img, dataset.info, **kwargs)
+        self.save_image(img, **kwargs)
 
-    def save_image(self, img, metadata, *args, **kwargs):
+    def save_image(self, img, *args, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 

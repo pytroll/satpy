@@ -104,7 +104,7 @@ class GeoTIFFWriter(Writer):
             alpha = np.where(mask, 0, opacity).astype(chan.dtype)
             dst_ds.GetRasterBand(i + 2).WriteArray(alpha)
 
-    def save_image(self, img, metadata, floating_point=False, **kwargs):
+    def save_image(self, img, floating_point=False, **kwargs):
         """Save the image to the given *filename* in geotiff_ format.
         `floating_point` allows the saving of
         'L' mode images in floating point format if set to True.
@@ -112,6 +112,8 @@ class GeoTIFFWriter(Writer):
         .. _geotiff: http://trac.osgeo.org/geotiff/
         """
         raster = gdal.GetDriverByName("GTiff")
+
+        metadata = img.info
 
         filename = kwargs.pop("filename", self.get_filename(**metadata))
 
