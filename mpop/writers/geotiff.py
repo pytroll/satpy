@@ -24,10 +24,8 @@
 
 """
 
-import os
 import logging
 import numpy as np
-from mpop import PACKAGE_CONFIG_PATH
 from mpop.plugin_base import Writer
 from mpop.utils import ensure_dir
 from osgeo import gdal, osr
@@ -66,21 +64,22 @@ class GeoTIFFWriter(Writer):
 
     )
 
-    def __init__(self, tags=None, **kwargs):
-        kwargs.setdefault("name", "geotiff")
-        # XXX: Can't use the ppp_config_dir since it isn't defined until 'Writer.__init__', better way?
-        kwargs.setdefault("config_file", os.path.join(PACKAGE_CONFIG_PATH, "writers", "geotiff.cfg"))
-        Writer.__init__(self, **kwargs)
+    def __init__(self, floating_point=False, tags=None, **kwargs):
+        Writer.__init__(self, default_config_filename="geotiff.cfg", **kwargs)
 
-        self.floating_point = self.options.get("floating_point", False)
-        self.fill_value = self.options.get("fill_value", None)
-        self.tags = self.options.get("tags", {})
-        if not isinstance(self.tags, dict):
+        self.floating_point = bool(self.config_options.get("floating_point", None) if floating_point is None else floating_point)
+        self.tags = self.config_options.get("tags", None) if tags is None else tags
+        if self.tags is None:
+            self.tags = {}
+        elif not isinstance(self.tags, dict):
             # if it's coming from a config file
             self.tags = dict(tuple(x.split("=")) for x in self.tags.split(","))
 
-        # Geotiff specific settings
-        self.gdal_options = {k: v for k, v in kwargs.items() if k in self.GDAL_OPTIONS}
+        # GDAL specific settings
+        self.gdal_options = {}
+        for k in self.GDAL_OPTIONS:
+            if k in kwargs or k in self.config_options:
+                kwargs.get(k, self.config_options[k])
 
     def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
         """Write *channels* in a gdal raster structure *dts_ds*, using

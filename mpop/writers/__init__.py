@@ -104,15 +104,15 @@ class Enhancer(object):
     Helper class to get enhancement information for images.
     """
 
-    def __init__(self, **kwargs):
-        self.ppp_config_dir = kwargs.get("ppp_config_dir", PACKAGE_CONFIG_PATH)
-        self.enhancement_config = kwargs.get("enhancement_config", None)
-        # FIXME I don't like this, we should have a special enhancement_config value to say not to apply any enhancement
-        if self.enhancement_config is None and "enhancement_config" not in kwargs:
+    def __init__(self, ppp_config_dir=None, enhancement_config=None):
+        self.ppp_config_dir = ppp_config_dir or PACKAGE_CONFIG_PATH
+        self.enhancement_config = enhancement_config
+        # Set enhancement_config to False for no enhancements
+        if self.enhancement_config is None:
             # it wasn't specified in the config or in the kwargs, we should provide a default
             self.enhancement_config = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
 
-        if self.enhancement_config is not None:
+        if self.enhancement_config:
             self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config)
         else:
             # They don't want any automatic enhancements

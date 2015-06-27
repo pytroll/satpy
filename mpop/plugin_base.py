@@ -28,7 +28,8 @@ import numbers
 import logging
 from ConfigParser import ConfigParser
 from trollsift import parser
-from mpop.writers import EnhancementDecisionTree, Enhancer
+from mpop.writers import Enhancer
+from mpop import PACKAGE_CONFIG_PATH
 
 LOG = logging.getLogger(__name__)
 
@@ -138,42 +139,51 @@ class Reader(Plugin):
 
 
 class Writer(Plugin):
-    """Writer plugins. They must implement the *save* method. This is an
+    """Writer plugins. They must implement the *save_image* method. This is an
     abstract class to be inherited.
     """
-    ptype = "writer"
 
-    def __init__(self, config_file=None, **kwargs):
+    def __init__(self, name=None, config_file=None, ppp_config_dir=None, fill_value=None, file_pattern=None,
+                 enhancement_config=None, default_config_filename=None, **kwargs):
+        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
+        self.default_config_filename = default_config_filename
         self.config_file = config_file
-        if config_file is not None:
-            # If given a config file then load defaults from it
-            self.config_options = self.load_config()
-        else:
-            self.config_options = {}
+        self.config_options = self.load_config() if config_file else {}
+        self.name = self.config_options.get("name", None) if name is None else name
+        self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
+        self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
+        enhancement_config = self.config_options.get("enhancement_config", None) if enhancement_config is None else enhancement_config
 
-        self.fill_value = None
-        self.options = self.config_options.copy()
-        self.options.update(kwargs)
-
-        self.name = self.options.get("name", None)
         if self.name is None:
-            raise ValueError("Writer 'name' not set by config file or user")
+            raise ValueError("Writer 'name' not provided")
+        if self.fill_value:
+            self.fill_value = float(self.fill_value)
 
-        self.file_pattern = self.options.get("file_pattern", None)
+        self.create_filename_parser()
+        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config=enhancement_config)
+
+    def create_filename_parser(self):
+        # just in case a writer needs more complex file patterns
         # Set a way to create filenames if we were given a pattern
         self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
 
-        self.enhancer = Enhancer(**self.options)
-
-    def load_config(self):
+    def load_config(self, **kwargs):
         conf = ConfigParser()
         conf.read(self.config_file)
+        writer_options = {}
         for section_name in conf.sections():
             if section_name.startswith("writer:"):
-                options = dict(conf.items(section_name))
-                return options
-        LOG.warning("No 'writer:' section found in config file: %s", self.config_file)
-        return {}
+                writer_options = dict(conf.items(section_name))
+            else:
+                # let subclasses do something with any other sections in the config
+                self.parse_config_section(section_name, dict(conf.items(section_name)))
+
+        if not writer_options:
+            LOG.warning("No 'writer:' section found in config file: %s", self.config_file)
+        return writer_options
+
+    def parse_config_section(self, section_name, section_options):
+        pass
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
@@ -201,7 +211,6 @@ class Writer(Plugin):
         fill_value = fill_value if fill_value is not None else self.fill_value
         mode = self._determine_mode(dataset)
 
-
         if self.enhancer.enhancement_tree is None:
             raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
 
@@ -224,7 +233,6 @@ class Writer(Plugin):
         enh_kwargs = self.get_enhancements(**info)
         LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
         img.enhance(**enh_kwargs)
-
 
     def save_image(self, img, *args, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))

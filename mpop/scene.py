@@ -34,6 +34,7 @@ import fnmatch
 from mpop.utils import debug_on
 debug_on()
 from mpop.projectable import Projectable, InfoObject
+from mpop import PACKAGE_CONFIG_PATH
 from datetime import datetime, timedelta
 import logging
 
@@ -55,7 +56,7 @@ class Scene(InfoObject):
         """platform_name=None, sensor=None, start_time=None, end_time=None,
         """
         # Get PPP_CONFIG_DIR
-        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", '.')
+        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
         # Set the PPP_CONFIG_DIR in the environment in case it's used else where in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", self.ppp_config_dir)
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir
