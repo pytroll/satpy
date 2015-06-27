@@ -69,8 +69,9 @@ class TestScene(unittest.TestCase):
 
     def test_init_alone(self):
         from mpop.scene import Scene
+        from mpop import PACKAGE_CONFIG_PATH
         scn = Scene()
-        self.assertEqual(scn.ppp_config_dir, '.')
+        self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
 
     def test_init_with_ppp_config_dir(self):
         from mpop.scene import Scene
