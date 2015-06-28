@@ -148,7 +148,10 @@ class Writer(Plugin):
         self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
         self.default_config_filename = default_config_filename
         self.config_file = config_file
-        self.config_options = self.load_config() if config_file else {}
+        if self.config_file is None:
+            # Specify a default
+            self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
+        self.config_options = self.load_config() if self.config_file else {}
         self.name = self.config_options.get("name", None) if name is None else name
         self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
