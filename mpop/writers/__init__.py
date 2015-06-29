@@ -76,9 +76,12 @@ class EnhancementDecisionTree(object):
             return curr_level
 
         match = None
-        if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
-            # we know what we're searching for, try to find a pattern that uses this attribute
-            match = self._find_match(curr_level[kwargs[attrs[0]]], attrs[1:], kwargs)
+        try:
+            if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
+                # we know what we're searching for, try to find a pattern that uses this attribute
+                match = self._find_match(curr_level[kwargs[attrs[0]]], attrs[1:], kwargs)
+        except TypeError:
+            LOG.debug("Strange stuff happening in decision tree for %s: %s", attrs[0], kwargs[attrs[0]])
 
         if match is None and self.any_key in curr_level:
             # if we couldn't find it using the attribute then continue with the other attributes down the 'any' path
@@ -91,7 +94,6 @@ class EnhancementDecisionTree(object):
         except StandardError:
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching enhancement section")
-            match = None
 
         if match is None:
             # only possible if no default section was provided

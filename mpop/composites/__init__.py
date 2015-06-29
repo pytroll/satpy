@@ -64,6 +64,19 @@ class RGBCompositor(CompositeBase):
         info.update(projectables[1].info)
         info.update(projectables[2].info)
         info.update(self.info)
+        sensor = set()
+        for projectable in projectables:
+            current_sensor = projectable.info.get("sensor", None)
+            if current_sensor:
+                if isinstance(current_sensor, (str, unicode)):
+                    sensor.add(current_sensor)
+                else:
+                    sensor |= current_sensor
+        if len(sensor) == 0:
+            sensor = None
+        elif len(sensor) == 1:
+            sensor = list(sensor)[0]
+        info["sensor"] = sensor
         info["mode"] = "RGB"
         return Projectable(data=the_data, **info)
 

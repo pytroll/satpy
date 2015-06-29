@@ -207,12 +207,12 @@ class Scene(InfoObject):
         for section_name in conf.sections():
             if section_name.startswith("composite:"):
                 options = dict(conf.items(section_name))
-                options["sensor"] = options.setdefault("sensor", None) or []
+                options["sensor"] = options.setdefault("sensor", None)
                 if options["sensor"]:
-                    options["sensor"] = options["sensor"].split(",")
-                if len(options["sensor"]) == 1:
-                    # FIXME: Finalize how multiple sensors and platforms work
-                    options["sensor"] = options["sensor"][0]
+                    options["sensor"] = set(options["sensor"].split(","))
+                    if len(options["sensor"]) == 1:
+                        # FIXME: Finalize how multiple sensors and platforms work
+                        options["sensor"] = options["sensor"][0]
                 comp_cls = options.get("compositor", None)
                 if not comp_cls:
                     raise ValueError("'compositor' missing or empty in config file: %s" % (composite_config,))
