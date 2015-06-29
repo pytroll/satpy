@@ -86,7 +86,7 @@ class Scene(InfoObject):
             sensor_set = set(sensor)
         for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
             try:
-                reader_info = self._read_config(config_file)
+                reader_info = self._read_reader_config(config_file)
                 LOG.debug("Successfully read reader config: %s", config_file)
             except ValueError:
                 LOG.debug("Invalid reader config found: %s", config_file)
@@ -119,7 +119,7 @@ class Scene(InfoObject):
             if not os.path.exists(config_file):
                 raise ValueError("Can't find config file for reader: %s" % (reader,))
 
-        reader_info = self._read_config(config_file)
+        reader_info = self._read_reader_config(config_file)
         if filenames:
             filenames = self.assign_matching_files(reader_info, *filenames)
             if filenames:
@@ -136,7 +136,7 @@ class Scene(InfoObject):
         """
         for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
             try:
-                reader_info = self._read_config(config_file)
+                reader_info = self._read_reader_config(config_file)
                 LOG.debug("Successfully read reader config: %s", config_file)
             except ValueError:
                 LOG.debug("Invalid reader config found: %s", config_file)
@@ -241,7 +241,7 @@ class Scene(InfoObject):
                 compositors[options["name"]] = comp
         return compositors
 
-    def _read_config(self, cfg_file):
+    def _read_reader_config(self, cfg_file):
         """Read the reader *cfg_file* and return the info extracted.
         """
         if not os.path.exists(cfg_file):

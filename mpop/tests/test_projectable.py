@@ -158,20 +158,12 @@ class TestProjectable(unittest.TestCase):
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
         np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
-    @mock.patch('mpop.projectable.Image')
-    def test_show_show(self, mock_geoimage):
+    @mock.patch('mpop.projectable.Projectable.get_enhanced_image')
+    def test_show(self, mock_get_image):
         data = np.arange(25).reshape((5, 5))
         p = projectable.Projectable(data)
         p.show()
-        self.assertTrue(mock_geoimage.return_value.show.called)
-
-    @mock.patch('mpop.projectable.Image')
-    def test_show_save(self, mock_geoimage):
-        data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data)
-        filename = "whatever"
-        p.show(filename)
-        mock_geoimage.return_value.save.assert_called_once_with(filename)
+        self.assertTrue(mock_get_image.return_value.show.called)
 
     def test_show_unloaded(self):
         p = projectable.Projectable()

@@ -27,7 +27,9 @@
 import numpy as np
 from mpop.resample import resample_kd_tree_nearest
 from trollimage.image import Image
-
+from mpop.plugin_base import _determine_mode
+from mpop.writers import Enhancer
+import os
 
 class InfoObject(object):
     def __init__(self, **attributes):
@@ -101,6 +103,65 @@ class Dataset(InfoObject):
         return self.__class__(data=abs(self.data))
 
 
+    def is_loaded(self):
+        return self.data is not None
+
+    def show(self, **kwargs):
+        """Display the channel as an image.
+        """
+        if not self.is_loaded():
+            raise ValueError("Dataset not loaded, cannot display.")
+
+        img = self.get_enhanced_image(**kwargs)
+        img.show()
+
+    def get_enhanced_image(self, enhancer=None, fill_value=None, ppp_config_dir=None, enhancement_config_file=None):
+        mode = _determine_mode(self)
+
+        if ppp_config_dir is None:
+            ppp_config_dir = os.environ["PPP_CONFIG_DIR"]
+
+        if enhancer is None:
+            enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+
+        if enhancer.enhancement_tree is None:
+            raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
+
+        if self.info.get("sensor", None):
+            enhancer.add_sensor_enhancements(self.info["sensor"])
+
+        # Create an image for enhancement
+        img = self.to_image(mode=mode, fill_value=fill_value)
+        enhancer.apply(img, **self.info)
+
+        img.info.update(self.info)
+
+        return img
+
+
+
+    def to_image(self, copy=True, **kwargs):
+        # Only add keywords if they are present
+        if "mode" in self.info:
+            kwargs.setdefault("mode", self.info["mode"])
+        if "fill_value" in self.info:
+            kwargs.setdefault("fill_value", self.info["fill_value"])
+        if "palette" in self.info:
+            kwargs.setdefault("palette", self.info["palette"])
+
+        if self.data.ndim == 2:
+            return Image([self.data],
+                          copy=copy,
+                          **kwargs)
+        elif self.data.ndim == 3:
+            return Image([band for band in self.data],
+                          copy=copy,
+                          **kwargs)
+        else:
+            raise ValueError("Don't know how to convert array with ndim %d to image" % self.data.ndim)
+
+
+
 # the generic projectable dataset class
 
 
@@ -126,41 +187,6 @@ class Projectable(Dataset):
         res = Projectable(new_data, **self.info)
         res.info["area"] = destination_area
         return res
-
-    def is_loaded(self):
-        return self.data is not None
-
-    def show(self, filename=None, stretch="crude", **kwargs):
-        """Display the channel as an image.
-        """
-        if not self.is_loaded():
-            raise ValueError("Channel not loaded, cannot display.")
-
-        img = self.to_image(stretch=stretch, **kwargs)
-        if filename is not None:
-            img.save(filename)
-        else:
-            img.show()
-
-    def to_image(self, copy=True, **kwargs):
-        # Only add keywords if they are present
-        if "mode" in self.info:
-            kwargs.setdefault("mode", self.info["mode"])
-        if "fill_value" in self.info:
-            kwargs.setdefault("fill_value", self.info["fill_value"])
-        if "palette" in self.info:
-            kwargs.setdefault("palette", self.info["palette"])
-
-        if self.data.ndim == 2:
-            return Image([self.data],
-                            copy=copy,
-                            **kwargs)
-        elif self.data.ndim == 3:
-            return Image([band for band in self.data],
-                            copy=copy,
-                            **kwargs)
-        else:
-            raise ValueError("Don't know how to convert array with ndim %d to image" % self.data.ndim)
 
     def __str__(self):
         res = list()

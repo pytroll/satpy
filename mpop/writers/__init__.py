@@ -81,6 +81,7 @@ class EnhancementDecisionTree(object):
                 # we know what we're searching for, try to find a pattern that uses this attribute
                 match = self._find_match(curr_level[kwargs[attrs[0]]], attrs[1:], kwargs)
         except TypeError:
+            # we don't handle multiple values (for example sensor) atm.
             LOG.debug("Strange stuff happening in decision tree for %s: %s", attrs[0], kwargs[attrs[0]])
 
         if match is None and self.any_key in curr_level:
@@ -106,16 +107,21 @@ class Enhancer(object):
     Helper class to get enhancement information for images.
     """
 
-    def __init__(self, ppp_config_dir=None, enhancement_config=None):
+    def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
+        """
+        :param ppp_config_dir: Points to the base configuration directory
+        :param enhancement_config_file: The enhancement configuration to apply, False to leave as is.
+        :return:
+        """
         self.ppp_config_dir = ppp_config_dir or PACKAGE_CONFIG_PATH
-        self.enhancement_config = enhancement_config
-        # Set enhancement_config to False for no enhancements
-        if self.enhancement_config is None:
+        self.enhancement_config_file = enhancement_config_file
+        # Set enhancement_config_file to False for no enhancements
+        if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should provide a default
-            self.enhancement_config = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
+            self.enhancement_config_file = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
 
-        if self.enhancement_config:
-            self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config)
+        if self.enhancement_config_file:
+            self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config_file)
         else:
             # They don't want any automatic enhancements
             self.enhancement_tree = None
@@ -143,3 +149,7 @@ class Enhancer(object):
         if new_configs:
             self.enhancement_tree.add_config_to_tree(config_file)
 
+    def apply(self, img, **info):
+        enh_kwargs = self.enhancement_tree.find_match(**info)
+        LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
+        img.enhance(**enh_kwargs)

@@ -151,7 +151,7 @@ class Writer(Plugin):
         if self.config_file is None:
             # Specify a default
             self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
-        self.config_options = self.load_config() if self.config_file else {}
+        self.config_options = self.load_config() if self.config_file else set() # keep 2.6 compatibility
         self.name = self.config_options.get("name", None) if name is None else name
         self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
@@ -163,7 +163,7 @@ class Writer(Plugin):
             self.fill_value = float(self.fill_value)
 
         self.create_filename_parser()
-        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config=enhancement_config)
+        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
 
     def create_filename_parser(self):
         # just in case a writer needs more complex file patterns
@@ -173,7 +173,7 @@ class Writer(Plugin):
     def load_config(self, **kwargs):
         conf = ConfigParser()
         conf.read(self.config_file)
-        writer_options = {}
+        writer_options = set() # preserver 2.6 compatibility
         for section_name in conf.sections():
             if section_name.startswith("writer:"):
                 writer_options = dict(conf.items(section_name))
@@ -193,50 +193,28 @@ class Writer(Plugin):
             raise RuntimeError("No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
 
-    def _determine_mode(self, dataset):
-        if "mode" in dataset.info:
-            return dataset.info["mode"]
-
-        ndim = dataset.data.ndim
-        default_modes = {
-            2: "L",
-            3: "RGB",
-            4: "RGBA",
-        }
-        if ndim in default_modes:
-            return default_modes[ndim]
-        else:
-            raise RuntimeError("Can't determine 'mode' of dataset: %s" % (dataset.info.get("name", None),))
-
     def save_dataset(self, dataset, fill_value=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
-        mode = self._determine_mode(dataset)
-
-        if self.enhancer.enhancement_tree is None:
-            raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
-
-        # Load any additional enhancement configs that are specific to this datasets sensors
-        if dataset.info.get("sensor", None):
-            self.enhancer.add_sensor_enhancements(dataset.info["sensor"])
-
-        # Create an image for enhancement
-        img = dataset.to_image(mode=mode, fill_value=fill_value)
-        self.apply_enhancements(img, **dataset.info)
-
-        img.info.update(dataset.info)
-
+        img = dataset.get_enhanced_image(self.enhancer, fill_value)
         self.save_image(img, **kwargs)
-
-    def get_enhancements(self, **info):
-        return self.enhancer.enhancement_tree.find_match(**info)
-
-    def apply_enhancements(self, img, **info):
-        enh_kwargs = self.get_enhancements(**info)
-        LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
-        img.enhance(**enh_kwargs)
 
     def save_image(self, img, *args, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
+# FIXME: should this be a projectable method ?
+def _determine_mode(dataset):
+    if "mode" in dataset.info:
+        return dataset.info["mode"]
+
+    ndim = dataset.data.ndim
+    default_modes = {
+        2: "L",
+        3: "RGB",
+        4: "RGBA",
+    }
+    if ndim in default_modes:
+        return default_modes[ndim]
+    else:
+        raise RuntimeError("Can't determine 'mode' of dataset: %s" % (dataset.info.get("name", None),))
