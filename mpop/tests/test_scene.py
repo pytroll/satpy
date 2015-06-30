@@ -74,10 +74,10 @@ class TestScene(unittest.TestCase):
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
     @mock.patch("glob.glob")
-    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock):
+    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock, **mock_objs):
         glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
 
-        def fake_read_config(self, config_file):
+        def fake_read_config(config_file):
             if config_file in ["valid", "no_found_files"]:
                 return {"name": "fake_reader",
                         "sensor": ["foo"],
@@ -85,17 +85,19 @@ class TestScene(unittest.TestCase):
             else:
                 raise ValueError("Fake ValueError")
 
-        def fake_get_filenames(self, reader_info):
+        def fake_get_filenames(reader_info):
             if reader_info["config_file"] == "valid":
                 return ["file1", "file2"]
             return []
 
-        scn = Scene()
-        # Test with builtin configs
         with mock.patch.multiple("mpop.scene.Scene",
-                                 _read_config=fake_read_config,
-                                 get_filenames=fake_get_filenames,
-                                 _load_reader=mock.DEFAULT) as mock_objs:
+                             _read_reader_config=mock.DEFAULT,
+                             get_filenames=mock.DEFAULT,
+                             _load_reader=mock.DEFAULT) as mock_objs:
+            mock_objs["_read_reader_config"].side_effect = fake_read_config
+            mock_objs["get_filenames"].side_effect = fake_get_filenames
+
+            scn = Scene()
             scn._find_sensors_readers("foo", None)
 
     def test_get_filenames_with_start_time_and_end_time(self):
