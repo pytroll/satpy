@@ -25,7 +25,6 @@
 
 import unittest
 import mock
-from mpop.scene import Scene
 from mpop import PACKAGE_CONFIG_PATH
 
 
@@ -34,17 +33,20 @@ class TestScene(unittest.TestCase):
     Test the scene class
     """
     def test_init_with_filenames(self):
+        from mpop.scene import Scene
         filenames = ["bla", "foo", "bar"]
         with mock.patch('mpop.scene.Scene._find_files_readers') as methmock:
             Scene(filenames=filenames)
             methmock.assert_called_once_with(*filenames)
 
     def test_init_with_empty_filenames(self):
+        from mpop.scene import Scene
         filenames = []
         with mock.patch('mpop.scene.Scene._find_files_readers'):
             self.assertRaises(ValueError, Scene, filenames=filenames)
 
     def test_init_with_sensor(self):
+        from mpop.scene import Scene
         sensors = ["bla", "foo", "bar"]
         filenames = None
         with mock.patch('mpop.scene.Scene._find_sensors_readers') as methmock:
@@ -52,6 +54,7 @@ class TestScene(unittest.TestCase):
             methmock.assert_called_once_with(sensors, filenames)
 
     def test_init_with_sensor_and_filenames(self):
+        from mpop.scene import Scene
         sensors = ["bla", "foo", "bar"]
         filenames = ["1", "2", "3"]
         with mock.patch('mpop.scene.Scene._find_sensors_readers') as methmock:
@@ -59,6 +62,7 @@ class TestScene(unittest.TestCase):
             methmock.assert_called_once_with(sensors, filenames)
 
     def test_init_with_reader(self):
+        from mpop.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
         with mock.patch('mpop.scene.Scene._find_reader') as methmock:
@@ -66,15 +70,18 @@ class TestScene(unittest.TestCase):
             methmock.assert_called_once_with(reader, filenames)
 
     def test_init_alone(self):
+        from mpop.scene import Scene
         scn = Scene()
         self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
 
     def test_init_with_ppp_config_dir(self):
+        from mpop.scene import Scene
         scn = Scene(ppp_config_dir="foo")
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
     @mock.patch("glob.glob")
     def test_find_sensors_readers_single_sensor_no_files(self, glob_mock, **mock_objs):
+        from mpop.scene import Scene
         glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
 
         def fake_read_config(config_file):
@@ -101,6 +108,7 @@ class TestScene(unittest.TestCase):
             scn._find_sensors_readers("foo", None)
 
     def test_get_filenames_with_start_time_and_end_time(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -123,6 +131,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
 
     def test_get_filenames_with_start_time_and_npp_style_end_time(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -145,6 +154,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
 
     def test_get_filenames_with_start_time(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -162,6 +172,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), ["file3", "file4", "file5"])
 
     def test_get_filenames_with_start_time_provided(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -184,6 +195,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), ["file2"])
 
     def test_get_filenames_with_only_start_times_wrong(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -200,6 +212,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), [])
 
     def test_get_filenames_with_only_start_times_right(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene()
         reader_info = {"file_patterns": ["foo"],
@@ -216,6 +229,7 @@ class TestScene(unittest.TestCase):
                 self.assertEqual(scn.get_filenames(reader_info), ["file3"])
 
     def test_get_filenames_to_error(self):
+        from mpop.scene import Scene
         from datetime import datetime
         scn = Scene(start_time="bla")
         reader_info = {"file_patterns": ["foo"],

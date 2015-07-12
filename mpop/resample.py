@@ -25,67 +25,184 @@
 
 import collections
 from pyresample.kd_tree import get_neighbour_info, get_sample_from_neighbour_info
+from logging import getLogger
+import numpy as np
+import hashlib
+import json
+import os
 
-cache = {}
+LOG = getLogger(__name__)
 
-def resample(projectables, destination_area, **kwargs):
-    area_dict = {}
-    if not isinstance(projectables, collections.Iterable):
-        projectables = [projectables]
-    for projectable in projectables:
-        area_dict.setdefault(projectable.info["area"].area_name, []).append(projectable)
-
-    for plist in area_dict.itervalues():
-        source_area = plist[0].info["area"]
-        data = (projectable.data for projectable in plist)
-        resample_kd_tree_nearest(source_area, data, destination_area, **kwargs)
+CACHE_DIR = "/var/tmp"
+CACHE_SIZE = 10
 
 
-def memoize(func, keys):
-    def inner(*args, **kwargs):
-        memoization_key = list(args)
-        for key in sorted(kwargs):
-            if key in keys:
-                memoization_key.append(kwargs[key])
 
-        if not isinstance(args, collections.Hashable):
-            # uncacheable. a list, for instance.
-            # better to not cache than blow up.
-            return func(*args, **kwargs)
-        if (func, str(memoization_key)) in cache:
-            return cache[func, str(memoization_key)]
+class BaseResampler(object):
+    """
+    The base resampler class. Abstract.
+    """
+
+    def __init__(self, source_geo_def, target_geo_def):
+        """
+        :param source_geo_def: The source area
+        :param target_geo_def: The destination area
+        """
+
+        self.source_geo_def = source_geo_def
+        self.target_geo_def = target_geo_def
+        self.cache = {}
+
+    def precompute(self, **kwargs):
+        """Do the precomputation
+        """
+        pass
+
+    def compute(self, data, **kwargs):
+        """Do the actual resampling
+        """
+        raise NotImplementedError
+
+    def dump(self, filename):
+        """Dump the projection info to *filename*.
+        """
+        if os.path.exists(filename):
+            LOG.debug("Projection already saved to %s", filename)
         else:
-            value = func(*args, **kwargs)
-            cache[func, str(memoization_key)] = value
-        return value
-
-    return inner
+            LOG.info("Saving projection to %s", filename)
+            np.savez(filename, **self.cache)
 
 
-def resample_kd_tree_nearest(source_geo_def, data, target_geo_def,
-                             radius_of_influence, epsilon=0, weight_funcs=None,
-                             fill_value=None, reduce_data=True, nprocs=1, segments=None, with_uncert=False,
-                             precompute=False):
-    """Resamples using kd-tree approach"""
+    def resample(self, data, precompute=False, **kwargs):
+        """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
+        """
+        self.precompute(dump=precompute, **kwargs)
+        return self.compute(data, **kwargs)
 
-    m_get_neighbour_info = memoize(get_neighbour_info, keys=("neighbours", "epsilon"))
+    def __call__(self, *args, **kwargs):
+        """Shortcut for the :meth:`resample` method
+        """
+        self.resample(*args, **kwargs)
 
-    valid_input_index, valid_output_index, index_array, distance_array = \
-        m_get_neighbour_info(source_geo_def,
-                             target_geo_def,
-                             radius_of_influence,
-                             neighbours=1,
-                             epsilon=epsilon,
-                             reduce_data=reduce_data,
-                             nprocs=nprocs,
-                             segments=segments)
+class KDTreeResampler(BaseResampler):
+    """
+    Resample using nearest neighbour.
+    """
 
-    return get_sample_from_neighbour_info('nn',
-                                          target_geo_def.shape,
-                                          data, valid_input_index,
-                                          valid_output_index,
-                                          index_array,
-                                          distance_array=distance_array,
-                                          weight_funcs=weight_funcs,
-                                          fill_value=fill_value,
-                                          with_uncert=with_uncert)
+    caches = collections.OrderedDict()
+
+    def __init__(self, source_geo_def, target_geo_def):
+        BaseResampler.__init__(self, source_geo_def, target_geo_def)
+
+    @staticmethod
+    def hash_area(area):
+        """Get (and set) the hash for the *area*.
+        """
+        try:
+            return area.kdtree_hash
+        except AttributeError:
+            LOG.debug("Computing kd-tree hash for area %s", area.name)
+        try:
+            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True)).hexdigest(),
+                                 hashlib.sha1(json.dumps(area.area_extent)).hexdigest(),
+                                 hashlib.sha1(json.dumps(area.shape)).hexdigest()))
+        except AttributeError:
+            if not area.lons:
+                lons, lats = area.get_lonlats()
+            else:
+                lons, lats = area.lons, area.lats
+
+            try:
+                mask = lons.mask
+            except AttributeError:
+                mask = "False"
+            area_hash = "".join((hashlib.sha1(mask).hexdigest(),
+                                 hashlib.sha1(lons).hexdigest(),
+                                 hashlib.sha1(lats).hexdigest()))
+        area.kdtree_hash = area_hash
+        return area_hash
+
+
+    def get_hash(self, **kwargs):
+        """Get hash for the current resample with the given *kwargs*.
+        """
+        the_hash = "".join((self.hash_area(self.source_geo_def),
+                            self.hash_area(self.target_geo_def),
+                            hashlib.sha1(json.dumps(kwargs, sort_keys=True)).hexdigest()))
+        return the_hash
+
+    def precompute(self, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
+                   dump=False, **kwargs):
+
+        del kwargs
+
+        kd_hash = self.get_hash(radius_of_influence=radius_of_influence, epsilon=epsilon)
+        filename = os.path.join(CACHE_DIR, hashlib.sha1(kd_hash).hexdigest() + ".npz")
+
+        try:
+            self.cache = self.caches[kd_hash]
+            # trick to keep most used caches away from deletion
+            del self.caches[kd_hash]
+            self.caches[kd_hash] = self.cache
+
+            if dump:
+                self.dump(filename)
+            return self.cache
+        except KeyError:
+            if os.path.exists(filename):
+                LOG.debug("Loading kd-tree parameters")
+                self.cache = dict(np.load(filename))
+                self.caches[kd_hash] = self.cache
+                while len(self.caches) > CACHE_SIZE:
+                    self.caches.popitem()
+                if dump:
+                    self.dump(filename)
+                return self.cache
+            else:
+                LOG.debug("Computing kd-tree parameters")
+
+        valid_input_index, valid_output_index, index_array, distance_array = \
+            get_neighbour_info(self.source_geo_def,
+                               self.target_geo_def,
+                               radius_of_influence,
+                               neighbours=1,
+                               epsilon=epsilon,
+                               reduce_data=reduce_data,
+                               nprocs=nprocs,
+                               segments=segments)
+
+        # it's important here not to modify the existing cache dictionnary.
+        self.cache = {"valid_input_index": valid_input_index,
+                      "valid_output_index": valid_output_index,
+                      "index_array": index_array,
+                      "distance_array": distance_array}
+
+        self.caches[kd_hash] = self.cache
+        while len(self.caches) > CACHE_SIZE:
+            self.caches.popitem()
+
+        if dump:
+            self.dump(filename)
+        return self.cache
+
+    def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
+
+        del kwargs
+
+        return get_sample_from_neighbour_info('nn',
+                                              self.target_geo_def.shape,
+                                              data,
+                                              self.cache["valid_input_index"],
+                                              self.cache["valid_output_index"],
+                                              self.cache["index_array"],
+                                              distance_array=self.cache["distance_array"],
+                                              weight_funcs=weight_funcs,
+                                              fill_value=fill_value,
+                                              with_uncert=with_uncert)
+
+
+def resample(source_area, data, destination_area, resampler_class=KDTreeResampler, **kwargs):
+    """Do the resampling
+    """
+    resampler = resampler_class(source_area, destination_area)
+    return resampler.resample(data, **kwargs)

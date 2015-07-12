@@ -25,7 +25,7 @@
 """
 
 import numpy as np
-from mpop.resample import resample_kd_tree_nearest
+from mpop.resample import resample
 from trollimage.image import Image
 from mpop.plugin_base import _determine_mode
 from mpop.writers import Enhancer
@@ -176,10 +176,7 @@ class Projectable(Dataset):
             data = np.rollaxis(self.data, 0, 3)
         else:
             data = self.data
-        # from pyresample import kd_tree
-        # new_data = kd_tree.resample_nearest(source_area, data, destination_area, **kwargs)
-        # res = resample(self, destination_area, **kwargs)
-        new_data = resample_kd_tree_nearest(source_area, data, destination_area, **kwargs)
+        new_data = resample(source_area, data, destination_area, **kwargs)
 
         if new_data.ndim == 3:
             new_data = np.rollaxis(new_data, 2)
