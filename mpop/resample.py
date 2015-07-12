@@ -23,7 +23,10 @@
 """Shortcuts to resampling stuff.
 """
 
-import collections
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 from pyresample.kd_tree import get_neighbour_info, get_sample_from_neighbour_info
 from logging import getLogger
 import numpy as np
@@ -89,7 +92,7 @@ class KDTreeResampler(BaseResampler):
     Resample using nearest neighbour.
     """
 
-    caches = collections.OrderedDict()
+    caches = OrderedDict()
 
     def __init__(self, source_geo_def, target_geo_def):
         BaseResampler.__init__(self, source_geo_def, target_geo_def)

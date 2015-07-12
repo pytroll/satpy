@@ -32,6 +32,7 @@
 import os.path
 from setuptools import setup
 import imp
+import sys
 
 version = imp.load_source('mpop.version', 'mpop/version.py')
 
@@ -39,6 +40,10 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
 requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage', 'pykdtree']
+
+if sys.version < '2.7':
+    requires.append('ordereddict')
+
 
 try:
     from PIL import Image
