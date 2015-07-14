@@ -27,18 +27,61 @@
 # You should have received a copy of the GNU General Public License
 # along with mpop.  If not, see <http://www.gnu.org/licenses/>.
 
-"""PP Package initializer.
+"""MPOP Package initializer.
 """
 
 import os
-
+from ConfigParser import ConfigParser
 from mpop.version import __version__
+from logging import getLogger
+
+LOG = getLogger(__name__)
 
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep)[:-1])
 
-CONFIG_PATH = (os.environ.get('PPP_CONFIG_DIR', '') or
-               os.path.join(BASE_PATH, 'etc'))
-
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
+
+CONFIG_PATH = os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
+
+
+def get_config(filename):
+    """Blends the different configs, from package defaults to .
+    """
+
+    config = ConfigParser()
+
+    paths1 = [filename,
+              os.path.join(".", filename),
+              os.path.join(CONFIG_PATH, filename),
+              os.path.join(PACKAGE_CONFIG_PATH, filename)]
+
+    paths2 = [os.path.basename(filename),
+              os.path.join(".", os.path.basename(filename)),
+              os.path.join(CONFIG_PATH, os.path.basename(filename)),
+              os.path.join(PACKAGE_CONFIG_PATH, os.path.basename(filename))]
+
+    for paths in (paths1, paths2):
+        successes = config.read(reversed(paths))
+        if successes:
+            LOG.debug("Read config from %s", str(successes))
+            return config
+
+    LOG.warning("Couldn't file any config file matching %s", filename)
+
+def get_config_path(filename):
+    """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir.
+    """
+
+    paths = [filename,
+             os.path.join(".", filename),
+             os.path.join(CONFIG_PATH, filename),
+             os.path.join(PACKAGE_CONFIG_PATH, filename),
+             os.path.join(".", os.path.basename(filename)),
+             os.path.join(CONFIG_PATH, os.path.basename(filename)),
+             os.path.join(PACKAGE_CONFIG_PATH, os.path.basename(filename))]
+
+    for path in paths:
+        if os.path.exists(path):
+            return path
