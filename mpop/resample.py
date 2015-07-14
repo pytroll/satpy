@@ -36,10 +36,7 @@ import os
 
 LOG = getLogger(__name__)
 
-CACHE_DIR = "/var/tmp"
 CACHE_SIZE = 10
-
-
 
 class BaseResampler(object):
     """
@@ -140,7 +137,12 @@ class KDTreeResampler(BaseResampler):
         del kwargs
 
         kd_hash = self.get_hash(radius_of_influence=radius_of_influence, epsilon=epsilon)
-        filename = os.path.join(CACHE_DIR, hashlib.sha1(kd_hash).hexdigest() + ".npz")
+        if dump is True:
+            filename = os.path.join('.', hashlib.sha1(kd_hash).hexdigest() + ".npz")
+        elif dump is False:
+            filename = None
+        else:
+            filename = os.path.join(dump, hashlib.sha1(kd_hash).hexdigest() + ".npz")
 
         try:
             self.cache = self.caches[kd_hash]
@@ -204,8 +206,15 @@ class KDTreeResampler(BaseResampler):
                                               with_uncert=with_uncert)
 
 
-def resample(source_area, data, destination_area, resampler_class=KDTreeResampler, **kwargs):
+RESAMPLERS = {"kd_tree": KDTreeResampler,
+              "nearest": KDTreeResampler}
+
+def resample(source_area, data, destination_area, resampler=KDTreeResampler, **kwargs):
     """Do the resampling
     """
+    if isinstance(resampler, (str, unicode)):
+        resampler_class = RESAMPLERS[resampler]
+    else:
+        resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
     return resampler.resample(data, **kwargs)

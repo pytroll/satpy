@@ -204,6 +204,7 @@ class Writer(Plugin):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 # FIXME: should this be a projectable method ?
+# FIXME: this is wrong, RGBA also has 3 dimensions but 4 channels.
 def _determine_mode(dataset):
     if "mode" in dataset.info:
         return dataset.info["mode"]
