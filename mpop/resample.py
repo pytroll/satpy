@@ -73,10 +73,10 @@ class BaseResampler(object):
             np.savez(filename, **self.cache)
 
 
-    def resample(self, data, precompute=False, **kwargs):
+    def resample(self, data, cache_dir=False, **kwargs):
         """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
         """
-        self.precompute(dump=precompute, **kwargs)
+        self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -132,17 +132,15 @@ class KDTreeResampler(BaseResampler):
         return the_hash
 
     def precompute(self, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
-                   dump=False, **kwargs):
+                   cache_dir=False, **kwargs):
 
         del kwargs
 
         kd_hash = self.get_hash(radius_of_influence=radius_of_influence, epsilon=epsilon)
-        if dump is True:
-            filename = os.path.join('.', hashlib.sha1(kd_hash).hexdigest() + ".npz")
-        elif dump is False:
-            filename = None
+        if isinstance(cache_dir, (str, unicode)):
+            filename = os.path.join(cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
         else:
-            filename = os.path.join(dump, hashlib.sha1(kd_hash).hexdigest() + ".npz")
+            filename = os.path.join('.', hashlib.sha1(kd_hash).hexdigest() + ".npz")
 
         try:
             self.cache = self.caches[kd_hash]
@@ -150,7 +148,7 @@ class KDTreeResampler(BaseResampler):
             del self.caches[kd_hash]
             self.caches[kd_hash] = self.cache
 
-            if dump:
+            if cache_dir:
                 self.dump(filename)
             return self.cache
         except KeyError:
@@ -160,7 +158,7 @@ class KDTreeResampler(BaseResampler):
                 self.caches[kd_hash] = self.cache
                 while len(self.caches) > CACHE_SIZE:
                     self.caches.popitem()
-                if dump:
+                if cache_dir:
                     self.dump(filename)
                 return self.cache
             else:
@@ -186,7 +184,7 @@ class KDTreeResampler(BaseResampler):
         while len(self.caches) > CACHE_SIZE:
             self.caches.popitem()
 
-        if dump:
+        if cache_dir:
             self.dump(filename)
         return self.cache
 
