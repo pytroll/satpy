@@ -27,7 +27,6 @@
 import numpy as np
 from mpop.resample import resample
 from trollimage.image import Image
-from mpop.plugin_base import _determine_mode
 from mpop.writers import Enhancer
 import os
 
@@ -115,8 +114,24 @@ class Dataset(InfoObject):
         img = self.get_enhanced_image(**kwargs)
         img.show()
 
+    def _determine_mode(self):
+        if "mode" in self.info:
+            return self.info["mode"]
+
+        if self.data.ndim == 2:
+            return "L"
+        elif self.data.shape[0] == 2:
+            return "LA"
+        elif self.data.shape[0] == 3:
+            return "RGB"
+        elif self.data.shape[0] == 4:
+            return "RGBA"
+        else:
+            raise RuntimeError("Can't determine 'mode' of dataset: %s" % (self.info.get("name", None),))
+
+
     def get_enhanced_image(self, enhancer=None, fill_value=None, ppp_config_dir=None, enhancement_config_file=None):
-        mode = _determine_mode(self)
+        mode = self._determine_mode()
 
         if ppp_config_dir is None:
             ppp_config_dir = os.environ["PPP_CONFIG_DIR"]
