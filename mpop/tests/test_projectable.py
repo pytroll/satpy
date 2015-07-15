@@ -39,45 +39,11 @@ class TestDataset(unittest.TestCase):
         Test copying a dataset
         """
         ds = projectable.Dataset(np.arange(8), foo="bar")
-        ds_copy = ds.copy(False)
-        self.assert_(ds_copy.data is ds.data)
-        if sys.version >= "2.7":
-            self.assertDictEqual(ds.info, ds_copy.info)
-        ds_copy = ds.copy(True)
-        self.assert_(ds_copy.data is not ds.data
-                     and all(ds.data == ds_copy.data))
-        if sys.version >= "2.7":
-            self.assertDictEqual(ds.info, ds_copy.info)
         ds_copy = ds.copy()
         self.assert_(ds_copy.data is not ds.data
                      and all(ds.data == ds_copy.data))
         if sys.version >= "2.7":
             self.assertDictEqual(ds.info, ds_copy.info)
-
-    def test_arithmetics(self):
-        """
-        Test the arithmetic functions
-        """
-        ds = projectable.Dataset(np.arange(1, 25), foo="bar")
-        ref = np.arange(1, 25)
-        ds2 = ds + 1
-        ds3 = projectable.Dataset(np.linspace(0, 1, 24), foo="bar")
-        np.testing.assert_array_equal((ds + 1).data, ref + 1)
-        np.testing.assert_array_equal((1 + ds).data, ref + 1)
-        np.testing.assert_array_equal((ds + ds).data, ref * 2)
-        np.testing.assert_array_equal((ds * 2).data, ref * 2)
-        np.testing.assert_array_equal((2 * ds).data, ref * 2)
-        np.testing.assert_array_equal((ds * ds).data, ref ** 2)
-        np.testing.assert_array_equal((ds - 1).data, ref - 1)
-        np.testing.assert_array_equal((1 - ds).data, 1 - ref)
-        np.testing.assert_array_equal((ds - ds).data, np.zeros_like(ref))
-        np.testing.assert_array_equal((ds / 2).data, ref / 2)
-        np.testing.assert_array_equal((2 / ds).data, 2 / ref)
-        np.testing.assert_array_equal((ds / ds).data, np.ones_like(ref))
-        np.testing.assert_array_equal((-ds).data, -ref)
-        np.testing.assert_array_equal((abs(ds)).data, abs(ref))
-        np.testing.assert_array_equal((ds ** 2).data, ref ** 2)
-        np.testing.assert_array_equal((ds ** ds3).data, ref ** ds3.data)
 
     def test_str_repr(self):
         ds = projectable.Dataset(np.arange(1, 25), foo="bar")
@@ -92,13 +58,13 @@ class TestProjectable(unittest.TestCase):
         """
         Test initialization
         """
-        self.assert_('name' in projectable.Projectable().info)
+        self.assert_('name' in projectable.Projectable([]).info)
 
     def test_isloaded(self):
         """
         Test isloaded method
         """
-        self.assertFalse(projectable.Projectable().is_loaded())
+        self.assertFalse(projectable.Projectable([]).is_loaded())
         self.assertTrue(projectable.Projectable(data=1).is_loaded())
 
     def test_to_image_1D(self):
@@ -125,7 +91,7 @@ class TestProjectable(unittest.TestCase):
         p_str = str(p)
 
         # Not loaded data
-        p = projectable.Projectable()
+        p = projectable.Projectable([])
         p_str = str(p)
         self.assertTrue("not loaded" in p_str)
 
@@ -166,7 +132,7 @@ class TestProjectable(unittest.TestCase):
         self.assertTrue(mock_get_image.return_value.show.called)
 
     def test_show_unloaded(self):
-        p = projectable.Projectable()
+        p = projectable.Projectable([])
         self.assertRaises(ValueError, p.show)
 
     @mock.patch('mpop.projectable.resample')
@@ -178,7 +144,10 @@ class TestProjectable(unittest.TestCase):
         destination_area = "there"
         p.info["area"] = source_area
         res = p.resample(destination_area)
-        mock_resampler.assert_called_once_with(source_area, data, destination_area)
+        self.assertEqual(mock_resampler.call_count, 1)
+        self.assertEqual(mock_resampler.call_args[0][0], source_area)
+        self.assertEqual(mock_resampler.call_args[0][2], destination_area)
+        np.testing.assert_array_equal(data, mock_resampler.call_args[0][1])
         self.assertTrue(isinstance(res, projectable.Projectable))
         np.testing.assert_array_equal(res.data, mock_resampler.return_value)
 

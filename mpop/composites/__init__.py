@@ -59,7 +59,7 @@ class RGBCompositor(CompositeBase):
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
             raise ValueError("Expected 3 projectables, got %d" % (len(projectables),))
-        the_data = np.rollaxis(np.ma.dstack([projectable.data for projectable in projectables]), axis=2)
+        the_data = np.rollaxis(np.ma.dstack([projectable for projectable in projectables]), axis=2)
         info = projectables[0].info.copy()
         info.update(projectables[1].info)
         info.update(projectables[2].info)

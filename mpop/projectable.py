@@ -35,75 +35,46 @@ class InfoObject(object):
         self.info = attributes
 
 
-class Dataset(InfoObject):
-    def __init__(self, data, **attributes):
-        InfoObject.__init__(self, **attributes)
-        self.data = data
+class Dataset(np.ma.MaskedArray):
+
+    def __new__(cls, data, **info):
+        # Input array is an already formed ndarray instance
+        # We first cast to be our class type
+        obj = np.ma.MaskedArray(data).view(cls)
+        # add the new attribute to the created instance
+        obj.info = getattr(data, "info", {})
+        obj.info.update(info)
+        # Finally, we must return the newly created object:
+        return obj
+
+    def _update_from(self, obj):
+        """Copies some attributes of obj to self.
+        """
+        np.ma.MaskedArray._update_from(self, obj)
+        if self.info is None:
+            self.info = {}
+        self.info.update(getattr(obj, "info", {}))
+
+    def __array_finalize__(self, obj):
+        # see InfoArray.__array_finalize__ for comments
+        if obj is None:
+            return
+        self.info = getattr(obj, 'info', None)
+        np.ma.MaskedArray.__array_finalize__(self, obj)
+
+    def copy(self):
+        res = np.ma.MaskedArray.copy(self)
+        res.info = self.info.copy()
+        return res
 
     def __str__(self):
-        return str(self.data) + "\n" + str(self.info)
+        return np.ma.MaskedArray.__str__(self)
 
     def __repr__(self):
-        return repr(self.data) + "\n" + repr(self.info)
-
-    def copy(self, copy_data=True):
-        if copy_data:
-            data = self.data.copy()
-        else:
-            data = self.data
-        return Dataset(data, **self.info)
-
-    def __pow__(self, other, modulo=None):
-        if isinstance(other, Dataset):
-            return self.__class__(data=pow(self.data, other.data, modulo))
-        else:
-            return self.__class__(data=pow(self.data, other, modulo))
-
-    def __mul__(self, other):
-        if isinstance(other, Dataset):
-            return self.__class__(data=self.data * other.data)
-        else:
-            return self.__class__(data=self.data * other)
-
-    def __rmul__(self, other):
-        return self.__class__(data=self.data * other)
-
-    def __sub__(self, other):
-        if isinstance(other, Dataset):
-            return self.__class__(data=self.data - other.data)
-        else:
-            return self.__class__(data=self.data - other)
-
-    def __rsub__(self, other):
-        return self.__class__(data=other - self.data)
-
-    def __add__(self, other):
-        if isinstance(other, Dataset):
-            return self.__class__(data=self.data + other.data)
-        else:
-            return self.__class__(data=self.data + other)
-
-    def __radd__(self, other):
-        return self.__class__(data=self.data + other)
-
-    def __div__(self, other):
-        if isinstance(other, Dataset):
-            return self.__class__(data=self.data / other.data)
-        else:
-            return self.__class__(data=self.data / other)
-
-    def __rdiv__(self, other):
-        return self.__class__(data=other / self.data)
-
-    def __neg__(self):
-        return self.__class__(data=-self.data)
-
-    def __abs__(self):
-        return self.__class__(data=abs(self.data))
-
+        return np.ma.MaskedArray.__repr__(self) + "\n" + repr(self.info)
 
     def is_loaded(self):
-        return self.data is not None
+        return self.size > 0
 
     def show(self, **kwargs):
         """Display the channel as an image.
@@ -118,13 +89,13 @@ class Dataset(InfoObject):
         if "mode" in self.info:
             return self.info["mode"]
 
-        if self.data.ndim == 2:
+        if self.ndim == 2:
             return "L"
-        elif self.data.shape[0] == 2:
+        elif self.shape[0] == 2:
             return "LA"
-        elif self.data.shape[0] == 3:
+        elif self.shape[0] == 3:
             return "RGB"
-        elif self.data.shape[0] == 4:
+        elif self.shape[0] == 4:
             return "RGBA"
         else:
             raise RuntimeError("Can't determine 'mode' of dataset: %s" % (self.info.get("name", None),))
@@ -164,16 +135,16 @@ class Dataset(InfoObject):
         if "palette" in self.info:
             kwargs.setdefault("palette", self.info["palette"])
 
-        if self.data.ndim == 2:
-            return Image([self.data],
+        if self.ndim == 2:
+            return Image([self],
                           copy=copy,
                           **kwargs)
-        elif self.data.ndim == 3:
-            return Image([band for band in self.data],
+        elif self.ndim == 3:
+            return Image([band for band in self],
                           copy=copy,
                           **kwargs)
         else:
-            raise ValueError("Don't know how to convert array with ndim %d to image" % self.data.ndim)
+            raise ValueError("Don't know how to convert array with ndim %d to image" % self.ndim)
 
 
 
@@ -181,21 +152,23 @@ class Dataset(InfoObject):
 
 
 class Projectable(Dataset):
-    def __init__(self, data=None, name="undefined", **info):
-        Dataset.__init__(self, data, name=name, **info)
+
+    def __new__(self, data=None, name="undefined", **info):
+        return Dataset.__new__(self, data, name=name, **info)
 
     def resample(self, destination_area, **kwargs):
         # call the projection stuff here
         source_area = self.info["area"]
-        if self.data.ndim == 3:
-            data = np.rollaxis(self.data, 0, 3)
+        if self.ndim == 3:
+            data = np.rollaxis(self, 0, 3)
         else:
-            data = self.data
+            data = self
         new_data = resample(source_area, data, destination_area, **kwargs)
 
         if new_data.ndim == 3:
             new_data = np.rollaxis(new_data, 2)
 
+        # FIXME: is this necessary with the ndarray subclass ?
         res = Projectable(new_data, **self.info)
         res.info["area"] = destination_area
         return res
@@ -219,9 +192,9 @@ class Projectable(Dataset):
             else:
                 res.append("{0}: {1}".format(key, self.info[key]))
 
-        if self.data is not None:
+        if self.size > 0:
             try:
-                res.append("shape: {0}".format(self.data.shape))
+                res.append("shape: {0}".format(self.shape))
             except AttributeError:
                 pass
         else:
