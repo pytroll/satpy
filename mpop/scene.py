@@ -433,8 +433,7 @@ class Scene(InfoObject):
     def read(self, *projectable_keys, **kwargs):
         """Read the composites called *projectable_keys* or their prerequisites.
         """
-        # FIXME: the wavelength keys are not kept...
-        self.wishlist = projectable_keys
+        self.wishlist = list(projectable_keys)
 
         projectable_names = set()
 
@@ -442,6 +441,9 @@ class Scene(InfoObject):
             for key in projectable_keys:
                 try:
                     projectable_name = reader_instance.get_channel(key)["name"]
+                    if key != projectable_name:
+                        self.wishlist.remove(key)
+                        self.wishlist.append(projectable_name)
                     if not projectable_name in self.projectables or not self.projectables[projectable_name].is_loaded():
                         projectable_names.add(projectable_name)
                 except KeyError:
