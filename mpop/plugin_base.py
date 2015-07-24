@@ -38,13 +38,33 @@ class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
     inherited by other classes.
     """
-    pass
+    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_file=None, **kwargs):
+        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
+        self.default_config_filename = default_config_filename
+        self.config_file = config_file
+        if self.config_file is None and self.default_config_filename is not None:
+            # Specify a default
+            self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
+
+        if self.config_file:
+            conf = ConfigParser()
+            conf.read(self.config_file)
+            self.load_config(conf)
+
+    def load_config(self, conf):
+        # Assumes only one section with "reader:" prefix
+        for section_name in conf.sections():
+            section_type = section_name.split(":")[0]
+            load_func = "load_section_%s" % (section_type,)
+            if hasattr(self, load_func):
+                getattr(self, load_func)(section_name, dict(conf.items(section_name)))
+
 
 class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    def __init__(self, name, config_file=None,
+    def __init__(self, name,
                  file_patterns=None,
                  filenames=None,
                  description="",
@@ -57,21 +77,25 @@ class Reader(Plugin):
         Arguments:
         - `scene`: the scene to fill.
         """
-        Plugin.__init__(self)
-        self.name = name
-        self.config_file = config_file
-        self.file_patterns = file_patterns
-        self.filenames = filenames or []
-        self.description = description
+        # Hold information about channels
+        self.channels = {}
+
+        # Load the config
+        Plugin.__init__(self, **kwargs)
+
+        # Use options from the config file if they weren't passed as arguments
+        self.name = self.config_options.get("name", None) if name is None else name
+        self.file_patterns = self.config_options.get("file_patterns", None) if file_patterns is None else file_patterns
+        self.filenames = self.config_options.get("filenames", []) if filenames is None else filenames
+        self.description = self.config_options.get("description", None) if description is None else description
+
+        # These can't be provided by a configuration file
         self.start_time = start_time
         self.end_time = end_time
         self.area = area
-        del kwargs
 
-        self.channels = {}
-
-        if self.config_file:
-            self.load_config()
+        if self.name is None:
+            raise ValueError("Reader 'name' not provided")
 
     def add_filenames(self, *filenames):
         self.filenames |= set(filenames)
@@ -89,27 +113,17 @@ class Reader(Plugin):
         return set([sensor_name for chn_info in self.channels.values()
                     for sensor_name in chn_info["sensor"].split(",")])
 
-    def load_config(self):
-        conf = ConfigParser()
-        conf.read(self.config_file)
-        # Assumes only one section with "reader:" prefix
-        info = {}
-        for section_name in conf.sections():
-            # Can't load the reader section because any options not specified in keywords don't use the default
-            # if section_name.startswith("reader:"):
-            #     info.update(dict(conf.items(section_name)))
-            if section_name.startswith("channel:"):
-                channel_info = self.parse_channel_section(section_name, dict(conf.items(section_name)))
-                self.channels[channel_info["name"]] = channel_info
-        return info
+    def load_section_reader(self, section_name, section_options):
+        self.config_options = section_options
 
-    def parse_channel_section(self, section_name, section_options):
+    def load_section_channel(self, section_name, section_options):
         # Allow subclasses to make up their own rules about channels, but this is a good starting point
         if "file_patterns" in section_options:
             section_options["file_patterns"] = section_options["file_patterns"].split(",")
         if "wavelength_range" in section_options:
             section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
-        return section_options
+
+        self.channels[section_options["name"]] = section_options
 
     def get_channel(self, key):
         """Get the channel corresponding to *key*, either by name or centerwavelength.
@@ -137,21 +151,16 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-
 class Writer(Plugin):
     """Writer plugins. They must implement the *save_image* method. This is an
     abstract class to be inherited.
     """
 
-    def __init__(self, name=None, config_file=None, ppp_config_dir=None, fill_value=None, file_pattern=None,
-                 enhancement_config=None, default_config_filename=None, **kwargs):
-        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
-        self.default_config_filename = default_config_filename
-        self.config_file = config_file
-        if self.config_file is None:
-            # Specify a default
-            self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
-        self.config_options = self.load_config() if self.config_file else set() # keep 2.6 compatibility
+    def __init__(self, name=None, fill_value=None, file_pattern=None, enhancement_config=None, **kwargs):
+        # Load the config
+        Plugin.__init__(self, **kwargs)
+
+        # Use options from the config file if they weren't passed as arguments
         self.name = self.config_options.get("name", None) if name is None else name
         self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
@@ -170,23 +179,8 @@ class Writer(Plugin):
         # Set a way to create filenames if we were given a pattern
         self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
 
-    def load_config(self, **kwargs):
-        conf = ConfigParser()
-        conf.read(self.config_file)
-        writer_options = set() # preserver 2.6 compatibility
-        for section_name in conf.sections():
-            if section_name.startswith("writer:"):
-                writer_options = dict(conf.items(section_name))
-            else:
-                # let subclasses do something with any other sections in the config
-                self.parse_config_section(section_name, dict(conf.items(section_name)))
-
-        if not writer_options:
-            LOG.warning("No 'writer:' section found in config file: %s", self.config_file)
-        return writer_options
-
-    def parse_config_section(self, section_name, section_options):
-        pass
+    def load_section_writer(self, section_name, section_options):
+        self.config_options = section_options
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
