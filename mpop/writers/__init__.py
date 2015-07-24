@@ -28,9 +28,58 @@ For now, this includes enhancement configuration utilities.
 import logging
 import ConfigParser
 from mpop import PACKAGE_CONFIG_PATH
+from mpop.plugin_base import Plugin
+from trollsift import parser
 import os
 
 LOG = logging.getLogger(__name__)
+
+
+class Writer(Plugin):
+    """Writer plugins. They must implement the *save_image* method. This is an
+    abstract class to be inherited.
+    """
+
+    def __init__(self, name=None, fill_value=None, file_pattern=None, enhancement_config=None, **kwargs):
+        # Load the config
+        Plugin.__init__(self, **kwargs)
+
+        # Use options from the config file if they weren't passed as arguments
+        self.name = self.config_options.get("name", None) if name is None else name
+        self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
+        self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
+        enhancement_config = self.config_options.get("enhancement_config", None) if enhancement_config is None else enhancement_config
+
+        if self.name is None:
+            raise ValueError("Writer 'name' not provided")
+        if self.fill_value:
+            self.fill_value = float(self.fill_value)
+
+        self.create_filename_parser()
+        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+
+    def create_filename_parser(self):
+        # just in case a writer needs more complex file patterns
+        # Set a way to create filenames if we were given a pattern
+        self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
+
+    def load_section_writer(self, section_name, section_options):
+        self.config_options = section_options
+
+    def get_filename(self, **kwargs):
+        if self.filename_parser is None:
+            raise RuntimeError("No filename pattern or specific filename provided")
+        return self.filename_parser.compose(kwargs)
+
+    def save_dataset(self, dataset, fill_value=None, **kwargs):
+        """Saves the *dataset* to a given *filename*.
+        """
+        fill_value = fill_value if fill_value is not None else self.fill_value
+        img = dataset.get_enhanced_image(self.enhancer, fill_value)
+        self.save_image(img, **kwargs)
+
+    def save_image(self, img, *args, **kwargs):
+        raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 
 class EnhancementDecisionTree(object):
@@ -100,6 +149,7 @@ class EnhancementDecisionTree(object):
             # only possible if no default section was provided
             raise KeyError("No enhancement configuration found for %s" % (kwargs.get("uid", None),))
         return match
+
 
 class Enhancer(object):
 
