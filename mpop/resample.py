@@ -130,7 +130,7 @@ class KDTreeResampler(BaseResampler):
                                  hashlib.sha1(json.dumps(area.area_extent)).hexdigest(),
                                  hashlib.sha1(json.dumps(area.shape)).hexdigest()))
         except AttributeError:
-            if not area.lons:
+            if not hasattr(area, "lons") or area.lons is None:
                 lons, lats = area.get_lonlats()
             else:
                 lons, lats = area.lons, area.lats

@@ -212,7 +212,7 @@ class Scene(InfoObject):
                     options["sensor"] = set(options["sensor"].split(","))
                     if len(options["sensor"]) == 1:
                         # FIXME: Finalize how multiple sensors and platforms work
-                        options["sensor"] = options["sensor"][0]
+                        options["sensor"] = options["sensor"].pop()
                 comp_cls = options.get("compositor", None)
                 if not comp_cls:
                     raise ValueError("'compositor' missing or empty in config file: %s" % (composite_config,))

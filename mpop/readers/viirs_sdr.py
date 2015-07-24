@@ -668,6 +668,7 @@ class ViirsSDRReader(Reader):
                              + str(projectable.data.shape) + "_" +
                              band.mask_name)
                 area.area_id = area_name
+                area.name = area_name
                 projectable.info["area"] = area
                 areas[band.mask_name] = area
             # except ImportError:
