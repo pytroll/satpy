@@ -22,7 +22,8 @@
 """
 """
 
-from mpop.plugin_base import Writer
+from mpop.writers import Writer
+
 
 class PillowWriter(Writer):
 

@@ -26,12 +26,9 @@
 
 import logging
 import numpy as np
-from mpop.plugin_base import Writer
+from mpop.writers import Writer
 from mpop.utils import ensure_dir
 from osgeo import gdal, osr
-
-from pyresample import utils
-from mpop.projector import get_area_def
 
 
 LOG = logging.getLogger(__name__)
@@ -225,11 +222,6 @@ class GeoTIFFWriter(Writer):
 
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution ... if not overwritten by argument geotransform.
-
-        try:
-            area = get_area_def(area)
-        except (utils.AreaNotFound, AttributeError):
-            area = area
 
         try:
             geotransform = [area.area_extent[0], area.pixel_size_x, 0,

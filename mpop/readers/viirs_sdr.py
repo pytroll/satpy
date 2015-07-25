@@ -32,7 +32,6 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 
 """
 import os.path
-from ConfigParser import ConfigParser
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -42,8 +41,8 @@ import logging
 
 from mpop.utils import strftime
 from mpop.projectable import Projectable
+from mpop.readers import Reader
 
-from mpop import CONFIG_PATH
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -518,8 +517,6 @@ class ViirsBandData(object):
 
 
 # ------------------------------------------------------------------------------
-from mpop.plugin_base import Reader
-
 
 class ViirsSDRReader(Reader):
     pformat = "viirs_sdr"

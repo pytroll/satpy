@@ -52,7 +52,7 @@ try:
 except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
 
-from mpop.plugin_base import Reader
+from mpop.readers import Reader
 
 
 class XritReader(Reader):
