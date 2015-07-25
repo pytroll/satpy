@@ -5,6 +5,7 @@
 # Author(s):
 
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
 
@@ -30,9 +31,78 @@ import ConfigParser
 from mpop import PACKAGE_CONFIG_PATH
 from mpop.plugin_base import Plugin
 from trollsift import parser
+from trollimage.image import Image
 import os
 
 LOG = logging.getLogger(__name__)
+
+def _determine_mode(dataset):
+    if "mode" in dataset.info:
+        return dataset.info["mode"]
+
+    if dataset.ndim == 2:
+        return "L"
+    elif dataset.shape[0] == 2:
+        return "LA"
+    elif dataset.shape[0] == 3:
+        return "RGB"
+    elif dataset.shape[0] == 4:
+        return "RGBA"
+    else:
+        raise RuntimeError("Can't determine 'mode' of dataset: %s" % (dataset.info.get("name", None),))
+
+def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=None, enhancement_config_file=None):
+    mode = _determine_mode(dataset)
+
+    if ppp_config_dir is None:
+        ppp_config_dir = os.environ["PPP_CONFIG_DIR"]
+
+    if enhancer is None:
+        enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+
+    if enhancer.enhancement_tree is None:
+        raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
+
+    if dataset.info.get("sensor", None):
+        enhancer.add_sensor_enhancements(dataset.info["sensor"])
+
+    # Create an image for enhancement
+    img = to_image(dataset, mode=mode, fill_value=fill_value)
+    enhancer.apply(img, **dataset.info)
+
+    img.info.update(dataset.info)
+
+    return img
+
+def show(dataset, **kwargs):
+    """Display the channel as an image.
+    """
+    if not dataset.is_loaded():
+        raise ValueError("Dataset not loaded, cannot display.")
+
+    img = get_enhanced_image(dataset, **kwargs)
+    img.show()
+
+def to_image(dataset, copy=True, **kwargs):
+    # Only add keywords if they are present
+    if "mode" in dataset.info:
+        kwargs.setdefault("mode", dataset.info["mode"])
+    if "fill_value" in dataset.info:
+        kwargs.setdefault("fill_value", dataset.info["fill_value"])
+    if "palette" in dataset.info:
+        kwargs.setdefault("palette", dataset.info["palette"])
+
+    if dataset.ndim == 2:
+        return Image([dataset],
+                      copy=copy,
+                      **kwargs)
+    elif dataset.ndim == 3:
+        return Image([band for band in dataset],
+                      copy=copy,
+                      **kwargs)
+    else:
+        raise ValueError("Don't know how to convert array with ndim %d to image" % dataset.ndim)
+
 
 
 class Writer(Plugin):
@@ -75,7 +145,7 @@ class Writer(Plugin):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
-        img = dataset.get_enhanced_image(self.enhancer, fill_value)
+        img = get_enhanced_image(dataset, self.enhancer, fill_value)
         self.save_image(img, **kwargs)
 
     def save_image(self, img, *args, **kwargs):
