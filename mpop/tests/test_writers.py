@@ -26,6 +26,7 @@ import unittest
 import numpy as np
 from mpop import projectable
 import mock
+from mpop.writers import to_image, show
 
 class TestWritersModule(unittest.TestCase):
 
@@ -35,9 +36,9 @@ class TestWritersModule(unittest.TestCase):
         """
         # 1D
         p = projectable.Projectable(np.arange(25))
-        self.assertRaises(ValueError, p.to_image)
+        self.assertRaises(ValueError, to_image, p)
 
-    @mock.patch('mpop.projectable.Image')
+    @mock.patch('mpop.writers.Image')
     def test_to_image_2D(self, mock_geoimage):
         """
         Conversion to image
@@ -45,11 +46,11 @@ class TestWritersModule(unittest.TestCase):
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = projectable.Projectable(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
-        p.to_image()
+        to_image(p)
         np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
         mock_geoimage.reset_mock()
 
-    @mock.patch('mpop.projectable.Image')
+    @mock.patch('mpop.writers.Image')
     def test_to_image_3D(self, mock_geoimage):
         """
         Conversion to image
@@ -57,21 +58,21 @@ class TestWritersModule(unittest.TestCase):
         # 3D
         data = np.arange(75).reshape((3, 5, 5))
         p = projectable.Projectable(data)
-        p.to_image()
+        to_image(p)
         np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
         np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
 
-    @mock.patch('mpop.projectable.Projectable.get_enhanced_image')
+    @mock.patch('mpop.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         data = np.arange(25).reshape((5, 5))
         p = projectable.Projectable(data)
-        p.show()
+        show(p)
         self.assertTrue(mock_get_image.return_value.show.called)
 
     def test_show_unloaded(self):
         p = projectable.Projectable([])
-        self.assertRaises(ValueError, p.show)
+        self.assertRaises(ValueError, show, p)
 
 
 def suite():

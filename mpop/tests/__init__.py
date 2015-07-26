@@ -58,5 +58,7 @@ def suite():
     #mysuite.addTests(test_viirs_sdr.suite())
     #mysuite.addTests(test_visir.suite())
     mysuite.addTests(test_projectable.suite())
+    mysuite.addTests(test_writers.suite())
+
 
     return mysuite
