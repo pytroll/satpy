@@ -67,14 +67,6 @@ class TestProjectable(unittest.TestCase):
         self.assertFalse(projectable.Projectable([]).is_loaded())
         self.assertTrue(projectable.Projectable(data=1).is_loaded())
 
-    def test_to_image_1D(self):
-        """
-        Conversion to image
-        """
-        # 1D
-        p = projectable.Projectable(np.arange(25))
-        self.assertRaises(ValueError, p.to_image)
-
     def test_str(self):
         # FIXME: Is there a better way to fake the area?
         class FakeArea(object):
@@ -98,42 +90,6 @@ class TestProjectable(unittest.TestCase):
         # Data that doesn't have a shape
         p = projectable.Projectable(data=tuple())
         p_str = str(p)
-
-    @mock.patch('mpop.projectable.Image')
-    def test_to_image_2D(self, mock_geoimage):
-        """
-        Conversion to image
-        """
-        # 2D
-        data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
-        p.to_image()
-        np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
-        mock_geoimage.reset_mock()
-
-    @mock.patch('mpop.projectable.Image')
-    def test_to_image_3D(self, mock_geoimage):
-        """
-        Conversion to image
-        """
-        # 3D
-        data = np.arange(75).reshape((3, 5, 5))
-        p = projectable.Projectable(data)
-        p.to_image()
-        np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
-        np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
-        np.testing.assert_array_equal(data[2], mock_geoimage.call_args[0][0][2])
-
-    @mock.patch('mpop.projectable.Projectable.get_enhanced_image')
-    def test_show(self, mock_get_image):
-        data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data)
-        p.show()
-        self.assertTrue(mock_get_image.return_value.show.called)
-
-    def test_show_unloaded(self):
-        p = projectable.Projectable([])
-        self.assertRaises(ValueError, p.show)
 
     @mock.patch('mpop.projectable.resample')
     def test_resample_2D(self, mock_resampler):
