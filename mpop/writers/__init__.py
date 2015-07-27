@@ -33,6 +33,7 @@ from mpop.plugin_base import Plugin
 from trollsift import parser
 from trollimage.image import Image
 import os
+import json
 
 LOG = logging.getLogger(__name__)
 
@@ -218,6 +219,11 @@ class EnhancementDecisionTree(object):
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No enhancement configuration found for %s" % (kwargs.get("uid", None),))
+        for key, val in match.iteritems():
+            try:
+                match[key] = json.loads(val)
+            except ValueError:
+                pass
         return match
 
 
