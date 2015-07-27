@@ -85,53 +85,6 @@ class RGBCompositor(CompositeBase):
         info["mode"] = "RGB"
         return Projectable(data=the_data, **info)
 
-class Overview(RGBCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Make an overview RGB image composite.
-
-        +--------------------+--------------------+
-        | Channels           | Gamma (default)    |
-        +====================+====================+
-        | VIS0.6             | gamma 1.6          |
-        +--------------------+--------------------+
-        | VIS0.8             | gamma 1.6          |
-        +--------------------+--------------------+
-        | IR10.8 (inverted)  | gamma 1.6          |
-        +--------------------+--------------------+
-
-        Linear stretch without clipping is applied.
-        """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[0],
-                                      projectables[1],
-                                      -projectables[2]),
-                                     *args, **kwargs)
-        return res
-
-
-class Natural(RGBCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a Natural Colors RGB image composite.
-
-        +--------------------+--------------------+--------------------+
-        | Channels           | Range (reflectance)| Gamma (default)    |
-        +====================+====================+====================+
-        | IR1.6              | 0 - 90             | gamma 1.8          |
-        +--------------------+--------------------+--------------------+
-        | VIS0.8             | 0 - 90             | gamma 1.8          |
-        +--------------------+--------------------+--------------------+
-        | VIS0.6             | 0 - 90             | gamma 1.8          |
-        +--------------------+--------------------+--------------------+
-        """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[0],
-                                      projectables[1],
-                                      projectables[2]),
-                                     *args, **kwargs)
-        return res
-
 class Airmass(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
@@ -150,29 +103,6 @@ class Airmass(RGBCompositor):
                                      (projectables[0] - projectables[1],
                                       projectables[2] - projectables[3],
                                       projectables[0]),
-                                     *args, **kwargs)
-        return res
-
-class GreenSnow(RGBCompositor):
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a Green Snow RGB image composite.
-
-        +--------------------+--------------------+
-        | Channels           | Gamma              |
-        +====================+====================+
-        | IR1.6              | gamma 1.6          |
-        +--------------------+--------------------+
-        | VIS0.6             | gamma 1.6          |
-        +--------------------+--------------------+
-        | IR10.8 (inverted)  | gamma 1.6          |
-        +--------------------+--------------------+
-
-        Linear stretch without clipping.
-        """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[0],
-                                      projectables[1],
-                                      -projectables[2]),
                                      *args, **kwargs)
         return res
 
@@ -209,48 +139,6 @@ class Dust(RGBCompositor):
         | IR10.8 - IR8.7     |     0 to 15 K      | gamma 2.5          |
         +--------------------+--------------------+--------------------+
         | IR10.8             |   261 to 289 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[2] - projectables[1],
-                                      projectables[1] - projectables[0],
-                                      projectables[1]),
-                                     *args, **kwargs)
-        return res
-
-class Ash(RGBCompositor):
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a Ash RGB image composite.
-
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR10.8 - IR8.7     |     -4 to 5 K      | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR10.8             |   243 to 303 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[2] - projectables[1],
-                                      projectables[1] - projectables[0],
-                                      projectables[1]),
-                                     *args, **kwargs)
-        return res
-
-class Fog(RGBCompositor):
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a Fog RGB image composite.
-
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR10.8 - IR8.7     |      0 to 6 K      | gamma 2.0          |
-        +--------------------+--------------------+--------------------+
-        | IR10.8             |   243 to 283 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
         res = RGBCompositor.__call__(self,
