@@ -421,12 +421,12 @@ class Scene(InfoObject):
                 global_compositors = self.read_composites_config(composite_config, names=composite_names, **kwargs)
                 # Update the set of configs we've read already
                 self._composite_configs.add(composite_config)
-                # Update the lsit of composites the scene knows about
+                # Update the list of composites the scene knows about
                 self.compositors.update(global_compositors)
                 # Remove the names we know how to create now
                 composite_names -= set(global_compositors.keys())
             else:
-                LOG.warning("No global composites.cfg file found in config directory")
+                LOG.warning("No global composites/generic.cfg file found in config directory")
 
         return composite_names
 

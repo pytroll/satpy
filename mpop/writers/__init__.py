@@ -86,12 +86,9 @@ def show(dataset, **kwargs):
 
 def to_image(dataset, copy=True, **kwargs):
     # Only add keywords if they are present
-    if "mode" in dataset.info:
-        kwargs.setdefault("mode", dataset.info["mode"])
-    if "fill_value" in dataset.info:
-        kwargs.setdefault("fill_value", dataset.info["fill_value"])
-    if "palette" in dataset.info:
-        kwargs.setdefault("palette", dataset.info["palette"])
+    for key in ["mode", "fill_value", "palette"]:
+        if key in dataset.info:
+            kwargs.setdefault(key, dataset.info[key])
 
     if dataset.ndim == 2:
         return Image([dataset],
