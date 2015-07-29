@@ -17,3 +17,5 @@ deploy:
     tags: true
     repo: pytroll/mpop
 sudo: false
+notifications:
+  slack: pytroll:96mNSYSI1dBjGyzVXkBT6qFt
