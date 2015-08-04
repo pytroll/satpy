@@ -26,7 +26,9 @@
 
 from mpop.projectable import InfoObject, Projectable
 import numpy as np
+import logging
 
+LOG = logging.getLogger(__name__)
 # TODO: overview_sun
 
 
@@ -57,6 +59,24 @@ class CompositeBase(InfoObject):
     def __call__(self, projectables, nonprojectables=None, **info):
         raise NotImplementedError()
 
+
+class SunZenithNormalize():
+    # FIXME: the cache should be cleaned up
+    coszen = {}
+
+    def __call__(self, projectable,  *args, **kwargs):
+        from pyorbital.astronomy import cos_zen
+        key = (projectable.info["start_time"], projectable.info["area"].name)
+        if key not in self.coszen:
+            LOG.debug("Computing sun zenith angles.")
+            self.coszen[key] = np.ma.masked_outside(cos_zen(projectable.info["start_time"],
+                                                    *projectable.info["area"].get_lonlats()),
+                                                    0.035, # about 88 degrees.
+                                                    1,
+                                                    copy=False)
+        return projectable / self.coszen[key]
+
+
 class RGBCompositor(CompositeBase):
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
@@ -85,6 +105,19 @@ class RGBCompositor(CompositeBase):
         info["mode"] = "RGB"
         return Projectable(data=the_data, **info)
 
+
+class SunCorrectedRGB(RGBCompositor):
+    def __call__(self, projectables, *args, **kwargs):
+        suncorrector = SunZenithNormalize()
+        for i, projectable in enumerate(projectables):
+            if projectable.info.get("units") == "%":
+                projectables[i] = suncorrector(projectable)
+        res = RGBCompositor.__call__(self,
+                                     projectables,
+                                     *args, **kwargs)
+        return res
+
+
 class Airmass(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
@@ -106,6 +139,7 @@ class Airmass(RGBCompositor):
                                      *args, **kwargs)
         return res
 
+
 class Convection(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
@@ -126,6 +160,7 @@ class Convection(RGBCompositor):
                                       projectables[1] - projectables[0]),
                                      *args, **kwargs)
         return res
+
 
 class Dust(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
