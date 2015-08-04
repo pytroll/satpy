@@ -468,7 +468,7 @@ class Scene(InfoObject):
         # Don't include any of the 'unknown' projectable names
         projectable_names = set(projectable_names) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
-                                if composite not in self.projectables or not self[composite].is_loaded())
+                                if composite not in self.projectables or not self[composite].is_loaded()) & projectable_names
 
         for reader_name, reader_instance in self.readers.items():
             all_reader_channels = set(reader_instance.channel_names)
