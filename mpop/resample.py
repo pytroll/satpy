@@ -33,21 +33,21 @@ import numpy as np
 import hashlib
 import json
 import os
-from mpop import get_config, utils
+from mpop import get_config, get_config_path, utils
 from ConfigParser import NoSectionError
 
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
 
+
 def get_area_file():
     conf = get_config("mpop.cfg")
 
     try:
-        return os.path.join(conf.get("projector",
-                                     "area_directory") or
-                            CONFIG_PATH,
-                            conf.get("projector", "area_file"))
+        fn = os.path.join(conf.get("projector", "area_directory") or "",
+                          conf.get("projector", "area_file"))
+        return get_config_path(fn)
     except NoSectionError:
         LOG.warning("Couldn't find the mpop.cfg file. "
                     "Do you have one ? is it in $PPP_CONFIG_DIR ?")
@@ -58,7 +58,8 @@ def get_area_def(area_name):
     is to be placed in the $PPP_CONFIG_DIR directory, and its name is defined
     in mpop's configuration file.
     """
-    return utils.parse_area_file(get_area_file(), area_name)[0]
+    from pyresample.utils import parse_area_file
+    return parse_area_file(get_area_file(), area_name)[0]
 
 
 class BaseResampler(object):
