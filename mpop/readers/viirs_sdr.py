@@ -215,20 +215,23 @@ class SDRFileReader(HDF5MetaData):
             data_out = data[:].astype(var_info.dtype)
             mask_out = np.zeros_like(data_out, dtype=np.bool)
 
-        try:
-            factors = self[var_info.scaling_factors] if var_info.scaling_factors is not None else None
-        except KeyError:
-            LOG.debug("No scaling factors found for %s", item)
+        if var_info.scaling_factors:
+            try:
+                factors = self[var_info.scaling_factors]
+            except KeyError:
+                LOG.debug("No scaling factors found for %s", item)
+                factors = None
+        else:
             factors = None
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
             fill_max = float(var_info.kwargs.get("fill_max_float", -999.0))
-            mask_out[:] = data_out <= fill_max
+            mask_out[:] |= data_out <= fill_max
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(var_info.kwargs.get("fill_min_int", 65528))
-            mask_out[:] = data_out >= fill_min
+            mask_out[:] |= data_out >= fill_min
 
         if factors is not None:
             data_out, scaling_mask = self.scale_swath_data(data_out, mask_out, factors)
