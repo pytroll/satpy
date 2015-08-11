@@ -60,7 +60,7 @@ class CompositeBase(InfoObject):
         raise NotImplementedError()
 
 
-class SunZenithNormalize():
+class SunZenithNormalize(object):
     # FIXME: the cache should be cleaned up
     coszen = {}
 
