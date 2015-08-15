@@ -57,13 +57,49 @@ VIIRS_DNB_BANDS = ('DNB', )
 LOG = logging.getLogger(__name__)
 
 
+def _get_invalid_info(granule_data):
+    """Get a detailed report of the missing data.
+        N/A: not applicable
+        MISS: required value missing at time of processing
+        OBPT: onboard pixel trim (overlapping/bow-tie pixel removed during
+            SDR processing)
+        OGPT: on-ground pixel trim (overlapping/bow-tie pixel removed
+            during EDR processing)
+        ERR: error occurred during processing / non-convergence
+        ELINT: ellipsoid intersect failed / instrument line-of-sight does
+            not intersect the Earth’s surface
+        VDNE: value does not exist / processing algorithm did not execute
+        SOUB: scaled out-of-bounds / solution not within allowed range
+    """
+    if issubclass(granule_data.dtype.type, np.integer):
+        msg = ("na:" + str((granule_data == 65535).sum()) +
+               " miss:" + str((granule_data == 65534).sum()) +
+               " obpt:" + str((granule_data == 65533).sum()) +
+               " ogpt:" + str((granule_data == 65532).sum()) +
+               " err:" + str((granule_data == 65531).sum()) +
+               " elint:" + str((granule_data == 65530).sum()) +
+               " vdne:" + str((granule_data == 65529).sum()) +
+               " soub:" + str((granule_data == 65528).sum()))
+    if issubclass(granule_data.dtype.type, np.floating):
+        msg = ("na:" + str((granule_data == -999.9).sum()) +
+               " miss:" + str((granule_data == -999.8).sum()) +
+               " obpt:" + str((granule_data == -999.7).sum()) +
+               " ogpt:" + str((granule_data == -999.6).sum()) +
+               " err:" + str((granule_data == -999.5).sum()) +
+               " elint:" + str((granule_data == -999.4).sum()) +
+               " vdne:" + str((granule_data == -999.3).sum()) +
+               " soub:" + str((granule_data == -999.2).sum()))
+    return msg
+
+
 # FIXME: Add more information
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "kwargs"])):
-    def __new__(cls, name, variable_name, scaling_factors=None, dtype=np.float32, **kwargs):
+class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "units", "file_units", "kwargs"])):
+    def __new__(cls, name, variable_name,
+                scaling_factors=None, dtype=np.float32, units=None, file_units=None, **kwargs):
         if isinstance(dtype, (str, unicode)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, kwargs)
+        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, units, file_units, kwargs)
 
 
 class HDF5MetaData(object):
@@ -76,7 +112,7 @@ class HDF5MetaData(object):
             raise IOError("File %s does not exist!" % filename)
         file_handle = h5py.File(self.filename, 'r')
         file_handle.visititems(self.collect_metadata)
-        self._collect_attrs('/', file_handle.attrs)
+        self._collect_attrs('', file_handle.attrs)
         file_handle.close()
 
     def _collect_attrs(self, name, attrs):
@@ -150,28 +186,58 @@ class SDRFileReader(HDF5MetaData):
         return self._parse_npp_datatime(self['ending_date'], self['ending_time'])
 
     def get_begin_orbit_number(self):
-        return int(self['AggregateBeginningOrbitNumber'])
+        return int(self['beginning_orbit_number'])
 
     def get_end_orbit_number(self):
-        return int(self['AggregateEndingOrbitNumber'])
+        return int(self['ending_orbit_number'])
 
-    def get_geofilname(self):
-        return self['N_GEO_Ref']
+    def get_platform_name(self):
+        return self['platform_short_name']
 
-    def get_unit(self, calibrate=1):
+    def get_sensor_name(self):
+        return self['instrument_short_name']
 
-        band = self['Band_ID']
-        if calibrate == 2 and band not in VIIRS_DNB_BANDS:
-            return "W m-2 um-1 sr-1"
+    def get_geofilename(self):
+        return self['geo_file_reference']
 
-        if band in VIIRS_IR_BANDS:
-            return "K"
-        elif band in VIIRS_VIS_BANDS:
-            return '%'
-        elif band in VIIRS_DNB_BANDS:
-            return 'W m-2 sr-1'
+    def get_file_units(self, item, calibrate=None):
+        var_info = self.file_keys[item]
+        # What units should we expect from the file
+        file_units = getattr(var_info, "file_units", None)
 
-        return None
+        # Guess the file units if we need to (normally we would get this from the file)
+        if file_units is None:
+            if "radiance" in item:
+                # we are getting some sort of radiance, probably DNB
+                file_units = "W cm-2 sr-1"
+            elif "reflectance" in item:
+                file_units = "fraction"
+            elif "temperature" in item:
+                file_units = "K"
+            elif "longitude" in item or "latitude" in item:
+                file_units = "degrees"
+            else:
+                LOG.debug("Unknown units for file key '%s'", item)
+
+        return file_units
+
+    def get_units(self, item, calibrate=None):
+        var_info = self.file_keys[item]
+        file_units = self.get_file_units(item, calibrate=calibrate)
+        # What units does the user want
+        return getattr(var_info, "units", file_units)
+
+        # if calibrate == 2 and band not in VIIRS_DNB_BANDS:
+        #     return "W m-2 um-1 sr-1"
+        #
+        # if band in VIIRS_IR_BANDS:
+        #     return "K"
+        # elif band in VIIRS_VIS_BANDS:
+        #     return '%'
+        # elif band in VIIRS_DNB_BANDS:
+        #     return 'W m-2 sr-1'
+        #
+        # return None
 
     def scale_swath_data(self, data, mask, scaling_factors):
         """Scale swath data using scaling factors and offsets.
@@ -192,9 +258,28 @@ class SDRFileReader(HDF5MetaData):
                 data[start_idx:end_idx] *= m
                 data[start_idx:end_idx] += b
 
-        return data, mask
+    def adjust_scaling_factors(self, factors, file_units, output_units):
+        if file_units == output_units:
+            LOG.debug("File units and output units are the same (%s)", file_units)
+            return factors
+        if factors is None:
+            factors = [1., 0.]
+        factors = np.array(factors)
 
-    def get_swath_data(self, item, filename=False, data_out=None, mask_out=None):
+        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
+            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
+            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
+            return factors
+        elif file_units == "fraction" and output_units == "%":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
+            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
+            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
+            return factors
+        else:
+            return factors
+
+    def get_swath_data(self, item, filename=False, data_out=None, mask_out=None, calibrate=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
         if filename:
@@ -206,7 +291,7 @@ class SDRFileReader(HDF5MetaData):
         # Can't guarantee proper file info until we get the data first
         var_info = self.file_keys[item]
         data = self[item]
-        is_floating = np.issubdtype(data_out.dtype, np.floating)
+        is_floating = np.issubdtype(data.dtype, np.floating)
         if data_out is not None:
             # This assumes that we are promoting the dtypes (ex. float file data -> int array)
             # and that it happens automatically when assigning to the existing out array
@@ -233,8 +318,13 @@ class SDRFileReader(HDF5MetaData):
             fill_min = int(var_info.kwargs.get("fill_min_int", 65528))
             mask_out[:] |= data_out >= fill_min
 
+        # Check if we need to do some unit conversion
+        file_units = self.get_file_units(item, calibrate=calibrate)
+        output_units = getattr(var_info, "units", file_units)
+        factors = self.adjust_scaling_factors(factors, file_units, output_units)
+
         if factors is not None:
-            data_out, scaling_mask = self.scale_swath_data(data_out, mask_out, factors)
+            self.scale_swath_data(data_out, mask_out, factors)
 
         return data_out, mask_out
 
@@ -256,6 +346,24 @@ class MultiFileReader(object):
     @property
     def end_time(self):
         return self.file_readers[-1].end_time
+
+    def get_begin_orbit_number(self):
+        return self.file_readers[0].get_begin_orbit_number()
+
+    def get_end_orbit_number(self):
+        return self.file_readers[0].get_end_orbit_number()
+
+    def get_platform_name(self):
+        return self.file_readers[0].get_platform_name()
+
+    def get_sensor_name(self):
+        return self.file_readers[0].get_sensor_name()
+
+    def get_geofilenames(self):
+        return [fr.get_geofilename() for fr in self.file_readers]
+
+    def get_units(self, item, calibrate=None):
+        return self.file_readers[0].get_units(item, calibrate=calibrate)
 
     def get_swath_data(self, item, extra_mask=None, filename=None):
         if self.file_keys is None:
@@ -444,7 +552,7 @@ class ViirsSDRReader(Reader):
 
         return area
 
-    def load(self, channels_to_load, **kwargs):
+    def load(self, channels_to_load, calibrate=None, **kwargs):
         # Ignore `calibrate` for now
         if kwargs:
             LOG.warning("Unsupported options for viirs reader: %s", str(kwargs))
@@ -478,10 +586,16 @@ class ViirsSDRReader(Reader):
 
             # Create a projectable from info from the file data and the config file
             # FIXME: Units are provided by the config, but should use the type from the file by default
+            kwargs = self.channels[chn].copy()
+            kwargs.setdefault("units", file_reader.get_units(file_key, calibrate=calibrate))
+            kwargs.setdefault("platform", file_reader.get_platform_name())
+            kwargs.setdefault("sensor", file_reader.get_sensor_name())
+            kwargs.setdefault("start_orbit", file_reader.get_begin_orbit_number())
+            kwargs.setdefault("end_orbit", file_reader.get_end_orbit_number())
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
-                                      **self.channels[chn])
+                                      **kwargs)
             projectable.info["area"] = area
 
             # We assume the same geolocation should apply to all M-bands!
