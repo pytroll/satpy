@@ -92,7 +92,6 @@ def _get_invalid_info(granule_data):
     return msg
 
 
-# FIXME: Add more information
 class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "units", "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
                 scaling_factors=None, dtype=np.float32, units=None, file_units=None, **kwargs):
@@ -592,6 +591,7 @@ class ViirsSDRReader(Reader):
             kwargs.setdefault("sensor", file_reader.get_sensor_name())
             kwargs.setdefault("start_orbit", file_reader.get_begin_orbit_number())
             kwargs.setdefault("end_orbit", file_reader.get_end_orbit_number())
+            kwargs.setdefault("rows_per_scan", self.nav_sets[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
