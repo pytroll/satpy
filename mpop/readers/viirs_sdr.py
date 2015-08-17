@@ -358,7 +358,8 @@ class MultiFileReader(object):
     def get_sensor_name(self):
         return self.file_readers[0].get_sensor_name()
 
-    def get_geofilenames(self):
+    @property
+    def geo_filenames(self):
         return [fr.get_geofilename() for fr in self.file_readers]
 
     def get_units(self, item, calibrate=None):
@@ -492,7 +493,7 @@ class ViirsSDRReader(Reader):
         name = section_name.split(":")[-1]
         self.nav_sets[name] = section_options
 
-    def identify_file_types(self, filenames, default_file_reader="mpop.readers.viirs_sdr.SDRReader"):
+    def identify_file_types(self, filenames, default_file_reader="mpop.readers.viirs_sdr.SDRFileReader"):
         """Identify the type of a file by its filename or by its contents.
 
         Uses previously loaded information from the configuration file.
@@ -502,14 +503,16 @@ class ViirsSDRReader(Reader):
         remaining_filenames = filenames[:]
         for file_type_name, file_type_info in self.file_types.items():
             file_types[file_type_name] = []
-            file_reader_class = self._runtime_import(file_type_info.pop("file_reader", default_file_reader))
+            file_reader_class = self._runtime_import(file_type_info.get("file_reader", default_file_reader))
             for file_pattern in file_type_info["file_patterns"]:
                 tmp_remaining = []
                 tmp_matching = []
                 for fn in remaining_filenames:
                     # Add a wildcard to the front for path information
                     # FIXME: Is there a better way to generalize this besides removing the path every time
-                    if fnmatch(fn, "*" + file_pattern):
+                    if not os.path.exists(fn):
+                        raise IOError("Input file does not exist: %s" % (fn,))
+                    elif fnmatch(fn, "*" + file_pattern):
                         tmp_matching.append(file_reader_class(file_type_name, fn, file_keys=self.file_keys, **file_type_info))
                     else:
                         tmp_remaining.append(fn)
@@ -533,7 +536,26 @@ class ViirsSDRReader(Reader):
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
         file_type = nav_info["file_type"]
-        file_reader = self.file_readers[file_type]
+
+        if file_type in self.file_readers:
+            file_reader = self.file_readers[file_type]
+        else:
+            LOG.debug("Geolocation files were not provided, will search band file header...")
+
+            # it should be impossible that we need to find geolocation for a channel and
+            # that there are no channels that need this geolocation:
+            channel_file_type = [v["file_type"] for v in self.channels.values() if v["navigation"] == nav_name and
+                                 v["file_type"] in self.file_readers][0]
+            channel_file_reader = self.file_readers[channel_file_type]
+            base_dirs = [os.path.dirname(fn) for fn in channel_file_reader.filenames]
+            geo_filenames = channel_file_reader.geo_filenames
+            geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
+
+            file_readers = self.identify_file_types(geo_filepaths)
+            if file_type not in file_readers:
+                raise RuntimeError("The geolocation files from the header (ex. %s)"
+                                   " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
+            file_reader = file_readers[file_type]
 
         lon_data = file_reader.get_swath_data(lon_key, extra_mask=extra_mask)
         lat_data = file_reader.get_swath_data(lat_key, extra_mask=extra_mask)
