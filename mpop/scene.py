@@ -434,7 +434,7 @@ class Scene(InfoObject):
 
         return composite_names
 
-    def read(self, *projectable_keys, **kwargs):
+    def read(self, projectable_keys, **kwargs):
         """Read the composites called *projectable_keys* or their prerequisites.
         """
         self.wishlist = list(projectable_keys)
