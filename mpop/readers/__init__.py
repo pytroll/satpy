@@ -35,13 +35,14 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    def __init__(self, name,
+    def __init__(self, name=None,
                  file_patterns=None,
                  filenames=None,
                  description="",
                  start_time=None,
                  end_time=None,
                  area=None,
+                 sensor=None,
                  **kwargs):
         """The reader plugin takes as input a satellite scene to fill in.
 
@@ -59,6 +60,7 @@ class Reader(Plugin):
         self.file_patterns = self.config_options.get("file_patterns", None) if file_patterns is None else file_patterns
         self.filenames = self.config_options.get("filenames", []) if filenames is None else filenames
         self.description = self.config_options.get("description", None) if description is None else description
+        self.sensor = self.config_options.get("sensor", "").split(",") if sensor is None else set(sensor)
 
         # These can't be provided by a configuration file
         self.start_time = start_time
@@ -81,20 +83,26 @@ class Reader(Plugin):
     def sensor_names(self):
         """Sensors supported by this reader.
         """
-        return set([sensor_name for chn_info in self.channels.values()
-                    for sensor_name in chn_info["sensor"].split(",")])
+        sensors = set()
+        for chn_info in self.channels.values():
+            if "sensor" in chn_info:
+                sensors |= set(chn_info["sensor"].split(","))
+        return sensors | self.sensor
 
     def load_section_reader(self, section_name, section_options):
         self.config_options = section_options
 
     def load_section_channel(self, section_name, section_options):
+        name = section_options.get("name", section_name.split(":")[-1])
+        section_options["name"] = name
+
         # Allow subclasses to make up their own rules about channels, but this is a good starting point
         if "file_patterns" in section_options:
             section_options["file_patterns"] = section_options["file_patterns"].split(",")
         if "wavelength_range" in section_options:
             section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
 
-        self.channels[section_options["name"]] = section_options
+        self.channels[name] = section_options
 
     def get_channel(self, key):
         """Get the channel corresponding to *key*, either by name or centerwavelength.

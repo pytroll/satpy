@@ -260,6 +260,7 @@ class Scene(InfoObject):
             if section.startswith("reader:"):
                 reader_info = dict(conf.items(section))
                 reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
+                reader_info["sensor"] = reader_info.setdefault("sensor", "").split(",")
                 # XXX: Readers can have separate start/end times from the
                 # rest fo the scene...might be a bad idea?
                 reader_info.setdefault("start_time", self.info.get("start_time", None))
@@ -271,6 +272,9 @@ class Scene(InfoObject):
                 except KeyError:
                     break
                 file_patterns.extend(reader_info["file_patterns"])
+
+                if reader_info["sensor"]:
+                    sensors |= set(reader_info["sensor"])
             else:
                 try:
                     file_patterns.extend(conf.get(section, "file_patterns").split(","))
