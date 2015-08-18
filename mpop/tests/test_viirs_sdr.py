@@ -3,7 +3,11 @@
 """Module for testing the mpop.channel module.
 """
 
-import unittest
+import sys
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 import mock
 from datetime import datetime
 import numpy as np
