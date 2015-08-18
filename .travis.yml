@@ -4,8 +4,12 @@ python:
 - '2.7'
 install:
 - pip install .
+- pip install h5py
 - pip install coveralls
 - pip install pyorbital
+addons:
+  apt_packages:
+    - libhdf5-serial-dev
 script: coverage run --source=mpop setup.py test
 after_success: coveralls
 deploy:
