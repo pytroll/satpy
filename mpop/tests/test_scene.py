@@ -25,7 +25,6 @@
 
 import unittest
 import mock
-from mpop import PACKAGE_CONFIG_PATH
 
 
 class TestScene(unittest.TestCase):
@@ -71,6 +70,7 @@ class TestScene(unittest.TestCase):
 
     def test_init_alone(self):
         from mpop.scene import Scene
+        from mpop import PACKAGE_CONFIG_PATH
         scn = Scene()
         self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
 

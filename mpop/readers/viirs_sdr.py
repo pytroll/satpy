@@ -36,7 +36,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import h5py
-import hashlib
 import logging
 from collections import namedtuple
 
@@ -47,13 +46,6 @@ from fnmatch import fnmatch
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
-
-VIIRS_IR_BANDS = ('M16', 'M15', 'M14', 'M13', 'M12', 'I5', 'I4')
-VIIRS_VIS_BANDS = ('M1', 'M2', 'M3', 'M4', 'M5', 'M6',
-                   'M7', 'M8', 'M9', 'M10', 'M11',
-                   'I1', 'I2', 'I3')
-VIIRS_DNB_BANDS = ('DNB', )
-
 LOG = logging.getLogger(__name__)
 
 
@@ -80,7 +72,7 @@ def _get_invalid_info(granule_data):
                " elint:" + str((granule_data == 65530).sum()) +
                " vdne:" + str((granule_data == 65529).sum()) +
                " soub:" + str((granule_data == 65528).sum()))
-    if issubclass(granule_data.dtype.type, np.floating):
+    elif issubclass(granule_data.dtype.type, np.floating):
         msg = ("na:" + str((granule_data == -999.9).sum()) +
                " miss:" + str((granule_data == -999.8).sum()) +
                " obpt:" + str((granule_data == -999.7).sum()) +
@@ -135,18 +127,6 @@ class HDF5MetaData(object):
             return h5py.File(self.filename, 'r')[key].value
         return val
 
-    def keys(self):
-        return self.metadata.keys()
-
-    def get_data_keys(self):
-
-        data_keys = []
-        for key in self.metadata.keys():
-            if key.endswith("/shape"):
-                data_key = key.split("/shape")[0]
-                data_keys.append(data_key)
-        return data_keys
-
 
 class SDRFileReader(HDF5MetaData):
     """VIIRS HDF5 File Reader
@@ -155,7 +135,7 @@ class SDRFileReader(HDF5MetaData):
         super(SDRFileReader, self).__init__(filename, **kwargs)
         self.file_type = file_type
 
-        self.file_keys = file_keys
+        self.file_keys = file_keys or {}
         self.file_info = kwargs
 
         self.start_time = self.get_begin_time()
@@ -169,9 +149,10 @@ class SDRFileReader(HDF5MetaData):
 
         return super(SDRFileReader, self).__getitem__(item)
 
-    def _parse_npp_datatime(self, datestr, timestr):
+    def _parse_npp_datetime(self, datestr, timestr):
         time_val = datetime.strptime(datestr + timestr, '%Y%m%d%H%M%S.%fZ')
         if abs(time_val - NO_DATE) < EPSILON_TIME:
+            # catch rare case when SDR files have incorrect date
             raise ValueError("Datetime invalid %s " % time_val)
         return time_val
 
@@ -179,10 +160,10 @@ class SDRFileReader(HDF5MetaData):
         return self["gring_longitude"], self["gring_latitude"]
 
     def get_begin_time(self):
-        return self._parse_npp_datatime(self['beginning_date'], self['beginning_time'])
+        return self._parse_npp_datetime(self['beginning_date'], self['beginning_time'])
 
     def get_end_time(self):
-        return self._parse_npp_datatime(self['ending_date'], self['ending_time'])
+        return self._parse_npp_datetime(self['ending_date'], self['ending_time'])
 
     def get_begin_orbit_number(self):
         return int(self['beginning_orbit_number'])
@@ -426,9 +407,6 @@ class ViirsSDRReader(Reader):
             file_reader = MultiFileReader(file_type_name, file_types[file_type_name], file_keys=self.file_keys)
             self.file_readers[file_type_name] = file_reader
 
-        # TODO: Double check that we have all of the navigation file types for the files we do have
-        # TODO: Find geolocation files based on headers if we don't have them
-
     def _get_swathsegment(self, file_readers):
         if self.area is not None:
             from trollsched.spherical import SphPolygon
@@ -462,18 +440,18 @@ class ViirsSDRReader(Reader):
 
             # Search for single granule using time start
             if self.end_time is None:
-                if self.start_time >= file_start and self.start_time <= file_end:
+                if file_start <= self.start_time <= file_end:
                     segment_readers.append(file_reader)
                     continue
             else:
                 # search for multiple granules
                 # check that granule start time is inside interval
-                if file_start >= self.start_time and file_start <= self.end_time:
+                if self.start_time <= file_start <= self.end_time:
                     segment_readers.append(file_reader)
                     continue
 
                 # check that granule end time is inside interval
-                if file_end >= self.start_time and file_end <= self.end_time:
+                if self.start_time <= file_end <= self.end_time:
                     segment_readers.append(file_reader)
                     continue
 
@@ -513,7 +491,9 @@ class ViirsSDRReader(Reader):
                     if not os.path.exists(fn):
                         raise IOError("Input file does not exist: %s" % (fn,))
                     elif fnmatch(fn, "*" + file_pattern):
-                        tmp_matching.append(file_reader_class(file_type_name, fn, file_keys=self.file_keys, **file_type_info))
+                        tmp_matching.append(
+                            file_reader_class(file_type_name, fn, file_keys=self.file_keys, **file_type_info)
+                        )
                     else:
                         tmp_remaining.append(fn)
 
@@ -606,7 +586,6 @@ class ViirsSDRReader(Reader):
                 area = areas[nav_name]
 
             # Create a projectable from info from the file data and the config file
-            # FIXME: Units are provided by the config, but should use the type from the file by default
             kwargs = self.channels[chn].copy()
             kwargs.setdefault("units", file_reader.get_units(file_key, calibrate=calibrate))
             kwargs.setdefault("platform", file_reader.get_platform_name())
@@ -620,15 +599,5 @@ class ViirsSDRReader(Reader):
                                       **kwargs)
             projectable.info["area"] = area
 
-            # We assume the same geolocation should apply to all M-bands!
-            # ...and the same to all I-bands:
-
-            # if 'institution' not in glob_info:
-            ##    glob_info['institution'] = band.global_info['N_Dataset_Source']
-            # if 'mission_name' not in glob_info:
-            ##    glob_info['mission_name'] = band.global_info['Mission_Name']
             channels_loaded[chn] = projectable
-
         return channels_loaded
-
-

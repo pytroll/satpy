@@ -34,7 +34,7 @@ from mpop.tests import (#test_satin_helpers,
                         test_scene,
                         test_writers,
                         #test_seviri,
-                        #test_viirs_sdr,
+                        test_viirs_sdr,
                         #test_visir,
                         )
 
@@ -55,7 +55,7 @@ def suite():
     #mysuite.addTests(test_satellites.suite())
     mysuite.addTests(test_scene.suite())
     #mysuite.addTests(test_seviri.suite())
-    #mysuite.addTests(test_viirs_sdr.suite())
+    mysuite.addTests(test_viirs_sdr.suite())
     #mysuite.addTests(test_visir.suite())
     mysuite.addTests(test_projectable.suite())
     mysuite.addTests(test_writers.suite())
