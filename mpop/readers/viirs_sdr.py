@@ -331,7 +331,7 @@ class MultiFileReader(object):
         return self.file_readers[0].get_begin_orbit_number()
 
     def get_end_orbit_number(self):
-        return self.file_readers[0].get_end_orbit_number()
+        return self.file_readers[-1].get_end_orbit_number()
 
     def get_platform_name(self):
         return self.file_readers[0].get_platform_name()
