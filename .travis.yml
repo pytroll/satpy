@@ -4,6 +4,7 @@ python:
 - '2.7'
 install:
 - pip install .
+- if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
 - pip install h5py
 - pip install coveralls
 - pip install pyorbital
