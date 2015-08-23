@@ -131,11 +131,10 @@ class HDF5MetaData(object):
 class SDRFileReader(HDF5MetaData):
     """VIIRS HDF5 File Reader
     """
-    def __init__(self, file_type, filename, file_keys=None, **kwargs):
+    def __init__(self, file_type, filename, file_keys, **kwargs):
         super(SDRFileReader, self).__init__(filename, **kwargs)
         self.file_type = file_type
-
-        self.file_keys = file_keys or {}
+        self.file_keys = file_keys
         self.file_info = kwargs
 
         self.start_time = self.get_begin_time()
@@ -181,9 +180,8 @@ class SDRFileReader(HDF5MetaData):
         return self['geo_file_reference']
 
     def get_file_units(self, item):
-        var_info = self.file_keys[item]
         # What units should we expect from the file
-        file_units = getattr(var_info, "file_units", None)
+        file_units = self.file_keys[item].file_units
 
         # Guess the file units if we need to (normally we would get this from the file)
         if file_units is None:
@@ -191,7 +189,8 @@ class SDRFileReader(HDF5MetaData):
                 # we are getting some sort of radiance, probably DNB
                 file_units = "W cm-2 sr-1"
             elif "reflectance" in item:
-                file_units = "fraction"
+                # CF compliant unit for dimensionless
+                file_units = "1"
             elif "temperature" in item:
                 file_units = "K"
             elif "longitude" in item or "latitude" in item:
@@ -202,10 +201,13 @@ class SDRFileReader(HDF5MetaData):
         return file_units
 
     def get_units(self, item):
-        var_info = self.file_keys[item]
+        units = self.file_keys[item].units
         file_units = self.get_file_units(item)
         # What units does the user want
-        return getattr(var_info, "units", file_units)
+        if units is None:
+            # if the units in the file information
+            return file_units
+        return units
 
         # if calibrate == 2 and band not in VIIRS_DNB_BANDS:
         #     return "W m-2 um-1 sr-1"
@@ -251,7 +253,7 @@ class SDRFileReader(HDF5MetaData):
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
             factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
             return factors
-        elif file_units == "fraction" and output_units == "%":
+        elif file_units == "1" and output_units == "%":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
             factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
@@ -264,9 +266,6 @@ class SDRFileReader(HDF5MetaData):
         """
         if filename:
             raise NotImplementedError("Saving data arrays to disk is not supported yet")
-
-        if not self.file_keys:
-            raise RuntimeError("Can not get swath data when no file key information was found")
 
         # Can't guarantee proper file info until we get the data first
         var_info = self.file_keys[item]
@@ -310,7 +309,7 @@ class SDRFileReader(HDF5MetaData):
 
 
 class MultiFileReader(object):
-    def __init__(self, file_type, file_readers, file_keys=None, **kwargs):
+    def __init__(self, file_type, file_readers, file_keys, **kwargs):
         self.file_type = file_type
         self.file_readers = file_readers
         self.file_keys = file_keys
@@ -347,9 +346,6 @@ class MultiFileReader(object):
         return self.file_readers[0].get_units(item)
 
     def get_swath_data(self, item, extra_mask=None, filename=None):
-        if self.file_keys is None:
-            raise RuntimeError("Can not get swath data when no file key information was found")
-
         var_info = self.file_keys[item]
         granule_shapes = [x[item + "/shape"] for x in self.file_readers]
         num_rows = sum([x[0] for x in granule_shapes])
@@ -404,7 +400,7 @@ class ViirsSDRReader(Reader):
             else:
                 num_files = len(file_type_files)
 
-            file_reader = MultiFileReader(file_type_name, file_types[file_type_name], file_keys=self.file_keys)
+            file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
             self.file_readers[file_type_name] = file_reader
 
     def _get_swathsegment(self, file_readers):
@@ -492,7 +488,7 @@ class ViirsSDRReader(Reader):
                         raise IOError("Input file does not exist: %s" % (fn,))
                     elif fnmatch(fn, "*" + file_pattern):
                         tmp_matching.append(
-                            file_reader_class(file_type_name, fn, file_keys=self.file_keys, **file_type_info)
+                            file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
                         )
                     else:
                         tmp_remaining.append(fn)
