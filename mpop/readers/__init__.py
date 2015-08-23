@@ -101,6 +101,8 @@ class Reader(Plugin):
             section_options["file_patterns"] = section_options["file_patterns"].split(",")
         if "wavelength_range" in section_options:
             section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
+        if "calibration_level" in section_options:
+            section_options["calibration_level"] = int(section_options["calibration_level"])
 
         self.channels[name] = section_options
 

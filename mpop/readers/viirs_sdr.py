@@ -180,7 +180,7 @@ class SDRFileReader(HDF5MetaData):
     def get_geofilename(self):
         return self['geo_file_reference']
 
-    def get_file_units(self, item, calibrate=None):
+    def get_file_units(self, item):
         var_info = self.file_keys[item]
         # What units should we expect from the file
         file_units = getattr(var_info, "file_units", None)
@@ -201,9 +201,9 @@ class SDRFileReader(HDF5MetaData):
 
         return file_units
 
-    def get_units(self, item, calibrate=None):
+    def get_units(self, item):
         var_info = self.file_keys[item]
-        file_units = self.get_file_units(item, calibrate=calibrate)
+        file_units = self.get_file_units(item)
         # What units does the user want
         return getattr(var_info, "units", file_units)
 
@@ -259,7 +259,7 @@ class SDRFileReader(HDF5MetaData):
         else:
             return factors
 
-    def get_swath_data(self, item, filename=False, data_out=None, mask_out=None, calibrate=None):
+    def get_swath_data(self, item, filename=False, data_out=None, mask_out=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
         if filename:
@@ -299,7 +299,7 @@ class SDRFileReader(HDF5MetaData):
             mask_out[:] |= data_out >= fill_min
 
         # Check if we need to do some unit conversion
-        file_units = self.get_file_units(item, calibrate=calibrate)
+        file_units = self.get_file_units(item)
         output_units = getattr(var_info, "units", file_units)
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
 
@@ -343,8 +343,8 @@ class MultiFileReader(object):
     def geo_filenames(self):
         return [fr.get_geofilename() for fr in self.file_readers]
 
-    def get_units(self, item, calibrate=None):
-        return self.file_readers[0].get_units(item, calibrate=calibrate)
+    def get_units(self, item):
+        return self.file_readers[0].get_units(item)
 
     def get_swath_data(self, item, extra_mask=None, filename=None):
         if self.file_keys is None:
@@ -553,8 +553,36 @@ class ViirsSDRReader(Reader):
 
         return area
 
-    def load(self, channels_to_load, calibrate=None, **kwargs):
-        # Ignore `calibrate` for now
+    def _get_dataset_info(self, name, calibration_level=None):
+        dataset_info = self.channels[name]
+        channel_cal = dataset_info.get("calibration_level", None)
+
+        if calibration_level is None:
+            # the user hasn't requested a specific calibration level
+            return dataset_info
+        elif channel_cal is None:
+            # the dataset requested doesn't know what level it is
+            LOG.debug("Dataset '%s' has no calibration level configured, 'calibration_level' has no effect", name)
+            return dataset_info
+        elif calibration_level == channel_cal:
+            # the dataset requested is at the requested calibration level
+            return dataset_info
+
+        cal_file_type = dataset_info.get("calibration_%d_file_type" % (calibration_level,), None)
+        cal_file_key = dataset_info.get("calibration_%d_file_key" % (calibration_level,), None)
+        if cal_file_type is None or cal_file_key is None:
+            LOG.debug("Calibration level %d was requested, but '%s' doesn't support that level", calibration_level, name)
+            return dataset_info
+        elif cal_file_type not in self.file_types or cal_file_key not in self.file_keys:
+            raise ValueError("No configuration found for file type '%s' and file key '%s' at calibration level %d" %
+                             (cal_file_type, cal_file_key, calibration_level))
+        else:
+            dataset_info = dataset_info.copy()
+            dataset_info["file_type"] = cal_file_type
+            dataset_info["file_key"] = cal_file_key
+            return dataset_info
+
+    def load(self, channels_to_load, calibration_level=None, **kwargs):
         if kwargs:
             LOG.warning("Unsupported options for viirs reader: %s", str(kwargs))
 
@@ -569,7 +597,7 @@ class ViirsSDRReader(Reader):
         areas = {}
         channels_loaded = {}
         for chn in channels_to_load:
-            channel_info = self.channels[chn]
+            channel_info = self._get_dataset_info(chn, calibration_level=calibration_level)
             file_type = channel_info["file_type"]
             file_key = channel_info["file_key"]
             file_reader = self.file_readers[file_type]
@@ -587,7 +615,7 @@ class ViirsSDRReader(Reader):
 
             # Create a projectable from info from the file data and the config file
             kwargs = self.channels[chn].copy()
-            kwargs.setdefault("units", file_reader.get_units(file_key, calibrate=calibrate))
+            kwargs.setdefault("units", file_reader.get_units(file_key))
             kwargs.setdefault("platform", file_reader.get_platform_name())
             kwargs.setdefault("sensor", file_reader.get_sensor_name())
             kwargs.setdefault("start_orbit", file_reader.get_begin_orbit_number())
