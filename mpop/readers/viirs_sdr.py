@@ -261,12 +261,9 @@ class SDRFileReader(HDF5MetaData):
         else:
             return factors
 
-    def get_swath_data(self, item, filename=False, data_out=None, mask_out=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
-        if filename:
-            raise NotImplementedError("Saving data arrays to disk is not supported yet")
-
         # Can't guarantee proper file info until we get the data first
         var_info = self.file_keys[item]
         data = self[item]
@@ -364,7 +361,7 @@ class MultiFileReader(object):
         idx = 0
         for granule_shape, file_reader in zip(granule_shapes, self.file_readers):
             # Get the data from each individual file reader (assumes it gets the data with the right data type)
-            file_reader.get_swath_data(item, filename=filename,
+            file_reader.get_swath_data(item,
                                        data_out=data[idx: idx + granule_shape[0]],
                                        mask_out=mask[idx: idx + granule_shape[0]])
             idx += granule_shape[0]
