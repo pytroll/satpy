@@ -53,8 +53,8 @@ class FakeHDF5MetaData(object):
     def __init__(self, filename, **kwargs):
         self.filename = filename
         offset = kwargs.pop("offset", 0)
-        begin_times = ["10{:02d}12.5Z".format(x) for x in range(5)]
-        end_times = ["11{:02d}10.6Z".format(x) for x in range(5)]
+        begin_times = ["10{0:02d}12.5Z".format(x) for x in range(5)]
+        end_times = ["11{0:02d}10.6Z".format(x) for x in range(5)]
 
         self.d = {
             "AggregateBeginningDate": "20150101",
@@ -63,8 +63,8 @@ class FakeHDF5MetaData(object):
             "AggregateEndingTime": end_times[offset],
             "G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
             "G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
-            "AggregateBeginningOrbitNumber": "{:d}".format(offset),
-            "AggregateEndingOrbitNumber": "{:d}".format(offset + 1),
+            "AggregateBeginningOrbitNumber": "{0:d}".format(offset),
+            "AggregateEndingOrbitNumber": "{0:d}".format(offset + 1),
             "Instrument_Short_Name": "VIIRS",
             "Platform_Short_Name": "NPP",
             "N_Geo_Ref": "test_geo.h5",
@@ -378,7 +378,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
         with patcher:
             patcher.is_local = True
             file_readers = [
-                SDRFileReader("fake_file_type", "test{:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
+                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             fns = ["test00.h5", "test01.h5", "test02.h5", "test03.h5", "test04.h5"]
             geo_fns = ["test_geo.h5", "test_geo.h5", "test_geo.h5", "test_geo.h5", "test_geo.h5"]
@@ -398,7 +398,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
         with patcher:
             patcher.is_local = True
             file_readers = [
-                SDRFileReader("fake_file_type", "test{:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
+                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             # shouldn't need to thoroughly test this because its tested in the single file reader tests
             self.assertEqual(file_reader.get_units("radiance"), "W m-2 sr-1")
@@ -410,7 +410,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
         with patcher:
             patcher.is_local = True
             file_readers = [
-                SDRFileReader("fake_file_type", "test{:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
+                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             data = file_reader.get_swath_data("brightness_temperature")
             # make sure its a masked array
@@ -434,7 +434,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
         with patcher:
             patcher.is_local = True
             file_readers = [
-                SDRFileReader("fake_file_type", "test{:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
+                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             valid_shape = (DEFAULT_FILE_SHAPE[0]*5, DEFAULT_FILE_SHAPE[1])
             extra_mask = np.zeros(valid_shape, dtype=np.bool)
@@ -455,7 +455,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
         with patcher:
             patcher.is_local = True
             file_readers = [
-                SDRFileReader("fake_file_type", "test{:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
+                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             self.assertRaises(NotImplementedError, file_reader.get_swath_data, "radiance", filename="test.dat")
 
