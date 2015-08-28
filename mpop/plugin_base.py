@@ -48,6 +48,7 @@ class Plugin(object):
             conf.read(self.config_file)
             self.load_config(conf)
 
+    # FIXME: why is this a static method, and not a function ?
     @staticmethod
     def _runtime_import(object_path):
         """Import at runtime

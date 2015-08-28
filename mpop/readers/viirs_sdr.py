@@ -9,6 +9,7 @@
 #   Kristian Rune Larsen <krl@dmi.dk>
 #   Lars Ørum Rasmussen <ras@dmi.dk>
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   David Hoese <david.hoese@ssec.wisc.edu>
 #
 
 # This file is part of mpop.
@@ -306,7 +307,15 @@ class SDRFileReader(HDF5MetaData):
 
 
 class MultiFileReader(object):
+    # FIXME: file_type isn't used here. Do we really need it ?
     def __init__(self, file_type, file_readers, file_keys, **kwargs):
+        """
+        :param file_type:
+        :param file_readers: is a list of the reader instances to use.
+        :param file_keys:
+        :param kwargs:
+        :return:
+        """
         self.file_type = file_type
         self.file_readers = file_readers
         self.file_keys = file_keys
@@ -371,7 +380,7 @@ class MultiFileReader(object):
 
 
 class ViirsSDRReader(Reader):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.file_types = {}
         self.file_readers = {}
         self.file_keys = {}
@@ -379,7 +388,7 @@ class ViirsSDRReader(Reader):
         kwargs.setdefault("default_config_filename", "readers/viirs_sdr.cfg")
 
         # Load the configuration file and other defaults
-        Reader.__init__(self, *args, **kwargs)
+        super(ViirsSDRReader, self).__init__(**kwargs)
 
         # Determine what we know about the files provided and create file readers to read them
         file_types = self.identify_file_types(self.filenames)

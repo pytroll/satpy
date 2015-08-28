@@ -53,7 +53,7 @@ class Reader(Plugin):
         self.channels = {}
 
         # Load the config
-        Plugin.__init__(self, **kwargs)
+        super(Reader, self).__init__(**kwargs)
 
         # Use options from the config file if they weren't passed as arguments
         self.name = self.config_options.get("name", None) if name is None else name
