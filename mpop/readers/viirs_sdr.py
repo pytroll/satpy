@@ -379,7 +379,7 @@ class MultiFileReader(object):
         return np.ma.array(data, mask=mask, copy=False)
 
 
-class ViirsSDRReader(Reader):
+class VIIRSSDRReader(Reader):
     def __init__(self, **kwargs):
         self.file_types = {}
         self.file_readers = {}
@@ -388,10 +388,14 @@ class ViirsSDRReader(Reader):
         kwargs.setdefault("default_config_filename", "readers/viirs_sdr.cfg")
 
         # Load the configuration file and other defaults
-        super(ViirsSDRReader, self).__init__(**kwargs)
+        super(VIIRSSDRReader, self).__init__(**kwargs)
 
         # Determine what we know about the files provided and create file readers to read them
         file_types = self.identify_file_types(self.filenames)
+        # TODO: Add ability to discover files when none are provided
+        if not file_types:
+            raise ValueError("No input files found matching the configured file types")
+
         num_files = 0
         for file_type_name, file_type_files in file_types.items():
             file_type_files = self._get_swathsegment(file_type_files)
@@ -490,12 +494,9 @@ class ViirsSDRReader(Reader):
                 for fn in remaining_filenames:
                     # Add a wildcard to the front for path information
                     # FIXME: Is there a better way to generalize this besides removing the path every time
-                    if not os.path.exists(fn):
-                        raise IOError("Input file does not exist: %s" % (fn,))
-                    elif fnmatch(fn, "*" + file_pattern):
-                        tmp_matching.append(
-                            file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
-                        )
+                    if fnmatch(fn, "*" + file_pattern):
+                        reader = file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
+                        tmp_matching.append(reader)
                     else:
                         tmp_remaining.append(fn)
 
@@ -533,11 +534,11 @@ class ViirsSDRReader(Reader):
             geo_filenames = channel_file_reader.geo_filenames
             geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
 
-            file_readers = self.identify_file_types(geo_filepaths)
-            if file_type not in file_readers:
+            file_types = self.identify_file_types(geo_filepaths)
+            if file_type not in file_types:
                 raise RuntimeError("The geolocation files from the header (ex. %s)"
                                    " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
-            file_reader = file_readers[file_type]
+            file_reader = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
         lon_data = file_reader.get_swath_data(lon_key, extra_mask=extra_mask)
         lat_data = file_reader.get_swath_data(lat_key, extra_mask=extra_mask)
@@ -591,6 +592,7 @@ class ViirsSDRReader(Reader):
         channels_to_load = set(channels_to_load) & set(self.channel_names)
         if len(channels_to_load) == 0:
             LOG.debug("No channels to load from this reader")
+            # XXX: Is None really the best thing that can be returned here?
             return
 
         LOG.debug("Channels to load: " + str(channels_to_load))

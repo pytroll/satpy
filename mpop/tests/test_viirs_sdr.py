@@ -17,6 +17,10 @@ DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
+DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
+DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 def _setup_file_keys():
@@ -32,19 +36,19 @@ def _setup_file_keys():
         FileKey("ending_orbit_number", "AggregateEndingOrbitNumber"),
         FileKey("instrument_short_name", "Instrument_Short_Name"),
         FileKey("platform_short_name", "Platform_Short_Name"),
-        FileKey("geo_file_reference", "N_Geo_Ref"),
-        FileKey("radiance", "FakeDataset", scaling_factors="radiance_factors", units="W m-2 sr-1"),
-        FileKey("radiance_factors", "FakeDatasetFactors"),
-        FileKey("reflectance", "FakeDataset", scaling_factors="reflectance_factors", units="%"),
-        FileKey("reflectance_factors", "FakeDatasetFactors"),
-        FileKey("brightness_temperature", "FakeDataset", scaling_factors="bt_factors", units="K"),
-        FileKey("bt_factors", "FakeDatasetFactors"),
+        FileKey("geo_file_reference", "N_GEO_Ref"),
+        FileKey("radiance", "Radiance", scaling_factors="radiance_factors", units="W m-2 sr-1"),
+        FileKey("radiance_factors", "RadianceFactors"),
+        FileKey("reflectance", "Reflectance", scaling_factors="reflectance_factors", units="%"),
+        FileKey("reflectance_factors", "ReflectanceFactors"),
+        FileKey("brightness_temperature", "BrightnessTemperature", scaling_factors="bt_factors", units="K"),
+        FileKey("bt_factors", "BrightnessTemperatureFactors"),
         FileKey("unknown_data", "FakeData", scaling_factors="bad_factors"),
         FileKey("unknown_data2", "FakeData", file_units="fake", dtype="int64"),
         FileKey("unknown_data3", "FakeDataFloat", scaling_factors="nonexistent"),
         FileKey("bad_factors", "BadFactors"),
-        FileKey("longitude", "FakeData"),
-        FileKey("latitude", "FakeData"),
+        FileKey("longitude", "Longitude"),
+        FileKey("latitude", "Latitude"),
     ]
     return dict((x.name, x) for x in file_keys)
 
@@ -59,7 +63,7 @@ class FakeHDF5MetaData(object):
         self.d = {
             "AggregateBeginningDate": "20150101",
             "AggregateBeginningTime": begin_times[offset],
-            "AggregateEndingDate": "20150102",
+            "AggregateEndingDate": "20150101",
             "AggregateEndingTime": end_times[offset],
             "G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
             "G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
@@ -67,14 +71,22 @@ class FakeHDF5MetaData(object):
             "AggregateEndingOrbitNumber": "{0:d}".format(offset + 1),
             "Instrument_Short_Name": "VIIRS",
             "Platform_Short_Name": "NPP",
-            "N_Geo_Ref": "test_geo.h5",
+            "N_GEO_Ref": "GITCO_npp_{0:02d}.h5".format(offset),
             "BadFactors": np.array([-999.0, -999.0, -999.0, -999.0], dtype=np.float32),
         }
 
-        for k in ["FakeDataset"]:
+        for k in ["Radiance", "Reflectance", "BrightnessTemperature", "FakeDataset"]:
             self.d[k] = DEFAULT_FILE_DATA.copy()
             self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
             self.d[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
+        for k in ["Latitude"]:
+            self.d[k] = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+            self.d[k] = np.repeat([self.d[k]], DEFAULT_FILE_SHAPE[0], axis=0)
+            self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
+        for k in ["Longitude"]:
+            self.d[k] = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+            self.d[k] = np.repeat([self.d[k]], DEFAULT_FILE_SHAPE[0], axis=0)
+            self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
         for k in ["FakeData"]:
             self.d[k] = DEFAULT_FILE_DATA.copy()
             self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
@@ -85,7 +97,12 @@ class FakeHDF5MetaData(object):
         self.d.update(kwargs)
 
     def __getitem__(self, item):
-        return self.d[item]
+        key = item.rsplit("/", 1)
+        if key[-1] == "shape":
+            key = key[0].rsplit("/", 1)[-1] + "/shape"
+        else:
+            key = key[-1]
+        return self.d[key]
 
 
 class TestHDF5MetaData(unittest.TestCase):
@@ -163,7 +180,7 @@ class TestSDRFileReader(unittest.TestCase):
             patcher.is_local = True
             file_reader = SDRFileReader("fake_file_type", "test.h5", self.file_keys)
             self.assertEqual(file_reader.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
-            self.assertEqual(file_reader.end_time, datetime(2015, 1, 2, 11, 0, 10, 600000))
+            self.assertEqual(file_reader.end_time, datetime(2015, 1, 1, 11, 0, 10, 600000))
             self.assertRaises(ValueError, file_reader._parse_npp_datetime, "19580102", "120000.0Z")
 
     def test_get_funcs(self):
@@ -242,10 +259,20 @@ class TestSDRFileReader(unittest.TestCase):
             patcher.is_local = True
             file_reader = SDRFileReader("fake_file_type", "test.h5", self.file_keys)
             for k in ["radiance", "reflectance", "brightness_temperature",
-                      "longitude", "latitude", "unknown_data", "unknown_data2"]:
+                      "unknown_data", "unknown_data2"]:
                 data = file_reader[k]
                 self.assertTrue(data.dtype == DEFAULT_FILE_DTYPE)
                 np.testing.assert_array_equal(data, DEFAULT_FILE_DATA)
+
+            for k in ["longitude"]:
+                data = file_reader[k]
+                self.assertTrue(data.dtype == DEFAULT_FILE_DTYPE)
+                np.testing.assert_array_equal(data, DEFAULT_LON_DATA)
+
+            for k in ["latitude"]:
+                data = file_reader[k]
+                self.assertTrue(data.dtype == DEFAULT_FILE_DTYPE)
+                np.testing.assert_array_equal(data, DEFAULT_LAT_DATA)
 
             for k in ["unknown_data3"]:
                 data = file_reader[k]
@@ -264,7 +291,10 @@ class TestSDRFileReader(unittest.TestCase):
                 data, mask = file_reader.get_swath_data(k)
                 self.assertTrue(data.dtype == np.float32)
                 self.assertTrue(mask.dtype == np.bool)
-                np.testing.assert_array_equal(data, DEFAULT_FILE_DATA)
+                if k == "longitude":
+                    np.testing.assert_array_equal(data, DEFAULT_LON_DATA)
+                else:
+                    np.testing.assert_array_equal(data, DEFAULT_LAT_DATA)
 
     def test_get_swath_data_badscale(self):
         from mpop.readers.viirs_sdr import SDRFileReader
@@ -381,10 +411,10 @@ class TestSDRMultiFileReader(unittest.TestCase):
                 SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             fns = ["test00.h5", "test01.h5", "test02.h5", "test03.h5", "test04.h5"]
-            geo_fns = ["test_geo.h5", "test_geo.h5", "test_geo.h5", "test_geo.h5", "test_geo.h5"]
+            geo_fns = ["GITCO_npp_{0:02d}.h5".format(x) for x in range(5)]
             self.assertListEqual(file_reader.filenames, fns)
             self.assertEqual(file_reader.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
-            self.assertEqual(file_reader.end_time, datetime(2015, 1, 2, 11, 4, 10, 600000))
+            self.assertEqual(file_reader.end_time, datetime(2015, 1, 1, 11, 4, 10, 600000))
             self.assertEqual(file_reader.get_begin_orbit_number(), 0)
             self.assertEqual(file_reader.get_end_orbit_number(), 5)
             self.assertEqual(file_reader.get_platform_name(), "NPP")
@@ -460,61 +490,257 @@ class TestSDRMultiFileReader(unittest.TestCase):
             self.assertRaises(NotImplementedError, file_reader.get_swath_data, "radiance", filename="test.dat")
 
 
-class OldTestViirsSDRReader(object):
-    """Class for testing the VIIRS SDR reader class.
-    """
-    
-    def test_get_swath_segment(self):
-        """
-        Test choosing swath segments based on datatime interval
-        """
-        
-        filenames = [
-            "SVM15_npp_d20130312_t1034305_e1035546_b07108_c20130312110058559507_cspp_dev.h5", 
-            "SVM15_npp_d20130312_t1035559_e1037201_b07108_c20130312110449303310_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1037213_e1038455_b07108_c20130312110755391459_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1038467_e1040109_b07108_c20130312111106961103_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1040121_e1041363_b07108_c20130312111425464510_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1041375_e1043017_b07108_c20130312111720550253_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1043029_e1044271_b07108_c20130312112246726129_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1044283_e1045525_b07108_c20130312113037160389_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1045537_e1047179_b07108_c20130312114330237590_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1047191_e1048433_b07108_c20130312120148075096_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1048445_e1050070_b07108_c20130312120745231147_cspp_dev.h5",
-            ]
-       
+class TestVIIRSSDRReader(unittest.TestCase):
+    def setUp(self):
+        example_filenames = {}
+        for file_type in ["SVI01", "SVI04", "SVM01", "GITCO", "GMTCO"]:
+            fn_pat = "{0}_npp_d2012022{1:d}_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5"
+            fns = [fn_pat.format(file_type, x) for x in range(5)]
+            example_filenames[file_type] = fns
+        self.example_filenames = example_filenames
 
-        #
-        # Test search for multiple granules
-        result = [
-            "SVM15_npp_d20130312_t1038467_e1040109_b07108_c20130312111106961103_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1040121_e1041363_b07108_c20130312111425464510_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1041375_e1043017_b07108_c20130312111720550253_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1043029_e1044271_b07108_c20130312112246726129_cspp_dev.h5",
-            "SVM15_npp_d20130312_t1044283_e1045525_b07108_c20130312113037160389_cspp_dev.h5",
-            ]
+    def test_init_no_args(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            self.assertRaises(ValueError, VIIRSSDRReader)
 
-        tstart = datetime(2013, 3, 12, 10, 39)
-        tend = datetime(2013, 3, 12, 10, 45)
+    def test_init_only_files_not_matching(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            input_files = ["test_{0:d}.h5".format(x) for x in range(5)]
+            self.assertRaises(ValueError, VIIRSSDRReader, filenames=input_files)
 
-        
+    def test_init_only_files_no_geo_files(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            reader = VIIRSSDRReader(filenames=self.example_filenames["SVI01"])
 
-        sublist = _get_swathsegment(filenames, tstart, tend)
+    def test_init_start_time_not_matching(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"]
+            self.assertRaises(IOError, VIIRSSDRReader, filenames=filenames, start_time=datetime(2012, 3, 1))
 
-        self.assert_(sublist == result)
+    def test_init_start_time_end_time_not_matching(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"]
+            self.assertRaises(IOError, VIIRSSDRReader, filenames=filenames,
+                              start_time=datetime(2012, 3, 1, 11, 0, 0),
+                              end_time=datetime(2012, 3, 1, 12, 0, 0))
 
+    def test_init_start_time_matching(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"]
+            reader = VIIRSSDRReader(filenames=filenames, start_time=datetime(2015, 1, 1, 11, 0, 0))
 
-        #
-        # Test search for single granule
-        tslot = datetime(2013, 3, 12, 10, 45)
+    def test_init_start_time_end_time_matching(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"]
+            # when files are at the beginning of the range
+            reader = VIIRSSDRReader(filenames=filenames,
+                              start_time=datetime(2015, 1, 1, 11, 0, 0),
+                              end_time=datetime(2015, 1, 1, 12, 0, 0))
+            # when files are at the end of the range
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 10, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 11, 0, 0))
+            # when files fall within the whole range
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 9, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 13, 0, 0))
 
-        result_file = [
-            "SVM15_npp_d20130312_t1044283_e1045525_b07108_c20130312113037160389_cspp_dev.h5",
-            ]
-        
-        single_file = _get_swathsegment(filenames, tslot)
+    def test_init_varying_number_files(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"][1:]
+            self.assertRaises(IOError, VIIRSSDRReader, filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
 
-        self.assert_(result_file == single_file)
+    def test_load_unknown_names(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + self.example_filenames["GITCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+            datasets = reader.load(["fake", "fake2"])
+            self.assertIs(datasets, None)
+
+    def test_load_basic(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["SVI04"] + \
+                        self.example_filenames["SVM01"] + \
+                        self.example_filenames["GITCO"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+
+            datasets = reader.load(["I01", "I04", "M01"], unused=1, unused2=2)
+
+    def test_load_navigation_not_found(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+
+            with mock.patch.object(reader, "identify_file_types") as ift_mock:
+                ift_mock.return_value = {}
+                self.assertRaises(RuntimeError, reader._load_navigation, "gitco")
+
+    def test_load_navigation(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+
+            area = reader._load_navigation("gitco")
+
+    def test_get_dataset_info_no_cal(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+
+            info = reader._get_dataset_info("I01")
+
+    def test_get_dataset_info_no_cal_level(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+
+            # the channels calibration level isn't configured
+            reader.channels["I01"].pop("calibration_level", None)
+            info = reader._get_dataset_info("I01", calibration_level=0)
+
+    def test_get_dataset_info_cal_equals(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+            reader.channels["I01"]["calibration_level"] = 2
+            reader.channels["I01"]["calibration_1_file_type"] = reader.channels["I01"]["file_type"]
+            reader.channels["I01"]["calibration_1_file_key"] = reader.channels["I01"]["file_key"]
+
+            info = reader._get_dataset_info("I01", calibration_level=2)
+
+    def test_get_dataset_info_cal_not_configured(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+            reader.channels["I01"]["calibration_level"] = 2
+            reader.channels["I01"].pop("calibration_1_file_type", None)
+            reader.channels["I01"].pop("calibration_1_file_key", None)
+
+            info = reader._get_dataset_info("I01", calibration_level=1)
+
+    def test_get_dataset_info_cal_found(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+            reader.channels["I01"]["calibration_level"] = 2
+            reader.channels["I01"]["calibration_1_file_type"] = reader.channels["I01"]["file_type"]
+            reader.channels["I01"]["calibration_1_file_key"] = reader.channels["I01"]["file_key"]
+
+            info = reader._get_dataset_info("I01", calibration_level=1)
+
+    def test_get_dataset_info_file_type_not_configured(self):
+        from mpop.readers.viirs_sdr import VIIRSSDRReader
+        from mpop.readers.viirs_sdr import SDRFileReader
+        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
+        with patcher:
+            patcher.is_local = True
+            filenames = self.example_filenames["SVI01"] + \
+                        self.example_filenames["GMTCO"]
+            reader = VIIRSSDRReader(filenames=filenames,
+                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
+                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
+            reader.channels["I01"]["calibration_level"] = 2
+            reader.channels["I01"]["calibration_1_file_type"] = "fake"
+            reader.channels["I01"]["calibration_1_file_key"] = "fake"
+
+            self.assertRaises(ValueError, reader._get_dataset_info, "I01", calibration_level=1)
 
 
 def suite():
