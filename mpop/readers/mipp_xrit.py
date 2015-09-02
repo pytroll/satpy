@@ -64,10 +64,10 @@ class XritReader(Reader):
     def __init__(self, *args, **kwargs):
         Reader.__init__(self, *args, **kwargs)
 
-    def load(self, channels_to_load, calibrate=True, areas=None, **kwargs):
+    def load(self, datasets_to_load, calibrate=True, areas=None, **kwargs):
         """Read imager data from file and return projectables.
         """
-        LOGGER.debug("Channels to load: %s" % channels_to_load)
+        LOGGER.debug("Channels to load: %s" % datasets_to_load)
 
         # Compulsory global attributes according to CF
         # satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
@@ -98,12 +98,12 @@ class XritReader(Reader):
         fullname = platforms.get(short_name, short_name)
         projectables = {}
         area_extent = None
-        for chn in channels_to_load:
+        for ds in datasets_to_load:
 
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and areas is not None:
                 metadata = xrit.sat.load(fullname, self.start_time,
-                                         chn, only_metadata=True)
+                                         ds, only_metadata=True)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
                 area_extent = area_defs_to_extent(areas, metadata.proj4_params)
@@ -112,7 +112,7 @@ class XritReader(Reader):
             try:
                 image = xrit.sat.load(fullname,
                                       self.start_time,
-                                      chn,
+                                      ds,
                                       mask=True,
                                       calibrate=calibrate)
                 if area_extent:
@@ -124,7 +124,7 @@ class XritReader(Reader):
                     "Loading non calibrated data since calibration failed.")
                 image = xrit.sat.load(fullname,
                                       self.start_time,
-                                      chn,
+                                      ds,
                                       mask=True,
                                       calibrate=False)
                 if area_extent:
@@ -133,24 +133,24 @@ class XritReader(Reader):
                     metadata, data = image()
 
             except ReaderError, err:
-                # if channel can't be found, go on with next channel
+                # if dataset can't be found, go on with next dataset
                 LOGGER.error(str(err))
                 continue
 
             projectable = Projectable(data,
-                                      name=chn,
+                                      name=ds,
                                       units=metadata.calibration_unit,
-                                      wavelength_range=self.channels[chn]["wavelength_range"],
-                                      sensor=self.channels[chn]["sensor"],
+                                      wavelength_range=self.datasets[ds]["wavelength_range"],
+                                      sensor=self.datasets[ds]["sensor"],
                                       start_time=self.start_time)
 
-            # satscene[chn] = data
+            # satscene[ds] = data
             #
-            # satscene[chn].info['units'] = metadata.calibration_unit
-            # satscene[chn].info['satname'] = satscene.satname
-            # satscene[chn].info['satnumber'] = satscene.number
-            # satscene[chn].info['instrument_name'] = satscene.instrument_name
-            # satscene[chn].info['time'] = satscene.time_slot
+            # satscene[ds].info['units'] = metadata.calibration_unit
+            # satscene[ds].info['satname'] = satscene.satname
+            # satscene[ds].info['satnumber'] = satscene.number
+            # satscene[ds].info['instrument_name'] = satscene.instrument_name
+            # satscene[ds].info['time'] = satscene.time_slot
 
             # Build an area on the fly from the mipp metadata
             proj_params = getattr(metadata, "proj4_params").split(" ")
@@ -174,7 +174,7 @@ class XritReader(Reader):
             else:
                 LOGGER.info("Could not build area, pyresample missing...")
 
-            projectables[chn] = projectable
+            projectables[ds] = projectable
         return projectables
 
 

@@ -49,8 +49,8 @@ class Reader(Plugin):
         Arguments:
         - `scene`: the scene to fill.
         """
-        # Hold information about channels
-        self.channels = {}
+        # Hold information about datasets
+        self.datasets = {}
 
         # Load the config
         super(Reader, self).__init__(**kwargs)
@@ -74,29 +74,29 @@ class Reader(Plugin):
         self.filenames |= set(filenames)
 
     @property
-    def channel_names(self):
-        """Names of all channels configured for this reader.
+    def dataset_names(self):
+        """Names of all datasets configured for this reader.
         """
-        return sorted(self.channels.keys())
+        return sorted(self.datasets.keys())
 
     @property
     def sensor_names(self):
         """Sensors supported by this reader.
         """
         sensors = set()
-        for chn_info in self.channels.values():
-            if "sensor" in chn_info:
-                sensors |= set(chn_info["sensor"].split(","))
+        for ds_info in self.datasets.values():
+            if "sensor" in ds_info:
+                sensors |= set(ds_info["sensor"].split(","))
         return sensors | self.sensor
 
     def load_section_reader(self, section_name, section_options):
         self.config_options = section_options
 
-    def load_section_channel(self, section_name, section_options):
+    def load_section_dataset(self, section_name, section_options):
         name = section_options.get("name", section_name.split(":")[-1])
         section_options["name"] = name
 
-        # Allow subclasses to make up their own rules about channels, but this is a good starting point
+        # Allow subclasses to make up their own rules about datasets, but this is a good starting point
         if "file_patterns" in section_options:
             section_options["file_patterns"] = section_options["file_patterns"].split(",")
         if "wavelength_range" in section_options:
@@ -104,30 +104,30 @@ class Reader(Plugin):
         if "calibration_level" in section_options:
             section_options["calibration_level"] = int(section_options["calibration_level"])
 
-        self.channels[name] = section_options
+        self.datasets[name] = section_options
 
-    def get_channel(self, key):
-        """Get the channel corresponding to *key*, either by name or centerwavelength.
+    def get_dataset(self, key):
+        """Get the dataset corresponding to *key*, either by name or centerwavelength.
         """
         # get by wavelength
         if isinstance(key, numbers.Number):
-            channels = [chn for chn in self.channels.values()
-                        if("wavelength_range" in chn and
-                           chn["wavelength_range"][0] <= key <=chn["wavelength_range"][2])]
-            channels = sorted(channels,
+            datasets = [ds for ds in self.datasets.values()
+                        if("wavelength_range" in ds and
+                           ds["wavelength_range"][0] <= key <= ds["wavelength_range"][2])]
+            datasets = sorted(datasets,
                               lambda ch1, ch2:
                               cmp(abs(ch1["wavelength_range"][1] - key),
                                   abs(ch2["wavelength_range"][1] - key)))
 
-            if not channels:
+            if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
-            return channels[0]
+            return datasets[0]
         # get by name
         else:
-            return self.channels[key]
+            return self.datasets[key]
 
-    def load(self, channels_to_load):
-        """Loads the *channels_to_load* into the scene object.
+    def load(self, datasets_to_load):
+        """Loads the *datasets_to_load* into the scene object.
         """
         raise NotImplementedError
 

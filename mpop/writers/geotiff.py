@@ -78,18 +78,18 @@ class GeoTIFFWriter(Writer):
             if k in kwargs or k in self.config_options:
                 kwargs.get(k, self.config_options[k])
 
-    def _gdal_write_channels(self, dst_ds, channels, opacity, fill_value):
-        """Write *channels* in a gdal raster structure *dts_ds*, using
+    def _gdal_write_datasets(self, dst_ds, datasets, opacity, fill_value):
+        """Write *datasets* in a gdal raster structure *dts_ds*, using
         *opacity* as alpha value for valid data, and *fill_value*.
         """
         if fill_value is not None:
-            for i, chan in enumerate(channels):
-                chn = chan.filled(fill_value[i])
-                dst_ds.GetRasterBand(i + 1).WriteArray(chn)
+            for i, chan in enumerate(datasets):
+                ds = chan.filled(fill_value[i])
+                dst_ds.GetRasterBand(i + 1).WriteArray(ds)
         else:
-            mask = np.zeros(channels[0].shape, dtype=np.bool)
+            mask = np.zeros(datasets[0].shape, dtype=np.bool)
             i = 0
-            for i, chan in enumerate(channels):
+            for i, chan in enumerate(datasets):
                 dst_ds.GetRasterBand(i + 1).WriteArray(chan.filled(0))
                 mask |= np.ma.getmaskarray(chan)
             try:
@@ -133,7 +133,7 @@ class GeoTIFFWriter(Writer):
             if img.fill_value is None:
                 LOG.warning("Image with floats cannot be transparent, so setting fill_value to 0")
                 fill_value = 0
-            channels = [img.channels[0].astype(np.float64)]
+            datasets = [img.datasets[0].astype(np.float64)]
             fill_value = img.fill_value or [0]
             gformat = gdal.GDT_Float64
             opacity = 0
@@ -149,7 +149,7 @@ class GeoTIFFWriter(Writer):
                 dtype = np.uint8
                 gformat = gdal.GDT_Byte
             opacity = np.iinfo(dtype).max
-            channels, fill_value = img._finalize(dtype)
+            datasets, fill_value = img._finalize(dtype)
 
         LOG.debug("Saving to GeoTiff: %s", filename)
 
@@ -172,7 +172,7 @@ class GeoTIFFWriter(Writer):
                                        2,
                                        gformat,
                                        g_opts)
-            self._gdal_write_channels(dst_ds, channels,
+            self._gdal_write_datasets(dst_ds, datasets,
                                       opacity, fill_value)
         elif img.mode == "LA":
             g_opts.append("ALPHA=YES")
@@ -182,8 +182,8 @@ class GeoTIFFWriter(Writer):
                                    2,
                                    gformat,
                                    g_opts)
-            self._gdal_write_channels(dst_ds,
-                                      channels[:-1], channels[1],
+            self._gdal_write_datasets(dst_ds,
+                                      datasets[:-1], datasets[1],
                                       fill_value)
         elif img.mode == "RGB":
             if fill_value is not None:
@@ -202,7 +202,7 @@ class GeoTIFFWriter(Writer):
                                        gformat,
                                        g_opts)
 
-            self._gdal_write_channels(dst_ds, channels,
+            self._gdal_write_datasets(dst_ds, datasets,
                                       opacity, fill_value)
 
         elif img.mode == "RGBA":
@@ -214,8 +214,8 @@ class GeoTIFFWriter(Writer):
                                    gformat,
                                    g_opts)
 
-            self._gdal_write_channels(dst_ds,
-                                      channels[:-1], channels[3],
+            self._gdal_write_datasets(dst_ds,
+                                      datasets[:-1], datasets[3],
                                       fill_value)
         else:
             raise NotImplementedError("Saving to GeoTIFF using image mode %s is not implemented." % img.mode)

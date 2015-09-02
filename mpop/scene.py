@@ -310,8 +310,8 @@ class Scene(InfoObject):
         self.readers[reader_info["name"]] = reader_instance
         return reader_instance
 
-    def available_channels(self, reader_name=None):
-        """Return the available channels, globally or just for *reader_name* if specified.
+    def available_datasets(self, reader_name=None):
+        """Return the available datasets, globally or just for *reader_name* if specified.
         """
         try:
             if reader_name:
@@ -321,7 +321,7 @@ class Scene(InfoObject):
         except (AttributeError, KeyError):
             raise KeyError("No reader '%s' found in scene")
 
-        return [channel_name for reader_name in readers for channel_name in reader_name.channel_names]
+        return [dataset_name for reader_name in readers for dataset_name in reader_name.dataset_names]
 
     def __str__(self):
         res = (str(proj) for proj in self.projectables.values())
@@ -333,17 +333,17 @@ class Scene(InfoObject):
     def __getitem__(self, key):
         # get by wavelength
         if isinstance(key, numbers.Number):
-            channels = [chn for chn in self.projectables.values()
-                        if("wavelength_range" in chn.info and
-                           chn.info["wavelength_range"][0] <= key <= chn.info["wavelength_range"][2])]
-            channels = sorted(channels,
+            datasets = [ds for ds in self.projectables.values()
+                        if("wavelength_range" in ds.info and
+                           ds.info["wavelength_range"][0] <= key <= ds.info["wavelength_range"][2])]
+            datasets = sorted(datasets,
                               lambda ch1, ch2:
                               cmp(abs(ch1.info["wavelength_range"][1] - key),
                                   abs(ch2.info["wavelength_range"][1] - key)))
 
-            if not channels:
+            if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
-            return channels[0]
+            return datasets[0]
         # get by name
         else:
             return self.projectables[key]
@@ -444,7 +444,7 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
-                    projectable_name = reader_instance.get_channel(key)["name"]
+                    projectable_name = reader_instance.get_dataset(key)["name"]
                     if key != projectable_name:
                         self.wishlist.remove(key)
                         self.wishlist.append(projectable_name)
@@ -452,14 +452,14 @@ class Scene(InfoObject):
                         projectable_names.add(projectable_name)
                 except KeyError:
                     projectable_names.add(key)
-                    LOG.debug("Can't find channel %s in reader %s", str(key), reader_name)
+                    LOG.debug("Can't find dataset %s in reader %s", str(key), reader_name)
 
         # Get set of all projectable names that can't be satisfied by the readers we've loaded
         composite_names = set(projectable_names)
         sensor_names = set()
         unknown_names = set()
         for reader_instance in self.readers.values():
-            composite_names -= set(reader_instance.channel_names)
+            composite_names -= set(reader_instance.dataset_names)
             sensor_names |= set(reader_instance.sensor_names)
 
         # If we have any composites that need to be made, then let's create the composite objects
@@ -467,7 +467,7 @@ class Scene(InfoObject):
             unknown_names = self.load_compositors(composite_names, sensor_names, **kwargs)
 
         for unknown_name in unknown_names:
-            LOG.warning("Unknown channel or compositor: %s", unknown_name)
+            LOG.warning("Unknown dataset or compositor: %s", unknown_name)
 
         # Don't include any of the 'unknown' projectable names
         projectable_names = set(projectable_names) - unknown_names
@@ -475,24 +475,24 @@ class Scene(InfoObject):
                                 if composite not in self.projectables or not self[composite].is_loaded()) & projectable_names
 
         for reader_name, reader_instance in self.readers.items():
-            all_reader_channels = set(reader_instance.channel_names)
+            all_reader_datasets = set(reader_instance.dataset_names)
 
             # compute the dependencies to load from file
-            needed_bands = all_reader_channels & projectable_names
+            needed_bands = all_reader_datasets & projectable_names
             needed_bands = set(band for band in needed_bands
                                if band not in self.projectables or not  self[band].is_loaded())
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_channel(prereq)["name"]
+                    needed_bands |= set(reader_instance.get_dataset(prereq)["name"]
                                         for prereq in self.compositors[band].prerequisites)
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
-            needed_bands &= all_reader_channels
+            needed_bands &= all_reader_datasets
 
             # Create projectables in reader and update the scenes projectables
             needed_bands = sorted(needed_bands)
-            LOG.debug("Asking reader '%s' for the following channels %s", reader_name, str(needed_bands))
+            LOG.debug("Asking reader '%s' for the following datasets %s", reader_name, str(needed_bands))
             self.projectables.update(reader_instance.load(needed_bands, **kwargs))
 
         # Update the scene with information contained in the files
@@ -543,14 +543,14 @@ class Scene(InfoObject):
         if kwargs.get("unload", True):
             self.unload()
 
-    def resample(self, destination, channels=None, **kwargs):
+    def resample(self, destination, datasets=None, **kwargs):
         """Resample the projectables and return a new scene.
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
         for name, projectable in self.projectables.items():
             LOG.debug("Resampling %s", name)
-            if channels and name not in channels:
+            if datasets and name not in datasets:
                 continue
             new_scn[name] = projectable.resample(destination, **kwargs)
         return new_scn

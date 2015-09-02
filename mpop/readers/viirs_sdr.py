@@ -525,13 +525,13 @@ class VIIRSSDRReader(Reader):
         else:
             LOG.debug("Geolocation files were not provided, will search band file header...")
 
-            # it should be impossible that we need to find geolocation for a channel and
-            # that there are no channels that need this geolocation:
-            channel_file_type = [v["file_type"] for v in self.channels.values() if v["navigation"] == nav_name and
+            # it should be impossible that we need to find geolocation for a dataset and
+            # that there are no datasets that need this geolocation:
+            dataset_file_type = [v["file_type"] for v in self.datasets.values() if v["navigation"] == nav_name and
                                  v["file_type"] in self.file_readers][0]
-            channel_file_reader = self.file_readers[channel_file_type]
-            base_dirs = [os.path.dirname(fn) for fn in channel_file_reader.filenames]
-            geo_filenames = channel_file_reader.geo_filenames
+            dataset_file_reader = self.file_readers[dataset_file_type]
+            base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
+            geo_filenames = dataset_file_reader.geo_filenames
             geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
 
             file_types = self.identify_file_types(geo_filepaths)
@@ -557,17 +557,17 @@ class VIIRSSDRReader(Reader):
         return area
 
     def _get_dataset_info(self, name, calibration_level=None):
-        dataset_info = self.channels[name]
-        channel_cal = dataset_info.get("calibration_level", None)
+        dataset_info = self.datasets[name]
+        dataset_cal = dataset_info.get("calibration_level", None)
 
         if calibration_level is None:
             # the user hasn't requested a specific calibration level
             return dataset_info
-        elif channel_cal is None:
+        elif dataset_cal is None:
             # the dataset requested doesn't know what level it is
             LOG.debug("Dataset '%s' has no calibration level configured, 'calibration_level' has no effect", name)
             return dataset_info
-        elif calibration_level == channel_cal:
+        elif calibration_level == dataset_cal:
             # the dataset requested is at the requested calibration level
             return dataset_info
 
@@ -585,27 +585,27 @@ class VIIRSSDRReader(Reader):
             dataset_info["file_key"] = cal_file_key
             return dataset_info
 
-    def load(self, channels_to_load, calibration_level=None, **kwargs):
+    def load(self, datasets_to_load, calibration_level=None, **kwargs):
         if kwargs:
             LOG.warning("Unsupported options for viirs reader: %s", str(kwargs))
 
-        channels_to_load = set(channels_to_load) & set(self.channel_names)
-        if len(channels_to_load) == 0:
-            LOG.debug("No channels to load from this reader")
+        datasets_to_load = set(datasets_to_load) & set(self.dataset_names)
+        if len(datasets_to_load) == 0:
+            LOG.debug("No datasets to load from this reader")
             # XXX: Is None really the best thing that can be returned here?
             return
 
-        LOG.debug("Channels to load: " + str(channels_to_load))
+        LOG.debug("Channels to load: " + str(datasets_to_load))
 
         # Sanity check and get the navigation sets being used
         areas = {}
-        channels_loaded = {}
-        for chn in channels_to_load:
-            channel_info = self._get_dataset_info(chn, calibration_level=calibration_level)
-            file_type = channel_info["file_type"]
-            file_key = channel_info["file_key"]
+        datasets_loaded = {}
+        for ds in datasets_to_load:
+            dataset_info = self._get_dataset_info(ds, calibration_level=calibration_level)
+            file_type = dataset_info["file_type"]
+            file_key = dataset_info["file_key"]
             file_reader = self.file_readers[file_type]
-            nav_name = channel_info["navigation"]
+            nav_name = dataset_info["navigation"]
 
             # Get the swath data (fully scaled and in the correct data type)
             data = file_reader.get_swath_data(file_key)
@@ -618,7 +618,7 @@ class VIIRSSDRReader(Reader):
                 area = areas[nav_name]
 
             # Create a projectable from info from the file data and the config file
-            kwargs = self.channels[chn].copy()
+            kwargs = self.datasets[ds].copy()
             kwargs.setdefault("units", file_reader.get_units(file_key))
             kwargs.setdefault("platform", file_reader.get_platform_name())
             kwargs.setdefault("sensor", file_reader.get_sensor_name())
@@ -631,5 +631,5 @@ class VIIRSSDRReader(Reader):
                                       **kwargs)
             projectable.info["area"] = area
 
-            channels_loaded[chn] = projectable
-        return channels_loaded
+            datasets_loaded[ds] = projectable
+        return datasets_loaded

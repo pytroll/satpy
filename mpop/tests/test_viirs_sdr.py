@@ -671,7 +671,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
 
             # the channels calibration level isn't configured
-            reader.channels["I01"].pop("calibration_level", None)
+            reader.datasets["I01"].pop("calibration_level", None)
             info = reader._get_dataset_info("I01", calibration_level=0)
 
     def test_get_dataset_info_cal_equals(self):
@@ -685,9 +685,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.channels["I01"]["calibration_level"] = 2
-            reader.channels["I01"]["calibration_1_file_type"] = reader.channels["I01"]["file_type"]
-            reader.channels["I01"]["calibration_1_file_key"] = reader.channels["I01"]["file_key"]
+            reader.datasets["I01"]["calibration_level"] = 2
+            reader.datasets["I01"]["calibration_1_file_type"] = reader.datasets["I01"]["file_type"]
+            reader.datasets["I01"]["calibration_1_file_key"] = reader.datasets["I01"]["file_key"]
 
             info = reader._get_dataset_info("I01", calibration_level=2)
 
@@ -702,9 +702,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.channels["I01"]["calibration_level"] = 2
-            reader.channels["I01"].pop("calibration_1_file_type", None)
-            reader.channels["I01"].pop("calibration_1_file_key", None)
+            reader.datasets["I01"]["calibration_level"] = 2
+            reader.datasets["I01"].pop("calibration_1_file_type", None)
+            reader.datasets["I01"].pop("calibration_1_file_key", None)
 
             info = reader._get_dataset_info("I01", calibration_level=1)
 
@@ -719,9 +719,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.channels["I01"]["calibration_level"] = 2
-            reader.channels["I01"]["calibration_1_file_type"] = reader.channels["I01"]["file_type"]
-            reader.channels["I01"]["calibration_1_file_key"] = reader.channels["I01"]["file_key"]
+            reader.datasets["I01"]["calibration_level"] = 2
+            reader.datasets["I01"]["calibration_1_file_type"] = reader.datasets["I01"]["file_type"]
+            reader.datasets["I01"]["calibration_1_file_key"] = reader.datasets["I01"]["file_key"]
 
             info = reader._get_dataset_info("I01", calibration_level=1)
 
@@ -736,9 +736,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.channels["I01"]["calibration_level"] = 2
-            reader.channels["I01"]["calibration_1_file_type"] = "fake"
-            reader.channels["I01"]["calibration_1_file_key"] = "fake"
+            reader.datasets["I01"]["calibration_level"] = 2
+            reader.datasets["I01"]["calibration_1_file_type"] = "fake"
+            reader.datasets["I01"]["calibration_1_file_key"] = "fake"
 
             self.assertRaises(ValueError, reader._get_dataset_info, "I01", calibration_level=1)
 

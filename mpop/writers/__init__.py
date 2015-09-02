@@ -76,7 +76,7 @@ def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=N
     return img
 
 def show(dataset, **kwargs):
-    """Display the channel as an image.
+    """Display the dataset as an image.
     """
     if not dataset.is_loaded():
         raise ValueError("Dataset not loaded, cannot display.")
