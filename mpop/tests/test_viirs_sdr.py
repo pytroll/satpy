@@ -628,7 +628,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
             with mock.patch.object(reader, "identify_file_types") as ift_mock:
                 ift_mock.return_value = {}
-                self.assertRaises(RuntimeError, reader._load_navigation, "gitco")
+                self.assertRaises(RuntimeError, reader._load_navigation, "gitco", "svi01")
 
     def test_load_navigation(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -642,7 +642,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
 
-            area = reader._load_navigation("gitco")
+            area = reader._load_navigation("gitco", "svi01")
 
     def test_get_dataset_info_no_cal(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -656,7 +656,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
 
-            info = reader._get_dataset_info("I01")
+            info = reader._get_dataset_info("I01", ["reflectance"])
 
     def test_get_dataset_info_no_cal_level(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -671,8 +671,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
 
             # the channels calibration level isn't configured
-            reader.datasets["I01"].pop("calibration_level", None)
-            info = reader._get_dataset_info("I01", calibration_level=0)
+            info = reader._get_dataset_info("I01", calibration=["counts"])
 
     def test_get_dataset_info_cal_equals(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -685,11 +684,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.datasets["I01"]["calibration_level"] = 2
-            reader.datasets["I01"]["calibration_1_file_type"] = reader.datasets["I01"]["file_type"]
-            reader.datasets["I01"]["calibration_1_file_key"] = reader.datasets["I01"]["file_key"]
+            reader.datasets["I01"]["calibration"] = ["reflectance", "radiance"]
+            reader.datasets["I01"]["file_type"] = ["svi01", "svi01_2"]
+            reader.datasets["I01"]["file_key"] = ["reflectance", "radiance"]
+            reader.datasets["I01"]["navigation"] = ["gitco", "gitco2"]
 
-            info = reader._get_dataset_info("I01", calibration_level=2)
+            info = reader._get_dataset_info("I01", calibration=["reflectance"])
+            self.assertEqual(info["calibration"], "reflectance")
+            self.assertEqual(info["file_type"], "svi01")
+            self.assertEqual(info["file_key"], "reflectance")
+            self.assertEqual(info["navigation"], "gitco")
 
     def test_get_dataset_info_cal_not_configured(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -702,11 +706,15 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.datasets["I01"]["calibration_level"] = 2
-            reader.datasets["I01"].pop("calibration_1_file_type", None)
-            reader.datasets["I01"].pop("calibration_1_file_key", None)
+            reader.datasets["I01"]["calibration"] = ["reflectance"]
+            reader.datasets["I01"]["file_type"] = ["svi01"]
+            reader.datasets["I01"]["file_key"] = ["reflectance"]
 
-            info = reader._get_dataset_info("I01", calibration_level=1)
+            info = reader._get_dataset_info("I01", calibration=["radiance"])
+            self.assertEqual(info["calibration"], "reflectance")
+            self.assertEqual(info["file_type"], "svi01")
+            self.assertEqual(info["file_key"], "reflectance")
+            self.assertEqual(info["navigation"], "gitco")
 
     def test_get_dataset_info_cal_found(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -719,11 +727,19 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.datasets["I01"]["calibration_level"] = 2
-            reader.datasets["I01"]["calibration_1_file_type"] = reader.datasets["I01"]["file_type"]
-            reader.datasets["I01"]["calibration_1_file_key"] = reader.datasets["I01"]["file_key"]
+            reader.datasets["I01"]["calibration"] = ["reflectance", "radiance"]
+            reader.datasets["I01"]["file_type"] = ["svi01", "svi01_2"]
+            reader.datasets["I01"]["file_key"] = ["reflectance", "radiance"]
+            reader.datasets["I01"]["navigation"] = ["gitco", "gitco2"]
+            reader.file_readers["svi01_2"] = reader.file_readers["svi01"]
+            reader.file_types["svi01_2"] = reader.file_types["svi01"]
+            reader.navigations["gitco2"] = reader.navigations["gitco"]
 
-            info = reader._get_dataset_info("I01", calibration_level=1)
+            info = reader._get_dataset_info("I01", calibration=["radiance"])
+            self.assertEqual(info["calibration"], "radiance")
+            self.assertEqual(info["file_type"], "svi01_2")
+            self.assertEqual(info["file_key"], "radiance")
+            self.assertEqual(info["navigation"], "gitco2")
 
     def test_get_dataset_info_file_type_not_configured(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
@@ -736,11 +752,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
             reader = VIIRSSDRReader(filenames=filenames,
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.datasets["I01"]["calibration_level"] = 2
-            reader.datasets["I01"]["calibration_1_file_type"] = "fake"
-            reader.datasets["I01"]["calibration_1_file_key"] = "fake"
+            reader.datasets["I01"]["calibration"] = ["reflectance"]
+            reader.datasets["I01"]["file_type"] = ["svi01"]
+            reader.datasets["I01"]["file_key"] = ["reflectance"]
+            reader.datasets["I01"]["navigation"] = ["gitco"]
 
-            self.assertRaises(ValueError, reader._get_dataset_info, "I01", calibration_level=1)
+            info = reader._get_dataset_info("I01", calibration=["radiance"])
+            self.assertEqual(info["calibration"], "reflectance")
+            self.assertEqual(info["file_type"], "svi01")
+            self.assertEqual(info["file_key"], "reflectance")
+            self.assertEqual(info["navigation"], "gitco")
 
 
 def suite():

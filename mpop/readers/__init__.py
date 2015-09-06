@@ -97,12 +97,11 @@ class Reader(Plugin):
         section_options["name"] = name
 
         # Allow subclasses to make up their own rules about datasets, but this is a good starting point
-        if "file_patterns" in section_options:
-            section_options["file_patterns"] = section_options["file_patterns"].split(",")
+        for k in ["file_patterns", "file_type", "file_key", "navigation", "calibration"]:
+            if k in section_options:
+                section_options[k] = section_options[k].split(",")
         if "wavelength_range" in section_options:
             section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
-        if "calibration_level" in section_options:
-            section_options["calibration_level"] = int(section_options["calibration_level"])
 
         self.datasets[name] = section_options
 

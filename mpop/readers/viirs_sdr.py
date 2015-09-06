@@ -85,13 +85,13 @@ def _get_invalid_info(granule_data):
     return msg
 
 
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "units", "file_units", "kwargs"])):
+class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units", "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
-                scaling_factors=None, dtype=np.float32, units=None, file_units=None, **kwargs):
+                scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
         if isinstance(dtype, (str, unicode)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, units, file_units, kwargs)
+        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units, file_units, kwargs)
 
 
 class HDF5MetaData(object):
@@ -384,7 +384,8 @@ class VIIRSSDRReader(Reader):
         self.file_types = {}
         self.file_readers = {}
         self.file_keys = {}
-        self.nav_sets = {}
+        self.navigations = {}
+        self.calibrations = {}
         kwargs.setdefault("default_config_filename", "readers/viirs_sdr.cfg")
 
         # Load the configuration file and other defaults
@@ -475,7 +476,11 @@ class VIIRSSDRReader(Reader):
 
     def load_section_navigation(self, section_name, section_options):
         name = section_name.split(":")[-1]
-        self.nav_sets[name] = section_options
+        self.navigations[name] = section_options
+
+    def load_section_calibration(self, section_name, section_options):
+        name = section_name.split(":")[-1]
+        self.calibrations[name] = section_options
 
     def identify_file_types(self, filenames, default_file_reader="mpop.readers.viirs_sdr.SDRFileReader"):
         """Identify the type of a file by its filename or by its contents.
@@ -514,8 +519,13 @@ class VIIRSSDRReader(Reader):
 
         return file_types
 
-    def _load_navigation(self, nav_name, extra_mask=None):
-        nav_info = self.nav_sets[nav_name]
+    def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
+        """Load the `nav_name` navigation.
+
+        For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
+        to figure out where it is.
+        """
+        nav_info = self.navigations[nav_name]
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
         file_type = nav_info["file_type"]
@@ -524,12 +534,7 @@ class VIIRSSDRReader(Reader):
             file_reader = self.file_readers[file_type]
         else:
             LOG.debug("Geolocation files were not provided, will search band file header...")
-
-            # it should be impossible that we need to find geolocation for a dataset and
-            # that there are no datasets that need this geolocation:
-            dataset_file_type = [v["file_type"] for v in self.datasets.values() if v["navigation"] == nav_name and
-                                 v["file_type"] in self.file_readers][0]
-            dataset_file_reader = self.file_readers[dataset_file_type]
+            dataset_file_reader = self.file_readers[dep_file_type]
             base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
             geo_filenames = dataset_file_reader.geo_filenames
             geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
@@ -556,38 +561,71 @@ class VIIRSSDRReader(Reader):
 
         return area
 
-    def _get_dataset_info(self, name, calibration_level=None):
-        dataset_info = self.datasets[name]
-        dataset_cal = dataset_info.get("calibration_level", None)
+    def _get_dataset_info(self, name, calibration):
+        dataset_info = self.datasets[name].copy()
 
-        if calibration_level is None:
-            # the user hasn't requested a specific calibration level
-            return dataset_info
-        elif dataset_cal is None:
-            # the dataset requested doesn't know what level it is
-            LOG.debug("Dataset '%s' has no calibration level configured, 'calibration_level' has no effect", name)
-            return dataset_info
-        elif calibration_level == dataset_cal:
-            # the dataset requested is at the requested calibration level
+        if not dataset_info.get("calibration", None):
+            LOG.debug("No calibration set for '%s'", name)
+            dataset_info["file_type"] = dataset_info["file_type"][0]
+            dataset_info["file_key"] = dataset_info["file_key"][0]
+            dataset_info["navigation"] = dataset_info["navigation"][0]
             return dataset_info
 
-        cal_file_type = dataset_info.get("calibration_%d_file_type" % (calibration_level,), None)
-        cal_file_key = dataset_info.get("calibration_%d_file_key" % (calibration_level,), None)
-        if cal_file_type is None or cal_file_key is None:
-            LOG.debug("Calibration level %d was requested, but '%s' doesn't support that level", calibration_level, name)
-            return dataset_info
-        elif cal_file_type not in self.file_types or cal_file_key not in self.file_keys:
-            raise ValueError("No configuration found for file type '%s' and file key '%s' at calibration level %d" %
-                             (cal_file_type, cal_file_key, calibration_level))
+        # Remove any file types and associated calibration, file_key, navigation if file_type is not loaded
+        for k in ["file_type", "file_key", "calibration", "navigation"]:
+            dataset_info[k] = []
+        for idx, ft in enumerate(self.datasets[name]["file_type"]):
+            if ft in self.file_readers:
+                for k in ["file_type", "file_key", "calibration", "navigation"]:
+                    dataset_info[k].append(self.datasets[name][k][idx])
+
+        # By default do the first calibration for a dataset
+        cal_index = 0
+        cal_name = dataset_info["calibration"][0]
+        for idx, cname in enumerate(dataset_info["calibration"]):
+            # is this the calibration we want for this channel?
+            if cname in calibration:
+                cal_index = idx
+                cal_name = cname
+                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name, name)
+                break
         else:
-            dataset_info = dataset_info.copy()
-            dataset_info["file_type"] = cal_file_type
-            dataset_info["file_key"] = cal_file_key
-            return dataset_info
+            LOG.debug("Using default calibration '%s' for dataset '%s'", cal_name, name)
 
-    def load(self, datasets_to_load, calibration_level=None, **kwargs):
-        if kwargs:
-            LOG.warning("Unsupported options for viirs reader: %s", str(kwargs))
+        # Load metadata and calibration information for this dataset
+        try:
+            cal_info = self.calibrations.get(cal_name, None)
+            for k, info_dict in [
+                ("file_type", self.file_types),
+                ("file_key", self.file_keys),
+                ("navigation", self.navigations),
+                ("calibration", self.calibrations)]:
+                val = dataset_info[k][cal_index]
+                if cal_info is not None:
+                    val = cal_info.get(k, val)
+
+                if val not in info_dict and k != "calibration":
+                    # We don't care if the calibration has its own section
+                    raise RuntimeError("Unknown '%s': %s" % (k, val,))
+                dataset_info[k] = val
+
+                if k == "file_key":
+                    # collect any other metadata
+                    dataset_info["standard_name"] = self.file_keys[val].standard_name
+                    # dataset_info["file_units"] = self.file_keys[val].file_units
+                    # dataset_info["units"] = self.file_keys[val].units
+        except (IndexError, KeyError):
+            raise RuntimeError("Could not get information to perform calibration '%s'" % (cal_name,))
+
+        return dataset_info
+
+    def load(self, datasets_to_load, calibration=None, **dataset_info):
+        if dataset_info:
+            LOG.warning("Unsupported options for viirs reader: %s", str(dataset_info))
+        if calibration is None:
+            calibration = getattr(self, "calibration", ["bt", "reflectance"])
+        # order calibration from highest level to lowest level
+        calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
 
         datasets_to_load = set(datasets_to_load) & set(self.dataset_names)
         if len(datasets_to_load) == 0:
@@ -601,7 +639,7 @@ class VIIRSSDRReader(Reader):
         areas = {}
         datasets_loaded = {}
         for ds in datasets_to_load:
-            dataset_info = self._get_dataset_info(ds, calibration_level=calibration_level)
+            dataset_info = self._get_dataset_info(ds, calibration=calibration)
             file_type = dataset_info["file_type"]
             file_key = dataset_info["file_key"]
             file_reader = self.file_readers[file_type]
@@ -613,22 +651,22 @@ class VIIRSSDRReader(Reader):
             # Load the navigation information first
             if nav_name not in areas:
                 # FIXME: This ignores the possibility that data masks are different between bands
-                areas[nav_name] = area = self._load_navigation(nav_name, extra_mask=data.mask)
+                areas[nav_name] = area = self._load_navigation(nav_name, file_type, extra_mask=data.mask)
             else:
                 area = areas[nav_name]
 
             # Create a projectable from info from the file data and the config file
-            kwargs = self.datasets[ds].copy()
-            kwargs.setdefault("units", file_reader.get_units(file_key))
-            kwargs.setdefault("platform", file_reader.get_platform_name())
-            kwargs.setdefault("sensor", file_reader.get_sensor_name())
-            kwargs.setdefault("start_orbit", file_reader.get_begin_orbit_number())
-            kwargs.setdefault("end_orbit", file_reader.get_end_orbit_number())
-            kwargs.setdefault("rows_per_scan", self.nav_sets[nav_name]["rows_per_scan"])
+            # FIXME: Remove metadata that is reader only
+            dataset_info.setdefault("units", file_reader.get_units(file_key))
+            dataset_info.setdefault("platform", file_reader.get_platform_name())
+            dataset_info.setdefault("sensor", file_reader.get_sensor_name())
+            dataset_info.setdefault("start_orbit", file_reader.get_begin_orbit_number())
+            dataset_info.setdefault("end_orbit", file_reader.get_end_orbit_number())
+            dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
-                                      **kwargs)
+                                      **dataset_info)
             projectable.info["area"] = area
 
             datasets_loaded[ds] = projectable
