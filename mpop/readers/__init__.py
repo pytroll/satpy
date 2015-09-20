@@ -233,6 +233,41 @@ class ConfigBasedReader(Reader):
 
         return sorted(segment_readers, key=lambda x: x.start_time)
 
+    def _interpolate_navigation(self, lon, lat):
+        return lon, lat
+
+    def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
+        """Load the `nav_name` navigation.
+        """
+        nav_info = self.navigations[nav_name]
+        lon_key = nav_info["longitude_key"]
+        lat_key = nav_info["latitude_key"]
+        file_type = nav_info["file_type"]
+
+        file_reader = self.file_readers[file_type]
+
+        gross_lon_data = file_reader.get_swath_data(lon_key)
+        gross_lat_data = file_reader.get_swath_data(lat_key)
+
+        lon_data, lat_data = self._interpolate_navigation(gross_lon_data, gross_lat_data)
+        if extra_mask is not None:
+            lon_data = np.ma.masked_where(extra_mask, lon_data)
+            lat_data = np.ma.masked_where(extra_mask, lat_data)
+
+        # FIXME: Is this really needed/does it belong here? Can we have a dummy/simple object?
+        from pyresample import geometry
+        area = geometry.SwathDefinition(lons=lon_data, lats=lat_data)
+        area_name = ("swath_" +
+                     file_reader.start_time.isoformat() + "_" +
+                     file_reader.end_time.isoformat() + "_" +
+                     str(lon_data.shape[0]) + "_" + str(lon_data.shape[1]))
+        # FIXME: Which one is used now:
+        area.area_id = area_name
+        area.name = area_name
+
+        return area
+
+
     def identify_file_types(self, filenames, default_file_reader="mpop.readers.eps_l1b.EPSAVHRRL1BFileReader"):
         """Identify the type of a file by its filename or by its contents.
 
@@ -400,7 +435,7 @@ class ConfigBasedReader(Reader):
             datasets_loaded[ds] = projectable
         return datasets_loaded
 
-    def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
+    def _load_navigation_old(self, nav_name, dep_file_type, extra_mask=None):
         """Load the `nav_name` navigation.
 
         For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
@@ -489,7 +524,7 @@ class MultiFileReader(object):
     def get_units(self, item):
         return self.file_readers[0].get_units(item)
 
-    def get_swath_data(self, item, extra_mask=None, filename=None, dataset_name=None):
+    def get_swath_data(self, item, filename=None, dataset_name=None):
         var_info = self.file_keys[item]
         granule_shapes = [x.get_shape(item) for x in self.file_readers]
         num_rows = sum([x[0] for x in granule_shapes])
@@ -500,10 +535,7 @@ class MultiFileReader(object):
             # data = np.memmap(filename, dtype=var_info.dtype, mode='w', shape=(num_rows, num_cols))
         else:
             data = np.empty((num_rows, num_cols), dtype=var_info.dtype)
-            if extra_mask is not None:
-                mask = extra_mask.copy()
-            else:
-                mask = np.zeros_like(data, dtype=np.bool)
+            mask = np.zeros_like(data, dtype=np.bool)
 
         idx = 0
         for granule_shape, file_reader in zip(granule_shapes, self.file_readers):
@@ -516,3 +548,14 @@ class MultiFileReader(object):
 
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
         return np.ma.array(data, mask=mask, copy=False)
+
+def GenericFileReader(object):
+    def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
+        if item in ["longitude", "latitude"]:
+            # TODO: compute the lon lat here from tle (pyorbital)
+            return
+        raise NotImplementedError
+
+    def get_shape(self, item):
+        raise NotImplementedError
+
