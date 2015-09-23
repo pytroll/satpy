@@ -276,7 +276,6 @@ class ConfigBasedReader(Reader):
         file_types = {}
         # remaining_filenames = [os.path.basename(fn) for fn in filenames]
         remaining_filenames = filenames[:]
-        print self.file_types
         for file_type_name, file_type_info in self.file_types.items():
             file_types[file_type_name] = []
             file_reader_class = self._runtime_import(file_type_info.get("file_reader", default_file_reader))
@@ -549,10 +548,10 @@ class MultiFileReader(object):
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
         return np.ma.array(data, mask=mask, copy=False)
 
-def GenericFileReader(object):
+class GenericFileReader(object):
     def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
         if item in ["longitude", "latitude"]:
-            # TODO: compute the lon lat here from tle (pyorbital)
+            # TODO: compute the lon lat here from tle and sensor geometry (pyorbital)
             return
         raise NotImplementedError
 
