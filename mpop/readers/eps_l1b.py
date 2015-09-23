@@ -188,6 +188,9 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
 
     def __getitem__(self, key):
+        if key in self.file_keys:
+            key = self.file_keys[key].variable_name.format(**self.file_info)
+
         if key in self.cache:
             return self.cache[key]
         for altkey in self.form.scales.keys():
