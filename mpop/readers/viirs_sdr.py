@@ -34,7 +34,7 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 """
 import os.path
 from datetime import datetime, timedelta
-
+from trollsift.parser import globify
 import numpy as np
 import h5py
 import logging
@@ -499,7 +499,7 @@ class VIIRSSDRReader(Reader):
                 for fn in remaining_filenames:
                     # Add a wildcard to the front for path information
                     # FIXME: Is there a better way to generalize this besides removing the path every time
-                    if fnmatch(fn, "*" + file_pattern):
+                    if fnmatch(fn, "*" + globify(file_pattern)):
                         reader = file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
                         tmp_matching.append(reader)
                     else:

@@ -173,7 +173,11 @@ class Scene(InfoObject):
             parser = trollsift.parser.Parser(pattern)
             # FIXME: what if we are browsing a huge archive ?
             for filename in glob.iglob(parser.globify(info.copy())):
-                metadata = parser.parse(filename)
+                try:
+                    metadata = parser.parse(filename)
+                except ValueError:
+                    LOG.info("Can't get any metadata from filename: %s from %s", pattern, filename)
+                    metadata = {}
                 if "end_time" in metadata and metadata["start_time"] > metadata["end_time"]:
                     mdate = metadata["start_time"].date()
                     mtime = metadata["end_time"].time()
@@ -193,7 +197,7 @@ class Scene(InfoObject):
                         filenames.append(filename)
                     elif meta_start == reader_start:
                         filenames.append(filename)
-        return filenames
+        return sorted(filenames)
 
     def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
