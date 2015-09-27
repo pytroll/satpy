@@ -546,10 +546,10 @@ class Scene(InfoObject):
         for name in to_del:
             del self.projectables[name]
 
-    def load(self, *wishlist, **kwargs):
+    def load(self, wishlist, **kwargs):
         """Read, compute and unload.
         """
-        self.read(*wishlist, **kwargs)
+        self.read(wishlist, **kwargs)
         if kwargs.get("compute", True):
             self.compute()
         if kwargs.get("unload", True):
