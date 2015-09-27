@@ -28,9 +28,12 @@ from mpop.plugin_base import Plugin
 import logging
 import numbers
 import numpy as np
+from collections import namedtuple
 
 LOG = logging.getLogger(__name__)
 
+BandID = namedtuple("Band", "name resolution wavelength polarization")
+BandID.__new__.__defaults__ = (None, None, None, None)
 
 class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
@@ -95,7 +98,10 @@ class Reader(Plugin):
 
     def load_section_dataset(self, section_name, section_options):
         name = section_options.get("name", section_name.split(":")[-1])
-        section_options["name"] = name
+        resolution = float(section_options.get("resolution"))
+        wavelength = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
+        bid = BandID(name=name, resolution=resolution, wavelength=wavelength)
+        section_options["name"] = bid
 
         # Allow subclasses to make up their own rules about datasets, but this is a good starting point
         for k in ["file_patterns", "file_type", "file_key", "navigation", "calibration"]:
@@ -104,9 +110,9 @@ class Reader(Plugin):
         if "wavelength_range" in section_options:
             section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
 
-        self.datasets[name] = section_options
+        self.datasets[bid] = section_options
 
-    def get_dataset(self, key):
+    def get_dataset(self, key, aslist=False):
         """Get the dataset corresponding to *key*, either by name or centerwavelength.
         """
         # get by wavelength
@@ -121,10 +127,41 @@ class Reader(Plugin):
 
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
-            return datasets[0]
+            if aslist:
+                return datasets
+            else:
+                return datasets[0]
+        elif isinstance(key, BandID):
+            if key.name is not None:
+                datasets = self.get_dataset(key.name, aslist=True)
+            elif key.wavelength is not None:
+                datasets = self.get_dataset(key.wavelength, aslist=True)
+            else:
+                raise KeyError("Can't find any projectable '%s'" % key)
+            if key.resolution is not None:
+                datasets = [ds for ds in datasets if ds["resolution"] == key.resolution]
+            if key.polarization is not None:
+                datasets = [ds for ds in datasets if ds["polarization"] == key.polarization]
+            if not datasets:
+                raise KeyError("Can't find any projectable matching '%s'" % str(key))
+            if aslist:
+                return datasets
+            else:
+                return datasets[0]
+
+
         # get by name
         else:
-            return self.datasets[key]
+            datasets = []
+            for bid, ds in self.datasets.items():
+                if key == bid or bid.name == key:
+                    datasets.append(ds)
+            if len(datasets) == 0:
+                raise KeyError("Can't find any projectable called '%s'" % key)
+            if aslist:
+                return datasets
+            else:
+                return datasets[0]
 
     def load(self, datasets_to_load):
         """Loads the *datasets_to_load* into the scene object.

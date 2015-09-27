@@ -346,7 +346,14 @@ class Scene(InfoObject):
             return datasets[0]
         # get by name
         else:
-            return self.projectables[key]
+            for bid, ds in self.projectables.items():
+                try:
+                    if key == bid or bid.name == key:
+                        return ds
+                except AttributeError:
+                    pass
+
+            raise KeyError("Can't find any projectable called '%s'" % key)
 
     def __setitem__(self, key, value):
         if not isinstance(value, Projectable):
@@ -444,7 +451,8 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
-                    projectable_name = reader_instance.get_dataset(key)["name"]
+                    ds_info = reader_instance.get_dataset(key)
+                    projectable_name = ds_info["name"]
                     if key != projectable_name:
                         self.wishlist.remove(key)
                         self.wishlist.append(projectable_name)

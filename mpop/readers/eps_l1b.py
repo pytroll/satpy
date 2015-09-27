@@ -232,7 +232,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             raise ValueError('calibrate=' + str(calib_type) +
                              'is not supported!')
 
-        if chan not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
+        if chan.name not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
             LOG.info("Can't load channel in eps_l1b: " + str(chan))
             return
 
@@ -242,14 +242,14 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         if data_out is None:
             mask_out = np.ma.empty((radiance_shape[0], radiance_shape[2]), dtype=bool)
 
-        if chan == "1":
+        if chan.name == "1":
             if calib_type == 1:
                 data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 0, :],
                                       self["CH1_SOLAR_FILTERED_IRRADIANCE"])
             else:
                 data_out[:] = self["SCENE_RADIANCES"][:, 0, :]
             mask_out[:] = False
-        if chan == "2":
+        if chan.name == "2":
             if calib_type == 1:
                 data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 1, :],
                                       self["CH2_SOLAR_FILTERED_IRRADIANCE"])
@@ -257,7 +257,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
                 data_out[:] = self["SCENE_RADIANCES"][:, 1, :]
             mask_out[:] = False
 
-        if chan.lower() == "3a":
+        if chan.name.lower() == "3a":
             frames = (self["FRAME_INDICATOR"] & 2 ** 16) != 0
             if calib_type == 1:
                 data_out[frames, :] = radiance_to_refl(self["SCENE_RADIANCES"][frames, 2, :],
@@ -267,7 +267,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             mask_out[~frames, :] = True
             mask_out[frames, :] = False
 
-        if chan.lower() == "3b":
+        if chan.name.lower() == "3b":
             frames = (self["FRAME_INDICATOR"] & 2 ** 16) == 0
             if calib_type == 1:
                 data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 2, :],
@@ -279,7 +279,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
                 data_out[:] = self["SCENE_RADIANCES"][:, 2, :]
             mask_out[~frames, :] = True
             mask_out[frames, :] = False
-        if chan == "4":
+        if chan.name == "4":
             if calib_type == 1:
                 data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 3, :],
                                     self["CH4_CENTRAL_WAVENUMBER"],
@@ -289,7 +289,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
                 data_out[:] = self["SCENE_RADIANCES"][:, 3, :]
             mask_out[:] = False
 
-        if chan == "5":
+        if chan.name == "5":
             if calib_type == 1:
                 data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 4, :],
                                     self["CH5_CENTRAL_WAVENUMBER"],

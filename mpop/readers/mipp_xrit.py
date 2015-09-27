@@ -103,7 +103,7 @@ class XritReader(Reader):
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and areas is not None:
                 metadata = xrit.sat.load(fullname, self.start_time,
-                                         ds, only_metadata=True)
+                                         ds.name, only_metadata=True)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
                 area_extent = area_defs_to_extent(areas, metadata.proj4_params)
@@ -112,7 +112,7 @@ class XritReader(Reader):
             try:
                 image = xrit.sat.load(fullname,
                                       self.start_time,
-                                      ds,
+                                      ds.name,
                                       mask=True,
                                       calibrate=calibrate)
                 if area_extent:
@@ -124,7 +124,7 @@ class XritReader(Reader):
                     "Loading non calibrated data since calibration failed.")
                 image = xrit.sat.load(fullname,
                                       self.start_time,
-                                      ds,
+                                      ds.name,
                                       mask=True,
                                       calibrate=False)
                 if area_extent:
