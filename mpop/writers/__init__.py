@@ -219,6 +219,8 @@ class EnhancementDecisionTree(object):
         for key, val in match.iteritems():
             try:
                 match[key] = json.loads(val)
+            except TypeError:
+                match[key] = val
             except ValueError:
                 pass
         return match

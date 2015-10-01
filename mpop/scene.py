@@ -460,7 +460,7 @@ class Scene(InfoObject):
                     if key != projectable_name:
                         self.wishlist.remove(key)
                         self.wishlist.append(projectable_name)
-                    if not projectable_name in self.projectables or not self.projectables[projectable_name].is_loaded():
+                    if projectable_name not in self.projectables or not self.projectables[projectable_name].is_loaded():
                         projectable_names.add(projectable_name)
                 except KeyError:
                     projectable_names.add(key)
