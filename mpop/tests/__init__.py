@@ -33,6 +33,7 @@ from mpop.tests import (#test_satin_helpers,
                         #test_satellites,
                         test_scene,
                         test_writers,
+                        test_readers,
                         #test_seviri,
                         test_viirs_sdr,
                         #test_visir,
@@ -59,6 +60,7 @@ def suite():
     #mysuite.addTests(test_visir.suite())
     mysuite.addTests(test_projectable.suite())
     mysuite.addTests(test_writers.suite())
+    mysuite.addTests(test_readers.suite())
 
 
     return mysuite

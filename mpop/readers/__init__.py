@@ -5,6 +5,7 @@
 # Author(s):
 
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of mpop.
 
@@ -24,21 +25,256 @@
 
 """
 
-from mpop.plugin_base import Plugin
 import logging
 import numbers
-import numpy as np
+from fnmatch import fnmatch
 from collections import namedtuple
+import os
+from datetime import datetime, timedelta
+import ConfigParser
+import glob
+
+import numpy as np
+
+from trollsift.parser import globify, Parser
+
+from mpop.plugin_base import Plugin
+from mpop.projectable import Projectable
+from mpop import _runtime_import
 
 LOG = logging.getLogger(__name__)
 
 BandID = namedtuple("Band", "name resolution wavelength polarization")
 BandID.__new__.__defaults__ = (None, None, None, None)
 
+class ReaderFinder(object):
+    """Finds readers given a scene, filenames, sensors, and/or a reader_name
+    """
+    def __init__(self, scene):
+        self.info = scene.info.copy()
+        self.ppp_config_dir = scene.ppp_config_dir
+
+    def __call__(self, filenames=None, sensor=None, reader_name=None):
+        if reader_name is not None:
+            print reader_name
+            return self._find_reader_by_name(reader_name, filenames)
+        elif sensor is not None:
+            return self._find_sensors_readers(sensor, filenames)
+        elif filenames is not None:
+            return self._find_files_readers(filenames)
+
+    def _find_sensors_readers(self, sensor, filenames):
+        """Find the readers for the given *sensor* and *filenames*
+        """
+        if isinstance(sensor, (str, unicode)):
+            sensor_set = set([sensor])
+        else:
+            sensor_set = set(sensor)
+        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+            try:
+                reader_info = self._read_reader_config(config_file)
+                LOG.debug("Successfully read reader config: %s", config_file)
+            except ValueError:
+                LOG.debug("Invalid reader config found: %s", config_file)
+                continue
+
+            if "sensor" in reader_info and (set(reader_info["sensor"]) & sensor_set):
+                # we want this reader
+                if filenames:
+                    # returns a copy of the filenames remaining to be matched
+                    filenames = self.assign_matching_files(reader_info, *filenames)
+                    if filenames:
+                        raise IOError("Don't know how to open the following files: %s" % str(filenames))
+                else:
+                    # find the files for this reader based on its file patterns
+                    reader_info["filenames"] = self.get_filenames(reader_info)
+                    if not reader_info["filenames"]:
+                        LOG.warning("No filenames found for reader: %s", reader_info["name"])
+                        continue
+                return self._load_reader(reader_info)
+
+    def _find_reader(self, reader, filenames):
+        """Find and get info for the *reader* for *filenames*
+        """
+        config_file = reader
+        # were we given a path to a config file?
+        if not os.path.exists(config_file):
+            # no, we were given a name of a reader
+            config_fn = reader + ".cfg"  # assumes no extension was given on the reader name
+            config_file = os.path.join(self.ppp_config_dir, "readers", config_fn)
+            if not os.path.exists(config_file):
+                raise ValueError("Can't find config file for reader: %s" % (reader,))
+
+        reader_info = self._read_reader_config(config_file)
+        if filenames:
+            filenames = self.assign_matching_files(reader_info, *filenames)
+            if filenames:
+                raise IOError("Don't know how to open the following files: %s" % str(filenames))
+        else:
+            reader_info["filenames"] = self.get_filenames(reader_info)
+            if not reader_info["filenames"]:
+                raise RuntimeError("No filenames found for reader: %s" % (reader_info["name"],))
+
+        return self._load_reader(reader_info)
+
+    def _find_files_readers(self, files):
+        """Find the reader info for the provided *files*.
+        """
+        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+            try:
+                reader_info = self._read_reader_config(config_file)
+                LOG.debug("Successfully read reader config: %s", config_file)
+            except ValueError:
+                LOG.debug("Invalid reader config found: %s", config_file)
+                continue
+
+            files = self.assign_matching_files(reader_info, *files)
+
+            if reader_info["filenames"]:
+                # we have some files for this reader so let's create it
+                self._load_reader(reader_info)
+
+            if not files:
+                break
+        if files:
+            raise IOError("Don't know how to open the following files: %s" % str(files))
+
+    def get_filenames(self, reader_info):
+        """Get the filenames from disk given the patterns in *reader_info*.
+        This assumes that the scene info contains start_time at least (possibly end_time too).
+        """
+
+        filenames = []
+        info = self.info.copy()
+        for key in info.keys():
+            if key.endswith("_time"):
+                info.pop(key, None)
+
+        reader_start = reader_info["start_time"]
+        reader_end = reader_info.get("end_time")
+        if reader_start is None:
+            raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
+
+        for pattern in reader_info["file_patterns"]:
+            parser = Parser(pattern)
+            # FIXME: what if we are browsing a huge archive ?
+            for filename in glob.iglob(parser.globify(info.copy())):
+                try:
+                    metadata = parser.parse(filename)
+                except ValueError:
+                    LOG.info("Can't get any metadata from filename: %s from %s", pattern, filename)
+                    metadata = {}
+                if "end_time" in metadata and metadata["start_time"] > metadata["end_time"]:
+                    mdate = metadata["start_time"].date()
+                    mtime = metadata["end_time"].time()
+                    if mtime < metadata["start_time"].time():
+                        mdate += timedelta(days=1)
+                    metadata["end_time"] = datetime.combine(mdate, mtime)
+                meta_start = metadata.get("start_time", metadata.get("nominal_time", None))
+                meta_end = metadata.get("end_time", datetime(1950, 1, 1))
+                if reader_end:
+                    # get the data within the time interval
+                    if ((reader_start <= meta_start <= reader_end) or
+                            (reader_start <= meta_end <= reader_end)):
+                        filenames.append(filename)
+                else:
+                    # get the data containing start_time
+                    if "end_time" in metadata and meta_start <= reader_start <= meta_end:
+                        filenames.append(filename)
+                    elif meta_start == reader_start:
+                        filenames.append(filename)
+        return sorted(filenames)
+
+    def _read_reader_config(self, cfg_file):
+        """Read the reader *cfg_file* and return the info extracted.
+        """
+        if not os.path.exists(cfg_file):
+            raise IOError("No such file: " + cfg_file)
+
+        conf = ConfigParser.RawConfigParser()
+
+        conf.read(cfg_file)
+        file_patterns = []
+        sensors = set()
+        reader_name = None
+        reader_class = None
+        reader_info = None
+        # Only one reader: section per config file
+        for section in conf.sections():
+            if section.startswith("reader:"):
+                reader_info = dict(conf.items(section))
+                reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
+                reader_info["sensor"] = reader_info.setdefault("sensor", "").split(",")
+                # XXX: Readers can have separate start/end times from the
+                # rest fo the scene...might be a bad idea?
+                reader_info.setdefault("start_time", self.info.get("start_time", None))
+                reader_info.setdefault("end_time", self.info.get("end_time", None))
+                reader_info.setdefault("area", self.info.get("area", None))
+                try:
+                    reader_class = reader_info["reader"]
+                    reader_name = reader_info["name"]
+                except KeyError:
+                    break
+                file_patterns.extend(reader_info["file_patterns"])
+
+                if reader_info["sensor"]:
+                    sensors |= set(reader_info["sensor"])
+            else:
+                try:
+                    file_patterns.extend(conf.get(section, "file_patterns").split(","))
+                except ConfigParser.NoOptionError:
+                    pass
+
+                try:
+                    sensors |= set(conf.get(section, "sensor").split(","))
+                except ConfigParser.NoOptionError:
+                    pass
+
+        if reader_class is None:
+            raise ValueError("Malformed config file %s: missing reader 'reader'" % cfg_file)
+        if reader_name is None:
+            raise ValueError("Malformed config file %s: missing reader 'name'" % cfg_file)
+        reader_info["file_patterns"] = file_patterns
+        reader_info["config_file"] = cfg_file
+        reader_info["filenames"] = []
+        reader_info["sensor"] = tuple(sensors)
+
+        return reader_info
+
+    def _load_reader(self, reader_info):
+        """Import and setup the reader from *reader_info*
+        """
+        try:
+            loader = _runtime_import(reader_info["reader"])
+        except ImportError:
+            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["reader"],
+                                                                                      reader_info["name"]))
+
+        reader_instance = loader(**reader_info)
+        # fixme: put this in the calling function
+        # self.readers[reader_info["name"]] = reader_instance
+        return reader_instance
+
+    def assign_matching_files(reader_info, *files):
+        """Assign *files* to the *reader_info*
+        """
+        files = list(files)
+        for file_pattern in reader_info["file_patterns"]:
+            pattern = globify(file_pattern)
+            for filename in list(files):
+                if fnmatch.fnmatch(os.path.basename(filename), os.path.basename(pattern)):
+                    reader_info["filenames"].append(filename)
+                    files.remove(filename)
+
+        # return remaining/unmatched files
+        return files
+
+
 class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
+
     def __init__(self, name=None,
                  file_patterns=None,
                  filenames=None,
@@ -118,8 +354,8 @@ class Reader(Plugin):
         # get by wavelength
         if isinstance(key, numbers.Number):
             datasets = [ds for ds in self.datasets.values()
-                        if("wavelength_range" in ds and
-                           ds["wavelength_range"][0] <= key <= ds["wavelength_range"][2])]
+                        if ("wavelength_range" in ds and
+                            ds["wavelength_range"][0] <= key <= ds["wavelength_range"][2])]
             datasets = sorted(datasets,
                               lambda ch1, ch2:
                               cmp(abs(ch1["wavelength_range"][1] - key),
@@ -168,10 +404,6 @@ class Reader(Plugin):
         """
         raise NotImplementedError
 
-from fnmatch import fnmatch
-from trollsift.parser import globify
-from mpop.projectable import Projectable
-from collections import namedtuple
 
 class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units",
                                      "file_units", "kwargs"])):
@@ -191,8 +423,6 @@ class ConfigBasedReader(Reader):
         self.file_keys = {}
         self.navigations = {}
         self.calibrations = {}
-
-        #kwargs.setdefault("default_config_filename", "readers/viirs_sdr.cfg")
 
         # Load the configuration file and other defaults
         super(ConfigBasedReader, self).__init__(**kwargs)
@@ -303,7 +533,6 @@ class ConfigBasedReader(Reader):
         area.name = area_name
 
         return area
-
 
     def identify_file_types(self, filenames, default_file_reader="mpop.readers.eps_l1b.EPSAVHRRL1BFileReader"):
         """Identify the type of a file by its filename or by its contents.
@@ -461,7 +690,7 @@ class ConfigBasedReader(Reader):
             dataset_info.setdefault("sensor", file_reader.get_sensor_name())
             dataset_info.setdefault("start_orbit", file_reader.get_begin_orbit_number())
             dataset_info.setdefault("end_orbit", file_reader.get_end_orbit_number())
-            #dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
+            # dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
@@ -512,7 +741,6 @@ class ConfigBasedReader(Reader):
         area.name = area_name
 
         return area
-
 
 
 class MultiFileReader(object):
@@ -585,6 +813,7 @@ class MultiFileReader(object):
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
         return np.ma.array(data, mask=mask, copy=False)
 
+
 class GenericFileReader(object):
     def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
         if item in ["longitude", "latitude"]:
@@ -594,4 +823,3 @@ class GenericFileReader(object):
 
     def get_shape(self, item):
         raise NotImplementedError
-

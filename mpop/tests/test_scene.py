@@ -34,39 +34,47 @@ class TestScene(unittest.TestCase):
     def test_init_with_filenames(self):
         from mpop.scene import Scene
         filenames = ["bla", "foo", "bar"]
-        with mock.patch('mpop.scene.Scene._find_files_readers') as methmock:
-            Scene(filenames=filenames)
-            methmock.assert_called_once_with(*filenames)
+        sensors = None
+        reader_name = None
+        with mock.patch('mpop.scene.ReaderFinder') as findermock:
+            scene = Scene(filenames=filenames)
+            findermock.assert_called_once_with(scene)
+            findermock.return_value.assert_called_once_with(reader_name, sensors, filenames)
 
     def test_init_with_empty_filenames(self):
         from mpop.scene import Scene
         filenames = []
-        with mock.patch('mpop.scene.Scene._find_files_readers'):
-            self.assertRaises(ValueError, Scene, filenames=filenames)
+        self.assertRaises(ValueError, Scene, filenames=filenames)
 
     def test_init_with_sensor(self):
         from mpop.scene import Scene
         sensors = ["bla", "foo", "bar"]
         filenames = None
-        with mock.patch('mpop.scene.Scene._find_sensors_readers') as methmock:
-            Scene(sensor=sensors)
-            methmock.assert_called_once_with(sensors, filenames)
+        reader_name = None
+        with mock.patch('mpop.scene.ReaderFinder') as findermock:
+            scene = Scene(sensor=sensors)
+            findermock.assert_called_once_with(scene)
+            findermock.return_value.assert_called_once_with(reader_name, sensors, filenames)
 
     def test_init_with_sensor_and_filenames(self):
         from mpop.scene import Scene
         sensors = ["bla", "foo", "bar"]
         filenames = ["1", "2", "3"]
-        with mock.patch('mpop.scene.Scene._find_sensors_readers') as methmock:
-            Scene(sensor=sensors, filenames=filenames)
-            methmock.assert_called_once_with(sensors, filenames)
+        reader_name = None
+        with mock.patch('mpop.scene.ReaderFinder') as findermock:
+            scene = Scene(sensor=sensors, filenames=filenames)
+            findermock.assert_called_once_with(scene)
+            findermock.return_value.assert_called_once_with(reader_name, sensors, filenames)
 
     def test_init_with_reader(self):
         from mpop.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
-        with mock.patch('mpop.scene.Scene._find_reader') as methmock:
-            Scene(reader=reader, filenames=filenames)
-            methmock.assert_called_once_with(reader, filenames)
+        sensors = None
+        with mock.patch('mpop.scene.ReaderFinder') as findermock:
+            scene = Scene(reader_name=reader, filenames=filenames)
+            findermock.assert_called_once_with(scene)
+            findermock.return_value.assert_called_once_with(reader, sensors, filenames)
 
     def test_init_alone(self):
         from mpop.scene import Scene
@@ -79,171 +87,6 @@ class TestScene(unittest.TestCase):
         scn = Scene(ppp_config_dir="foo")
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
-    @mock.patch("glob.glob")
-    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock, **mock_objs):
-        from mpop.scene import Scene
-        glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
-
-        def fake_read_config(config_file):
-            if config_file in ["valid", "no_found_files"]:
-                return {"name": "fake_reader",
-                        "sensor": ["foo"],
-                        "config_file": config_file}
-            else:
-                raise ValueError("Fake ValueError")
-
-        def fake_get_filenames(reader_info):
-            if reader_info["config_file"] == "valid":
-                return ["file1", "file2"]
-            return []
-
-        with mock.patch.multiple("mpop.scene.Scene",
-                             _read_reader_config=mock.DEFAULT,
-                             get_filenames=mock.DEFAULT,
-                             _load_reader=mock.DEFAULT) as mock_objs:
-            mock_objs["_read_reader_config"].side_effect = fake_read_config
-            mock_objs["get_filenames"].side_effect = fake_get_filenames
-
-            scn = Scene()
-            scn._find_sensors_readers("foo", None)
-
-    def test_get_filenames_with_start_time_and_end_time(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
-
-    def test_get_filenames_with_start_time_and_npp_style_end_time(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(1950, 1, 1, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(1950, 1, 1, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(1950, 1, 1, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(1950, 1, 1, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(1950, 1, 1, 0, 7)},
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
-
-    def test_get_filenames_with_start_time(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), ["file3", "file4", "file5"])
-
-    def test_get_filenames_with_start_time_provided(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0)}
-
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), ["file2"])
-
-    def test_get_filenames_with_only_start_times_wrong(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0)}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), [])
-
-    def test_get_filenames_with_only_start_times_right(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene()
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 1)}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(scn.get_filenames(reader_info), ["file3"])
-
-    def test_get_filenames_to_error(self):
-        from mpop.scene import Scene
-        from datetime import datetime
-        scn = Scene(start_time="bla")
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": None}
-        with mock.patch("mpop.scene.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("trollsift.parser.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertRaises(ValueError, scn.get_filenames, reader_info)
 
 
 def suite():

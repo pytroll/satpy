@@ -45,6 +45,14 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 CONFIG_PATH = os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
 
+def _runtime_import(object_path):
+    """Import at runtime
+    """
+    obj_module, obj_element = object_path.rsplit(".", 1)
+    loader = __import__(obj_module, globals(), locals(), [obj_element])
+    return getattr(loader, obj_element)
+
+
 
 def get_config(filename):
     """Blends the different configs, from package defaults to .

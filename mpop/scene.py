@@ -28,16 +28,15 @@
 import numbers
 import ConfigParser
 import os
-import trollsift
-import glob
-import fnmatch
-from mpop.utils import debug_on
-debug_on()
-from mpop.projectable import Projectable, InfoObject
-from mpop import PACKAGE_CONFIG_PATH
-from datetime import datetime, timedelta
 import logging
 
+from mpop import _runtime_import
+from mpop.projectable import Projectable, InfoObject
+from mpop import PACKAGE_CONFIG_PATH
+from mpop.readers import ReaderFinder
+
+from mpop.utils import debug_on
+debug_on()
 LOG = logging.getLogger(__name__)
 
 
@@ -52,7 +51,8 @@ class Scene(InfoObject):
     """
     The almighty scene class.
     """
-    def __init__(self, filenames=None, ppp_config_dir=None, reader=None, **info):
+
+    def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, **info):
         """platform_name=None, sensor=None, start_time=None, end_time=None,
         """
         # Get PPP_CONFIG_DIR
@@ -70,134 +70,10 @@ class Scene(InfoObject):
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        if reader is not None:
-            self._find_reader(reader, filenames)
-        elif "sensor" in self.info:
-            self._find_sensors_readers(self.info["sensor"], filenames)
-        elif filenames is not None:
-            self._find_files_readers(*filenames)
-
-    def _find_sensors_readers(self, sensor, filenames):
-        """Find the readers for the given *sensor* and *filenames*
-        """
-        if isinstance(sensor, (str, unicode)):
-            sensor_set = set([sensor])
-        else:
-            sensor_set = set(sensor)
-        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
-            try:
-                reader_info = self._read_reader_config(config_file)
-                LOG.debug("Successfully read reader config: %s", config_file)
-            except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_file)
-                continue
-
-            if "sensor" in reader_info and (set(reader_info["sensor"]) & sensor_set):
-                # we want this reader
-                if filenames:
-                    # returns a copy of the filenames remaining to be matched
-                    filenames = self.assign_matching_files(reader_info, *filenames)
-                    if filenames:
-                        raise IOError("Don't know how to open the following files: %s" % str(filenames))
-                else:
-                    # find the files for this reader based on its file patterns
-                    reader_info["filenames"] = self.get_filenames(reader_info)
-                    if not reader_info["filenames"]:
-                        LOG.warning("No filenames found for reader: %s", reader_info["name"])
-                        continue
-                self._load_reader(reader_info)
-
-    def _find_reader(self, reader, filenames):
-        """Find and get info for the *reader* for *filenames*
-        """
-        config_file = reader
-        # were we given a path to a config file?
-        if not os.path.exists(config_file):
-            # no, we were given a name of a reader
-            config_fn = reader + ".cfg"  # assumes no extension was given on the reader name
-            config_file = os.path.join(self.ppp_config_dir, "readers", config_fn)
-            if not os.path.exists(config_file):
-                raise ValueError("Can't find config file for reader: %s" % (reader,))
-
-        reader_info = self._read_reader_config(config_file)
-        if filenames:
-            filenames = self.assign_matching_files(reader_info, *filenames)
-            if filenames:
-                raise IOError("Don't know how to open the following files: %s" % str(filenames))
-        else:
-            reader_info["filenames"] = self.get_filenames(reader_info)
-            if not reader_info["filenames"]:
-                raise RuntimeError("No filenames found for reader: %s" % (reader_info["name"],))
-
-        self._load_reader(reader_info)
-
-    def _find_files_readers(self, *files):
-        """Find the reader info for the provided *files*.
-        """
-        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
-            try:
-                reader_info = self._read_reader_config(config_file)
-                LOG.debug("Successfully read reader config: %s", config_file)
-            except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_file)
-                continue
-
-            files = self.assign_matching_files(reader_info, *files)
-
-            if reader_info["filenames"]:
-                # we have some files for this reader so let's create it
-                self._load_reader(reader_info)
-
-            if not files:
-                break
-        if files:
-            raise IOError("Don't know how to open the following files: %s" % str(files))
-
-    def get_filenames(self, reader_info):
-        """Get the filenames from disk given the patterns in *reader_info*.
-        This assumes that the scene info contains start_time at least (possibly end_time too).
-        """
-
-        filenames = []
-        info = self.info.copy()
-        for key in info.keys():
-            if key.endswith("_time"):
-                info.pop(key, None)
-
-        reader_start = reader_info["start_time"]
-        reader_end = reader_info.get("end_time")
-        if reader_start is None:
-            raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
-
-        for pattern in reader_info["file_patterns"]:
-            parser = trollsift.parser.Parser(pattern)
-            # FIXME: what if we are browsing a huge archive ?
-            for filename in glob.iglob(parser.globify(info.copy())):
-                try:
-                    metadata = parser.parse(filename)
-                except ValueError:
-                    LOG.info("Can't get any metadata from filename: %s from %s", pattern, filename)
-                    metadata = {}
-                if "end_time" in metadata and metadata["start_time"] > metadata["end_time"]:
-                    mdate = metadata["start_time"].date()
-                    mtime = metadata["end_time"].time()
-                    if mtime < metadata["start_time"].time():
-                        mdate += timedelta(days=1)
-                    metadata["end_time"] = datetime.combine(mdate, mtime)
-                meta_start = metadata.get("start_time", metadata.get("nominal_time", None))
-                meta_end = metadata.get("end_time", datetime(1950, 1, 1))
-                if reader_end:
-                    # get the data within the time interval
-                    if ((reader_start <= meta_start <= reader_end) or
-                            (reader_start <= meta_end <= reader_end)):
-                        filenames.append(filename)
-                else:
-                    # get the data containing start_time
-                    if "end_time" in metadata and meta_start <= reader_start <= meta_end:
-                        filenames.append(filename)
-                    elif meta_start == reader_start:
-                        filenames.append(filename)
-        return sorted(filenames)
+        finder = ReaderFinder(self)
+        reader_instance = finder(reader_name, self.info.get("sensor"), filenames)
+        if reader_instance:
+            self.readers[reader_instance.name] = reader_instance
 
     def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
@@ -234,7 +110,7 @@ class Scene(InfoObject):
                                 options["name"])
 
                 try:
-                    loader = self._runtime_import(comp_cls)
+                    loader = _runtime_import(comp_cls)
                 except ImportError:
                     LOG.warning("Could not import composite class '%s' for"
                                 " compositor '%s'", comp_cls, options["name"])
@@ -245,75 +121,6 @@ class Scene(InfoObject):
                 compositors[options["name"]] = comp
         return compositors
 
-    def _read_reader_config(self, cfg_file):
-        """Read the reader *cfg_file* and return the info extracted.
-        """
-        if not os.path.exists(cfg_file):
-            raise IOError("No such file: " + cfg_file)
-
-        conf = ConfigParser.RawConfigParser()
-
-        conf.read(cfg_file)
-        file_patterns = []
-        sensors = set()
-        reader_name = None
-        reader_class = None
-        reader_info = None
-        # Only one reader: section per config file
-        for section in conf.sections():
-            if section.startswith("reader:"):
-                reader_info = dict(conf.items(section))
-                reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
-                reader_info["sensor"] = reader_info.setdefault("sensor", "").split(",")
-                # XXX: Readers can have separate start/end times from the
-                # rest fo the scene...might be a bad idea?
-                reader_info.setdefault("start_time", self.info.get("start_time", None))
-                reader_info.setdefault("end_time", self.info.get("end_time", None))
-                reader_info.setdefault("area", self.info.get("area", None))
-                try:
-                    reader_class = reader_info["reader"]
-                    reader_name = reader_info["name"]
-                except KeyError:
-                    break
-                file_patterns.extend(reader_info["file_patterns"])
-
-                if reader_info["sensor"]:
-                    sensors |= set(reader_info["sensor"])
-            else:
-                try:
-                    file_patterns.extend(conf.get(section, "file_patterns").split(","))
-                except ConfigParser.NoOptionError:
-                    pass
-
-                try:
-                    sensors |= set(conf.get(section, "sensor").split(","))
-                except ConfigParser.NoOptionError:
-                    pass
-
-        if reader_class is None:
-            raise ValueError("Malformed config file %s: missing reader 'reader'" % cfg_file)
-        if reader_name is None:
-            raise ValueError("Malformed config file %s: missing reader 'name'" % cfg_file)
-        reader_info["file_patterns"] = file_patterns
-        reader_info["config_file"] = cfg_file
-        reader_info["filenames"] = []
-        reader_info["sensor"] = tuple(sensors)
-
-        return reader_info
-
-    def _load_reader(self, reader_info):
-        """Import and setup the reader from *reader_info*
-        """
-        try:
-            loader = self._runtime_import(reader_info["reader"])
-        except ImportError:
-            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["reader"],
-                                                                                      reader_info["name"]))
-
-        reader_instance = loader(**reader_info)
-        self.readers[reader_info["name"]] = reader_instance
-        return reader_instance
-
     def available_datasets(self, reader_name=None):
         """Return the available datasets, globally or just for *reader_name* if specified.
         """
@@ -321,11 +128,11 @@ class Scene(InfoObject):
             if reader_name:
                 readers = [getattr(self, reader_name)]
             else:
-                readers = self.readers
+                readers = self.readers.values()
         except (AttributeError, KeyError):
-            raise KeyError("No reader '%s' found in scene")
+            raise KeyError("No reader '%s' found in scene" % reader_name)
 
-        return [dataset_name for reader_name in readers for dataset_name in reader_name.dataset_names]
+        return [dataset_name for reader in readers for dataset_name in reader.dataset_names]
 
     def __str__(self):
         res = (str(proj) for proj in self.projectables.values())
@@ -338,8 +145,8 @@ class Scene(InfoObject):
         # get by wavelength
         if isinstance(key, numbers.Number):
             datasets = [ds for ds in self.projectables.values()
-                        if("wavelength_range" in ds.info and
-                           ds.info["wavelength_range"][0] <= key <= ds.info["wavelength_range"][2])]
+                        if ("wavelength_range" in ds.info and
+                            ds.info["wavelength_range"][0] <= key <= ds.info["wavelength_range"][2])]
             datasets = sorted(datasets,
                               lambda ch1, ch2:
                               cmp(abs(ch1.info["wavelength_range"][1] - key),
@@ -371,29 +178,6 @@ class Scene(InfoObject):
 
     def __contains__(self, name):
         return name in self.projectables
-
-    @staticmethod
-    def assign_matching_files(reader_info, *files):
-        """Assign *files* to the *reader_info*
-        """
-        files = list(files)
-        for file_pattern in reader_info["file_patterns"]:
-            pattern = trollsift.globify(file_pattern)
-            for filename in list(files):
-                if fnmatch.fnmatch(os.path.basename(filename), os.path.basename(pattern)):
-                    reader_info["filenames"].append(filename)
-                    files.remove(filename)
-
-        # return remaining/unmatched files
-        return files
-
-    @staticmethod
-    def _runtime_import(object_path):
-        """Import at runtime
-        """
-        obj_module, obj_element = object_path.rsplit(".", 1)
-        loader = __import__(obj_module, globals(), locals(), [obj_element])
-        return getattr(loader, obj_element)
 
     def load_compositors(self, composite_names, sensor_names, **kwargs):
         """Load the compositors for *composite_names* for the given *sensor_names*
@@ -484,7 +268,8 @@ class Scene(InfoObject):
         # Don't include any of the 'unknown' projectable names
         projectable_names = set(projectable_names) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
-                                if composite not in self.projectables or not self[composite].is_loaded()) & projectable_names
+                                if composite not in self.projectables or not self[
+            composite].is_loaded()) & projectable_names
 
         for reader_name, reader_instance in self.readers.items():
             all_reader_datasets = set(reader_instance.dataset_names)
@@ -492,7 +277,7 @@ class Scene(InfoObject):
             # compute the dependencies to load from file
             needed_bands = all_reader_datasets & projectable_names
             needed_bands = set(band for band in needed_bands
-                               if band not in self.projectables or not  self[band].is_loaded())
+                               if band not in self.projectables or not self[band].is_loaded())
             while composites_needed:
                 for band in composites_needed.copy():
                     needed_bands |= set(reader_instance.get_dataset(prereq)["name"]
@@ -514,7 +299,7 @@ class Scene(InfoObject):
             self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])
         except KeyError:
             pass
-        # TODO: comments and history
+            # TODO: comments and history
 
     def compute(self, *requirements):
         """Compute all the composites from *requirements*
@@ -584,7 +369,7 @@ class Scene(InfoObject):
             if section_name.startswith("writer:"):
                 options = dict(conf.items(section_name))
                 writer_class_name = options["writer"]
-                writer_class = self._runtime_import(writer_class_name)
+                writer_class = _runtime_import(writer_class_name)
                 writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_file, **kwargs)
                 return writer
 
@@ -593,4 +378,3 @@ class Scene(InfoObject):
         writer = self.load_writer_config(**kwargs)
         for projectable in self.projectables.values():
             writer.save_dataset(projectable, **kwargs)
-
