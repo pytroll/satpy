@@ -27,7 +27,7 @@
 from mpop.projectable import InfoObject, Projectable
 import numpy as np
 import logging
-
+from mpop.tools import sunzen_corr_cos
 LOG = logging.getLogger(__name__)
 # TODO: overview_sun
 
@@ -74,7 +74,7 @@ class SunZenithNormalize(object):
                                                     0.035, # about 88 degrees.
                                                     1,
                                                     copy=False)
-        return projectable / self.coszen[key]
+        return sunzen_corr_cos(projectable, self.coszen[key])
 
 
 class RGBCompositor(CompositeBase):
