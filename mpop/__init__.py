@@ -31,10 +31,12 @@
 """
 
 import os
-from ConfigParser import ConfigParser
 from mpop.version import __version__
 from logging import getLogger
-
+try:
+    import configparser
+except:
+    from six.moves import configparser
 LOG = getLogger(__name__)
 
 BASE_PATH = os.path.sep.join(os.path.dirname(
@@ -49,7 +51,7 @@ def _runtime_import(object_path):
     """Import at runtime
     """
     obj_module, obj_element = object_path.rsplit(".", 1)
-    loader = __import__(obj_module, globals(), locals(), [obj_element])
+    loader = __import__(obj_module, globals(), locals(), [str(obj_element)])
     return getattr(loader, obj_element)
 
 
@@ -58,7 +60,7 @@ def get_config(filename):
     """Blends the different configs, from package defaults to .
     """
 
-    config = ConfigParser()
+    config = configparser.ConfigParser()
 
     paths1 = [filename,
               os.path.join(".", filename),

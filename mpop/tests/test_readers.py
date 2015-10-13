@@ -1,33 +1,38 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# 
+#
 # Author(s):
-# 
+#
 #   Panu Lahtinen <panu.lahtinen@fmi.fi
-# 
+#
 # This file is part of mpop.
-# 
+#
 # mpop is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-# 
+#
 # mpop is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 import unittest
 import mpop.satin
-import mock
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 '''Integration testing of
  - :mod:`mpop.satin`
 '''
 
+
 class TestReaders(unittest.TestCase):
+
     '''Class for testing mpop.satin'''
 
     # def test_lonlat_to_geo_extent(self):
@@ -108,9 +113,9 @@ class TestReaders(unittest.TestCase):
             return []
 
         with mock.patch.multiple("mpop.readers.ReaderFinder",
-                             _read_reader_config=mock.DEFAULT,
-                             get_filenames=mock.DEFAULT,
-                             _load_reader=mock.DEFAULT) as mock_objs:
+                                 _read_reader_config=mock.DEFAULT,
+                                 get_filenames=mock.DEFAULT,
+                                 _load_reader=mock.DEFAULT) as mock_objs:
             mock_objs["_read_reader_config"].side_effect = fake_read_config
             mock_objs["get_filenames"].side_effect = fake_get_filenames
 

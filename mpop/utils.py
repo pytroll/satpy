@@ -32,8 +32,10 @@
 """
 
 import os
-import re
-import ConfigParser
+try:
+    import configparser
+except:
+    from six.moves import configparser
 import logging
 
 
@@ -44,7 +46,7 @@ class OrderedConfigParser(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self.config_parser = ConfigParser.ConfigParser(*args, **kwargs)
+        self.config_parser = configparser.ConfigParser(*args, **kwargs)
 
     def __getattr__(self, name):
         return getattr(self.config_parser, name)
@@ -58,7 +60,7 @@ class OrderedConfigParser(object):
             config = conf_file.read()
             config_keys = re.findall(r'\[.*\]', config)
             self.section_keys = [key[1:-1] for key in config_keys]
-        except IOError, e:
+        except IOError as e:
             # Pass if file not found
             if e.errno != 2:
                 raise

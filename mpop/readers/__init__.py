@@ -31,11 +31,14 @@ from fnmatch import fnmatch
 from collections import namedtuple
 import os
 from datetime import datetime, timedelta
-import ConfigParser
+try:
+    import configparser
+except:
+    from six.moves import configparser
 import glob
 
 import numpy as np
-
+import six
 from trollsift.parser import globify, Parser
 
 from mpop.plugin_base import Plugin
@@ -47,16 +50,17 @@ LOG = logging.getLogger(__name__)
 BandID = namedtuple("Band", "name resolution wavelength polarization")
 BandID.__new__.__defaults__ = (None, None, None, None)
 
+
 class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
+
     def __init__(self, scene):
         self.info = scene.info.copy()
         self.ppp_config_dir = scene.ppp_config_dir
 
     def __call__(self, filenames=None, sensor=None, reader_name=None):
         if reader_name is not None:
-            print reader_name
             return self._find_reader_by_name(reader_name, filenames)
         elif sensor is not None:
             return self._find_sensors_readers(sensor, filenames)
@@ -66,7 +70,7 @@ class ReaderFinder(object):
     def _find_sensors_readers(self, sensor, filenames):
         """Find the readers for the given *sensor* and *filenames*
         """
-        if isinstance(sensor, (str, unicode)):
+        if isinstance(sensor, (str, six.text_type)):
             sensor_set = set([sensor])
         else:
             sensor_set = set(sensor)
@@ -146,7 +150,7 @@ class ReaderFinder(object):
 
         filenames = []
         info = self.info.copy()
-        for key in info.keys():
+        for key in self.info.keys():
             if key.endswith("_time"):
                 info.pop(key, None)
 
@@ -156,7 +160,7 @@ class ReaderFinder(object):
             raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
 
         for pattern in reader_info["file_patterns"]:
-            parser = Parser(pattern)
+            parser = Parser(str(pattern))
             # FIXME: what if we are browsing a huge archive ?
             for filename in glob.iglob(parser.globify(info.copy())):
                 try:
@@ -191,7 +195,7 @@ class ReaderFinder(object):
         if not os.path.exists(cfg_file):
             raise IOError("No such file: " + cfg_file)
 
-        conf = ConfigParser.RawConfigParser()
+        conf = configparser.RawConfigParser()
 
         conf.read(cfg_file)
         file_patterns = []
@@ -222,12 +226,12 @@ class ReaderFinder(object):
             else:
                 try:
                     file_patterns.extend(conf.get(section, "file_patterns").split(","))
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
 
                 try:
                     sensors |= set(conf.get(section, "sensor").split(","))
-                except ConfigParser.NoOptionError:
+                except configparser.NoOptionError:
                     pass
 
         if reader_class is None:
@@ -409,7 +413,7 @@ class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors",
                                      "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
                 scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
-        if isinstance(dtype, (str, unicode)):
+        if isinstance(dtype, (str, six.text_type)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
         return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units,

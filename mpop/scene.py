@@ -26,7 +26,10 @@
 """
 
 import numbers
-import ConfigParser
+try:
+    import configparser
+except:
+    from six.moves import configparser
 import os
 import logging
 
@@ -40,7 +43,7 @@ debug_on()
 LOG = logging.getLogger(__name__)
 
 
-class IncompatibleAreas(StandardError):
+class IncompatibleAreas(Exception):
     """
     Error raised upon compositing things of different shapes.
     """
@@ -81,7 +84,7 @@ class Scene(InfoObject):
         if composite_config is None:
             composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
 
-        conf = ConfigParser.ConfigParser()
+        conf = configparser.ConfigParser()
         conf.read(composite_config)
         compositors = {}
         for section_name in conf.sections():
@@ -363,7 +366,7 @@ class Scene(InfoObject):
         if not os.path.isfile(config_file):
             raise IOError("Writer configuration file does not exist: %s" % (config_file,))
 
-        conf = ConfigParser.ConfigParser()
+        conf = configparser.RawConfigParser()
         conf.read(config_file)
         for section_name in conf.sections():
             if section_name.startswith("writer:"):

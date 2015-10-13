@@ -132,7 +132,7 @@ class XritReader(Reader):
                 else:
                     metadata, data = image()
 
-            except ReaderError, err:
+            except ReaderError as err:
                 # if dataset can't be found, go on with next dataset
                 LOGGER.error(str(err))
                 continue

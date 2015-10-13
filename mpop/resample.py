@@ -34,7 +34,10 @@ import hashlib
 import json
 import os
 from mpop import get_config, get_config_path, utils
-from ConfigParser import NoSectionError
+try:
+    import configparser
+except:
+    from six.moves import configparser
 
 LOG = getLogger(__name__)
 
@@ -48,7 +51,7 @@ def get_area_file():
         fn = os.path.join(conf.get("projector", "area_directory") or "",
                           conf.get("projector", "area_file"))
         return get_config_path(fn)
-    except NoSectionError:
+    except configparser.NoSectionError:
         LOG.warning("Couldn't find the mpop.cfg file. "
                     "Do you have one ? is it in $PPP_CONFIG_DIR ?")
 

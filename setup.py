@@ -39,11 +39,16 @@ version = imp.load_source('mpop.version', 'mpop/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage', 'pykdtree']
+requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage', 'pykdtree', 'six']
 
 if sys.version < '2.7':
     requires.append('ordereddict')
 
+
+test_requires = []
+
+if sys.version < '3.0':
+    test_requires.append('mock')
 
 try:
     from PIL import Image
@@ -74,7 +79,7 @@ setup(name=NAME,
                     os.path.join('etc', 'eps_avhrrl1b_6.5.xml')])],
       zip_safe=False,
       install_requires=requires,
-      tests_require=["mock"],
+      tests_require=test_requires,
       extras_require={'xRIT': ['mipp >= 0.6.0'],
                       'hdf_eos': ['pyhdf'],
                       'viirs': ['h5py'],

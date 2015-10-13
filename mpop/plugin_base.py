@@ -25,7 +25,10 @@
 
 import os
 import logging
-from ConfigParser import ConfigParser
+try:
+    import configparser
+except:
+    from six.moves import configparser
 from mpop import PACKAGE_CONFIG_PATH
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +47,7 @@ class Plugin(object):
             self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
 
         if self.config_file:
-            conf = ConfigParser()
+            conf = configparser.RawConfigParser()
             conf.read(self.config_file)
             self.load_config(conf)
 

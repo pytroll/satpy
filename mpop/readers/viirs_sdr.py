@@ -43,7 +43,7 @@ from collections import namedtuple
 from mpop.projectable import Projectable
 from mpop.readers import Reader
 from fnmatch import fnmatch
-
+import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -88,7 +88,7 @@ def _get_invalid_info(granule_data):
 class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units", "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
                 scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
-        if isinstance(dtype, (str, unicode)):
+        if isinstance(dtype, (str, six.text_type)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
         return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units, file_units, kwargs)
@@ -108,7 +108,7 @@ class HDF5MetaData(object):
         file_handle.close()
 
     def _collect_attrs(self, name, attrs):
-        for key, value in attrs.iteritems():
+        for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
             if issubclass(value.dtype.type, str):
                 self.metadata["%s/attr/%s" % (name, key)] = str(value)
@@ -150,7 +150,11 @@ class SDRFileReader(HDF5MetaData):
         return super(SDRFileReader, self).__getitem__(item)
 
     def _parse_npp_datetime(self, datestr, timestr):
-        time_val = datetime.strptime(datestr + timestr, '%Y%m%d%H%M%S.%fZ')
+        try:
+            datetime_str = datestr + timestr
+        except TypeError:
+            datetime_str = str(datestr.astype(str)) + str(timestr.astype(str))
+        time_val = datetime.strptime(datetime_str, '%Y%m%d%H%M%S.%fZ')
         if abs(time_val - NO_DATE) < EPSILON_TIME:
             # catch rare case when SDR files have incorrect date
             raise ValueError("Datetime invalid %s " % time_val)
