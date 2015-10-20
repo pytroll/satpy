@@ -35,7 +35,7 @@ from mpop.version import __version__
 from logging import getLogger
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 LOG = getLogger(__name__)
 
@@ -47,13 +47,13 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 CONFIG_PATH = os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
 
-def _runtime_import(object_path):
+
+def runtime_import(object_path):
     """Import at runtime
     """
     obj_module, obj_element = object_path.rsplit(".", 1)
     loader = __import__(obj_module, globals(), locals(), [str(obj_element)])
     return getattr(loader, obj_element)
-
 
 
 def get_config(filename):
@@ -79,6 +79,7 @@ def get_config(filename):
             return config
 
     LOG.warning("Couldn't file any config file matching %s", filename)
+
 
 def get_config_path(filename):
     """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir.

@@ -33,7 +33,7 @@ import os
 from datetime import datetime, timedelta
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 import glob
 
@@ -43,7 +43,7 @@ from trollsift.parser import globify, Parser
 
 from mpop.plugin_base import Plugin
 from mpop.projectable import Projectable
-from mpop import _runtime_import
+from mpop import runtime_import
 
 LOG = logging.getLogger(__name__)
 
@@ -56,12 +56,13 @@ class ReaderFinder(object):
     """
 
     def __init__(self, scene):
+        # fixme: we could just pass the info and the ppp_config_dir
         self.info = scene.info.copy()
         self.ppp_config_dir = scene.ppp_config_dir
 
     def __call__(self, filenames=None, sensor=None, reader_name=None):
         if reader_name is not None:
-            return self._find_reader_by_name(reader_name, filenames)
+            return self._find_reader(reader_name, filenames)
         elif sensor is not None:
             return self._find_sensors_readers(sensor, filenames)
         elif filenames is not None:
@@ -245,11 +246,12 @@ class ReaderFinder(object):
 
         return reader_info
 
-    def _load_reader(self, reader_info):
+    @staticmethod
+    def _load_reader(reader_info):
         """Import and setup the reader from *reader_info*
         """
         try:
-            loader = _runtime_import(reader_info["reader"])
+            loader = runtime_import(reader_info["reader"])
         except ImportError:
             raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["reader"],
                                                                                       reader_info["name"]))
@@ -259,6 +261,7 @@ class ReaderFinder(object):
         # self.readers[reader_info["name"]] = reader_instance
         return reader_instance
 
+    @staticmethod
     def assign_matching_files(reader_info, *files):
         """Assign *files* to the *reader_info*
         """
@@ -306,6 +309,8 @@ class Reader(Plugin):
         self.description = self.config_options.get("description", None) if description is None else description
         self.sensor = self.config_options.get("sensor", "").split(",") if sensor is None else set(sensor)
 
+        self.config_options = None
+
         # These can't be provided by a configuration file
         self.start_time = start_time
         self.end_time = end_time
@@ -334,6 +339,7 @@ class Reader(Plugin):
         return sensors | self.sensor
 
     def load_section_reader(self, section_name, section_options):
+        del section_name
         self.config_options = section_options
 
     def load_section_dataset(self, section_name, section_options):
@@ -388,7 +394,6 @@ class Reader(Plugin):
                 return datasets
             else:
                 return datasets[0]
-
 
         # get by name
         else:
@@ -510,6 +515,7 @@ class ConfigBasedReader(Reader):
     def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
         """Load the `nav_name` navigation.
         """
+        del dep_file_type
         nav_info = self.navigations[nav_name]
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
@@ -627,11 +633,10 @@ class ConfigBasedReader(Reader):
         # Load metadata and calibration information for this dataset
         try:
             cal_info = self.calibrations.get(cal_name, None)
-            for k, info_dict in [
-                ("file_type", self.file_types),
-                ("file_key", self.file_keys),
-                ("navigation", self.navigations),
-                ("calibration", self.calibrations)]:
+            for k, info_dict in [("file_type", self.file_types),
+                                 ("file_key", self.file_keys),
+                                 ("navigation", self.navigations),
+                                 ("calibration", self.calibrations)]:
                 val = dataset_info[k][cal_index]
                 if cal_info is not None:
                     val = cal_info.get(k, val)

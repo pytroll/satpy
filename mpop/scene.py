@@ -33,7 +33,7 @@ except:
 import os
 import logging
 
-from mpop import _runtime_import
+from mpop import runtime_import
 from mpop.projectable import Projectable, InfoObject
 from mpop import PACKAGE_CONFIG_PATH
 from mpop.readers import ReaderFinder
@@ -113,7 +113,7 @@ class Scene(InfoObject):
                                 options["name"])
 
                 try:
-                    loader = _runtime_import(comp_cls)
+                    loader = runtime_import(comp_cls)
                 except ImportError:
                     LOG.warning("Could not import composite class '%s' for"
                                 " compositor '%s'", comp_cls, options["name"])
@@ -372,7 +372,7 @@ class Scene(InfoObject):
             if section_name.startswith("writer:"):
                 options = dict(conf.items(section_name))
                 writer_class_name = options["writer"]
-                writer_class = _runtime_import(writer_class_name)
+                writer_class = runtime_import(writer_class_name)
                 writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_file, **kwargs)
                 return writer
 

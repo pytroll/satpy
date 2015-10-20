@@ -203,7 +203,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
                     try:
                         self.cache[key] = int(val) * self.form.scales[altkey][key]
                         return self.cache[key]
-                    except ValueError: # it's probably a string
+                    except ValueError:  # it's probably a string
                         self.cache[key] = val
                         return self.cache[key]
             except ValueError:
@@ -245,14 +245,14 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         if chan.name == "1":
             if calib_type == 1:
                 data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                                      self["CH1_SOLAR_FILTERED_IRRADIANCE"])
+                                               self["CH1_SOLAR_FILTERED_IRRADIANCE"])
             else:
                 data_out[:] = self["SCENE_RADIANCES"][:, 0, :]
             mask_out[:] = False
         if chan.name == "2":
             if calib_type == 1:
                 data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                                      self["CH2_SOLAR_FILTERED_IRRADIANCE"])
+                                               self["CH2_SOLAR_FILTERED_IRRADIANCE"])
             else:
                 data_out[:] = self["SCENE_RADIANCES"][:, 1, :]
             mask_out[:] = False
@@ -261,7 +261,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             frames = (self["FRAME_INDICATOR"] & 2 ** 16) != 0
             if calib_type == 1:
                 data_out[frames, :] = radiance_to_refl(self["SCENE_RADIANCES"][frames, 2, :],
-                                              self["CH3A_SOLAR_FILTERED_IRRADIANCE"])
+                                                       self["CH3A_SOLAR_FILTERED_IRRADIANCE"])
             else:
                 data_out[frames, :] = np.ma.array(self["SCENE_RADIANCES"][frames, 2, :])
             mask_out[~frames, :] = True
@@ -271,9 +271,9 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             frames = (self["FRAME_INDICATOR"] & 2 ** 16) == 0
             if calib_type == 1:
                 data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 2, :],
-                                    self["CH3B_CENTRAL_WAVENUMBER"],
-                                    self["CH3B_CONSTANT1"],
-                                    self["CH3B_CONSTANT2_SLOPE"])
+                                             self["CH3B_CENTRAL_WAVENUMBER"],
+                                             self["CH3B_CONSTANT1"],
+                                             self["CH3B_CONSTANT2_SLOPE"])
 
             else:
                 data_out[:] = self["SCENE_RADIANCES"][:, 2, :]

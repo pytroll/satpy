@@ -36,7 +36,7 @@ import os
 from mpop import get_config, get_config_path, utils
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 
 LOG = getLogger(__name__)
@@ -99,7 +99,6 @@ class BaseResampler(object):
             LOG.info("Saving projection to %s", filename)
             np.savez(filename, **self.cache)
 
-
     def resample(self, data, cache_dir=False, **kwargs):
         """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
         """
@@ -110,6 +109,7 @@ class BaseResampler(object):
         """Shortcut for the :meth:`resample` method
         """
         self.resample(*args, **kwargs)
+
 
 class KDTreeResampler(BaseResampler):
     """
@@ -148,7 +148,6 @@ class KDTreeResampler(BaseResampler):
                                  hashlib.sha1(lats).hexdigest()))
         area.kdtree_hash = area_hash
         return area_hash
-
 
     def get_hash(self, **kwargs):
         """Get hash for the current resample with the given *kwargs*.
@@ -201,7 +200,7 @@ class KDTreeResampler(BaseResampler):
                                nprocs=nprocs,
                                segments=segments)
 
-        # it's important here not to modify the existing cache dictionnary.
+        # it's important here not to modify the existing cache dictionary.
         self.cache = {"valid_input_index": valid_input_index,
                       "valid_output_index": valid_output_index,
                       "index_array": index_array,
@@ -233,6 +232,7 @@ class KDTreeResampler(BaseResampler):
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler}
+
 
 def resample(source_area, data, destination_area, resampler=KDTreeResampler, **kwargs):
     """Do the resampling
