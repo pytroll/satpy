@@ -31,12 +31,6 @@ from fnmatch import fnmatch
 from collections import namedtuple
 import os
 from datetime import datetime, timedelta
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
-import glob
-
 import numpy as np
 import six
 from trollsift.parser import globify, Parser
@@ -44,6 +38,12 @@ from trollsift.parser import globify, Parser
 from mpop.plugin_base import Plugin
 from mpop.projectable import Projectable
 from mpop import runtime_import
+
+try:
+    import configparser
+except ImportError:
+    from six.moves import configparser
+import glob
 
 LOG = logging.getLogger(__name__)
 
@@ -269,7 +269,7 @@ class ReaderFinder(object):
         for file_pattern in reader_info["file_patterns"]:
             pattern = globify(file_pattern)
             for filename in list(files):
-                if fnmatch.fnmatch(os.path.basename(filename), os.path.basename(pattern)):
+                if fnmatch(os.path.basename(filename), os.path.basename(pattern)):
                     reader_info["filenames"].append(filename)
                     files.remove(filename)
 
@@ -367,9 +367,7 @@ class Reader(Plugin):
                         if ("wavelength_range" in ds and
                             ds["wavelength_range"][0] <= key <= ds["wavelength_range"][2])]
             datasets = sorted(datasets,
-                              lambda ch1, ch2:
-                              cmp(abs(ch1["wavelength_range"][1] - key),
-                                  abs(ch2["wavelength_range"][1] - key)))
+                              key=lambda ch: abs(ch["wavelength_range"][1] - key))
 
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
