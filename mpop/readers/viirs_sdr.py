@@ -41,7 +41,7 @@ import logging
 from collections import namedtuple
 
 from mpop.projectable import Projectable
-from mpop.readers import Reader
+from mpop.readers import Reader, DatasetDict
 from fnmatch import fnmatch
 import six
 
@@ -250,7 +250,7 @@ class SDRFileReader(HDF5MetaData):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = [1., 0.]
+            factors = [1, 0]
         factors = np.array(factors)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
@@ -641,7 +641,7 @@ class VIIRSSDRReader(Reader):
 
         # Sanity check and get the navigation sets being used
         areas = {}
-        datasets_loaded = {}
+        datasets_loaded = DatasetDict()
         for ds in datasets_to_load:
             dataset_info = self._get_dataset_info(ds, calibration=calibration)
             file_type = dataset_info["file_type"]
@@ -673,5 +673,5 @@ class VIIRSSDRReader(Reader):
                                       **dataset_info)
             projectable.info["area"] = area
 
-            datasets_loaded[ds] = projectable
+            datasets_loaded[projectable.info["id"]] = projectable
         return datasets_loaded

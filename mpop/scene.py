@@ -36,7 +36,7 @@ import logging
 from mpop import runtime_import
 from mpop.projectable import Projectable, InfoObject
 from mpop import PACKAGE_CONFIG_PATH
-from mpop.readers import ReaderFinder
+from mpop.readers import ReaderFinder, DatasetDict, BandID
 
 from mpop.utils import debug_on
 debug_on()
@@ -66,7 +66,7 @@ class Scene(InfoObject):
 
         InfoObject.__init__(self, **info)
         self.readers = {}
-        self.projectables = {}
+        self.projectables = DatasetDict()
         self.compositors = {}
         self.wishlist = []
         self._composite_configs = set()
@@ -74,9 +74,11 @@ class Scene(InfoObject):
             raise ValueError("Filenames are specified but empty")
 
         finder = ReaderFinder(self)
-        reader_instance = finder(reader_name, self.info.get("sensor"), filenames)
-        if reader_instance:
-            self.readers[reader_instance.name] = reader_instance
+        reader_instances = finder(reader_name=reader_name, sensor=self.info.get("sensor"), filenames=filenames)
+        # reader finder could return multiple readers
+        for reader_instance in reader_instances:
+            if reader_instance:
+                self.readers[reader_instance.name] = reader_instance
 
     def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
@@ -173,7 +175,10 @@ class Scene(InfoObject):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.projectables[key] = value
-        value.info["name"] = key
+        if not isinstance(key, BandID):
+            value.info["name"] = key
+        else:
+            value.info["name"] = key.name
 
     def __delitem__(self, key):
         projectable = self[key]
@@ -235,18 +240,22 @@ class Scene(InfoObject):
     def read(self, projectable_keys, **kwargs):
         """Read the composites called *projectable_keys* or their prerequisites.
         """
+        # FIXME: What should happen to the wishlist for multiple loads? This currently replaces it every time.
         self.wishlist = list(projectable_keys)
 
         projectable_names = set()
 
+        # Check with all known readers to see which ones know about the requested datasets
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
                     ds_info = reader_instance.get_dataset(key)
                     projectable_name = ds_info["name"]
+                    # if the request wasn't a dataset name (wavelength, etc) then replace the request with the name
                     if key != projectable_name:
                         self.wishlist.remove(key)
                         self.wishlist.append(projectable_name)
+                    # if we haven't loaded this projectable then add it to the list to be loaded
                     if projectable_name not in self.projectables or not self.projectables[projectable_name].is_loaded():
                         projectable_names.add(projectable_name)
                 except KeyError:
@@ -281,6 +290,7 @@ class Scene(InfoObject):
             needed_bands = all_reader_datasets & projectable_names
             needed_bands = set(band for band in needed_bands
                                if band not in self.projectables or not self[band].is_loaded())
+            # FIXME: Can this be replaced with a simple for loop without copy (composites_needed isn't used after this)
             while composites_needed:
                 for band in composites_needed.copy():
                     needed_bands |= set(reader_instance.get_dataset(prereq)["name"]
@@ -296,6 +306,10 @@ class Scene(InfoObject):
             self.projectables.update(reader_instance.load(needed_bands, **kwargs))
 
         # Update the scene with information contained in the files
+        if not self.projectables:
+            LOG.debug("No projectables loaded, can't set overall scene metadata")
+            return
+
         # FIXME: should this really be in the scene ?
         self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
         try:
@@ -319,17 +333,27 @@ class Scene(InfoObject):
             # TODO: Get non-projectable dependencies like moon illumination fraction
             prereq_projectables = [self[prereq] for prereq in self.compositors[requirement].prerequisites]
             try:
-                self.projectables[requirement] = self.compositors[requirement](prereq_projectables, **self.info)
+                comp_projectable = self.compositors[requirement](prereq_projectables, **self.info)
+                # FIXME: Should this be a requirement of anything creating a Dataset? Special handling by .info?
+                band_id = BandID(
+                    name=comp_projectable.info["name"],
+                    resolution=comp_projectable.info.get("resolution", None),
+                    wavelength=comp_projectable.info.get("wavelength", None),
+                    polarization=comp_projectable.info.get("polarization", None),
+                )
+                comp_projectable.info["id"] = band_id
+                self.projectables[band_id] = comp_projectable
             except IncompatibleAreas:
-                for name, projectable in self.projectables.iteritems():
-                    if name in self.compositors[requirement].prerequisites:
+                for ds_id, projectable in self.projectables.iteritems():
+                    # FIXME: Can compositors use wavelengths or only names?
+                    if ds_id.name in self.compositors[requirement].prerequisites:
                         projectable.info["keep"] = True
 
     def unload(self):
         """Unload all loaded composites.
         """
-        to_del = [name for name, projectable in self.projectables.items()
-                  if name not in self.wishlist and
+        to_del = [ds_id.name for ds_id, projectable in self.projectables.items()
+                  if ds_id.name not in self.wishlist and
                   not projectable.info.get("keep", False)]
         for name in to_del:
             del self.projectables[name]
@@ -348,11 +372,11 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        for name, projectable in self.projectables.items():
-            LOG.debug("Resampling %s", name)
-            if datasets and name not in datasets:
+        for ds_id, projectable in self.projectables.items():
+            LOG.debug("Resampling %s", ds_id)
+            if datasets and ds_id.name not in datasets:
                 continue
-            new_scn[name] = projectable.resample(destination, **kwargs)
+            new_scn[ds_id] = projectable.resample(destination, **kwargs)
         return new_scn
 
     def images(self):

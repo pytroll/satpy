@@ -51,6 +51,58 @@ BandID = namedtuple("Band", "name resolution wavelength polarization")
 BandID.__new__.__defaults__ = (None, None, None, None)
 
 
+class DatasetDict(dict):
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or BandID
+
+    Note: Internal dictionary keys are `BandID` objects.
+    """
+    def __init__(self, *args, **kwargs):
+        super(DatasetDict, self).__init__(*args, **kwargs)
+
+        # self._name_dict = {}
+        # self._wl_dict = {}
+        # for ds_key in self.keys():
+        #     self._name_dict
+
+    def keys(self, names=False, wavelengths=False):
+        keys = super(DatasetDict, self).keys()
+        if names:
+            return (k.name for k in keys)
+        elif wavelengths:
+            return (k.wavelength for k in keys)
+        else:
+            return keys
+
+    def get_key(self, key):
+        if isinstance(key, BandID):
+            return key
+        # get by wavelength
+        elif isinstance(key, numbers.Number):
+            for k in self.keys():
+                if k.wavelength == key:
+                    return k
+        # get by name
+        else:
+            for k in self.keys():
+                if k.name == key:
+                    return k
+
+    def __getitem__(self, item):
+        key = self.get_key(item)
+        return super(DatasetDict, self).__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if not isinstance(key, BandID):
+            key = self.get_key(key)
+            if key is None:
+                raise ValueError("'key' must be of type 'BandID' or must exist already: %s" % (key,))
+        return super(DatasetDict, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        key = self.get_key(key)
+        return super(DatasetDict, self).__delitem__(key)
+
+
 class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
@@ -62,11 +114,12 @@ class ReaderFinder(object):
 
     def __call__(self, filenames=None, sensor=None, reader_name=None):
         if reader_name is not None:
-            return self._find_reader(reader_name, filenames)
+            return [self._find_reader(reader_name, filenames)]
         elif sensor is not None:
-            return self._find_sensors_readers(sensor, filenames)
+            return list(self._find_sensors_readers(sensor, filenames))
         elif filenames is not None:
-            return self._find_files_readers(filenames)
+            return list(self._find_files_readers(filenames))
+        return []
 
     def _find_sensors_readers(self, sensor, filenames):
         """Find the readers for the given *sensor* and *filenames*
@@ -96,7 +149,7 @@ class ReaderFinder(object):
                     if not reader_info["filenames"]:
                         LOG.warning("No filenames found for reader: %s", reader_info["name"])
                         continue
-                return self._load_reader(reader_info)
+                yield self._load_reader(reader_info)
 
     def _find_reader(self, reader, filenames):
         """Find and get info for the *reader* for *filenames*
@@ -137,7 +190,7 @@ class ReaderFinder(object):
 
             if reader_info["filenames"]:
                 # we have some files for this reader so let's create it
-                self._load_reader(reader_info)
+                yield self._load_reader(reader_info)
 
             if not files:
                 break
@@ -297,7 +350,7 @@ class Reader(Plugin):
         - `scene`: the scene to fill.
         """
         # Hold information about datasets
-        self.datasets = {}
+        self.datasets = DatasetDict()
 
         # Load the config
         super(Reader, self).__init__(**kwargs)
@@ -326,7 +379,7 @@ class Reader(Plugin):
     def dataset_names(self):
         """Names of all datasets configured for this reader.
         """
-        return sorted(self.datasets.keys())
+        return self.datasets.keys(names=True)
 
     @property
     def sensor_names(self):
@@ -347,7 +400,8 @@ class Reader(Plugin):
         resolution = float(section_options.get("resolution"))
         wavelength = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
         bid = BandID(name=name, resolution=resolution, wavelength=wavelength)
-        section_options["name"] = bid
+        section_options["id"] = bid
+        section_options["name"] = name
 
         # Allow subclasses to make up their own rules about datasets, but this is a good starting point
         for k in ["file_patterns", "file_type", "file_key", "navigation", "calibration"]:

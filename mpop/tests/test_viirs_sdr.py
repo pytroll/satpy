@@ -71,7 +71,7 @@ class FakeHDF5MetaData(object):
             "AggregateEndingOrbitNumber": "{0:d}".format(offset + 1),
             "Instrument_Short_Name": "VIIRS",
             "Platform_Short_Name": "NPP",
-            "N_GEO_Ref": "GITCO_npp_{0:02d}.h5".format(offset),
+            "N_GEO_Ref": "GITCO_npp_d20120225_t{0:02d}07061_e2359590_b01708_c20120226002502222157_noaa_ops.h5".format(offset),
             "BadFactors": np.array([-999.0, -999.0, -999.0, -999.0], dtype=np.float32),
         }
 
@@ -411,7 +411,7 @@ class TestSDRMultiFileReader(unittest.TestCase):
                 SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
             file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
             fns = ["test00.h5", "test01.h5", "test02.h5", "test03.h5", "test04.h5"]
-            geo_fns = ["GITCO_npp_{0:02d}.h5".format(x) for x in range(5)]
+            geo_fns = ["GITCO_npp_d20120225_t{0:02d}07061_e2359590_b01708_c20120226002502222157_noaa_ops.h5".format(x) for x in range(5)]
             self.assertListEqual(file_reader.filenames, fns)
             self.assertEqual(file_reader.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
             self.assertEqual(file_reader.end_time, datetime(2015, 1, 1, 11, 4, 10, 600000))
