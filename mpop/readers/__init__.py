@@ -277,8 +277,8 @@ class ReaderFinder(object):
         for section in conf.sections():
             if section.startswith("reader:"):
                 reader_info = dict(conf.items(section))
-                reader_info["file_patterns"] = reader_info.setdefault("file_patterns", "").split(",")
-                reader_info["sensor"] = reader_info.setdefault("sensor", "").split(",")
+                reader_info["file_patterns"] = filter(None, reader_info.setdefault("file_patterns", "").split(","))
+                reader_info["sensor"] = filter(None, reader_info.setdefault("sensor", "").split(","))
                 # XXX: Readers can have separate start/end times from the
                 # rest fo the scene...might be a bad idea?
                 reader_info.setdefault("start_time", self.info.get("start_time", None))
