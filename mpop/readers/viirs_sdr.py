@@ -34,15 +34,11 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 """
 import os.path
 from datetime import datetime, timedelta
-from trollsift.parser import globify
 import numpy as np
 import h5py
 import logging
-from collections import namedtuple
 
-from mpop.projectable import Projectable
-from mpop.readers import Reader, DatasetDict, ConfigBasedReader, MultiFileReader
-from fnmatch import fnmatch
+from mpop.readers import ConfigBasedReader, MultiFileReader, FileKey
 import six
 
 NO_DATE = datetime(1958, 1, 1)
@@ -83,15 +79,6 @@ def _get_invalid_info(granule_data):
                " vdne:" + str((granule_data == -999.3).sum()) +
                " soub:" + str((granule_data == -999.2).sum()))
     return msg
-
-
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units", "file_units", "kwargs"])):
-    def __new__(cls, name, variable_name,
-                scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
-        if isinstance(dtype, (str, six.text_type)):
-            # get the data type from numpy
-            dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units, file_units, kwargs)
 
 
 class HDF5MetaData(object):
