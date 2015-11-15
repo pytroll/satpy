@@ -92,10 +92,26 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__getitem__(key)
 
     def __setitem__(self, key, value):
+        """Support assigning 'Projectable' objects or dictionaries of metadata.
+        """
+        d = value.info if isinstance(value, Projectable) else value
         if not isinstance(key, BandID):
             key = self.get_key(key)
             if key is None:
-                raise ValueError("'key' must be of type 'BandID' or must exist already: %s" % (key,))
+                # this is a new key and it's not a full BandID tuple
+                key = BandID(
+                    name=d["name"],
+                    resolution=d["resolution"],
+                    wavelength=d["wavelength"],
+                    polarization=d["polarization"]
+                )
+
+        # update the 'value' with the information contained in the key
+        d["name"] = key.name
+        d["resolution"] = key.resolution
+        d["wavelength"] = key.wavelength
+        d["polarization"] = key.polarization
+
         return super(DatasetDict, self).__setitem__(key, value)
 
     def __delitem__(self, key):
