@@ -41,7 +41,7 @@ import logging
 from collections import namedtuple
 
 from mpop.projectable import Projectable
-from mpop.readers import Reader, DatasetDict
+from mpop.readers import Reader, DatasetDict, ConfigBasedReader
 from fnmatch import fnmatch
 import six
 
@@ -383,7 +383,7 @@ class MultiFileReader(object):
         return np.ma.array(data, mask=mask, copy=False)
 
 
-class VIIRSSDRReader(Reader):
+class VIIRSSDRReader(ConfigBasedReader):
     def __init__(self, **kwargs):
         self.file_types = {}
         self.file_readers = {}
@@ -417,74 +417,6 @@ class VIIRSSDRReader(Reader):
 
             file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
             self.file_readers[file_type_name] = file_reader
-
-    def _get_swathsegment(self, file_readers):
-        if self.area is not None:
-            from trollsched.spherical import SphPolygon
-            from trollsched.boundary import AreaBoundary
-
-            lons, lats = self.area.get_boundary_lonlats()
-            area_boundary = AreaBoundary((lons.side1, lats.side1),
-                                         (lons.side2, lats.side2),
-                                         (lons.side3, lats.side3),
-                                         (lons.side4, lats.side4))
-            area_boundary.decimate(500)
-            contour_poly = area_boundary.contour_poly
-
-        segment_readers = []
-        for file_reader in file_readers:
-            file_start = file_reader.start_time
-            file_end = file_reader.end_time
-
-            # Search for multiple granules using an area
-            if self.area is not None:
-                coords = np.vstack(file_reader.get_ring_lonlats())
-                poly = SphPolygon(np.deg2rad(coords))
-                if poly.intersection(contour_poly) is not None:
-                    segment_readers.append(file_reader)
-                continue
-
-            if self.start_time is None:
-                # if no start_time, assume no time filtering
-                segment_readers.append(file_reader)
-                continue
-
-            # Search for single granule using time start
-            if self.end_time is None:
-                if file_start <= self.start_time <= file_end:
-                    segment_readers.append(file_reader)
-                    continue
-            else:
-                # search for multiple granules
-                # check that granule start time is inside interval
-                if self.start_time <= file_start <= self.end_time:
-                    segment_readers.append(file_reader)
-                    continue
-
-                # check that granule end time is inside interval
-                if self.start_time <= file_end <= self.end_time:
-                    segment_readers.append(file_reader)
-                    continue
-
-        return sorted(segment_readers, key=lambda x: x.start_time)
-
-    def load_section_file_type(self, section_name, section_options):
-        name = section_name.split(":")[-1]
-        section_options["file_patterns"] = section_options["file_patterns"].split(",")
-        # Don't create the file reader object yet
-        self.file_types[name] = section_options
-
-    def load_section_file_key(self, section_name, section_options):
-        name = section_name.split(":")[-1]
-        self.file_keys[name] = FileKey(name=name, **section_options)
-
-    def load_section_navigation(self, section_name, section_options):
-        name = section_name.split(":")[-1]
-        self.navigations[name] = section_options
-
-    def load_section_calibration(self, section_name, section_options):
-        name = section_name.split(":")[-1]
-        self.calibrations[name] = section_options
 
     def identify_file_types(self, filenames, default_file_reader="mpop.readers.viirs_sdr.SDRFileReader"):
         """Identify the type of a file by its filename or by its contents.
@@ -530,13 +462,9 @@ class VIIRSSDRReader(Reader):
         to figure out where it is.
         """
         nav_info = self.navigations[nav_name]
-        lon_key = nav_info["longitude_key"]
-        lat_key = nav_info["latitude_key"]
         file_type = nav_info["file_type"]
 
-        if file_type in self.file_readers:
-            file_reader = self.file_readers[file_type]
-        else:
+        if file_type not in self.file_readers:
             LOG.debug("Geolocation files were not provided, will search band file header...")
             dataset_file_reader = self.file_readers[dep_file_type]
             base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
@@ -547,81 +475,9 @@ class VIIRSSDRReader(Reader):
             if file_type not in file_types:
                 raise RuntimeError("The geolocation files from the header (ex. %s)"
                                    " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
-            file_reader = MultiFileReader(file_type, file_types[file_type], self.file_keys)
+            self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
-        lon_data = file_reader.get_swath_data(lon_key, extra_mask=extra_mask)
-        lat_data = file_reader.get_swath_data(lat_key, extra_mask=extra_mask)
-
-        # FIXME: Is this really needed/does it belong here? Can we have a dummy/simple object?
-        from pyresample import geometry
-        area = geometry.SwathDefinition(lons=lon_data, lats=lat_data)
-        area_name = ("swath_" +
-                     file_reader.start_time.isoformat() + "_" +
-                     file_reader.end_time.isoformat() + "_" +
-                     str(lon_data.shape[0]) + "_" + str(lon_data.shape[1]))
-        # FIXME: Which one is used now:
-        area.area_id = area_name
-        area.name = area_name
-
-        return area
-
-    def _get_dataset_info(self, name, calibration):
-        dataset_info = self.datasets[name].copy()
-
-        if not dataset_info.get("calibration", None):
-            LOG.debug("No calibration set for '%s'", name)
-            dataset_info["file_type"] = dataset_info["file_type"][0]
-            dataset_info["file_key"] = dataset_info["file_key"][0]
-            dataset_info["navigation"] = dataset_info["navigation"][0]
-            return dataset_info
-
-        # Remove any file types and associated calibration, file_key, navigation if file_type is not loaded
-        for k in ["file_type", "file_key", "calibration", "navigation"]:
-            dataset_info[k] = []
-        for idx, ft in enumerate(self.datasets[name]["file_type"]):
-            if ft in self.file_readers:
-                for k in ["file_type", "file_key", "calibration", "navigation"]:
-                    dataset_info[k].append(self.datasets[name][k][idx])
-
-        # By default do the first calibration for a dataset
-        cal_index = 0
-        cal_name = dataset_info["calibration"][0]
-        for idx, cname in enumerate(dataset_info["calibration"]):
-            # is this the calibration we want for this channel?
-            if cname in calibration:
-                cal_index = idx
-                cal_name = cname
-                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name, name)
-                break
-        else:
-            LOG.debug("Using default calibration '%s' for dataset '%s'", cal_name, name)
-
-        # Load metadata and calibration information for this dataset
-        try:
-            cal_info = self.calibrations.get(cal_name, None)
-            for k, info_dict in [
-                ("file_type", self.file_types),
-                ("file_key", self.file_keys),
-                ("navigation", self.navigations),
-                ("calibration", self.calibrations)]:
-                val = dataset_info[k][cal_index]
-                if cal_info is not None:
-                    val = cal_info.get(k, val)
-
-                if val not in info_dict and k != "calibration":
-                    # We don't care if the calibration has its own section
-                    raise RuntimeError("Unknown '%s': %s" % (k, val,))
-                dataset_info[k] = val
-
-                if k == "file_key":
-                    # collect any other metadata
-                    dataset_info["standard_name"] = self.file_keys[val].standard_name
-                    # dataset_info["file_units"] = self.file_keys[val].file_units
-                    # dataset_info["units"] = self.file_keys[val].units
-        except (IndexError, KeyError):
-            raise RuntimeError("Could not get information to perform calibration '%s'" % (cal_name,))
-
-        return dataset_info
+        return super(VIIRSSDRReader, self)._load_navigation(nav_name, extra_mask=extra_mask)
 
     def load(self, datasets_to_load, calibration=None, **dataset_info):
         if dataset_info:

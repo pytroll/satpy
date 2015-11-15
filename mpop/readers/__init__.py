@@ -564,10 +564,9 @@ class ConfigBasedReader(Reader):
     def _interpolate_navigation(self, lon, lat):
         return lon, lat
 
-    def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
+    def _load_navigation(self, nav_name, extra_mask=None):
         """Load the `nav_name` navigation.
         """
-        del dep_file_type
         nav_info = self.navigations[nav_name]
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
@@ -726,7 +725,7 @@ class ConfigBasedReader(Reader):
 
         # Sanity check and get the navigation sets being used
         areas = {}
-        datasets_loaded = {}
+        datasets_loaded = DatasetDict()
         for ds in datasets_to_load:
             dataset_info = self._get_dataset_info(ds, calibration=calibration)
             file_type = dataset_info["file_type"]
@@ -740,7 +739,7 @@ class ConfigBasedReader(Reader):
             # Load the navigation information first
             if nav_name not in areas:
                 # FIXME: This ignores the possibility that data masks are different between bands
-                areas[nav_name] = area = self._load_navigation(nav_name, file_type, extra_mask=data.mask)
+                areas[nav_name] = area = self._load_navigation(nav_name, extra_mask=data.mask)
             else:
                 area = areas[nav_name]
 
@@ -760,48 +759,6 @@ class ConfigBasedReader(Reader):
 
             datasets_loaded[ds] = projectable
         return datasets_loaded
-
-    def _load_navigation_old(self, nav_name, dep_file_type, extra_mask=None):
-        """Load the `nav_name` navigation.
-
-        For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
-        to figure out where it is.
-        """
-        nav_info = self.navigations[nav_name]
-        lon_key = nav_info["longitude_key"]
-        lat_key = nav_info["latitude_key"]
-        file_type = nav_info["file_type"]
-
-        if file_type in self.file_readers:
-            file_reader = self.file_readers[file_type]
-        else:
-            LOG.debug("Geolocation files were not provided, will search band file header...")
-            dataset_file_reader = self.file_readers[dep_file_type]
-            base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
-            geo_filenames = dataset_file_reader.geo_filenames
-            geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
-
-            file_types = self.identify_file_types(geo_filepaths)
-            if file_type not in file_types:
-                raise RuntimeError("The geolocation files from the header (ex. %s)"
-                                   " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
-            file_reader = MultiFileReader(file_type, file_types[file_type], self.file_keys)
-
-        lon_data = file_reader.get_swath_data(lon_key, extra_mask=extra_mask)
-        lat_data = file_reader.get_swath_data(lat_key, extra_mask=extra_mask)
-
-        # FIXME: Is this really needed/does it belong here? Can we have a dummy/simple object?
-        from pyresample import geometry
-        area = geometry.SwathDefinition(lons=lon_data, lats=lat_data)
-        area_name = ("swath_" +
-                     file_reader.start_time.isoformat() + "_" +
-                     file_reader.end_time.isoformat() + "_" +
-                     str(lon_data.shape[0]) + "_" + str(lon_data.shape[1]))
-        # FIXME: Which one is used now:
-        area.area_id = area_name
-        area.name = area_name
-
-        return area
 
 
 class MultiFileReader(object):
