@@ -41,7 +41,7 @@ import logging
 from collections import namedtuple
 
 from mpop.projectable import Projectable
-from mpop.readers import Reader, DatasetDict, ConfigBasedReader
+from mpop.readers import Reader, DatasetDict, ConfigBasedReader, MultiFileReader
 from fnmatch import fnmatch
 import six
 
@@ -226,6 +226,9 @@ class SDRFileReader(HDF5MetaData):
         #
         # return None
 
+    def get_shape(self, item):
+        return self[item + "/shape"]
+
     def scale_swath_data(self, data, mask, scaling_factors):
         """Scale swath data using scaling factors and offsets.
 
@@ -266,7 +269,7 @@ class SDRFileReader(HDF5MetaData):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_name=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
         # Can't guarantee proper file info until we get the data first
@@ -310,152 +313,14 @@ class SDRFileReader(HDF5MetaData):
         return data_out, mask_out
 
 
-class MultiFileReader(object):
-    # FIXME: file_type isn't used here. Do we really need it ?
-    def __init__(self, file_type, file_readers, file_keys, **kwargs):
-        """
-        :param file_type:
-        :param file_readers: is a list of the reader instances to use.
-        :param file_keys:
-        :param kwargs:
-        :return:
-        """
-        self.file_type = file_type
-        self.file_readers = file_readers
-        self.file_keys = file_keys
-
-    @property
-    def filenames(self):
-        return [fr.filename for fr in self.file_readers]
-
-    @property
-    def start_time(self):
-        return self.file_readers[0].start_time
-
-    @property
-    def end_time(self):
-        return self.file_readers[-1].end_time
-
-    def get_begin_orbit_number(self):
-        return self.file_readers[0].get_begin_orbit_number()
-
-    def get_end_orbit_number(self):
-        return self.file_readers[-1].get_end_orbit_number()
-
-    def get_platform_name(self):
-        return self.file_readers[0].get_platform_name()
-
-    def get_sensor_name(self):
-        return self.file_readers[0].get_sensor_name()
-
-    @property
-    def geo_filenames(self):
-        return [fr.get_geofilename() for fr in self.file_readers]
-
-    def get_units(self, item):
-        return self.file_readers[0].get_units(item)
-
-    def get_swath_data(self, item, extra_mask=None, filename=None):
-        var_info = self.file_keys[item]
-        granule_shapes = [x[item + "/shape"] for x in self.file_readers]
-        num_rows = sum([x[0] for x in granule_shapes])
-        num_cols = granule_shapes[0][1]
-
-        if filename:
-            raise NotImplementedError("Saving data arrays to disk is not supported yet")
-            # data = np.memmap(filename, dtype=var_info.dtype, mode='w', shape=(num_rows, num_cols))
-        else:
-            data = np.empty((num_rows, num_cols), dtype=var_info.dtype)
-            if extra_mask is not None:
-                mask = extra_mask.copy()
-            else:
-                mask = np.zeros_like(data, dtype=np.bool)
-
-        idx = 0
-        for granule_shape, file_reader in zip(granule_shapes, self.file_readers):
-            # Get the data from each individual file reader (assumes it gets the data with the right data type)
-            file_reader.get_swath_data(item,
-                                       data_out=data[idx: idx + granule_shape[0]],
-                                       mask_out=mask[idx: idx + granule_shape[0]])
-            idx += granule_shape[0]
-
-        # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
-        return np.ma.array(data, mask=mask, copy=False)
-
-
 class VIIRSSDRReader(ConfigBasedReader):
-    def __init__(self, **kwargs):
-        self.file_types = {}
-        self.file_readers = {}
-        self.file_keys = {}
-        self.navigations = {}
-        self.calibrations = {}
-        kwargs.setdefault("default_config_filename", "readers/viirs_sdr.cfg")
+    def __init__(self, default_file_reader=SDRFileReader, default_config_filename="readers/viirs_sdr.cfg", **kwargs):
+        super(VIIRSSDRReader, self).__init__(default_file_reader=default_file_reader,
+                                             default_config_filename=default_config_filename,
+                                             **kwargs
+                                             )
 
-        # Load the configuration file and other defaults
-        super(VIIRSSDRReader, self).__init__(**kwargs)
-
-        # Determine what we know about the files provided and create file readers to read them
-        file_types = self.identify_file_types(self.filenames)
-        # TODO: Add ability to discover files when none are provided
-        if not file_types:
-            raise ValueError("No input files found matching the configured file types")
-
-        num_files = 0
-        for file_type_name, file_type_files in file_types.items():
-            file_type_files = self._get_swathsegment(file_type_files)
-            LOG.debug("File type %s has %d files after segment selection", file_type_name, len(file_type_files))
-
-            if len(file_type_files) == 0:
-                raise IOError("No VIIRS SDR files matching!: " +
-                              "Start time = " + str(self.start_time) +
-                              "  End time = " + str(self.end_time))
-            elif num_files and len(file_type_files) != num_files:
-                raise IOError("Varying numbers of files found", file_type_name)
-            else:
-                num_files = len(file_type_files)
-
-            file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
-            self.file_readers[file_type_name] = file_reader
-
-    def identify_file_types(self, filenames, default_file_reader="mpop.readers.viirs_sdr.SDRFileReader"):
-        """Identify the type of a file by its filename or by its contents.
-
-        Uses previously loaded information from the configuration file.
-        """
-        file_types = {}
-        # remaining_filenames = [os.path.basename(fn) for fn in filenames]
-        remaining_filenames = filenames[:]
-        for file_type_name, file_type_info in self.file_types.items():
-            file_types[file_type_name] = []
-            file_reader_class = self._runtime_import(file_type_info.get("file_reader", default_file_reader))
-            for file_pattern in file_type_info["file_patterns"]:
-                tmp_remaining = []
-                tmp_matching = []
-                for fn in remaining_filenames:
-                    # Add a wildcard to the front for path information
-                    # FIXME: Is there a better way to generalize this besides removing the path every time
-                    if fnmatch(fn, "*" + globify(file_pattern)):
-                        reader = file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
-                        tmp_matching.append(reader)
-                    else:
-                        tmp_remaining.append(fn)
-
-                file_types[file_type_name].extend(tmp_matching)
-                remaining_filenames = tmp_remaining
-
-            if not file_types[file_type_name]:
-                del file_types[file_type_name]
-
-            if not remaining_filenames:
-                break
-
-        for remaining_filename in remaining_filenames:
-            LOG.warning("Unidentified file: %s", remaining_filename)
-
-        return file_types
-
-    def _load_navigation(self, nav_name, dep_file_type, extra_mask=None):
+    def _load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 
         For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
@@ -466,6 +331,8 @@ class VIIRSSDRReader(ConfigBasedReader):
 
         if file_type not in self.file_readers:
             LOG.debug("Geolocation files were not provided, will search band file header...")
+            if dep_file_type is None:
+                raise RuntimeError("Could not find geolocation files because the main dataset was not provided")
             dataset_file_reader = self.file_readers[dep_file_type]
             base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
             geo_filenames = dataset_file_reader.geo_filenames
@@ -479,55 +346,3 @@ class VIIRSSDRReader(ConfigBasedReader):
 
         return super(VIIRSSDRReader, self)._load_navigation(nav_name, extra_mask=extra_mask)
 
-    def load(self, datasets_to_load, calibration=None, **dataset_info):
-        if dataset_info:
-            LOG.warning("Unsupported options for viirs reader: %s", str(dataset_info))
-        if calibration is None:
-            calibration = getattr(self, "calibration", ["bt", "reflectance"])
-        # order calibration from highest level to lowest level
-        calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
-
-        datasets_to_load = set(datasets_to_load) & set(self.dataset_names)
-        if len(datasets_to_load) == 0:
-            LOG.debug("No datasets to load from this reader")
-            # XXX: Is None really the best thing that can be returned here?
-            return
-
-        LOG.debug("Channels to load: " + str(datasets_to_load))
-
-        # Sanity check and get the navigation sets being used
-        areas = {}
-        datasets_loaded = DatasetDict()
-        for ds in datasets_to_load:
-            dataset_info = self._get_dataset_info(ds, calibration=calibration)
-            file_type = dataset_info["file_type"]
-            file_key = dataset_info["file_key"]
-            file_reader = self.file_readers[file_type]
-            nav_name = dataset_info["navigation"]
-
-            # Get the swath data (fully scaled and in the correct data type)
-            data = file_reader.get_swath_data(file_key)
-
-            # Load the navigation information first
-            if nav_name not in areas:
-                # FIXME: This ignores the possibility that data masks are different between bands
-                areas[nav_name] = area = self._load_navigation(nav_name, file_type, extra_mask=data.mask)
-            else:
-                area = areas[nav_name]
-
-            # Create a projectable from info from the file data and the config file
-            # FIXME: Remove metadata that is reader only
-            dataset_info.setdefault("units", file_reader.get_units(file_key))
-            dataset_info.setdefault("platform", file_reader.get_platform_name())
-            dataset_info.setdefault("sensor", file_reader.get_sensor_name())
-            dataset_info.setdefault("start_orbit", file_reader.get_begin_orbit_number())
-            dataset_info.setdefault("end_orbit", file_reader.get_end_orbit_number())
-            dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
-            projectable = Projectable(data=data,
-                                      start_time=file_reader.start_time,
-                                      end_time=file_reader.end_time,
-                                      **dataset_info)
-            projectable.info["area"] = area
-
-            datasets_loaded[projectable.info["id"]] = projectable
-        return datasets_loaded

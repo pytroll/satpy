@@ -453,31 +453,6 @@ class TestSDRMultiFileReader(unittest.TestCase):
             valid_data = np.ma.masked_array(valid_data, valid_mask) * 2.0 + 1.0
             np.testing.assert_array_equal(data, valid_data)
 
-    def test_get_swath_data_extra_mask(self):
-        """Test that the extra mask is used when provided to the file reader get_swath_data method.
-
-        Note: This can and should be removed once resampling is 'fixed' to mask navigation when needed.
-        """
-        from mpop.readers.viirs_sdr import SDRFileReader
-        from mpop.readers.viirs_sdr import MultiFileReader
-        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
-        with patcher:
-            patcher.is_local = True
-            file_readers = [
-                SDRFileReader("fake_file_type", "test{0:02d}.h5".format(x), self.file_keys, offset=x) for x in range(5)]
-            file_reader = MultiFileReader("fake_file_type", file_readers, self.file_keys)
-            valid_shape = (DEFAULT_FILE_SHAPE[0]*5, DEFAULT_FILE_SHAPE[1])
-            extra_mask = np.zeros(valid_shape, dtype=np.bool)
-            extra_mask[::2, ::2] = True
-            data = file_reader.get_swath_data("brightness_temperature", extra_mask=extra_mask)
-            # make sure its a masked array
-            self.assertTrue(hasattr(data, "mask"))
-            self.assertTrue(hasattr(data, "data"))
-            self.assertEqual(data.shape, valid_shape)
-            valid_data = np.concatenate(tuple(DEFAULT_FILE_DATA.astype(np.float32) for x in range(5)))
-            valid_data = np.ma.masked_array(valid_data, extra_mask) * 2.0 + 1.0
-            np.testing.assert_array_equal(data, valid_data)
-
     def test_get_swath_data_to_disk(self):
         from mpop.readers.viirs_sdr import SDRFileReader
         from mpop.readers.viirs_sdr import MultiFileReader
@@ -642,7 +617,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
 
-            area = reader._load_navigation("gitco", "svi01")
+            area = reader._load_navigation("gitco", dep_file_type="svi01")
 
     def test_get_dataset_info_no_cal(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader

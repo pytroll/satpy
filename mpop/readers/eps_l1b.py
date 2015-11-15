@@ -100,6 +100,10 @@ def read_raw(filename):
     return records, form
 
 class EPSL1BReader(ConfigBasedReader):
+    # FIXME: Set default_file_reader
+    def __init__(self, default_file_reader=None, **kwargs):
+        super(EPSL1BReader, self).__init__(default_file_reader=default_file_reader, **kwargs)
+
     def _interpolate_navigation(self, lon, lat):
         from geotiepoints import metop20kmto1km
         return metop20kmto1km(lon, lat)

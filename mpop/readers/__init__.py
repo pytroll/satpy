@@ -362,8 +362,6 @@ class Reader(Plugin):
         self.description = self.config_options.get("description", None) if description is None else description
         self.sensor = self.config_options.get("sensor", "").split(",") if sensor is None else set(sensor)
 
-        self.config_options = None
-
         # These can't be provided by a configuration file
         self.start_time = start_time
         self.end_time = end_time
@@ -478,7 +476,7 @@ class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors",
 
 
 class ConfigBasedReader(Reader):
-    def __init__(self, **kwargs):
+    def __init__(self, default_file_reader=None, **kwargs):
         self.file_types = {}
         self.file_readers = {}
         self.file_keys = {}
@@ -487,6 +485,13 @@ class ConfigBasedReader(Reader):
 
         # Load the configuration file and other defaults
         super(ConfigBasedReader, self).__init__(**kwargs)
+
+        # Set up the default class for reading individual files
+        self.default_file_reader = self.config_options.get("default_file_reader", None) if default_file_reader is None else default_file_reader
+        if isinstance(self.default_file_reader, (str, unicode)):
+            self.default_file_reader = self._runtime_import(self.default_file_reader)
+        if self.default_file_reader is None:
+            raise RuntimeError("'default_file_reader' is a required argument")
 
         # Determine what we know about the files provided and create file readers to read them
         file_types = self.identify_file_types(self.filenames)
@@ -564,8 +569,11 @@ class ConfigBasedReader(Reader):
     def _interpolate_navigation(self, lon, lat):
         return lon, lat
 
-    def _load_navigation(self, nav_name, extra_mask=None):
+    def _load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
+
+        :param dep_file_type: file type of dataset using this navigation. Useful for subclasses to implement relative
+                              navigation file loading
         """
         nav_info = self.navigations[nav_name]
         lon_key = nav_info["longitude_key"]
@@ -595,7 +603,7 @@ class ConfigBasedReader(Reader):
 
         return area
 
-    def identify_file_types(self, filenames, default_file_reader="mpop.readers.eps_l1b.EPSAVHRRL1BFileReader"):
+    def identify_file_types(self, filenames, default_file_reader=None):
         """Identify the type of a file by its filename or by its contents.
 
         Uses previously loaded information from the configuration file.
@@ -605,7 +613,14 @@ class ConfigBasedReader(Reader):
         remaining_filenames = filenames[:]
         for file_type_name, file_type_info in self.file_types.items():
             file_types[file_type_name] = []
-            file_reader_class = self._runtime_import(file_type_info.get("file_reader", default_file_reader))
+
+            if default_file_reader is None:
+                file_reader_class = file_type_info.get("file_reader", self.default_file_reader)
+            else:
+                file_reader_class = default_file_reader
+
+            if isinstance(file_reader_class, (str, unicode)):
+                file_reader_class = self._runtime_import(file_reader_class)
             for file_pattern in file_type_info["file_patterns"]:
                 tmp_remaining = []
                 tmp_matching = []
@@ -739,7 +754,7 @@ class ConfigBasedReader(Reader):
             # Load the navigation information first
             if nav_name not in areas:
                 # FIXME: This ignores the possibility that data masks are different between bands
-                areas[nav_name] = area = self._load_navigation(nav_name, extra_mask=data.mask)
+                areas[nav_name] = area = self._load_navigation(nav_name, extra_mask=data.mask, dep_file_type=file_type)
             else:
                 area = areas[nav_name]
 
@@ -750,14 +765,15 @@ class ConfigBasedReader(Reader):
             dataset_info.setdefault("sensor", file_reader.get_sensor_name())
             dataset_info.setdefault("start_orbit", file_reader.get_begin_orbit_number())
             dataset_info.setdefault("end_orbit", file_reader.get_end_orbit_number())
-            # dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
+            if "rows_per_scan" in self.navigations[nav_name]:
+                dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
                                       **dataset_info)
             projectable.info["area"] = area
 
-            datasets_loaded[ds] = projectable
+            datasets_loaded[projectable.info["id"]] = projectable
         return datasets_loaded
 
 
@@ -834,6 +850,7 @@ class MultiFileReader(object):
 
 class GenericFileReader(object):
     def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
+        # FIXME: What is dataset_name supposed to be used for?
         if item in ["longitude", "latitude"]:
             # TODO: compute the lon lat here from tle and sensor geometry (pyorbital)
             return
