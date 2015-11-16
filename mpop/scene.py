@@ -243,62 +243,69 @@ class Scene(InfoObject):
         # FIXME: What should happen to the wishlist for multiple loads? This currently replaces it every time.
         self.wishlist = list(projectable_keys)
 
-        projectable_names = set()
+        dataset_ids = set()
+        unknown_keys = set()
 
         # Check with all known readers to see which ones know about the requested datasets
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
                     ds_info = reader_instance.get_dataset(key)
-                    projectable_name = ds_info["name"]
+                    ds_id = ds_info["id"]
                     # if the request wasn't a dataset name (wavelength, etc) then replace the request with the name
-                    if key != projectable_name:
+                    if key != ds_id:
                         self.wishlist.remove(key)
-                        self.wishlist.append(projectable_name)
+                        self.wishlist.append(ds_id)
                     # if we haven't loaded this projectable then add it to the list to be loaded
-                    if projectable_name not in self.projectables or not self.projectables[projectable_name].is_loaded():
-                        projectable_names.add(projectable_name)
+                    if ds_id not in self.projectables or not self.projectables[ds_id].is_loaded():
+                        dataset_ids.add(ds_id)
                 except KeyError:
-                    projectable_names.add(key)
+                    unknown_keys.add(key)
                     LOG.debug("Can't find dataset %s in reader %s", str(key), reader_name)
 
-        # Get set of all projectable names that can't be satisfied by the readers we've loaded
-        composite_names = set(projectable_names)
+        # Get set of all names that can't be satisfied by the readers we've loaded
+        # Get the list of keys that *none* of the readers knew about (assume names only for compositors)
+        dataset_names = set(x.name for x in dataset_ids)
+        composite_names = unknown_keys - dataset_names
+        # composite_names = set(x.name for x in dataset_ids)
         sensor_names = set()
         unknown_names = set()
+        # Look for compositors configurations specific to the sensors that our readers support
         for reader_instance in self.readers.values():
-            composite_names -= set(reader_instance.dataset_names)
             sensor_names |= set(reader_instance.sensor_names)
 
         # If we have any composites that need to be made, then let's create the composite objects
         if composite_names:
+            # for comp_name in composite_names:
+            #     self.wishlist.remove(comp_name)
+            #     self.wishlist.append(BandID(name=comp_name, wavelength=None, resolution=None, polarization=None))
             unknown_names = self.load_compositors(composite_names, sensor_names, **kwargs)
 
         for unknown_name in unknown_names:
             LOG.warning("Unknown dataset or compositor: %s", unknown_name)
 
         # Don't include any of the 'unknown' projectable names
-        projectable_names = set(projectable_names) - unknown_names
+        # dataset_ids = set(dataset_ids) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
                                 if composite not in self.projectables or not self[
-            composite].is_loaded()) & projectable_names
+            composite].is_loaded()) & dataset_names
 
         for reader_name, reader_instance in self.readers.items():
-            all_reader_datasets = set(reader_instance.dataset_names)
+            all_reader_datasets = set(reader_instance.datasets.keys())
 
             # compute the dependencies to load from file
-            needed_bands = all_reader_datasets & projectable_names
-            needed_bands = set(band for band in needed_bands
-                               if band not in self.projectables or not self[band].is_loaded())
+            needed_bands = set(dataset_ids)
             # FIXME: Can this be replaced with a simple for loop without copy (composites_needed isn't used after this)
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_dataset(prereq)["name"]
+                    needed_bands |= set(reader_instance.get_dataset(prereq)["id"]
                                         for prereq in self.compositors[band].prerequisites)
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
             needed_bands &= all_reader_datasets
+            needed_bands = set(band for band in needed_bands
+                               if band not in self.projectables or not self[band].is_loaded())
 
             # Create projectables in reader and update the scenes projectables
             needed_bands = sorted(needed_bands)
@@ -322,18 +329,26 @@ class Scene(InfoObject):
         """Compute all the composites from *requirements*
         """
         if not requirements:
-            requirements = self.wishlist
+            requirements = self.wishlist[:]
         for requirement in requirements:
-            if requirement not in self.compositors:
+            if isinstance(requirement, BandID) and requirement == "true_color":
+                pass
+            if isinstance(requirement, BandID) and requirement.name not in self.compositors:
+                continue
+            elif not isinstance(requirement, BandID) and requirement not in self.compositors:
                 continue
             if requirement in self.projectables:
                 continue
-            self.compute(*self.compositors[requirement].prerequisites)
+            if isinstance(requirement, BandID):
+                requirement_name = requirement.name
+            else:
+                requirement_name = requirement
+            self.compute(*self.compositors[requirement_name].prerequisites)
 
             # TODO: Get non-projectable dependencies like moon illumination fraction
-            prereq_projectables = [self[prereq] for prereq in self.compositors[requirement].prerequisites]
+            prereq_projectables = [self[prereq] for prereq in self.compositors[requirement_name].prerequisites]
             try:
-                comp_projectable = self.compositors[requirement](prereq_projectables, **self.info)
+                comp_projectable = self.compositors[requirement_name](prereq_projectables, **self.info)
                 # FIXME: Should this be a requirement of anything creating a Dataset? Special handling by .info?
                 band_id = BandID(
                     name=comp_projectable.info["name"],
@@ -343,20 +358,26 @@ class Scene(InfoObject):
                 )
                 comp_projectable.info["id"] = band_id
                 self.projectables[band_id] = comp_projectable
+
+                # update the wishlist with this new dataset id
+                if requirement_name in self.wishlist:
+                    self.wishlist.remove(requirement_name)
+                    self.wishlist.append(band_id)
             except IncompatibleAreas:
                 for ds_id, projectable in self.projectables.iteritems():
                     # FIXME: Can compositors use wavelengths or only names?
-                    if ds_id.name in self.compositors[requirement].prerequisites:
+                    if ds_id.name in self.compositors[requirement_name].prerequisites:
                         projectable.info["keep"] = True
+        pass
 
     def unload(self):
         """Unload all loaded composites.
         """
-        to_del = [ds_id.name for ds_id, projectable in self.projectables.items()
-                  if ds_id.name not in self.wishlist and
+        to_del = [ds_id for ds_id, projectable in self.projectables.items()
+                  if ds_id not in self.wishlist and
                   not projectable.info.get("keep", False)]
-        for name in to_del:
-            del self.projectables[name]
+        for ds_id in to_del:
+            del self.projectables[ds_id]
 
     def load(self, wishlist, **kwargs):
         """Read, compute and unload.
@@ -372,11 +393,16 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
+        new_scn.wishlist = self.wishlist
         for ds_id, projectable in self.projectables.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id.name not in datasets:
                 continue
             new_scn[ds_id] = projectable.resample(destination, **kwargs)
+
+        # recompute anything from the wishlist that needs it (combining multiple resolutions, etc.)
+        new_scn.compute()
+
         return new_scn
 
     def images(self):

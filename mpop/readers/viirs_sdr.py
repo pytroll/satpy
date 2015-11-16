@@ -256,7 +256,7 @@ class SDRFileReader(HDF5MetaData):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_name=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_id=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
         # Can't guarantee proper file info until we get the data first

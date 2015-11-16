@@ -570,7 +570,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                     start_time=datetime(2015, 1, 1, 11, 0, 0),
                                     end_time=datetime(2015, 1, 1, 12, 0, 0))
             datasets = reader.load(["fake", "fake2"])
-            self.assertIs(datasets, None)
+            self.assertEqual(datasets, {})
 
     def test_load_basic(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader

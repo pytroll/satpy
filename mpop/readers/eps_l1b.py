@@ -129,16 +129,16 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         self.cache = {}
 
 
-    def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
+    def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
         """
         :param item: usually a channel name
         :return:
         """
         geo_indices = {"latitude": 0, "longitude": 1}
         if item == "radiance":
-            return self._get_channel(dataset_name, 2, data_out, mask_out)
+            return self._get_channel(dataset_id, 2, data_out, mask_out)
         elif item in ["reflectance", "bt"]:
-            return self._get_channel(dataset_name, 1, data_out, mask_out)
+            return self._get_channel(dataset_id, 1, data_out, mask_out)
         elif item in ["longitude", "latitude"]:
             variable_names = self.file_keys[item].variable_name.split(",")
             if data_out is not None:

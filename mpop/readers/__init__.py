@@ -114,6 +114,10 @@ class DatasetDict(dict):
 
         return super(DatasetDict, self).__setitem__(key, value)
 
+    def __contains__(self, item):
+        key = self.get_key(item)
+        return super(DatasetDict, self).__contains__(key)
+
     def __delitem__(self, key):
         key = self.get_key(key)
         return super(DatasetDict, self).__delitem__(key)
@@ -681,11 +685,11 @@ class ConfigBasedReader(Reader):
         name = section_name.split(":")[-1]
         self.calibrations[name] = section_options
 
-    def _get_dataset_info(self, name, calibration):
-        dataset_info = self.datasets[name].copy()
+    def _get_dataset_info(self, ds_id, calibration):
+        dataset_info = self.datasets[ds_id].copy()
 
         if not dataset_info.get("calibration", None):
-            LOG.debug("No calibration set for '%s'", name)
+            LOG.debug("No calibration set for '%s'", ds_id)
             dataset_info["file_type"] = dataset_info["file_type"][0]
             dataset_info["file_key"] = dataset_info["file_key"][0]
             dataset_info["navigation"] = dataset_info["navigation"][0]
@@ -694,10 +698,10 @@ class ConfigBasedReader(Reader):
         # Remove any file types and associated calibration, file_key, navigation if file_type is not loaded
         for k in ["file_type", "file_key", "calibration", "navigation"]:
             dataset_info[k] = []
-        for idx, ft in enumerate(self.datasets[name]["file_type"]):
+        for idx, ft in enumerate(self.datasets[ds_id]["file_type"]):
             if ft in self.file_readers:
                 for k in ["file_type", "file_key", "calibration", "navigation"]:
-                    dataset_info[k].append(self.datasets[name][k][idx])
+                    dataset_info[k].append(self.datasets[ds_id][k][idx])
 
         # By default do the first calibration for a dataset
         cal_index = 0
@@ -707,10 +711,10 @@ class ConfigBasedReader(Reader):
             if cname in calibration:
                 cal_index = idx
                 cal_name = cname
-                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name, name)
+                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name, ds_id)
                 break
         else:
-            LOG.debug("Using default calibration '%s' for dataset '%s'", cal_name, name)
+            LOG.debug("Using default calibration '%s' for dataset '%s'", cal_name, ds_id)
 
         # Load metadata and calibration information for this dataset
         try:
@@ -746,17 +750,17 @@ class ConfigBasedReader(Reader):
         # order calibration from highest level to lowest level
         calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
 
-        datasets_to_load = set(datasets_to_load) & set(self.dataset_names)
+        datasets_loaded = DatasetDict()
+        datasets_to_load = set(datasets_to_load) & set(self.datasets.keys())
         if len(datasets_to_load) == 0:
             LOG.debug("No datasets to load from this reader")
             # XXX: Is None really the best thing that can be returned here?
-            return
+            return datasets_loaded
 
         LOG.debug("Channels to load: " + str(datasets_to_load))
 
         # Sanity check and get the navigation sets being used
         areas = {}
-        datasets_loaded = DatasetDict()
         for ds in datasets_to_load:
             dataset_info = self._get_dataset_info(ds, calibration=calibration)
             file_type = dataset_info["file_type"]
@@ -765,7 +769,7 @@ class ConfigBasedReader(Reader):
             nav_name = dataset_info["navigation"]
 
             # Get the swath data (fully scaled and in the correct data type)
-            data = file_reader.get_swath_data(file_key, dataset_name=ds)
+            data = file_reader.get_swath_data(file_key, dataset_id=ds)
 
             # Load the navigation information first
             if nav_name not in areas:
@@ -838,7 +842,7 @@ class MultiFileReader(object):
     def get_units(self, item):
         return self.file_readers[0].get_units(item)
 
-    def get_swath_data(self, item, filename=None, dataset_name=None):
+    def get_swath_data(self, item, filename=None, dataset_id=None):
         var_info = self.file_keys[item]
         granule_shapes = [x.get_shape(item) for x in self.file_readers]
         num_rows = sum([x[0] for x in granule_shapes])
@@ -857,7 +861,7 @@ class MultiFileReader(object):
             file_reader.get_swath_data(item,
                                        data_out=data[idx: idx + granule_shape[0]],
                                        mask_out=mask[idx: idx + granule_shape[0]],
-                                       dataset_name=dataset_name)
+                                       dataset_id=dataset_id)
             idx += granule_shape[0]
 
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
@@ -865,7 +869,7 @@ class MultiFileReader(object):
 
 
 class GenericFileReader(object):
-    def get_swath_data(self, item, dataset_name=None, data_out=None, mask_out=None):
+    def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
         # FIXME: What is dataset_name supposed to be used for?
         if item in ["longitude", "latitude"]:
             # TODO: compute the lon lat here from tle and sensor geometry (pyorbital)
