@@ -276,10 +276,7 @@ class Scene(InfoObject):
 
         # If we have any composites that need to be made, then let's create the composite objects
         if composite_names:
-            # for comp_name in composite_names:
-            #     self.wishlist.remove(comp_name)
-            #     self.wishlist.append(BandID(name=comp_name, wavelength=None, resolution=None, polarization=None))
-            unknown_names = self.load_compositors(composite_names, sensor_names, **kwargs)
+            unknown_names = self.load_compositors(composite_names.copy(), sensor_names, **kwargs)
 
         for unknown_name in unknown_names:
             LOG.warning("Unknown dataset or compositor: %s", unknown_name)
@@ -288,7 +285,7 @@ class Scene(InfoObject):
         # dataset_ids = set(dataset_ids) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
                                 if composite not in self.projectables or not self[
-            composite].is_loaded()) & dataset_names
+            composite].is_loaded()) & composite_names
 
         for reader_name, reader_instance in self.readers.items():
             all_reader_datasets = set(reader_instance.datasets.keys())
