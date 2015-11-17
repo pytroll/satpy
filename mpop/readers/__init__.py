@@ -47,14 +47,14 @@ import glob
 
 LOG = logging.getLogger(__name__)
 
-BandID = namedtuple("Band", "name resolution wavelength polarization")
-BandID.__new__.__defaults__ = (None, None, None, None)
+DatasetID = namedtuple("Band", "name resolution wavelength polarization")
+DatasetID.__new__.__defaults__ = (None, None, None, None)
 
 
 class DatasetDict(dict):
-    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or BandID
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID
 
-    Note: Internal dictionary keys are `BandID` objects.
+    Note: Internal dictionary keys are `DatasetID` objects.
     """
     def __init__(self, *args, **kwargs):
         super(DatasetDict, self).__init__(*args, **kwargs)
@@ -74,7 +74,7 @@ class DatasetDict(dict):
             return keys
 
     def get_key(self, key):
-        if isinstance(key, BandID):
+        if isinstance(key, DatasetID):
             return key
         # get by wavelength
         elif isinstance(key, numbers.Number):
@@ -95,11 +95,11 @@ class DatasetDict(dict):
         """Support assigning 'Projectable' objects or dictionaries of metadata.
         """
         d = value.info if isinstance(value, Projectable) else value
-        if not isinstance(key, BandID):
+        if not isinstance(key, DatasetID):
             key = self.get_key(key)
             if key is None:
-                # this is a new key and it's not a full BandID tuple
-                key = BandID(
+                # this is a new key and it's not a full DatasetID tuple
+                key = DatasetID(
                     name=d["name"],
                     resolution=d["resolution"],
                     wavelength=d["wavelength"],
@@ -417,7 +417,7 @@ class Reader(Plugin):
         name = section_options.get("name", section_name.split(":")[-1])
         resolution = float(section_options.get("resolution"))
         wavelength = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
-        bid = BandID(name=name, resolution=resolution, wavelength=wavelength)
+        bid = DatasetID(name=name, resolution=resolution, wavelength=wavelength)
         section_options["id"] = bid
         section_options["name"] = name
 
@@ -443,11 +443,7 @@ class Reader(Plugin):
 
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
-            if aslist:
-                return datasets
-            else:
-                return datasets[0]
-        elif isinstance(key, BandID):
+        elif isinstance(key, DatasetID):
             if key.name is not None:
                 datasets = self.get_dataset(key.name, aslist=True)
             elif key.wavelength is not None:
@@ -460,10 +456,6 @@ class Reader(Plugin):
                 datasets = [ds for ds in datasets if ds["polarization"] == key.polarization]
             if not datasets:
                 raise KeyError("Can't find any projectable matching '%s'" % str(key))
-            if aslist:
-                return datasets
-            else:
-                return datasets[0]
 
         # get by name
         else:
@@ -473,10 +465,11 @@ class Reader(Plugin):
                     datasets.append(ds)
             if len(datasets) == 0:
                 raise KeyError("Can't find any projectable called '%s'" % key)
-            if aslist:
-                return datasets
-            else:
-                return datasets[0]
+
+        if aslist:
+            return datasets
+        else:
+            return datasets[0]
 
     def load(self, datasets_to_load):
         """Loads the *datasets_to_load* into the scene object.

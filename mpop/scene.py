@@ -36,7 +36,7 @@ import logging
 from mpop import runtime_import
 from mpop.projectable import Projectable, InfoObject
 from mpop import PACKAGE_CONFIG_PATH
-from mpop.readers import ReaderFinder, DatasetDict, BandID
+from mpop.readers import ReaderFinder, DatasetDict, DatasetID
 
 from mpop.utils import debug_on
 debug_on()
@@ -175,7 +175,7 @@ class Scene(InfoObject):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.projectables[key] = value
-        if not isinstance(key, BandID):
+        if not isinstance(key, DatasetID):
             value.info["name"] = key
         else:
             value.info["name"] = key.name
@@ -328,15 +328,15 @@ class Scene(InfoObject):
         if not requirements:
             requirements = self.wishlist[:]
         for requirement in requirements:
-            if isinstance(requirement, BandID) and requirement == "true_color":
+            if isinstance(requirement, DatasetID) and requirement == "true_color":
                 pass
-            if isinstance(requirement, BandID) and requirement.name not in self.compositors:
+            if isinstance(requirement, DatasetID) and requirement.name not in self.compositors:
                 continue
-            elif not isinstance(requirement, BandID) and requirement not in self.compositors:
+            elif not isinstance(requirement, DatasetID) and requirement not in self.compositors:
                 continue
             if requirement in self.projectables:
                 continue
-            if isinstance(requirement, BandID):
+            if isinstance(requirement, DatasetID):
                 requirement_name = requirement.name
             else:
                 requirement_name = requirement
@@ -347,7 +347,7 @@ class Scene(InfoObject):
             try:
                 comp_projectable = self.compositors[requirement_name](prereq_projectables, **self.info)
                 # FIXME: Should this be a requirement of anything creating a Dataset? Special handling by .info?
-                band_id = BandID(
+                band_id = DatasetID(
                     name=comp_projectable.info["name"],
                     resolution=comp_projectable.info.get("resolution", None),
                     wavelength=comp_projectable.info.get("wavelength", None),
