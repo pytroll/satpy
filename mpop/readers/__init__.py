@@ -47,8 +47,8 @@ import glob
 
 LOG = logging.getLogger(__name__)
 
-DatasetID = namedtuple("Band", "name resolution wavelength polarization")
-DatasetID.__new__.__defaults__ = (None, None, None, None)
+DatasetID = namedtuple("Band", "name wavelength resolution polarization calibration")
+DatasetID.__new__.__defaults__ = (None, None, None, None, None)
 
 
 class DatasetDict(dict):
@@ -59,11 +59,6 @@ class DatasetDict(dict):
     def __init__(self, *args, **kwargs):
         super(DatasetDict, self).__init__(*args, **kwargs)
 
-        # self._name_dict = {}
-        # self._wl_dict = {}
-        # for ds_key in self.keys():
-        #     self._name_dict
-
     def keys(self, names=False, wavelengths=False):
         keys = super(DatasetDict, self).keys()
         if names:
@@ -73,19 +68,56 @@ class DatasetDict(dict):
         else:
             return keys
 
+    def _name_match(self, a, b):
+        return a == b
+
+    def _wl_match(self, a, b):
+        return a == b
+
     def get_key(self, key):
         if isinstance(key, DatasetID):
             return key
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
-                if k.wavelength == key:
+                if self._wl_match(k.wavelength, key):
                     return k
         # get by name
         else:
             for k in self.keys():
-                if k.name == key:
+                if self._name_match(k.name, key):
                     return k
+
+    def get_keys(self, name_or_wl, resolution=None, polarization=None, calibration=None):
+        # Get things that match at least the name_or_wl
+        if isinstance(name_or_wl, numbers.Number):
+            keys = [k for k in self.keys() if self._wl_match(k.wavelength, name_or_wl)]
+        elif isinstance(name_or_wl, (str, unicode)):
+            keys = [k for k in self.keys() if self._name_match(k.name, name_or_wl)]
+        else:
+            raise TypeError("First argument must be a wavelength or name")
+
+        if resolution is not None:
+            if not isinstance(resolution, (list, tuple)):
+                resolution = (resolution,)
+            keys = [k for k in keys if k.resolution is not None and k.resolution in resolution]
+        if polarization is not None:
+            if not isinstance(polarization, (list, tuple)):
+                polarization = (polarization,)
+            keys = [k for k in keys if k.polarization is not None and k.polarization in polarization]
+        if calibration is not None:
+            if not isinstance(calibration, (list, tuple)):
+                calibration = (calibration,)
+            keys = [k for k in keys if k.calibration is not None and k.calibration in calibration]
+
+        return keys
+
+    def get_item(self, name_or_wl, resolution=None, polarization=None, calibration=None):
+        keys = self.get_keys(name_or_wl, resolution=resolution, polarization=polarization, calibration=calibration)
+        if len(keys) == 0:
+            raise KeyError("No keys found matching provided filters")
+
+        return self[keys[0]]
 
     def __getitem__(self, item):
         key = self.get_key(item)
@@ -430,7 +462,7 @@ class Reader(Plugin):
 
         self.datasets[bid] = section_options
 
-    def get_dataset(self, key, aslist=False):
+    def get_dataset_key(self, key, aslist=False):
         """Get the dataset corresponding to *key*, either by name or centerwavelength.
         """
         # get by wavelength
@@ -445,9 +477,9 @@ class Reader(Plugin):
                 raise KeyError("Can't find any projectable at %gum" % key)
         elif isinstance(key, DatasetID):
             if key.name is not None:
-                datasets = self.get_dataset(key.name, aslist=True)
+                datasets = self.get_dataset_key(key.name, aslist=True)
             elif key.wavelength is not None:
-                datasets = self.get_dataset(key.wavelength, aslist=True)
+                datasets = self.get_dataset_key(key.wavelength, aslist=True)
             else:
                 raise KeyError("Can't find any projectable '%s'" % key)
             if key.resolution is not None:
@@ -754,15 +786,15 @@ class ConfigBasedReader(Reader):
 
         # Sanity check and get the navigation sets being used
         areas = {}
-        for ds in datasets_to_load:
-            dataset_info = self._get_dataset_info(ds, calibration=calibration)
+        for ds_id in datasets_to_load:
+            dataset_info = self._get_dataset_info(ds_id, calibration=calibration)
             file_type = dataset_info["file_type"]
             file_key = dataset_info["file_key"]
             file_reader = self.file_readers[file_type]
             nav_name = dataset_info["navigation"]
 
             # Get the swath data (fully scaled and in the correct data type)
-            data = file_reader.get_swath_data(file_key, dataset_id=ds)
+            data = file_reader.get_swath_data(file_key, dataset_id=ds_id)
 
             # Load the navigation information first
             if nav_name not in areas:

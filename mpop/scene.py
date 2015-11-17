@@ -250,7 +250,7 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             for key in projectable_keys:
                 try:
-                    ds_info = reader_instance.get_dataset(key)
+                    ds_info = reader_instance.get_dataset_key(key)
                     ds_id = ds_info["id"]
                     # if the request wasn't a dataset name (wavelength, etc) then replace the request with the name
                     if key != ds_id:
@@ -295,7 +295,7 @@ class Scene(InfoObject):
             # FIXME: Can this be replaced with a simple for loop without copy (composites_needed isn't used after this)
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_dataset(prereq)["id"]
+                    needed_bands |= set(reader_instance.get_dataset_key(prereq)["id"]
                                         for prereq in self.compositors[band].prerequisites)
                     composites_needed.remove(band)
 
