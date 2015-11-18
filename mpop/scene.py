@@ -68,7 +68,7 @@ class Scene(InfoObject):
         self.readers = {}
         self.projectables = DatasetDict()
         self.compositors = {}
-        self.wishlist = []
+        self.wishlist = set()
         self._composite_configs = set()
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
@@ -155,8 +155,10 @@ class Scene(InfoObject):
         self.projectables[key] = value
 
     def __delitem__(self, key):
-        projectable = self[key]
-        del self.projectables[projectable.info["name"]]
+        k = self.projectables.get_key(key)
+        self.wishlist.remove(k)
+        del self.projectables[k]
+
 
     def __contains__(self, name):
         return name in self.projectables
@@ -214,8 +216,9 @@ class Scene(InfoObject):
     def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, **kwargs):
         """Read the composites called *dataset_keys* or their prerequisites.
         """
-        # FIXME: What should happen to the wishlist for multiple loads? This currently replaces it every time.
-        self.wishlist = list(dataset_keys)
+        # FIXME: Should this be a set?
+        dataset_keys = set(dataset_keys)
+        self.wishlist |= dataset_keys
         if calibration is not None and not isinstance(calibration, (list, tuple)):
             calibration = [calibration]
         if resolution is not None and not isinstance(resolution, (list, tuple)):
@@ -238,7 +241,7 @@ class Scene(InfoObject):
                     # with the fully qualified id
                     if key != ds_id:
                         self.wishlist.remove(key)
-                        self.wishlist.append(ds_id)
+                        self.wishlist.add(ds_id)
                     # if we haven't loaded this projectable then add it to the list to be loaded
                     if ds_id not in self.projectables or not self.projectables[ds_id].is_loaded():
                         dataset_ids.add(ds_id)
@@ -306,13 +309,11 @@ class Scene(InfoObject):
             # TODO: comments and history
 
     def compute(self, *requirements):
-        """Compute all the composites from *requirements*
+        """Compute all the composites contained in `requirements`.
         """
         if not requirements:
-            requirements = self.wishlist[:]
+            requirements = self.wishlist.copy()
         for requirement in requirements:
-            if isinstance(requirement, DatasetID) and requirement == "true_color":
-                pass
             if isinstance(requirement, DatasetID) and requirement.name not in self.compositors:
                 continue
             elif not isinstance(requirement, DatasetID) and requirement not in self.compositors:
@@ -323,6 +324,7 @@ class Scene(InfoObject):
                 requirement_name = requirement.name
             else:
                 requirement_name = requirement
+            # Compute any composites that this one depends on
             self.compute(*self.compositors[requirement_name].prerequisites)
 
             # TODO: Get non-projectable dependencies like moon illumination fraction
@@ -350,13 +352,12 @@ class Scene(InfoObject):
                 # update the wishlist with this new dataset id
                 if requirement_name in self.wishlist:
                     self.wishlist.remove(requirement_name)
-                    self.wishlist.append(band_id)
+                    self.wishlist.add(band_id)
             except IncompatibleAreas:
                 for ds_id, projectable in self.projectables.iteritems():
                     # FIXME: Can compositors use wavelengths or only names?
                     if ds_id.name in self.compositors[requirement_name].prerequisites:
                         projectable.info["keep"] = True
-        pass
 
     def unload(self):
         """Unload all loaded composites.
@@ -394,10 +395,10 @@ class Scene(InfoObject):
         return new_scn
 
     def images(self):
-        """Generate images for all the composites from the scene.
+        """Generate images for all the datasets from the scene.
         """
-        for name, projectable in self.projectables.items():
-            if name in self.wishlist:
+        for ds_id, projectable in self.projectables.items():
+            if ds_id in self.wishlist:
                 yield projectable.to_image()
 
     def load_writer_config(self, config_file, **kwargs):
