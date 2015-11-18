@@ -147,38 +147,12 @@ class Scene(InfoObject):
         return self.projectables.itervalues()
 
     def __getitem__(self, key):
-        # get by wavelength
-        if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.projectables.values()
-                        if ("wavelength_range" in ds.info and
-                            ds.info["wavelength_range"][0] <= key <= ds.info["wavelength_range"][2])]
-            datasets = sorted(datasets,
-                              lambda ch1, ch2:
-                              cmp(abs(ch1.info["wavelength_range"][1] - key),
-                                  abs(ch2.info["wavelength_range"][1] - key)))
-
-            if not datasets:
-                raise KeyError("Can't find any projectable at %gum" % key)
-            return datasets[0]
-        # get by name
-        else:
-            for bid, ds in self.projectables.items():
-                try:
-                    if key == bid or bid.name == key:
-                        return ds
-                except AttributeError:
-                    pass
-
-            raise KeyError("Can't find any projectable called '%s'" % key)
+        return self.projectables[key]
 
     def __setitem__(self, key, value):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.projectables[key] = value
-        if not isinstance(key, DatasetID):
-            value.info["name"] = key
-        else:
-            value.info["name"] = key.name
 
     def __delitem__(self, key):
         projectable = self[key]
@@ -237,22 +211,31 @@ class Scene(InfoObject):
 
         return composite_names
 
-    def read(self, projectable_keys, **kwargs):
-        """Read the composites called *projectable_keys* or their prerequisites.
+    def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, **kwargs):
+        """Read the composites called *dataset_keys* or their prerequisites.
         """
         # FIXME: What should happen to the wishlist for multiple loads? This currently replaces it every time.
-        self.wishlist = list(projectable_keys)
+        self.wishlist = list(dataset_keys)
+        if calibration is not None and not isinstance(calibration, (list, tuple)):
+            calibration = [calibration]
+        if resolution is not None and not isinstance(resolution, (list, tuple)):
+            resolution = [resolution]
+        if polarization is not None and not isinstance(polarization, (list, tuple)):
+            polarization = [polarization]
 
         dataset_ids = set()
         unknown_keys = set()
 
         # Check with all known readers to see which ones know about the requested datasets
         for reader_name, reader_instance in self.readers.items():
-            for key in projectable_keys:
+            for key in dataset_keys:
                 try:
-                    ds_info = reader_instance.get_dataset_key(key)
-                    ds_id = ds_info["id"]
-                    # if the request wasn't a dataset name (wavelength, etc) then replace the request with the name
+                    ds_id = reader_instance.get_dataset_key(key,
+                                                            calibration=calibration,
+                                                            resolution=resolution,
+                                                            polarization=polarization)
+                    # if the request wasn't a dataset id (wavelength, etc) then replace the request
+                    # with the fully qualified id
                     if key != ds_id:
                         self.wishlist.remove(key)
                         self.wishlist.append(ds_id)
@@ -295,7 +278,7 @@ class Scene(InfoObject):
             # FIXME: Can this be replaced with a simple for loop without copy (composites_needed isn't used after this)
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_dataset_key(prereq)["id"]
+                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
                                         for prereq in self.compositors[band].prerequisites)
                     composites_needed.remove(band)
 
@@ -346,12 +329,20 @@ class Scene(InfoObject):
             prereq_projectables = [self[prereq] for prereq in self.compositors[requirement_name].prerequisites]
             try:
                 comp_projectable = self.compositors[requirement_name](prereq_projectables, **self.info)
+
+                # validate the composite projectable
+                assert("name" in comp_projectable.info)
+                comp_projectable.info.setdefault("resolution", None)
+                comp_projectable.info.setdefault("wavelength_range", None)
+                comp_projectable.info.setdefault("polarization", None)
+                comp_projectable.info.setdefault("calibration", None)
                 # FIXME: Should this be a requirement of anything creating a Dataset? Special handling by .info?
                 band_id = DatasetID(
                     name=comp_projectable.info["name"],
-                    resolution=comp_projectable.info.get("resolution", None),
-                    wavelength=comp_projectable.info.get("wavelength", None),
-                    polarization=comp_projectable.info.get("polarization", None),
+                    resolution=comp_projectable.info["resolution"],
+                    wavelength=comp_projectable.info["wavelength_range"],
+                    polarization=comp_projectable.info["polarization"],
+                    calibration=comp_projectable.info["calibration"],
                 )
                 comp_projectable.info["id"] = band_id
                 self.projectables[band_id] = comp_projectable
@@ -376,10 +367,10 @@ class Scene(InfoObject):
         for ds_id in to_del:
             del self.projectables[ds_id]
 
-    def load(self, wishlist, **kwargs):
+    def load(self, wishlist, calibration=None, resolution=None, polarization=None, **kwargs):
         """Read, compute and unload.
         """
-        self.read(wishlist, **kwargs)
+        self.read(wishlist, calibration=calibration, resolution=resolution, polarization=polarization, **kwargs)
         if kwargs.get("compute", True):
             self.compute()
         if kwargs.get("unload", True):

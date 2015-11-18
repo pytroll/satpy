@@ -73,7 +73,14 @@ class DatasetDict(dict):
         return a == b
 
     def _wl_match(self, a, b):
-        return a == b
+        if type(a) == type(b):
+            return a == b
+        elif isinstance(a, (list, tuple)) and len(a) == 3:
+            return a[0] <= b <= a[2]
+        elif isinstance(b, (list, tuple)) and len(b) == 3:
+            return b[0] <= a <= b[2]
+        else:
+            raise ValueError("Can only compare wavelengths of length 1 or 3")
 
     def get_key(self, key):
         if isinstance(key, DatasetID):
@@ -81,7 +88,7 @@ class DatasetDict(dict):
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
-                if self._wl_match(k.wavelength, key):
+                if k.wavelength is not None and self._wl_match(k.wavelength, key):
                     return k
         # get by name
         else:
@@ -122,6 +129,8 @@ class DatasetDict(dict):
 
     def __getitem__(self, item):
         key = self.get_key(item)
+        if key is None:
+            raise KeyError("No dataset matching '%s' found" % (str(item),))
         return super(DatasetDict, self).__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -135,15 +144,19 @@ class DatasetDict(dict):
                 key = DatasetID(
                     name=d["name"],
                     resolution=d["resolution"],
-                    wavelength=d["wavelength"],
-                    polarization=d["polarization"]
+                    wavelength=d["wavelength_range"],
+                    polarization=d["polarization"],
+                    calibration=d["calibration"],
                 )
 
         # update the 'value' with the information contained in the key
         d["name"] = key.name
+        # XXX: What should users be allowed to modify?
         d["resolution"] = key.resolution
-        d["wavelength"] = key.wavelength
+        d["calibration"] = key.calibration
         d["polarization"] = key.polarization
+        # you can't change the wavelength of a dataset, that doesn't make sense
+        assert(d["wavelength_range"] == key.wavelength)
 
         return super(DatasetDict, self).__setitem__(key, value)
 
@@ -387,7 +400,7 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    splittable_dataset_options = ["file_patterns", "navigation", "standard_name"]
+    splittable_dataset_options = ["file_patterns", "navigation", "standard_name", "units"]
 
     def __init__(self, name=None,
                  file_patterns=None,
@@ -501,16 +514,15 @@ class Reader(Plugin):
             opts["id"] = bid
             self.datasets[bid] = opts
 
-    def get_dataset_key(self, key, aslist=False):
-        """Get the dataset corresponding to *key*, either by name or centerwavelength.
+    def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
+        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
+
+        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
         """
         # get by wavelength
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.datasets.values()
-                        if ("wavelength_range" in ds and
-                            ds["wavelength_range"][0] <= key <= ds["wavelength_range"][2])]
-            datasets = sorted(datasets,
-                              key=lambda ch: abs(ch["wavelength_range"][1] - key))
+            datasets = [ds for ds in self.datasets.keys() if (ds.wavelength[0] <= key <= ds.wavelength[2])]
+            datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
 
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
@@ -521,22 +533,28 @@ class Reader(Plugin):
                 datasets = self.get_dataset_key(key.wavelength, aslist=True)
             else:
                 raise KeyError("Can't find any projectable '%s'" % key)
-            if key.resolution is not None:
-                datasets = [ds for ds in datasets if ds["resolution"] == key.resolution]
-            if key.polarization is not None:
-                datasets = [ds for ds in datasets if ds["polarization"] == key.polarization]
-            if not datasets:
-                raise KeyError("Can't find any projectable matching '%s'" % str(key))
 
+            if calibration is None:
+                calibration = [key.calibration]
+            if resolution is None:
+                resolution = [key.resolution]
+            if polarization is None:
+                polarization = [key.polarization]
         # get by name
         else:
-            datasets = []
-            for bid, ds in self.datasets.items():
-                if key == bid or bid.name == key:
-                    datasets.append(ds)
+            datasets = [ds_id for ds_id in self.datasets.keys() if ds_id.name == key]
             if len(datasets) == 0:
                 raise KeyError("Can't find any projectable called '%s'" % key)
 
+        if resolution is not None:
+            datasets = [ds_id for ds_id in datasets if ds_id["resolution"] in resolution]
+        if calibration is not None:
+            datasets = [ds_id for ds_id in datasets if ds_id["calibration"] in calibration]
+        if polarization is not None:
+            datasets = [ds_id for ds_id in datasets if ds_id["polarization"] in polarization]
+
+        if not datasets:
+            raise KeyError("Can't find any projectable matching '%s'" % str(key))
         if aslist:
             return datasets
         else:

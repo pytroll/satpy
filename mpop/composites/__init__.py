@@ -87,7 +87,7 @@ class RGBCompositor(CompositeBase):
         info.update(projectables[2].info)
         info.update(self.info)
         # FIXME: should this be done here ?
-        info.pop("wavelength_range", None)
+        info["wavelength_range"] = None
         info.pop("units", None)
         sensor = set()
         for projectable in projectables:
