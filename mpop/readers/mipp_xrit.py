@@ -69,52 +69,52 @@ class XritReader(Reader):
         """
         LOGGER.debug("Channels to load: %s" % datasets_to_load)
 
-        # Compulsory global attributes according to CF
-        # satscene.info["title"] = (satscene.satname.capitalize() + satscene.number +
-        #                           " satellite, " +
-        #                           satscene.instrument_name.capitalize() +
-        #                           " instrument.")
-        # satscene.info["institution"] = "Original data disseminated by EumetCast."
-        # satscene.add_to_history("HRIT/LRIT data read by mipp/mpop.")
-        # satscene.info["references"] = "No reference."
-        # satscene.info["comments"] = "No comment."
-
         area_converted_to_extent = False
-        # FIXME: that's way too specific...
-        filename = list(self.filenames)[0]
-        pattern = self.file_patterns[0]
 
+        pattern = self.file_patterns[0]
         parser = Parser(pattern)
 
-        file_info = parser.parse(filename)
+        image_files = []
+        prologue_file = None
+        epilogue_file = None
 
-        platforms = {"MSG1": "Meteosat-8",
-                     "MSG2": "Meteosat-9",
-                     "MSG3": "Meteosat-10",
-                     "MSG4": "Meteosat-11",
-                     }
+        for filename in self.filenames:
+            file_info = parser.parse(filename)
+            if file_info["segment"] == "EPI":
+                epilogue_file = filename
+            elif file_info["segment"] == "PRO":
+                prologue_file = filename
+            else:
+                image_files.append(filename)
 
-        short_name = file_info["platform_shortname"]
-        fullname = platforms.get(short_name, short_name)
         projectables = {}
         area_extent = None
         for ds in datasets_to_load:
 
+            channel_files = []
+            for filename in image_files:
+                file_info = parser.parse(filename)
+                if file_info["dataset_name"] == ds.name:
+                    channel_files.append(filename)
+
+
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and areas is not None:
-                metadata = xrit.sat.load(fullname, self.start_time,
-                                         ds.name, only_metadata=True)
+                metadata = xrit.sat.load_files(prologue_file,
+                                               channel_files,
+                                               epilogue_file,
+                                               only_metadata=True)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
                 area_extent = area_defs_to_extent(areas, metadata.proj4_params)
                 area_converted_to_extent = True
 
             try:
-                image = xrit.sat.load(fullname,
-                                      self.start_time,
-                                      ds.name,
-                                      mask=True,
-                                      calibrate=calibrate)
+                image = xrit.sat.load_files(prologue_file,
+                                            channel_files,
+                                            epilogue_file,
+                                            mask=True,
+                                            calibrate=calibrate)
                 if area_extent:
                     metadata, data = image(area_extent)
                 else:
@@ -122,11 +122,11 @@ class XritReader(Reader):
             except CalibrationError:
                 LOGGER.warning(
                     "Loading non calibrated data since calibration failed.")
-                image = xrit.sat.load(fullname,
-                                      self.start_time,
-                                      ds.name,
-                                      mask=True,
-                                      calibrate=False)
+                image = xrit.sat.load_files(prologue_file,
+                                            channel_files,
+                                            epilogue_file,
+                                            mask=True,
+                                            calibrate=False)
                 if area_extent:
                     metadata, data = image(area_extent)
                 else:
@@ -138,19 +138,11 @@ class XritReader(Reader):
                 continue
 
             projectable = Projectable(data,
-                                      name=ds,
+                                      name=ds.name,
                                       units=metadata.calibration_unit,
                                       wavelength_range=self.datasets[ds]["wavelength_range"],
                                       sensor=self.datasets[ds]["sensor"],
                                       start_time=self.start_time)
-
-            # satscene[ds] = data
-            #
-            # satscene[ds].info['units'] = metadata.calibration_unit
-            # satscene[ds].info['satname'] = satscene.satname
-            # satscene[ds].info['satnumber'] = satscene.number
-            # satscene[ds].info['instrument_name'] = satscene.instrument_name
-            # satscene[ds].info['time'] = satscene.time_slot
 
             # Build an area on the fly from the mipp metadata
             proj_params = getattr(metadata, "proj4_params").split(" ")
@@ -162,7 +154,7 @@ class XritReader(Reader):
             if IS_PYRESAMPLE_LOADED:
                 # Build area_def on-the-fly
                 projectable.info["area"] = geometry.AreaDefinition(
-                    #satscene.satname + satscene.instrument_name +
+
                     str(metadata.area_extent) +
                     str(data.shape),
                     "On-the-fly area",
