@@ -502,7 +502,9 @@ class Reader(Plugin):
                 assert(num_permutations == len(section_options[k]))
 
         # Add each possible permutation of this dataset to the datasets list for later use
-        for res, cal, pol in izip(section_options["resolution"], section_options["calibration"], section_options["polarization"]):
+        for idx, (res, cal, pol) in enumerate(izip(
+                section_options["resolution"], section_options["calibration"], section_options["polarization"]
+        )):
             bid = DatasetID(
                 name=section_options["name"],
                 wavelength=section_options["wavelength_range"],
@@ -510,8 +512,12 @@ class Reader(Plugin):
                 calibration=cal,
                 polarization=pol,
             )
+
             opts = section_options.copy()
+            # get only the specific permutations value that we want
             opts["id"] = bid
+            for k in self.splittable_dataset_options + ["resolution", "calibration", "polarization"]:
+                opts[k] = opts[k][idx]
             self.datasets[bid] = opts
 
     def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
@@ -546,10 +552,16 @@ class Reader(Plugin):
             if len(datasets) == 0:
                 raise KeyError("Can't find any projectable called '%s'" % key)
 
+        # default calibrations
+        if calibration is None:
+            calibration = getattr(self, "calibration", ["bt", "reflectance"])
+
         if resolution is not None:
             datasets = [ds_id for ds_id in datasets if ds_id["resolution"] in resolution]
         if calibration is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id["calibration"] in calibration]
+            # order calibration from highest level to lowest level
+            calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
+            datasets = [ds_id for ds_id in datasets if ds_id["calibration"] is None or ds_id["calibration"] in calibration]
         if polarization is not None:
             datasets = [ds_id for ds_id in datasets if ds_id["polarization"] in polarization]
 
@@ -826,13 +838,9 @@ class ConfigBasedReader(Reader):
 
         return dataset_info
 
-    def load(self, datasets_to_load, calibration=None, **dataset_info):
+    def load(self, datasets_to_load, **dataset_info):
         if dataset_info:
             LOG.warning("Unsupported options for viirs reader: %s", str(dataset_info))
-        if calibration is None:
-            calibration = getattr(self, "calibration", ["bt", "reflectance"])
-        # order calibration from highest level to lowest level
-        calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
 
         datasets_loaded = DatasetDict()
         datasets_to_load = set(datasets_to_load) & set(self.datasets.keys())
@@ -846,11 +854,22 @@ class ConfigBasedReader(Reader):
         # Sanity check and get the navigation sets being used
         areas = {}
         for ds_id in datasets_to_load:
-            dataset_info = self._get_dataset_info(ds_id, calibration=calibration)
-            file_type = dataset_info["file_type"]
-            file_key = dataset_info["file_key"]
+            dataset_info = self.datasets[ds_id]
+            calibration = dataset_info["calibration"]
+
+            # if there is a calibration section in the config, use that for more information
+            # FIXME: We also need to get units and other information...and make it easier to do that, per attribute method?
+            # Or maybe a post-configuration load method...that's probably best
+            if calibration in self.calibrations:
+                cal_info = self.calibrations[calibration]
+                file_type = cal_info["file_type"]
+                file_key = cal_info["file_key"]
+                nav_name = cal_info["navigation"]
+            else:
+                file_type = dataset_info["file_type"]
+                file_key = dataset_info["file_key"]
+                nav_name = dataset_info["navigation"]
             file_reader = self.file_readers[file_type]
-            nav_name = dataset_info["navigation"]
 
             # Get the swath data (fully scaled and in the correct data type)
             data = file_reader.get_swath_data(file_key, dataset_id=ds_id)

@@ -670,27 +670,6 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(info["file_key"], "reflectance")
             self.assertEqual(info["navigation"], "gitco")
 
-    def test_get_dataset_info_cal_not_configured(self):
-        from mpop.readers.viirs_sdr import VIIRSSDRReader
-        from mpop.readers.viirs_sdr import SDRFileReader
-        patcher = mock.patch.object(SDRFileReader, '__bases__', (FakeHDF5MetaData,))
-        with patcher:
-            patcher.is_local = True
-            filenames = self.example_filenames["SVI01"] + \
-                        self.example_filenames["GMTCO"]
-            reader = VIIRSSDRReader(filenames=filenames,
-                                    start_time=datetime(2015, 1, 1, 11, 0, 0),
-                                    end_time=datetime(2015, 1, 1, 12, 0, 0))
-            reader.datasets["I01"]["calibration"] = ["reflectance"]
-            reader.datasets["I01"]["file_type"] = ["svi01"]
-            reader.datasets["I01"]["file_key"] = ["reflectance"]
-
-            info = reader._get_dataset_info("I01", calibration=["radiance"])
-            self.assertEqual(info["calibration"], "reflectance")
-            self.assertEqual(info["file_type"], "svi01")
-            self.assertEqual(info["file_key"], "reflectance")
-            self.assertEqual(info["navigation"], "gitco")
-
     def test_get_dataset_info_cal_found(self):
         from mpop.readers.viirs_sdr import VIIRSSDRReader
         from mpop.readers.viirs_sdr import SDRFileReader
