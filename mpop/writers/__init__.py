@@ -108,7 +108,7 @@ class Writer(Plugin):
     abstract class to be inherited.
     """
 
-    def __init__(self, name=None, fill_value=None, file_pattern=None, enhancement_config=None, **kwargs):
+    def __init__(self, name=None, fill_value=None, file_pattern=None, enhancement_config=None, base_dir=None, **kwargs):
         # Load the config
         Plugin.__init__(self, **kwargs)
 
@@ -123,13 +123,17 @@ class Writer(Plugin):
         if self.fill_value:
             self.fill_value = float(self.fill_value)
 
-        self.create_filename_parser()
+        self.create_filename_parser(base_dir)
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
 
-    def create_filename_parser(self):
+    def create_filename_parser(self, base_dir):
         # just in case a writer needs more complex file patterns
         # Set a way to create filenames if we were given a pattern
-        self.filename_parser = parser.Parser(self.file_pattern) if self.file_pattern else None
+        if base_dir and self.file_pattern:
+            file_pattern = os.path.join(base_dir, self.file_pattern)
+        else:
+            file_pattern = self.file_pattern
+        self.filename_parser = parser.Parser(file_pattern) if file_pattern else None
 
     def load_section_writer(self, section_name, section_options):
         self.config_options = section_options

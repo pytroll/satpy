@@ -173,10 +173,10 @@ class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
 
-    def __init__(self, scene):
-        # fixme: we could just pass the info and the ppp_config_dir
-        self.info = scene.info.copy()
-        self.ppp_config_dir = scene.ppp_config_dir
+    def __init__(self, ppp_config_dir=None, base_dir=None, **info):
+        self.info = info
+        self.ppp_config_dir = ppp_config_dir
+        self.base_dir = base_dir
 
     def __call__(self, filenames=None, sensor=None, reader_name=None):
         if reader_name is not None:
@@ -206,12 +206,12 @@ class ReaderFinder(object):
                 # we want this reader
                 if filenames:
                     # returns a copy of the filenames remaining to be matched
-                    filenames = self.assign_matching_files(reader_info, *filenames)
+                    filenames = self.assign_matching_files(reader_info, *filenames, base_dir=self.base_dir)
                     if filenames:
                         raise IOError("Don't know how to open the following files: %s" % str(filenames))
                 else:
                     # find the files for this reader based on its file patterns
-                    reader_info["filenames"] = self.get_filenames(reader_info)
+                    reader_info["filenames"] = self.get_filenames(reader_info, self.base_dir)
                     if not reader_info["filenames"]:
                         LOG.warning("No filenames found for reader: %s", reader_info["name"])
                         continue
@@ -231,11 +231,11 @@ class ReaderFinder(object):
 
         reader_info = self._read_reader_config(config_file)
         if filenames:
-            filenames = self.assign_matching_files(reader_info, *filenames)
+            filenames = self.assign_matching_files(reader_info, *filenames, base_dir=self.base_dir)
             if filenames:
                 raise IOError("Don't know how to open the following files: %s" % str(filenames))
         else:
-            reader_info["filenames"] = self.get_filenames(reader_info)
+            reader_info["filenames"] = self.get_filenames(reader_info, base_dir=self.base_dir)
             if not reader_info["filenames"]:
                 raise RuntimeError("No filenames found for reader: %s" % (reader_info["name"],))
 
@@ -252,7 +252,7 @@ class ReaderFinder(object):
                 LOG.debug("Invalid reader config found: %s", config_file)
                 continue
 
-            files = self.assign_matching_files(reader_info, *files)
+            files = self.assign_matching_files(reader_info, *files, base_dir=self.base_dir)
 
             if reader_info["filenames"]:
                 # we have some files for this reader so let's create it
@@ -263,7 +263,7 @@ class ReaderFinder(object):
         if files:
             raise IOError("Don't know how to open the following files: %s" % str(files))
 
-    def get_filenames(self, reader_info):
+    def get_filenames(self, reader_info, base_dir=None):
         """Get the filenames from disk given the patterns in *reader_info*.
         This assumes that the scene info contains start_time at least (possibly end_time too).
         """
@@ -280,6 +280,8 @@ class ReaderFinder(object):
             raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
 
         for pattern in reader_info["file_patterns"]:
+            if base_dir:
+                pattern = os.path.join(base_dir, pattern)
             parser = Parser(str(pattern))
             # FIXME: what if we are browsing a huge archive ?
             for filename in glob.iglob(parser.globify(info.copy())):
@@ -381,11 +383,13 @@ class ReaderFinder(object):
         return reader_instance
 
     @staticmethod
-    def assign_matching_files(reader_info, *files):
+    def assign_matching_files(reader_info, *files, **kwargs):
         """Assign *files* to the *reader_info*
         """
         files = list(files)
         for file_pattern in reader_info["file_patterns"]:
+            if kwargs.get("base_dir", None):
+                file_pattern = os.path.join(kwargs["base_dir"], file_pattern)
             pattern = globify(file_pattern)
             for filename in list(files):
                 if fnmatch(os.path.basename(filename), os.path.basename(pattern)):

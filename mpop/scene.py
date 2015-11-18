@@ -55,7 +55,7 @@ class Scene(InfoObject):
     The almighty scene class.
     """
 
-    def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, **info):
+    def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, base_dir=None, **info):
         """platform_name=None, sensor=None, start_time=None, end_time=None,
         """
         # Get PPP_CONFIG_DIR
@@ -73,7 +73,7 @@ class Scene(InfoObject):
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        finder = ReaderFinder(self)
+        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir, **self.info)
         reader_instances = finder(reader_name=reader_name, sensor=self.info.get("sensor"), filenames=filenames)
         # reader finder could return multiple readers
         for reader_instance in reader_instances:
