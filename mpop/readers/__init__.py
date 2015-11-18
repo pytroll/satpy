@@ -552,18 +552,18 @@ class Reader(Plugin):
             if len(datasets) == 0:
                 raise KeyError("Can't find any projectable called '%s'" % key)
 
-        # default calibrations
+        # default calibration choices
         if calibration is None:
-            calibration = getattr(self, "calibration", ["bt", "reflectance"])
+            calibration = ["bt", "reflectance"]
 
         if resolution is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id["resolution"] in resolution]
+            datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
         if calibration is not None:
             # order calibration from highest level to lowest level
             calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
-            datasets = [ds_id for ds_id in datasets if ds_id["calibration"] is None or ds_id["calibration"] in calibration]
+            datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
         if polarization is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id["polarization"] in polarization]
+            datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
 
         if not datasets:
             raise KeyError("Can't find any projectable matching '%s'" % str(key))
