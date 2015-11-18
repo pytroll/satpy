@@ -25,7 +25,6 @@
 """Scene objects to hold satellite data.
 """
 
-import numbers
 try:
     import configparser
 except:

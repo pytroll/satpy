@@ -38,7 +38,7 @@ class TestScene(unittest.TestCase):
         reader_name = None
         with mock.patch('mpop.scene.ReaderFinder') as findermock:
             scene = Scene(filenames=filenames)
-            findermock.assert_called_once_with(scene)
+            findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, **scene.info)
             findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_empty_filenames(self):
@@ -53,7 +53,7 @@ class TestScene(unittest.TestCase):
         reader_name = None
         with mock.patch('mpop.scene.ReaderFinder') as findermock:
             scene = Scene(sensor=sensors)
-            findermock.assert_called_once_with(scene)
+            findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, **scene.info)
             findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_sensor_and_filenames(self):
@@ -63,7 +63,7 @@ class TestScene(unittest.TestCase):
         reader_name = None
         with mock.patch('mpop.scene.ReaderFinder') as findermock:
             scene = Scene(sensor=sensors, filenames=filenames)
-            findermock.assert_called_once_with(scene)
+            findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, **scene.info)
             findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_reader(self):
@@ -73,7 +73,7 @@ class TestScene(unittest.TestCase):
         sensors = None
         with mock.patch('mpop.scene.ReaderFinder') as findermock:
             scene = Scene(reader_name=reader, filenames=filenames)
-            findermock.assert_called_once_with(scene)
+            findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, **scene.info)
             findermock.return_value.assert_called_once_with(reader_name=reader, sensor=sensors, filenames=filenames)
 
     def test_init_alone(self):
