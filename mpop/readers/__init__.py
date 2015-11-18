@@ -27,12 +27,13 @@
 
 import logging
 import numbers
-from fnmatch import fnmatch
-from collections import namedtuple
 import os
-from datetime import datetime, timedelta
 import numpy as np
 import six
+from itertools import izip
+from fnmatch import fnmatch
+from collections import namedtuple
+from datetime import datetime, timedelta
 from trollsift.parser import globify, Parser
 
 from mpop.plugin_base import Plugin
@@ -386,6 +387,7 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
+    splittable_dataset_options = ["file_patterns", "navigation", "standard_name"]
 
     def __init__(self, name=None,
                  file_patterns=None,
@@ -446,21 +448,58 @@ class Reader(Plugin):
         self.config_options = section_options
 
     def load_section_dataset(self, section_name, section_options):
-        name = section_options.get("name", section_name.split(":")[-1])
-        resolution = float(section_options.get("resolution"))
-        wavelength = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
-        bid = DatasetID(name=name, resolution=resolution, wavelength=wavelength)
-        section_options["id"] = bid
-        section_options["name"] = name
+        # required for Dataset identification
+        section_options["resolution"] = tuple(float(res) for res in section_options.get("resolution").split(','))
+        num_permutations = len(section_options["resolution"])
 
-        # Allow subclasses to make up their own rules about datasets, but this is a good starting point
-        for k in ["file_patterns", "file_type", "file_key", "navigation", "calibration"]:
+        # optional or not applicable for all datasets for Dataset identification
+        if "wavelength_range" in section_options:
+            section_options["wavelength_range"] = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
+        else:
+            section_options["wavelength_range"] = None
+
+        if "calibration" in section_options:
+            section_options["calibration"] = tuple(section_options.get("calibration").split(','))
+        else:
+            section_options["calibration"] = [None] * num_permutations
+
+        if "polarization" in section_options:
+            section_options["polarization"] = tuple(section_options.get("polarization").split(','))
+        else:
+            section_options["polarization"] = [None] * num_permutations
+
+        # Sanity checks
+        assert "name" in section_options
+        assert section_options["wavelength_range"] is None or (len(section_options["wavelength_range"]) == 3)
+        assert num_permutations == len(section_options["calibration"])
+        assert num_permutations == len(section_options["polarization"])
+
+        # Add other options that are based on permutations
+        for k in self.splittable_dataset_options:
             if k in section_options:
                 section_options[k] = section_options[k].split(",")
-        if "wavelength_range" in section_options:
-            section_options["wavelength_range"] = [float(wl) for wl in section_options["wavelength_range"].split(",")]
+            else:
+                section_options[k] = [None]
 
-        self.datasets[bid] = section_options
+        for k in self.splittable_dataset_options + ["calibration", "polarization"]:
+            if len(section_options[k]) == 1:
+                # if a single value is used for all permutations, repeat it
+                section_options[k] *= num_permutations
+            else:
+                assert(num_permutations == len(section_options[k]))
+
+        # Add each possible permutation of this dataset to the datasets list for later use
+        for res, cal, pol in izip(section_options["resolution"], section_options["calibration"], section_options["polarization"]):
+            bid = DatasetID(
+                name=section_options["name"],
+                wavelength=section_options["wavelength_range"],
+                resolution=res,
+                calibration=cal,
+                polarization=pol,
+            )
+            opts = section_options.copy()
+            opts["id"] = bid
+            self.datasets[bid] = opts
 
     def get_dataset_key(self, key, aslist=False):
         """Get the dataset corresponding to *key*, either by name or centerwavelength.
@@ -521,6 +560,8 @@ class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors",
 
 
 class ConfigBasedReader(Reader):
+    splittable_dataset_options = Reader.splittable_dataset_options + ["file_type", "file_key"]
+
     def __init__(self, default_file_reader=None, **kwargs):
         self.file_types = {}
         self.file_readers = {}
