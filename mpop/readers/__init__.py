@@ -38,7 +38,7 @@ from trollsift.parser import globify, Parser
 
 from mpop.plugin_base import Plugin
 from mpop.projectable import Projectable
-from mpop import runtime_import
+from mpop import runtime_import, get_config, glob_config, config_search_paths
 
 try:
     import configparser
@@ -194,12 +194,22 @@ class ReaderFinder(object):
             sensor_set = set([sensor])
         else:
             sensor_set = set(sensor)
-        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+
+        reader_names = set()
+        for config_file in glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir):
+            # This is just used to find the individual reader configurations, not necessarily the individual files
+            config_fn = os.path.basename(config_file)
+            if config_fn in reader_names:
+                # we've already loaded this reader (even if we found it through another environment)
+                continue
+
             try:
-                reader_info = self._read_reader_config(config_file)
-                LOG.debug("Successfully read reader config: %s", config_file)
+                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                reader_info = self._read_reader_config(config_files)
+                LOG.debug("Successfully read reader config: %s", config_fn)
+                reader_names.add(config_fn)
             except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_file)
+                LOG.debug("Invalid reader config found: %s", config_fn, exc_info=True)
                 continue
 
             if "sensor" in reader_info and (set(reader_info["sensor"]) & sensor_set):
@@ -220,16 +230,21 @@ class ReaderFinder(object):
     def _find_reader(self, reader, filenames):
         """Find and get info for the *reader* for *filenames*
         """
-        config_file = reader
         # were we given a path to a config file?
-        if not os.path.exists(config_file):
+        if not os.path.exists(reader):
             # no, we were given a name of a reader
-            config_fn = reader + ".cfg"  # assumes no extension was given on the reader name
-            config_file = os.path.join(self.ppp_config_dir, "readers", config_fn)
-            if not os.path.exists(config_file):
+            config_fn = reader + ".cfg" if "." not in reader else reader
+            config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+            if not config_files:
                 raise ValueError("Can't find config file for reader: %s" % (reader,))
+        else:
+            # we may have been given a dependent config file (depends on builtin configuration)
+            # so we need to find the others
+            config_fn = os.path.basename(reader)
+            config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+            config_files = [reader] + config_files
 
-        reader_info = self._read_reader_config(config_file)
+        reader_info = self._read_reader_config(config_files)
         if filenames:
             filenames = self.assign_matching_files(reader_info, *filenames, base_dir=self.base_dir)
             if filenames:
@@ -244,12 +259,21 @@ class ReaderFinder(object):
     def _find_files_readers(self, files):
         """Find the reader info for the provided *files*.
         """
-        for config_file in glob.glob(os.path.join(self.ppp_config_dir, "readers", "*.cfg")):
+        reader_names = set()
+        for config_file in glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir):
+            # This is just used to find the individual reader configurations, not necessarily the individual files
+            config_fn = os.path.basename(config_file)
+            if config_fn in reader_names:
+                # we've already loaded this reader (even if we found it through another environment)
+                continue
+
             try:
-                reader_info = self._read_reader_config(config_file)
-                LOG.debug("Successfully read reader config: %s", config_file)
+                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                reader_info = self._read_reader_config(config_files)
+                LOG.debug("Successfully read reader config: %s", config_fn)
+                reader_names.add(config_fn)
             except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_file)
+                LOG.debug("Invalid reader config found: %s", config_fn, exc_info=True)
                 continue
 
             files = self.assign_matching_files(reader_info, *files, base_dir=self.base_dir)
@@ -311,15 +335,15 @@ class ReaderFinder(object):
                         filenames.append(filename)
         return sorted(filenames)
 
-    def _read_reader_config(self, cfg_file):
+    def _read_reader_config(self, config_files):
         """Read the reader *cfg_file* and return the info extracted.
         """
-        if not os.path.exists(cfg_file):
-            raise IOError("No such file: " + cfg_file)
-
         conf = configparser.RawConfigParser()
+        successes = conf.read(config_files)
+        if not successes:
+            raise ValueError("No valid configuration files found named: %s" % (config_files,))
+        LOG.debug("Read config from %s", str(successes))
 
-        conf.read(cfg_file)
         file_patterns = []
         sensors = set()
         reader_name = None
@@ -357,11 +381,11 @@ class ReaderFinder(object):
                     pass
 
         if reader_class is None:
-            raise ValueError("Malformed config file %s: missing reader 'reader'" % cfg_file)
+            raise ValueError("Malformed config file %s: missing reader 'reader'" % (config_files,))
         if reader_name is None:
-            raise ValueError("Malformed config file %s: missing reader 'name'" % cfg_file)
+            raise ValueError("Malformed config file %s: missing reader 'name'" % (config_files,))
         reader_info["file_patterns"] = file_patterns
-        reader_info["config_file"] = cfg_file
+        reader_info["config_files"] = config_files
         reader_info["filenames"] = []
         reader_info["sensor"] = tuple(sensors)
 

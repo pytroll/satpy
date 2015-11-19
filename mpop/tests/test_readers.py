@@ -19,16 +19,15 @@
 # You should have received a copy of the GNU General Public License along with
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import unittest
-import mpop.satin
 try:
     from unittest import mock
 except ImportError:
     import mock
 
-'''Integration testing of
- - :mod:`mpop.satin`
-'''
+# clear the config dir environment variable so it doesn't interfere
+del os.environ["PPP_CONFIG_DIR"]
 
 
 class TestReaders(unittest.TestCase):
@@ -103,12 +102,12 @@ class TestReaders(unittest.TestCase):
             if config_file in ["valid", "no_found_files"]:
                 return {"name": "fake_reader",
                         "sensor": ["foo"],
-                        "config_file": config_file}
+                        "config_files": config_file}
             else:
                 raise ValueError("Fake ValueError")
 
         def fake_get_filenames(reader_info):
-            if reader_info["config_file"] == "valid":
+            if reader_info["config_files"] == "valid":
                 return ["file1", "file2"]
             return []
 

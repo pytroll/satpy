@@ -32,7 +32,7 @@ except:
 import os
 import logging
 
-from mpop import runtime_import
+from mpop import runtime_import, config_search_paths
 from mpop.projectable import Projectable, InfoObject
 from mpop import PACKAGE_CONFIG_PATH
 from mpop.readers import ReaderFinder, DatasetDict, DatasetID
@@ -400,22 +400,24 @@ class Scene(InfoObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def load_writer_config(self, config_file, **kwargs):
-        if not os.path.isfile(config_file):
-            raise IOError("Writer configuration file does not exist: %s" % (config_file,))
-
+    def load_writer_config(self, config_files, **kwargs):
         conf = configparser.RawConfigParser()
-        conf.read(config_file)
+        successes = conf.read(config_files)
+        if not successes:
+            raise IOError("Writer configuration files do not exist: %s" % (config_files,))
+
         for section_name in conf.sections():
             if section_name.startswith("writer:"):
                 options = dict(conf.items(section_name))
                 writer_class_name = options["writer"]
                 writer_class = runtime_import(writer_class_name)
-                writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_file, **kwargs)
+                writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_files, **kwargs)
                 return writer
 
     def save_images(self, writer="geotiff", **kwargs):
-        kwargs.setdefault("config_file", os.path.join(self.ppp_config_dir, "writers", writer + ".cfg"))
+        config_fn = writer + ".cfg" if "." not in writer else writer
+        config_files = config_search_paths(os.path.join("writers", config_fn), self.ppp_config_dir)
+        kwargs.setdefault("config_files", config_files)
         writer = self.load_writer_config(**kwargs)
         for projectable in self.projectables.values():
             writer.save_dataset(projectable, **kwargs)

@@ -28,7 +28,7 @@ from mpop.writers import Writer
 class PillowWriter(Writer):
 
     def __init__(self, **kwargs):
-        Writer.__init__(self, default_config_filename="simple_image.cfg", **kwargs)
+        Writer.__init__(self, default_config_filename="writers/simple_image.cfg", **kwargs)
 
     def save_image(self, img, **kwargs):
         filename = kwargs.pop("filename", self.get_filename(**img.info))

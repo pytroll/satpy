@@ -23,8 +23,12 @@
 """Unit tests for scene.py.
 """
 
+import os
 import unittest
 import mock
+
+# clear the config dir environment variable so it doesn't interfere
+del os.environ["PPP_CONFIG_DIR"]
 
 
 class TestScene(unittest.TestCase):

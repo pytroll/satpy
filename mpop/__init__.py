@@ -31,6 +31,7 @@
 """
 
 import os
+import glob
 from mpop.version import __version__
 from logging import getLogger
 try:
@@ -45,7 +46,12 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
-CONFIG_PATH = os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
+
+def _get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
+    return os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
+
+# FIXME: Old readers still use only this, but this may get updated by Scene
+CONFIG_PATH = _get_environ_config_dir()
 
 
 def runtime_import(object_path):
@@ -56,42 +62,54 @@ def runtime_import(object_path):
     return getattr(loader, obj_element)
 
 
-def get_config(filename):
+def config_search_paths(filename, *search_dirs, **kwargs):
+    # Get the environment variable value every time (could be set dynamically)
+    # FIXME: Consider removing the 'magic' environment variable all together
+    CONFIG_PATH = _get_environ_config_dir()
+
+    paths = [filename, os.path.basename(filename)]
+    paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
+    # FUTURE: Remove CONFIG_PATH because it should be included as a search_dir
+    paths += [os.path.join(CONFIG_PATH, filename), os.path.join(PACKAGE_CONFIG_PATH, filename)]
+
+    if kwargs.get("check_exists", True):
+        paths = [x for x in paths if os.path.isfile(x)]
+
+    return paths
+
+
+def get_config(filename, *search_dirs, **kwargs):
     """Blends the different configs, from package defaults to .
     """
+    config = kwargs.get("config_reader_class", configparser.ConfigParser)()
 
-    config = configparser.ConfigParser()
-
-    paths1 = [filename,
-              os.path.join(".", filename),
-              os.path.join(CONFIG_PATH, filename),
-              os.path.join(PACKAGE_CONFIG_PATH, filename)]
-
-    paths2 = [os.path.basename(filename),
-              os.path.join(".", os.path.basename(filename)),
-              os.path.join(CONFIG_PATH, os.path.basename(filename)),
-              os.path.join(PACKAGE_CONFIG_PATH, os.path.basename(filename))]
-
-    for paths in (paths1, paths2):
-        successes = config.read(reversed(paths))
-        if successes:
-            LOG.debug("Read config from %s", str(successes))
-            return config
+    paths = config_search_paths(filename, *search_dirs)
+    successes = config.read(reversed(paths))
+    if successes:
+        LOG.debug("Read config from %s", str(successes))
+        return config, successes
 
     LOG.warning("Couldn't file any config file matching %s", filename)
+    return None, []
 
 
-def get_config_path(filename):
+def glob_config(pattern, *search_dirs):
+    """Return glob results for all possible configuration locations.
+
+    Note: This method does not check the configuration "base" directory if the pattern includes a subdirectory.
+          This is done for performance since this is usually used to find *all* configs for a certain component.
+    """
+    patterns = config_search_paths(pattern, *search_dirs, check_exists=False)
+
+    for pattern in patterns:
+        for path in glob.iglob(pattern):
+            yield path
+
+
+def get_config_path(filename, *search_dirs):
     """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir.
     """
-
-    paths = [filename,
-             os.path.join(".", filename),
-             os.path.join(CONFIG_PATH, filename),
-             os.path.join(PACKAGE_CONFIG_PATH, filename),
-             os.path.join(".", os.path.basename(filename)),
-             os.path.join(CONFIG_PATH, os.path.basename(filename)),
-             os.path.join(PACKAGE_CONFIG_PATH, os.path.basename(filename))]
+    paths = config_search_paths(filename, *search_dirs)
 
     for path in paths:
         if os.path.exists(path):

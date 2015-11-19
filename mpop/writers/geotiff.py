@@ -62,7 +62,7 @@ class GeoTIFFWriter(Writer):
     )
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
-        Writer.__init__(self, default_config_filename="geotiff.cfg", **kwargs)
+        Writer.__init__(self, default_config_filename="writers/geotiff.cfg", **kwargs)
 
         self.floating_point = bool(self.config_options.get("floating_point", None) if floating_point is None else floating_point)
         self.tags = self.config_options.get("tags", None) if tags is None else tags

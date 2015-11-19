@@ -29,7 +29,7 @@ try:
     import configparser
 except:
     from six.moves import configparser
-from mpop import PACKAGE_CONFIG_PATH
+from mpop import PACKAGE_CONFIG_PATH, config_search_paths
 
 LOG = logging.getLogger(__name__)
 
@@ -38,17 +38,20 @@ class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
     inherited by other classes.
     """
-    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_file=None, **kwargs):
+    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
         self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
-        self.default_config_filename = default_config_filename
-        self.config_file = config_file
-        if self.config_file is None and self.default_config_filename is not None:
-            # Specify a default
-            self.config_file = os.path.join(self.ppp_config_dir, self.default_config_filename)
 
-        if self.config_file:
+        self.default_config_filename = default_config_filename
+        self.config_files = config_files
+        if self.config_files is None and self.default_config_filename is not None:
+            # Specify a default
+            self.config_files = config_search_paths(self.default_config_filename, self.ppp_config_dir)
+        if not isinstance(self.config_files, (list, tuple)):
+            self.config_files = [self.config_files]
+
+        if self.config_files:
             conf = configparser.RawConfigParser()
-            conf.read(self.config_file)
+            conf.read(self.config_files)
             self.load_config(conf)
 
     # FIXME: why is this a static method, and not a function ?
