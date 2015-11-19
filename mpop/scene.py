@@ -79,14 +79,14 @@ class Scene(InfoObject):
             if reader_instance:
                 self.readers[reader_instance.name] = reader_instance
 
-    def read_composites_config(self, composite_config=None, sensor=None, names=None, **kwargs):
+    def read_composites_config(self, composite_configs=None, sensor=None, names=None, **kwargs):
         """Read the (generic) *composite_config* for *sensor* and *names*.
         """
-        if composite_config is None:
-            composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
+        if not composite_configs:
+            composite_configs = config_search_paths(os.path.join("composites", "generic.cfg"), self.ppp_config_dir)
 
         conf = configparser.ConfigParser()
-        conf.read(composite_config)
+        conf.read(composite_configs)
         compositors = {}
         for section_name in conf.sections():
             if section_name.startswith("composite:"):
@@ -173,19 +173,20 @@ class Scene(InfoObject):
 
         # Check the composites for each particular sensor first
         for sensor_name in sensor_names:
-            sensor_composite_config = os.path.join(self.ppp_config_dir, "composites", sensor_name + ".cfg")
-            if sensor_composite_config in self._composite_configs:
-                LOG.debug("Sensor composites already loaded, won't reload: %s", sensor_composite_config)
+            config_fn = sensor_name + ".cfg"
+            if config_fn in self._composite_configs:
+                LOG.debug("Sensor composites already loaded, won't reload: %s", config_fn)
                 continue
-            if not os.path.isfile(sensor_composite_config):
-                LOG.debug("No sensor composite config found at %s", sensor_composite_config)
+            sensor_composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
+            if not sensor_composite_configs:
+                LOG.debug("No sensor composite config found for %s", config_fn)
                 continue
 
             # Load all the compositors for this sensor for the needed names from the specified config
-            sensor_compositors = self.read_composites_config(sensor_composite_config, sensor_name, composite_names,
+            sensor_compositors = self.read_composites_config(sensor_composite_configs, sensor_name, composite_names,
                                                              **kwargs)
             # Update the set of configs we've read already
-            self._composite_configs.add(sensor_composite_config)
+            self._composite_configs.add(config_fn)
             # Update the list of composites the scene knows about
             self.compositors.update(sensor_compositors)
             # Remove the names we know how to create now
@@ -196,19 +197,21 @@ class Scene(InfoObject):
                 break
         else:
             # we haven't found them all yet, let's check the global composites config
-            composite_config = os.path.join(self.ppp_config_dir, "composites", "generic.cfg")
-            if composite_config in self._composite_configs:
-                LOG.debug("Generic composites already loaded, won't reload: %s", composite_config)
-            elif os.path.isfile(composite_config):
-                global_compositors = self.read_composites_config(composite_config, names=composite_names, **kwargs)
-                # Update the set of configs we've read already
-                self._composite_configs.add(composite_config)
-                # Update the list of composites the scene knows about
-                self.compositors.update(global_compositors)
-                # Remove the names we know how to create now
-                composite_names -= set(global_compositors.keys())
+            config_fn = "generic.cfg"
+            if config_fn in self._composite_configs:
+                LOG.debug("Generic composites already loaded, won't reload: %s", config_fn)
             else:
-                LOG.warning("No global composites/generic.cfg file found in config directory")
+                composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
+                if composite_configs:
+                    global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
+                    # Update the set of configs we've read already
+                    self._composite_configs.add(config_fn)
+                    # Update the list of composites the scene knows about
+                    self.compositors.update(global_compositors)
+                    # Remove the names we know how to create now
+                    composite_names -= set(global_compositors.keys())
+                else:
+                    LOG.warning("No global composites/generic.cfg file found in config directory")
 
         return composite_names
 
