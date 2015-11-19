@@ -47,11 +47,11 @@ BASE_PATH = os.path.sep.join(os.path.dirname(
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
-def _get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
+def get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
     return os.environ.get('PPP_CONFIG_DIR', PACKAGE_CONFIG_PATH)
 
 # FIXME: Old readers still use only this, but this may get updated by Scene
-CONFIG_PATH = _get_environ_config_dir()
+CONFIG_PATH = get_environ_config_dir()
 
 
 def runtime_import(object_path):
@@ -65,7 +65,7 @@ def runtime_import(object_path):
 def config_search_paths(filename, *search_dirs, **kwargs):
     # Get the environment variable value every time (could be set dynamically)
     # FIXME: Consider removing the 'magic' environment variable all together
-    CONFIG_PATH = _get_environ_config_dir()
+    CONFIG_PATH = get_environ_config_dir()
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]

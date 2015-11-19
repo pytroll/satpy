@@ -28,7 +28,7 @@ For now, this includes enhancement configuration utilities.
 
 import logging
 import ConfigParser
-from mpop import PACKAGE_CONFIG_PATH
+from mpop import get_environ_config_dir, config_search_paths
 from mpop.plugin_base import Plugin
 from trollsift import parser
 from trollimage.image import Image
@@ -56,7 +56,7 @@ def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=N
     mode = _determine_mode(dataset)
 
     if ppp_config_dir is None:
-        ppp_config_dir = os.environ["PPP_CONFIG_DIR"]
+        ppp_config_dir = get_environ_config_dir()
 
     if enhancer is None:
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
@@ -242,15 +242,18 @@ class Enhancer(object):
         :param enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         :return:
         """
-        self.ppp_config_dir = ppp_config_dir or PACKAGE_CONFIG_PATH
+        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
         # Set enhancement_config_file to False for no enhancements
         if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should provide a default
-            self.enhancement_config_file = os.path.join(self.ppp_config_dir, "enhancements", "generic.cfg")
+            config_fn = os.path.join("enhancements", "generic.cfg")
+            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
+        if not isinstance(self.enhancement_config_file, (list, tuple)):
+            self.enhancement_config_file = [self.enhancement_config_file]
 
         if self.enhancement_config_file:
-            self.enhancement_tree = EnhancementDecisionTree(self.enhancement_config_file)
+            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
         else:
             # They don't want any automatic enhancements
             self.enhancement_tree = None
@@ -263,8 +266,10 @@ class Enhancer(object):
             sensor = [sensor]
 
         for sensor_name in sensor:
-            config_file = os.path.join(self.ppp_config_dir, "enhancements", sensor_name + ".cfg")
-            if os.path.isfile(config_file):
+            config_fn = os.path.join("enhancements", sensor_name + ".cfg")
+            config_files = config_search_paths(config_fn, self.ppp_config_dir)
+            # Note: Enhancement configuration files can't overwrite individual options, only entire sections are overwritten
+            for config_file in config_files:
                 yield config_file
 
     def add_sensor_enhancements(self, sensor):
@@ -276,7 +281,7 @@ class Enhancer(object):
                 new_configs.append(config_file)
 
         if new_configs:
-            self.enhancement_tree.add_config_to_tree(config_file)
+            self.enhancement_tree.add_config_to_tree(*new_configs)
 
     def apply(self, img, **info):
         enh_kwargs = self.enhancement_tree.find_match(**info)
