@@ -27,7 +27,7 @@ except ImportError:
     import mock
 
 # clear the config dir environment variable so it doesn't interfere
-del os.environ["PPP_CONFIG_DIR"]
+os.environ.pop("PPP_CONFIG_DIR", None)
 
 
 class TestReaders(unittest.TestCase):
