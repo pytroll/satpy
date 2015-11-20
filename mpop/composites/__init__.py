@@ -110,6 +110,7 @@ class SunCorrectedRGB(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
         suncorrector = SunZenithNormalize()
         for i, projectable in enumerate(projectables):
+            # FIXME: check the wavelength instead, so radiances can be corrected too.
             if projectable.info.get("units") == "%":
                 projectables[i] = suncorrector(projectable)
         res = RGBCompositor.__call__(self,
