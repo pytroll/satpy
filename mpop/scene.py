@@ -65,7 +65,7 @@ class Scene(InfoObject):
 
         InfoObject.__init__(self, **info)
         self.readers = {}
-        self.projectables = DatasetDict()
+        self.datasets = DatasetDict()
         self.compositors = {}
         self.wishlist = set()
         self._composite_configs = set()
@@ -139,28 +139,28 @@ class Scene(InfoObject):
         return [dataset_name for reader in readers for dataset_name in reader.dataset_names]
 
     def __str__(self):
-        res = (str(proj) for proj in self.projectables.values())
+        res = (str(proj) for proj in self.datasets.values())
         return "\n".join(res)
 
     def __iter__(self):
-        return self.projectables.itervalues()
+        return self.datasets.itervalues()
 
     def __getitem__(self, key):
-        return self.projectables[key]
+        return self.datasets[key]
 
     def __setitem__(self, key, value):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
-        self.projectables[key] = value
+        self.datasets[key] = value
 
     def __delitem__(self, key):
-        k = self.projectables.get_key(key)
+        k = self.datasets.get_key(key)
         self.wishlist.remove(k)
-        del self.projectables[k]
+        del self.datasets[k]
 
 
     def __contains__(self, name):
-        return name in self.projectables
+        return name in self.datasets
 
     def load_compositors(self, composite_names, sensor_names, **kwargs):
         """Load the compositors for *composite_names* for the given *sensor_names*
@@ -245,7 +245,7 @@ class Scene(InfoObject):
                         self.wishlist.remove(key)
                         self.wishlist.add(ds_id)
                     # if we haven't loaded this projectable then add it to the list to be loaded
-                    if ds_id not in self.projectables or not self.projectables[ds_id].is_loaded():
+                    if ds_id not in self.datasets or not self.datasets[ds_id].is_loaded():
                         dataset_ids.add(ds_id)
                 except KeyError:
                     unknown_keys.add(key)
@@ -272,7 +272,7 @@ class Scene(InfoObject):
         # Don't include any of the 'unknown' projectable names
         # dataset_ids = set(dataset_ids) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
-                                if composite not in self.projectables or not self[
+                                if composite not in self.datasets or not self[
             composite].is_loaded()) & composite_names
 
         for reader_name, reader_instance in self.readers.items():
@@ -290,22 +290,22 @@ class Scene(InfoObject):
             # A composite might use a product from another reader, so only pass along the ones we know about
             needed_bands &= all_reader_datasets
             needed_bands = set(band for band in needed_bands
-                               if band not in self.projectables or not self[band].is_loaded())
+                               if band not in self.datasets or not self[band].is_loaded())
 
-            # Create projectables in reader and update the scenes projectables
+            # Create datasets in reader and update the scenes datasets
             needed_bands = sorted(needed_bands)
             LOG.debug("Asking reader '%s' for the following datasets %s", reader_name, str(needed_bands))
-            self.projectables.update(reader_instance.load(needed_bands, **kwargs))
+            self.datasets.update(reader_instance.load(needed_bands, **kwargs))
 
         # Update the scene with information contained in the files
-        if not self.projectables:
-            LOG.debug("No projectables loaded, can't set overall scene metadata")
+        if not self.datasets:
+            LOG.debug("No datasets loaded, can't set overall scene metadata")
             return
 
         # FIXME: should this really be in the scene ?
-        self.info["start_time"] = min([p.info["start_time"] for p in self.projectables.values()])
+        self.info["start_time"] = min([p.info["start_time"] for p in self.datasets.values()])
         try:
-            self.info["end_time"] = max([p.info["end_time"] for p in self.projectables.values()])
+            self.info["end_time"] = max([p.info["end_time"] for p in self.datasets.values()])
         except KeyError:
             pass
             # TODO: comments and history
@@ -320,7 +320,7 @@ class Scene(InfoObject):
                 continue
             elif not isinstance(requirement, DatasetID) and requirement not in self.compositors:
                 continue
-            if requirement in self.projectables:
+            if requirement in self.datasets:
                 continue
             if isinstance(requirement, DatasetID):
                 requirement_name = requirement.name
@@ -349,14 +349,14 @@ class Scene(InfoObject):
                     calibration=comp_projectable.info["calibration"],
                 )
                 comp_projectable.info["id"] = band_id
-                self.projectables[band_id] = comp_projectable
+                self.datasets[band_id] = comp_projectable
 
                 # update the wishlist with this new dataset id
                 if requirement_name in self.wishlist:
                     self.wishlist.remove(requirement_name)
                     self.wishlist.add(band_id)
             except IncompatibleAreas:
-                for ds_id, projectable in self.projectables.iteritems():
+                for ds_id, projectable in self.datasets.iteritems():
                     # FIXME: Can compositors use wavelengths or only names?
                     if ds_id.name in self.compositors[requirement_name].prerequisites:
                         projectable.info["keep"] = True
@@ -364,11 +364,11 @@ class Scene(InfoObject):
     def unload(self):
         """Unload all loaded composites.
         """
-        to_del = [ds_id for ds_id, projectable in self.projectables.items()
+        to_del = [ds_id for ds_id, projectable in self.datasets.items()
                   if ds_id not in self.wishlist and
                   not projectable.info.get("keep", False)]
         for ds_id in to_del:
-            del self.projectables[ds_id]
+            del self.datasets[ds_id]
 
     def load(self, wishlist, calibration=None, resolution=None, polarization=None, **kwargs):
         """Read, compute and unload.
@@ -380,12 +380,12 @@ class Scene(InfoObject):
             self.unload()
 
     def resample(self, destination, datasets=None, **kwargs):
-        """Resample the projectables and return a new scene.
+        """Resample the datasets and return a new scene.
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
         new_scn.wishlist = self.wishlist
-        for ds_id, projectable in self.projectables.items():
+        for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id.name not in datasets:
                 continue
@@ -399,7 +399,7 @@ class Scene(InfoObject):
     def images(self):
         """Generate images for all the datasets from the scene.
         """
-        for ds_id, projectable in self.projectables.items():
+        for ds_id, projectable in self.datasets.items():
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
@@ -422,5 +422,5 @@ class Scene(InfoObject):
         config_files = config_search_paths(os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)
         writer = self.load_writer_config(**kwargs)
-        for projectable in self.projectables.values():
+        for projectable in self.datasets.values():
             writer.save_dataset(projectable, **kwargs)

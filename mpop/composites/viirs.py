@@ -35,7 +35,7 @@ class VIIRSFog(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 2:
-            raise ValueError("Expected 2 projectables, got %d" % (len(projectables),))
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
 
         p1, p2 = projectables
         fog = p1 - p2
@@ -55,7 +55,7 @@ class VIIRSTrueColor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
-            raise ValueError("Expected 3 projectables, got %d" % (len(projectables),))
+            raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
 
         # raise IncompatibleAreas
         p1, p2, p3 = projectables

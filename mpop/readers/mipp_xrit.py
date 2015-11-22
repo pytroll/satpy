@@ -65,7 +65,7 @@ class XritReader(Reader):
         Reader.__init__(self, *args, **kwargs)
 
     def load(self, datasets_to_load, calibrate=True, areas=None, **kwargs):
-        """Read imager data from file and return projectables.
+        """Read imager data from file and return datasets.
         """
         LOGGER.debug("Channels to load: %s" % datasets_to_load)
 
