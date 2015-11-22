@@ -125,37 +125,76 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         self.lons, self.lats = None, None
 
         self.cache = {}
-        return (filename, None)
+        # no single file handle for these files, so just return None and override any parent class methods
+        return filename, None
 
     def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
         """
         :param item: usually a channel name
         :return:
         """
-        geo_indices = {"latitude": 0, "longitude": 1}
-        if item == "radiance":
-            return self._get_channel(dataset_id, 2, data_out, mask_out)
-        elif item in ["reflectance", "bt"]:
-            return self._get_channel(dataset_id, 1, data_out, mask_out)
-        elif item in ["longitude", "latitude"]:
-            variable_names = self.file_keys[item].variable_name.split(",")
+        var_info = self.file_keys[item]
+        if "geo_index" in var_info.kwargs:
+            variable_names = var_info.variable_name.split(",")
+            geo_index = int(var_info.kwargs["geo_index"])
             if data_out is not None:
-                data_out[:] = np.hstack((self[variable_names[0]][:, [geo_indices[item]]],
-                                         self[variable_names[1]][:, :, geo_indices[item]],
-                                         self[variable_names[2]][:, [geo_indices[item]]]))
+                data_out[:] = np.hstack((self[variable_names[0]][:, [geo_index]],
+                                         self[variable_names[1]][:, :, geo_index],
+                                         self[variable_names[2]][:, [geo_index]]))
                 return
             else:
-                return np.hstack((self[variable_names[0]][:, [geo_indices[item]]],
-                                  self[variable_names[1]][:, :, geo_indices[item]],
-                                  self[variable_names[2]][:, [geo_indices[item]]]))
+                return np.hstack((self[variable_names[0]][:, [geo_index]],
+                                  self[variable_names[1]][:, :, geo_index],
+                                  self[variable_names[2]][:, [geo_index]]))
+        elif item.startswith("radiance") or item.startswith("reflectance") or item.startswith("bt"):
+            return self._get_channel(item, dataset_id, data_out, mask_out)
+        else:
+            raise ValueError("Unknown file key: %s" % (item,))
 
-        raise NotImplementedError("not done yet")
+    def _get_channel(self, item, chan, data_out=None, mask_out=None):
+        """Get calibrated channel data.
+        """
+        var_info = self.file_keys[item]
+        var_name = var_info.variable_name
+
+        data_arr = self[var_name]
+        radiance_shape = data_arr.shape
+        if data_out is None:
+            data_out = np.ma.empty((radiance_shape[0], radiance_shape[2]), dtype=data_arr.dtype)
+        if data_out is None:
+            mask_out = np.ma.empty((radiance_shape[0], radiance_shape[2]), dtype=bool)
+
+        if "frame_indicator" in var_info.kwargs:
+            frame_indicator = int(var_info.kwargs["frame_indicator"])
+            frames = (self[self.file_keys["frame_indicator"].variable_name] & 2 ** 16) == frame_indicator
+            data_out[frames, :] = data_arr[frames, int(var_info.kwargs.get("band_index", 0)), :]
+            mask_out[~frames, :] = True
+            mask_out[frames, :] = False
+        else:
+            data_out[:] = data_arr[:, int(var_info.kwargs.get("band_index", 0)), :]
+            mask_out[:] = False
+
+        # FIXME: Temporary, calibrate data here
+        calib_type = var_info.kwargs.get("calib_type", None)
+        if calib_type == "bt":
+            wl = self[self.file_keys[var_info.kwargs["cw_key"]].variable_name]
+            chan_const = self[self.file_keys[var_info.kwargs["channel_constant_key"]].variable_name]
+            slope_const = self[self.file_keys[var_info.kwargs["slope_constant_key"]].variable_name]
+            data_out[:] = radiance_to_bt(data_out,
+                                         wl,
+                                         chan_const,
+                                         slope_const)
+        elif calib_type == "reflectance":
+            sfi = self[self.file_keys[var_info.kwargs["solar_irradiance"]].variable_name]
+            data_out[:] = radiance_to_refl(data_out, sfi)
+
+        return data_out
 
     def get_shape(self, item):
-        if item in ["radiance", "reflectance", "bt"]:
-            return int(self["TOTAL_MDR"]), int(self["EARTH_VIEWS_PER_SCANLINE"])
         if item in ["longitude", "latitude"]:
             return int(self["TOTAL_MDR"]), int(max(self["NUM_NAVIGATION_POINTS"]) + 2)
+        else:
+            return int(self["TOTAL_MDR"]), int(self[self.file_keys["views_per_scanline"].variable_name])
 
     def get_platform_name(self):
         return self.spacecrafts[self["SPACECRAFT_ID"]]
@@ -164,7 +203,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         return self.sensors[self["INSTRUMENT_ID"]]
 
     def get_file_units(self, item):
-        return None
+        return getattr(self.file_keys[item], "file_units", None)
 
     def get_geofilename(self):
         return self.filename
@@ -178,11 +217,11 @@ class AVHRREPSL1BFileReader(GenericFileReader):
     def get_end_orbit_number(self):
         return self["ORBIT_END"]
 
-    def get_begin_time(self):
-        return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
+    def get_start_time(self):
+        return datetime.strptime(self[self.file_keys["start_time"].variable_name], "%Y%m%d%H%M%SZ")
 
     def get_end_time(self):
-        return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
+        return datetime.strptime(self[self.file_keys["end_time"].variable_name], "%Y%m%d%H%M%SZ")
 
     def __getitem__(self, key):
         if key in self.file_keys:
@@ -214,89 +253,6 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         for val in self.form.scales.values():
             keys += val.dtype.fields.keys()
         return keys
-
-    def _get_channel(self, chan, calib_type, data_out=None, mask_out=None):
-        """Get calibrated channel data.
-        *calib_type* = 0: Counts
-        *calib_type* = 1: Reflectances and brightness temperatures
-        *calib_type* = 2: Radiances
-        """
-
-        if calib_type == 0:
-            raise ValueError('calibrate=0 is not supported! ' +
-                             'This reader cannot return counts')
-        elif calib_type != 1 and calib_type != 2:
-            raise ValueError('calibrate=' + str(calib_type) +
-                             'is not supported!')
-
-        if chan.name not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-            LOG.info("Can't load channel in eps_l1b: " + str(chan))
-            return
-
-        radiance_shape = self["SCENE_RADIANCES"].shape
-        if data_out is None:
-            data_out = np.ma.empty((radiance_shape[0], radiance_shape[2]), dtype=self["SCENE_RADIANCES"].dtype)
-        if data_out is None:
-            mask_out = np.ma.empty((radiance_shape[0], radiance_shape[2]), dtype=bool)
-
-        if chan.name == "1":
-            if calib_type == 1:
-                data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                                               self["CH1_SOLAR_FILTERED_IRRADIANCE"])
-            else:
-                data_out[:] = self["SCENE_RADIANCES"][:, 0, :]
-            mask_out[:] = False
-        if chan.name == "2":
-            if calib_type == 1:
-                data_out[:] = radiance_to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                                               self["CH2_SOLAR_FILTERED_IRRADIANCE"])
-            else:
-                data_out[:] = self["SCENE_RADIANCES"][:, 1, :]
-            mask_out[:] = False
-
-        if chan.name.lower() == "3a":
-            frames = (self["FRAME_INDICATOR"] & 2 ** 16) != 0
-            if calib_type == 1:
-                data_out[frames, :] = radiance_to_refl(self["SCENE_RADIANCES"][frames, 2, :],
-                                                       self["CH3A_SOLAR_FILTERED_IRRADIANCE"])
-            else:
-                data_out[frames, :] = np.ma.array(self["SCENE_RADIANCES"][frames, 2, :])
-            mask_out[~frames, :] = True
-            mask_out[frames, :] = False
-
-        if chan.name.lower() == "3b":
-            frames = (self["FRAME_INDICATOR"] & 2 ** 16) == 0
-            if calib_type == 1:
-                data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 2, :],
-                                             self["CH3B_CENTRAL_WAVENUMBER"],
-                                             self["CH3B_CONSTANT1"],
-                                             self["CH3B_CONSTANT2_SLOPE"])
-
-            else:
-                data_out[:] = self["SCENE_RADIANCES"][:, 2, :]
-            mask_out[~frames, :] = True
-            mask_out[frames, :] = False
-        if chan.name == "4":
-            if calib_type == 1:
-                data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 3, :],
-                                    self["CH4_CENTRAL_WAVENUMBER"],
-                                    self["CH4_CONSTANT1"],
-                                    self["CH4_CONSTANT2_SLOPE"])
-            else:
-                data_out[:] = self["SCENE_RADIANCES"][:, 3, :]
-            mask_out[:] = False
-
-        if chan.name == "5":
-            if calib_type == 1:
-                data_out[:] = radiance_to_bt(self["SCENE_RADIANCES"][:, 4, :],
-                                    self["CH5_CENTRAL_WAVENUMBER"],
-                                    self["CH5_CONSTANT1"],
-                                    self["CH5_CONSTANT2_SLOPE"])
-            else:
-                data_out[:] = self["SCENE_RADIANCES"][:, 4, :]
-            mask_out[:] = False
-
-        return data_out
 
 
 class EPSL1BReader(ConfigBasedReader):

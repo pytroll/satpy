@@ -145,7 +145,7 @@ class SDRFileReader(GenericFileReader):
     def get_ring_lonlats(self):
         return self["gring_longitude"], self["gring_latitude"]
 
-    def get_begin_time(self):
+    def get_start_time(self):
         return self._parse_npp_datetime(self['beginning_date'], self['beginning_time'])
 
     def get_end_time(self):

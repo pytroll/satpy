@@ -620,6 +620,7 @@ class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors",
 
 class ConfigBasedReader(Reader):
     splittable_dataset_options = Reader.splittable_dataset_options + ["file_type", "file_key"]
+    file_key_class = FileKey
 
     def __init__(self, default_file_reader=None, **kwargs):
         self.file_types = {}
@@ -800,7 +801,7 @@ class ConfigBasedReader(Reader):
 
     def load_section_file_key(self, section_name, section_options):
         name = section_name.split(":")[-1]
-        self.file_keys[name] = FileKey(name=name, **section_options)
+        self.file_keys[name] = self.file_key_class(name=name, **section_options)
 
     def load_section_navigation(self, section_name, section_options):
         name = section_name.split(":")[-1]
@@ -1010,7 +1011,7 @@ class GenericFileReader(object):
         self.filename, self.file_handle = self.create_file_handle(filename, **kwargs)
 
         # need to "cache" these properties because they might be used a lot
-        self._start_time = self.get_begin_time()
+        self._start_time = self.get_start_time()
         self._end_time = self.get_end_time()
         # FIXME: Rename the no argument methods in to properties
 
@@ -1023,7 +1024,7 @@ class GenericFileReader(object):
         return self._end_time
 
     @abstractmethod
-    def get_begin_time(self):
+    def get_start_time(self):
         raise NotImplementedError
 
     @abstractmethod
