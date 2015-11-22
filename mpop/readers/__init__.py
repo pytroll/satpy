@@ -30,7 +30,7 @@ import numbers
 import os
 import numpy as np
 import six
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod, abstractproperty, ABCMeta
 from itertools import izip
 from fnmatch import fnmatch
 from collections import namedtuple
@@ -1009,9 +1009,26 @@ class GenericFileReader(object):
         self.file_info = kwargs
         self.filename, self.file_handle = self.create_file_handle(filename, **kwargs)
 
-        self.start_time = self.get_begin_time()
-        self.end_time = self.get_end_time()
+        # need to "cache" these properties because they might be used a lot
+        self._start_time = self.get_begin_time()
+        self._end_time = self.get_end_time()
         # FIXME: Rename the no argument methods in to properties
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @abstractmethod
+    def get_begin_time(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_end_time(self):
+        raise NotImplementedError
 
     @abstractmethod
     def create_file_handle(self, filename, **kwargs):
@@ -1024,14 +1041,6 @@ class GenericFileReader(object):
 
     @abstractmethod
     def get_ring_lonlats(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_begin_time(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_end_time(self):
         raise NotImplementedError
 
     @abstractmethod

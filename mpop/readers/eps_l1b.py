@@ -108,9 +108,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
 
     sensors = {"AVHR": "avhrr/3"}
 
-    def __init__(self, file_type, filename, file_keys, **kwargs):
-        self.file_keys = file_keys
-
+    def create_file_handle(self, filename, **kwargs):
         self.records, self.form = read_raw(filename)
         self.mdrs = [record[1]
                      for record in self.records
@@ -127,7 +125,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         self.lons, self.lats = None, None
 
         self.cache = {}
-
+        return (filename, None)
 
     def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
         """
@@ -159,15 +157,20 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         if item in ["longitude", "latitude"]:
             return int(self["TOTAL_MDR"]), int(max(self["NUM_NAVIGATION_POINTS"]) + 2)
 
-    def get_units(self, item):
-        pass
-
     def get_platform_name(self):
         return self.spacecrafts[self["SPACECRAFT_ID"]]
 
     def get_sensor_name(self):
         return self.sensors[self["INSTRUMENT_ID"]]
 
+    def get_file_units(self, item):
+        return None
+
+    def get_geofilename(self):
+        return self.filename
+
+    def get_ring_lonlats(self):
+        raise NotImplementedError
 
     def get_begin_orbit_number(self):
         return self["ORBIT_START"]
@@ -175,12 +178,10 @@ class AVHRREPSL1BFileReader(GenericFileReader):
     def get_end_orbit_number(self):
         return self["ORBIT_END"]
 
-    @property
-    def start_time(self):
+    def get_begin_time(self):
         return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
 
-    @property
-    def end_time(self):
+    def get_end_time(self):
         return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
 
     def __getitem__(self, key):
