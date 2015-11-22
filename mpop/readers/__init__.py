@@ -30,6 +30,7 @@ import numbers
 import os
 import numpy as np
 import six
+from abc import abstractmethod, ABCMeta
 from itertools import izip
 from fnmatch import fnmatch
 from collections import namedtuple
@@ -1000,12 +1001,77 @@ class MultiFileReader(object):
 
 
 class GenericFileReader(object):
-    def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
-        # FIXME: What is dataset_name supposed to be used for?
-        if item in ["longitude", "latitude"]:
-            # TODO: compute the lon lat here from tle and sensor geometry (pyorbital)
-            return
+    __metaclass__ = ABCMeta
+
+    def __init__(self, file_type, filename, file_keys, **kwargs):
+        self.file_type = file_type
+        self.file_keys = file_keys
+        self.file_info = kwargs
+        self.filename, self.file_handle = self.create_file_handle(filename, **kwargs)
+
+        self.start_time = self.get_begin_time()
+        self.end_time = self.get_end_time()
+        # FIXME: Rename the no argument methods in to properties
+
+    @abstractmethod
+    def create_file_handle(self, filename, **kwargs):
+        # return tuple (filename, file_handle)
         raise NotImplementedError
 
+    @abstractmethod
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ring_lonlats(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_begin_time(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_end_time(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_begin_orbit_number(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_end_orbit_number(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_platform_name(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_sensor_name(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_geofilename(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def get_shape(self, item):
         raise NotImplementedError
+
+    @abstractmethod
+    def get_file_units(self, item):
+        raise NotImplementedError
+
+    def get_units(self, item):
+        units = self.file_keys[item].units
+        file_units = self.get_file_units(item)
+        # What units does the user want
+        if units is None:
+            # if the units in the file information
+            return file_units
+        return units
+
+    @abstractmethod
+    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_id=None):
+        raise NotImplementedError
+

@@ -38,7 +38,7 @@ import numpy as np
 import h5py
 import logging
 
-from mpop.readers import ConfigBasedReader, MultiFileReader, FileKey
+from mpop.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 import six
 
 NO_DATE = datetime(1958, 1, 1)
@@ -116,17 +116,12 @@ class HDF5MetaData(object):
         return val
 
 
-class SDRFileReader(HDF5MetaData):
+class SDRFileReader(GenericFileReader):
     """VIIRS HDF5 File Reader
     """
-    def __init__(self, file_type, filename, file_keys, **kwargs):
-        super(SDRFileReader, self).__init__(filename, **kwargs)
-        self.file_type = file_type
-        self.file_keys = file_keys
-        self.file_info = kwargs
-
-        self.start_time = self.get_begin_time()
-        self.end_time = self.get_end_time()
+    def create_file_handle(self, filename, **kwargs):
+        handle = HDF5MetaData(filename, **kwargs)
+        return handle.filename, handle
 
     def __getitem__(self, item):
         if item.endswith("/shape") and item[:-6] in self.file_keys:
@@ -134,7 +129,7 @@ class SDRFileReader(HDF5MetaData):
         elif item in self.file_keys:
             item = self.file_keys[item].variable_name.format(**self.file_info)
 
-        return super(SDRFileReader, self).__getitem__(item)
+        return self.file_handle[item]
 
     def _parse_npp_datetime(self, datestr, timestr):
         try:
@@ -191,27 +186,6 @@ class SDRFileReader(HDF5MetaData):
                 LOG.debug("Unknown units for file key '%s'", item)
 
         return file_units
-
-    def get_units(self, item):
-        units = self.file_keys[item].units
-        file_units = self.get_file_units(item)
-        # What units does the user want
-        if units is None:
-            # if the units in the file information
-            return file_units
-        return units
-
-        # if calibrate == 2 and band not in VIIRS_DNB_BANDS:
-        #     return "W m-2 um-1 sr-1"
-        #
-        # if band in VIIRS_IR_BANDS:
-        #     return "K"
-        # elif band in VIIRS_VIS_BANDS:
-        #     return '%'
-        # elif band in VIIRS_DNB_BANDS:
-        #     return 'W m-2 sr-1'
-        #
-        # return None
 
     def get_shape(self, item):
         return self[item + "/shape"]
