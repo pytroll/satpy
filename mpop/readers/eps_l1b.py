@@ -188,6 +188,12 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             sfi = self[self.file_keys[var_info.kwargs["solar_irradiance"]].variable_name]
             data_out[:] = radiance_to_refl(data_out, sfi)
 
+        # Simple unit conversion
+        file_units = self.get_file_units(item)
+        output_units = getattr(var_info, "units", file_units)
+        if file_units == "1" and output_units == "%":
+            data_out[:] *= 100.0
+
         return data_out
 
     def get_shape(self, item):
