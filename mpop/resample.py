@@ -33,6 +33,7 @@ import numpy as np
 import hashlib
 import json
 import os
+import six
 from mpop import get_config, get_config_path, utils
 try:
     import configparser
@@ -132,9 +133,9 @@ class KDTreeResampler(BaseResampler):
         except AttributeError:
             LOG.debug("Computing kd-tree hash for area %s", area.name)
         try:
-            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True)).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.area_extent)).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.shape)).hexdigest()))
+            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
+                                 hashlib.sha1(json.dumps(area.area_extent).encode("utf-8")).hexdigest(),
+                                 hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
         except AttributeError:
             if not hasattr(area, "lons") or area.lons is None:
                 lons, lats = area.get_lonlats()
@@ -156,7 +157,7 @@ class KDTreeResampler(BaseResampler):
         """
         the_hash = "".join((self.hash_area(self.source_geo_def),
                             self.hash_area(self.target_geo_def),
-                            hashlib.sha1(json.dumps(kwargs, sort_keys=True)).hexdigest()))
+                            hashlib.sha1(json.dumps(kwargs, sort_keys=True).encode('utf-8')).hexdigest()))
         return the_hash
 
     def precompute(self, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
@@ -165,10 +166,10 @@ class KDTreeResampler(BaseResampler):
         del kwargs
 
         kd_hash = self.get_hash(radius_of_influence=radius_of_influence, epsilon=epsilon)
-        if isinstance(cache_dir, (str, unicode)):
+        if isinstance(cache_dir, (str, six.text_type)):
             filename = os.path.join(cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
         else:
-            filename = os.path.join('.', hashlib.sha1(kd_hash).hexdigest() + ".npz")
+            filename = os.path.join('.', hashlib.sha1(kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
         try:
             self.cache = self.caches[kd_hash]
@@ -239,7 +240,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
 def resample(source_area, data, destination_area, resampler=KDTreeResampler, **kwargs):
     """Do the resampling
     """
-    if isinstance(resampler, (str, unicode)):
+    if isinstance(resampler, (str, six.text_type)):
         resampler_class = RESAMPLERS[resampler]
     else:
         resampler_class = resampler

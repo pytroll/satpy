@@ -27,13 +27,17 @@ For now, this includes enhancement configuration utilities.
 """
 
 import logging
-import ConfigParser
 from mpop import get_environ_config_dir, config_search_paths
 from mpop.plugin_base import Plugin
 from trollsift import parser
 from trollimage.image import Image
 import os
 import json
+try:
+    import configparser
+except ImportError:
+    from six.moves import configparser
+import glob
 
 LOG = logging.getLogger(__name__)
 
@@ -164,7 +168,7 @@ class EnhancementDecisionTree(object):
         self.add_config_to_tree(*config_files)
 
     def add_config_to_tree(self, *config_files):
-        conf = ConfigParser.ConfigParser(allow_no_value=True)
+        conf = configparser.ConfigParser(allow_no_value=True)
         for fn in config_files:
             if isinstance(fn, str):
                 conf.read(fn)
@@ -220,7 +224,7 @@ class EnhancementDecisionTree(object):
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No enhancement configuration found for %s" % (kwargs.get("uid", None),))
-        for key, val in match.iteritems():
+        for key, val in match.items():
             try:
                 match[key] = json.loads(val)
             except TypeError:

@@ -158,13 +158,25 @@ class SDRFileReader(GenericFileReader):
         return int(self['ending_orbit_number'])
 
     def get_platform_name(self):
-        return self['platform_short_name']
+        res = self['platform_short_name']
+        if isinstance(res, np.ndarray):
+            return str(res.astype(str))
+        else:
+            return res
 
     def get_sensor_name(self):
-        return self['instrument_short_name']
+        res = self['instrument_short_name']
+        if isinstance(res, np.ndarray):
+            return str(res.astype(str))
+        else:
+            return res
 
     def get_geofilename(self):
-        return self['geo_file_reference']
+        res = self['geo_file_reference']
+        if isinstance(res, np.ndarray):
+            return str(res.astype(str))
+        else:
+            return res
 
     def get_file_units(self, item):
         # What units should we expect from the file
@@ -195,8 +207,8 @@ class SDRFileReader(GenericFileReader):
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        num_grans = len(scaling_factors)/2
-        gran_size = data.shape[0]/num_grans
+        num_grans = len(scaling_factors)//2
+        gran_size = data.shape[0]//num_grans
         for i in range(num_grans):
             start_idx = i * gran_size
             end_idx = start_idx + gran_size

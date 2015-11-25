@@ -28,6 +28,8 @@ from mpop.projectable import InfoObject, Projectable
 import numpy as np
 import logging
 from mpop.tools import sunzen_corr_cos
+import six
+
 LOG = logging.getLogger(__name__)
 # TODO: overview_sun
 
@@ -93,7 +95,7 @@ class RGBCompositor(CompositeBase):
         for projectable in projectables:
             current_sensor = projectable.info.get("sensor", None)
             if current_sensor:
-                if isinstance(current_sensor, (str, unicode)):
+                if isinstance(current_sensor, (str, bytes, six.text_type)):
                     sensor.add(current_sensor)
                 else:
                     sensor |= current_sensor

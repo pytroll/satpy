@@ -31,7 +31,6 @@ import os
 import numpy as np
 import six
 from abc import abstractmethod, abstractproperty, ABCMeta
-from itertools import izip
 from fnmatch import fnmatch
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -39,7 +38,7 @@ from trollsift.parser import globify, Parser
 
 from mpop.plugin_base import Plugin
 from mpop.projectable import Projectable
-from mpop import runtime_import, get_config, glob_config, config_search_paths
+from mpop import runtime_import, glob_config, config_search_paths
 
 try:
     import configparser
@@ -101,7 +100,7 @@ class DatasetDict(dict):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
             keys = [k for k in self.keys() if self._wl_match(k.wavelength, name_or_wl)]
-        elif isinstance(name_or_wl, (str, unicode)):
+        elif isinstance(name_or_wl, (str, six.text_type)):
             keys = [k for k in self.keys() if self._name_match(k.name, name_or_wl)]
         else:
             raise TypeError("First argument must be a wavelength or name")
@@ -531,9 +530,9 @@ class Reader(Plugin):
                 assert(num_permutations == len(section_options[k]))
 
         # Add each possible permutation of this dataset to the datasets list for later use
-        for idx, (res, cal, pol) in enumerate(izip(
-                section_options["resolution"], section_options["calibration"], section_options["polarization"]
-        )):
+        for idx, (res, cal, pol) in enumerate(zip(section_options["resolution"],
+                                                  section_options["calibration"],
+                                                  section_options["polarization"])):
             bid = DatasetID(
                 name=section_options["name"],
                 wavelength=section_options["wavelength_range"],
@@ -634,7 +633,7 @@ class ConfigBasedReader(Reader):
 
         # Set up the default class for reading individual files
         self.default_file_reader = self.config_options.get("default_file_reader", None) if default_file_reader is None else default_file_reader
-        if isinstance(self.default_file_reader, (str, unicode)):
+        if isinstance(self.default_file_reader, (str, six.text_type)):
             self.default_file_reader = self._runtime_import(self.default_file_reader)
         if self.default_file_reader is None:
             raise RuntimeError("'default_file_reader' is a required argument")
@@ -765,7 +764,7 @@ class ConfigBasedReader(Reader):
             else:
                 file_reader_class = default_file_reader
 
-            if isinstance(file_reader_class, (str, unicode)):
+            if isinstance(file_reader_class, (str, six.text_type)):
                 file_reader_class = self._runtime_import(file_reader_class)
             for file_pattern in file_type_info["file_patterns"]:
                 tmp_remaining = []
