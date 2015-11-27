@@ -142,36 +142,41 @@ class SDRFileReader(GenericFileReader):
             raise ValueError("Datetime invalid %s " % time_val)
         return time_val
 
-    def get_ring_lonlats(self):
+    def ring_lonlats(self):
         return self["gring_longitude"], self["gring_latitude"]
 
-    def get_start_time(self):
+    def _get_start_time(self):
         return self._parse_npp_datetime(self['beginning_date'], self['beginning_time'])
 
-    def get_end_time(self):
+    def _get_end_time(self):
         return self._parse_npp_datetime(self['ending_date'], self['ending_time'])
 
-    def get_begin_orbit_number(self):
+    @property
+    def begin_orbit_number(self):
         return int(self['beginning_orbit_number'])
 
-    def get_end_orbit_number(self):
+    @property
+    def end_orbit_number(self):
         return int(self['ending_orbit_number'])
 
-    def get_platform_name(self):
+    @property
+    def platform_name(self):
         res = self['platform_short_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
             return res
 
-    def get_sensor_name(self):
+    @property
+    def sensor_name(self):
         res = self['instrument_short_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
             return res
 
-    def get_geofilename(self):
+    @property
+    def geofilename(self):
         res = self['geo_file_reference']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -308,7 +313,7 @@ class VIIRSSDRReader(ConfigBasedReader):
                 raise RuntimeError("Could not find geolocation files because the main dataset was not provided")
             dataset_file_reader = self.file_readers[dep_file_type]
             base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
-            geo_filenames = dataset_file_reader.geo_filenames
+            geo_filenames = dataset_file_reader.geofilenames
             geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
 
             file_types = self.identify_file_types(geo_filepaths)

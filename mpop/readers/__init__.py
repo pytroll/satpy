@@ -681,7 +681,7 @@ class ConfigBasedReader(Reader):
 
             # Search for multiple granules using an area
             if self.area is not None:
-                coords = np.vstack(file_reader.get_ring_lonlats())
+                coords = np.vstack(file_reader.ring_lonlats())
                 poly = SphPolygon(np.deg2rad(coords))
                 if poly.intersection(contour_poly) is not None:
                     segment_readers.append(file_reader)
@@ -913,10 +913,10 @@ class ConfigBasedReader(Reader):
             # Create a projectable from info from the file data and the config file
             # FIXME: Remove metadata that is reader only
             dataset_info.setdefault("units", file_reader.get_units(file_key))
-            dataset_info.setdefault("platform", file_reader.get_platform_name())
-            dataset_info.setdefault("sensor", file_reader.get_sensor_name())
-            dataset_info.setdefault("start_orbit", file_reader.get_begin_orbit_number())
-            dataset_info.setdefault("end_orbit", file_reader.get_end_orbit_number())
+            dataset_info.setdefault("platform", file_reader.platform_name)
+            dataset_info.setdefault("sensor", file_reader.sensor_name)
+            dataset_info.setdefault("start_orbit", file_reader.begin_orbit_number)
+            dataset_info.setdefault("end_orbit", file_reader.end_orbit_number)
             if "rows_per_scan" in self.navigations[nav_name]:
                 dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
@@ -955,21 +955,25 @@ class MultiFileReader(object):
     def end_time(self):
         return self.file_readers[-1].end_time
 
-    def get_begin_orbit_number(self):
-        return self.file_readers[0].get_begin_orbit_number()
-
-    def get_end_orbit_number(self):
-        return self.file_readers[-1].get_end_orbit_number()
-
-    def get_platform_name(self):
-        return self.file_readers[0].get_platform_name()
-
-    def get_sensor_name(self):
-        return self.file_readers[0].get_sensor_name()
+    @property
+    def begin_orbit_number(self):
+        return self.file_readers[0].begin_orbit_number
 
     @property
-    def geo_filenames(self):
-        return [fr.get_geofilename() for fr in self.file_readers]
+    def end_orbit_number(self):
+        return self.file_readers[-1].end_orbit_number
+
+    @property
+    def platform_name(self):
+        return self.file_readers[0].platform_name
+
+    @property
+    def sensor_name(self):
+        return self.file_readers[0].sensor_name
+
+    @property
+    def geofilenames(self):
+        return [fr.geofilename for fr in self.file_readers]
 
     def get_units(self, item):
         return self.file_readers[0].get_units(item)
@@ -1010,8 +1014,8 @@ class GenericFileReader(object):
         self.filename, self.file_handle = self.create_file_handle(filename, **kwargs)
 
         # need to "cache" these properties because they might be used a lot
-        self._start_time = self.get_start_time()
-        self._end_time = self.get_end_time()
+        self._start_time = self._get_start_time()
+        self._end_time = self._get_end_time()
         # FIXME: Rename the no argument methods in to properties
 
     @property
@@ -1023,11 +1027,11 @@ class GenericFileReader(object):
         return self._end_time
 
     @abstractmethod
-    def get_start_time(self):
+    def _get_start_time(self):
         raise NotImplementedError
 
     @abstractmethod
-    def get_end_time(self):
+    def _get_end_time(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -1039,28 +1043,28 @@ class GenericFileReader(object):
     def __getitem__(self, item):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_ring_lonlats(self):
+    @abstractproperty
+    def ring_lonlats(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_begin_orbit_number(self):
+    @abstractproperty
+    def begin_orbit_number(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_end_orbit_number(self):
+    @abstractproperty
+    def end_orbit_number(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_platform_name(self):
+    @abstractproperty
+    def platform_name(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_sensor_name(self):
+    @abstractproperty
+    def sensor_name(self):
         raise NotImplementedError
 
-    @abstractmethod
-    def get_geofilename(self):
+    @abstractproperty
+    def geofilename(self):
         raise NotImplementedError
 
     @abstractmethod

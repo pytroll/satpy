@@ -202,31 +202,37 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         else:
             return int(self["TOTAL_MDR"]), int(self[self.file_keys["views_per_scanline"].variable_name])
 
-    def get_platform_name(self):
+    @property
+    def platform_name(self):
         return self.spacecrafts[self["SPACECRAFT_ID"]]
 
-    def get_sensor_name(self):
+    @property
+    def sensor_name(self):
         return self.sensors[self["INSTRUMENT_ID"]]
 
     def get_file_units(self, item):
         return getattr(self.file_keys[item], "file_units", None)
 
-    def get_geofilename(self):
+    @property
+    def geofilename(self):
         return self.filename
 
-    def get_ring_lonlats(self):
+    @property
+    def ring_lonlats(self):
         raise NotImplementedError
 
-    def get_begin_orbit_number(self):
+    @property
+    def begin_orbit_number(self):
         return self["ORBIT_START"]
 
-    def get_end_orbit_number(self):
+    @property
+    def end_orbit_number(self):
         return self["ORBIT_END"]
 
-    def get_start_time(self):
+    def _get_start_time(self):
         return datetime.strptime(self[self.file_keys["start_time"].variable_name], "%Y%m%d%H%M%SZ")
 
-    def get_end_time(self):
+    def _get_end_time(self):
         return datetime.strptime(self[self.file_keys["end_time"].variable_name], "%Y%m%d%H%M%SZ")
 
     def __getitem__(self, key):

@@ -185,18 +185,18 @@ class TestSDRFileReader(unittest.TestCase):
     def test_get_funcs(self):
         from mpop.readers.viirs_sdr import SDRFileReader
         file_reader = SDRFileReader("fake_file_type", "test.h5", self.file_keys)
-        gring_lon, gring_lat = file_reader.get_ring_lonlats()
-        begin_orbit = file_reader.get_begin_orbit_number()
+        gring_lon, gring_lat = file_reader.ring_lonlats()
+        begin_orbit = file_reader.begin_orbit_number
         self.assertIsInstance(begin_orbit, int)
         self.assertEqual(begin_orbit, 0)
-        end_orbit = file_reader.get_end_orbit_number()
+        end_orbit = file_reader.end_orbit_number
         self.assertIsInstance(end_orbit, int)
         self.assertEqual(end_orbit, 1)
-        instrument_name = file_reader.get_sensor_name()
+        instrument_name = file_reader.sensor_name
         self.assertEqual(instrument_name, "VIIRS")
-        platform_name = file_reader.get_platform_name()
+        platform_name = file_reader.platform_name
         self.assertEqual(platform_name, "NPP")
-        geo_ref = file_reader.get_geofilename()
+        geo_ref = file_reader.geofilename
 
     @mock.patch('mpop.readers.viirs_sdr.HDF5MetaData', FakeHDF5MetaData)
     def test_data_shape(self):
@@ -387,11 +387,11 @@ class TestSDRMultiFileReader(unittest.TestCase):
         self.assertListEqual(file_reader.filenames, fns)
         self.assertEqual(file_reader.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
         self.assertEqual(file_reader.end_time, datetime(2015, 1, 1, 11, 4, 10, 600000))
-        self.assertEqual(file_reader.get_begin_orbit_number(), 0)
-        self.assertEqual(file_reader.get_end_orbit_number(), 5)
-        self.assertEqual(file_reader.get_platform_name(), "NPP")
-        self.assertEqual(file_reader.get_sensor_name(), "VIIRS")
-        self.assertListEqual(file_reader.geo_filenames, geo_fns)
+        self.assertEqual(file_reader.begin_orbit_number, 0)
+        self.assertEqual(file_reader.end_orbit_number, 5)
+        self.assertEqual(file_reader.platform_name, "NPP")
+        self.assertEqual(file_reader.sensor_name, "VIIRS")
+        self.assertListEqual(file_reader.geofilenames, geo_fns)
 
     @mock.patch('mpop.readers.viirs_sdr.HDF5MetaData', FakeHDF5MetaData)
     def test_get_units(self):
