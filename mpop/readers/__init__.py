@@ -1016,7 +1016,6 @@ class GenericFileReader(object):
         # need to "cache" these properties because they might be used a lot
         self._start_time = self._get_start_time()
         self._end_time = self._get_end_time()
-        # FIXME: Rename the no argument methods in to properties
 
     @property
     def start_time(self):

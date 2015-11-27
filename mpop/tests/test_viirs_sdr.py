@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the mpop.channel module.
+"""Module for testing the mpop.readers.viirs_sdr module.
 """
 
 import sys

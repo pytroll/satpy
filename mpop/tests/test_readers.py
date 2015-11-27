@@ -20,7 +20,11 @@
 # mpop.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import unittest
+import sys
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 try:
     from unittest import mock
 except ImportError:
@@ -28,6 +32,20 @@ except ImportError:
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
+
+
+class TestDatasetDict(unittest.TestCase):
+    def test_init_noargs(self):
+        from mpop.readers import DatasetDict
+        d = DatasetDict()
+
+    def test_init_dict(self):
+        from mpop.readers import DatasetDict, DatasetID
+        regular_dict = {
+            DatasetID(name="test", wavelength=(0, 0.5, 1)): "1",
+        }
+        d = DatasetDict(regular_dict)
+        self.assertEqual(d, regular_dict)
 
 
 class TestReaders(unittest.TestCase):
