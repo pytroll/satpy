@@ -446,6 +446,7 @@ class Reader(Plugin):
         """
         # Hold information about datasets
         self.datasets = DatasetDict()
+        self.metadata_info = {}
 
         # Load the config
         super(Reader, self).__init__(**kwargs)
@@ -485,7 +486,6 @@ class Reader(Plugin):
         return sensors | self.sensor
 
     def load_section_reader(self, section_name, section_options):
-        del section_name
         self.config_options = section_options
 
     def load_section_dataset(self, section_name, section_options):
@@ -548,6 +548,10 @@ class Reader(Plugin):
                 opts[k] = opts[k][idx]
             self.datasets[bid] = opts
 
+    def load_section_metadata(self, section_name, section_options):
+        name = section_name.split(":")[-1]
+        self.metadata_info[name] = section_options
+
     def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
         """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
 
@@ -602,6 +606,13 @@ class Reader(Plugin):
 
     def load(self, datasets_to_load):
         """Loads the *datasets_to_load* into the scene object.
+        """
+        raise NotImplementedError
+
+    def load_metadata(self, datasets_to_load, metadata_to_load):
+        """Load the specified metadata for the specified datasets.
+
+        :returns: dictionary of dictionaries
         """
         raise NotImplementedError
 
@@ -867,7 +878,58 @@ class ConfigBasedReader(Reader):
 
         return dataset_info
 
-    def load(self, datasets_to_load, **dataset_info):
+    def load_metadata(self, datasets_to_load, metadata_to_load):
+        """Load the specified metadata for the specified datasets.
+
+        :returns: dictionary of dictionaries
+        """
+        loaded_metadata = {}
+        if metadata_to_load is None:
+            return loaded_metadata
+
+        metadata_to_load = set(metadata_to_load) & set(self.metadata_info.keys())
+        datasets_to_load = set(datasets_to_load) & set(self.datasets.keys())
+
+        if not datasets_to_load:
+            LOG.debug("No datasets from this reader for loading metadata")
+            return loaded_metadata
+
+        if not metadata_to_load:
+            LOG.debug("No metadata to load from this reader")
+            return loaded_metadata
+
+        # For each dataset provided, get the specified metadata
+        for ds_id in datasets_to_load:
+            ds_info = self.datasets[ds_id]
+            nav_info = self.navigations[ds_info["navigation"]]
+
+            loaded_metadata[ds_id] = metadata_dict = {}
+            for metadata_id in metadata_to_load:
+                md_info = self.metadata_info[metadata_id]
+                file_type = md_info.get("file_type", ds_info["file_type"])
+                file_key = md_info["file_key"]
+
+                # special keys for using the datasets file type or the dataset's navigation file type
+                if file_type == "DATASET":
+                    file_type = ds_info["file_type"]
+                elif file_type == "NAVIGATION":
+                    file_type = nav_info["file_type"]
+
+                if file_type not in self.file_readers:
+                    LOG.warning("File type '%s' not loaded for metadata '%s'", file_type, metadata_id)
+                    continue
+                file_reader = self.file_readers[file_type]
+                try:
+                    metadata_dict[metadata_id] = file_reader.load_metadata(file_key,
+                                                                           join_method=md_info.get("join_method", "append"),
+                                                                           axis=int(md_info.get("axis", "0")))
+                except (KeyError, ValueError):
+                    LOG.debug("Could not load metadata '%s' for dataset '%s'", metadata_id, ds_id)
+                    continue
+
+        return loaded_metadata
+
+    def load(self, datasets_to_load, metadata=None, **dataset_info):
         if dataset_info:
             LOG.warning("Unsupported options for viirs reader: %s", str(dataset_info))
 
@@ -926,6 +988,11 @@ class ConfigBasedReader(Reader):
             projectable.info["area"] = area
 
             datasets_loaded[projectable.info["id"]] = projectable
+
+        # Load metadata for all of the datasets
+        loaded_metadata = self.load_metadata(datasets_loaded.keys(), metadata)
+        for ds_id, metadata_info in loaded_metadata.items():
+            datasets_loaded[ds_id].info.update(metadata_info)
         return datasets_loaded
 
 
@@ -1002,6 +1069,12 @@ class MultiFileReader(object):
 
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
         return np.ma.array(data, mask=mask, copy=False)
+
+    def load_metadata(self, item, join_method="append", axis=0):
+        if join_method not in ["append"]:
+            raise ValueError("Unknown metadata 'join_method': %s" % (join_method,))
+
+        return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=0)
 
 
 class GenericFileReader(object):

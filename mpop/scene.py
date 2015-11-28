@@ -215,7 +215,7 @@ class Scene(InfoObject):
 
         return composite_names
 
-    def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, **kwargs):
+    def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read the composites called *dataset_keys* or their prerequisites.
         """
         # FIXME: Should this be a set?
@@ -295,7 +295,7 @@ class Scene(InfoObject):
             # Create datasets in reader and update the scenes datasets
             needed_bands = sorted(needed_bands)
             LOG.debug("Asking reader '%s' for the following datasets %s", reader_name, str(needed_bands))
-            self.datasets.update(reader_instance.load(needed_bands, **kwargs))
+            self.datasets.update(reader_instance.load(needed_bands, metadata=metadata, **kwargs))
 
         # Update the scene with information contained in the files
         if not self.datasets:
@@ -370,10 +370,10 @@ class Scene(InfoObject):
         for ds_id in to_del:
             del self.datasets[ds_id]
 
-    def load(self, wishlist, calibration=None, resolution=None, polarization=None, **kwargs):
+    def load(self, wishlist, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read, compute and unload.
         """
-        self.read(wishlist, calibration=calibration, resolution=resolution, polarization=polarization, **kwargs)
+        self.read(wishlist, calibration=calibration, resolution=resolution, polarization=polarization, metadata=metadata, **kwargs)
         if kwargs.get("compute", True):
             self.compute()
         if kwargs.get("unload", True):
