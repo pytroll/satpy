@@ -48,7 +48,8 @@ import glob
 
 LOG = logging.getLogger(__name__)
 
-DatasetID = namedtuple("Band", "name wavelength resolution polarization calibration")
+DATASET_KEYS = ("name", "wavelength", "resolution", "polarization", "calibration")
+DatasetID = namedtuple("Dataset", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None)
 
 
@@ -84,7 +85,13 @@ class DatasetDict(dict):
 
     def get_key(self, key):
         if isinstance(key, DatasetID):
-            return key
+            res = self.get_keys_by_datasetid(key)
+            if len(res) == 0:
+                return None
+            elif len(res) > 1:
+                raise KeyError("No unique dataset matching " + str(key))
+            else:
+                return res[0]
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
@@ -117,6 +124,18 @@ class DatasetDict(dict):
             if not isinstance(calibration, (list, tuple)):
                 calibration = (calibration,)
             keys = [k for k in keys if k.calibration is not None and k.calibration in calibration]
+
+        return keys
+
+    def get_keys_by_datasetid(self, did):
+        keys = self.keys()
+        for key in DATASET_KEYS:
+            if getattr(did, key) is not None:
+                if key == "wavelength":
+                    keys = [k for k in keys if getattr(k, key) is not None and self._wl_match(getattr(k, key),
+                                                                                              getattr(did, key))]
+                else:
+                    keys = [k for k in keys if getattr(k, key) is not None and getattr(k, key) == getattr(did, key)]
 
         return keys
 

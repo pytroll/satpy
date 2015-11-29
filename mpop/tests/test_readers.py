@@ -47,6 +47,34 @@ class TestDatasetDict(unittest.TestCase):
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
+    def test_get_keys_by_datasetid(self):
+        from mpop.readers import DatasetDict, DatasetID
+        did_list = [DatasetID(name="test", wavelength=(0, 0.5, 1), resolution=1000),
+                    DatasetID(name="testh", wavelength=(0, 0.5, 1), resolution=500),
+                    DatasetID(name="test2", wavelength=(1, 1.5, 2), resolution=1000)]
+        val_list = ["1", "1h", "2"]
+        d = DatasetDict(dict(zip(did_list, val_list)))
+        self.assertIn(did_list[0], d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+        self.assertIn(did_list[1], d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+        self.assertIn(did_list[2], d.get_keys_by_datasetid(DatasetID(wavelength=1.5)))
+        self.assertIn(did_list[0], d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+        self.assertIn(did_list[2], d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+
+    def test_get_item(self):
+        from mpop.readers import DatasetDict, DatasetID
+        regular_dict = {
+            DatasetID(name="test", wavelength=(0, 0.5, 1), resolution=1000): "1",
+            DatasetID(name="testh", wavelength=(0, 0.5, 1), resolution=500): "1h",
+            DatasetID(name="test2", wavelength=(1, 1.5, 2), resolution=1000): "2",
+        }
+        d = DatasetDict(regular_dict)
+
+        self.assertEqual(d["test"], "1")
+        self.assertEqual(d[1.5], "2")
+        self.assertEqual(d[DatasetID(wavelength=1.5)], "2")
+        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=1000)], "1")
+        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
+
 
 class TestReaders(unittest.TestCase):
 
@@ -274,6 +302,7 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaders))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
 
     return mysuite
 
