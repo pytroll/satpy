@@ -108,6 +108,7 @@ class BaseResampler(object):
         self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, **kwargs)
 
+    # FIXME: there should be only one obvious way to resample
     def __call__(self, *args, **kwargs):
         """Shortcut for the :meth:`resample` method
         """
