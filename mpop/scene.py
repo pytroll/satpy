@@ -418,9 +418,13 @@ class Scene(InfoObject):
                 return writer
 
     def save_images(self, writer="geotiff", **kwargs):
+        self.get_writer(writer, **kwargs)
+        for projectable in self.datasets.values():
+            writer.save_dataset(projectable, **kwargs)
+
+
+    def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer
         config_files = config_search_paths(os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)
-        writer = self.load_writer_config(**kwargs)
-        for projectable in self.datasets.values():
-            writer.save_dataset(projectable, **kwargs)
+        return self.load_writer_config(**kwargs)
