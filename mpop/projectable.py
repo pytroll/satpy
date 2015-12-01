@@ -64,15 +64,41 @@ class Dataset(np.ma.MaskedArray):
         res.info = self.info.copy()
         return res
 
-    def __str__(self):
-        return np.ma.MaskedArray.__str__(self)
-
-    def __repr__(self):
-        return np.ma.MaskedArray.__repr__(self) + "\n" + repr(self.info)
 
     def is_loaded(self):
         return self.size > 0
 
+    def __str__(self):
+        return self._str_info() + "\n" + np.ma.MaskedArray.__str__(self)
+
+    def _str_info(self):
+        res = list()
+        res.append(self.info["name"] + ": ")
+
+        if "sensor" in self.info:
+            res[0] = str(self.info["sensor"]) + "/" + res[0]
+
+        for key in sorted(self.info.keys()):
+            if key == "wavelength_range":
+                res.append("{0}: {1} μm".format(key, self.info[key]))
+            elif key == "resolution":
+                res.append("{0}: {1} m".format(key, self.info[key]))
+            elif key == "area":
+                res.append("{0}: {1}".format(key, self.info[key].name))
+            elif key in ["name", "sensor"]:
+                continue
+            else:
+                res.append("{0}: {1}".format(key, self.info[key]))
+
+        if self.size > 0:
+            try:
+                res.append("shape: {0}".format(self.shape))
+            except AttributeError:
+                pass
+        else:
+            res.append("not loaded")
+
+        return "\n\t".join(res)
 
 
 
@@ -101,31 +127,3 @@ class Projectable(Dataset):
         res.info["area"] = destination_area
         return res
 
-    def __str__(self):
-        res = list()
-        res.append(self.info["name"] + ": ")
-
-        if "sensor" in self.info:
-            res[0] = str(self.info["sensor"]) + "/" + res[0]
-
-        for key in sorted(self.info.keys()):
-            if key == "wavelength_range":
-                res.append("{0}: {1} μm".format(key, self.info[key]))
-            elif key == "resolution":
-                res.append("{0}: {1} m".format(key, self.info[key]))
-            elif key == "area":
-                res.append("{0}: {1}".format(key, self.info[key].name))
-            elif key in ["name", "sensor"]:
-                continue
-            else:
-                res.append("{0}: {1}".format(key, self.info[key]))
-
-        if self.size > 0:
-            try:
-                res.append("shape: {0}".format(self.shape))
-            except AttributeError:
-                pass
-        else:
-            res.append("not loaded")
-
-        return "\n\t".join(res)
