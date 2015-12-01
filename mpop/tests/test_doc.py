@@ -2,4 +2,5 @@
 
 import doctest
 
-#doctest.testfile("../doc/source/quickstart.rst")
+doctest.testfile("../doc/source/quickstart_seviri")
+

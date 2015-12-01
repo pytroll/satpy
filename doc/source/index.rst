@@ -29,7 +29,7 @@ Reprojection of data is also available through the use of pyresample_.
    :maxdepth: 2
 
    install
-   quickstart
+   quickstart_seviri
    pp
    input
    image
