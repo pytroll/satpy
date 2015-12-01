@@ -73,10 +73,13 @@ class Dataset(np.ma.MaskedArray):
 
     def _str_info(self):
         res = list()
-        res.append(self.info["name"] + ": ")
+        try:
+            res.append(self.info["name"] + ": ")
 
-        if "sensor" in self.info:
-            res[0] = str(self.info["sensor"]) + "/" + res[0]
+            if "sensor" in self.info:
+                res[0] = str(self.info["sensor"]) + "/" + res[0]
+        except KeyError:
+            pass
 
         for key in sorted(self.info.keys()):
             if key == "wavelength_range":
