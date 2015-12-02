@@ -639,5 +639,8 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSDRFileReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5MetaData))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSDRMultiFileReader))
     
     return mysuite
