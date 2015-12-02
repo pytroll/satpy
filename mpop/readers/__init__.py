@@ -578,7 +578,7 @@ class Reader(Plugin):
         """
         # get by wavelength
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.datasets.keys() if (ds.wavelength[0] <= key <= ds.wavelength[2])]
+            datasets = [ds for ds in self.datasets.keys() if ds.wavelength and (ds.wavelength[0] <= key <= ds.wavelength[2])]
             datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
 
             if not datasets:
@@ -591,11 +591,11 @@ class Reader(Plugin):
             else:
                 raise KeyError("Can't find any projectable '%s'" % key)
 
-            if calibration is None:
+            if calibration is not None:
                 calibration = [key.calibration]
-            if resolution is None:
+            if resolution is not None:
                 resolution = [key.resolution]
-            if polarization is None:
+            if polarization is not None:
                 polarization = [key.polarization]
         # get by name
         else:

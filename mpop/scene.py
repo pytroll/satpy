@@ -108,34 +108,48 @@ class Scene(InfoObject):
                 if not names and options["name"] not in names:
                     continue
 
-                # FIXME: this warns also when rereading a composite.
-                # FIXME: this can happen if a sensor-specific configuration overwrites a composite (is that allowed?)
                 if options["name"] in self.compositors:
-                    LOG.warning("Duplicate composite found, previous composite '%s' will be overwritten",
+                    LOG.debug("Duplicate composite found, previous composite '%s' will be overwritten",
                                 options["name"])
 
-                # Pull out prerequisites
-                if "prerequisites" in options:
+                # Get other identifiers that could be used to filter the prerequisites
+                other_identifiers = {}
+                for o_id in ["resolution", "calibration", "polarization"]:
+                    if o_id in options:
+                        other_identifiers[o_id] = options[o_id].split(",")
+                optional_other_identifiers = {}
+                for o_id in ["resolution", "calibration", "polarization"]:
+                    if "optional_" + o_id in options:
+                        optional_other_identifiers[o_id] = options["optional_" + o_id].split(",")
+
+                def _normalize_prereqs(prereqs, other_identifiers):
+                    # Pull out prerequisites
                     prerequisites = options["prerequisites"].split(",")
-                    options["prerequisites"] = []
-                    for prerequisite in prerequisites:
+                    prereqs = []
+                    for idx, prerequisite in enumerate(prerequisites):
+                        ds_id = {"name": None, "wavelength": None}
+                        # convert the prerequisite
                         try:
                             # prereqs can be wavelengths
-                            options["prerequisites"].append(float(prerequisite))
+                            ds_id["wavelength"] = float(prerequisite)
                         except ValueError:
                             # or names
-                            options["prerequisites"].append(prerequisite)
+                            ds_id["name"] = prerequisite
+
+                        # add further filtering to the prerequisites via the DatasetID namedtuple
+                        for o_id, vals in other_identifiers.items():
+                            ds_id[o_id] = vals[idx]
+
+                        prereqs.append(DatasetID(**ds_id))
+
+                    return prereqs
+
+                if "prerequisites" in options:
+                    options["prerequisites"] = _normalize_prereqs(options["prerequisites"], other_identifiers)
 
                 if "optional_prerequisites" in options:
-                    prerequisites = options["optional_prerequisites"].split(",")
-                    options["prerequisites"] = []
-                    for prerequisite in prerequisites:
-                        try:
-                            # prereqs can be wavelengths
-                            kwargs["optional_prerequisites"].append(float(prerequisite))
-                        except ValueError:
-                            # or names
-                            kwargs["optional_prerequisites"].append(prerequisite)
+                    options["optional_prerequisites"] = _normalize_prereqs(options["optional_prerequisites"],
+                                                                           optional_other_identifiers)
 
                 if "metadata_requirements" in options:
                     options["metadata_requirements"] = options["metadata_requirements"].split(",")
@@ -198,7 +212,25 @@ class Scene(InfoObject):
             LOG.debug("Already loaded needed composites")
             return composite_names
 
-        # Check the composites for each particular sensor first
+        # Load generic composites first
+        # we haven't found them all yet, let's check the global composites config
+        config_fn = "generic.cfg"
+        if config_fn in self._composite_configs:
+            LOG.debug("Generic composites already loaded, won't reload: %s", config_fn)
+        else:
+            composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
+            if composite_configs:
+                global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
+                # Update the set of configs we've read already
+                self._composite_configs.add(config_fn)
+                # Update the list of composites the scene knows about
+                self.compositors.update(global_compositors)
+                # Remove the names we know how to create now
+                composite_names -= set(global_compositors.keys())
+            else:
+                LOG.warning("No global composites/generic.cfg file found in config directory")
+
+        # Check the composites for each particular sensor (may overwrite generic composites so load them all)
         for sensor_name in sensor_names:
             config_fn = sensor_name + ".cfg"
             if config_fn in self._composite_configs:
@@ -218,27 +250,6 @@ class Scene(InfoObject):
             self.compositors.update(sensor_compositors)
             # Remove the names we know how to create now
             composite_names -= set(sensor_compositors.keys())
-
-            if not composite_names:
-                # we found them all!
-                break
-        else:
-            # we haven't found them all yet, let's check the global composites config
-            config_fn = "generic.cfg"
-            if config_fn in self._composite_configs:
-                LOG.debug("Generic composites already loaded, won't reload: %s", config_fn)
-            else:
-                composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
-                if composite_configs:
-                    global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
-                    # Update the set of configs we've read already
-                    self._composite_configs.add(config_fn)
-                    # Update the list of composites the scene knows about
-                    self.compositors.update(global_compositors)
-                    # Remove the names we know how to create now
-                    composite_names -= set(global_compositors.keys())
-                else:
-                    LOG.warning("No global composites/generic.cfg file found in config directory")
 
         return composite_names
 
