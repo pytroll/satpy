@@ -102,10 +102,8 @@ class HistogramDNB(CompositeBase):
         dnb_data = datasets[0]
         sza_data = datasets[1]
         good_mask = ~(dnb_data.mask | sza_data.mask)
-        print(dnb_data.min(), dnb_data.max())
         output_dataset = dnb_data.copy()
         output_dataset.mask = ~good_mask
-        print(output_dataset.min(), output_dataset.max())
         day_mask, mixed_mask, night_mask = make_day_night_masks(sza_data, good_mask,
                                                                 self.high_angle_cutoff, self.low_angle_cutoff,
                                                                 stepsDegrees=self.mixed_degree_step)
@@ -129,8 +127,101 @@ class HistogramDNB(CompositeBase):
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
 
-        print(dnb_data.min(), dnb_data.max())
-        print(output_dataset.min(), output_dataset.max())
+        info = {}
+        info.update(self.info)
+        info["area"] = dnb_data.info["area"]
+        info["start_time"] = dnb_data.info["start_time"]
+        info["end_time"] = dnb_data.info["end_time"]
+        info["name"] = self.info["name"]
+        info.setdefault("standard_name", "equalized_radiance")
+        info.setdefault("wavelength_range", self.info.get("wavelength_range", dnb_data.info.get("wavelength_range")))
+        info.setdefault("mode", "L")
+        output_dataset.info = info
+        return output_dataset
+
+
+class AdaptiveDNB(HistogramDNB):
+    def __init__(self, *args, **kwargs):
+        """Initialize the compositor with values from the user or from the configuration file.
+
+        Adaptive histogram equalization and regular histogram equalization can be configured
+        independently for each region: day, night, or mixed.
+        A region can be set to use adaptive equalization "always", or "never", or only when
+        there are multiple regions in a single scene "multiple" via the `adaptive_X` keyword
+        arguments (see below).
+
+        :param adaptive_day: one of ("always", "multiple", "never") meaning when adaptive equalization is used.
+        :param adaptive_mixed: one of ("always", "multiple", "never") meaning when adaptive equalization is used.
+        :param adaptive_night: one of ("always", "multiple", "never") meaning when adaptive equalization is used.
+        """
+        self.adaptive_day = kwargs.pop("adaptive_day", "always")
+        self.adaptive_mixed = kwargs.pop("adaptive_mixed", "always")
+        self.adaptive_night = kwargs.pop("adaptive_night", "always")
+        self.day_radius_pixels = int(kwargs.pop("day_radius_pixels", 400))
+        self.mixed_radius_pixels = int(kwargs.pop("mixed_radius_pixels", 100))
+        self.night_radius_pixels = int(kwargs.pop("night_radius_pixels", 400))
+
+        super(AdaptiveDNB, self).__init__(*args, **kwargs)
+
+    def __call__(self, datasets, **info):
+        """Create the composite by scaling the DNB data using an adaptive histogram equalization method.
+
+        :param datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
+        :param **info: Miscellaneous metadata for the newly produced composite
+        """
+        if len(datasets) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(datasets),))
+
+        dnb_data = datasets[0]
+        sza_data = datasets[1]
+        good_mask = ~(dnb_data.mask | sza_data.mask)
+        output_dataset = dnb_data.copy()
+        output_dataset.mask = ~good_mask
+        day_mask, mixed_mask, night_mask = make_day_night_masks(sza_data, good_mask,
+                                                                self.high_angle_cutoff, self.low_angle_cutoff,
+                                                                stepsDegrees=self.mixed_degree_step)
+
+        did_equalize = False
+        has_multi_times = len(mixed_mask) > 0
+        if day_mask.any():
+            did_equalize = True
+            if self.adaptive_day == "always" or (has_multi_times and self.adaptive_day == "multiple"):
+                LOG.debug("Adaptive histogram equalizing DNB day data...")
+                local_histogram_equalization(dnb_data.data, day_mask,
+                                             valid_data_mask=good_mask,
+                                             local_radius_px=self.day_radius_pixels,
+                                             out=output_dataset)
+            else:
+                LOG.debug("Histogram equalizing DNB day data...")
+                histogram_equalization(dnb_data.data, day_mask, out=output_dataset)
+        if mixed_mask:
+            for mask in mixed_mask:
+                if mask.any():
+                    did_equalize = True
+                    if self.adaptive_mixed == "always" or (has_multi_times and self.adaptive_mixed == "multiple"):
+                        LOG.debug("Adaptive histogram equalizing DNB mixed data...")
+                        local_histogram_equalization(dnb_data.data, mask,
+                                                     valid_data_mask=good_mask,
+                                                     local_radius_px=self.mixed_radius_pixels,
+                                                     out=output_dataset)
+                    else:
+                        LOG.debug("Histogram equalizing DNB mixed data...")
+                        histogram_equalization(dnb_data.data, day_mask, out=output_dataset)
+        if night_mask.any():
+            did_equalize = True
+            if self.adaptive_night == "always" or (has_multi_times and self.adaptive_night == "multiple"):
+                LOG.debug("Adaptive histogram equalizing DNB night data...")
+                local_histogram_equalization(dnb_data.data, night_mask,
+                                             valid_data_mask=good_mask,
+                                             local_radius_px=self.night_radius_pixels,
+                                             out=output_dataset)
+            else:
+                LOG.debug("Histogram equalizing DNB night data...")
+                histogram_equalization(dnb_data.data, night_mask, out=output_dataset)
+
+        if not did_equalize:
+            raise RuntimeError("No valid data found to histogram equalize")
+
         info = {}
         info.update(self.info)
         info["area"] = dnb_data.info["area"]
@@ -353,6 +444,7 @@ def local_histogram_equalization (data, mask_to_equalize, valid_data_mask=None, 
                         # figure out which adjacent tile we're processing (in overall tile coordinates instead of relative to our current tile)
                         calculated_row = num_row_tile - 1 + weight_row
                         calculated_col = num_col_tile - 1 + weight_col
+                        tmp_tile_weights = tile_weights[weight_row, weight_col][np.where(temp_mask_to_equalize)]
 
                         # if we're inside the tile array and the tile we're processing has a histogram equalization for us to use, process it
                         if ( (calculated_row >= 0) and (calculated_row < row_tiles) and
@@ -364,13 +456,13 @@ def local_histogram_equalization (data, mask_to_equalize, valid_data_mask=None, 
                             temp_equalized_data = np.interp(temp_all_valid_data,
                                                                all_bin_information[calculated_row][calculated_col][:-1],
                                                                all_cumulative_dist_functions[calculated_row][calculated_col])
-                            temp_equalized_data = temp_equalized_data[temp_mask_to_equalize[temp_all_valid_data_mask]]
+                            temp_equalized_data = temp_equalized_data[np.where(temp_mask_to_equalize[temp_all_valid_data_mask])]
 
                             # add the contribution for the tile we're processing to our weighted sum
-                            temp_sum += (temp_equalized_data * tile_weights[weight_row, weight_col][temp_mask_to_equalize])
+                            temp_sum += (temp_equalized_data * tmp_tile_weights)
 
                         else : # if the tile we're processing doesn't exist, hang onto the weight we would have used for it so we can correct that later
-                            unused_weight -= tile_weights[weight_row, weight_col][temp_mask_to_equalize]
+                            unused_weight -= tmp_tile_weights
 
                 # if we have unused weights, scale our values to correct for that
                 if unused_weight.any():
