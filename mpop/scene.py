@@ -99,7 +99,7 @@ class Scene(InfoObject):
                         options["sensor"] = options["sensor"].pop()
                 comp_cls = options.get("compositor", None)
                 if not comp_cls:
-                    raise ValueError("'compositor' missing or empty in config file: %s" % (composite_config,))
+                    raise ValueError("'compositor' missing or empty in config files: %s" % (composite_configs,))
 
                 # Check if the caller only wants composites for a certain sensor
                 if sensor is not None and sensor not in options["sensor"]:
@@ -109,6 +109,7 @@ class Scene(InfoObject):
                     continue
 
                 # FIXME: this warns also when rereading a composite.
+                # FIXME: this can happen if a sensor-specific configuration overwrites a composite (is that allowed?)
                 if options["name"] in self.compositors:
                     LOG.warning("Duplicate composite found, previous composite '%s' will be overwritten",
                                 options["name"])
@@ -418,10 +419,9 @@ class Scene(InfoObject):
                 return writer
 
     def save_images(self, writer="geotiff", **kwargs):
-        self.get_writer(writer, **kwargs)
+        writer = self.get_writer(writer, **kwargs)
         for projectable in self.datasets.values():
             writer.save_dataset(projectable, **kwargs)
-
 
     def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer
