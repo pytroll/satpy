@@ -31,7 +31,6 @@ from mpop.tools import sunzen_corr_cos
 import six
 
 LOG = logging.getLogger(__name__)
-# TODO: overview_sun
 
 
 class CompositeBase(InfoObject):
