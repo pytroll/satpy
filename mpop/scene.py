@@ -68,7 +68,7 @@ class Scene(InfoObject):
         self.datasets = DatasetDict()
         self.compositors = {}
         self.wishlist = set()
-        self._composite_configs = set()
+
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
@@ -105,7 +105,7 @@ class Scene(InfoObject):
                 if sensor is not None and sensor not in options["sensor"]:
                     continue
                 # Check if the caller only wants composites with certain names
-                if names and options["name"] not in names:
+                if not names or options["name"] not in names:
                     continue
 
                 if options["name"] in self.compositors:
@@ -206,8 +206,6 @@ class Scene(InfoObject):
     def load_compositors(self, composite_names, sensor_names, **kwargs):
         """Load the compositors for *composite_names* for the given *sensor_names*
         """
-        # Don't look for any composites that we may have loaded before
-        composite_names -= set(self.compositors.keys())
         if not composite_names:
             LOG.debug("Already loaded needed composites")
             return composite_names
@@ -215,27 +213,18 @@ class Scene(InfoObject):
         # Load generic composites first
         # we haven't found them all yet, let's check the global composites config
         config_fn = "generic.cfg"
-        if config_fn in self._composite_configs:
-            LOG.debug("Generic composites already loaded, won't reload: %s", config_fn)
+        composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
+        if composite_configs:
+            global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
+            # Update the list of composites the scene knows about
+            self.compositors.update(global_compositors)
         else:
-            composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
-            if composite_configs:
-                global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
-                # Update the set of configs we've read already
-                self._composite_configs.add(config_fn)
-                # Update the list of composites the scene knows about
-                self.compositors.update(global_compositors)
-                # Remove the names we know how to create now
-                composite_names -= set(global_compositors.keys())
-            else:
-                LOG.warning("No global composites/generic.cfg file found in config directory")
+            LOG.warning("No global composites/generic.cfg file found in config directory")
 
         # Check the composites for each particular sensor (may overwrite generic composites so load them all)
         for sensor_name in sensor_names:
+            LOG.debug("Looking for %s-specific composites", sensor_name)
             config_fn = sensor_name + ".cfg"
-            if config_fn in self._composite_configs:
-                LOG.debug("Sensor composites already loaded, won't reload: %s", config_fn)
-                continue
             sensor_composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
             if not sensor_composite_configs:
                 LOG.debug("No sensor composite config found for %s", config_fn)
@@ -244,12 +233,8 @@ class Scene(InfoObject):
             # Load all the compositors for this sensor for the needed names from the specified config
             sensor_compositors = self.read_composites_config(sensor_composite_configs, sensor_name, composite_names,
                                                              **kwargs)
-            # Update the set of configs we've read already
-            self._composite_configs.add(config_fn)
             # Update the list of composites the scene knows about
             self.compositors.update(sensor_compositors)
-            # Remove the names we know how to create now
-            composite_names -= set(sensor_compositors.keys())
 
         return composite_names
 
@@ -309,8 +294,8 @@ class Scene(InfoObject):
 
         # Don't include any of the 'unknown' projectable names
         composites_needed = set(composite for composite in self.compositors.keys()
-                                if composite not in self.datasets or not self[
-            composite].is_loaded()) & composite_names
+                                if composite not in self.datasets
+                                or not self[composite].is_loaded()) & composite_names
         # collect the metadata names that we will need to load to satisfy composites
         needed_metadata = set(metadata) if metadata is not None else set()
         for comp_name in composites_needed:
