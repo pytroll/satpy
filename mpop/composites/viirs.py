@@ -28,6 +28,7 @@ import logging
 from mpop.composites import CompositeBase
 from mpop.projectable import Projectable
 import numpy as np
+from scipy.special import erf
 
 LOG = logging.getLogger(__name__)
 
@@ -141,6 +142,15 @@ class HistogramDNB(CompositeBase):
 
 
 class AdaptiveDNB(HistogramDNB):
+    """Adaptive histogram equalized DNB composite.
+
+    The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
+
+    This composite separates the DNB data in to 3 main regions: Day, Night, and Mixed. Each region is
+    equalized separately to bring out the most information from the region due to the high dynamic range
+    of the DNB data. Optionally, the mixed region can be separated in to multiple smaller regions by
+    using the `mixed_degree_step` keyword.
+    """
     def __init__(self, *args, **kwargs):
         """Initialize the compositor with values from the user or from the configuration file.
 
@@ -221,6 +231,90 @@ class AdaptiveDNB(HistogramDNB):
 
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
+
+        info = {}
+        info.update(self.info)
+        info["area"] = dnb_data.info["area"]
+        info["start_time"] = dnb_data.info["start_time"]
+        info["end_time"] = dnb_data.info["end_time"]
+        info["name"] = self.info["name"]
+        info.setdefault("standard_name", "equalized_radiance")
+        info.setdefault("wavelength_range", self.info.get("wavelength_range", dnb_data.info.get("wavelength_range")))
+        info.setdefault("mode", "L")
+        output_dataset.info = info
+        return output_dataset
+
+
+class ERFDNB(CompositeBase):
+    """Equalized DNB composite using the error function (erf).
+
+    The logic for this code was taken from Polar2Grid and was originally developed by Curtis Seaman and Steve Miller.
+    The original code was written in IDL and is included as comments in the code below.
+    """
+    def __init__(self, *args, **kwargs):
+        self.saturation_correction = kwargs.pop("saturation_correction", False) in [True, "True", "true"]
+        kwargs.setdefault("metadata_requirements", ["moon_illumination_fraction"])
+        super(ERFDNB, self).__init__(*args, **kwargs)
+
+    def __call__(self, datasets, **info):
+        if len(datasets) != 3:
+            raise ValueError("Expected 3 datasets, got %d" % (len(datasets),))
+
+        dnb_data = datasets[0]
+        sza_data = datasets[1]
+        lza_data = datasets[2]
+        good_mask = ~(dnb_data.mask | sza_data.mask)
+        output_dataset = dnb_data.copy()
+        output_dataset.mask = ~good_mask
+
+        moon_illum_name = self.info["metadata_requirements"][0]
+        if moon_illum_name not in dnb_data.info:
+            raise RuntimeError("Could not find '%s' metadata in DNB dataset" % (moon_illum_name,))
+        # convert to decimal instead of %
+        moon_illum_fraction = np.mean(dnb_data.info[moon_illum_name]) * 0.01
+
+        ### From Steve Miller and Curtis Seaman
+        # maxval = 10.^(-1.7 - (((2.65+moon_factor1+moon_factor2))*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
+        # minval = 10.^(-4. - ((2.95+moon_factor2)*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
+        # scaled_radiance = (radiance - minval) / (maxval - minval)
+        # radiance = sqrt(scaled_radiance)
+
+        ### Version 2: Update from Curtis Seaman
+        # maxval = 10.^(-1.7 - (((2.65+moon_factor1+moon_factor2))*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
+        # minval = 10.^(-4. - ((2.95+moon_factor2)*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
+        # saturated_pixels = where(radiance gt maxval, nsatpx)
+        # saturation_pct = float(nsatpx)/float(n_elements(radiance))
+        # print, 'Saturation (%) = ', saturation_pct
+        #
+        # while saturation_pct gt 0.005 do begin
+        #   maxval = maxval*1.1
+        #   saturated_pixels = where(radiance gt maxval, nsatpx)
+        #   saturation_pct = float(nsatpx)/float(n_elements(radiance))
+        #   print, saturation_pct
+        # endwhile
+        #
+        # scaled_radiance = (radiance - minval) / (maxval - minval)
+        # radiance = sqrt(scaled_radiance)
+
+        moon_factor1 = 0.7 * (1.0 - moon_illum_fraction)
+        moon_factor2 = 0.0022 * lza_data
+        erf_portion = 1 + erf((sza_data - 95.0) / (5.0 * np.sqrt(2.0)))
+        max_val = np.power(10, -1.7 - (2.65 + moon_factor1 + moon_factor2) * erf_portion)
+        min_val = np.power(10, -4.0 - (2.95 + moon_factor2) * erf_portion)
+
+        # Update from Curtis Seaman, increase max radiance curve until less than 0.5% is saturated
+        if self.saturation_correction:
+            saturation_pct = float(np.count_nonzero(dnb_data > max_val)) / dnb_data.size
+            LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
+            while saturation_pct > 0.005:
+                max_val *= 1.1
+                saturation_pct = float(np.count_nonzero(dnb_data > max_val)) / dnb_data.size
+                LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
+
+        inner_sqrt = (dnb_data - min_val) / (max_val - min_val)
+        # clip negative values to 0 before the sqrt
+        inner_sqrt[inner_sqrt < 0] = 0
+        np.sqrt(inner_sqrt, out=output_dataset)
 
         info = {}
         info.update(self.info)
@@ -317,6 +411,7 @@ def histogram_equalization (data, mask_to_equalize,
         _linear_normalization_from_0to1 (out, mask_to_equalize, number_of_bins)
 
     return out
+
 
 def local_histogram_equalization (data, mask_to_equalize, valid_data_mask=None, number_of_bins=1000,
                                   std_mult_cutoff=3.0,

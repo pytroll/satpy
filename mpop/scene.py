@@ -97,7 +97,7 @@ class Scene(InfoObject):
                     if len(options["sensor"]) == 1:
                         # FIXME: Finalize how multiple sensors and platforms work
                         options["sensor"] = options["sensor"].pop()
-                comp_cls = options.get("compositor", None)
+                comp_cls = options.pop("compositor", None)
                 if not comp_cls:
                     raise ValueError("'compositor' missing or empty in config files: %s" % (composite_configs,))
 
@@ -113,6 +113,32 @@ class Scene(InfoObject):
                 if options["name"] in self.compositors:
                     LOG.warning("Duplicate composite found, previous composite '%s' will be overwritten",
                                 options["name"])
+
+                # Pull out prerequisites
+                if "prerequisites" in options:
+                    prerequisites = options["prerequisites"].split(",")
+                    options["prerequisites"] = []
+                    for prerequisite in prerequisites:
+                        try:
+                            # prereqs can be wavelengths
+                            options["prerequisites"].append(float(prerequisite))
+                        except ValueError:
+                            # or names
+                            options["prerequisites"].append(prerequisite)
+
+                if "optional_prerequisites" in options:
+                    prerequisites = options["optional_prerequisites"].split(",")
+                    options["prerequisites"] = []
+                    for prerequisite in prerequisites:
+                        try:
+                            # prereqs can be wavelengths
+                            kwargs["optional_prerequisites"].append(float(prerequisite))
+                        except ValueError:
+                            # or names
+                            kwargs["optional_prerequisites"].append(prerequisite)
+
+                if "metadata_requirements" in options:
+                    options["metadata_requirements"] = options["metadata_requirements"].split(",")
 
                 try:
                     loader = runtime_import(comp_cls)

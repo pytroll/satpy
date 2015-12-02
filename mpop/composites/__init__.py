@@ -35,23 +35,13 @@ LOG = logging.getLogger(__name__)
 
 
 class CompositeBase(InfoObject):
-
-    def __init__(self, name, compositor, prerequisites, default_image_config=None,
-                 **kwargs):
+    def __init__(self, name, prerequisites=[], optional_prerequisites=[], metadata_requirements=[], **kwargs):
         # Required info
         kwargs["name"] = name
-        kwargs["compositor"] = compositor
-        kwargs["prerequisites"] = []
-        for prerequisite in prerequisites.split(","):
-            try:
-                kwargs["prerequisites"].append(float(prerequisite))
-            except ValueError:
-                kwargs["prerequisites"].append(prerequisite)
-        InfoObject.__init__(self, **kwargs)
-        if default_image_config is None:
-            return
-        for key, value in default_image_config.iteritems():
-            self.info.setdefault(key, value)
+        kwargs["prerequisites"] = prerequisites
+        kwargs["optional_prerequisites"] = optional_prerequisites
+        kwargs["metadata_requirements"] = metadata_requirements
+        super(CompositeBase, self).__init__(**kwargs)
 
     @property
     def prerequisites(self):
