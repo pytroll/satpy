@@ -105,7 +105,7 @@ class Scene(InfoObject):
                 if sensor is not None and sensor not in options["sensor"]:
                     continue
                 # Check if the caller only wants composites with certain names
-                if not names and options["name"] not in names:
+                if names and options["name"] not in names:
                     continue
 
                 if options["name"] in self.compositors:
