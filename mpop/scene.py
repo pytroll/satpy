@@ -308,21 +308,24 @@ class Scene(InfoObject):
             LOG.warning("Unknown dataset or compositor: %s", unknown_name)
 
         # Don't include any of the 'unknown' projectable names
-        # dataset_ids = set(dataset_ids) - unknown_names
         composites_needed = set(composite for composite in self.compositors.keys()
                                 if composite not in self.datasets or not self[
             composite].is_loaded()) & composite_names
+        # collect the metadata names that we will need to load to satisfy composites
+        needed_metadata = set(metadata) if metadata is not None else set()
+        for comp_name in composites_needed:
+            needed_metadata |= set(self.compositors[comp_name].info["metadata_requirements"])
 
         for reader_name, reader_instance in self.readers.items():
             all_reader_datasets = set(reader_instance.datasets.keys())
 
             # compute the dependencies to load from file
             needed_bands = set(dataset_ids)
-            # FIXME: Can this be replaced with a simple for loop without copy (composites_needed isn't used after this)
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
+                    new_bands = set(reader_instance.get_dataset_key(prereq)
                                         for prereq in self.compositors[band].prerequisites)
+                    needed_bands |= new_bands
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -333,7 +336,7 @@ class Scene(InfoObject):
             # Create datasets in reader and update the scenes datasets
             needed_bands = sorted(needed_bands)
             LOG.debug("Asking reader '%s' for the following datasets %s", reader_name, str(needed_bands))
-            self.datasets.update(reader_instance.load(needed_bands, metadata=metadata, **kwargs))
+            self.datasets.update(reader_instance.load(needed_bands, metadata=needed_metadata, **kwargs))
 
         # Update the scene with information contained in the files
         if not self.datasets:
