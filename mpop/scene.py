@@ -308,9 +308,10 @@ class Scene(InfoObject):
             needed_bands = set(dataset_ids)
             while composites_needed:
                 for band in composites_needed.copy():
-                    new_bands = set(reader_instance.get_dataset_key(prereq)
-                                        for prereq in self.compositors[band].prerequisites)
-                    needed_bands |= new_bands
+                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
+                                        for prereq in self.compositors[band].info["prerequisites"])
+                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
+                                        for prereq in self.compositors[band].info["optional_prerequisites"])
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -352,13 +353,19 @@ class Scene(InfoObject):
                 requirement_name = requirement.name
             else:
                 requirement_name = requirement
-            # Compute any composites that this one depends on
-            self.compute(*self.compositors[requirement_name].prerequisites)
 
-            # TODO: Get non-projectable dependencies like moon illumination fraction
-            prereq_projectables = [self[prereq] for prereq in self.compositors[requirement_name].prerequisites]
+            compositor = self.compositors[requirement_name]
+            # Compute any composites that this one depends on
+            self.compute(*compositor.info["prerequisites"])
+            # Compute any composites that this composite might optionally depend on
+            if compositor.info["optional_prerequisites"]:
+                self.compute(*compositor.info["optional_prerequisites"])
+
+            prereq_datasets = [self[prereq] for prereq in compositor.info["prerequisites"]]
+            optional_datasets = [self[prereq] for prereq in compositor.info["optional_prerequisites"]
+                                 if prereq in self]
             try:
-                comp_projectable = self.compositors[requirement_name](prereq_projectables, **self.info)
+                comp_projectable = compositor(prereq_datasets, optional_datasets=optional_datasets, **self.info)
 
                 # validate the composite projectable
                 assert("name" in comp_projectable.info)
@@ -382,9 +389,9 @@ class Scene(InfoObject):
                     self.wishlist.remove(requirement_name)
                     self.wishlist.add(band_id)
             except IncompatibleAreas:
-                for ds_id, projectable in self.datasets.iteritems():
+                for ds_id, projectable in self.datasets.items():
                     # FIXME: Can compositors use wavelengths or only names?
-                    if ds_id.name in self.compositors[requirement_name].prerequisites:
+                    if ds_id.name in compositor.info["prerequisites"]:
                         projectable.info["keep"] = True
 
     def unload(self):

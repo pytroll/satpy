@@ -42,12 +42,7 @@ class CompositeBase(InfoObject):
         kwargs["metadata_requirements"] = metadata_requirements
         super(CompositeBase, self).__init__(**kwargs)
 
-    @property
-    def prerequisites(self):
-        # Semi-backward compatible
-        return self.info["prerequisites"]
-
-    def __call__(self, projectables, nonprojectables=None, **info):
+    def __call__(self, datasets, optional_datasets=None, **info):
         raise NotImplementedError()
 
 
