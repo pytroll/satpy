@@ -33,7 +33,7 @@ import os
 import logging
 
 from mpop import runtime_import, config_search_paths, get_environ_config_dir
-from mpop.projectable import Projectable, InfoObject, DatasetID, DatasetDict
+from mpop.projectable import Projectable, InfoObject
 from mpop.readers import ReaderFinder, DatasetDict, DatasetID
 from mpop.composites import IncompatibleAreas
 
