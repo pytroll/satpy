@@ -25,7 +25,7 @@
 """
 
 import logging
-from mpop.composites import CompositeBase
+from mpop.composites import CompositeBase, IncompatibleAreas
 from mpop.projectable import Projectable
 import numpy as np
 from scipy.special import erf
@@ -66,6 +66,65 @@ class VIIRSTrueColor(CompositeBase):
                            data=np.concatenate(
                                ([p1.data], [p2.data], [p2.data]), axis=0),
                            **info)
+
+
+class VIIRSSharpTrueColor(CompositeBase):
+    def __init__(self, *args, **kwargs):
+        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
+        super(VIIRSSharpTrueColor, self).__init__(*args, **kwargs)
+
+    def __call__(self, datasets, optional_datasets=[], **info):
+        if len(datasets) != 3:
+            raise ValueError("Expected 3 datasets, got %d" % (len(datasets),))
+
+        # raise IncompatibleAreas
+        p1, p2, p3 = datasets
+        if optional_datasets:
+            high_res = optional_datasets[0]
+            if high_res.info["area"] != p1.info["area"]:
+                raise IncompatibleAreas("High resolution band is not mapped the same area as the low resolution bands")
+            if self.high_resolution_band == "red":
+                LOG.debug("Sharpening image with high resolution red band")
+                ratio = high_res.data / p1.data
+                r = high_res.data
+                g = p2.data * ratio
+                b = p3.data * ratio
+            elif self.high_resolution_band == "green":
+                LOG.debug("Sharpening image with high resolution green band")
+                ratio = high_res.data / p2.data
+                r = p1.data * ratio
+                g = high_res.data
+                b = p3.data * ratio
+            elif self.high_resolution_band == "blue":
+                LOG.debug("Sharpening image with high resolution blue band")
+                ratio = high_res.data / p3.data
+                r = p1.data * ratio
+                g = p2.data * ratio
+                b = high_res.data
+            else:
+                # no sharpening
+                r = p1.data
+                g = p2.data
+                b = p3.data
+            mask = p1.mask | p2.mask | p3.mask | high_res.mask
+        else:
+            r, g, b = p1.data, p2.data, p3.data
+            mask = p1.mask | p2.mask | p3.mask
+
+        info = {}
+        info.update(self.info)
+        info["name"] = self.info["name"]
+        info["area"] = p1.info["area"]
+        info["start_time"] = p1.info["start_time"]
+        info["end_time"] = p1.info["end_time"]
+        info.setdefault("standard_name", "true_color")
+        info.setdefault("wavelength_range", None)
+        info.setdefault("mode", "RGB")
+        return Projectable(
+            data=np.concatenate(
+                ([r], [g], [b]), axis=0),
+            mask=mask,
+            **info)
 
 
 class HistogramDNB(CompositeBase):

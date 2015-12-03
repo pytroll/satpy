@@ -33,20 +33,13 @@ import os
 import logging
 
 from mpop import runtime_import, config_search_paths, get_environ_config_dir
-from mpop.projectable import Projectable, InfoObject
-from mpop import PACKAGE_CONFIG_PATH
+from mpop.projectable import Projectable, InfoObject, DatasetID, DatasetDict
 from mpop.readers import ReaderFinder, DatasetDict, DatasetID
+from mpop.composites import IncompatibleAreas
 
 from mpop.utils import debug_on
 debug_on()
 LOG = logging.getLogger(__name__)
-
-
-class IncompatibleAreas(Exception):
-    """
-    Error raised upon compositing things of different shapes.
-    """
-    pass
 
 
 class Scene(InfoObject):
@@ -124,7 +117,7 @@ class Scene(InfoObject):
 
                 def _normalize_prereqs(prereqs, other_identifiers):
                     # Pull out prerequisites
-                    prerequisites = options["prerequisites"].split(",")
+                    prerequisites = prereqs.split(",")
                     prereqs = []
                     for idx, prerequisite in enumerate(prerequisites):
                         ds_id = {"name": None, "wavelength": None}
@@ -236,6 +229,9 @@ class Scene(InfoObject):
             # Update the list of composites the scene knows about
             self.compositors.update(sensor_compositors)
 
+        # remove the compositors we know about now
+        composite_names -= set(self.compositors.keys())
+
         return composite_names
 
     def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
@@ -308,10 +304,15 @@ class Scene(InfoObject):
             needed_bands = set(dataset_ids)
             while composites_needed:
                 for band in composites_needed.copy():
-                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
-                                        for prereq in self.compositors[band].info["prerequisites"])
-                    needed_bands |= set(reader_instance.get_dataset_key(prereq)
-                                        for prereq in self.compositors[band].info["optional_prerequisites"])
+                    # overwrite any semi-qualified IDs with the fully qualified ID
+                    prereqs = [reader_instance.get_dataset_key(prereq)
+                               for prereq in self.compositors[band].info["prerequisites"]]
+                    self.compositors[band].info["prerequisites"] = prereqs
+                    needed_bands |= set(prereqs)
+                    prereqs = [reader_instance.get_dataset_key(prereq)
+                               for prereq in self.compositors[band].info["optional_prerequisites"]]
+                    self.compositors[band].info["optional_prerequisites"] = prereqs
+                    needed_bands |= set(prereqs)
                     composites_needed.remove(band)
 
             # A composite might use a product from another reader, so only pass along the ones we know about
@@ -342,6 +343,7 @@ class Scene(InfoObject):
         """
         if not requirements:
             requirements = self.wishlist.copy()
+        keepables = set()
         for requirement in requirements:
             if isinstance(requirement, DatasetID) and requirement.name not in self.compositors:
                 continue
@@ -356,10 +358,10 @@ class Scene(InfoObject):
 
             compositor = self.compositors[requirement_name]
             # Compute any composites that this one depends on
-            self.compute(*compositor.info["prerequisites"])
+            keepables |= self.compute(*compositor.info["prerequisites"])
             # Compute any composites that this composite might optionally depend on
             if compositor.info["optional_prerequisites"]:
-                self.compute(*compositor.info["optional_prerequisites"])
+                keepables |= self.compute(*compositor.info["optional_prerequisites"])
 
             prereq_datasets = [self[prereq] for prereq in compositor.info["prerequisites"]]
             optional_datasets = [self[prereq] for prereq in compositor.info["optional_prerequisites"]
@@ -389,17 +391,21 @@ class Scene(InfoObject):
                     self.wishlist.remove(requirement_name)
                     self.wishlist.add(band_id)
             except IncompatibleAreas:
+                LOG.debug("Composite '%s' could not be created because of incompatible areas", requirement_name)
+                # FIXME: If a composite depends on this composite we need to notify the previous call
+                preservable_datasets = set(compositor.info["prerequisites"] + compositor.info["optional_prerequisites"])
                 for ds_id, projectable in self.datasets.items():
                     # FIXME: Can compositors use wavelengths or only names?
-                    if ds_id.name in compositor.info["prerequisites"]:
-                        projectable.info["keep"] = True
+                    if ds_id in preservable_datasets:
+                        keepables.add(ds_id)
+        return keepables
 
-    def unload(self):
+    def unload(self, keepables=None):
         """Unload all loaded composites.
         """
         to_del = [ds_id for ds_id, projectable in self.datasets.items()
                   if ds_id not in self.wishlist and
-                  not projectable.info.get("keep", False)]
+                  (not keepables or ds_id not in keepables)]
         for ds_id in to_del:
             del self.datasets[ds_id]
 
@@ -407,17 +413,19 @@ class Scene(InfoObject):
         """Read, compute and unload.
         """
         self.read(wishlist, calibration=calibration, resolution=resolution, polarization=polarization, metadata=metadata, **kwargs)
+        keepables = None
         if kwargs.get("compute", True):
-            self.compute()
+            keepables = self.compute()
         if kwargs.get("unload", True):
-            self.unload()
+            self.unload(keepables=keepables)
 
-    def resample(self, destination, datasets=None, **kwargs):
+    def resample(self, destination, datasets=None, compute=True, unload=True, **kwargs):
         """Resample the datasets and return a new scene.
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
         new_scn.wishlist = self.wishlist
+        new_scn.compositors = self.compositors.copy()
         for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id.name not in datasets:
@@ -425,7 +433,11 @@ class Scene(InfoObject):
             new_scn[ds_id] = projectable.resample(destination, **kwargs)
 
         # recompute anything from the wishlist that needs it (combining multiple resolutions, etc.)
-        new_scn.compute()
+        keepables = None
+        if compute:
+            keepables = new_scn.compute()
+        if unload:
+            new_scn.unload(keepables)
 
         return new_scn
 

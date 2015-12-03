@@ -33,6 +33,13 @@ import six
 LOG = logging.getLogger(__name__)
 
 
+class IncompatibleAreas(Exception):
+    """
+    Error raised upon compositing things of different shapes.
+    """
+    pass
+
+
 class CompositeBase(InfoObject):
     def __init__(self, name, prerequisites=[], optional_prerequisites=[], metadata_requirements=[], **kwargs):
         # Required info
