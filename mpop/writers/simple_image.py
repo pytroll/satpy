@@ -22,7 +22,10 @@
 """
 """
 
+import logging
 from mpop.writers import Writer
+
+LOG = logging.getLogger(__name__)
 
 
 class PillowWriter(Writer):
@@ -32,4 +35,5 @@ class PillowWriter(Writer):
 
     def save_image(self, img, **kwargs):
         filename = kwargs.pop("filename", self.get_filename(**img.info))
+        LOG.debug("Saving to image: %s", filename)
         img.save(filename)
