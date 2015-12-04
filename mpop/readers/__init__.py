@@ -979,7 +979,11 @@ class ConfigBasedReader(Reader):
                 file_type = dataset_info["file_type"]
                 file_key = dataset_info["file_key"]
                 nav_name = dataset_info["navigation"]
-            file_reader = self.file_readers[file_type]
+            try:
+                file_reader = self.file_readers[file_type]
+            except KeyError:
+                LOG.warning("Can't file any file for type: %s", str(file_type))
+                continue
 
             # Get the swath data (fully scaled and in the correct data type)
             data = file_reader.get_swath_data(file_key, dataset_id=ds_id)
