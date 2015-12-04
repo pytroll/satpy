@@ -80,10 +80,22 @@ def step_impl(context):
 def step_impl(context):
     context.scene.load(["M01"])
 
-#@when(u'user wants to know what data is available')
-#def step_impl(context):
-#    raise NotImplementedError(u'STEP: When user wants to know what data is available')
+@when(u'user wants to know what data is available')
+def step_impl(context):
+    from mpop.scene import Scene
+    from datetime import datetime
+    os.chdir("/tmp/")
+    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
+                start_time=datetime(2015, 3, 11, 11, 20),
+                end_time=datetime(2015, 3, 11, 11, 26))
+    from itertools import chain
+    available = []
+    for reader in scn.readers.values():
+        for item in reader.dataset_names:
+            available.append(item)
+    context.available_datasets = available
 
-#@then(u'available datasets is returned')
-#def step_impl(context):
-#    raise NotImplementedError(u'STEP: Then available datasets is returned')
+@then(u'available datasets is returned')
+def step_impl(context):
+    assert(len(context.available_datasets) >= 5)
+

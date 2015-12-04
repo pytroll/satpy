@@ -24,3 +24,7 @@ Feature: Simple and intuitive scene loading (sc. 1)
         And some items are no available
         Then the data is available in a scene object
 
+    Scenario: Data is explorable
+        Given data is available
+        When user wants to know what data is available
+        Then available datasets is returned
