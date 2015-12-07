@@ -441,6 +441,13 @@ class Scene(InfoObject):
 
         return new_scn
 
+    def show(self, dataset_id):
+        """Show the *dataset* on screen as an image.
+        """
+
+        from mpop.writers import get_enhanced_image
+        get_enhanced_image(self[dataset_id]).show()
+
     def images(self):
         """Generate images for all the datasets from the scene.
         """
