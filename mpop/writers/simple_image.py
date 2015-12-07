@@ -33,7 +33,8 @@ class PillowWriter(Writer):
     def __init__(self, **kwargs):
         Writer.__init__(self, default_config_filename="writers/simple_image.cfg", **kwargs)
 
-    def save_image(self, img, **kwargs):
-        filename = kwargs.pop("filename", self.get_filename(**img.info))
+    def save_image(self, img, filename=None, **kwargs):
+        filename = filename or self.get_filename(**img.info)
+
         LOG.debug("Saving to image: %s", filename)
         img.save(filename)

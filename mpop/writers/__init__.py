@@ -147,14 +147,14 @@ class Writer(Plugin):
             raise RuntimeError("No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
 
-    def save_dataset(self, dataset, fill_value=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(dataset, self.enhancer, fill_value)
-        self.save_image(img, **kwargs)
+        self.save_image(img, filename=filename, **kwargs)
 
-    def save_image(self, img, *args, **kwargs):
+    def save_image(self, img, filename=None, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 

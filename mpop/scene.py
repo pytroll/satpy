@@ -469,7 +469,18 @@ class Scene(InfoObject):
                 writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_files, **kwargs)
                 return writer
 
-    def save_images(self, writer="geotiff", **kwargs):
+    def save_dataset(self, dataset_id, filename=None, writer=None, **kwargs):
+        """Save the *dataset_id* to file using *writer* (geotiff by default).
+        """
+        if writer is None:
+            writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
+        else:
+            writer = self.get_writer(writer, **kwargs)
+        writer.save_dataset(self[dataset_id], filename=filename)
+
+    def save_datasets(self, writer="geotiff", **kwargs):
+        """Save all the datasets present in a scene to disk using *writer*.
+        """
         writer = self.get_writer(writer, **kwargs)
         for projectable in self.datasets.values():
             writer.save_dataset(projectable, **kwargs)
@@ -479,3 +490,9 @@ class Scene(InfoObject):
         config_files = config_search_paths(os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)
         return self.load_writer_config(**kwargs)
+
+    def get_writer_by_ext(self, extension, **kwargs):
+        mapping = {".tiff": "geotiff",
+                   ".tif":  "geotiff",
+                   }
+        return self.get_writer(mapping.get(extension.lower(), "simple_image"), **kwargs)
