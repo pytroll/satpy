@@ -21,7 +21,7 @@ Feature: Simple and intuitive scene loading (sc. 1)
     Scenario: No crash when metadata is missing
         Given data is available
         When user loads the data without providing a config file
-        And some items are no available
+        And some items are not available
         Then the data is available in a scene object
 
     Scenario: Data is explorable

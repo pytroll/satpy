@@ -24,35 +24,25 @@
 
 import os
 
-# @given(u'data is available')
-# def step_impl(context):
-#     assert False
-#
-# @when(u'user loads the data without providing a config file')
-# def step_impl(context):
-#     assert False
-#
-# @then(u'scene is returned')
-# def step_impl(context):
-#     assert False
-#
-# @when(u'some items are no available')
-# def step_impl(context):
-#     assert False
-#
+from behave import *
 
+use_step_matcher("re")
 
 
 @given(u'data is available')
 def step_impl(context):
     import urllib2
     if not os.path.exists('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5'):
-        response = urllib2.urlopen('https://zenodo.org/record/16355/files/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5')
-        with open('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5', mode="w") as fp:
+        response = urllib2.urlopen(
+            'https://zenodo.org/record/16355/files/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5')
+        with open('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5',
+                  mode="w") as fp:
             fp.write(response.read())
     if not os.path.exists('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5'):
-        response = urllib2.urlopen('https://zenodo.org/record/16355/files/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5')
-        with open('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5', mode="w") as fp:
+        response = urllib2.urlopen(
+            'https://zenodo.org/record/16355/files/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5')
+        with open('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5',
+                  mode="w") as fp:
             fp.write(response.read())
 
 
@@ -67,18 +57,21 @@ def step_impl(context):
     scn.load(["M02"])
     context.scene = scn
 
+
 @then(u'the data is available in a scene object')
 def step_impl(context):
-    assert(context.scene["M02"] is not None)
+    assert (context.scene["M02"] is not None)
     try:
         context.scene["M01"] is None
-        assert(False)
+        assert (False)
     except KeyError:
-        assert(True)
+        assert (True)
 
-@when(u'some items are no available')
+
+@when(u'some items are not available')
 def step_impl(context):
     context.scene.load(["M01"])
+
 
 @when(u'user wants to know what data is available')
 def step_impl(context):
@@ -88,14 +81,9 @@ def step_impl(context):
     scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
-    from itertools import chain
-    available = []
-    for reader in scn.readers.values():
-        for item in reader.dataset_names:
-            available.append(item)
-    context.available_datasets = available
+    context.available_datasets = scn.available_datasets()
+
 
 @then(u'available datasets is returned')
 def step_impl(context):
-    assert(len(context.available_datasets) >= 5)
-
+    assert (len(context.available_datasets) >= 5)
