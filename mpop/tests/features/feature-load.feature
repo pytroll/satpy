@@ -13,17 +13,20 @@ Feature: Simple and intuitive scene loading (sc. 1)
     The data and metadata available from the file have to be explorable,
     so that the user don’t need to guess what the (meta)data is called.
 
+    @download
     Scenario: 1-step data loading
         Given data is available
         When user loads the data without providing a config file
         Then the data is available in a scene object
 
+    @download
     Scenario: No crash when metadata is missing
         Given data is available
         When user loads the data without providing a config file
         And some items are not available
         Then the data is available in a scene object
 
+    @download
     Scenario: Data is explorable
         Given data is available
         When user wants to know what data is available

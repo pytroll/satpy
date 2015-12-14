@@ -45,7 +45,7 @@ if sys.version < '2.7':
     requires.append('ordereddict')
 
 
-test_requires = []
+test_requires = ['behave']
 
 if sys.version < '3.0':
     test_requires.append('mock')

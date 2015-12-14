@@ -20,7 +20,9 @@ install:
 addons:
   apt_packages:
     - libhdf5-serial-dev
-script: coverage run --source=mpop setup.py test
+script:
+- coverage run --source=mpop setup.py test
+- coverage run -a --source=mpop -m behave mpop/tests/features --tags=-download
 after_success: coveralls
 deploy:
   provider: pypi
