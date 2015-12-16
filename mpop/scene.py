@@ -35,7 +35,7 @@ import logging
 from mpop import runtime_import, config_search_paths, get_environ_config_dir
 from mpop.projectable import Projectable, InfoObject
 from mpop.readers import ReaderFinder, DatasetDict, DatasetID
-from mpop.composites import IncompatibleAreas
+from mpop.composites import IncompatibleAreas, load_compositors
 
 from mpop.utils import debug_on
 debug_on()
@@ -48,7 +48,7 @@ class Scene(InfoObject):
     """
 
     def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, base_dir=None, **info):
-        """platform_name=None, sensor=None, start_time=None, end_time=None,
+        """The Scene object constructor.
         """
         # Get PPP_CONFIG_DIR
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
@@ -71,93 +71,6 @@ class Scene(InfoObject):
         for reader_instance in reader_instances:
             if reader_instance:
                 self.readers[reader_instance.name] = reader_instance
-
-    def read_composites_config(self, composite_configs=None, sensor=None, names=None, **kwargs):
-        """Read the (generic) *composite_config* for *sensor* and *names*.
-        """
-        if not composite_configs:
-            composite_configs = config_search_paths(os.path.join("composites", "generic.cfg"), self.ppp_config_dir)
-
-        conf = configparser.ConfigParser()
-        conf.read(composite_configs)
-        compositors = {}
-        for section_name in conf.sections():
-            if section_name.startswith("composite:"):
-                options = dict(conf.items(section_name))
-                options["sensor"] = options.setdefault("sensor", None)
-                if options["sensor"]:
-                    options["sensor"] = set(options["sensor"].split(","))
-                    if len(options["sensor"]) == 1:
-                        # FIXME: Finalize how multiple sensors and platforms work
-                        options["sensor"] = options["sensor"].pop()
-                comp_cls = options.pop("compositor", None)
-                if not comp_cls:
-                    raise ValueError("'compositor' missing or empty in config files: %s" % (composite_configs,))
-
-                # Check if the caller only wants composites for a certain sensor
-                if sensor is not None and sensor not in options["sensor"]:
-                    continue
-                # Check if the caller only wants composites with certain names
-                if not names or options["name"] not in names:
-                    continue
-
-                if options["name"] in self.compositors:
-                    LOG.debug("Duplicate composite found, previous composite '%s' will be overwritten",
-                                options["name"])
-
-                # Get other identifiers that could be used to filter the prerequisites
-                other_identifiers = {}
-                for o_id in ["resolution", "calibration", "polarization"]:
-                    if o_id in options:
-                        other_identifiers[o_id] = options[o_id].split(",")
-                optional_other_identifiers = {}
-                for o_id in ["resolution", "calibration", "polarization"]:
-                    if "optional_" + o_id in options:
-                        optional_other_identifiers[o_id] = options["optional_" + o_id].split(",")
-
-                def _normalize_prereqs(prereqs, other_identifiers):
-                    # Pull out prerequisites
-                    prerequisites = prereqs.split(",")
-                    prereqs = []
-                    for idx, prerequisite in enumerate(prerequisites):
-                        ds_id = {"name": None, "wavelength": None}
-                        # convert the prerequisite
-                        try:
-                            # prereqs can be wavelengths
-                            ds_id["wavelength"] = float(prerequisite)
-                        except ValueError:
-                            # or names
-                            ds_id["name"] = prerequisite
-
-                        # add further filtering to the prerequisites via the DatasetID namedtuple
-                        for o_id, vals in other_identifiers.items():
-                            ds_id[o_id] = vals[idx]
-
-                        prereqs.append(DatasetID(**ds_id))
-
-                    return prereqs
-
-                if "prerequisites" in options:
-                    options["prerequisites"] = _normalize_prereqs(options["prerequisites"], other_identifiers)
-
-                if "optional_prerequisites" in options:
-                    options["optional_prerequisites"] = _normalize_prereqs(options["optional_prerequisites"],
-                                                                           optional_other_identifiers)
-
-                if "metadata_requirements" in options:
-                    options["metadata_requirements"] = options["metadata_requirements"].split(",")
-
-                try:
-                    loader = runtime_import(comp_cls)
-                except ImportError:
-                    LOG.warning("Could not import composite class '%s' for"
-                                " compositor '%s'", comp_cls, options["name"])
-                    continue
-
-                options.update(**kwargs)
-                comp = loader(**options)
-                compositors[options["name"]] = comp
-        return compositors
 
     def available_datasets(self, reader_name=None):
         """Return the available datasets, globally or just for *reader_name* if specified.
@@ -192,47 +105,13 @@ class Scene(InfoObject):
         self.wishlist.remove(k)
         del self.datasets[k]
 
-
     def __contains__(self, name):
         return name in self.datasets
 
-    def load_compositors(self, composite_names, sensor_names, **kwargs):
-        """Load the compositors for *composite_names* for the given *sensor_names*
+    def available_composites(self):
+        """Return the list of available composites for the current scene.
         """
-        if not composite_names:
-            LOG.debug("Already loaded needed composites")
-            return composite_names
-
-        # Load generic composites first
-        # we haven't found them all yet, let's check the global composites config
-        config_fn = "generic.cfg"
-        composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
-        if composite_configs:
-            global_compositors = self.read_composites_config(composite_configs, names=composite_names, **kwargs)
-            # Update the list of composites the scene knows about
-            self.compositors.update(global_compositors)
-        else:
-            LOG.warning("No global composites/generic.cfg file found in config directory")
-
-        # Check the composites for each particular sensor (may overwrite generic composites so load them all)
-        for sensor_name in sensor_names:
-            LOG.debug("Looking for %s-specific composites", sensor_name)
-            config_fn = sensor_name + ".cfg"
-            sensor_composite_configs = config_search_paths(os.path.join("composites", config_fn), self.ppp_config_dir)
-            if not sensor_composite_configs:
-                LOG.debug("No sensor composite config found for %s", config_fn)
-                continue
-
-            # Load all the compositors for this sensor for the needed names from the specified config
-            sensor_compositors = self.read_composites_config(sensor_composite_configs, sensor_name, composite_names,
-                                                             **kwargs)
-            # Update the list of composites the scene knows about
-            self.compositors.update(sensor_compositors)
-
-        # remove the compositors we know about now
-        composite_names -= set(self.compositors.keys())
-
-        return composite_names
+        return load_compositors(sensor_names=[self.info["sensor"]], ppp_config_dir=self.ppp_config_dir).keys()
 
     def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read the composites called *dataset_keys* or their prerequisites.
@@ -283,7 +162,10 @@ class Scene(InfoObject):
 
         # If we have any composites that need to be made, then let's create the composite objects
         if composite_names:
-            unknown_names = self.load_compositors(composite_names.copy(), sensor_names, **kwargs)
+            self.compositors.update(load_compositors(composite_names.copy(), sensor_names,
+                                                     ppp_config_dir=self.ppp_config_dir,
+                                                     **kwargs))
+            unknown_names = set(composite_names) - set(self.compositors.keys())
 
         for unknown_name in unknown_names:
             LOG.warning("Unknown dataset or compositor: %s", unknown_name)

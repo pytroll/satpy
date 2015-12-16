@@ -29,6 +29,13 @@ import numpy as np
 import logging
 from mpop.tools import sunzen_corr_cos
 import six
+from mpop import CONFIG_PATH, config_search_paths, runtime_import
+from mpop.readers import DatasetID
+import os
+try:
+    import configparser
+except:
+    from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +45,125 @@ class IncompatibleAreas(Exception):
     Error raised upon compositing things of different shapes.
     """
     pass
+
+class CompositeReader(object):
+    """Read composites using the configuration files on disk.
+    """
+    def __init__(self, composite_names, sensor_names=None):
+        pass
+
+# FIXME: is kwargs really used here ? what for ? This should be made explicit probably
+def _get_compositors_from_configs(composite_configs, composite_names, sensor_names=None, **kwargs):
+    """Use the *composite_configs* to return the compositors for requested *composite_names*.
+
+    :param composite_configs:
+    :param composite_names:
+    :return: A list of loaded compositors
+    """
+
+    conf = configparser.ConfigParser()
+    conf.read(composite_configs)
+    compositors = {}
+    for section_name in conf.sections():
+        if section_name.startswith("composite:"):
+            options = dict(conf.items(section_name))
+            options["sensor"] = options.setdefault("sensor", None)
+            if options.get("sensor", None):
+                options["sensor"] = set(options["sensor"].split(","))
+            comp_cls = options.pop("compositor", None)
+            if not comp_cls:
+                raise ValueError("'compositor' missing or empty in config files: %s" % (composite_configs,))
+
+            # Check if the caller only wants composites for a certain sensor
+            if (options["sensor"] is not None and
+                        sensor_names is not None and
+                        not (set(sensor_names) & set(options["sensor"]))):
+                continue
+            # Check if the caller only wants composites with certain names
+            if composite_names is not None and options["name"] not in composite_names:
+                continue
+
+            if options["name"] in compositors:
+                LOG.debug("Duplicate composite found, previous composite '%s' will be overwritten",
+                            options["name"])
+
+            # Get other identifiers that could be used to filter the prerequisites
+            other_identifiers = {}
+            for o_id in ["resolution", "calibration", "polarization"]:
+                if o_id in options:
+                    other_identifiers[o_id] = options[o_id].split(",")
+            optional_other_identifiers = {}
+            for o_id in ["resolution", "calibration", "polarization"]:
+                if "optional_" + o_id in options:
+                    optional_other_identifiers[o_id] = options["optional_" + o_id].split(",")
+
+            def _normalize_prereqs(prereqs, other_identifiers):
+                # Pull out prerequisites
+                prerequisites = prereqs.split(",")
+                prereqs = []
+                for idx, prerequisite in enumerate(prerequisites):
+                    ds_id = {"name": None, "wavelength": None}
+                    # convert the prerequisite
+                    try:
+                        # prereqs can be wavelengths
+                        ds_id["wavelength"] = float(prerequisite)
+                    except ValueError:
+                        # or names
+                        ds_id["name"] = prerequisite
+
+                    # add further filtering to the prerequisites via the DatasetID namedtuple
+                    for o_id, vals in other_identifiers.items():
+                        ds_id[o_id] = vals[idx]
+
+                    prereqs.append(DatasetID(**ds_id))
+
+                return prereqs
+
+            if "prerequisites" in options:
+                options["prerequisites"] = _normalize_prereqs(options["prerequisites"], other_identifiers)
+
+            if "optional_prerequisites" in options:
+                options["optional_prerequisites"] = _normalize_prereqs(options["optional_prerequisites"],
+                                                                       optional_other_identifiers)
+
+            if "metadata_requirements" in options:
+                options["metadata_requirements"] = options["metadata_requirements"].split(",")
+
+            try:
+                loader = runtime_import(comp_cls)
+            except ImportError:
+                LOG.warning("Could not import composite class '%s' for"
+                            " compositor '%s'", comp_cls, options["name"])
+                continue
+
+            options.update(**kwargs)
+            comp = loader(**options)
+            compositors[options["name"]] = comp
+    return compositors
+
+
+
+def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CONFIG_PATH, **kwargs):
+    """Load the requested *composite_names*.
+
+    :param composite_names: The name of the desired composites
+    :param sensor_names:  The name of the desired sensors to load composites for
+    :param ppp_config_dir: The config directory
+    :return: A list of loaded compositors
+    """
+    if sensor_names is None:
+        sensor_names = []
+    config_filenames = ["generic.cfg"] + [sensor_name + ".cfg" for sensor_name in sensor_names]
+    compositors = dict()
+    for config_filename in config_filenames:
+        LOG.debug("Looking for composites config file %s", config_filename)
+        composite_configs = config_search_paths(os.path.join("composites", config_filename), ppp_config_dir)
+        if not composite_configs:
+            LOG.debug("No composite config found called %s", config_filename)
+            continue
+        composite_configs.reverse()
+        compositors.update(_get_compositors_from_configs(composite_configs, composite_names, sensor_names, **kwargs))
+    return compositors
 
 
 class CompositeBase(InfoObject):
