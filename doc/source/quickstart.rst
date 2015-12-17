@@ -2,286 +2,197 @@
  Quickstart
 ============
 
-The software uses OOP extensively, to allow higher level metaobject handling.
+Loading data
+============
 
-For this tutorial, we will use the Meteosat plugin and data.
+.. versionchanged:: 2.0.0-alpha.1
+   New syntax
 
-Don’t forget to first source the `profile` file of interest located in the
-source `etc` directory.
+.. testsetup:: *
+    >>> import sys
+    >>> reload(sys)
+    >>> sys.setdefaultencoding('utf8')
 
-First example
-=============
+To work with weather satellite data, one has to create an instance of the :class:`Scene` class. In order for mpop to
+get access to the data, either the current wording directory has to be set to the directory containing the data
+files, or the `base_dir` keyword argument has to be provided on scene creation::
 
-.. versionchanged:: 0.10.0
-   The factory-based loading was added in 0.10.0
+    >>> import os
+    >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
+    >>> from mpop import Scene
+    >>> from datetime import datetime
+    >>> time_slot = datetime(2015, 4, 20, 10, 0)
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
 
+or::
 
-Ok, let's get it on::
-
-    >>> from mpop.satellites import GeostationaryFactory
-    >>> from mpop.projector import get_area_def
-    >>> import datetime
-    >>> time_slot = datetime.datetime(2009, 10, 8, 14, 30)
-    >>> global_data = GeostationaryFactory.create_scene("Meteosat-9", "", "seviri", time_slot)
-    >>> europe = get_area_def("EuropeCanary")
-    >>> global_data.load([0.6, 0.8, 10.8], area_extent=europe.area_extent)
-    >>> print global_data
-    'IR_097: (9.380,9.660,9.940)μm, resolution 3000.40316582m, not loaded'
-    'IR_016: (1.500,1.640,1.780)μm, resolution 3000.40316582m, not loaded'
-    'VIS008: (0.740,0.810,0.880)μm, shape (1200, 3000), resolution 3000.40316582m'
-    'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000.40316582m'
-    'WV_062: (5.350,6.250,7.150)μm, resolution 3000.40316582m, not loaded'
-    'IR_120: (11.000,12.000,13.000)μm, resolution 3000.40316582m, not loaded'
-    'WV_073: (6.850,7.350,7.850)μm, resolution 3000.40316582m, not loaded'
-    'IR_087: (8.300,8.700,9.100)μm, resolution 3000.40316582m, not loaded'
-    'IR_039: (3.480,3.920,4.360)μm, resolution 3000.40316582m, not loaded'
-    'HRV: (0.500,0.700,0.900)μm, resolution 1000.13434887m, not loaded'
-    'IR_134: (12.400,13.400,14.400)μm, resolution 3000.40316582m, not loaded'
-    'IR_108: (9.800,10.800,11.800)μm, shape (1200, 3000), resolution 3000.40316582m'
-
-
-In this example, we create a scene object for the seviri instrument onboard
-Meteosat-9, specifying the time of the snapshot of interest. The time is
-defined as a datetime object. 
-
-The next step is loading the data. This is done using mipp, which takes care of
-reading the HRIT data, and slicing the data so that we read just what is
-needed. Calibration is also done with mipp. In order to slice the data, we
-retreive the area we will work on, here set to variable *europe*.
-
-Here we call the :meth:`load` function with a list of the wavelengths of the
-channels we are interested in, and the area extent in satellite projection of
-the area of interest. Each retrieved channel is the closest in terms of central
-wavelength, provided that the required wavelength is within the bounds of the
-channel.
-
-The wavelengths are given in micrometers and have to be given as a floating
-point number (*i.e.*, don't type '1', but '1.0'). Using an integer number
-instead returns a channel based on resolution, while using a string retrieves a
-channels based on its name.
-
-    >>> img = global_data.image.overview()
-    >>> img.save("./myoverview.png")
+    >>> from mpop.scene import Scene
+    >>> from datetime import datetime
+    >>> time_slot = datetime(2015, 4, 20, 10, 0)
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
     >>>
 
-Once the channels are loaded, we generate an overview RGB composite image, and
-save it as a png image. Instead of :meth:`save`, one could also use
-:meth:`show` if the only purpose is to display the image on screen.
+For some platforms, it might be necessary to also specify an `end_time`::
 
-Available composites are listed in the :mod:`mpop.satellites.visir` module
-in the mpop documentation.
+    >>> Scene(platform_name="SNPP", sensor="viirs", start_time=datetime(2015, 3, 11, 11, 20), end_time=datetime(2015, 3, 11, 11, 26)) # doctest: +SKIP
 
-We want more!
-==============
+Loading weather satellite data with mpop is as simple as calling the  :meth:`Scene.load` method::
 
-In the last example, the composite generation worked because the channels
-needed for the overview (0.6, 0.8, 10.8 μm) were loaded. If we try to generate
-a day natural color composite, which requires also the 1.6 μm channel, it will
-result in an error::
+    >>> global_scene.load([0.6, 0.8, 10.8])
+    >>> print global_scene
 
-   
-    >>> img = global_data.image.natural()
-    Traceback (most recent call last):
-      ...
-    NotLoadedError: Required channel 1.63 not loaded, aborting.
+    seviri/IR_108:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: K
+            wavelength_range: (9.8, 10.8, 11.8) μm
+            shape: (3712, 3712)
+    seviri/VIS006:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.56, 0.635, 0.71) μm
+            shape: (3712, 3712)
+    seviri/VIS008:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.74, 0.81, 0.88) μm
+            shape: (3712, 3712)
 
-So it means that we have to load the missing channel first. To do this we could
-enter the channels list to load manually, as we did for the overview, but we
-provide a way to get the list of channels needed by a given method using the
-`prerequisites` method attribute::
+As you can see, this loads the visible and IR channels provided as argument to the :meth:`load` method as a
+list of wavelengths in micrometers. Another way to load the channels is to provide the names instead::
 
-    >>> global_data.load(global_data.image.natural.prerequisites, area_extent=europe.area_extent)
-    >>> img = global_data.image.natural()
-    >>>
+    >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
+    >>> print global_scene
 
-Now you can save the image::
+To have a look at the available bands you should be able to load with your `Scene` object, you can call the
+:meth:`available_datasets` method::
 
-    >>> img.save("./mynaturalcolors.png")
-    >>>
+    >>> global_scene.available_datasets()
 
-If you want to combine several prerequisites for channel loading, since
-prerequisites are python sets, you can do::
+    [u'HRV',
+     u'IR_108',
+     u'IR_120',
+     u'VIS006',
+     u'WV_062',
+     u'IR_039',
+     u'IR_134',
+     u'IR_097',
+     u'IR_087',
+     u'VIS008',
+     u'IR_016',
+     u'WV_073']
 
-    >>> global_data.load(global_data.image.overview.prerequisites | 
-    ...                  global_data.image.natural.prerequisites,
-    ...                  area_extent=europe.area_extent)
-    >>>
 
-and add as many `| global_data.image.mymethod.prerequisites` as needed.
+To access the loaded data::
 
-Retrieving channels
-===================
+    >>> print global_scene[0.6]
 
-Retrieving channels is dead easy. From the center wavelength::
+or::
 
-   >>> print global_data[0.6]
-   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000.40316582m'
+    >>> print global_scene["VIS006"]
 
-or from the channel name::
+To visualize it::
 
-   >>> print global_data["VIS006"]
-   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000.40316582m'
+    >>> global_scene.show(0.6)
 
-or from the resolution::
- 
-   >>> print global_data[3000]
-   'VIS006: (0.560,0.635,0.710)μm, shape (1200, 3000), resolution 3000.40316582m'
+To combine them::
 
-or more than one at the time::
+    >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
+    >>> global_scene.show("ndvi")
 
-   >>> print global_data[3000, 0.8]
-   'VIS008: (0.740,0.810,0.880)μm, shape (1200, 3000), resolution 3000.40316582m'
 
-The printed lines consists of the following values:
+Generating composites
+=====================
 
-* First the name is displayed,
-* then the triplet gives the min-, center-, and max-wavelength of the
-  channel,
-* follows the shape of the loaded data, or `None` if the data is not loaded,
-* and finally the theoretical resolution of the channel is shown.
+The easiest way to generate composites is to `load` them::
 
-The data of the channel can be retrieved as an numpy (masked) array using the
-data property::
-  
-   >>> print global_data[0.6].data
-   [[-- -- -- ..., -- -- --]
-    [-- -- -- ..., -- -- --]
-    [-- -- -- ..., -- -- --]
-    ..., 
-    [7.37684259374 8.65549530999 6.58997938374 ..., 0.29507370375 0.1967158025
-     0.1967158025]
-    [7.18012679124 7.86863209999 6.19654777874 ..., 0.29507370375
-     0.29507370375 0.29507370375]
-    [5.80311617374 7.57355839624 6.88505308749 ..., 0.29507370375
-     0.29507370375 0.29507370375]]
+    >>> global_scene.load(['overview'])
+    >>> global_scene.show('overview')
 
-Channel arithmetics
-===================
+To get a list of all available composites for the current scene::
 
-.. versionadded:: 0.10.0
-   Channel arithmetics added.
+    >>> global_scene.available_composites()
 
-The common arithmetical operators are supported on channels, so that one can
-run for example::
+    [u'overview_sun',
+     u'airmass',
+     u'natural',
+     u'night_fog',
+     u'overview',
+     u'green_snow',
+     u'dust',
+     u'fog',
+     u'natural_sun',
+     u'cloudtop',
+     u'convection',
+     u'ash']
 
-  >>> cool_channel = (global_data[0.6] - global_data[0.8]) * global_data[10.8]
+To save a composite to disk::
 
-PGEs
-====
+    >>> global_scene.save_dataset('overview', 'my_nice_overview.png')
 
-From the satellite data PGEs [#f1]_ are generated by the accompanying program.
-The loading procedure for PGEs is exactly the same as with regular channels::
+One can also specify which writer to use for filenames with non-standard extensions ::
 
-    >>> global_data.area = "EuropeCanary"
-    >>> global_data.load(["CTTH"])
-    >>>
-    
-and they can be retrieved as simply as before::
-    
-    >>> print global_data["CTTH"] 
-    'CTTH: shape (1200, 3000), resolution 3000.40316582m'
+    >>> global_scene.save_dataset('overview', 'my_nice_overview.stupidextension', writer='geotiff')
 
-Making custom composites
-========================
 
-Building custom composites makes use of the :mod:`imageo` module. For example,
-building an overview composite can be done manually with::
+Resampling
+==========
 
-    >>> from mpop.imageo.geo_image import GeoImage
-    >>> img = GeoImage((global_data[0.6].data, 
-    ...                 global_data[0.8].data, 
-    ...                 -global_data[10.8].data),
-    ...                 "EuropeCanary",
-    ...                 time_slot,
-    ...                 mode = "RGB")
-    >>> img.enhance(stretch="crude")
-    >>> img.enhance(gamma=1.7)
-
-.. versionadded:: 0.10.0
-   Custom composites module added.
-
-In order to have mpop automatically use the composites you create, it is
-possible to write them in a python module which name has to be specified in the
-`mpop.cfg` configuration file, under the *composites* section::
-
-  [composites]
-  module=mpop.smhi_composites
-
-The module has to be importable (i.e. it has to be in the pythonpath). 
-Here is an example of such a module::
-
-  def overview(self):
-      """Make an overview RGB image composite.
-      """
-      self.check_channels(0.635, 0.85, 10.8)
-
-      ch1 = self[0.635].check_range()
-      ch2 = self[0.85].check_range()
-      ch3 = -self[10.8].data
-
-      img = geo_image.GeoImage((ch1, ch2, ch3),
-                               self.area,
-                               self.time_slot,
-                               fill_value=(0, 0, 0),
-                               mode="RGB")
-
-      img.enhance(stretch = (0.005, 0.005))
-
-      return img
-
-  overview.prerequisites = set([0.6, 0.8, 10.8])
-
-  def hr_visual(self):
-      """Make a High Resolution visual BW image composite from Seviri
-      channel.
-      """
-      self.check_channels("HRV")
-
-      img = geo_image.GeoImage(self["HRV"].data,
-                               self.area,
-                               self.time_slot,
-                               fill_value=0,
-                               mode="L")
-      img.enhance(stretch="crude")
-      return img
-
-  hr_visual.prerequisites = set(["HRV"])
-
-  seviri = [overview,
-            hr_visual]
-
-Projections
-===========
+.. todo::
+   Explain where and how to define new areas
 
 Until now, we have used the channels directly as provided by the satellite,
 that is in satellite projection. Generating composites thus produces views in
 satellite projection, *i.e.* as viewed by the satellite.
 
-Most often however, we will want to project the data onto a specific area so
+Most often however, we will want to resample the data onto a specific area so
 that only the area of interest is depicted in the RGB composites.
 
 Here is how we do that::
 
-    >>> local_data = global_data.project("eurol")
+    >>> local_scene = global_scene.resample("eurol")
     >>>
 
-Now we have projected data onto the "eurol" area in the `local_data` variable
-and we can operate as before to generate and play with RGB composites::
+Now we have resampled channel data and composites onto the "eurol" area in the `local_scene` variable
+and we can operate as before to display and save RGB composites::
 
-    >>> img = local_data.image.overview()
-    >>> img.save("./local_overview.tif")
-    >>>
+    >>> local_scene.show('overview')
+    >>> local_scene.save_dataset('overview', './local_overview.tif')
 
-The image is saved here in GeoTiff_ format. 
-
-On projected images, one can also add contour overlay with the
-:meth:`imageo.geo_image.add_overlay`.
+The image is automatically saved here in GeoTiff_ format.
 
 .. _GeoTiff: http://trac.osgeo.org/geotiff/
 
 
 
+Making custom composites
+========================
 
-.. rubric:: Footnotes
+Building custom composites makes use of the :class:`RGBCompositor` class. For example,
+building an overview composite can be done manually with::
 
-.. [#f1] PGEs in Meteosat : CloudType and CTTH
+    >>> from mpop.composites import RGBCompositor
+    >>> compositor = RGBCompositor("myoverview", "bla", "")
+    >>> composite = compositor([local_scene[0.6],
+    ...                         local_scene[0.8],
+    ...                         local_scene[10.8]])
+    >>> from mpop.writers import to_image
+    >>> img = to_image(composite)
+    >>> img.invert([False, False, True])
+    >>> img.stretch("linear")
+    >>> img.gamma(1.7)
+    >>> img.show()
+
+
+One important thing to notice is that there is an internal difference between a composite and an image. A composite
+is defined as a special dataset which may have several bands (like R, G, B bands). However, the data isn't stretched,
+or clipped or gamma filtered until an image is generated.
+
+
+.. todo::
+   How to save custom-made composites
+
+.. todo::
+   How to read cloud products from NWCSAF software.
