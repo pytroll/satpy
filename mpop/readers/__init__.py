@@ -424,9 +424,9 @@ class ReaderFinder(object):
         """
         try:
             loader = runtime_import(reader_info["reader"])
-        except ImportError:
-            raise ImportError("Could not import reader class '%s' for reader '%s'" % (reader_info["reader"],
-                                                                                      reader_info["name"]))
+        except ImportError as err:
+            raise ImportError("Could not import reader class '%s' for reader '%s': %s" %
+                              (reader_info["reader"], reader_info["name"], str(err)))
 
         reader_instance = loader(**reader_info)
         # fixme: put this in the calling function
