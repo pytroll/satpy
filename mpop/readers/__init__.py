@@ -160,7 +160,7 @@ class DatasetDict(dict):
             old_key = key
             key = self.get_key(key)
             if key is None:
-                if (d.get("name") == "undefined") and isinstance(old_key, (str, six.text_type)):
+                if isinstance(old_key, (str, six.text_type)):
                     new_name = old_key
                 else:
                     new_name = d.get("name")
