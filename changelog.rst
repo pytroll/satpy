@@ -1,11 +1,680 @@
 Changelog
 =========
 
-v1.1.0 (2015-02-19)
+%%version%% (unreleased)
+------------------------
+
+Fix
+~~~
+
+- Bugfix: changed reference from composites.cfg to
+  composites/generic.cfg. [Martin Raspaud]
+
+- Bugfix: works now for file auto discovery. [Martin Raspaud]
+
+- Bugfix: get_filename wants a reader_instance and cleanup. [Martin
+  Raspaud]
+
+Other
+~~~~~
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.1.0 → 2.0.0-alpha.1. [Martin Raspaud]
+
+- Add config files for release utilities. [Martin Raspaud]
+
+  We add the .bumpversion.cfg and .gitchangelog.rc for easy version bumping
+  and changelog updates.
+
+- Remove v from version string. [Martin Raspaud]
+
+- Add str and repr methods for composites. [Martin Raspaud]
+
+  This add simple repl and str methods for compositors.
+
+- Restructure the documentation for mpop2. [Martin Raspaud]
+
+  This is an attempt to reorganize the documentation to prepare for mpop2.
+  Old stuff has been take away, and a fresh quickstart and api are now
+  provided.
+
+- Improve the ReaderFinder ImportError message to include original
+  error. [Martin Raspaud]
+
+  To make the ImportError more useful in ReaderFinder, the original error
+  string is now provided.
+
+- Fix save_dataset to allow both empty filename and writer. [Martin
+  Raspaud]
+
+  When saving a dataset without a filename and writer, save_dataset would
+  crash. Instead, we are now putting writer to "simple_image" in that case.
+
+- Rename projectable when assigning it through setitem. [Martin Raspaud]
+
+  When a new dataset is added to a scene, it's name should match the string
+  key provided by the user.
+
+- Remove references to deprecated mpop.projector. [Martin Raspaud]
+
+- Allow resample to receive strings as area identifiers. [Martin
+  Raspaud]
+
+  In resample, the interactive user would most likely use pre-defined areas
+  from a custom area file. In this case, it's much easier to refer to the
+  area by name, than to get the area definition object from the file. This
+  patch allows the `resample` projectable method to work with string ids
+  also.
+
+- Add a dataset to whishlish when added with setitem. [Martin Raspaud]
+
+  When adding a dataset to a scene via the datasetdict.__setitem__ method,
+  it is likely that the user case about this dataset. As such, it should be
+  added to the wishlist in order not to get removed accidently.
+
+- Move composite loading out of Scene to mpop.composites. [Martin
+  Raspaud]
+
+  The loading of compositors was a part of the Scene object. However, it does
+  not belong there, so we decided to move it out of Scene. The next logical
+  place to have it is the mpop.composites modules.
+  As a conterpart, we now provide the `available_composites` method to the
+  Scene to be able to figure out what we have possibility to generate.
+
+- Fix the travis file to allow python 2.6 to fail. [Martin Raspaud]
+
+- Allow travis to fail on python 2.6. [Martin Raspaud]
+
+- Install importlib for travis tests on python 2.6. [Martin Raspaud]
+
+- Add `behave` to the pip installations in travis. [Martin Raspaud]
+
+- Add behaviour testing to travis and coveralls. [Martin Raspaud]
+
+- Add behaviour tests for showing and saving datasets. [Martin Raspaud]
+
+  Three scenarios were added, testing showing a dataset, saving a dataset,
+  and bulk saving datasets (`save_datasets`).
+
+- Fix loading behaviour tests. [Martin Raspaud]
+
+  A little cleanup, and using builtin functions for getting the dataset_names
+
+- Fix DatasetDict's setitem to allow empty md in value. [Martin Raspaud]
+
+  Sometimes a dataset/projectable doesn't have any info attached to it, eg
+  because the dataset is synthetic. In these cases, setitem would crash.
+  This is now fixed, and if a string is provided as a key in setitem it is
+  used as a name if no better name is already there.
+
+- Simplify dataset saving to disk. [Martin Raspaud]
+
+  saving datasets can now be done one by one. If a writer is not provided,
+  it is guessed from the filename extension.
+
+- Add a show method to the Scene class. [Martin Raspaud]
+
+  That allows the user to interactively vizualize the data
+
+- Add a default areas.def file. [Martin Raspaud]
+
+- Fix the manifest file to include the config files. [Martin Raspaud]
+
+- Add missing config files to setup.py. [Martin Raspaud]
+
+- Fix setup.py to add cfg files. [Martin Raspaud]
+
+  This is in order to make mpop work out of the box after a pip install.
+
+- Add a behaviour test to find out the available dataset. [Martin
+  Raspaud]
+
+- Prevent crashing when a load requirement is not available. [Martin
+  Raspaud]
+
+  When requiring a band which isn't available, mpop would crash. This is now
+  fixed and replaced by a warning in the log.
+
+- Use behave to do higher level tests. [Martin Raspaud]
+
+  Two small scenarios for testing the loading of the data are implemented now.
+
+- Fix import error in scene. [davidh-ssec]
+
+  A small refactor was done and then undone to move DatasetDict and DatasetID. This little import change wasn't properly cleaned up.
+
+
+- Fix scene to work with "2 part" compositors and added pan sharpened
+  true color composite as an example. [davidh-ssec]
+
+- Added log message to pillow writer to say what filename it was saving
+  to. [davidh-ssec]
+
+- Handle optional dependencies for composites (not tested) [davidh-ssec]
+
+- Activate the remaining viirs_sdr reader test cases. [Martin Raspaud]
+
+- Remove the overview_sun TODO item. [Martin Raspaud]
+
+- Fix the multiple load issue for composites. [Martin Raspaud]
+
+  The composite loading would crash when several composites would be loaded
+  one after the other. This was because composite config files where loaded
+  partially but were considered loaded entirely. In order to fix this
+  problem and make things simpler, we removed the composite config mechanism
+  entirely, so that the composites are reloaded everytime. That allows both
+  config changing on the fly, but also more resilience for multiple sensor
+  cases, like one sensor is loaded after another, and the composites wouldn't
+  get updated.
+
+- Fix the name issue in sensor-specific composite requests. [Martin
+  Raspaud]
+
+  The read_composite_config was requiring wrongly that the provided names
+  should be empty or None, making it not read the sensor config file at all.
+  In turn that meant that generic composites were used instead of sensor-
+  specific ones.
+
+- Got metadata requests working for composites. [davidh-ssec]
+
+- Use DatasetID in composite requirements instead of names and
+  wavelengths only. [davidh-ssec]
+
+- Adds ERF DNB composite and updates compositor base to allow for
+  metadata and optional requirements although they are not completely
+  used yet. [davidh-ssec]
+
+- Added adaptive DNB product. [davidh-ssec]
+
+- Fixed bug in scene when getting writer instance in save_images.
+  [davidh-ssec]
+
+- Fix the dataset str function to allow missing name and sensor keys.
+  [Martin Raspaud]
+
+- Add quickstart seviri to the documentation. [Martin Raspaud]
+
+- Update the documentation. [Martin Raspaud]
+
+- Add a get_writer function to the scene object. [Martin Raspaud]
+
+- Updating dataset displaying. [Martin Raspaud]
+
+- Add a fixme comment. [Martin Raspaud]
+
+- Added histogram_dnb composite as a stepping stone for getting more
+  complex composites added (ex. adaptive_dnb) [davidh-ssec]
+
+- Can now retrieve channel with incomplete DatasetID instance. [Martin
+  Raspaud]
+
+- First try at loading metadata. [davidh-ssec]
+
+- Added python 3.5 to travis tests and removed 3.x as allowed failures.
+  [davidh-ssec]
+
+- Added basic test for DatasetDict. [davidh-ssec]
+
+- Refactored some file reader methods to properties to be more pythonic.
+  [davidh-ssec]
+
+- Viirs test case now works with python3 hopefully. [Martin Raspaud]
+
+- Fixed file units for eps l1b reflectances. [davidh-ssec]
+
+- Corrected frame indicator for eps l1b band 3a. [davidh-ssec]
+
+- Updated eps l1b config with temporary calibration information.
+  [davidh-ssec]
+
+- First attempt at rewriting eps l1b reader to be more configurable
+  (overkill?) [davidh-ssec]
+
+- Renamed Scene projectables to datasets. [davidh-ssec]
+
+- Updated eps l1b file reader to match base class. [davidh-ssec]
+
+- Made generic single file reader abstract base class and cleaned up
+  viirs sdr tests. [davidh-ssec]
+
+- Added a fixme comment. [Martin Raspaud]
+
+- Enable python 3 and osx builds in travis. [Martin Raspaud]
+
+- Config treatment for enhancements. [davidh-ssec]
+
+- Update config handling for finding composites. [davidh-ssec]
+
+- Small fix for dumb environment variable clear on tests. [davidh-ssec]
+
+- First attempt at getting readers and writers using PPP_CONFIG_DIR as a
+  supplement to builtin configs. [davidh-ssec]
+
+- Fixed scene tests so they pass. [davidh-ssec]
+
+- Added base_dir for finding input files and a separate base_dir kwargs
+  on save_images. [davidh-ssec]
+
+- Makes wishlist a set and should fix problems with multiple loads.
+  [davidh-ssec]
+
+- Fixed calibration and other DatasetID access in reader, hopefully.
+  [davidh-ssec]
+
+- Fix the xrit reader. [Martin Raspaud]
+
+- Cleanup to prepare for handling calibration better. [davidh-ssec]
+
+- Updated filtering based on resolution, calibration, and polarization.
+  [davidh-ssec]
+
+- Updated how readers create dataset info and dataset ids. [davidh-ssec]
+
+- Added calibration to DatasetID (not used yet) and added helper method
+  on DatasetDict for filtering retrieved items and keys. [davidh-ssec]
+
+- Renamed BandID to DatasetID. [davidh-ssec]
+
+- Better handling of loading composite dependencies...i think. [davidh-
+  ssec]
+
+- Got EPS L1B reader working again with readers being given BandID
+  objects. [davidh-ssec]
+
+- Fixed small bug with extra empty string being listed as reader file
+  pattern. [davidh-ssec]
+
+- Made DatasetDict accept non-BandID keys during setitem. [davidh-ssec]
+
+- Fixed default file reader for the eps l1b reader. [davidh-ssec]
+
+- A little more cleanup of unused code in viirs sdr. [davidh-ssec]
+
+- More work on viirs sdr using base reader class. [davidh-ssec]
+
+- Started using ConfigBasedReader as base class for VIIRS SDR reader.
+  [davidh-ssec]
+
+- Fixed failing scene tests. [davidh-ssec]
+
+- Got viirs sdr reader working with namedtuple dataset keys. [davidh-
+  ssec]
+
+- Continue on python3 compatibility. [Martin Raspaud]
+
+- Cleanup. [Martin Raspaud]
+
+- WIP: Start python 3 support. [Martin Raspaud]
+
+- Smoother transition in the sun zenith correct imagery. [Martin
+  Raspaud]
+
+- Move reader discovery out of the scene and into mpop.readers. [Martin
+  Raspaud]
+
+  The class ReaderFinder was created for this purpose.
+
+- Cleanup. [Martin Raspaud]
+
+- Fix overview and natural composites. [Martin Raspaud]
+
+- Make read and load argument lists consistent. [Martin Raspaud]
+
+- Fix the M01 dataset definition in viirs_sdr.cfg. [Martin Raspaud]
+
+- Fix some viirs composites. [Martin Raspaud]
+
+- Fix viirs_sdr loading using start and end times. [Martin Raspaud]
+
+- Introduce BandIDs to allow for more complex referencing of datasets.
+  [Martin Raspaud]
+
+  - Add the BandID namedtuple (name, wl, resolution, polarization)
+  - Fix querying for compatibility with BandIDs
+  - Fix existing readers for BandIDs
+
+  Example usage from the user side:
+  scn.load([BandID(wavelength=0.67, resolution=742),
+            BandID(wavelength=0.67, resolution=371),
+            "natural", "true_color"])
+
+  BandIDs are now used internally as key for the scene's projectables dict.
+
+- Add file keys to metop's getitem. [Martin Raspaud]
+
+- Rename metop calibration functions. [Martin Raspaud]
+
+- Add file keys for start and end times for metop. [Martin Raspaud]
+
+- Merge the old eps l1b reader with the new one. [Martin Raspaud]
+
+- More work on EPS l1b reader. [Martin Raspaud]
+
+- Initial commit for the metop eps l1b reader. [Martin Raspaud]
+
+- New attempt at calibration keyword in viirs sdr reader. [davidh-ssec]
+
+- Renamed 'channel' to 'dataset' [davidh-ssec]
+
+- Added more tests for VIIRS SDR readers before making calibration or
+  file discovery changes. [davidh-ssec]
+
+- Use "super" in the readers. [Martin Raspaud]
+
+- Hopefully fixed py2.6 incompatibility in string formatting. [davidh-
+  ssec]
+
+- Added viirs sdr tests for MultiFileReader and HDF5MetaData. [davidh-
+  ssec]
+
+- More viirs sdr file reader tests. [davidh-ssec]
+
+- Simple proof of concept for calibration level in viirs sdr reader.
+  [davidh-ssec]
+
+- Fixed getting end orbit from last file reader in viirs sdr reader.
+  [davidh-ssec]
+
+- Use unittest2 in viirs sdr tests so we can use new features. [davidh-
+  ssec]
+
+- Added unittest2 to py26 travis build to hopefully fix h5py
+  importerror. [davidh-ssec]
+
+- Added h5py and hdf5 library to travis. [davidh-ssec]
+
+- Started adding basic VIIRS SDR reader tests. [davidh-ssec]
+
+- Changed scene to accept sequence instead of *args. [davidh-ssec]
+
+- Merge branch 'feature-simplify-newreader' into feature-simplify.
+  [davidh-ssec]
+
+- Added simple method for finding geolocation files based on header
+  values. [davidh-ssec]
+
+- Added rows per scan to viirs sdr metadata. [davidh-ssec]
+
+- Got units and file units working for VIIRS SDR reader. [davidh-ssec]
+
+- Cleaner code for viirs sdr scaling factor check and made sure to OR
+  any previous masks. [davidh-ssec]
+
+- Better memory usage in new style viirs sdr reader. [davidh-ssec]
+
+- First step in proof of concept with new reader design. Mostly working
+  VIIRS SDR frontend. [davidh-ssec]
+
+- Fixed get_area_file in the resample.py module. [davidh-ssec]
+
+- Allowed sensor to be specified in the reader section. [davidh-ssec]
+
+- Added method to base plugin to determine type of a section. [davidh-
+  ssec]
+
+- Make sunzenithnormalize a modern class. [Martin Raspaud]
+
+- Add sunz correction feature. [Martin Raspaud]
+
+- Avoid an infinite loop. [Martin Raspaud]
+
+- Add travis notifications to slack. [Martin Raspaud]
+
+- Remove unneeded code for composites. [Martin Raspaud]
+
+- Add a few composites. [Martin Raspaud]
+
+- Cleanup. [Martin Raspaud]
+
+- Allow json in enhancement config files. [Martin Raspaud]
+
+- Switch on test for writers. [Martin Raspaud]
+
+- Move tests for image stuff to corresponding test file. [Martin
+  Raspaud]
+
+- Move image stuff out of projectable into writers/__init__.py. [Martin
+  Raspaud]
+
+- Forgot to change reader/writer base class imports. [davidh-ssec]
+
+- Moved reader and writer base classes to subpackages. [davidh-ssec]
+
+- Reworked configuration reading in plugins for less redundancy.
+  [davidh-ssec]
+
+- Small fixes to make VIIRS SDR reader work with new resampling.
+  [davidh-ssec]
+
+- Fix the wishlist names and removing uneeded info when building RGB
+  composites. [Martin Raspaud]
+
+- Dataset is now a subclass of np.ma.MaskedArray. [Martin Raspaud]
+
+- Move determine_mode to projectable. [Martin Raspaud]
+
+- Add helper function to read config files and get the area def file.
+  [Martin Raspaud]
+
+- Rename precompute kwarg to cache_dir. [Martin Raspaud]
+
+- Convenience enhancements for resample. [Martin Raspaud]
+
+  - we can now provide "nearest" or "kdtree" instead of a resampler class.
+  - The precompute/dump kwarg is now a directory where to save the proj info,
+    defaulting to '.' if precompute=True.
+
+- Switch to containers in travis. [Martin Raspaud]
+
+- Fix repo in .travis. [Martin Raspaud]
+
+- Add OrderedDict for python < 2.7. [Martin Raspaud]
+
+- Resample is now feature complete. [Martin Raspaud]
+
+  - Dump kd_tree info to disk when asked
+  - Cache the kd_tree info for later use, but cache is cleaned up.
+  - OO architecture allowing other resampling methods to be implemented.
+  - resampling is divided between pre- and actual computation.
+  - hashing of areas is implemented, resampler-specific.
+
+- Fixed bad patch on new scene test. [davidh-ssec]
+
+- First try at more scene tests. [davidh-ssec]
+
+- Move image generation methods to Dataset and move enh. application to
+  enhancer. [Martin Raspaud]
+
+- Sensor is now either None, a string, or a non-empty set. [Martin
+  Raspaud]
+
+- Forgot to actually use default writer config filename. [davidh-ssec]
+
+- Fixed simple scene test for checking ppp_config_dir. [davidh-ssec]
+
+- Slightly better handling of default writer configs and writer
+  arguments. [davidh-ssec]
+
+- Add a writer for png images, and move enhancer to mpop.writers.
+  [Martin Raspaud]
+
+- Detached the enhancements handling into an Enhancer class. [Martin
+  Raspaud]
+
+- Pass ppp_config_dir to writer, still needs work. [davidh-ssec]
+
+- First attempt at configured writers and all the stuff that goes along
+  with it. Renamed 'format' in configs to more logical name. [davidh-
+  ssec]
+
+- Remove the add_product method. [Martin Raspaud]
+
+- Cleanup scene unittest. [Martin Raspaud]
+
+- Finish testing scene.get_filenames. [Martin Raspaud]
+
+- Testing scene.get_filenames. [Martin Raspaud]
+
+- Updated tests to test new string messages. 100%! [davidh-ssec]
+
+- Merge branch 'pre-master' into feature-simplify. [Martin Raspaud]
+
+  Conflicts:
+  	mpop/satellites/__init__.py
+  	mpop/satin/helper_functions.py
+  	mpop/satin/mipp_xrit.py
+
+- Cleanup. [Martin Raspaud]
+
+- Change printing of projectables and cleanup. [Martin Raspaud]
+
+- Start testing mpop.scene. [Martin Raspaud]
+
+- Fixed assertIn for python 2.6. [davidh-ssec]
+
+- Added more tests for projectables and updated projectable 3d resample
+  test. 100% coverage of projectable! [davidh-ssec]
+
+- Renamed .products to .compositors and fixed unknown names bug.
+  [davidh-ssec]
+
+- Added check to see what composite configs were read already. [davidh-
+  ssec]
+
+- Do not reread already loaded projectables. [Martin Raspaud]
+
+- Complete .gitignore. [Martin Raspaud]
+
+- Fix unittests for python 2.6. [Martin Raspaud]
+
+- Unittesting again... [Martin Raspaud]
+
+- More unittesting. [Martin Raspaud]
+
+- Fix projectables str to look better. [Martin Raspaud]
+
+- More unittesting. [Martin Raspaud]
+
+- Fix unittests for python 2.6. [Martin Raspaud]
+
+- Still cleaning up. [Martin Raspaud]
+
+- Cleanup. [Martin Raspaud]
+
+- Add tests to the package list in setup.py. [Martin Raspaud]
+
+- Make pylint happy. [Martin Raspaud]
+
+- Fix tests for projectable to pass on 2.6. [Martin Raspaud]
+
+- Start testing the new stuff in travis. [Martin Raspaud]
+
+- Cleanup. [Martin Raspaud]
+
+- Renamed newscene to scene. [Martin Raspaud]
+
+- Moved updated readers from mpop.satin to mpop.readers. [Martin
+  Raspaud]
+
+- Changed 'uid' to 'name' for all new components. [davidh-ssec]
+
+- Moved composite configs to separate subdirectory. [davidh-ssec]
+
+- Add an RGBCompositor class and cleanup. [Martin Raspaud]
+
+- Allow passing "areas" to mipp_xrit. [Martin Raspaud]
+
+- Fix the overview composite giving sensible defaults. [Martin Raspaud]
+
+- Fixed bug with RGB composites with passing the wrong info keywords.
+  [davidh-ssec]
+
+- Changed sensor keyword in scene to reader and added new sensor keyword
+  behavior to find readers based on sensor names. [davidh-ssec]
+
+- Changed new style composites to use a list of projectables instead of
+  the scene object implemented __setitem__ for scene. [davidh-ssec]
+
+- Reworked viirs and xrit reader to use .channels instead of .info.
+  Simplified reader loading in newscene. [davidh-ssec]
+
+- Test and fix projectable. [Martin Raspaud]
+
+- Allow reading from wavelength, and add Meteosat HRIT support. [Martin
+  Raspaud]
+
+- Moved reader init to scene init. Successfully created resampled fog
+  image using composite configs. [davidh-ssec]
+
+- Added some default configs for new scene testing. [davidh-ssec]
+
+- Started rewriting viirs sdr reader to not need scene and produce
+  projectables. [davidh-ssec]
+
+- Better config reading, and scene init. [Martin Raspaud]
+
+- WIP: removed CONFIG_PATH and changed projectables list into dict.
+  [davidh-ssec]
+
+- Add resampling. Simple for now, with elementary caching. [Martin
+  Raspaud]
+
+- WIP. [Martin Raspaud]
+
+  * Product dependencies
+  * loading from viirs
+  * generating images
+
+- WIP: successfully loaded the first viirs granule with newscene!
+  [Martin Raspaud]
+
+- Rewriting scene. [Martin Raspaud]
+
+- Add helper function to find files. [Martin Raspaud]
+
+- Fix the config eval thing in scene. [Martin Raspaud]
+
+v1.2.1 (2015-12-14)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.2.0 → 1.2.1. [Martin Raspaud]
+
+- Merge branch 'pre-master' [Martin Raspaud]
+
+- Merge branch 'pre-master' [Martin Raspaud]
+
+  Conflicts:
+  	doc/source/pp.rst
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.1.0 → 1.2.0. [Martin Raspaud]
+
+- Merge branch 'pre-master' [Martin Raspaud]
+
+  Conflicts:
+  	mpop/version.py
+  	setup.py
+
+
+v1.2.0 (2015-12-14)
 -------------------
 
 Fix
 ~~~
+
+- Bugfix: converted MSG products should be saveable. [Martin Raspaud]
+
+- Bugfix: satellite name in msg_hdf now supports missing number. [Martin
+  Raspaud]
+
+- Bugfix: misspelling. [Martin Raspaud]
+
+- Bugfix: mipp_xrit: do not crash on unknown channels, just warn and
+  skip. [Martin Raspaud]
 
 - Bugfix: setup.py includes now eps xml format description. [Martin
   Raspaud]
@@ -35,6 +704,373 @@ Fix
 
 Other
 ~~~~~
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 1.1.0 → 1.2.0. [Martin Raspaud]
+
+- Add template parameters for NOAA-19 ears-nwc. [Adam.Dybbroe]
+
+  Parameters needed if you want to load only with time_interval and
+  not using the filename argument
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Merged (by hand) sentinel1-feature branch. [Lars Orum Rasmussen]
+
+- Added support for gdal's SetNoDataValue if fill_value is not None.
+  [Lars Orum Rasmussen]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Lars Orum Rasmussen]
+
+- Added a RGB example. [Lars Orum Rasmussen]
+
+- Don't use colormaps for 16b grayscale (Ninjo will fail enhancements)
+  [Lars Orum Rasmussen]
+
+  For 16b IR, if specified, set min-is-white
+
+  For 16b grayscale, it seems that transparent pixel (in Ninjo) are forced to be zero
+
+  Transparent pixel for 16b IR are handled bad
+
+
+- Add template config for ears-nwc Metop-B reading. [Adam.Dybbroe]
+
+- Fix bug when using time_interval argument loading ears-nwc data.
+  [Adam.Dybbroe]
+
+- Add brightness temperature calibration to the IR bands. [Adam.Dybbroe]
+
+- Update EARS config files for new (2014) PPS product format.
+  [Adam.Dybbroe]
+
+- Remove old FY3 mersi reader. [Adam.Dybbroe]
+
+- Apply VIS/NIR calibration including sun-zenith correction.
+  [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Now ninjotiff can list tags. [Lars Orum Rasmussen]
+
+  Ninjo tags are now a dictionary
+
+
+- Add FY-3B template config file. [Adam.Dybbroe]
+
+- Add first draft FY3B VIRR reader. [Adam.Dybbroe]
+
+  No calibration yet, but counts can be projected and displayed
+
+- Added contributions from Christian (DWD) to ninjotiff: now using
+  tifffile.py and support for RGBA. [Lars Orum Rasmussen]
+
+  Changed scaling into a value range (so it works for me)
+
+
+- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+  master. [Panu Lahtinen]
+
+- Delete world_map.ascii. [Martin Raspaud]
+
+- Read DNB using PyTables, separate read() to read_m() and read_dnb()
+  [Panu Lahtinen]
+
+- Update coords2area_def with preview mode. [Martin Raspaud]
+
+- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+  master. [Panu Lahtinen]
+
+- Remove debug printout from pps reader. [Adam.Dybbroe]
+
+- Support a list of files which will be concatenated, enables usage of
+  granule data. [Panu Lahtinen]
+
+- Fix for channel names and channel loading. [Panu Lahtinen]
+
+- Added Himawari-8 config template file. [Martin Raspaud]
+
+- Mask out 0-counts areas in aapp_l1b. [Martin Raspaud]
+
+- Support saving GeoImages in IO buffers. [Martin Raspaud]
+
+- Add support for noaa gac and lac data. [Martin Raspaud]
+
+- Take care of fill_value in datasets. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Fix the sun zenith angle correction fix. [Martin Raspaud]
+
+- Do not check time_slot type. [Martin Raspaud]
+
+- Bugfix ctth scaling: Only keep same datatype if data are not scaled.
+  [Adam.Dybbroe]
+
+- Less debug info. [Adam.Dybbroe]
+
+- Bugfix. Sun zenith correction can now take an additional keyword - and
+  data are masked out accordingly. [Adam.Dybbroe]
+
+- Fix overview_sun, avoid redish rgb's when sun is very low (below
+  horizon) [Adam.Dybbroe]
+
+- Read also the palette data etc. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Add orbit number info in the scene metadata upon loading. (hdfeos)
+  [Martin Raspaud]
+
+- Hdfeos: orbit number is now an int. [Martin Raspaud]
+
+- Fix geolocation reading for multiple-file processing (hdfeos) [Martin
+  Raspaud]
+
+- Changed error message to a warning. [Adam.Dybbroe]
+
+- Fix hdf_eos to allow reading several granules. [Martin Raspaud]
+
+- Enhancing the dnb_overview, so that pixels with solar contamination
+  are masked out. [Adam.Dybbroe]
+
+- Bringing back the night_overview (=cloudtop) [Adam.Dybbroe]
+
+- Comment out the night_overview. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Bugfix overview_sun. [Martin Raspaud]
+
+- Use builtin sunzen_corr for overview_sun. [Martin Raspaud]
+
+- Switch to nullterm string in msg_hdf for nr products. [Martin Raspaud]
+
+- Bugfix. [Adam.Dybbroe]
+
+- Improve overview for viirs and overview_sun. [Adam.Dybbroe]
+
+- Re-introduce the fix for VIIRS bowtie deletions. [Adam.Dybbroe]
+
+- Shouting when both a list of file names and a time interval is used.
+  Accepts tine_interval even for local files. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+  Conflicts:
+  	mpop/satin/nc_pps_l2.py
+
+- Fixed incorrect production sources and geolocation file names for
+  'local' products. [Panu Lahtinen]
+
+- Added a unit test to the nc_pps_l2 reader, and adapted the reader a
+  bit. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+  master. [Panu Lahtinen]
+
+- Fixme reminder. [Adam.Dybbroe]
+
+- Restructure how the data and geolocation files are listed and read.
+  [Panu Lahtinen]
+
+- Fixed workaround for DIMENSION_LIST attributes. [Panu Lahtinen]
+
+- Minor fixes - thanks Panu! [Adam.Dybbroe]
+
+- Cleaning up a bit and pep8. [Adam.Dybbroe]
+
+- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+  [Adam.Dybbroe]
+
+- Updated reading to support both M and DNB channel data. [Panu
+  Lahtinen]
+
+- Adapt navigation to compact_viirs dnb. [Martin Raspaud]
+
+- Do not crash when an unknown channel is requested in msg_hdf. [Martin
+  Raspaud]
+
+- Fix template files. [Adam.Dybbroe]
+
+- Fix template files for NOAA satellites and Metop-A/B. [Adam.Dybbroe]
+
+- Bugfix, treating cases when no geolocation is found for product.
+  [Adam.Dybbroe]
+
+- More debug info. [Adam.Dybbroe]
+
+- More debug info. [Adam.Dybbroe]
+
+- Fix save function and bugfix. [Adam.Dybbroe]
+
+- More debug info and better exception handling - pps reader.
+  [Adam.Dybbroe]
+
+- Rewritten the netCDF4 PPS reader. [Adam.Dybbroe]
+
+- Cleaning up for unused code. [Adam.Dybbroe]
+
+- Add the info attribute to NordRadCType. [Martin Raspaud]
+
+- Fix filename search in msg_hdf. [Martin Raspaud]
+
+- Fix extension problem in product search for msg_hdf. [Martin Raspaud]
+
+- Replace pyhl with h5py in msg_hdf reader. [Martin Raspaud]
+
+- Bugfix ascat l2 reader. [Adam.Dybbroe]
+
+- Trying to fix odd behaviour when loading list of products. But it
+  still doesn't work - need a small refactoring. [Adam.Dybbroe]
+
+- Added support option to select granules in time interval.
+  [Adam.Dybbroe]
+
+- More debug info - for custom compositer. [Adam.Dybbroe]
+
+- Merge pull request #17 from spareeth/pre-master. [Martin Raspaud]
+
+  ASCAT SAR soil moisture level 2 netcdf data from EUMETSAT
+
+- Add new reader and config files for ASCAT SAR soil moisture level 2
+  netcdf data from EUMETSAT. [Sajid Pareeth]
+
+- Add new reader and config files for ASCAT SAR soil moisture level 2
+  netcdf data from EUMETSAT. [Sajid Pareeth]
+
+- Added possibility to read granule data from EARS, also some PEP8 work.
+  [Panu Lahtinen]
+
+- Avoid leaking memory. [Martin Raspaud]
+
+- Bugfix. [Adam.Dybbroe]
+
+- Raise an error if projection is attempted when swathdata doesn't have
+  full geolocation. [Adam.Dybbroe]
+
+- Remove one verbose debug printout. [Adam.Dybbroe]
+
+- Adapt for new PPS netCDF format modification (adding a dimension of
+  length 1) [Adam.Dybbroe]
+
+- Check for cloudtype=None. [Adam.Dybbroe]
+
+- Add option to provide MSG filename to load call. [Adam.Dybbroe]
+
+- Check if PPS file is bzipped, and handle it correctly. [Adam.Dybbroe]
+
+- Fix orbit number attribute name in msg_hdf. [Martin Raspaud]
+
+- Possible to pass value range to save. [Lars Orum Rasmussen]
+
+- Chlorophyll-a palette is gone - now it raise an exception if asked
+  for... [Adam.Dybbroe]
+
+- Merge branch 'feature-osisaf-sst-reader' into pre-master.
+  [Adam.Dybbroe]
+
+- Adding a reader and palette support for OSISAF SST netCDF products.
+  [Adam.Dybbroe]
+
+- Fixed external calibration "newer/older than data" message. [Panu
+  Lahtinen]
+
+- Fix ctth writing. [Martin Raspaud]
+
+- Fixed typo. [Martin Raspaud]
+
+- Add orbit number in generated cloud product hdf files. [Martin
+  Raspaud]
+
+- Fix new pyspectral calculator signature. [Martin Raspaud]
+
+- Putting back the mipp information in template config files. [Martin
+  Raspaud]
+
+- Pyspectral now uses standard platform names. [Martin Raspaud]
+
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+  pre-master. [Panu Lahtinen]
+
+- Add algorithm version in output cloud products. [Martin Raspaud]
+
+- Exception handling for missing external calibration data. [Panu
+  Lahtinen]
+
+- Minor PEP8 tweaks. [Panu Lahtinen]
+
+- Script to generate external calibration files for AVHRR instruments.
+  [Panu Lahtinen]
+
+- Support for external calibration coefficients for AVHRR. [Panu
+  Lahtinen]
+
+- Removed obsolete "satname" and "number" from satellite configs,
+  updated documentation. [Panu Lahtinen]
+
+- Renamed satellite configs to conform to OSCAR naming scheme. [Panu
+  Lahtinen]
+
+- Add luts to the pps products from msg format. [Martin Raspaud]
+
+- Add metadata to nwcsaf products. [Martin Raspaud]
+
+- Add \0 to palette strings. [Martin Raspaud]
+
+- Fix pps format output for msg products. [Martin Raspaud]
+
+- Remove phase palette from msg products to avoid confusion. [Martin
+  Raspaud]
+
+- Bugfix, np.string -> np.string_ [Martin Raspaud]
+
+- Change variable length strings in h5 products to fixed. [Martin
+  Raspaud]
+
+- Fix some cloud product conversions. [Martin Raspaud]
+
+- Fix MSG format to PPS format conversion. [Martin Raspaud]
+
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+  [Martin Raspaud]
+
+- Merge pull request #16 from pnuu/simplified_platforms. [Martin
+  Raspaud]
+
+  Simplified platform names for reading custom composites
+
+- Simplified platform names for reading custom composites. [Panu
+  Lahtinen]
+
+- Change: accept arbitrary kwargs for saving msg hdf products. [Martin
+  Raspaud]
+
+- Revert concatenation to it's original place, in order to keep the
+  tests working. [Martin Raspaud]
+
+- Fix whole globe area_extent for loading. [Martin Raspaud]
+
+- Fix rpm building. [Martin Raspaud]
+
+- Fix masking of lonlats in viirs_sdr. [Martin Raspaud]
+
+- Fixing pps-nc reader. [Adam Dybbroe]
+
+- Clean temporary files after loading. [Adam Dybbroe]
+
+- Pep8 stuff. [Adam Dybbroe]
+
+- Fixed polar-stereographic projection bugs, thanks to Ron Goodson.
+  [Lars Orum Rasmussen]
 
 - Update changelog. [Martin Raspaud]
 
