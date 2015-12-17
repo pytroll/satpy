@@ -26,7 +26,7 @@
 '''
 
 import numpy as np
-from mpop.projector import get_area_def
+from mpop.resample import get_area_def
 # from pyresample.utils import AreaNotFound
 
 import pyresample

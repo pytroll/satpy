@@ -47,7 +47,6 @@ try:
     # on scipy.spatial which memory leaks on multiple imports
     IS_PYRESAMPLE_LOADED = False
     from pyresample import geometry
-    from mpop.projector import get_area_def
     IS_PYRESAMPLE_LOADED = True
 except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
