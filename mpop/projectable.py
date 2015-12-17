@@ -25,7 +25,8 @@
 """
 
 import numpy as np
-from mpop.resample import resample
+from mpop.resample import resample, get_area_def
+import six
 
 class InfoObject(object):
     def __init__(self, **attributes):
@@ -114,8 +115,24 @@ class Projectable(Dataset):
         return Dataset.__new__(self, data, name=name, **info)
 
     def resample(self, destination_area, **kwargs):
+        """Resample the current projectable and return the resampled one.
+
+        Args:
+            destination_area: The destination onto which to project the data, either a full blown area definition or
+            a string corresponding to the name of the area as defined in the area file.
+            **kwargs: The extra parameters to pass to the resampling functions.
+
+        Returns:
+            A resampled projectable, with updated .info["area"] field
+        """
         # call the projection stuff here
         source_area = self.info["area"]
+
+        if isinstance(source_area, (str, six.text_type)):
+            source_area = get_area_def(source_area)
+        if isinstance(destination_area, (str, six.text_type)):
+            destination_area = get_area_def(destination_area)
+
         if self.ndim == 3:
             data = np.rollaxis(self, 0, 3)
         else:

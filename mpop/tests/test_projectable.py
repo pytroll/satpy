@@ -96,8 +96,13 @@ class TestProjectable(unittest.TestCase):
         data = np.arange(25).reshape((5, 5))
         mock_resampler.return_value = data
         p = projectable.Projectable(data)
-        source_area = "here"
-        destination_area = "there"
+
+        class FakeAreaDef:
+            def __init__(self, name):
+                self.name = name
+
+        source_area = FakeAreaDef("here")
+        destination_area = FakeAreaDef("there")
         p.info["area"] = source_area
         res = p.resample(destination_area)
         self.assertEqual(mock_resampler.call_count, 1)
@@ -112,8 +117,13 @@ class TestProjectable(unittest.TestCase):
         data = np.arange(75).reshape((3, 5, 5))
         mock_resampler.return_value = np.rollaxis(data, 0, 3)
         p = projectable.Projectable(data)
-        source_area = "here"
-        destination_area = "there"
+
+        class FakeAreaDef:
+            def __init__(self, name):
+                self.name = name
+
+        source_area = FakeAreaDef("here")
+        destination_area = FakeAreaDef("there")
         p.info["area"] = source_area
         res = p.resample(destination_area)
         self.assertTrue(mock_resampler.called)
