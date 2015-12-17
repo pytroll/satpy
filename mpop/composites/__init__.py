@@ -178,6 +178,13 @@ class CompositeBase(InfoObject):
     def __call__(self, datasets, optional_datasets=None, **info):
         raise NotImplementedError()
 
+    def __str__(self):
+        from pprint import pformat
+        return pformat(self.info)
+
+    def __repr__(self):
+        from pprint import pformat
+        return pformat(self.info)
 
 class SunZenithNormalize(object):
     # FIXME: the cache should be cleaned up
