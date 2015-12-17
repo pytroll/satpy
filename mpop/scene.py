@@ -356,7 +356,10 @@ class Scene(InfoObject):
         """Save the *dataset_id* to file using *writer* (geotiff by default).
         """
         if writer is None:
-            writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
+            if filename is None:
+                writer = "simple_image"
+            else:
+                writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
         else:
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id], filename=filename)
