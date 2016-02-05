@@ -998,8 +998,7 @@ class ConfigBasedReader(Reader):
 
             # Load the navigation information first
             if nav_name not in areas:
-                # FIXME: This ignores the possibility that data masks are different between bands
-                areas[nav_name] = area = self._load_navigation(nav_name, extra_mask=data.mask, dep_file_type=file_type)
+                areas[nav_name] = area = self._load_navigation(nav_name, dep_file_type=file_type)
             else:
                 area = areas[nav_name]
 
