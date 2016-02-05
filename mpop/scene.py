@@ -311,7 +311,7 @@ class Scene(InfoObject):
         new_scn.compositors = self.compositors.copy()
         for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
-            if datasets and ds_id.name not in datasets:
+            if datasets and ds_id not in datasets:
                 continue
             new_scn[ds_id] = projectable.resample(destination, **kwargs)
 
