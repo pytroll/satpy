@@ -195,6 +195,9 @@ class KDTreeResampler(BaseResampler):
             lons = np.ma.masked_array(self.source_geo_def.lons.data, new_mask)
             lats = np.ma.masked_array(self.source_geo_def.lats.data, new_mask)
             source_geo_def = cls(lons, lats, nprocs=source_geo_def.nprocs)
+            # FIXME: Finalize how Area and GridDefinitions use the `name` attribute
+            if hasattr(self.source_geo_def, "name"):
+                source_geo_def.name = self.source_geo_def.name
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
                                 radius_of_influence=radius_of_influence,
