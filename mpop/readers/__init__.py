@@ -842,6 +842,8 @@ class ConfigBasedReader(Reader):
 
     def load_section_navigation(self, section_name, section_options):
         name = section_name.split(":")[-1]
+        if "rows_per_scan" in section_options:
+            section_options["rows_per_scan"] = int(section_options["rows_per_scan"])
         self.navigations[name] = section_options
 
     def load_section_calibration(self, section_name, section_options):
