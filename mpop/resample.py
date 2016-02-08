@@ -222,7 +222,7 @@ class KDTreeResampler(BaseResampler):
                 cache = dict(np.load(filename))
                 self.caches[kd_hash] = cache
                 while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem()
+                    self.caches.popitem(False)
                 if cache_dir:
                     self.dump(filename)
                 return kd_hash
@@ -248,8 +248,8 @@ class KDTreeResampler(BaseResampler):
                  }
 
         self.caches[kd_hash] = cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem()
+        while len(self.caches) > CACHE_SIZE - 1:
+            self.caches.popitem(False)
 
         if cache_dir:
             self.dump(filename)
