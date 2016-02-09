@@ -65,7 +65,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'mpop'
+project = u'satpy'
 copyright = u'2009-2013, The pytroll crew'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -73,7 +73,7 @@ copyright = u'2009-2013, The pytroll crew'
 # built documents.
 #
 
-import mpop.version as current_version
+import satpy.version as current_version
 
 # The full version, including alpha/beta/rc tags.
 release = current_version.__version__
@@ -203,7 +203,7 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'mpop.tex', u'mpop documentation',
+  ('index', 'satpy.tex', u'satpy documentation',
    u'SMHI', 'manual'),
 ]
 

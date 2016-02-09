@@ -1,5 +1,5 @@
 ==============================================
- Input plugins: the :mod:`mpop.satin` package
+ Input plugins: the :mod:`satpy.satin` package
 ==============================================
 
 Available plugins and their requirements
@@ -10,7 +10,7 @@ mipp_xrit
 
 Reader for for hrit/lrit formats. Recommends numexpr and pyresample.
 
-.. automodule:: mpop.satin.mipp_xrit
+.. automodule:: satpy.satin.mipp_xrit
    :members:
    :undoc-members:
 
@@ -20,7 +20,7 @@ aapp1b
 
 Reader for AAPP level 1b format. Requires numpy, recommends pyresample.
 
-.. automodule:: mpop.satin.aapp1b
+.. automodule:: satpy.satin.aapp1b
    :members:
    :undoc-members:
 
@@ -29,7 +29,7 @@ eps_l1b
 -------
 Reader for EPS level 1b format. Recommends pyresample.
 
-.. automodule:: mpop.satin.eps_l1b
+.. automodule:: satpy.satin.eps_l1b
    :members:
    :undoc-members:
 
@@ -39,7 +39,7 @@ viirs_sdr
 ---------
 Reader for the VIIRS SDR format. Requires h5py.
 
-.. automodule:: mpop.satin.viirs_sdr
+.. automodule:: satpy.satin.viirs_sdr
    :members:
    :undoc-members:
 
@@ -47,7 +47,7 @@ viirs_compact
 -------------
 Reader for the VIIRS compact format from EUMETSAT. Requires h5py.
 
-.. automodule:: mpop.satin.viirs_compact
+.. automodule:: satpy.satin.viirs_compact
    :members:
    :undoc-members:
 
@@ -55,7 +55,7 @@ hdfeos_l1b
 ----------
 Reader for Modis data format. Requires pyhdf.
 
-.. automodule:: mpop.satin.hdfeos_l1b
+.. automodule:: satpy.satin.hdfeos_l1b
    :members:
    :undoc-members:
 
@@ -64,7 +64,7 @@ msg_hdf
 -------
 Reader for MSG cloud products. Requires h5py, recommends acpg.
 
-.. automodule:: mpop.satin.msg_hdf
+.. automodule:: satpy.satin.msg_hdf
    :members:
    :undoc-members:
 
@@ -73,7 +73,7 @@ pps_hdf
 -------
 Reader for PPS cloud products. Requires acpg.
 
-.. automodule:: mpop.satin.pps_hdf
+.. automodule:: satpy.satin.pps_hdf
    :members:
    :undoc-members:
 
@@ -82,7 +82,7 @@ hrpt
 ----
 Reader for level 0 hrpt format. Requires AAPP and pynav.
 
-.. automodule:: mpop.satin.hrpt
+.. automodule:: satpy.satin.hrpt
    :members:
    :undoc-members:
 
@@ -91,7 +91,7 @@ eps1a
 -----
 Reader for level 1a Metop segments. Requires AAPP, kai and eugene.
 
-.. automodule:: mpop.satin.eps1a
+.. automodule:: satpy.satin.eps1a
    :members:
    :undoc-members:
 
@@ -113,7 +113,7 @@ The plugin API
    New plugin API
 
 
-.. automodule:: mpop.plugin_base
+.. automodule:: satpy.plugin_base
    :members:
    :undoc-members:
 

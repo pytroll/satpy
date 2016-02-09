@@ -8,15 +8,15 @@ Getting the files and installing them
 First you need to get the files from github::
 
   cd /path/to/my/source/directory/
-  git clone git://github.com/mraspaud/mpop.git
+  git clone git://github.com/mraspaud/satpy.git
 
 You can also retreive a tarball from there if you prefer, then run::
   
   tar zxvf tarball.tar.gz
 
-Then you need to install mpop on you computer::
+Then you need to install satpy on you computer::
 
-  cd mpop
+  cd satpy
   python setup.py install [--prefix=/my/custom/installation/directory]
 
 You can also install it in develop mode to make it easier to hack::
@@ -30,9 +30,9 @@ Configuration
 Environment variables
 ---------------------
 
-Environment variables which are needed for mpop are the `PYTHONPATH` of course,
+Environment variables which are needed for satpy are the `PYTHONPATH` of course,
 and the `PPP_CONFIG_DIR`, which is the directory where the configuration files
-are to be found. If the latter is not defined, the `etc` directory of the mpop
+are to be found. If the latter is not defined, the `etc` directory of the satpy
 installation is used.
 
 Input data directories
@@ -40,7 +40,7 @@ Input data directories
 
 The input data directories are setup in the satellite configuration files,
 which can be found in the `PPP_CONFIG_DIR` directory (some template files are
-provided with mpop in the `etc` directory):
+provided with satpy in the `etc` directory):
 
 .. code-block:: ini
 

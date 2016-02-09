@@ -25,7 +25,7 @@
 We take the case of level 1b data (calibrated and geolocalized) from noaa 19,
 as output from AAPP.
 
-- Install mpop and pyresample
+- Install satpy and pyresample
 - Don't forget to set up the PPP_CONFIG_DIR variable to point to your
   configuration files.
 - Edit the noaa19.cfg configuration file (a template is provided in case
@@ -43,7 +43,7 @@ as output from AAPP.
 
 """
 
-from mpop.satellites import PolarFactory
+from satpy.satellites import PolarFactory
 
 import sys
 from datetime import datetime

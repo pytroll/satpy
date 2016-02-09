@@ -1,4 +1,4 @@
-mpop package
+satpy package
 ============
 
 Subpackages
@@ -6,57 +6,57 @@ Subpackages
 
 .. toctree::
 
-    mpop.composites
-    mpop.readers
-    mpop.writers
+    satpy.composites
+    satpy.readers
+    satpy.writers
 
 Submodules
 ----------
 
-mpop.plugin_base module
+satpy.plugin_base module
 -----------------------
 
-.. automodule:: mpop.plugin_base
+.. automodule:: satpy.plugin_base
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.projectable module
+satpy.projectable module
 -----------------------
 
-.. automodule:: mpop.projectable
+.. automodule:: satpy.projectable
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.resample module
+satpy.resample module
 --------------------
 
-.. automodule:: mpop.resample
+.. automodule:: satpy.resample
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.scene module
+satpy.scene module
 -----------------
 
-.. automodule:: mpop.scene
+.. automodule:: satpy.scene
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.tools module
+satpy.tools module
 -----------------
 
-.. automodule:: mpop.tools
+.. automodule:: satpy.tools
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.utils module
+satpy.utils module
 -----------------
 
-.. automodule:: mpop.utils
+.. automodule:: satpy.utils
     :members:
     :undoc-members:
     :show-inheritance:
@@ -64,7 +64,7 @@ mpop.utils module
 Module contents
 ---------------
 
-.. automodule:: mpop
+.. automodule:: satpy
     :members:
     :undoc-members:
     :show-inheritance:

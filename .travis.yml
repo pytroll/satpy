@@ -24,8 +24,8 @@ addons:
   apt_packages:
     - libhdf5-serial-dev
 script:
-- coverage run --source=mpop setup.py test
-- coverage run -a --source=mpop -m behave mpop/tests/features --tags=-download
+- coverage run --source=satpy setup.py test
+- coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success: coveralls
 deploy:
   provider: pypi
@@ -34,7 +34,7 @@ deploy:
     secure: RuQzdaLTY4sryIzG8Hz1KWEsyYRxrLvbyfm7DurXDPcj2vsujRwJicNwBrJajIBkzZWwdmWE8db55BPWZwCsJtVUbE53vc742wSAcci2zzCgizSb/jjlDkwk1CE/PoMl4t3JsuIU6bklgw1Y1d4Xn4+BeZe8Blol5PD/FUovxfo=
   on:
     tags: true
-    repo: pytroll/mpop
+    repo: pytroll/satpy
 sudo: false
 notifications:
   slack: pytroll:96mNSYSI1dBjGyzVXkBT6qFt

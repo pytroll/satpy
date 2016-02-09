@@ -4,7 +4,7 @@ area_directory=
 projections_directory=/var/tmp
 
 [composites]
-module=mpop.smhi_composites
+module=satpy.smhi_composites
 
 #shape files for pycoast
 [shapes]
