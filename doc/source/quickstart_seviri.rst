@@ -10,7 +10,7 @@
 ===========================
 
 For this tutorial, we will use the Meteosat data in the uncompressed EUMETSAT HRIT format, read it through mipp_ into
-mpop_, resample it with pyresample_ and process it a bit. Install theses packages first.
+satpy_, resample it with pyresample_ and process it a bit. Install theses packages first.
 
 Software to uncompress HRIT can be obtained from EUMETSAT (register and download
 the `Public Wavelet Transform Decompression Library Software`_)
@@ -28,7 +28,7 @@ This example assumes uncompressed EUMETSAT HRIT data for 2015-04-20 10:00 exists
 
 First, we will create a scene and load some full disk data.
 
-    >>> from mpop.scene import Scene
+    >>> from satpy.scene import Scene
     >>> from datetime import datetime
     >>> time_slot = datetime(2015, 4, 20, 10, 0)
     >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
@@ -55,7 +55,79 @@ First, we will create a scene and load some full disk data.
             shape: (3712, 3712)
 
 
-In this example, we create an mpop_ scene object (:attr:`global_scene`) for the seviri instrument
+In this example, we create an
+    >>> import sys
+    >>> reload(sys)
+    >>> sys.setdefaultencoding('utf8')
+    >>> import os
+    >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
+
+First, we will create a scene and load some full disk data.
+
+    >>> from satpy.scene import Scene
+    >>> from datetime import datetime
+    >>> time_slot = datetime(2015, 4, 20, 10, 0)
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
+    >>> global_scene.load([0.6, 0.8, 10.8])
+    >>> print global_scene
+
+    seviri/IR_108:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: K
+            wavelength_range: (9.8, 10.8, 11.8) μm
+            shape: (3712, 3712)
+    seviri/VIS006:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.56, 0.635, 0.71) μm
+            shape: (3712, 3712)
+    seviri/VIS008:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.74, 0.81, 0.88) μm
+            shape: (3712, 3712)
+
+
+In this example, we create an
+    >>> import sys
+    >>> reload(sys)
+    >>> sys.setdefaultencoding('utf8')
+    >>> import os
+    >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
+
+First, we will create a scene and load some full disk data.
+
+    >>> from satpy.scene import Scene
+    >>> from datetime import datetime
+    >>> time_slot = datetime(2015, 4, 20, 10, 0)
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
+    >>> global_scene.load([0.6, 0.8, 10.8])
+    >>> print global_scene
+
+    seviri/IR_108:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: K
+            wavelength_range: (9.8, 10.8, 11.8) μm
+            shape: (3712, 3712)
+    seviri/VIS006:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.56, 0.635, 0.71) μm
+            shape: (3712, 3712)
+    seviri/VIS008:
+            area: On-the-fly area
+            start_time: 2015-04-20 10:00:00
+            units: %
+            wavelength_range: (0.74, 0.81, 0.88) μm
+            shape: (3712, 3712)
+
+
+In this example, we create an satpy_ scene object (:attr:`global_scene`) for the seviri instrument
 onboard Meteosat-10, specifying the time of the scene of interest. The time is defined as a datetime object.
 
 The next step is loading the data. This is done using mipp_ in the background, which takes care of
@@ -81,14 +153,32 @@ Retrieving the same channels based on channel name would be
     >>> global_scene.load([0.6, 0.8, 10.8], area_defs=europe)
     >>> global_scene.load(['VIS006', 'VIS008', 'IR_108'], area_extent=europe.area_extent)
 
-The :attr:`area_extent` keyword argument in the :meth:`load` method specifies the subsection of the image to load in satellite projection coordinates. In this case the *EuropeCanary* is an area definition in the *geos* projection defined in the *area.def* file used by mpop_ (this area is provided in the mpop_ template *area.def*). If the :attr:`area_extent` keyword argument is not provided the full globe image is loaded.
+The :attr:`area_extent` keyword argument in the :meth:`load` method specifies the subsection of the image to load in satellite projection coordinates. In this case the *EuropeCanary* is an area definition in the *geos* projection defined in the *area.def* file used by satpy_ (this area is provided in the satpy_ template *area.def*). If the :attr:`area_extent` keyword argument is not provided the full globe image is loaded.
 
 Making RGB composites
 =====================
-The :meth:`load` functions return an mpop_ scene object (:attr:`global_scene`). The scene object is composed with an object named :attr:`image` which handles the creation of RGBs
+The :meth:`load` functions return an satpy_ scene object (:attr:`global_scene`). The scene object is composed with an object named :attr:`image` which handles the creation of RGBs
 
-    >>> from mpop.resample import get_area_def
-    >>> from mpop.writers import get_enhanced_image
+    >>> from satpy.resample import get_area_def
+    >>> from satpy.writers import get_enhanced_image
+    >>> global_scene.load(["overview"])
+    >>> img = get_enhanced_image(global_scene["overview"])
+    >>> img.save("./myoverview.png")
+
+
+
+
+    >>> from satpy.resample import get_area_def
+    >>> from satpy.writers import get_enhanced_image
+    >>> global_scene.load(["overview"])
+    >>> img = get_enhanced_image(global_scene["overview"])
+    >>> img.save("./myoverview.png")
+
+
+
+
+    >>> from satpy.resample import get_area_def
+    >>> from satpy.writers import get_enhanced_image
     >>> global_scene.load(["overview"])
     >>> img = get_enhanced_image(global_scene["overview"])
     >>> img.save("./myoverview.png")
@@ -237,27 +327,27 @@ Making custom composites
 Building custom composites makes use of the :mod:`imageo` module. For example,
 building an overview composite can be done manually with::
 
-    >>> from mpop.composites import RGBCompositor
+    >>> from satpy.composites import RGBCompositor
     >>> compositor = RGBCompositor("myoverview", "bla", "")
     >>> composite = compositor([local_scene[0.6],
     ...                         local_scene[0.8],
     ...                         local_scene[10.8]])
-    >>> from mpop.writers import to_image
+    >>> from satpy.writers import to_image
     >>> img = to_image(composite)
     >>> img.invert([False, False, True])
     >>> img.stretch("linear")
     >>> img.show()
 
-In order to have mpop automatically use the composites you create, it is
+In order to have satpy automatically use the composites you create, it is
 possible to write them in a python module which name has to be specified in the
-`mpop.cfg` configuration file, under the :attr:`composites` section. Change the *mpop.cfg* file to have the following line::
+`satpy.cfg` configuration file, under the :attr:`composites` section. Change the *satpy.cfg* file to have the following line::
 
   [composites]
   module=my_composites
 
 Now create a file named *my_composites.py* in a local dir with the content::
 
-  from mpop.imageo.geo_image import GeoImage
+  from satpy.imageo.geo_image import GeoImage
 
   def hr_visual(self):
       """Make a High Resolution visual BW image composite from Seviri
@@ -316,8 +406,8 @@ In *my_composites.py* we have now defined 2 custom composites using the HRV chan
 
 Add the dir containing *my_composites.py* to your PYTHONPATH. Now your new composites will be accessible on the :attr:`scene.image` object like the builtin composites::
 
-    >>> from mpop.satellites import GeostationaryFactory
-    >>> from mpop.projector import get_area_def
+    >>> from satpy.satellites import GeostationaryFactory
+    >>> from satpy.projector import get_area_def
     >>> import datetime
     >>> time_slot = datetime.datetime(2009, 10, 8, 14, 30)
     >>> global_scene = GeostationaryFactory.create_scene("meteosat", "09", "seviri", time_slot)
@@ -331,7 +421,7 @@ Add the dir containing *my_composites.py* to your PYTHONPATH. Now your new compo
 
 
 .. _GeoTiff: http://trac.osgeo.org/geotiff/
-.. _mpop: http://www.github.com/mraspaud/mpop
+.. _satpy: http://www.github.com/mraspaud/satpy
 .. _mipp: http://www.github.com/loerum/mipp
 .. _pyresample: http://pyresample.googlecode.com
 .. _numexpr: http://code.google.com/p/numexpr/

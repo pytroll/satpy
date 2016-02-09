@@ -33,9 +33,9 @@ Other
 
   This add simple repl and str methods for compositors.
 
-- Restructure the documentation for mpop2. [Martin Raspaud]
+- Restructure the documentation for satpy2. [Martin Raspaud]
 
-  This is an attempt to reorganize the documentation to prepare for mpop2.
+  This is an attempt to reorganize the documentation to prepare for satpy2.
   Old stuff has been take away, and a fresh quickstart and api are now
   provided.
 
@@ -56,7 +56,7 @@ Other
   When a new dataset is added to a scene, it's name should match the string
   key provided by the user.
 
-- Remove references to deprecated mpop.projector. [Martin Raspaud]
+- Remove references to deprecated satpy.projector. [Martin Raspaud]
 
 - Allow resample to receive strings as area identifiers. [Martin
   Raspaud]
@@ -73,12 +73,12 @@ Other
   it is likely that the user case about this dataset. As such, it should be
   added to the wishlist in order not to get removed accidently.
 
-- Move composite loading out of Scene to mpop.composites. [Martin
+- Move composite loading out of Scene to satpy.composites. [Martin
   Raspaud]
 
   The loading of compositors was a part of the Scene object. However, it does
   not belong there, so we decided to move it out of Scene. The next logical
-  place to have it is the mpop.composites modules.
+  place to have it is the satpy.composites modules.
   As a conterpart, we now provide the `available_composites` method to the
   Scene to be able to figure out what we have possibility to generate.
 
@@ -125,7 +125,7 @@ Other
 
 - Fix setup.py to add cfg files. [Martin Raspaud]
 
-  This is in order to make mpop work out of the box after a pip install.
+  This is in order to make satpy work out of the box after a pip install.
 
 - Add a behaviour test to find out the available dataset. [Martin
   Raspaud]
@@ -133,7 +133,7 @@ Other
 - Prevent crashing when a load requirement is not available. [Martin
   Raspaud]
 
-  When requiring a band which isn't available, mpop would crash. This is now
+  When requiring a band which isn't available, satpy would crash. This is now
   fixed and replaced by a warning in the log.
 
 - Use behave to do higher level tests. [Martin Raspaud]
@@ -310,7 +310,7 @@ Other
 - Smoother transition in the sun zenith correct imagery. [Martin
   Raspaud]
 
-- Move reader discovery out of the scene and into mpop.readers. [Martin
+- Move reader discovery out of the scene and into satpy.readers. [Martin
   Raspaud]
 
   The class ReaderFinder was created for this purpose.
@@ -496,7 +496,7 @@ Other
 - Slightly better handling of default writer configs and writer
   arguments. [davidh-ssec]
 
-- Add a writer for png images, and move enhancer to mpop.writers.
+- Add a writer for png images, and move enhancer to satpy.writers.
   [Martin Raspaud]
 
 - Detached the enhancements handling into an Enhancer class. [Martin
@@ -521,15 +521,15 @@ Other
 - Merge branch 'pre-master' into feature-simplify. [Martin Raspaud]
 
   Conflicts:
-  	mpop/satellites/__init__.py
-  	mpop/satin/helper_functions.py
-  	mpop/satin/mipp_xrit.py
+  	satpy/satellites/__init__.py
+  	satpy/satin/helper_functions.py
+  	satpy/satin/mipp_xrit.py
 
 - Cleanup. [Martin Raspaud]
 
 - Change printing of projectables and cleanup. [Martin Raspaud]
 
-- Start testing mpop.scene. [Martin Raspaud]
+- Start testing satpy.scene. [Martin Raspaud]
 
 - Fixed assertIn for python 2.6. [davidh-ssec]
 
@@ -574,7 +574,7 @@ Other
 
 - Renamed newscene to scene. [Martin Raspaud]
 
-- Moved updated readers from mpop.satin to mpop.readers. [Martin
+- Moved updated readers from satpy.satin to satpy.readers. [Martin
   Raspaud]
 
 - Changed 'uid' to 'name' for all new components. [davidh-ssec]
@@ -656,7 +656,7 @@ v1.2.1 (2015-12-14)
 - Merge branch 'pre-master' [Martin Raspaud]
 
   Conflicts:
-  	mpop/version.py
+  	satpy/version.py
   	setup.py
 
 
@@ -714,7 +714,7 @@ Other
   Parameters needed if you want to load only with time_interval and
   not using the filename argument
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Merged (by hand) sentinel1-feature branch. [Lars Orum Rasmussen]
@@ -722,7 +722,7 @@ Other
 - Added support for gdal's SetNoDataValue if fill_value is not None.
   [Lars Orum Rasmussen]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Added a RGB example. [Lars Orum Rasmussen]
@@ -752,7 +752,7 @@ Other
 - Apply VIS/NIR calibration including sun-zenith correction.
   [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Now ninjotiff can list tags. [Lars Orum Rasmussen]
@@ -772,7 +772,7 @@ Other
   Changed scaling into a value range (so it works for me)
 
 
-- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
   master. [Panu Lahtinen]
 
 - Delete world_map.ascii. [Martin Raspaud]
@@ -782,7 +782,7 @@ Other
 
 - Update coords2area_def with preview mode. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
   master. [Panu Lahtinen]
 
 - Remove debug printout from pps reader. [Adam.Dybbroe]
@@ -802,7 +802,7 @@ Other
 
 - Take care of fill_value in datasets. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Fix the sun zenith angle correction fix. [Martin Raspaud]
@@ -822,7 +822,7 @@ Other
 
 - Read also the palette data etc. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Add orbit number info in the scene metadata upon loading. (hdfeos)
@@ -844,7 +844,7 @@ Other
 
 - Comment out the night_overview. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Bugfix overview_sun. [Martin Raspaud]
@@ -862,11 +862,11 @@ Other
 - Shouting when both a list of file names and a time interval is used.
   Accepts tine_interval even for local files. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
   Conflicts:
-  	mpop/satin/nc_pps_l2.py
+  	satpy/satin/nc_pps_l2.py
 
 - Fixed incorrect production sources and geolocation file names for
   'local' products. [Panu Lahtinen]
@@ -874,7 +874,7 @@ Other
 - Added a unit test to the nc_pps_l2 reader, and adapted the reader a
   bit. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/pytroll/mpop into pre-
+- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
   master. [Panu Lahtinen]
 
 - Fixme reminder. [Adam.Dybbroe]
@@ -888,7 +888,7 @@ Other
 
 - Cleaning up a bit and pep8. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of github.com:pytroll/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
   [Adam.Dybbroe]
 
 - Updated reading to support both M and DNB channel data. [Panu
@@ -998,7 +998,7 @@ Other
 
 - Pyspectral now uses standard platform names. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Panu Lahtinen]
 
 - Add algorithm version in output cloud products. [Martin Raspaud]
@@ -1040,7 +1040,7 @@ Other
 
 - Fix MSG format to PPS format conversion. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Merge pull request #16 from pnuu/simplified_platforms. [Martin
@@ -1097,7 +1097,7 @@ Other
 
 - Bugfix. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Remove ugly print statements. [Martin Raspaud]
@@ -1124,7 +1124,7 @@ Other
 
 - Remove type testing for orbit number. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Allowing kwargs. [Martin Raspaud]
@@ -1136,7 +1136,7 @@ Other
 
 - Fix multiple file loading for metop l1b data. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Implement save for all cloudproducts. [Martin Raspaud]
@@ -1186,7 +1186,7 @@ Other
 
 - Revert nc_reader back until generalization is ready. [Martin Raspaud]
 
-- Merge branch 'ppsv2014-reader' of github.com:mraspaud/mpop into
+- Merge branch 'ppsv2014-reader' of github.com:mraspaud/satpy into
   ppsv2014-reader. [Martin Raspaud]
 
 - Adding dataset attributes to pps reading. [Adam Dybbroe]
@@ -1200,7 +1200,7 @@ Other
 - Hdf_eos now uses 1 out of 4 available cores to interpolate data.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Fixed bug, now handling fill_value better. [Lars Orum Rasmussen]
@@ -1210,7 +1210,7 @@ Other
 - Add dnb_overview as a standard product (dnb, dnb, 10.8) [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Corrected the reader for SAFNWC/PPS v2014. [Sara.Hornquist]
@@ -1226,7 +1226,7 @@ Other
 
 - Enhance nwc-pps reader to support v2014 format. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Put the config object back in Projector. [Martin Raspaud]
@@ -1253,7 +1253,7 @@ Other
 
 - Add delitem, and code cleanup. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Added a reader for SAFNWC/PPS v2014 PPS v2014 has a different
@@ -1261,11 +1261,11 @@ Other
 
 - Aapp1b reader, be more clever when (re)reading. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
   Conflicts:
-  	mpop/satout/netcdf4.py
+  	satpy/satout/netcdf4.py
 
 
 - Allow reading several files at once in viirs_compact. [Martin Raspaud]
@@ -1282,7 +1282,7 @@ Other
 
 - Add a name to the area when loading aapp data. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - For PNG files, geo_mage.tags will be saved a PNG metadata. [Lars Orum
@@ -1296,7 +1296,7 @@ Other
 
   Just run global_data.load(..., filename="/path/to/myfile.1b")
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Viirs_sdr can now load depending on an area. [Martin Raspaud]
@@ -1332,10 +1332,10 @@ Other
 
 - Fix the parallax file sorting problem, again. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Bugfix. [Adam Dybbroe]
@@ -1343,9 +1343,9 @@ Other
 - Merge branch '3.9reflectance' into pre-master. [Adam Dybbroe]
 
   Conflicts:
-  	mpop/channel.py
-  	mpop/instruments/seviri.py
-  	mpop/satin/mipp_xrit.py
+  	satpy/channel.py
+  	satpy/instruments/seviri.py
+  	satpy/satin/mipp_xrit.py
   	setup.py
 
 
@@ -1371,10 +1371,10 @@ Other
 
 - Sort the filenames in get_best_products (msg_hdf) [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Merge pull request #10 from pnuu/pre-master. [Martin Raspaud]
@@ -1384,13 +1384,13 @@ Other
 - Fixed failed merging (removed "<<<<<<< HEAD" and ">>>>>>> upstream
   /pre-master" lines) [Panu Lahtinen]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Fix terra and aqua templates for the dual gain channels (13 & 14)
@@ -1399,14 +1399,14 @@ Other
 - Read both parallax corrected and usual cloudtype products. [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Martin Raspaud]
 
 - Merge pull request #9 from pnuu/pre-master. [Martin Raspaud]
 
   Possibility to get area_extent from area definition(s)
 
-- Tests for mpop.satin.helper_functions.boundaries_to_extent. [Panu
+- Tests for satpy.satin.helper_functions.boundaries_to_extent. [Panu
   Lahtinen]
 
 - Separated area definitions and boundary calculations. [Panu Lahtinen]
@@ -1426,17 +1426,17 @@ Other
 
 - Fixed import. [Panu Lahtinen]
 
-- Added tests for mpop.satin.helper_functions. [Panu Lahtinen]
+- Added tests for satpy.satin.helper_functions. [Panu Lahtinen]
 
-- Moved to mpop/tests/ [Panu Lahtinen]
+- Moved to satpy/tests/ [Panu Lahtinen]
 
-- Moved to mpop/tests/ [Panu Lahtinen]
+- Moved to satpy/tests/ [Panu Lahtinen]
 
 - Merge remote-tracking branch 'upstream/pre-master' into pre-master.
   [Panu Lahtinen]
 
   Conflicts:
-  	mpop/satin/aapp1b.py
+  	satpy/satin/aapp1b.py
 
 
 - Removed unneeded functions. [Panu Lahtinen]
@@ -1458,14 +1458,14 @@ Other
 - Helper functions for area extent and bondary calculations, and data
   reducing for swath data. [Panu Lahtinen]
 
-- Test for mpop.satin.mipp_xrit.lonlat_to_geo_extent() [Panu Lahtinen]
+- Test for satpy.satin.mipp_xrit.lonlat_to_geo_extent() [Panu Lahtinen]
 
 - Support for lon/lat -based area extents. [Panu Lahtinen]
 
 - Add start and end time defaults for the images (runner). [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Lars Orum Rasmussen]
 
 - Do not mask out negative reflectances in viirs_sdr reading. [Martin
@@ -1498,14 +1498,14 @@ Other
 
 - Fix testing. [Martin Raspaud]
 
-- Mock pyresample and mpop.projector in geo_image tests. [Martin
+- Mock pyresample and satpy.projector in geo_image tests. [Martin
   Raspaud]
 
 - More testing geo_image. [Martin Raspaud]
 
 - Add tests for geo_image. [Martin Raspaud]
 
-- Merge branch 'unstable' of ssh://safe/data/proj/SAF/GIT/mpop into
+- Merge branch 'unstable' of ssh://safe/data/proj/SAF/GIT/satpy into
   unstable. [Martin Raspaud]
 
 - Mock gdal for geo_image tests. [Martin Raspaud]
@@ -1570,7 +1570,7 @@ Other
 
   Sun zenith angle correction added.
 
-- A section on mpop.tools added to documentation. [Panu Lahtinen]
+- A section on satpy.tools added to documentation. [Panu Lahtinen]
 
 - Extra tests for sun_zen_corr(). [Panu Lahtinen]
 
@@ -1588,12 +1588,12 @@ Other
 
 - Revert to original version. [Panu Lahtinen]
 
-- Initial commit of mpop.tools (with Sun zenith angle correction). [Panu
+- Initial commit of satpy.tools (with Sun zenith angle correction). [Panu
   Lahtinen]
 
 - Sun zenith angle correction added. [Panu Lahtinen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [ras]
 
 - Solve the multiple channel resolution with automatic resampling
@@ -1606,7 +1606,7 @@ Other
 
 - Adding more files to be ignored. [ras]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [ras]
 
 - New reader for hrpt level0 format. [Martin Raspaud]
@@ -1618,7 +1618,7 @@ Other
 - Add some debugging info about missing pixels in viirs_sdr. [Martin
   Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Corrected a comment. [Adam Dybbroe]
@@ -1631,12 +1631,12 @@ Other
 
 - Fix hook to be able to record both filename and uri. [Martin Raspaud]
 
-- Protecting MPOP from netcdf4's unicode variables. [ras]
+- Protecting satpy from netcdf4's unicode variables. [ras]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Adding a new convection RGB with co2 correction for SEVIRI. [Adam
@@ -1663,7 +1663,7 @@ Other
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	mpop/imageo/geo_image.py
+  	satpy/imageo/geo_image.py
 
 - Night_color (should had beed called night_overview) is the same as
   cloudtop. [Lars Orum Rasmussen]
@@ -1689,7 +1689,7 @@ Other
 - Fix backward compatibility in, and deprecate image.py. [Martin
   Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Calling numpy percentile only once when doing left and right cut offs.
@@ -1717,7 +1717,7 @@ Other
   data are heaviliy skeewed. Fixes problem seen by Bocheng in DNB
   imagery. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Don't remove GeolocationFlyweight _instances, but reset it. Allowing
@@ -1732,12 +1732,12 @@ Other
   course created some problem further down. Fixed by setting the not loadable
   channel to None.
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Bugfix in npp.cfg template. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Fixing bug concerning the identification of VIIRS geolocation files.
@@ -1752,12 +1752,12 @@ Other
 
 - Fixing test cases. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Remove dummy test to boost projection performance. [Martin Raspaud]
 
-  Mpop was checking in 2 different places if the source and target areas were
+  satpy was checking in 2 different places if the source and target areas were
   different, leading to pyresample expanding the area definitions to full
   lon/lat arrays when checking against a swath definition, and then running
   an allclose. This was inefficient, and the programming team decided that it
@@ -1766,7 +1766,7 @@ Other
 
 - Remove dummy test to boost projection performance. [Martin Raspaud]
 
-  Mpop was checking in 2 different places if the source and target areas were
+  satpy was checking in 2 different places if the source and target areas were
   different, leading to pyresample expanding the area definitions to full
   lon/lat arrays when checking against a swath definition, and then running
   an allclose. This was inefficient, and the programming team decided that it
@@ -1779,7 +1779,7 @@ Other
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Cleanup. [Martin Raspaud]
@@ -1806,22 +1806,22 @@ v1.0.0 (2013-09-25)
 
 - Better documentation. [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
   	etc/npp.cfg.template
 
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Changed template to fit new npp reader. [krl]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam Dybbroe]
 
 - Updated npp confirg file template with geo_filename example. [Adam
@@ -1834,11 +1834,11 @@ v1.0.0 (2013-09-25)
 
 - Minor clean up. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
   Conflicts:
-  	mpop/satin/viirs_sdr.py
+  	satpy/satin/viirs_sdr.py
 
 
 - Fix version stuff. [Martin Raspaud]
@@ -1861,7 +1861,7 @@ v1.0.0 (2013-09-25)
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
 - Fixed (temporary ?) misuse of Image.SAVE. [Lars Orum Rasmussen]
@@ -1870,7 +1870,7 @@ v1.0.0 (2013-09-25)
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
 - Tmplate -> template. [Lars Orum Rasmussen]
@@ -1879,7 +1879,7 @@ v1.0.0 (2013-09-25)
 
 - Projector cleanup. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - New VIIRS reader. Better, faster, smarter (consumimg less memory)
@@ -1891,7 +1891,7 @@ v1.0.0 (2013-09-25)
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
   Conflicts:
@@ -1923,14 +1923,14 @@ v0.13.0 (2013-05-08)
 
 - Bump up version number for release. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
 - Bump up version number. [Martin Raspaud]
 
 - Make old plugin an info instead of a warning. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
 - Pep8. [Adam Dybbroe]
@@ -1989,7 +1989,7 @@ v0.13.0 (2013-05-08)
 
 - New plugin implementation, backward compatible. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Reverted to previous commit. [Lars Orum Rasmussen]
@@ -2020,7 +2020,7 @@ v0.12.1 (2013-03-14)
 
 - Enhance error messages. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - New template files for regional EARS (AVHRR and NWC) file support.
@@ -2053,10 +2053,10 @@ v0.12.0 (2013-01-10)
 
 - Cosmetics. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Support for calibrate option. [Adam Dybbroe]
@@ -2118,11 +2118,11 @@ Other
 - The pps palette broke msg compatibility. Now there are two palettes,
   one for msg and one for pps. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
   Conflicts:
-  	mpop/satin/viirs_sdr.py
+  	satpy/satin/viirs_sdr.py
 
 
 - Adapted viirs reader to handle aggregated granule files. [Adam
@@ -2158,7 +2158,7 @@ Other
 - Introducing stretch argument for average product. [Lars Orum
   Rasmussen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Clean up. [Martin Raspaud]
@@ -2171,12 +2171,12 @@ Other
 
   Has no scale and offset
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Refactor the unsigned netcdf packing code. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Support packing data as unsigned in netcdf. [Martin Raspaud]
@@ -2185,7 +2185,7 @@ Other
 
   Eats up too much memory.
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
 - Feature: Added template for electro-l satellite. [Martin Raspaud]
@@ -2198,8 +2198,8 @@ Other
 - Merge branch 'feature-netcdf-upgrade' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	mpop/satout/cfscene.py
-  	mpop/satout/netcdf4.py
+  	satpy/satout/cfscene.py
+  	satpy/satout/netcdf4.py
 
 
 - Merge branch 'unstable' into feature-netcdf-upgrade. [Martin Raspaud]
@@ -2207,7 +2207,7 @@ Other
 - Merge branch 'unstable' into feature-netcdf-upgrade. [Martin Raspaud]
 
   Conflicts:
-  	mpop/satin/mipp_xsar.py
+  	satpy/satin/mipp_xsar.py
 
 
 - Work on new netcdf format nearing completion. [Martin Raspaud]
@@ -2234,7 +2234,7 @@ Other
 
 - WIP: updating the netcdf interface. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Changed handeling of "_FillValue"-attributes. Added
@@ -2244,7 +2244,7 @@ Other
 
 - Cosmetics. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Fixing bug concerning viirs bandlist and the issue of preventing the
@@ -2254,10 +2254,10 @@ Other
   to load a product. Minor fixes in MODIS and AAPP1b readers. [Adam
   Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Bugfix in viirs sdr reader. [Adam Dybbroe]
@@ -2280,11 +2280,11 @@ Other
 - Fixing runner to warn for missing functions (instead of crashing).
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	mpop/satin/viirs_sdr.py
+  	satpy/satin/viirs_sdr.py
 
 
 - Bug fix green-snow RGB. [Adam Dybbroe]
@@ -2295,7 +2295,7 @@ Other
   not tuples of 2 but 6). Taken from old fix in npp-support branch.
   [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Support for bzip2 compressed NWCSAF products (EARS-NWC) [Adam Dybbroe]
@@ -2311,7 +2311,7 @@ Other
 
 - Added stretch option. [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Feature: new function to create an image from a scene. [Martin
@@ -2336,7 +2336,7 @@ Other
 - Support for tiepoint grids and interpolation + masking out no-data
   geolocation (handling VIIRS Bow-tie deletetion) [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Adding viirs composites and pps_odim reader for avhrr and viirs
@@ -2344,16 +2344,16 @@ Other
 
 - Added a Geo Phys Product to modis level2. [Lars Orum Rasmussen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
   [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Adding support for ob_tran projection even though it is not cf-
   compatible yet. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam Dybbroe]
 
 - Added the reading of geolocation data from the PPS formatet level1
@@ -2527,7 +2527,7 @@ Other
 
 - Cloudtype channel now called "CT". [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
   master. [Martin Raspaud]
 
 - SetProjCS is now correctly called after ImportFromProj4. [Lars Orum
@@ -2539,7 +2539,7 @@ Other
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	mpop/satin/mipp_xsar.py
+  	satpy/satin/mipp_xsar.py
 
 
 - More correct 'new area' [Lars Orum Rasmussen]
@@ -2571,7 +2571,7 @@ Other
   - do not crash if no PGE is present
 
 
-- Added shapes in mpop.cfg.template for pycoast. [Martin Raspaud]
+- Added shapes in satpy.cfg.template for pycoast. [Martin Raspaud]
 
 - Cleanup. [Martin Raspaud]
 
@@ -2581,7 +2581,7 @@ Other
 
 - Feature: add a global area if possible. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Fixing so thar also other products (than Channel data) can be
@@ -2593,14 +2593,14 @@ Other
 
 - Cleaning up geo_image.py. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	mpop/satin/hdfeos_l1b.py
+  	satpy/satin/hdfeos_l1b.py
 
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam.Dybbroe]
 
 - Minor cosmetic/editorial stuff. [Adam.Dybbroe]
@@ -2623,7 +2623,7 @@ Other
 - WIP: Started working on supporting halv/quarter files for modis.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
 - Changed MODIS HDF-EOS level 1b reader to accomodate both the thinned
@@ -2634,7 +2634,7 @@ Other
 - Fixing indexing bug: missing last line in Metop AVHRR granule.
   [Adam.Dybbroe]
 
-- Revert "Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into
+- Revert "Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into
   unstable" [Martin Raspaud]
 
   This reverts commit 45809273f2f9670c8282c32197ef47071aecaa74, reversing
@@ -2648,19 +2648,19 @@ Other
 
 - Reapplying thin_modis cleaning. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam.Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam.Dybbroe]
 
 - Merge branch 'pre-master' into unstable. [Adam.Dybbroe]
 
   Conflicts:
-  	mpop/satin/eps_avhrr.py
+  	satpy/satin/eps_avhrr.py
 
 
 - Minor enhancements to nwcsaf pps cloud type reading: Adding support
@@ -2669,26 +2669,26 @@ Other
 - Fixing indexing bug: missing last line in Metop AVHRR granule.
   [Adam.Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
   [Adam.Dybbroe]
 
   Conflicts:
   	doc/source/conf.py
-  	mpop/instruments/mviri.py
-  	mpop/instruments/seviri.py
-  	mpop/instruments/test_mviri.py
-  	mpop/instruments/test_seviri.py
-  	mpop/instruments/test_visir.py
-  	mpop/instruments/visir.py
-  	mpop/satin/test_mipp.py
-  	mpop/satin/thin_modis.py
-  	mpop/saturn/runner.py
-  	mpop/scene.py
+  	satpy/instruments/mviri.py
+  	satpy/instruments/seviri.py
+  	satpy/instruments/test_mviri.py
+  	satpy/instruments/test_seviri.py
+  	satpy/instruments/test_visir.py
+  	satpy/instruments/visir.py
+  	satpy/satin/test_mipp.py
+  	satpy/satin/thin_modis.py
+  	satpy/saturn/runner.py
+  	satpy/scene.py
   	setup.py
   	version.py
 
 
-- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
+- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
   unstable. [Adam.Dybbroe]
 
 - Thin_modis Cleanup. [Martin Raspaud]
@@ -2720,12 +2720,12 @@ Other
 - Merge branch 'new_plugins' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	mpop/plugin_base.py
+  	satpy/plugin_base.py
 
 
 - Init file for plugins initialization. [Adam.Dybbroe]
 
-- Merge branch 'new_plugins' of https://github.com/mraspaud/mpop into
+- Merge branch 'new_plugins' of https://github.com/mraspaud/satpy into
   new_plugins. [Adam.Dybbroe]
 
 - Removing old deprecated and now buggy part - has been caught by the
@@ -2740,15 +2740,15 @@ Other
 - Removing old deprecated and now buggy part - has been caught by the
   try-exception since long. Adding for plugins directory. [Adam.Dybbroe]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
+- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
   unstable. [Adam.Dybbroe]
 
 - First time in git. [Adam.Dybbroe]
 
-- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
+- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
   unstable. [Adam.Dybbroe]
 
 - Meris level-2 reader - first commit. [Adam.Dybbroe]
@@ -2774,7 +2774,7 @@ Other
   Raspaud]
 
 - Style: finalizing plugin system. Now plugins directories loaded from
-  mpop.cfg. [Martin Raspaud]
+  satpy.cfg. [Martin Raspaud]
 
 - Cleanup: removing old stuff. [Martin Raspaud]
 
@@ -2793,7 +2793,7 @@ Other
 
 - DOC: Added documentation examples to the project. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - Using LOG call instead of print. [Adam.Dybbroe]
@@ -2844,12 +2844,12 @@ Other
 
 - Adding area for mapping sample data i-bands. [Adam.Dybbroe]
 
-- Scaling reflectances to percent (%) as required in mpop.
+- Scaling reflectances to percent (%) as required in satpy.
   [Adam.Dybbroe]
 
 - Adding support for I-bands. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
   pre-master. [Adam.Dybbroe]
 
 - Merge branch 'npp-support' into pre-master. [Adam.Dybbroe]
@@ -2952,7 +2952,7 @@ Fix
 - Bugfix: remove hardcoded pathes in hrpt and eps lvl 1a. [Martin
   Raspaud]
 
-- Bugfix: use mpop's main config path. [Martin Raspaud]
+- Bugfix: use satpy's main config path. [Martin Raspaud]
 
 - Bugfix: added python 2.4 compatibility. [Martin Raspaud]
 
@@ -3068,9 +3068,9 @@ Other
 
   Conflicts:
 
-  	mpop/instruments/visir.py
-  	mpop/satin/hrpt.py
-  	mpop/saturn/runner.py
+  	satpy/instruments/visir.py
+  	satpy/satin/hrpt.py
+  	satpy/saturn/runner.py
 
 
 - Cleanup: remove old unit test for assemble_swath. [Martin Raspaud]
@@ -3081,7 +3081,7 @@ Other
 
   Conflicts:
 
-  	mpop/scene.py
+  	satpy/scene.py
 
 
 - Upgrade: assemble_segments now uses scene factory. [Martin Raspaud]
@@ -3094,7 +3094,7 @@ Other
 
   Conflicts:
 
-  	mpop/satin/mipp.py
+  	satpy/satin/mipp.py
 
 
 - Cleanup: removing old stuff. [Martin Raspaud]
@@ -3123,7 +3123,7 @@ Other
 
 - Added license. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - Info needs to be an instance attribute. [Lars Orum Rasmussen]
@@ -3173,7 +3173,7 @@ Other
 
 - Added gatherer and two_line_elements. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - Moved a parenthesis six characters to the left. [Lars Orum Rasmussen]
@@ -3184,7 +3184,7 @@ Other
 - Feature: thin modis reader upgrade, with lonlat estimator and channel
   trimmer for broken sensors. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - Netcdf bandname now only uses integer part of resolution. [Esben S.
@@ -3205,7 +3205,7 @@ Other
 
 - Feature: Added proj4 parameters for meteosat 7. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - Cosmetic. [Esben S. Nielsen]
@@ -3277,7 +3277,7 @@ Fix
 - Bugfix: compression argument was wrong in
   satelliteinstrumentscene.save. [Martin Raspaud]
 
-- Bugfix: adapted mpop to new equality operation in pyresample. [Martin
+- Bugfix: adapted satpy to new equality operation in pyresample. [Martin
   Raspaud]
 
 - Bugfix: More robust config reading in projector and test_projector.
@@ -3325,15 +3325,15 @@ Other
 
 - Documentation: Upgraded documentation to 0.10.0. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
 - The RELEASE-VERSION file should not be checked into git. [Lars Orum
   Rasmussen]
 
-- Optimized parts of mpop. Fixed projector caching. [Esben S. Nielsen]
+- Optimized parts of satpy. Fixed projector caching. [Esben S. Nielsen]
 
-- Optimized parts of mpop processing. Made projector caching functional.
+- Optimized parts of satpy processing. Made projector caching functional.
   [Esben S. Nielsen]
 
 - Ignore build directory. [Lars Orum Rasmussen]
@@ -3353,11 +3353,11 @@ Other
 
 - Style: cleanup. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	mpop/satin/mipp.py
+  	satpy/satin/mipp.py
 
 
 - Fixed memory problems. Workaround for lazy import of pyresample. Now
@@ -3369,7 +3369,7 @@ Other
 
 - New version. [Martin Raspaud]
 
-- Merge branch 'master' of github.com:mraspaud/mpop. [Lars Orum
+- Merge branch 'master' of github.com:mraspaud/satpy. [Lars Orum
   Rasmussen]
 
 - Feature: direct_readout chain in place. [Martin Raspaud]
@@ -3428,11 +3428,11 @@ Other
 
 - Doc: updated the meteosat 9 template config. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	mpop/satellites/meteosat09.py
+  	satpy/satellites/meteosat09.py
 
 
 - Feature: Introduced compound satscene objects. [Martin Raspaud]
@@ -3442,16 +3442,16 @@ Other
 
 
 - Feature: added the get_custom_composites function and a composites
-  section in mpop.cfg to load custom made composites on the fly. [Martin
+  section in satpy.cfg to load custom made composites on the fly. [Martin
   Raspaud]
 
 - Feature: make use of mipp's area_extent function. [Martin Raspaud]
 
 - Style: cleanup channels_to_load after loading. [Martin Raspaud]
 
-- Doc: introduce mpop.cfg. [Martin Raspaud]
+- Doc: introduce satpy.cfg. [Martin Raspaud]
 
-- Feature: make use of the new mpop.cfg file to find the area file.
+- Feature: make use of the new satpy.cfg file to find the area file.
   Added the get_area_def helper function in projector. [Martin Raspaud]
 
 - Feature: Added the new pge02f product for met09. [Martin Raspaud]
@@ -3461,12 +3461,12 @@ Other
 - Update: new version of mipp, putting the image upright when slicing.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	mpop/satout/netcdf4.py
-  	mpop/scene.py
+  	satpy/satout/netcdf4.py
+  	satpy/scene.py
 
 
 - Corrected mipp slicing in mipp.py. Added keyword for selecting
@@ -3481,7 +3481,7 @@ Other
 
 - Cosmetics: Added log message when slicing in mipp. [Martin Raspaud]
 
-- Move everything to a mpop folder, so that import mpop should be used.
+- Move everything to a satpy folder, so that import satpy should be used.
   [Martin Raspaud]
 
 - WIP: Completing the nc4 reader. [Martin Raspaud]
@@ -3744,7 +3744,7 @@ Other
 
 - Feature: more testing of scene.py. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:
@@ -3811,7 +3811,7 @@ Other
 
 - Added support for FY3 satellite and MERSI instrument. [Adam Dybbroe]
 
-- Merge branch 'unstable' of git@github.com:mraspaud/mpop into unstable.
+- Merge branch 'unstable' of git@github.com:mraspaud/satpy into unstable.
   [Martin Raspaud]
 
   Conflicts:

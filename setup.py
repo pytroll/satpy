@@ -12,29 +12,29 @@
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
-# This file is part of mpop.
+# This file is part of satpy.
 
-# mpop is free software: you can redistribute it and/or modify it
+# satpy is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
-# mpop is distributed in the hope that it will be useful, but
+# satpy is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with mpop.  If not, see <http://www.gnu.org/licenses/>.
+# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Setup file for mpop.
+"""Setup file for satpy.
 """
 import os.path
 from setuptools import setup
 import imp
 import sys
 
-version = imp.load_source('mpop.version', 'mpop/version.py')
+version = imp.load_source('satpy.version', 'satpy/version.py')
 
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
@@ -55,7 +55,7 @@ try:
 except ImportError:
     requires.append("pillow")
 
-NAME = 'mpop'
+NAME = 'satpy'
 
 setup(name=NAME,
       version=version.__version__,
@@ -69,14 +69,14 @@ setup(name=NAME,
                    "Operating System :: OS Independent",
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
-      url="https://github.com/mraspaud/mpop",
-      test_suite='mpop.tests.suite',
-      packages=['mpop', 'mpop.composites', 'mpop.readers',
-                'mpop.writers', 'mpop.tests'],
+      url="https://github.com/mraspaud/satpy",
+      test_suite='satpy.tests.suite',
+      packages=['satpy', 'satpy.composites', 'satpy.readers',
+                'satpy.writers', 'satpy.tests'],
       data_files=[(os.path.join('etc'),
                    [os.path.join('etc', 'geo_image.cfg'),
                     os.path.join('etc', 'areas.def'),
-                    os.path.join('etc', 'mpop.cfg'),
+                    os.path.join('etc', 'satpy.cfg'),
                     os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
                   (os.path.join('etc', 'writers'),
                    [os.path.join('etc', 'writers', 'simple_image.cfg'),

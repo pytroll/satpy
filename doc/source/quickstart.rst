@@ -13,20 +13,20 @@ Loading data
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
-To work with weather satellite data, one has to create an instance of the :class:`Scene` class. In order for mpop to
+To work with weather satellite data, one has to create an instance of the :class:`Scene` class. In order for satpy to
 get access to the data, either the current wording directory has to be set to the directory containing the data
 files, or the `base_dir` keyword argument has to be provided on scene creation::
 
     >>> import os
     >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
-    >>> from mpop import Scene
+    >>> from satpy import Scene
     >>> from datetime import datetime
     >>> time_slot = datetime(2015, 4, 20, 10, 0)
     >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
 
 or::
 
-    >>> from mpop.scene import Scene
+    >>> from satpy.scene import Scene
     >>> from datetime import datetime
     >>> time_slot = datetime(2015, 4, 20, 10, 0)
     >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
@@ -36,7 +36,7 @@ For some platforms, it might be necessary to also specify an `end_time`::
 
     >>> Scene(platform_name="SNPP", sensor="viirs", start_time=datetime(2015, 3, 11, 11, 20), end_time=datetime(2015, 3, 11, 11, 26)) # doctest: +SKIP
 
-Loading weather satellite data with mpop is as simple as calling the  :meth:`Scene.load` method::
+Loading weather satellite data with satpy is as simple as calling the  :meth:`Scene.load` method::
 
     >>> global_scene.load([0.6, 0.8, 10.8])
     >>> print global_scene
@@ -173,12 +173,12 @@ Making custom composites
 Building custom composites makes use of the :class:`RGBCompositor` class. For example,
 building an overview composite can be done manually with::
 
-    >>> from mpop.composites import RGBCompositor
+    >>> from satpy.composites import RGBCompositor
     >>> compositor = RGBCompositor("myoverview", "bla", "")
     >>> composite = compositor([local_scene[0.6],
     ...                         local_scene[0.8],
     ...                         local_scene[10.8]])
-    >>> from mpop.writers import to_image
+    >>> from satpy.writers import to_image
     >>> img = to_image(composite)
     >>> img.invert([False, False, True])
     >>> img.stretch("linear")

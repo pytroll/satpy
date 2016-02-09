@@ -1,5 +1,5 @@
 In order to read the documentation, sphinx needs to be installed.
 Then run make.
 
-The examples directory shows different ways of using mpop for production
+The examples directory shows different ways of using satpy for production
 purposes.

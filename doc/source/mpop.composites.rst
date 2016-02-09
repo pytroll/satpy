@@ -1,13 +1,13 @@
-mpop.composites package
+satpy.composites package
 =======================
 
 Submodules
 ----------
 
-mpop.composites.viirs module
+satpy.composites.viirs module
 ----------------------------
 
-.. automodule:: mpop.composites.viirs
+.. automodule:: satpy.composites.viirs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -16,7 +16,7 @@ mpop.composites.viirs module
 Module contents
 ---------------
 
-.. automodule:: mpop.composites
+.. automodule:: satpy.composites
     :members:
     :undoc-members:
     :show-inheritance:

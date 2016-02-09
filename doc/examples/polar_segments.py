@@ -25,7 +25,7 @@
 We take the case of level 1b data (calibrated and geolocalized) from noaa 19,
 as output from AAPP.
 
-- Install mpop and pyresample
+- Install satpy and pyresample
 - Don't forget to set up the PPP_CONFIG_DIR variable to point to your
   configuration files.
 - Edit the gdsmetop02.cfg configuration file (a template is provided in case
@@ -50,7 +50,7 @@ import glob
 import os
 import time
 
-from mpop.saturn.gatherer import Granule, Gatherer
+from satpy.saturn.gatherer import Granule, Gatherer
 
 
 def get_files_newer_than(directory, time_stamp):

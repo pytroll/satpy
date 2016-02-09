@@ -1,21 +1,21 @@
-mpop.writers package
+satpy.writers package
 ====================
 
 Submodules
 ----------
 
-mpop.writers.geotiff module
+satpy.writers.geotiff module
 ---------------------------
 
-.. automodule:: mpop.writers.geotiff
+.. automodule:: satpy.writers.geotiff
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.writers.simple_image module
+satpy.writers.simple_image module
 --------------------------------
 
-.. automodule:: mpop.writers.simple_image
+.. automodule:: satpy.writers.simple_image
     :members:
     :undoc-members:
     :show-inheritance:
@@ -24,7 +24,7 @@ mpop.writers.simple_image module
 Module contents
 ---------------
 
-.. automodule:: mpop.writers
+.. automodule:: satpy.writers
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,10 +1,10 @@
-.. NWCSAF/MPoP documentation master file, created by
+.. NWCSAF/satpy documentation master file, created by
    sphinx-quickstart on Fri Sep 25 16:58:28 2009.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
 ==================================
- Welcome to MPoP's documentation!
+ Welcome to satpy's documentation!
 ==================================
 
 The Meteorological Post-Processing package is a python library for generating
@@ -21,7 +21,7 @@ mipp_, and NOAA-15, -16, -17, -18, -19, Metop-A and -B through the use of AAPP.
 
 Reprojection of data is also available through the use of pyresample_.
 
-.. _project: http://github.com/mraspaud/mpop
+.. _project: http://github.com/mraspaud/satpy
 .. _mipp: http://github.com/loerum/mipp
 .. _pyresample: http://pyresample.googlecode.com
 
@@ -29,7 +29,7 @@ Reprojection of data is also available through the use of pyresample_.
    :maxdepth: 2
 
    quickstart
-   mpop
+   satpy
 
 Indices and tables
 ==================

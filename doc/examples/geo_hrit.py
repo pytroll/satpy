@@ -25,7 +25,7 @@
 
 We take the case of HRIT data from meteosat 9, as send through eumetcast.
 
-- Install mipp, mpop, and pyresample
+- Install mipp, satpy, and pyresample
 - Don't forget to set up the PPP_CONFIG_DIR variable to point to your
   configuration files.
 - Edit the meteosat09.cfg configuration file (a template is provided in case
@@ -49,9 +49,9 @@ We take the case of HRIT data from meteosat 9, as send through eumetcast.
 
 """
 
-from mpop.utils import debug_on
+from satpy.utils import debug_on
 debug_on()
-from mpop.satellites import GeostationaryFactory
+from satpy.satellites import GeostationaryFactory
 
 import sys
 from datetime import datetime

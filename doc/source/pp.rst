@@ -1,8 +1,8 @@
 =======================================
- Making use of the :mod:`mpop` package
+ Making use of the :mod:`satpy` package
 =======================================
 
-The :mod:`mpop` package is the heart of mpop: here are defined the core classes
+The :mod:`satpy` package is the heart of satpy: here are defined the core classes
 which the user will then need to build satellite composites.
 
 Conventions about satellite names
@@ -28,20 +28,20 @@ Creating a scene object
 =======================
 
 Creating a scene object can be done calling the `create_scene` function of a
-factory, (for example :meth:`mpop.satellites.GenericFactory.create_scene`).
+factory, (for example :meth:`satpy.satellites.GenericFactory.create_scene`).
 
 The reader is refered to the documentation of the
-:meth:`mpop.scene.SatelliteInstrumentScene` for a description of the input
+:meth:`satpy.scene.SatelliteInstrumentScene` for a description of the input
 arguments.
 
-Such a scene object is roughly a container for :class:`mpop.channel.Channel`
+Such a scene object is roughly a container for :class:`satpy.channel.Channel`
 objects, which hold the actual data and information for each band.
 
 Loading the data
 ================
 
 Loading the data is done through the
-:meth:`mpop.scene.SatelliteInstrumentScene.load` method. Calling it effectively
+:meth:`satpy.scene.SatelliteInstrumentScene.load` method. Calling it effectively
 loads the data from disk into memory, so it can take a while depending on the
 volume of data to load and the performance of the host computer. The channels
 listed as arguments become loaded, and cannot be reloaded: a subsequent call to
@@ -52,15 +52,15 @@ Re-projecting data
 
 Once the data is loaded, one might need to re-project the data. The scene
 objects can be projected onto other areas if the pyresample_ software is
-installed, thanks to the :meth:`mpop.scene.SatelliteInstrumentScene.project`
+installed, thanks to the :meth:`satpy.scene.SatelliteInstrumentScene.project`
 method. As input, this method takes either a Definition object (see
 pyresample's documentation) or string identificator for the area. In the latter
 case, the referenced region has to be defined in the area file. The name and
-location of this file is defined in the `mpop.cfg` configuration file, itself
+location of this file is defined in the `satpy.cfg` configuration file, itself
 located in the directory pointed by the `PPP_CONFIG_DIR` environment variable.
 
 For more information about the internals of the projection process, take a look
-at the :mod:`mpop.projector` module.
+at the :mod:`satpy.projector` module.
 
 .. _pyresample: http://googlecode.com/p/pyresample
 
@@ -83,8 +83,8 @@ Methods building image composites are distributed in different modules, taking
 advantage of the hierarchical structure offered by OOP.
 
 The image composites common to all visir instruments are defined in the
-:mod:`mpop.instruments.visir` module. Some instrument modules, like
-:mod:`mpop.instruments.avhrr` or :mod:`mpop.instruments.seviri` overload these
+:mod:`satpy.instruments.visir` module. Some instrument modules, like
+:mod:`satpy.instruments.avhrr` or :mod:`satpy.instruments.seviri` overload these
 methods to adapt better for the instrument at hand.
 
 For instructions on how to write a new composites, see :ref:`geographic-images`.
@@ -96,70 +96,70 @@ Adding a new satellite: configuration file
 A satellite configuration file looks like the following (here Meteosat-7, mviri
 instrument):
 
-.. literalinclude:: ../../../mpop-smhi/etc/Meteosat-7.cfg
+.. literalinclude:: ../../../satpy-smhi/etc/Meteosat-7.cfg
    :language: ini
    :linenos:
 
 The configuration file must hold a `satellite` section, the list of channels
 for the needed instruments (here `mviri-n` sections), and how to read the
-data in mipp (`mviri-level1`) and how to read it in mpop (`mviri-level2`).
+data in mipp (`mviri-level1`) and how to read it in satpy (`mviri-level2`).
 
 Using this template we can define new satellite and instruments.
 
 Adding a new satellite: python code
 ===================================
 
-Another way of adding satellites and instruments to mpop is to write the
+Another way of adding satellites and instruments to satpy is to write the
 correponding python code.
 
 Here are example of such code:
 
-.. literalinclude:: ../../mpop/instruments/mviri.py
+.. literalinclude:: ../../satpy/instruments/mviri.py
    :language: python
    :linenos:
 
 
-The :mod:`mpop` API
+The :mod:`satpy` API
 ===================
 
 Satellite scenes
 ----------------
 
-.. automodule:: mpop.scene
+.. automodule:: satpy.scene
    :members:
    :undoc-members:
 
 Instrument channels
 -------------------
 
-.. automodule:: mpop.channel
+.. automodule:: satpy.channel
    :members:
    :undoc-members:
 
 The VisIr instrument class
 --------------------------
 
-.. automodule:: mpop.instruments.visir
+.. automodule:: satpy.instruments.visir
    :members:
    :undoc-members:
 
 Projection facility
 -------------------
 
-.. automodule:: mpop.projector
+.. automodule:: satpy.projector
    :members:
    :undoc-members:
 
 Satellite class loader
 ----------------------
 
-.. automodule:: mpop.satellites
+.. automodule:: satpy.satellites
    :members:
    :undoc-members:
 
 Miscellaneous tools
 -------------------
 
-.. automodule:: mpop.tools
+.. automodule:: satpy.tools
    :members:
    :undoc-members:

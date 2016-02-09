@@ -1,29 +1,29 @@
-mpop.readers package
+satpy.readers package
 ====================
 
 Submodules
 ----------
 
-mpop.readers.eps_l1b module
+satpy.readers.eps_l1b module
 ---------------------------
 
-.. automodule:: mpop.readers.eps_l1b
+.. automodule:: satpy.readers.eps_l1b
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.readers.mipp_xrit module
+satpy.readers.mipp_xrit module
 -----------------------------
 
-.. automodule:: mpop.readers.mipp_xrit
+.. automodule:: satpy.readers.mipp_xrit
     :members:
     :undoc-members:
     :show-inheritance:
 
-mpop.readers.viirs_sdr module
+satpy.readers.viirs_sdr module
 -----------------------------
 
-.. automodule:: mpop.readers.viirs_sdr
+.. automodule:: satpy.readers.viirs_sdr
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,7 +32,7 @@ mpop.readers.viirs_sdr module
 Module contents
 ---------------
 
-.. automodule:: mpop.readers
+.. automodule:: satpy.readers
     :members:
     :undoc-members:
     :show-inheritance:
