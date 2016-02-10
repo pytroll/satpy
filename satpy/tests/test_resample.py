@@ -48,7 +48,7 @@ class TestCache(unittest.TestCase):
                     get_neighbour_info.assert_called_with(in_area, out_area, 10000,
                                                           segments=None, epsilon=0, neighbours=1, nprocs=1,
                                                           reduce_data=True)
-                    self.assertEqual(resampler.caches.keys(), ['a'])
+                    self.assertEqual(list(resampler.caches.keys()), ['a'])
 
                     in_area = mock.MagicMock()
                     out_area = mock.MagicMock()
@@ -57,13 +57,13 @@ class TestCache(unittest.TestCase):
                     get_neighbour_info.assert_called_with(in_area, out_area, 10000,
                                                           segments=None, epsilon=0, neighbours=1, nprocs=1,
                                                           reduce_data=True)
-                    self.assertEqual(resampler.caches.keys(), ['a', 'b'])
+                    self.assertEqual(list(resampler.caches.keys()), ['a', 'b'])
 
                     in_area = mock.MagicMock()
                     out_area = mock.MagicMock()
                     resampler = satpy.resample.KDTreeResampler(in_area, out_area)
                     resampler.resample('hej')
-                    self.assertEqual(resampler.caches.keys(), ['b', 'a'])
+                    self.assertEqual(list(resampler.caches.keys()), ['b', 'a'])
                     self.assertNotEqual(get_neighbour_info.call_args,
                                         mock.call(in_area, out_area, 10000,
                                                   segments=None, epsilon=0, neighbours=1,
@@ -71,11 +71,11 @@ class TestCache(unittest.TestCase):
 
                     resampler = satpy.resample.KDTreeResampler(in_area, out_area)
                     resampler.resample('hej')
-                    self.assertEqual(resampler.caches.keys(), ['b', 'a', 'c'])
+                    self.assertEqual(list(resampler.caches.keys()), ['b', 'a', 'c'])
 
                     resampler = satpy.resample.KDTreeResampler(in_area, out_area)
                     resampler.resample('hej')
-                    self.assertEqual(resampler.caches.keys(), ['a', 'c', 'd'])
+                    self.assertEqual(list(resampler.caches.keys()), ['a', 'c', 'd'])
 
 
 def suite():
