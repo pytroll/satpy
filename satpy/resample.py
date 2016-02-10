@@ -93,15 +93,14 @@ class BaseResampler(object):
         """
         raise NotImplementedError
 
-    def dump(self, filename, cache=None):
+    def dump(self, filename):
         """Dump the projection info to *filename*.
         """
-        cache = cache or self.cache
         if os.path.exists(filename):
             LOG.debug("Projection already saved to %s", filename)
         else:
             LOG.info("Saving projection to %s", filename)
-            np.savez(filename, **cache)
+            np.savez(filename, **self.cache)
 
     def resample(self, data, cache_dir=False, mask_area=True, **kwargs):
         """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
@@ -185,7 +184,7 @@ class KDTreeResampler(BaseResampler):
         # the data may have additional masked pixels
         # let's compare them to see if we can use the same area
         # assume lons and lats mask are the same
-        if mask is not None and ((source_geo_def.lons.mask & mask) != mask).any():
+        if mask is not None and any((source_geo_def.lons.mask & mask) != mask):
             LOG.debug("Copying source area to mask invalid dataset points")
             # copy the source area and use it for the rest of the calculations
             new_mask = source_geo_def.lons.mask | mask
@@ -208,24 +207,24 @@ class KDTreeResampler(BaseResampler):
             filename = os.path.join('.', hashlib.sha1(kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
         try:
-            cache = self.caches[kd_hash]
+            self.cache = self.caches[kd_hash]
             # trick to keep most used caches away from deletion
             del self.caches[kd_hash]
-            self.caches[kd_hash] = cache
+            self.caches[kd_hash] = self.cache
 
             if cache_dir:
                 self.dump(filename)
-            return kd_hash
+            return self.cache
         except KeyError:
             if os.path.exists(filename):
                 LOG.debug("Loading kd-tree parameters")
-                cache = dict(np.load(filename))
-                self.caches[kd_hash] = cache
+                self.cache = dict(np.load(filename))
+                self.caches[kd_hash] = self.cache
                 while len(self.caches) > CACHE_SIZE:
                     self.caches.popitem(False)
                 if cache_dir:
                     self.dump(filename)
-                return kd_hash
+                return self.cache
             else:
                 LOG.debug("Computing kd-tree parameters")
 
@@ -240,47 +239,32 @@ class KDTreeResampler(BaseResampler):
                                segments=segments)
 
         # it's important here not to modify the existing cache dictionary.
-        cache = {"valid_input_index": valid_input_index,
-                 "valid_output_index": valid_output_index,
-                 "index_array": index_array,
-                 "distance_array": distance_array,
-                 "source_geo_def": source_geo_def,
-                 }
+        self.cache = {"valid_input_index": valid_input_index,
+                      "valid_output_index": valid_output_index,
+                      "index_array": index_array,
+                      "distance_array": distance_array,
+                      "source_geo_def": source_geo_def,
+                     }
 
-        self.caches[kd_hash] = cache
-        while len(self.caches) > CACHE_SIZE - 1:
+        self.caches[kd_hash] = self.cache
+        while len(self.caches) > CACHE_SIZE:
             self.caches.popitem(False)
 
         if cache_dir:
             self.dump(filename)
-        return kd_hash
+        return self.cache
 
-    def compute(self, data, valid_input_index=None, valid_output_index=None, index_array=None,
-                distance_array=None, cache_id=None,
-                weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
-
-        if cache_id is not None:
-            cache = self.caches[cache_id]
-        else:
-            if None in [valid_input_index, valid_output_index, index_array]:
-                raise ValueError("Missing required keywords when 'cache_id' is not provided: "
-                                 "'valid_input_index', 'valid_output_index', 'index_array', and 'distance_array'")
-            cache = {
-                "valid_input_index": valid_input_index,
-                "valid_output_index": valid_output_index,
-                "index_array": index_array,
-                "distance_array": distance_array,
-            }
+    def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
 
         del kwargs
 
         return get_sample_from_neighbour_info('nn',
                                               self.target_geo_def.shape,
                                               data,
-                                              cache["valid_input_index"],
-                                              cache["valid_output_index"],
-                                              cache["index_array"],
-                                              distance_array=cache["distance_array"],
+                                              self.cache["valid_input_index"],
+                                              self.cache["valid_output_index"],
+                                              self.cache["index_array"],
+                                              distance_array=self.cache["distance_array"],
                                               weight_funcs=weight_funcs,
                                               fill_value=fill_value,
                                               with_uncert=with_uncert)
