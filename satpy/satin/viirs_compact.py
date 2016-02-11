@@ -157,9 +157,9 @@ def load(satscene, *args, **kwargs):
 
 def read(h5f, channels, calibrate=1):
 
-    chan_dict = dict([(key.split("-")[1], key)
+    chan_dict = {key.split("-")[1]: key
                       for key in h5f["All_Data"].keys()
-                      if key.startswith("VIIRS")])
+                      if key.startswith("VIIRS")}
 
     scans = h5f["All_Data"]["NumberOfScans"][0]
     res = []
