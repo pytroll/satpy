@@ -422,8 +422,8 @@ class AAPP1b(object):
 
     def __init__(self, fname):
         self.filename = fname
-        self.channels = dict([(i, None) for i in AVHRR_CHANNEL_NAMES])
-        self.units = dict([(i, 'counts') for i in AVHRR_CHANNEL_NAMES])
+        self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
+        self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
         self._data = None
         self._header = None
