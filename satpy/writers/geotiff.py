@@ -151,7 +151,7 @@ class GeoTIFFWriter(Writer):
 
         LOG.debug("Saving to GeoTiff: %s", filename)
 
-        g_opts = ["{}={}".format(k.upper(), str(v)) for k, v in self.gdal_options.items()]
+        g_opts = ["{0}={1}".format(k.upper(), str(v)) for k, v in self.gdal_options.items()]
 
         ensure_dir(filename)
         if img.mode == "L":
