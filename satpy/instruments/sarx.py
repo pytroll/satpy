@@ -58,7 +58,7 @@ class SarxCompositer(Compositer):
 
         self.check_channels(9.65)
 
-        if average_window == None:
+        if average_window is None:
             average_window = downscaling_factor
 
         LOG.info("Downsampling a factor %d and averaging " % downscaling_factor +
