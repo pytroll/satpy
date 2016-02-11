@@ -71,7 +71,7 @@ class TestGenericChannel(unittest.TestCase):
         self.assert_(self.chan.area == "bla")
 
         self.chan.area = None
-        self.assert_(self.chan.area == None)
+        self.assert_(self.chan.area is None)
 
         class DummyArea(object):
             def __init__(self, area_extent, x_size, y_size, proj_id, proj_dict):
