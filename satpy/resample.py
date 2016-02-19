@@ -184,7 +184,7 @@ class KDTreeResampler(BaseResampler):
         # the data may have additional masked pixels
         # let's compare them to see if we can use the same area
         # assume lons and lats mask are the same
-        if mask is not None and any((source_geo_def.lons.mask & mask) != mask):
+        if mask is not None and np.any(((source_geo_def.lons.mask & mask) != mask)):
             LOG.debug("Copying source area to mask invalid dataset points")
             # copy the source area and use it for the rest of the calculations
             new_mask = source_geo_def.lons.mask | mask
