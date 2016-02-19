@@ -357,7 +357,7 @@ class Scene(InfoObject):
         """
         if writer is None:
             if filename is None:
-                writer = "simple_image"
+                writer = self.get_writer("simple_image", **kwargs)
             else:
                 writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
         else:
@@ -368,8 +368,7 @@ class Scene(InfoObject):
         """Save all the datasets present in a scene to disk using *writer*.
         """
         writer = self.get_writer(writer, **kwargs)
-        for projectable in self.datasets.values():
-            writer.save_dataset(projectable, **kwargs)
+        writer.save_datasets(self.datasets.values(), **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer
