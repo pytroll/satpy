@@ -154,6 +154,16 @@ class Writer(Plugin):
         img = get_enhanced_image(dataset, self.enhancer, fill_value)
         self.save_image(img, filename=filename, **kwargs)
 
+    def save_datasets(self, datasets, **kwargs):
+        """Save all datasets to one or more files.
+
+        Subclasses can use this method to save all datasets to one single file
+        or optimize the writing of individual datasets. By default this simply
+        calls `save_dataset` for each dataset provided.
+        """
+        for ds in datasets:
+            self.save_dataset(ds, **kwargs)
+
     def save_image(self, img, filename=None, **kwargs):
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
