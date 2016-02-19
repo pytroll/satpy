@@ -357,7 +357,7 @@ class Scene(InfoObject):
         """
         if writer is None:
             if filename is None:
-                writer = self.get_writer("simple_image", **kwargs)
+                writer = self.get_writer("geotiff", **kwargs)
             else:
                 writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
         else:
