@@ -117,9 +117,6 @@ class GeoTIFFWriter(Writer):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
 
-        if "area" not in img.info:
-            raise ValueError("Image metadata must have an 'area' defined for geotiff creation")
-        area = img.info["area"]
         floating_point = floating_point if floating_point is not None else self.floating_point
 
         if "alpha" in kwargs:
@@ -220,30 +217,33 @@ class GeoTIFFWriter(Writer):
 
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution ... if not overwritten by argument geotransform.
-
-        try:
-            geotransform = [area.area_extent[0], area.pixel_size_x, 0,
-                               area.area_extent[3], 0, -area.pixel_size_y]
-            dst_ds.SetGeoTransform(geotransform)
-            srs = osr.SpatialReference()
-
-            srs.ImportFromProj4(area.proj4_string)
-            srs.SetProjCS(area.proj_id)
+        if "area" not in img.info:
+            LOG.warning("No 'area' metadata found in image")
+        else:
+            area = img.info["area"]
             try:
-                srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
-            except KeyError:
-                pass
-            try:
-                # Check for epsg code.
-                srs.SetAuthority('PROJCS', 'EPSG',
-                                 int(area.proj_dict['init'].
-                                     split('epsg:')[1]))
-            except (KeyError, IndexError):
-                pass
-            srs = srs.ExportToWkt()
-            dst_ds.SetProjection(srs)
-        except AttributeError:
-            LOG.exception("Could not load geographic data, invalid area")
+                geotransform = [area.area_extent[0], area.pixel_size_x, 0,
+                                   area.area_extent[3], 0, -area.pixel_size_y]
+                dst_ds.SetGeoTransform(geotransform)
+                srs = osr.SpatialReference()
+
+                srs.ImportFromProj4(area.proj4_string)
+                srs.SetProjCS(area.proj_id)
+                try:
+                    srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
+                except KeyError:
+                    pass
+                try:
+                    # Check for epsg code.
+                    srs.SetAuthority('PROJCS', 'EPSG',
+                                     int(area.proj_dict['init'].
+                                         split('epsg:')[1]))
+                except (KeyError, IndexError):
+                    pass
+                srs = srs.ExportToWkt()
+                dst_ds.SetProjection(srs)
+            except AttributeError:
+                LOG.warning("Can't save geographic information to geotiff, unsupported area type")
 
         tags = self.tags.copy()
         if "start_time" in img.info:
