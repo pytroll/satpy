@@ -34,6 +34,7 @@ import hashlib
 import json
 import os
 import six
+from copy import deepcopy
 from satpy import get_config, get_config_path, utils
 try:
     import configparser
@@ -184,19 +185,16 @@ class KDTreeResampler(BaseResampler):
         # the data may have additional masked pixels
         # let's compare them to see if we can use the same area
         # assume lons and lats mask are the same
-        if mask is not None and np.any(((source_geo_def.lons.mask & mask) != mask)):
-            LOG.debug("Copying source area to mask invalid dataset points")
+        if np.any(mask):
             # copy the source area and use it for the rest of the calculations
-            new_mask = source_geo_def.lons.mask | mask
-            # use the same class as the original source area in case it's a subclass
-            cls = self.source_geo_def.__class__
+            LOG.debug("Copying source area to mask invalid dataset points")
+            source_geo_def = deepcopy(self.source_geo_def)
+            lons, lats = source_geo_def.get_lonlats()
+
             # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            lons = np.ma.masked_array(self.source_geo_def.lons.data, new_mask)
-            lats = np.ma.masked_array(self.source_geo_def.lats.data, new_mask)
-            source_geo_def = cls(lons, lats, nprocs=source_geo_def.nprocs)
-            # FIXME: Finalize how Area and GridDefinitions use the `name` attribute
-            if hasattr(self.source_geo_def, "name"):
-                source_geo_def.name = self.source_geo_def.name
+            # the ma.array function combines the undelying mask with the new one (OR)
+            source_geo_def.lons = np.ma.array(lons, mask=mask)
+            source_geo_def.lats = np.ma.array(lats, mask=mask)
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
                                 radius_of_influence=radius_of_influence,
