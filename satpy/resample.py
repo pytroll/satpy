@@ -190,6 +190,12 @@ class KDTreeResampler(BaseResampler):
             LOG.debug("Copying source area to mask invalid dataset points")
             source_geo_def = deepcopy(self.source_geo_def)
             lons, lats = source_geo_def.get_lonlats()
+            if np.ndim(mask) == 3:
+                # FIXME: we should treat 3d arrays (composites) layer by layer!
+                mask = np.sum(mask, axis=2)
+                # FIXME: pyresample doesn't seem to like this
+                #lons = np.tile(lons, (1, 1, mask.shape[2]))
+                #lats = np.tile(lats, (1, 1, mask.shape[2]))
 
             # use the same data, but make a new mask (i.e. don't affect the original masked array)
             # the ma.array function combines the undelying mask with the new one (OR)
