@@ -185,7 +185,7 @@ class TestSDRFileReader(unittest.TestCase):
     def test_get_funcs(self):
         from satpy.readers.viirs_sdr import SDRFileReader
         file_reader = SDRFileReader("fake_file_type", "test.h5", self.file_keys)
-        gring_lon, gring_lat = file_reader.ring_lonlats()
+        gring_lon, gring_lat = file_reader.ring_lonlats
         begin_orbit = file_reader.begin_orbit_number
         self.assertIsInstance(begin_orbit, int)
         self.assertEqual(begin_orbit, 0)
