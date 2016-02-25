@@ -719,7 +719,7 @@ class ConfigBasedReader(Reader):
 
             # Search for multiple granules using an area
             if self.area is not None:
-                coords = np.vstack(file_reader.ring_lonlats())
+                coords = np.vstack(file_reader.ring_lonlats)
                 poly = SphPolygon(np.deg2rad(coords))
                 if poly.intersection(contour_poly) is not None:
                     segment_readers.append(file_reader)
@@ -907,7 +907,7 @@ class ConfigBasedReader(Reader):
 
         return dataset_info
 
-    def load_metadata(self, datasets_to_load, metadata_to_load):
+    def load_metadata(self, datasets_to_load, areas_to_load, metadata_to_load):
         """Load the specified metadata for the specified datasets.
 
         :returns: dictionary of dictionaries
@@ -933,10 +933,12 @@ class ConfigBasedReader(Reader):
             nav_info = self.navigations[ds_info["navigation"]]
 
             loaded_metadata[ds_id] = metadata_dict = {}
+            area_metadata = metadata_dict.setdefault("_area_metadata", {})
             for metadata_id in metadata_to_load:
                 md_info = self.metadata_info[metadata_id]
-                file_type = md_info.get("file_type", ds_info["file_type"])
+                file_type = md_info.get("file_type", "DATASET")
                 file_key = md_info["file_key"]
+                destination = md_info.get("destination", "DATASET")
 
                 # special keys for using the datasets file type or the dataset's navigation file type
                 if file_type == "DATASET":
@@ -949,9 +951,13 @@ class ConfigBasedReader(Reader):
                     continue
                 file_reader = self.file_readers[file_type]
                 try:
-                    metadata_dict[metadata_id] = file_reader.load_metadata(file_key,
-                                                                           join_method=md_info.get("join_method", "append"),
-                                                                           axis=int(md_info.get("axis", "0")))
+                    md = file_reader.load_metadata(file_key,
+                                                   join_method=md_info.get("join_method", "append"),
+                                                   axis=int(md_info.get("axis", "0")))
+                    if destination == "AREA":
+                        area_metadata[metadata_id] = md
+                    else:
+                        metadata_dict[metadata_id] = md
                 except (KeyError, ValueError):
                     LOG.debug("Could not load metadata '%s' for dataset '%s'", metadata_id, ds_id)
                     continue
@@ -1022,9 +1028,13 @@ class ConfigBasedReader(Reader):
             datasets_loaded[projectable.info["id"]] = projectable
 
         # Load metadata for all of the datasets
-        loaded_metadata = self.load_metadata(datasets_loaded.keys(), metadata)
+        loaded_metadata = self.load_metadata(datasets_loaded.keys(), areas, metadata)
         for ds_id, metadata_info in loaded_metadata.items():
+            area_metadata = metadata_info.pop("_area_metadata")
             datasets_loaded[ds_id].info.update(metadata_info)
+
+            for k, v in area_metadata.items():
+                setattr(datasets_loaded[ds_id].info["area"], k, v)
         return datasets_loaded
 
 
@@ -1053,6 +1063,10 @@ class MultiFileReader(object):
     @property
     def end_time(self):
         return self.file_readers[-1].end_time
+
+    @property
+    def ring_lonlats(self):
+        return [fr.ring_lonlats for fr in self.file_readers]
 
     @property
     def begin_orbit_number(self):
@@ -1103,10 +1117,12 @@ class MultiFileReader(object):
         return np.ma.array(data, mask=mask, copy=False)
 
     def load_metadata(self, item, join_method="append", axis=0):
-        if join_method not in ["append"]:
+        if join_method not in ["append", "append_granule"]:
             raise ValueError("Unknown metadata 'join_method': %s" % (join_method,))
-
-        return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=0)
+        elif join_method == "append_granule":
+            return np.concatenate(tuple([fr[item]] for fr in self.file_readers), axis=axis)
+        elif join_method == "append":
+            return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=axis)
 
 
 class GenericFileReader(object):
