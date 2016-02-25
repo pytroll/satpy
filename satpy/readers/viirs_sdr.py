@@ -142,6 +142,7 @@ class SDRFileReader(GenericFileReader):
             raise ValueError("Datetime invalid %s " % time_val)
         return time_val
 
+    @property
     def ring_lonlats(self):
         return self["gring_longitude"], self["gring_latitude"]
 
