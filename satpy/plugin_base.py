@@ -50,7 +50,7 @@ class Plugin(object):
             self.config_files = [self.config_files]
 
         if self.config_files:
-            conf = configparser.RawConfigParser()
+            conf = configparser.ConfigParser()
             conf.read(self.config_files)
             self.load_config(conf)
 
