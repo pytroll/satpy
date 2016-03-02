@@ -238,7 +238,7 @@ class L1BFileReader(GenericFileReader):
         else:
             factors = None
 
-        mask_out[:] |= data_out <= valid_max
+        mask_out[:] |= data_out > valid_max
 
         # Check if we need to do some unit conversion
         file_units = self.get_file_units(item)
