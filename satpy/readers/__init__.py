@@ -613,13 +613,13 @@ class Reader(Plugin):
 
         # default calibration choices
         if calibration is None:
-            calibration = ["bt", "reflectance"]
+            calibration = ["brightness_temperature", "reflectance"]
 
         if resolution is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
         if calibration is not None:
             # order calibration from highest level to lowest level
-            calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
+            calibration = [x for x in ["brightness_temperature", "reflectance", "radiance", "counts"] if x in calibration]
             datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
         if polarization is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
