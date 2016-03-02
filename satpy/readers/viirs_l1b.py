@@ -226,8 +226,14 @@ class L1BFileReader(GenericFileReader):
         # Check if we need to do some unit conversion
         # file_units = self.get_file_units(item)
         # output_units = getattr(var_info, "units", file_units
+        mask_out[:] |= data_out > valid_max
 
-        if var_info.scaling_factors:
+        if "lut" in var_info.kwargs:
+            factors = None
+            lut = self[var_info.kwargs["lut"]][:]
+            # Note: Need to use the original data as `data_out` might be a non-integer data type
+            data_out[:] = lut[data.ravel()].reshape(data.shape)
+        elif var_info.scaling_factors:
             # L1B has 2 separate factors
             factors_name, offset_name = var_info.scaling_factors.split(",")
             try:
@@ -237,8 +243,6 @@ class L1BFileReader(GenericFileReader):
                 factors = None
         else:
             factors = None
-
-        mask_out[:] |= data_out > valid_max
 
         # Check if we need to do some unit conversion
         file_units = self.get_file_units(item)
