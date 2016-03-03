@@ -1012,7 +1012,8 @@ class ConfigBasedReader(Reader):
 
             # Create a projectable from info from the file data and the config file
             # FIXME: Remove metadata that is reader only
-            dataset_info.setdefault("units", file_reader.get_units(file_key))
+            if not dataset_info.get("units", None):
+                dataset_info["units"] = file_reader.get_units(file_key)
             dataset_info.setdefault("platform", file_reader.platform_name)
             dataset_info.setdefault("sensor", file_reader.sensor_name)
             dataset_info.setdefault("start_orbit", file_reader.begin_orbit_number)
