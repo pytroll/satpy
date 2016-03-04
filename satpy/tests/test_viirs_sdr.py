@@ -17,9 +17,9 @@ DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_FILE_FACTORS = np.array([2.0, 1.0], dtype=np.float32)
-DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+DEFAULT_LAT_DATA = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
-DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
@@ -80,11 +80,11 @@ class FakeHDF5MetaData(object):
             self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
             self.d[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
         for k in ["Latitude"]:
-            self.d[k] = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+            self.d[k] = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
             self.d[k] = np.repeat([self.d[k]], DEFAULT_FILE_SHAPE[0], axis=0)
             self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
         for k in ["Longitude"]:
-            self.d[k] = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+            self.d[k] = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
             self.d[k] = np.repeat([self.d[k]], DEFAULT_FILE_SHAPE[0], axis=0)
             self.d[k + "/shape"] = DEFAULT_FILE_SHAPE
         for k in ["FakeData"]:
