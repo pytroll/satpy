@@ -57,7 +57,16 @@ except ImportError:
     requires.append("pillow")
 
 
-def _config_data_files(base_dirs, extensions=[".cfg"]):
+def _config_data_files(base_dirs, extensions=(".cfg",)):
+    """Find all subdirectory configuration files
+
+    Searches each base directory relative to this setup.py file and finds
+    all files ending in the extensions provided.
+
+    :param base_dirs: iterable of relative base directories to search
+    :param extensions: iterable of file extensions to include (with '.' prefix)
+    :returns: list of 2-element tuples compatible with `setuptools.setup`
+    """
     data_files = []
     pkg_root = os.path.realpath(os.path.dirname(__file__)) + "/"
     for base_dir in base_dirs:
