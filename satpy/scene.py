@@ -37,8 +37,6 @@ from satpy.projectable import Projectable, InfoObject
 from satpy.readers import ReaderFinder, DatasetDict, DatasetID
 from satpy.composites import IncompatibleAreas, load_compositors
 
-from satpy.utils import debug_on
-debug_on()
 LOG = logging.getLogger(__name__)
 
 

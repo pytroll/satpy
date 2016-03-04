@@ -613,13 +613,13 @@ class Reader(Plugin):
 
         # default calibration choices
         if calibration is None:
-            calibration = ["bt", "reflectance"]
+            calibration = ["brightness_temperature", "reflectance"]
 
         if resolution is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
         if calibration is not None:
             # order calibration from highest level to lowest level
-            calibration = [x for x in ["bt", "reflectance", "radiance", "counts"] if x in calibration]
+            calibration = [x for x in ["brightness_temperature", "reflectance", "radiance", "counts"] if x in calibration]
             datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
         if polarization is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
@@ -1012,7 +1012,8 @@ class ConfigBasedReader(Reader):
 
             # Create a projectable from info from the file data and the config file
             # FIXME: Remove metadata that is reader only
-            dataset_info.setdefault("units", file_reader.get_units(file_key))
+            if not dataset_info.get("units", None):
+                dataset_info["units"] = file_reader.get_units(file_key)
             dataset_info.setdefault("platform", file_reader.platform_name)
             dataset_info.setdefault("sensor", file_reader.sensor_name)
             dataset_info.setdefault("start_orbit", file_reader.begin_orbit_number)
