@@ -205,7 +205,7 @@ class L1BFileReader(GenericFileReader):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_id=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None):
         """Get swath data, apply proper scalings, and apply proper masks.
         """
         # Can't guarantee proper file info until we get the data first
@@ -257,13 +257,15 @@ class L1BFileReader(GenericFileReader):
 
 
 class VIIRSL1BReader(ConfigBasedReader):
+    """Reader for NASA VIIRS L1B NetCDF4 files.
+    """
     def __init__(self, default_file_reader=L1BFileReader, default_config_filename="readers/viirs_l1b.cfg", **kwargs):
         super(VIIRSL1BReader, self).__init__(default_file_reader=default_file_reader,
                                              default_config_filename=default_config_filename,
                                              **kwargs
                                              )
 
-    def _load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
+    def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 
         For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
@@ -288,5 +290,5 @@ class VIIRSL1BReader(ConfigBasedReader):
         #                            " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
         #     self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
-        return super(VIIRSL1BReader, self)._load_navigation(nav_name, extra_mask=extra_mask)
+        return super(VIIRSL1BReader, self).load_navigation(nav_name, extra_mask=extra_mask)
 

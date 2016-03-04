@@ -536,7 +536,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
         with mock.patch.object(reader, "identify_file_types") as ift_mock:
             ift_mock.return_value = {}
-            self.assertRaises(RuntimeError, reader._load_navigation, "gitco", "svi01")
+            self.assertRaises(RuntimeError, reader.load_navigation, "gitco", "svi01")
 
     @mock.patch('satpy.readers.viirs_sdr.HDF5MetaData', FakeHDF5MetaData)
     def test_load_navigation(self):
@@ -547,7 +547,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                                 start_time=datetime(2015, 1, 1, 11, 0, 0),
                                 end_time=datetime(2015, 1, 1, 12, 0, 0))
 
-        area = reader._load_navigation("gitco", dep_file_type="svi01")
+        area = reader.load_navigation("gitco", dep_file_type="svi01")
 
     @mock.patch('satpy.readers.viirs_sdr.HDF5MetaData', FakeHDF5MetaData)
     def test_get_dataset_info_no_cal(self):

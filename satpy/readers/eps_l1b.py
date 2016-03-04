@@ -128,7 +128,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
         # no single file handle for these files, so just return None and override any parent class methods
         return filename, None
 
-    def get_swath_data(self, item, dataset_id=None, data_out=None, mask_out=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None):
         """
         :param item: usually a channel name
         :return:
@@ -147,11 +147,11 @@ class AVHRREPSL1BFileReader(GenericFileReader):
                                   self[variable_names[1]][:, :, geo_index],
                                   self[variable_names[2]][:, [geo_index]]))
         elif item.startswith("radiance") or item.startswith("reflectance") or item.startswith("bt"):
-            return self._get_channel(item, dataset_id, data_out, mask_out)
+            return self._get_channel(item, data_out, mask_out)
         else:
             raise ValueError("Unknown file key: %s" % (item,))
 
-    def _get_channel(self, item, chan, data_out=None, mask_out=None):
+    def _get_channel(self, item, data_out=None, mask_out=None):
         """Get calibrated channel data.
         """
         var_info = self.file_keys[item]
