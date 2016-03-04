@@ -82,8 +82,8 @@ class NetCDF4MetaData(object):
         if isinstance(val, netCDF4.Variable):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             v = netCDF4.Dataset(self.filename, 'r')
-            v.set_auto_maskandscale(self.auto_maskandscale)
             val = v[key]
+            val.set_auto_maskandscale(self.auto_maskandscale)
         return val
 
 
