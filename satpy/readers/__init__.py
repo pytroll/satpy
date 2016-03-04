@@ -752,7 +752,7 @@ class ConfigBasedReader(Reader):
     def _interpolate_navigation(self, lon, lat):
         return lon, lat
 
-    def _load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
+    def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 
         :param dep_file_type: file type of dataset using this navigation. Useful for subclasses to implement relative
@@ -1002,17 +1002,17 @@ class ConfigBasedReader(Reader):
                 continue
 
             # Get the swath data (fully scaled and in the correct data type)
-            data = file_reader.get_swath_data(file_key, dataset_id=ds_id)
+            data = file_reader.get_swath_data(file_key)
 
             # Load the navigation information first
             if nav_name not in areas:
-                areas[nav_name] = area = self._load_navigation(nav_name, dep_file_type=file_type)
+                areas[nav_name] = area = self.load_navigation(nav_name, dep_file_type=file_type)
             else:
                 area = areas[nav_name]
 
             # Create a projectable from info from the file data and the config file
             # FIXME: Remove metadata that is reader only
-            if not dataset_info.get("units", None):
+            if not dataset_info.get("units"):
                 dataset_info["units"] = file_reader.get_units(file_key)
             dataset_info.setdefault("platform", file_reader.platform_name)
             dataset_info.setdefault("sensor", file_reader.sensor_name)
@@ -1092,7 +1092,7 @@ class MultiFileReader(object):
     def get_units(self, item):
         return self.file_readers[0].get_units(item)
 
-    def get_swath_data(self, item, filename=None, dataset_id=None):
+    def get_swath_data(self, item, filename=None):
         var_info = self.file_keys[item]
         granule_shapes = [x.get_shape(item) for x in self.file_readers]
         num_rows = sum([x[0] for x in granule_shapes])
@@ -1110,8 +1110,7 @@ class MultiFileReader(object):
             # Get the data from each individual file reader (assumes it gets the data with the right data type)
             file_reader.get_swath_data(item,
                                        data_out=data[idx: idx + granule_shape[0]],
-                                       mask_out=mask[idx: idx + granule_shape[0]],
-                                       dataset_id=dataset_id)
+                                       mask_out=mask[idx: idx + granule_shape[0]])
             idx += granule_shape[0]
 
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
@@ -1206,6 +1205,6 @@ class GenericFileReader(object):
         return units
 
     @abstractmethod
-    def get_swath_data(self, item, data_out=None, mask_out=None, dataset_id=None):
+    def get_swath_data(self, item, data_out=None, mask_out=None):
         raise NotImplementedError
 
