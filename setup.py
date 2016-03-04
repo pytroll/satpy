@@ -33,6 +33,7 @@ import os.path
 from setuptools import setup
 import imp
 import sys
+from glob import glob
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
@@ -54,6 +55,21 @@ try:
     from PIL import Image
 except ImportError:
     requires.append("pillow")
+
+
+def _config_data_files(base_dirs, extensions=[".cfg"]):
+    data_files = []
+    pkg_root = os.path.realpath(os.path.dirname(__file__)) + "/"
+    for base_dir in base_dirs:
+        new_data_files = []
+        for ext in extensions:
+            configs = glob(os.path.join(pkg_root, base_dir, "*" + ext))
+            configs = [c.replace(pkg_root, "") for c in configs]
+            new_data_files.extend(configs)
+        data_files.append((base_dir, new_data_files))
+
+    return data_files
+
 
 NAME = 'satpy'
 
@@ -78,19 +94,10 @@ setup(name=NAME,
                     os.path.join('etc', 'areas.def'),
                     os.path.join('etc', 'satpy.cfg'),
                     os.path.join('etc', 'eps_avhrrl1b_6.5.xml')]),
-                  (os.path.join('etc', 'writers'),
-                   [os.path.join('etc', 'writers', 'simple_image.cfg'),
-                    os.path.join('etc', 'writers', 'geotiff.cfg')]),
-                  (os.path.join('etc', 'readers'),
-                   [os.path.join('etc', 'readers', 'viirs_sdr.cfg'),
-                    os.path.join('etc', 'readers', 'eps_l1b.cfg'),
-                    os.path.join('etc', 'readers', 'mipp_xrit.cfg')]),
-                  (os.path.join('etc', 'enhancements'),
-                   [os.path.join('etc', 'enhancements', 'generic.cfg')]),
-                  (os.path.join('etc', 'composites'),
-                   [os.path.join('etc', 'composites', 'generic.cfg'),
-                    os.path.join('etc', 'composites', 'viirs.cfg')]),
-                  ],
+                  ] + _config_data_files([os.path.join('etc', 'writers'),
+                                          os.path.join('etc', 'readers'),
+                                          os.path.join('etc', 'composites'),
+                                          ]),
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
