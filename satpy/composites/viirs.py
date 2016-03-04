@@ -187,15 +187,10 @@ class HistogramDNB(CompositeBase):
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
 
-        info = {}
+        info = dnb_data.info.copy()
         info.update(self.info)
-        info["area"] = dnb_data.info["area"]
-        info["start_time"] = dnb_data.info["start_time"]
-        info["end_time"] = dnb_data.info["end_time"]
-        info["name"] = self.info["name"]
-        info.setdefault("standard_name", "equalized_radiance")
-        info.setdefault("wavelength_range", self.info.get("wavelength_range", dnb_data.info.get("wavelength_range")))
-        info.setdefault("mode", "L")
+        info["standard_name"] = "equalized_radiance"
+        info["mode"] = "L"
         output_dataset.info = info
         return output_dataset
 
@@ -291,15 +286,10 @@ class AdaptiveDNB(HistogramDNB):
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
 
-        info = {}
+        info = dnb_data.info.copy()
         info.update(self.info)
-        info["area"] = dnb_data.info["area"]
-        info["start_time"] = dnb_data.info["start_time"]
-        info["end_time"] = dnb_data.info["end_time"]
-        info["name"] = self.info["name"]
-        info.setdefault("standard_name", "equalized_radiance")
-        info.setdefault("wavelength_range", self.info.get("wavelength_range", dnb_data.info.get("wavelength_range")))
-        info.setdefault("mode", "L")
+        info["standard_name"] = "equalized_radiance"
+        info["mode"] = "L"
         output_dataset.info = info
         return output_dataset
 
@@ -325,6 +315,11 @@ class ERFDNB(CompositeBase):
         good_mask = ~(dnb_data.mask | sza_data.mask)
         output_dataset = dnb_data.copy()
         output_dataset.mask = ~good_mask
+        # this algorithm assumes units of "W cm-2 sr-1" so if there are other units we need to adjust for that
+        if dnb_data.info.get("units", "W m-2 sr-1") == "W m-2 sr-1":
+            unit_factor = 10000.
+        else:
+            unit_factor = 1.
 
         moon_illum_name = self.info["metadata_requirements"][0]
         if moon_illum_name not in dnb_data.info:
@@ -358,15 +353,15 @@ class ERFDNB(CompositeBase):
         moon_factor1 = 0.7 * (1.0 - moon_illum_fraction)
         moon_factor2 = 0.0022 * lza_data
         erf_portion = 1 + erf((sza_data - 95.0) / (5.0 * np.sqrt(2.0)))
-        max_val = np.power(10, -1.7 - (2.65 + moon_factor1 + moon_factor2) * erf_portion)
-        min_val = np.power(10, -4.0 - (2.95 + moon_factor2) * erf_portion)
+        max_val = np.power(10, -1.7 - (2.65 + moon_factor1 + moon_factor2) * erf_portion) * unit_factor
+        min_val = np.power(10, -4.0 - (2.95 + moon_factor2) * erf_portion) * unit_factor
 
         # Update from Curtis Seaman, increase max radiance curve until less than 0.5% is saturated
         if self.saturation_correction:
             saturation_pct = float(np.count_nonzero(dnb_data > max_val)) / dnb_data.size
             LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
             while saturation_pct > 0.005:
-                max_val *= 1.1
+                max_val *= 1.1 * unit_factor
                 saturation_pct = float(np.count_nonzero(dnb_data > max_val)) / dnb_data.size
                 LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
 
@@ -375,15 +370,10 @@ class ERFDNB(CompositeBase):
         inner_sqrt[inner_sqrt < 0] = 0
         np.sqrt(inner_sqrt, out=output_dataset)
 
-        info = {}
+        info = dnb_data.info.copy()
         info.update(self.info)
-        info["area"] = dnb_data.info["area"]
-        info["start_time"] = dnb_data.info["start_time"]
-        info["end_time"] = dnb_data.info["end_time"]
-        info["name"] = self.info["name"]
-        info.setdefault("standard_name", "equalized_radiance")
-        info.setdefault("wavelength_range", self.info.get("wavelength_range", dnb_data.info.get("wavelength_range")))
-        info.setdefault("mode", "L")
+        info["standard_name"] = "equalized_radiance"
+        info["mode"] = "L"
         output_dataset.info = info
         return output_dataset
 
