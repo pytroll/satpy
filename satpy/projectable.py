@@ -33,6 +33,39 @@ class InfoObject(object):
         self.info = attributes
 
 
+def combine_info(obj1, obj2):
+    try:
+        info1 = obj1.info
+    except AttributeError:
+        return obj2.info.copy()
+
+    try:
+        info2 = obj2.info
+    except AttributeError:
+        return info1.copy()
+
+    keys = set(info1.keys()) & set(info2.keys())
+    new_info = {}
+    for key in keys:
+        if info1[key] == info2[key]:
+            new_info[key] = info1[key]
+    return new_info
+
+def copy_info(func):
+    def wrapper(self, other, *args, **kwargs):
+        res = func(self, other, *args, **kwargs)
+        res.info = combine_info(self, other)
+        return res
+    return wrapper
+
+def copy_info1(func):
+    def wrapper(self, *args, **kwargs):
+        res = func(self, *args, **kwargs)
+        res.info = self.info.copy()
+        return res
+    return wrapper
+
+
 class Dataset(np.ma.MaskedArray):
 
     def __new__(cls, data, **info):
@@ -45,26 +78,215 @@ class Dataset(np.ma.MaskedArray):
         # Finally, we must return the newly created object:
         return obj
 
+    def _update_info(self, obj):
+        self.info = combine_info(self, obj)
+
     def _update_from(self, obj):
         """Copies some attributes of obj to self.
         """
         np.ma.MaskedArray._update_from(self, obj)
         if self.info is None:
             self.info = {}
-        self.info.update(getattr(obj, "info", {}))
+        self._update_info(obj)
 
     def __array_finalize__(self, obj):
         # see InfoArray.__array_finalize__ for comments
         if obj is None:
             return
-        self.info = getattr(obj, 'info', None)
+        self.info = getattr(self, 'info', {})
         np.ma.MaskedArray.__array_finalize__(self, obj)
+        self._update_info(obj)
+
+    @copy_info
+    def __add__(self, other):
+        return super(Dataset, self).__add__(other)
+
+    @copy_info
+    def __sub__(self, other):
+        return super(Dataset, self).__sub__(other)
+
+    @copy_info
+    def __mul__(self, other):
+        return super(Dataset, self).__mul__(other)
+
+    @copy_info
+    def __floordiv__(self, other):
+        return super(Dataset, self).__floordiv__(other)
+
+    @copy_info
+    def __mod__(self, other):
+        return super(Dataset, self).__mod__(other)
+
+    def __divmod__(self, other):
+        res = super(Dataset, self).__divmod__(other)
+        new_info = combine_info(self, other)
+        res[0].info = new_info
+        res[1].info = new_info
+        return res
+
+    @copy_info
+    def __pow__(self, power):
+        return super(Dataset, self).__pow__(power)
+
+    @copy_info
+    def __lshift__(self, other):
+        return super(Dataset, self).__lshift__(other)
+
+    @copy_info
+    def __rshift__(self, other):
+        return super(Dataset, self).__rshift__(other)
+
+    @copy_info
+    def __and__(self, other):
+        return super(Dataset, self).__and__(other)
+
+    @copy_info
+    def __xor__(self, other):
+        return super(Dataset, self).__xor__(other)
+
+    @copy_info
+    def __or__(self, other):
+        return super(Dataset, self).__or__(other)
+
+    @copy_info
+    def __div__(self, other):
+        return super(Dataset, self).__div__(other)
+
+    @copy_info
+    def __truediv__(self, other):
+        return super(Dataset, self).__truediv__(other)
+
+    @copy_info
+    def __radd__(self, other):
+        return super(Dataset, self).__radd__(other)
+
+    @copy_info
+    def __rsub__(self, other):
+        return super(Dataset, self).__rsub__(other)
+
+    @copy_info
+    def __rmul__(self, other):
+        return super(Dataset, self).__rmul__(other)
+
+    @copy_info
+    def __rfloordiv__(self, other):
+        return super(Dataset, self).__rfloordiv__(other)
+
+    @copy_info
+    def __rmod__(self, other):
+        return super(Dataset, self).__rmod__(other)
+
+    def __rdivmod__(self, other):
+        res = super(Dataset, self).__rdivmod__(other)
+        new_info = combine_info(self, other)
+        res[0].info = new_info
+        res[1].info = new_info
+        return res
+
+    @copy_info
+    def __rpow__(self, power):
+        return super(Dataset, self).__rpow__(power)
+
+    @copy_info
+    def __rlshift__(self, other):
+        return super(Dataset, self).__rlshift__(other)
+
+    @copy_info
+    def __rrshift__(self, other):
+        return super(Dataset, self).__rrshift__(other)
+
+    @copy_info
+    def __rand__(self, other):
+        return super(Dataset, self).__rand__(other)
+
+    @copy_info
+    def __rxor__(self, other):
+        return super(Dataset, self).__rxor__(other)
+
+    @copy_info
+    def __ror__(self, other):
+        return super(Dataset, self).__ror__(other)
+
+    @copy_info
+    def __rdiv__(self, other):
+        return super(Dataset, self).__rdiv__(other)
+
+    @copy_info
+    def __rtruediv__(self, other):
+        return super(Dataset, self).__rtruediv__(other)
+
+    @copy_info
+    def __iadd__(self, other):
+        return super(Dataset, self).__iadd__(other)
+
+    @copy_info
+    def __isub__(self, other):
+        return super(Dataset, self).__isub__(other)
+
+    @copy_info
+    def __imul__(self, other):
+        return super(Dataset, self).__imul__(other)
+
+    @copy_info
+    def __ifloordiv__(self, other):
+        return super(Dataset, self).__ifloordiv__(other)
+
+    @copy_info
+    def __imod__(self, other):
+        return super(Dataset, self).__imod__(other)
+
+    @copy_info
+    def __ipow__(self, power):
+        return super(Dataset, self).__ipow__(power)
+
+    @copy_info
+    def __ilshift__(self, other):
+        return super(Dataset, self).__ilshift__(other)
+
+    @copy_info
+    def __irshift__(self, other):
+        return super(Dataset, self).__irshift__(other)
+
+    @copy_info
+    def __iand__(self, other):
+        return super(Dataset, self).__iand__(other)
+
+    @copy_info
+    def __ixor__(self, other):
+        return super(Dataset, self).__ixor__(other)
+
+    @copy_info
+    def __ior__(self, other):
+        return super(Dataset, self).__ior__(other)
+
+    @copy_info
+    def __idiv__(self, other):
+        return super(Dataset, self).__idiv__(other)
+
+    @copy_info
+    def __itruediv__(self, other):
+        return super(Dataset, self).__itruediv__(other)
+
+    @copy_info1
+    def __neg__(self):
+        return super(Dataset, self).__neg__()
+
+    @copy_info1
+    def __pos__(self):
+        return super(Dataset, self).__pos__()
+
+    @copy_info1
+    def __abs__(self):
+        return super(Dataset, self).__abs__()
+
+    @copy_info1
+    def __invert__(self):
+        return super(Dataset, self).__invert__()
 
     def copy(self):
         res = np.ma.MaskedArray.copy(self)
         res.info = self.info.copy()
         return res
-
 
     def is_loaded(self):
         return self.size > 0

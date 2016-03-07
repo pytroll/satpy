@@ -50,6 +50,271 @@ class TestDataset(unittest.TestCase):
         ds_str = str(ds)
         ds_repr = repr(ds)
 
+    def test_add(self):
+        """Checks the __add__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        c = a + b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a + 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 + a
+        self.assertDictEqual(c.info, a.info)
+        a += b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b += 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_sub(self):
+        """Checks the __sub__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        c = a - b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a - 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 - a
+        self.assertDictEqual(c.info, a.info)
+        a -= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b -= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_mul(self):
+        """Checks the __mul__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        c = a * b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a * 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 * a
+        self.assertDictEqual(c.info, a.info)
+        a *= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b *= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_floordiv(self):
+        """Checks the __floordiv__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a // b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a // 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 // a
+        self.assertDictEqual(c.info, a.info)
+        a //= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b //= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_mod(self):
+        """Checks the __mod__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a % b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a % 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 % a
+        self.assertDictEqual(c.info, a.info)
+        a %= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b %= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_divmod(self):
+        """Checks the __divmod__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = divmod(a, b)
+        self.assertDictEqual(c[0].info, {'bla': 2})
+        self.assertDictEqual(c[1].info, {'bla': 2})
+        c = divmod(a, 1)
+        self.assertDictEqual(c[0].info, a.info)
+        self.assertDictEqual(c[1].info, a.info)
+        c = divmod(1, a)
+        self.assertDictEqual(c[0].info, a.info)
+        self.assertDictEqual(c[1].info, a.info)
+
+    def test_pow(self):
+        """Checks the __pow__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a ** b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a ** 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 ** a
+        self.assertDictEqual(c.info, a.info)
+        a **= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b **= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_lshift(self):
+        """Checks the __lshift__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a << b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a << 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 << a
+        self.assertDictEqual(c.info, a.info)
+        a <<= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b <<= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_rshift(self):
+        """Checks the __rshift__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a >> b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a >> 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 >> a
+        self.assertDictEqual(c.info, a.info)
+        a >>= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b >>= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_and(self):
+        """Checks the __and__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a & b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a & 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 & a
+        self.assertDictEqual(c.info, a.info)
+        a &= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b &= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_xor(self):
+        """Checks the __xor__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a ^ b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a ^ 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 ^ a
+        self.assertDictEqual(c.info, a.info)
+        a ^= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b ^= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_or(self):
+        """Checks the __or__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a | b
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a | 1
+        self.assertDictEqual(c.info, a.info)
+        c = 1 | a
+        self.assertDictEqual(c.info, a.info)
+        a |= b
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b |= 1
+        self.assertDictEqual(b.info, b_info)
+
+    def test_div(self):
+        """Checks the __div__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a.__div__(b)
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a.__div__(1)
+        self.assertDictEqual(c.info, a.info)
+        c = a.__rdiv__(1)
+        self.assertDictEqual(c.info, a.info)
+        a = a.__idiv__(b)
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b = b.__idiv__(1)
+        self.assertDictEqual(b.info, b_info)
+
+    def test_truediv(self):
+        """Checks the __truediv__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        c = a.__truediv__(b)
+        self.assertDictEqual(c.info, {'bla': 2})
+        c = a.__truediv__(1)
+        self.assertDictEqual(c.info, a.info)
+        c = a.__rtruediv__(1)
+        self.assertDictEqual(c.info, a.info)
+        a = a.__itruediv__(b)
+        self.assertDictEqual(a.info, {'bla': 2})
+        b_info = b.info.copy()
+        b = b.__itruediv__(1)
+        self.assertDictEqual(b.info, b_info)
+
+    def test_neg(self):
+        """Checks the __neg__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        c = -a
+        self.assertDictEqual(c.info, a.info)
+
+    def test_pos(self):
+        """Checks the __pos__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        c = +a
+        self.assertDictEqual(c.info, a.info)
+
+    def test_abs(self):
+        """Checks the __abs__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        c = abs(a)
+        self.assertDictEqual(c.info, a.info)
+
+    def test_invert(self):
+        """Checks the __invert__ function.
+        """
+        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        c = ~a
+        self.assertDictEqual(c.info, a.info)
+
+
 class TestProjectable(unittest.TestCase):
     """
     Test the projectable class
