@@ -40,7 +40,7 @@ class TestDataset(unittest.TestCase):
         """
         ds = projectable.Dataset(np.arange(8), foo="bar")
         ds_copy = ds.copy()
-        self.assert_(ds_copy.data is not ds.data
+        self.assertTrue(ds_copy.data is not ds.data
                      and all(ds.data == ds_copy.data))
         if sys.version >= "2.7":
             self.assertDictEqual(ds.info, ds_copy.info)
@@ -274,8 +274,8 @@ class TestDataset(unittest.TestCase):
     def test_truediv(self):
         """Checks the __truediv__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = projectable.Dataset([7., 3., 1.], bla=2, blu='hej')
+        b = projectable.Dataset([2., 1., 1.], bla=2, bli='hoj')
         c = a.__truediv__(b)
         self.assertDictEqual(c.info, {'bla': 2})
         c = a.__truediv__(1)
@@ -325,7 +325,7 @@ class TestProjectable(unittest.TestCase):
         """
         Test initialization
         """
-        self.assert_('name' in projectable.Projectable([]).info)
+        self.assertTrue('name' in projectable.Projectable([]).info)
 
     def test_isloaded(self):
         """
