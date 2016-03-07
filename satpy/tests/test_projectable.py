@@ -252,6 +252,8 @@ class TestDataset(unittest.TestCase):
         b |= 1
         self.assertDictEqual(b.info, b_info)
 
+    @unittest.skipIf(sys.version >= (3, 0),
+                     "Not needed in python 3")
     def test_div(self):
         """Checks the __div__ function.
         """
