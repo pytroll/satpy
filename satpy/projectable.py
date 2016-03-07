@@ -34,6 +34,15 @@ class InfoObject(object):
 
 
 def combine_info(obj1, obj2):
+    """Combine the metadata of two Datasets
+
+    Args:
+        obj1: a dataset
+        obj2: another dataset
+
+    Returns:
+        the combined metadata
+    """
     try:
         info1 = obj1.info
     except AttributeError:
@@ -51,14 +60,32 @@ def combine_info(obj1, obj2):
             new_info[key] = info1[key]
     return new_info
 
+
 def copy_info(func):
+    """Decorator function for combining the infos of two Datasets
+
+    Args:
+        func: the function to decorate
+
+    Returns:
+        the decorated function
+    """
     def wrapper(self, other, *args, **kwargs):
         res = func(self, other, *args, **kwargs)
         res.info = combine_info(self, other)
         return res
     return wrapper
 
+
 def copy_info1(func):
+    """Decorator for copying the info of a Dataset
+
+    Args:
+        func: the function to decorate
+
+    Returns:
+        the decorated function
+    """
     def wrapper(self, *args, **kwargs):
         res = func(self, *args, **kwargs)
         res.info = self.info.copy()
@@ -79,6 +106,11 @@ class Dataset(np.ma.MaskedArray):
         return obj
 
     def _update_info(self, obj):
+        """Update the metadata from another object
+
+        Args:
+            obj: another dataset
+        """
         self.info = combine_info(self, obj)
 
     def _update_from(self, obj):
@@ -284,11 +316,21 @@ class Dataset(np.ma.MaskedArray):
         return super(Dataset, self).__invert__()
 
     def copy(self):
+        """Copy self. The metadata is just a shallow copy.
+
+        Returns:
+            A copy of self.
+        """
         res = np.ma.MaskedArray.copy(self)
         res.info = self.info.copy()
         return res
 
     def is_loaded(self):
+        """Check if data is loaded in the Dataset
+
+        Returns:
+            A boolean
+        """
         return self.size > 0
 
     def __str__(self):
