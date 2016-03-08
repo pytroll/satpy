@@ -779,7 +779,7 @@ class ConfigBasedReader(Reader):
         area_name = ("swath_" +
                      file_reader.start_time.isoformat() + "_" +
                      file_reader.end_time.isoformat() + "_" +
-                     str(lon_data.shape[0]) + "_" + str(lon_data.shape[1]))
+                     "_" + "_".join(str(x) for x in lon_data.shape))
         # FIXME: Which one is used now:
         area.area_id = area_name
         area.name = area_name
@@ -1096,13 +1096,18 @@ class MultiFileReader(object):
         var_info = self.file_keys[item]
         granule_shapes = [x.get_shape(item) for x in self.file_readers]
         num_rows = sum([x[0] for x in granule_shapes])
-        num_cols = granule_shapes[0][1]
+        if len(granule_shapes[0]) < 2:
+            num_cols = 1
+            output_shape = (num_rows,)
+        else:
+            num_cols = granule_shapes[0][-1]
+            output_shape = (num_rows, num_cols)
 
         if filename:
             raise NotImplementedError("Saving data arrays to disk is not supported yet")
             # data = np.memmap(filename, dtype=var_info.dtype, mode='w', shape=(num_rows, num_cols))
         else:
-            data = np.empty((num_rows, num_cols), dtype=var_info.dtype)
+            data = np.empty(output_shape, dtype=var_info.dtype)
             mask = np.zeros_like(data, dtype=np.bool)
 
         idx = 0
@@ -1117,12 +1122,14 @@ class MultiFileReader(object):
         return np.ma.array(data, mask=mask, copy=False)
 
     def load_metadata(self, item, join_method="append", axis=0):
-        if join_method not in ["append", "append_granule"]:
+        if join_method not in ["append", "append_granule", "first"]:
             raise ValueError("Unknown metadata 'join_method': %s" % (join_method,))
         elif join_method == "append_granule":
             return np.concatenate(tuple([fr[item]] for fr in self.file_readers), axis=axis)
         elif join_method == "append":
             return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=axis)
+        elif join_method == "first":
+            return self.file_readers[0][item]
 
 
 class GenericFileReader(object):
