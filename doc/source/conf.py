@@ -40,7 +40,7 @@ class Mock(object):
 
 MOCK_MODULES = ['Image', 'pyhdf.SD', 'pyhdf.error', 'numpy', 'numpy.core',
                 'numpy.core.multiarray', 'pyresample', 'pyresample.utils',
-                'pyresample.geometry', 'pyresample.kd_tree', 'h5py']
+                'pyresample.geometry', 'pyresample.kd_tree', 'h5py', 'trollsift']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
@@ -66,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'satpy'
-copyright = u'2009-2013, The pytroll crew'
+copyright = u'2009-2016, The pytroll crew'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
