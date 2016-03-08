@@ -1,11 +1,11 @@
 satpy.writers package
-====================
+=====================
 
 Submodules
 ----------
 
 satpy.writers.geotiff module
----------------------------
+----------------------------
 
 .. automodule:: satpy.writers.geotiff
     :members:
@@ -13,7 +13,7 @@ satpy.writers.geotiff module
     :show-inheritance:
 
 satpy.writers.simple_image module
---------------------------------
+---------------------------------
 
 .. automodule:: satpy.writers.simple_image
     :members:

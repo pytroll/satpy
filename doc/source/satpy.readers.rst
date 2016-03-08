@@ -1,11 +1,19 @@
 satpy.readers package
-====================
+=====================
 
 Submodules
 ----------
 
+satpy.readers.aapp_l1b module
+-----------------------------
+
+.. automodule:: satpy.readers.aapp_l1b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.eps_l1b module
----------------------------
+----------------------------
 
 .. automodule:: satpy.readers.eps_l1b
     :members:
@@ -13,15 +21,23 @@ satpy.readers.eps_l1b module
     :show-inheritance:
 
 satpy.readers.mipp_xrit module
------------------------------
+------------------------------
 
 .. automodule:: satpy.readers.mipp_xrit
     :members:
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.viirs_l1b module
+------------------------------
+
+.. automodule:: satpy.readers.viirs_l1b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.viirs_sdr module
------------------------------
+------------------------------
 
 .. automodule:: satpy.readers.viirs_sdr
     :members:
