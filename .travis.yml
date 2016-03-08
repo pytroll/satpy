@@ -37,4 +37,6 @@ deploy:
     repo: pytroll/satpy
 sudo: false
 notifications:
-  slack: pytroll:96mNSYSI1dBjGyzVXkBT6qFt
+  slack:
+    rooms:
+      - pytroll:96mNSYSI1dBjGyzVXkBT6qFt#satpy

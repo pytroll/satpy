@@ -8,3 +8,4 @@ doc/build
 RELEASE-VERSION
 dist
 satpy.egg-info
+*.egg
