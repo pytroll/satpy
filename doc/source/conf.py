@@ -42,7 +42,7 @@ MOCK_MODULES = ['Image', 'pyhdf.SD', 'pyhdf.error', 'numpy', 'numpy.core',
                 'numpy.core.multiarray', 'pyresample', 'pyresample.utils',
                 'pyresample.geometry', 'pyresample.kd_tree', 'h5py',
                 'trollsift', 'trollsift.parser', 'trollimage', 'trollimage.image', 'netCDF4',
-                'pyproj', 'scipy.special', 'mipp', ]
+                'pyproj', 'scipy', 'scipy.special', 'mipp', 'osgeo']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
