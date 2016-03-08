@@ -1,8 +1,13 @@
 satpy.readers package
 =====================
 
-Submodules
-----------
+satpy.readers module
+--------------------
+
+.. automodule:: satpy.readers
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 satpy.readers.aapp_l1b module
 -----------------------------

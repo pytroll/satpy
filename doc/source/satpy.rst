@@ -2,7 +2,7 @@ satpy package
 =============
 
 Subpackages
------------
+~~~~~~~~~~~
 
 .. toctree::
 
@@ -10,8 +10,13 @@ Subpackages
     satpy.readers
     satpy.writers
 
-Submodules
-----------
+satpy module
+------------
+
+.. automodule:: satpy
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 satpy.plugin_base module
 ------------------------

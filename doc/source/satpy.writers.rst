@@ -1,8 +1,13 @@
 satpy.writers package
 =====================
 
-Submodules
-----------
+satpy.writers module
+--------------------
+
+.. automodule:: satpy.writers
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 satpy.writers.geotiff module
 ----------------------------
