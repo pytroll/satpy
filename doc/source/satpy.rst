@@ -1,5 +1,5 @@
 satpy package
-============
+=============
 
 Subpackages
 -----------
@@ -14,7 +14,7 @@ Submodules
 ----------
 
 satpy.plugin_base module
------------------------
+------------------------
 
 .. automodule:: satpy.plugin_base
     :members:
@@ -22,7 +22,7 @@ satpy.plugin_base module
     :show-inheritance:
 
 satpy.projectable module
------------------------
+------------------------
 
 .. automodule:: satpy.projectable
     :members:
@@ -30,7 +30,7 @@ satpy.projectable module
     :show-inheritance:
 
 satpy.resample module
---------------------
+---------------------
 
 .. automodule:: satpy.resample
     :members:
@@ -38,7 +38,7 @@ satpy.resample module
     :show-inheritance:
 
 satpy.scene module
------------------
+------------------
 
 .. automodule:: satpy.scene
     :members:
@@ -46,7 +46,7 @@ satpy.scene module
     :show-inheritance:
 
 satpy.tools module
------------------
+------------------
 
 .. automodule:: satpy.tools
     :members:
@@ -54,7 +54,7 @@ satpy.tools module
     :show-inheritance:
 
 satpy.utils module
------------------
+------------------
 
 .. automodule:: satpy.utils
     :members:

@@ -1,11 +1,11 @@
 satpy.composites package
-=======================
+========================
 
 Submodules
 ----------
 
 satpy.composites.viirs module
-----------------------------
+-----------------------------
 
 .. automodule:: satpy.composites.viirs
     :members:
