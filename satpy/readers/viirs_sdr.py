@@ -88,7 +88,7 @@ class HDF5MetaData(object):
         self.metadata = {}
         self.filename = filename
         if not os.path.exists(filename):
-            raise IOError("File %s does not exist!" % filename)
+            raise IOError("File {} does not exist!".format(filename))
         file_handle = h5py.File(self.filename, 'r')
         file_handle.visititems(self.collect_metadata)
         self._collect_attrs('', file_handle.attrs)
@@ -98,9 +98,9 @@ class HDF5MetaData(object):
         for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
             if issubclass(value.dtype.type, str):
-                self.metadata["%s/attr/%s" % (name, key)] = str(value)
+                self.metadata["{}/attr/{}".format(name, key)] = str(value)
             else:
-                self.metadata["%s/attr/%s" % (name, key)] = value
+                self.metadata["{}/attr/{}".format(name, key)] = value
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
@@ -139,7 +139,7 @@ class SDRFileReader(GenericFileReader):
         time_val = datetime.strptime(datetime_str, '%Y%m%d%H%M%S.%fZ')
         if abs(time_val - NO_DATE) < EPSILON_TIME:
             # catch rare case when SDR files have incorrect date
-            raise ValueError("Datetime invalid %s " % time_val)
+            raise ValueError("Datetime invalid {}".format(time_val))
         return time_val
 
     def _get_start_time(self):
@@ -319,8 +319,9 @@ class VIIRSSDRReader(ConfigBasedReader):
 
             file_types = self.identify_file_types(geo_filepaths)
             if file_type not in file_types:
-                raise RuntimeError("The geolocation files from the header (ex. %s)"
-                                   " do not match the configured geolocation (%s)" % (geo_filepaths[0], file_type))
+                raise RuntimeError(
+                    "The geolocation files from the header (ex. {}) ".format(geo_filepaths[0]) +
+                    "do not match the configured geolocation ({})".format(file_type))
             self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
         return super(VIIRSSDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
