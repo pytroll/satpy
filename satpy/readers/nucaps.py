@@ -40,7 +40,7 @@ NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
-
+# It's difficult to do processing without knowing the pressure levels beforehand
 ALL_PRESSURE_LEVELS = [
     0.0161, 0.0384, 0.0769, 0.137, 0.2244, 0.3454, 0.5064, 0.714,
     0.9753, 1.2972, 1.6872, 2.1526, 2.7009, 3.3398, 4.077, 4.9204,
@@ -63,10 +63,21 @@ class NUCAPSFileReader(GenericFileReader):
     """NUCAPS File Reader
     """
     def create_file_handle(self, filename, **kwargs):
+        """Create a handle to the file that provides data in a standard way.
+
+        See `NetCDF4FileWrapper` for more information.
+        """
         handle = NetCDF4FileWrapper(filename, **kwargs)
         return handle.filename, handle
 
     def variable_path(self, item):
+        """Return the file handle's item string, formatting if needed.
+
+        The file reader can be provided with extra keyword information
+        during `__init__` and this information will be used to format
+        the `file_key.variable_name` string. This formatted string can then
+        be passed to the file handle.
+        """
         if item.endswith("/shape") and item[:-6] in self.file_keys:
             item = self.file_keys[item[:-6]].variable_name.format(**self.file_info) + "/shape"
         elif item in self.file_keys:
@@ -74,6 +85,13 @@ class NUCAPSFileReader(GenericFileReader):
         return item
 
     def __getitem__(self, item):
+        """Return the provided item data from the file.
+
+        If the `item` is a `file_key` provided during `__init__` then use
+        the file key's `variable_name` instead. If the `file_key` has
+        an `index` or `pressure_index` to subset a data array then that
+        subsetting is also done here.
+        """
         var_path = self.variable_path(item)
         data = self.file_handle[var_path]
         if item in self.file_keys:
@@ -88,30 +106,28 @@ class NUCAPSFileReader(GenericFileReader):
     def __contains__(self, item):
         return item in self.file_handle
 
-    def _parse_l1b_datetime(self, datestr):
+    def _parse_datetime(self, datestr):
+        """Parse NUCAPS datetime string.
+        """
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
-    def ring_lonlats(self):
-        return self["gring_longitude"], self["gring_latitude"]
-
-    def _get_start_time(self):
-        return self._parse_l1b_datetime(self['coverage_start'])
-
-    def _get_end_time(self):
-        return self._parse_l1b_datetime(self['coverage_end'])
-
-    @property
     def begin_orbit_number(self):
+        """Return orbit number for the beginning of the swath.
+        """
         return int(self['beginning_orbit_number'])
 
     @property
     def end_orbit_number(self):
+        """Return orbit number for the end of the swath.
+        """
         return int(self['ending_orbit_number'])
 
     @property
     def platform_name(self):
-        # FIXME: If an attribute is added to the file, for now hardcode
+        """Return standard platform name for the file's data.
+        """
+        # FIXME: If an attribute is added to the file use it, for now hardcode
         # res = self['platform_short_name']
         res = "NPP"
         if isinstance(res, np.ndarray):
@@ -121,21 +137,17 @@ class NUCAPSFileReader(GenericFileReader):
 
     @property
     def sensor_name(self):
+        """Return standard sensor or instrument name for the file's data.
+        """
         res = self['instrument_short_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
             return res
 
-    @property
-    def geofilename(self):
-        res = self['geo_file_reference']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
-
     def get_file_units(self, item):
+        """Return units of the data in the file for the `item` specified.
+        """
         # What units should we expect from the file
         file_units = self.file_keys[item].file_units
 
@@ -168,6 +180,8 @@ class NUCAPSFileReader(GenericFileReader):
         return file_units
 
     def get_shape(self, item):
+        """Return data array shape for item specified.
+        """
         var_info = self.file_keys[item]
         shape = self[item + "/shape"]
         if "index" in var_info.kwargs:
@@ -177,6 +191,12 @@ class NUCAPSFileReader(GenericFileReader):
         return shape
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors to also convert file data to different units.
+
+        It is more efficient to only do arithmetic on the data array once, so
+        if converting units is a linear adjustment then we can "unscale" the
+        data out of the file and convert its units in one set of calculations.
+        """
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors

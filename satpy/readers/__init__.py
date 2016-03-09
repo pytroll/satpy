@@ -700,6 +700,13 @@ class ConfigBasedReader(Reader):
             self.file_readers[file_type_name] = file_reader
 
     def _get_swathsegment(self, file_readers):
+        """Trim down amount of swath data to use with various filters.
+
+        The filter options are provided during `__init__` as:
+
+         - start_time/end_time: Filter swath by time of file
+         - area: Filter swath by a geographic area
+        """
         if self.area is not None:
             from trollsched.spherical import SphPolygon
             from trollsched.boundary import AreaBoundary
@@ -719,7 +726,10 @@ class ConfigBasedReader(Reader):
 
             # Search for multiple granules using an area
             if self.area is not None:
-                coords = np.vstack(file_reader.ring_lonlats)
+                ring_lons, ring_lats = file_reader.ring_lonlats
+                if ring_lons is None:
+                    raise ValueError("Granule selection by area is not supported by this reader")
+                coords = np.vstack((ring_lons, ring_lats))
                 poly = SphPolygon(np.deg2rad(coords))
                 if poly.intersection(contour_poly) is not None:
                     segment_readers.append(file_reader)
@@ -1133,6 +1143,30 @@ class MultiFileReader(object):
 
 
 class GenericFileReader(object):
+    """Base class for individual file reader classes.
+
+    This class provides an interface so that subclasses can be used via
+    a `MultiFileReader` which is then used by a `ConfigBasedReader`
+    subclass. This interface currently assumes certain file keys are
+    available in the file being read. If these keys are not available
+    or they have a different name then the method mentioned must be
+    overridden in the subclass.
+
+    Required File Keys:
+
+     - coverage_start: Datetime string of the start time of the data
+                       observation (see `_get_start_time`)
+     - coverage_end: Datetime string of the end time of the data
+                     observation (see `_get_end_time`)
+
+    Start time and end time must be available so that files of the same
+    type can be sorted in chronological order.
+
+    The primary methods for data retrieval are `__getitem__` which is used
+    for attribute and simple variable access and `get_swath_data` for larger
+    swath variables that may require scaling, unit conversion, efficient
+    appending to other granules, and separate masked arrays.
+    """
     __metaclass__ = ABCMeta
 
     def __init__(self, file_type, filename, file_keys, **kwargs):
@@ -1147,19 +1181,35 @@ class GenericFileReader(object):
 
     @property
     def start_time(self):
+        """Start time of the swath coverage.
+
+        Note: `_get_start_time` should be overridden instead of this property.
+        """
         return self._start_time
 
     @property
     def end_time(self):
+        """End time of the swath coverage.
+
+        Note: `_get_end_time` should be overridden instead of this property.
+        """
         return self._end_time
 
     @abstractmethod
-    def _get_start_time(self):
+    def _parse_datetime(self, date_str):
+        """Return datetime object by parsing the provided string(s).
+        """
         raise NotImplementedError
 
-    @abstractmethod
+    def _get_start_time(self):
+        """Return start time as datetime object.
+        """
+        return self._parse_datetime(self['coverage_start'])
+
     def _get_end_time(self):
-        raise NotImplementedError
+        """Return end time as datetime object.
+        """
+        return self._parse_datetime(self['coverage_end'])
 
     @abstractmethod
     def create_file_handle(self, filename, **kwargs):
@@ -1170,17 +1220,17 @@ class GenericFileReader(object):
     def __getitem__(self, item):
         raise NotImplementedError
 
-    @abstractproperty
+    @property
     def ring_lonlats(self):
-        raise NotImplementedError
+        return None, None
 
-    @abstractproperty
+    @property
     def begin_orbit_number(self):
-        raise NotImplementedError
+        return 0
 
-    @abstractproperty
+    @property
     def end_orbit_number(self):
-        raise NotImplementedError
+        return 0
 
     @abstractproperty
     def platform_name(self):
@@ -1190,9 +1240,9 @@ class GenericFileReader(object):
     def sensor_name(self):
         raise NotImplementedError
 
-    @abstractproperty
+    @property
     def geofilename(self):
-        raise NotImplementedError
+        return None
 
     @abstractmethod
     def get_shape(self, item):

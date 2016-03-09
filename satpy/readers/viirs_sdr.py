@@ -131,7 +131,7 @@ class SDRFileReader(GenericFileReader):
 
         return self.file_handle[item]
 
-    def _parse_npp_datetime(self, datestr, timestr):
+    def _parse_datetime(self, datestr, timestr):
         try:
             datetime_str = datestr + timestr
         except TypeError:
@@ -142,15 +142,15 @@ class SDRFileReader(GenericFileReader):
             raise ValueError("Datetime invalid %s " % time_val)
         return time_val
 
+    def _get_start_time(self):
+        return self._parse_datetime(self['beginning_date'], self['beginning_time'])
+
+    def _get_end_time(self):
+        return self._parse_datetime(self['ending_date'], self['ending_time'])
+
     @property
     def ring_lonlats(self):
         return self["gring_longitude"], self["gring_latitude"]
-
-    def _get_start_time(self):
-        return self._parse_npp_datetime(self['beginning_date'], self['beginning_time'])
-
-    def _get_end_time(self):
-        return self._parse_npp_datetime(self['ending_date'], self['ending_time'])
 
     @property
     def begin_orbit_number(self):
