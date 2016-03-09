@@ -53,18 +53,12 @@ class L1BFileReader(GenericFileReader):
 
         return self.file_handle[item]
 
-    def _parse_l1b_datetime(self, datestr):
+    def _parse_datetime(self, datestr):
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
     def ring_lonlats(self):
         return self["gring_longitude"], self["gring_latitude"]
-
-    def _get_start_time(self):
-        return self._parse_l1b_datetime(self['coverage_start'])
-
-    def _get_end_time(self):
-        return self._parse_l1b_datetime(self['coverage_end'])
 
     @property
     def begin_orbit_number(self):

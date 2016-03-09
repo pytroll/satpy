@@ -41,13 +41,37 @@ LOG = logging.getLogger(__name__)
 
 
 class NetCDF4FileWrapper(object):
-    """Small class for inspecting a NetCDF4 file and retrieve its metadata/header data.
+    """Small class for inspecting a NetCDF4 file and retrieving its metadata/header data.
+
+    File information can be accessed using bracket notation. Variables are
+    accessed by using:
+
+        wrapper["var_name"]
+
+    Or:
+
+        wrapper["group/subgroup/var_name"]
+
+    Attributes can be accessed by appending "/attr/attr_name" to the
+    item string:
+
+        wrapper["group/subgroup/var_name/attr/units"]
+
+    Or for global attributes:
+
+        wrapper["/attr/platform_short_name"]
+
+    Note that loading datasets requires reopening the original file, but to
+    get just the shape of the dataset append "/shape" to the item string:
+
+        wrapper["group/subgroup/var_name/shape"]
+
     """
     def __init__(self, filename, auto_maskandscale=False, **kwargs):
         self.metadata = {}
         self.filename = filename
         if not os.path.exists(filename):
-            raise IOError("File %s does not exist!" % filename)
+            raise IOError("File {} does not exist!".format(filename))
         file_handle = netCDF4.Dataset(self.filename, 'r')
 
         self.auto_maskandscale= auto_maskandscale
@@ -58,15 +82,21 @@ class NetCDF4FileWrapper(object):
         file_handle.close()
 
     def _collect_attrs(self, name, obj):
+        """Collect all the attributes for the provided file object.
+        """
         for key in obj.ncattrs():
             value = getattr(obj, key)
             value = np.squeeze(value)
             if issubclass(value.dtype.type, str) or np.issubdtype(value.dtype, np.character):
-                self.metadata["%s/attr/%s" % (name, key)] = str(value)
+                self.metadata["{}/attr/{}".format(name, key)] = str(value)
             else:
-                self.metadata["%s/attr/%s" % (name, key)] = value
+                self.metadata["{}/attr/{}".format(name, key)] = value
 
     def collect_metadata(self, name, obj):
+        """Collect all file variables and attributes for the provided file object.
+
+        This method also iterates through subgroups of the provided object.
+        """
         # Look through each subgroup
         base_name = name + "/" if name else ""
         for group_name, group_obj in obj.groups.items():
