@@ -308,24 +308,26 @@ class NUCAPSReader(ConfigBasedReader):
         if pressure_levels is not None and "pressure_levels" not in metadata:
             LOG.debug("Adding 'pressure_levels' to metadata for pressure level filtering")
             metadata.add("pressure_levels")
-        # Filter out datasets that don't fit in the correct pressure level
-        for ds_id in datasets_to_load:
-            ds_info = self.datasets[ds_id]
-            ds_level = ds_info.get("pressure_level")
-            if ds_level is not None:
-                if pressure_levels is True:
-                    # they want all pressure levels
-                    True
-                elif len(pressure_levels) == 2 and pressure_levels[0] <= ds_level <= pressure_levels[1]:
-                    # given a min and a max pressure level
-                    continue
-                elif np.isclose(pressure_levels, ds_level).any():
-                    # they asked for this specific pressure level
-                    continue
-                else:
-                    # they don't want this dataset at this pressure level
-                    datasets_to_load.remove(ds_id)
-                    continue
+
+        if pressure_levels is not None:
+            # Filter out datasets that don't fit in the correct pressure level
+            for ds_id in datasets_to_load[:]:
+                ds_info = self.datasets[ds_id]
+                ds_level = ds_info.get("pressure_level")
+                if ds_level is not None:
+                    if pressure_levels is True:
+                        # they want all pressure levels
+                        True
+                    elif len(pressure_levels) == 2 and pressure_levels[0] <= ds_level <= pressure_levels[1]:
+                        # given a min and a max pressure level
+                        continue
+                    elif np.isclose(pressure_levels, ds_level).any():
+                        # they asked for this specific pressure level
+                        continue
+                    else:
+                        # they don't want this dataset at this pressure level
+                        datasets_to_load.remove(ds_id)
+                        continue
 
         datasets_loaded = super(NUCAPSReader, self).load(datasets_to_load, metadata=metadata, **dataset_info)
 
