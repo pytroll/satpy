@@ -179,7 +179,7 @@ class TestSDRFileReader(unittest.TestCase):
         file_reader = SDRFileReader("fake_file_type", "test.h5", self.file_keys)
         self.assertEqual(file_reader.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
         self.assertEqual(file_reader.end_time, datetime(2015, 1, 1, 11, 0, 10, 600000))
-        self.assertRaises(ValueError, file_reader._parse_npp_datetime, "19580102", "120000.0Z")
+        self.assertRaises(ValueError, file_reader._parse_datetime, "19580102", "120000.0Z")
 
     @mock.patch('satpy.readers.viirs_sdr.HDF5MetaData', FakeHDF5MetaData)
     def test_get_funcs(self):
