@@ -175,7 +175,7 @@ class AVHRREPSL1BFileReader(GenericFileReader):
             mask_out[:] = False
 
         # FIXME: Temporary, calibrate data here
-        calib_type = var_info.kwargs.get("calib_type", None)
+        calib_type = var_info.kwargs.get("calib_type")
         if calib_type == "bt":
             wl = self[self.file_keys[var_info.kwargs["cw_key"]].variable_name]
             chan_const = self[self.file_keys[var_info.kwargs["channel_constant_key"]].variable_name]
