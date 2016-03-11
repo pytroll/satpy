@@ -70,18 +70,37 @@ class Scene(InfoObject):
             if reader_instance:
                 self.readers[reader_instance.name] = reader_instance
 
-    def available_datasets(self, reader_name=None):
+    def available_datasets(self, reader_name=None, composites=False):
         """Return the available datasets, globally or just for *reader_name* if specified.
         """
         try:
             if reader_name:
-                readers = [getattr(self, reader_name)]
+                readers = [self.readers[reader_name]]
             else:
                 readers = self.readers.values()
         except (AttributeError, KeyError):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
-        return [dataset_name for reader in readers for dataset_name in reader.dataset_names]
+        available_datasets = [dataset_name for reader in readers for dataset_name in reader.available_datasets]
+        if composites:
+            raise NotImplementedError("Collecting available composite names is not implemented yet")
+        return available_datasets
+
+    def all_datasets(self, reader_name=None, composites=False):
+        """Return all the datasets that could be loaded, globally or just for `reader_name` if specified.
+        """
+        try:
+            if reader_name:
+                readers = [self.readers[reader_name]]
+            else:
+                readers = self.readers.values()
+        except (AttributeError, KeyError):
+            raise KeyError("No reader '%s' found in scene" % reader_name)
+
+        all_datasets = [dataset_name for reader in readers for dataset_name in reader.dataset_names]
+        if composites:
+            raise NotImplementedError("Collecting all composite names is not implemented yet")
+        return all_datasets
 
     def __str__(self):
         res = (str(proj) for proj in self.datasets.values())
