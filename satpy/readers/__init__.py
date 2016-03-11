@@ -499,6 +499,15 @@ class Reader(Plugin):
         return self.datasets.keys(names=True)
 
     @property
+    def available_datasets(self):
+        """Return what datasets can be loaded by what file types have been loaded.
+
+        :return: generator of loadable dataset names
+        """
+        LOG.warning("Asking for available datasets from 'dumb' reader, all datasets being returned")
+        return self.dataset_names
+
+    @property
     def sensor_names(self):
         """Sensors supported by this reader.
         """
@@ -694,6 +703,16 @@ class ConfigBasedReader(Reader):
 
             file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
             self.file_readers[file_type_name] = file_reader
+
+    @property
+    def available_datasets(self):
+        """Return what datasets can be loaded by what file types have been loaded.
+
+        :return: generator of loadable dataset names
+        """
+        for ds_id, ds_info in self.datasets.items():
+            if ds_info["file_type"] in self.file_readers:
+                yield ds_id.name
 
     def _get_swathsegment(self, file_readers):
         """Trim down amount of swath data to use with various filters.
