@@ -34,7 +34,7 @@ import os.path
 from glob import glob
 
 import satpy.channel
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from satpy.utils import get_logger
 
 

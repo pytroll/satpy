@@ -43,7 +43,7 @@ import logging
 import datetime
 import glob
 from ConfigParser import ConfigParser
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 LOGGER = logging.getLogger('aapp1b')
 

@@ -32,7 +32,7 @@ from pyproj import Proj
 from mipp import xrit
 from mipp import CalibrationError, ReaderError
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import logging
 from trollsift.parser import Parser
 

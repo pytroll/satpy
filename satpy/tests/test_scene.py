@@ -82,7 +82,7 @@ class TestScene(unittest.TestCase):
 
     def test_init_alone(self):
         from satpy.scene import Scene
-        from satpy import PACKAGE_CONFIG_PATH
+        from satpy.config import PACKAGE_CONFIG_PATH
         scn = Scene()
         self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
 

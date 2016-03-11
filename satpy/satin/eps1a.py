@@ -38,7 +38,7 @@ from satpy.satellites import PolarFactory
 import satpy.satin.aapp1b
 import datetime
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 WORKING_DIR = "/tmp"
 

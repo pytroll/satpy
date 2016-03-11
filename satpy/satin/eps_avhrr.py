@@ -39,7 +39,7 @@ from scipy import interpolate
 import os.path
 import glob
 from ConfigParser import ConfigParser
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import logging
 
 LOG = logging.getLogger(__name__)

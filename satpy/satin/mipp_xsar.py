@@ -35,7 +35,7 @@ import os
 from mipp import xsar
 from mipp import ReaderError, CalibrationError
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import logging
 
 LOG = logging.getLogger(__name__)

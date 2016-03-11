@@ -38,7 +38,7 @@ import glob
 import numpy as np
 import numexpr as ne
 from satpy.plugin_base import Reader
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from pyresample.geometry import SwathDefinition
 
 logger = logging.getLogger(__name__)

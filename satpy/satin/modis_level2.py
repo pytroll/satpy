@@ -35,7 +35,7 @@ import datetime
 import numpy as np
 from pyhdf.SD import SD
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 import satpy.channel
 #from satpy.projector import get_area_def

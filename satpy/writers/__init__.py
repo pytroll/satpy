@@ -27,7 +27,7 @@ For now, this includes enhancement configuration utilities.
 """
 
 import logging
-from satpy import get_environ_config_dir, config_search_paths
+from satpy.config import get_environ_config_dir, config_search_paths
 from satpy.plugin_base import Plugin
 from trollsift import parser
 from trollimage.image import Image
