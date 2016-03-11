@@ -46,7 +46,7 @@ from pyhdf.error import HDF4Error
 import hashlib
 from pyresample import geometry
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from satpy.plugin_base import Reader
 
 import logging

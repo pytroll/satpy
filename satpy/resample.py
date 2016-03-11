@@ -35,7 +35,8 @@ import json
 import os
 import six
 from copy import deepcopy
-from satpy import get_config, get_config_path, utils
+from satpy.config import get_config, get_config_path
+
 try:
     import configparser
 except ImportError:

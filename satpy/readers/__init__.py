@@ -38,7 +38,7 @@ from trollsift.parser import globify, Parser
 
 from satpy.plugin_base import Plugin
 from satpy.projectable import Projectable
-from satpy import runtime_import, glob_config, config_search_paths
+from satpy.config import runtime_import, config_search_paths, glob_config
 
 try:
     import configparser

@@ -29,7 +29,7 @@
 """
 import ConfigParser
 import os.path
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import satpy.channel
 import numpy as np
 import pyresample.utils

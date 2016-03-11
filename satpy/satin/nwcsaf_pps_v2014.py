@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 import os.path
 
 import satpy.channel
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from satpy.utils import get_logger
 import numpy as np
 

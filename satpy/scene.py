@@ -32,7 +32,7 @@ except:
 import os
 import logging
 
-from satpy import runtime_import, config_search_paths, get_environ_config_dir
+from satpy.config import get_environ_config_dir, runtime_import, config_search_paths
 from satpy.projectable import Projectable, InfoObject
 from satpy.readers import ReaderFinder, DatasetDict, DatasetID
 from satpy.composites import IncompatibleAreas, load_compositors

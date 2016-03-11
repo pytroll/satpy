@@ -32,7 +32,7 @@ import glob
 import numpy as np
 
 import satpy.channel
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from satpy.plugin_base import Reader
 
 import logging

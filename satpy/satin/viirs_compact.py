@@ -33,7 +33,7 @@ import os
 import logging
 import bz2
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 

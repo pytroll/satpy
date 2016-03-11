@@ -38,7 +38,7 @@ import math
 import numpy as np
 import logging
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 LOG = logging.getLogger(__name__)
 

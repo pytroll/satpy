@@ -38,7 +38,7 @@ import datetime
 
 from satpy.utils import ensure_dir
 import satpy.satin.aapp1b
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 
 from satpy.satellites import PolarFactory
 

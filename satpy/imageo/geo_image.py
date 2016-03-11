@@ -41,7 +41,7 @@ try:
 except ImportError:
     from satpy.imageo.image import Image, UnknownImageFormat
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import logging
 from satpy.utils import ensure_dir
 

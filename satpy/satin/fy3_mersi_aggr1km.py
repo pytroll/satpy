@@ -33,7 +33,7 @@ from ConfigParser import ConfigParser
 import _pyhl
 import numpy as np
 
-from satpy import BASE_PATH
+from satpy.config import BASE_PATH
 
 
 def load(satscene):

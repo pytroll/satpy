@@ -34,7 +34,7 @@ from datetime import datetime, timedelta
 import math
 import numpy as np
 
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 import logging
 
 LOG = logging.getLogger(__name__)

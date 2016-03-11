@@ -29,7 +29,7 @@ try:
     import configparser
 except:
     from six.moves import configparser
-from satpy import PACKAGE_CONFIG_PATH, config_search_paths
+from satpy.config import get_environ_config_dir, config_search_paths
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class Plugin(object):
     inherited by other classes.
     """
     def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
-        self.ppp_config_dir = ppp_config_dir or os.environ.get("PPP_CONFIG_DIR", PACKAGE_CONFIG_PATH)
+        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
 
         self.default_config_filename = default_config_filename
         self.config_files = config_files

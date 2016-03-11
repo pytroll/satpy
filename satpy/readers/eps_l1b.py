@@ -25,7 +25,7 @@
 
 import os
 import numpy as np
-from satpy import CONFIG_PATH
+from satpy.config import CONFIG_PATH
 from satpy.satin.xmlformat import XMLFormat
 import logging
 from satpy.readers import ConfigBasedReader, GenericFileReader

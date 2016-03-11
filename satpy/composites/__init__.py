@@ -29,7 +29,7 @@ import numpy as np
 import logging
 from satpy.tools import sunzen_corr_cos
 import six
-from satpy import CONFIG_PATH, config_search_paths, runtime_import
+from satpy.config import CONFIG_PATH, runtime_import, config_search_paths
 from satpy.readers import DatasetID
 import os
 try:
