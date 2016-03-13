@@ -66,12 +66,23 @@ class Scene(InfoObject):
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir, **self.info)
         reader_instances = finder(reader_name=reader_name, sensor=self.info.get("sensor"), filenames=filenames)
         # reader finder could return multiple readers
+        sensors = []
         for reader_instance in reader_instances:
             if reader_instance:
                 self.readers[reader_instance.name] = reader_instance
+                sensors.extend(reader_instance.sensor_names)
+        # if the user didn't tell us what sensors to work with, let's figure it out
+        if not self.info.get("sensor"):
+            self.info["sensor"] = sensors
 
     def available_datasets(self, reader_name=None, composites=False):
-        """Return the available datasets, globally or just for *reader_name* if specified.
+        """Get names of available datasets, globally or just for *reader_name* if specified, that can be loaded.
+
+        Available dataset names are determined by what each individual reader
+        can load. This is normally determined by what files are needed to load
+        a dataset and what files have been provided to the scene/reader.
+
+        :return: list of available dataset names
         """
         try:
             if reader_name:
@@ -83,11 +94,13 @@ class Scene(InfoObject):
 
         available_datasets = [dataset_name for reader in readers for dataset_name in reader.available_datasets]
         if composites:
-            raise NotImplementedError("Collecting available composite names is not implemented yet")
+            available_datasets += list(self.available_composites(available_datasets))
         return available_datasets
 
     def all_datasets(self, reader_name=None, composites=False):
-        """Return all the datasets that could be loaded, globally or just for `reader_name` if specified.
+        """Get names of all datasets from loaded readers or `reader_name` if specified..
+
+        :return: list of all dataset names
         """
         try:
             if reader_name:
@@ -99,8 +112,45 @@ class Scene(InfoObject):
 
         all_datasets = [dataset_name for reader in readers for dataset_name in reader.dataset_names]
         if composites:
-            raise NotImplementedError("Collecting all composite names is not implemented yet")
+            all_datasets += self.all_composites()
         return all_datasets
+
+    def available_composites(self, available_datasets=None):
+        """Get names of compositors that can be generated from the available datasets.
+
+        :return: generator of available compositor's names
+        """
+        if available_datasets is None:
+            available_datasets = self.available_datasets(composites=False)
+
+        available_datasets = set(available_datasets)
+        # composite_objects = self.all_composites_objects()
+        for composite_name, composite_obj in self.all_composites_objects().items():
+            ###
+            for reader_name, reader_instance in self.readers.items():
+                try:
+                    # overwrite any semi-qualified IDs with the fully qualified ID
+                    prereqs = [reader_instance.get_dataset_key(prereq).name
+                               for prereq in composite_obj.info["prerequisites"]]
+                    if not (set(prereqs) - available_datasets):
+                        # we have all the prereqs in the available datasets
+                        yield composite_name
+                except KeyError:
+                    continue
+
+    def all_composites(self):
+        """Get all composite names that are configured.
+
+        :return: generator of configured composite names
+        """
+        return (c.info["name"] for c in self.all_composites_objects().values())
+
+    def all_composites_objects(self):
+        """Get all compositors that are configured.
+
+        :return: dictionary of composite name to compositor object
+        """
+        return load_compositors(sensor_names=self.info["sensor"], ppp_config_dir=self.ppp_config_dir)
 
     def __str__(self):
         res = (str(proj) for proj in self.datasets.values())
@@ -125,11 +175,6 @@ class Scene(InfoObject):
 
     def __contains__(self, name):
         return name in self.datasets
-
-    def available_composites(self):
-        """Return the list of available composites for the current scene.
-        """
-        return load_compositors(sensor_names=[self.info["sensor"]], ppp_config_dir=self.ppp_config_dir).keys()
 
     def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read the composites called *dataset_keys* or their prerequisites.
