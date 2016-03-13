@@ -30,3 +30,4 @@
 """
 
 from satpy.version import __version__
+from satpy.scene import Scene
