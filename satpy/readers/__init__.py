@@ -710,9 +710,18 @@ class ConfigBasedReader(Reader):
 
         :return: generator of loadable dataset names
         """
+        for ds_id in self.available_datasets_ids:
+            yield ds_id.name
+
+    @property
+    def available_datasets_ids(self):
+        """Return what datasets can be loaded by what file types have been loaded.
+
+        :return: generator of loadable dataset names
+        """
         for ds_id, ds_info in self.datasets.items():
             if ds_info["file_type"] in self.file_readers:
-                yield ds_id.name
+                yield ds_id
 
     def _get_swathsegment(self, file_readers):
         """Trim down amount of swath data to use with various filters.
