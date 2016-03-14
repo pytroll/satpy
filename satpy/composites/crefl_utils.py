@@ -1,10 +1,35 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import numpy as np
-from pyhdf.SD import *
-from argparse import ArgumentParser
-from satutil_lib import *
-import hdf_output as ho
+# Copyright (c) 2010, 2011, 2012, 2014, 2015.
+
+# Author(s):
+
+#   Martin Raspaud <martin.raspaud@smhi.se>
+#   David Hoese <david.hoese@ssec.wisc.edu>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""Shared utilities for correcting reflectance data using the 'crefl' algorithm.
+
+Original code written by Ralph Kuehn with modifications by David Hoese and Martin Raspaud.
+Ralph's code was originally based on the C crefl code distributed for VIIRS and MODIS.
+"""
 import os
+import sys
+import logging
+import numpy as np
+
+LOG = logging.getLogger(__name__)
 
 
 bUseV171 = False
@@ -56,57 +81,78 @@ else:
     #/*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
     taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740,0.00369 ,0.00132 ,0.00033 ,0.05373 ,0.01561 ,0.00129, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
 
+# Map a range of wavelengths (min, nominal, wavelength) to the proper
+# index inside the above coefficient arrays
+# Indexes correspond to the original MODIS coefficients, starting with
+# band 1 (index 0) and going to band 7
+# Min and max wavelengths have been adjusted to include VIIRS and other
+# instrument's bands
+COEFF_INDEX_MAP = {
+    (0.620, 0.6450, 0.672): 0,
+    (0.841, 0.8585, 0.876): 1,
+    (0.445, 0.4690, 0.488): 2,
+    (0.545, 0.5550, 0.565): 3,
+    (1.020, 1.2400, 1.250): 4,
+    (1.600, 1.6400, 1.652): 5,
+    (2.105, 2.1300, 2.255): 6,
+}
 
-def crefl_viirs_iff(output_path=None,IFF_fname=None,terrain=None):
-    if not IFF_fname and not terrain:
-        print 'crefl_viirs_iff: ERROR no input file given'
-        sys.exit(-1)
 
-    (adir,fname) = os.path.split(IFF_fname)
-    xfname = fname.replace('IFFSDR','IFFCREFL')
-    if not output_path:
-        output_path = adir
+def find_coefficient_index(nominal_wavelength):
+    """Return index in to coefficient arrays for this band's wavelength.
 
-    output_file_name = os.path.join(output_path,xfname)
-    print 'crefl_viirs_iif.py: output file name: %s' % (output_file_name)
+    This function search through the `COEFF_INDEX_MAP` dictionary and
+    finds the first key where `nominal_wavelength` falls between
+    the minimum wavelength and maximum wavelength of the key.
 
-    sds_names = ['ReflectiveBandCenters','ReflectiveSolarBands','SensorAzimuth','SensorZenith','SolarAzimuth','SolarZenith']
+    :param nominal_wavelength: float wavelength of the band being corrected
+    :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
+             None is returned if no matching wavelength is found
+    """
+    for (min_wl, nom_wl, max_wl), v in COEFF_INDEX_MAP.values():
+        if min_wl <= nominal_wavelength <= max_wl:
+            return v
 
-    fp = SD(terrain)
-    dem = fp.select('averaged elevation')[:]
-    fp.end()
 
-    fp = SD(IFF_fname)
+def crefl_viirs_iff(reflectance_bands, center_wavelengths,
+                    lon, lat,
+                    sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
+                    avg_elevation):
+    """Run main crefl algorithm.
 
-    lat = fp.select('Latitude')[:]
-    lon = fp.select('Longitude')[:]
+    All input parameters are per-pixel values meaning they are the same size
+    and shape as the input reflectance data, unless otherwise stated.
 
+    :param reflectance_bands: tuple of reflectance band arrays
+    :param center_wavelengths: tuple of nonimal wavelengths for the corresponding reflectance band
+    :param lon: input swath longitude array
+    :param lat: input swath latitude array
+    :param sensor_azimuth: input swath sensor azimuth angle array
+    :param sensor_zenith: input swath sensor zenith angle array
+    :param solar_azimuth: input swath solar azimuth angle array
+    :param solar_zenith: input swath solar zenith angle array
+    :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
+
+    """
+    # FUTURE: Find a way to compute the average elevation before hand
     # Get digital elevation map data for our granule, set ocean fill value to 0
-    #ipdb.set_trace()
-    row = np.int32((90.0 - lat) *  np.shape(dem)[0]/ 180.0);
-    col = np.int32((lon + 180.0) * np.shape(dem)[1]/ 360.0);
-    height=np.float64(dem[row,col])
+    row = np.int32((90.0 - lat) *  np.shape(avg_elevation)[0]/ 180.0);
+    col = np.int32((lon + 180.0) * np.shape(avg_elevation)[1]/ 360.0);
+    height=np.float64(avg_elevation[row,col])
     ii,jj = np.where(np.less(height,0.0))
     height[ii,jj] = 0.0
 
     del lat, lon, row, col, ii, jj
 
-    SensorAzimuth = fp.select('SensorAzimuth')[:]
-    SensorZenith = fp.select('SensorZenith')[:]
-
-    SolarAzimuth = fp.select('SolarAzimuth')[:]
-    SolarZenith = fp.select('SolarZenith')[:]
-
     DEG2RAD = np.pi/180.0
-    mus = np.cos(SolarZenith * DEG2RAD)
-    muv = np.cos(SensorZenith * DEG2RAD)
-    phi = SolarAzimuth - SensorAzimuth
+    mus = np.cos(solar_zenith * DEG2RAD)
+    muv = np.cos(sensor_zenith * DEG2RAD)
+    phi = solar_azimuth - sensor_azimuth
 
-    del SolarAzimuth, SolarZenith, SensorZenith, SensorAzimuth
+    del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
 
     # From GetAtmVariables
     tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES*TAUSTEP4SPHALB, MAXNUMSPHALBVALUES)
-    #ipdb.set_trace()
     sphalb0 = csalbr(tau_step);
 
     air_mass = 1.0/mus + 1/muv;
@@ -128,7 +174,7 @@ def crefl_viirs_iff(output_path=None,IFF_fname=None,terrain=None):
     #         float pl[5];
     #         double fs01, fs02, fs0, fs1, fs2;
     as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
-        -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
+           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
     as1 = [0.19666292, -5.439061e-02]
     as2 = [0.14545937, -2.910845e-02]
     #         float phios, xcos1, xcos2, xcos3;
@@ -157,36 +203,12 @@ def crefl_viirs_iff(output_path=None,IFF_fname=None,terrain=None):
     #                 fs02 += (double) (pl[i] * as0[5 + i]);
     #         }
 
-    v2m=[1,#M7 */  /* MODIS BAND 2 */ /* 865 nm  */ /* 856.5  nm */
-         2,#M3 */  /* MODIS BAND 3 */ /* 488 nm  */ /* 465.6  nm */
-         3,#M4 */  /* MODIS BAND 4 */ /* 555 nm  */ /* 553.6  nm */
-         4,#M8 */  /* MODIS BAND 5 */ /* 1024 nm */ /* 1241.6 nm */
-         5,#M10 */ /* MODIS BAND 6 */ /* 1610 nm */ /* 1629.1 nm */
-         6,#M11 */ /* MODIS BAND 7 */ /* 2250 nm */ /* 2114.1 nm */
-         0,#M5  */ /* MODIS BAND 1 */ /* 672  nm */ /* 645.5  nm */
-         2]#M2 */  /* MODIS BAND 3 */ /* 445  nm */ /* 465.6  nm */
-         # M2, M3, M4, M5, M6, M8, M7, M10, M11
-
-    v2m_str=['M7',
-         'M3',
-         'M4',
-         'M8',
-         'M10',
-         'M11',
-         'M5',
-         'M2']
-
-    iff2v = [7, 3, 4, 8, 10, 11, 5, 2]
-    for i in range(len(iff2v)):
-        iff2v[i] -= 1
-
-    Nbands = [0, 1, 2, 3, 4, 5, 6, 7]
-
-    print "Processing band:"
     odata = []
-    for i in Nbands:
-        ib = v2m[i]
-        print (i, ib, iff2v[i])
+    for refl, center_wl in zip(reflectance_bands, center_wavelengths):
+        ib = find_coefficient_index(center_wl)
+        if ib is None:
+            raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
+
         taur = taur0[ib] * np.exp(-height / SCALEHEIGHT);
         xlntaur = np.log(taur)
         fs0 = fs01 + fs02 * xlntaur
@@ -213,35 +235,29 @@ def crefl_viirs_iff(output_path=None,IFF_fname=None,terrain=None):
             tO3 = np.exp(-air_mass * UO3 * aO3[ib])
         if bH2O[ib] != 0:
             if bUseV171:
-                tH2O = np.exp(-np.exp(aH2O[ib] + bH2O[ib] * log(air_mass * UH2O)))
+                tH2O = np.exp(-np.exp(aH2O[ib] + bH2O[ib] * np.log(air_mass * UH2O)))
             else:
                 tH2O = np.exp(-(aH2O[ib]*(np.power((air_mass * UH2O),bH2O[ib]))))
         #t02 = exp(-m * aO2)
         TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
         tOG = tO3 * tO2
 
-        # float correctedrefl(float refl, float TtotraytH2O, float tOG, float rhoray, float sphalb)
-        refl = np.squeeze(fp.select('ReflectiveSolarBands')[iff2v[i],:,:])
-        cent = np.squeeze(fp.select('ReflectiveBandCenters')[iff2v[i]])
-        print cent
-
-    	ii = np.where(np.greater_equal(refl,65528))
+        # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
         corr_refl = (refl / tOG - rhoray) / TtotraytH2O
-        corr_refl = corr_refl/(1.0 + corr_refl * sphalb);
-        data_type = 'float32'
-        corr_refl[ii] = np.float32(-999.00)
-        odata.append(ho.OutData(corr_refl, 'Corr_Refl_'+v2m_str[i], data_type, np.shape(corr_refl)))
+        corr_refl /= (1.0 + corr_refl * sphalb)
+        odata.append(corr_refl)
 
-        # IFFSDR_npp_d20140111_t185000_c20140213044424_ssec_dev.hdf
+    return odata
 
-    ho.write_hdf(output_file_name, odata, 'hdf4')
 
-if __name__ == '__main__':
+def main():
+    from argparse import ArgumentParser
     parser = ArgumentParser(description=__doc__)
-    #group = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('-o', '--output_path')
-    #parser.add_argument('-iffcth','--IFF-CTH', action='store_true', default=False, help='VIIRS IFF CTH imagery')
     parser.add_argument('-f','--IFF-fname', help='IFF file name', required=True)
     parser.add_argument('-t','--terrain', help='terrain file name', required=True)
     args = parser.parse_args()
-    crefl_viirs_iff(output_path=args.output_path,IFF_fname=args.IFF_fname,terrain=args.terrain)
+    return crefl_viirs_iff(output_path=args.output_path, IFF_fname=args.IFF_fname, terrain=args.terrain)
+
+if __name__ == '__main__':
+    sys.exit(main())
