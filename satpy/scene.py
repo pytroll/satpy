@@ -250,13 +250,25 @@ class Scene(InfoObject):
             while composites_needed:
                 for band in composites_needed.copy():
                     # overwrite any semi-qualified IDs with the fully qualified ID
-                    prereqs = [reader_instance.get_dataset_key(prereq)
-                               for prereq in self.compositors[band].info["prerequisites"]]
-                    self.compositors[band].info["prerequisites"] = prereqs
+                    prereqs = list()
+                    try:
+                        compositor = self.compositors[band]
+                    except KeyError:
+                        self.compositors.update(load_compositors([band], sensor_names,
+                                                     ppp_config_dir=self.ppp_config_dir,
+                                                     **kwargs))
+                        compositor = self.compositors[band]
+                    for prereq in compositor.info["prerequisites"]:
+                        try:
+                            prereqs.append(reader_instance.get_dataset_key(prereq))
+                        except KeyError:
+                            composites_needed.add(prereq.name)
+                            prereqs.append(prereq)
+                    compositor.info["prerequisites"] = prereqs
                     needed_bands |= set(prereqs)
                     prereqs = [reader_instance.get_dataset_key(prereq)
-                               for prereq in self.compositors[band].info["optional_prerequisites"]]
-                    self.compositors[band].info["optional_prerequisites"] = prereqs
+                               for prereq in compositor.info["optional_prerequisites"]]
+                    compositor.info["optional_prerequisites"] = prereqs
                     needed_bands |= set(prereqs)
                     composites_needed.remove(band)
 
