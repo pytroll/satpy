@@ -109,7 +109,7 @@ def find_coefficient_index(nominal_wavelength):
     :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
              None is returned if no matching wavelength is found
     """
-    for (min_wl, nom_wl, max_wl), v in COEFF_INDEX_MAP.values():
+    for (min_wl, nom_wl, max_wl), v in COEFF_INDEX_MAP.items():
         if min_wl <= nominal_wavelength <= max_wl:
             return v
 
@@ -117,7 +117,7 @@ def find_coefficient_index(nominal_wavelength):
 def crefl_viirs_iff(reflectance_bands, center_wavelengths,
                     lon, lat,
                     sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
-                    avg_elevation):
+                    avg_elevation=None):
     """Run main crefl algorithm.
 
     All input parameters are per-pixel values meaning they are the same size
@@ -136,13 +136,14 @@ def crefl_viirs_iff(reflectance_bands, center_wavelengths,
     """
     # FUTURE: Find a way to compute the average elevation before hand
     # Get digital elevation map data for our granule, set ocean fill value to 0
-    row = np.int32((90.0 - lat) *  np.shape(avg_elevation)[0]/ 180.0);
-    col = np.int32((lon + 180.0) * np.shape(avg_elevation)[1]/ 360.0);
-    height=np.float64(avg_elevation[row,col])
-    ii,jj = np.where(np.less(height,0.0))
-    height[ii,jj] = 0.0
-
-    del lat, lon, row, col, ii, jj
+    if avg_elevation is None:
+        height = 0.0
+    else:
+        row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
+        col = np.int32((lon + 180.0) * avg_elevation.shape[1] / 360.0)
+        height = np.float64(avg_elevation[row, col])
+        height[height < 0.] = 0.0
+        del lat, lon, row, col
 
     DEG2RAD = np.pi/180.0
     mus = np.cos(solar_zenith * DEG2RAD)
@@ -209,7 +210,7 @@ def crefl_viirs_iff(reflectance_bands, center_wavelengths,
         if ib is None:
             raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
-        taur = taur0[ib] * np.exp(-height / SCALEHEIGHT);
+        taur = taur0[ib] * np.exp(-height / SCALEHEIGHT)
         xlntaur = np.log(taur)
         fs0 = fs01 + fs02 * xlntaur
         fs1 = as1[0] + xlntaur * as1[1]
