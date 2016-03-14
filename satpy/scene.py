@@ -438,11 +438,15 @@ class Scene(InfoObject):
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id], filename=filename)
 
-    def save_datasets(self, writer="geotiff", **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*.
         """
+        if datasets is not None:
+            datasets = [self[ds] for ds in datasets]
+        else:
+            datasets = self.datasets.values()
         writer = self.get_writer(writer, **kwargs)
-        writer.save_datasets(self.datasets.values(), **kwargs)
+        writer.save_datasets(datasets, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer
