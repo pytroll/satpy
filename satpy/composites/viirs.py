@@ -63,8 +63,7 @@ class VIIRSTrueColor(CompositeBase):
         info["wavelength_range"] = None
         info.setdefault("mode", "RGB")
         return Projectable(
-                           data=np.concatenate(
-                               ([p1.data], [p2.data], [p2.data]), axis=0),
+                           data=np.rollaxis(np.ma.dstack([projectable for projectable in projectables]), axis=2),
                            **info)
 
 
