@@ -114,10 +114,10 @@ def find_coefficient_index(nominal_wavelength):
             return v
 
 
-def crefl_viirs_iff(reflectance_bands, center_wavelengths,
-                    lon, lat,
-                    sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
-                    avg_elevation=None):
+def run_crefl(reflectance_bands, center_wavelengths,
+              lon, lat,
+              sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
+              avg_elevation=None):
     """Run main crefl algorithm.
 
     All input parameters are per-pixel values meaning they are the same size
@@ -154,9 +154,9 @@ def crefl_viirs_iff(reflectance_bands, center_wavelengths,
 
     # From GetAtmVariables
     tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES*TAUSTEP4SPHALB, MAXNUMSPHALBVALUES)
-    sphalb0 = csalbr(tau_step);
+    sphalb0 = csalbr(tau_step)
 
-    air_mass = 1.0/mus + 1/muv;
+    air_mass = 1.0/mus + 1/muv
     ii,jj = np.where(np.greater(air_mass,MAXAIRMASS))
     air_mass[ii,jj] = -1.0
 
@@ -170,7 +170,7 @@ def crefl_viirs_iff(reflectance_bands, center_wavelengths,
     # constant xdep: depolarization factor (0.0279)
     #          xfd = (1-xdep/(2-xdep)) / (1 + 2*xdep/(2-xdep)) = 2 * (1 - xdep) / (2 + xdep) = 0.958725775
     # */
-    xfd = 0.958725775;
+    xfd = 0.958725775
     xbeta2 = 0.5
     #         float pl[5];
     #         double fs01, fs02, fs0, fs1, fs2;
@@ -249,16 +249,3 @@ def crefl_viirs_iff(reflectance_bands, center_wavelengths,
         odata.append(corr_refl)
 
     return odata
-
-
-def main():
-    from argparse import ArgumentParser
-    parser = ArgumentParser(description=__doc__)
-    parser.add_argument('-o', '--output_path')
-    parser.add_argument('-f','--IFF-fname', help='IFF file name', required=True)
-    parser.add_argument('-t','--terrain', help='terrain file name', required=True)
-    args = parser.parse_args()
-    return crefl_viirs_iff(output_path=args.output_path, IFF_fname=args.IFF_fname, terrain=args.terrain)
-
-if __name__ == '__main__':
-    sys.exit(main())
