@@ -117,7 +117,7 @@ def find_coefficient_index(nominal_wavelength):
 def run_crefl(reflectance_bands, center_wavelengths,
               lon, lat,
               sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
-              avg_elevation=None):
+              avg_elevation=None, percent=False):
     """Run main crefl algorithm.
 
     All input parameters are per-pixel values meaning they are the same size
@@ -132,11 +132,13 @@ def run_crefl(reflectance_bands, center_wavelengths,
     :param solar_azimuth: input swath solar azimuth angle array
     :param solar_zenith: input swath solar zenith angle array
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
+    :param percent: True if input reflectances are on a 0-100 scale instead of 0-1 scale (default: False)
 
     """
     # FUTURE: Find a way to compute the average elevation before hand
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
+        LOG.debug("No average elevation information provided in CREFL")
         height = 0.0
     else:
         row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
@@ -244,8 +246,13 @@ def run_crefl(reflectance_bands, center_wavelengths,
         tOG = tO3 * tO2
 
         # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
-        corr_refl = (refl / tOG - rhoray) / TtotraytH2O
+        if percent:
+            corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
+        else:
+            corr_refl = (refl / tOG - rhoray) / TtotraytH2O
         corr_refl /= (1.0 + corr_refl * sphalb)
+        if hasattr(corr_refl, "mask"):
+            corr_refl[corr_refl.mask] = 0
         odata.append(corr_refl)
 
     return odata
