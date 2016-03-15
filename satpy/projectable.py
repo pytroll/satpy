@@ -98,7 +98,7 @@ class Dataset(np.ma.MaskedArray):
     def __new__(cls, data, **info):
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
-        obj = np.ma.MaskedArray(data).view(cls)
+        obj = np.ma.MaskedArray(data, mask=info.pop("mask", None)).view(cls)
         # add the new attribute to the created instance
         obj.info = getattr(data, "info", {})
         obj.info.update(info)
