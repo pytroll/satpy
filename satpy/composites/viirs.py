@@ -58,9 +58,12 @@ class VIIRSTrueColor(CompositeBase):
 
         # raise IncompatibleAreas
         p1, p2, p3 = projectables
-        info = p1.info.copy()
-        info.update(**self.info)
+        info = {}
+        info.update(self.info)
         info["name"] = self.info["name"]
+        info["area"] = p1.info["area"]
+        info["start_time"] = p1.info["start_time"]
+        info["end_time"] = p1.info["end_time"]
         info["wavelength_range"] = None
         info.setdefault("mode", "RGB")
         return Projectable(
@@ -117,8 +120,8 @@ class VIIRSSharpTrueColor(CompositeBase):
         info["area"] = p1.info["area"]
         info["start_time"] = p1.info["start_time"]
         info["end_time"] = p1.info["end_time"]
+        info["wavelength_range"] = None
         info.setdefault("standard_name", "true_color")
-        info.setdefault("wavelength_range", None)
         info.setdefault("mode", "RGB")
         return Projectable(
             data=np.concatenate(
@@ -150,9 +153,10 @@ class CorrectedReflectance(CompositeBase):
             raise ValueError("Expected 5 datasets, got %d" % (len(datasets,)))
 
         if os.path.isfile(self.dem_file):
+            LOG.debug("Loading CREFL averaged elevation information from: %s", self.dem_file)
             from netCDF4 import Dataset
             nc = Dataset(self.dem_file, "r")
-            avg_elevation = nc.variables[self.dem_sds]
+            avg_elevation = nc.variables[self.dem_sds][:]
         else:
             avg_elevation = None
 
@@ -162,11 +166,13 @@ class CorrectedReflectance(CompositeBase):
         sensor_za = datasets[-3]
         solar_aa = datasets[-2]
         solar_za = datasets[-1]
-        results = run_crefl(refl_datasets, [ds.info["wavelength"][1] for ds in refl_datasets],
+        percent = refl_datasets[0].info["units"] == "%"
+        results = run_crefl(refl_datasets, [ds.info["wavelength_range"][1] for ds in refl_datasets],
                             refl_datasets[0].info["area"].lons,
                             refl_datasets[0].info["area"].lats,
                             sensor_aa, sensor_za, solar_aa, solar_za,
                             avg_elevation=avg_elevation,
+                            percent=percent,
                             )
 
         info = {}
@@ -175,8 +181,7 @@ class CorrectedReflectance(CompositeBase):
         info["area"] = refl_datasets[0].info["area"]
         info["start_time"] = refl_datasets[0].info["start_time"]
         info["end_time"] = refl_datasets[0].info["end_time"]
-        info.setdefault("standard_name", "true_color")
-        info.setdefault("wavelength_range", None)
+        info.setdefault("standard_name", "corrected_reflectance")
         info.setdefault("mode", "L")
         return Projectable(
             data=results[0].data,
