@@ -24,6 +24,7 @@
 """Composite classes for the VIIRS instrument.
 """
 
+import os
 import logging
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.projectable import Projectable
@@ -123,6 +124,63 @@ class VIIRSSharpTrueColor(CompositeBase):
             data=np.concatenate(
                 ([r], [g], [b]), axis=0),
             mask=mask,
+            **info)
+
+
+class CorrectedReflectance(CompositeBase):
+    """Corrected reflectance composite.
+
+    Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
+    """
+    def __init__(self, *args, **kwargs):
+        """Initialize the compositor with values from the user or from the configuration file.
+
+        If `dem_filename` can't be found or opened then correction is done
+        assuming TOA or sealevel options.
+
+        :param dem_filename: path to the ancillary 'averaged heights' file
+        :param dem_sds: variable name to load from the ancillary file
+        """
+        self.dem_file = kwargs.pop("dem_filename", "CMGDEM.hdf")
+        self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
+        super(CorrectedReflectance, self).__init__(*args, **kwargs)
+
+    def __call__(self, datasets, optional_datasets=[], **info):
+        if len(datasets) != 5:
+            raise ValueError("Expected 5 datasets, got %d" % (len(datasets,)))
+
+        if os.path.isfile(self.dem_file):
+            from netCDF4 import Dataset
+            nc = Dataset(self.dem_file, "r")
+            avg_elevation = nc.variables[self.dem_sds]
+        else:
+            avg_elevation = None
+
+        from satpy.composites.crefl_utils import run_crefl
+        refl_datasets = datasets[:-4]
+        sensor_aa = datasets[-4]
+        sensor_za = datasets[-3]
+        solar_aa = datasets[-2]
+        solar_za = datasets[-1]
+        results = run_crefl(refl_datasets, [ds.info["wavelength"][1] for ds in refl_datasets],
+                            refl_datasets[0].info["area"].lons,
+                            refl_datasets[0].info["area"].lats,
+                            sensor_aa, sensor_za, solar_aa, solar_za,
+                            avg_elevation=avg_elevation,
+                            )
+
+        info = {}
+        info.update(self.info)
+        info["name"] = self.info["name"]
+        info["area"] = refl_datasets[0].info["area"]
+        info["start_time"] = refl_datasets[0].info["start_time"]
+        info["end_time"] = refl_datasets[0].info["end_time"]
+        info.setdefault("standard_name", "true_color")
+        info.setdefault("wavelength_range", None)
+        info.setdefault("mode", "L")
+        return Projectable(
+            data=results[0].data,
+            mask=results[0].mask,
             **info)
 
 
