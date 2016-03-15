@@ -251,8 +251,6 @@ def run_crefl(reflectance_bands, center_wavelengths,
         else:
             corr_refl = (refl / tOG - rhoray) / TtotraytH2O
         corr_refl /= (1.0 + corr_refl * sphalb)
-        if hasattr(corr_refl, "mask"):
-            corr_refl[corr_refl.mask] = 0
         odata.append(corr_refl)
 
     return odata
