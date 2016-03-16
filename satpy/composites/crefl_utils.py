@@ -317,6 +317,15 @@ def run_crefl(reflectance_bands, coefficients,
         TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
         tOG = tO3 * tO2
 
+        if rhoray.shape[1] != refl.shape[1]:
+            # Assume we need to interpolate
+            # FIXME: Do real bilinear interpolation instead of "nearest"
+            factor = int(refl.shape[1] / rhoray.shape[1])
+            rhoray = np.repeat(np.repeat(rhoray, factor, axis=0), factor, axis=1)
+            tOG = np.repeat(np.repeat(tOG, factor, axis=0), factor, axis=1)
+            TtotraytH2O = np.repeat(np.repeat(TtotraytH2O, factor, axis=0), factor, axis=1)
+            sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
+
         # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
         if percent:
             corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
