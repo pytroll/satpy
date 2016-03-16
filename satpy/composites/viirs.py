@@ -160,14 +160,19 @@ class CorrectedReflectance(CompositeBase):
         else:
             avg_elevation = None
 
-        from satpy.composites.crefl_utils import run_crefl
+        from satpy.composites.crefl_utils import run_crefl, get_coefficients
         refl_datasets = datasets[:-4]
         sensor_aa = datasets[-4]
         sensor_za = datasets[-3]
         solar_aa = datasets[-2]
         solar_za = datasets[-1]
         percent = refl_datasets[0].info["units"] == "%"
-        results = run_crefl(refl_datasets, [ds.info["wavelength_range"][1] for ds in refl_datasets],
+        coefficients = [
+            get_coefficients(
+                ds.info["sensor"],
+                ds.info["wavelength_range"],
+                ds.info["resolution"]) for ds in refl_datasets]
+        results = run_crefl(refl_datasets, coefficients,
                             refl_datasets[0].info["area"].lons,
                             refl_datasets[0].info["area"].lats,
                             sensor_aa, sensor_za, solar_aa, solar_za,

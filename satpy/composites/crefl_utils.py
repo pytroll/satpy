@@ -81,40 +81,112 @@ else:
     #/*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
     taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740,0.00369 ,0.00132 ,0.00033 ,0.05373 ,0.01561 ,0.00129, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
 
-# Map a range of wavelengths (min, nominal, wavelength) to the proper
-# index inside the above coefficient arrays
-# Indexes correspond to the original MODIS coefficients, starting with
-# band 1 (index 0) and going to band 7
-# Min and max wavelengths have been adjusted to include VIIRS and other
-# instrument's bands
+# Map of pixel resolutions -> wavelength -> coefficient index
+# Map of pixel resolutions -> band name -> coefficient index
+# Index is used in aH2O, bH2O, aO3, and taur0 arrays above
+MODIS_COEFF_INDEX_MAP = {
+    1000: {
+        (0.620, 0.6450, 0.670): 0,
+        "1": 0,
+        (0.841, 0.8585, 0.876): 1,
+        "2": 1,
+        (0.459, 0.4690, 0.479): 2,
+        "3": 2,
+        (0.545, 0.5550, 0.565): 3,
+        "4": 3,
+        (1.230, 1.2400, 1.250): 4,
+        "5": 4,
+        (1.628, 1.6400, 1.652): 5,
+        "6": 5,
+        (2.105, 2.1300, 2.155): 6,
+        "7": 6,
+    }
+}
+MODIS_COEFF_INDEX_MAP[500] = MODIS_COEFF_INDEX_MAP[1000]
+MODIS_COEFF_INDEX_MAP[250] = MODIS_COEFF_INDEX_MAP[1000]
+
+# resolution -> wavelength -> coefficient index
+# resolution -> band name -> coefficient index
+VIIRS_COEFF_INDEX_MAP = {
+    1000: {
+        (0.662, 0.6720, 0.682): 0,  # M05
+        "M05": 0,
+        (0.846, 0.8650, 0.885): 1,  # M07
+        "M07": 1,
+        (0.478, 0.4880, 0.498): 2,  # M03
+        "M03": 2,
+        (0.545, 0.5550, 0.565): 3,  # M04
+        "M04": 3,
+        (1.230, 1.2400, 1.250): 4,  # M08
+        "M08": 4,
+        (1.580, 1.6100, 1.640): 5,  # M10
+        "M10": 5,
+        (2.225, 2.2500, 2.275): 6,  # M11
+        "M11": 6,
+    },
+    500: {
+        (0.600, 0.6400, 0.680): 7,  # I01
+        "I01": 7,
+        (0.845, 0.8650, 0.884): 8,  # I02
+        "I02": 8,
+        (1.580, 1.6100, 1.640): 9,  # I03
+        "I03": 9,
+    },
+}
+
 COEFF_INDEX_MAP = {
-    (0.620, 0.6450, 0.672): 0,
-    (0.841, 0.8585, 0.876): 1,
-    (0.445, 0.4690, 0.488): 2,
-    (0.545, 0.5550, 0.565): 3,
-    (1.020, 1.2400, 1.250): 4,
-    (1.600, 1.6400, 1.652): 5,
-    (2.105, 2.1300, 2.255): 6,
+    "viirs": VIIRS_COEFF_INDEX_MAP,
+    "modis": MODIS_COEFF_INDEX_MAP,
 }
 
 
-def find_coefficient_index(nominal_wavelength):
+def find_coefficient_index(sensor, wavelength_range, resolution=0):
     """Return index in to coefficient arrays for this band's wavelength.
 
     This function search through the `COEFF_INDEX_MAP` dictionary and
-    finds the first key where `nominal_wavelength` falls between
-    the minimum wavelength and maximum wavelength of the key.
+    finds the first key where the nominal wavelength of `wavelength_range`
+    falls between the minimum wavelength and maximum wavelength of the key.
+    `wavelength_range` can also be the standard name of the band. For
+    example, "M05" for VIIRS or "1" for MODIS.
 
-    :param nominal_wavelength: float wavelength of the band being corrected
+    :param sensor: sensor of band to be corrected
+    :param wavelength_range: 3-element tuple of (min wavelength, nominal wavelength, max wavelength)
+    :param resolution: resolution of the band to be corrected
     :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
              None is returned if no matching wavelength is found
     """
-    for (min_wl, nom_wl, max_wl), v in COEFF_INDEX_MAP.items():
-        if min_wl <= nominal_wavelength <= max_wl:
-            return v
+    index_map = COEFF_INDEX_MAP[sensor.lower()]
+    # Find the best resolution of coefficients
+    for res in sorted(index_map.keys()):
+        if resolution <= res:
+            index_map = index_map[res]
+            break
+    else:
+        raise ValueError("Unrecognized data resolution: {}", resolution)
+
+    # Find the best wavelength of coefficients
+    if isinstance(wavelength_range, str):
+        # wavelength range is actually a band name
+        return index_map[wavelength_range]
+    else:
+        for (min_wl, nom_wl, max_wl), v in index_map.items():
+            if min_wl <= wavelength_range[1] <= max_wl:
+                return v
 
 
-def run_crefl(reflectance_bands, center_wavelengths,
+def get_coefficients(sensor, nominal_wavelength, resolution=0):
+    """
+
+    :param sensor: sensor of the band to be corrected
+    :param nominal_wavelengths: tuple of nonimal wavelengths for the corresponding reflectance band
+    :param resolution: resolution of the band to be corrected
+    :return: aH2O, bH2O, aO3, taur0 coefficient values
+    """
+    idx = find_coefficient_index(sensor, nominal_wavelength, resolution=resolution)
+    return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
+
+
+def run_crefl(reflectance_bands, coefficients,
               lon, lat,
               sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
               avg_elevation=None, percent=False):
@@ -124,7 +196,7 @@ def run_crefl(reflectance_bands, center_wavelengths,
     and shape as the input reflectance data, unless otherwise stated.
 
     :param reflectance_bands: tuple of reflectance band arrays
-    :param center_wavelengths: tuple of nonimal wavelengths for the corresponding reflectance band
+    :param coefficients: tuple of coefficients for each band (see `get_coefficients`)
     :param lon: input swath longitude array
     :param lat: input swath latitude array
     :param sensor_azimuth: input swath sensor azimuth angle array
@@ -207,12 +279,12 @@ def run_crefl(reflectance_bands, center_wavelengths,
     #         }
 
     odata = []
-    for refl, center_wl in zip(reflectance_bands, center_wavelengths):
-        ib = find_coefficient_index(center_wl)
-        if ib is None:
-            raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
+    for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
+        # ib = find_coefficient_index(center_wl)
+        # if ib is None:
+        #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
-        taur = taur0[ib] * np.exp(-height / SCALEHEIGHT)
+        taur = tau * np.exp(-height / SCALEHEIGHT)
         xlntaur = np.log(taur)
         fs0 = fs01 + fs02 * xlntaur
         fs1 = as1[0] + xlntaur * as1[1]
@@ -234,13 +306,13 @@ def run_crefl(reflectance_bands, center_wavelengths,
         tO2 = 1.0
         tH2O = 1.0
 
-        if aO3[ib] != 0:
-            tO3 = np.exp(-air_mass * UO3 * aO3[ib])
-        if bH2O[ib] != 0:
+        if ao3 != 0:
+            tO3 = np.exp(-air_mass * UO3 * ao3)
+        if bh2o != 0:
             if bUseV171:
-                tH2O = np.exp(-np.exp(aH2O[ib] + bH2O[ib] * np.log(air_mass * UH2O)))
+                tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
             else:
-                tH2O = np.exp(-(aH2O[ib]*(np.power((air_mass * UH2O),bH2O[ib]))))
+                tH2O = np.exp(-(ah2o*(np.power((air_mass * UH2O),bh2o))))
         #t02 = exp(-m * aO2)
         TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
         tOG = tO3 * tO2
