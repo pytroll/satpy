@@ -126,7 +126,7 @@ class VIIRSSharpTrueColor(CompositeBase):
         return Projectable(
             data=np.concatenate(
                 ([r], [g], [b]), axis=0),
-            mask=mask,
+            mask=np.array([[mask, mask, mask]]),
             **info)
 
 
@@ -173,8 +173,8 @@ class CorrectedReflectance(CompositeBase):
                 ds.info["wavelength_range"],
                 ds.info["resolution"]) for ds in refl_datasets]
         results = run_crefl(refl_datasets, coefficients,
-                            refl_datasets[0].info["area"].lons,
-                            refl_datasets[0].info["area"].lats,
+                            sensor_aa.info["area"].lons,
+                            sensor_aa.info["area"].lats,
                             sensor_aa, sensor_za, solar_aa, solar_za,
                             avg_elevation=avg_elevation,
                             percent=percent,
