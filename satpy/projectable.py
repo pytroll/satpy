@@ -33,32 +33,42 @@ class InfoObject(object):
         self.info = attributes
 
 
-def combine_info(obj1, obj2):
-    """Combine the metadata of two Datasets
+def combine_info(*info_objects):
+    """Combine the metadata of two or more Datasets
 
     Args:
-        obj1: a dataset
-        obj2: another dataset
+        *info_objects: InfoObject or dict objects to combine
 
     Returns:
         the combined metadata
     """
-    try:
-        info1 = obj1.info
-    except AttributeError:
-        return obj2.info.copy()
+    if len(info_objects) < 2:
+        raise ValueError("Expected 2 or more InfoObjects to combine")
 
-    try:
-        info2 = obj2.info
-    except AttributeError:
-        return info1.copy()
+    shared_keys = None
+    info_dicts = []
+    # grab all of the dictionary objects provided and make a set of the shared keys
+    for info_object in info_objects:
+        if isinstance(info_object, dict):
+            info_dict = info_object
+        elif hasattr(info_object, "info"):
+            info_dict = info_object.info
+        else:
+            continue
+        info_dicts.append(info_dict)
 
-    keys = set(info1.keys()) & set(info2.keys())
-    new_info = {}
-    for key in keys:
-        if info1[key] == info2[key]:
-            new_info[key] = info1[key]
-    return new_info
+        if shared_keys is None:
+            shared_keys = set(info_dict.keys())
+        else:
+            shared_keys &= set(info_dict.keys())
+
+    # combine all of the dictionaries
+    shared_info = {}
+    for k in shared_keys:
+        if all(nfo[k] == info_dicts[0][k] for nfo in info_dicts[1:]):
+            shared_info[k] = info_dicts[0][k]
+
+    return shared_info
 
 
 def copy_info(func):
