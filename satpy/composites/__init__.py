@@ -173,6 +173,10 @@ class CompositeBase(InfoObject):
         kwargs["prerequisites"] = prerequisites
         kwargs["optional_prerequisites"] = optional_prerequisites
         kwargs["metadata_requirements"] = metadata_requirements
+        if "modifiers" in kwargs:
+            kwargs["modifiers"] = kwargs["modifiers"].split(",")
+        else:
+            kwargs["modifiers"] = []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):

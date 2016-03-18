@@ -250,7 +250,6 @@ class Scene(InfoObject):
             while composites_needed:
                 for band in composites_needed.copy():
                     # overwrite any semi-qualified IDs with the fully qualified ID
-                    prereqs = list()
                     try:
                         compositor = self.compositors[band]
                     except KeyError:
@@ -258,6 +257,8 @@ class Scene(InfoObject):
                                                      ppp_config_dir=self.ppp_config_dir,
                                                      **kwargs))
                         compositor = self.compositors[band]
+
+                    prereqs = list()
                     for prereq in compositor.info["prerequisites"]:
                         try:
                             prereqs.append(reader_instance.get_dataset_key(prereq))
@@ -266,8 +267,14 @@ class Scene(InfoObject):
                             prereqs.append(prereq)
                     compositor.info["prerequisites"] = prereqs
                     needed_bands |= set(prereqs)
-                    prereqs = [reader_instance.get_dataset_key(prereq)
-                               for prereq in compositor.info["optional_prerequisites"]]
+
+                    prereqs = list()
+                    for prereq in compositor.info["optional_prerequisites"]:
+                        try:
+                            prereqs.append(reader_instance.get_dataset_key(prereq))
+                        except KeyError:
+                            composites_needed.add(prereq.name)
+                            prereqs.append(prereq)
                     compositor.info["optional_prerequisites"] = prereqs
                     needed_bands |= set(prereqs)
                     composites_needed.remove(band)
@@ -381,13 +388,15 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        new_scn.wishlist = self.wishlist
         new_scn.compositors = self.compositors.copy()
         for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id not in datasets:
                 continue
             new_scn[ds_id] = projectable.resample(destination, **kwargs)
+        # MUST set this after assigning the resampled datasets otherwise
+        # composite prereqs that were resampled will be considered "wishlisted"
+        new_scn.wishlist = self.wishlist
 
         # recompute anything from the wishlist that needs it (combining multiple resolutions, etc.)
         keepables = None
@@ -438,11 +447,15 @@ class Scene(InfoObject):
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id], filename=filename)
 
-    def save_datasets(self, writer="geotiff", **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*.
         """
+        if datasets is not None:
+            datasets = [self[ds] for ds in datasets]
+        else:
+            datasets = self.datasets.values()
         writer = self.get_writer(writer, **kwargs)
-        writer.save_datasets(self.datasets.values(), **kwargs)
+        writer.save_datasets(datasets, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer

@@ -817,6 +817,7 @@ class ConfigBasedReader(Reader):
         # FIXME: Which one is used now:
         area.area_id = area_name
         area.name = area_name
+        area.info = nav_info.copy()
 
         return area
 
