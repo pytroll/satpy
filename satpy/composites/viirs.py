@@ -24,9 +24,10 @@
 """Composite classes for the VIIRS instrument.
 """
 
+import os
 import logging
 from satpy.composites import CompositeBase, IncompatibleAreas
-from satpy.projectable import Projectable
+from satpy.projectable import Projectable, combine_info
 import numpy as np
 from scipy.special import erf
 
@@ -55,11 +56,11 @@ class VIIRSTrueColor(CompositeBase):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
 
-        # raise IncompatibleAreas
-        p1, p2, p3 = projectables
-        info = p1.info.copy()
-        info.update(**self.info)
-        info["name"] = self.info["name"]
+        # Collect information that is the same between the projectables
+        info = combine_info(*projectables)
+        # Update that information with configured information (including name)
+        info.update(self.info)
+        # Force certain pieces of metadata that we *know* to be true
         info["wavelength_range"] = None
         info.setdefault("mode", "RGB")
         return Projectable(
@@ -110,19 +111,120 @@ class VIIRSSharpTrueColor(CompositeBase):
             r, g, b = p1.data, p2.data, p3.data
             mask = p1.mask | p2.mask | p3.mask
 
-        info = {}
+        # Collect information that is the same between the projectables
+        info = combine_info(r, g, b)
+        # Update that information with configured information (including name)
         info.update(self.info)
-        info["name"] = self.info["name"]
-        info["area"] = p1.info["area"]
-        info["start_time"] = p1.info["start_time"]
-        info["end_time"] = p1.info["end_time"]
+        # Force certain pieces of metadata that we *know* to be true
+        info["wavelength_range"] = None
         info.setdefault("standard_name", "true_color")
-        info.setdefault("wavelength_range", None)
         info.setdefault("mode", "RGB")
         return Projectable(
             data=np.concatenate(
                 ([r], [g], [b]), axis=0),
-            mask=mask,
+            mask=np.array([[mask, mask, mask]]),
+            **info)
+
+
+class CorrectedReflectance(CompositeBase):
+    """Corrected reflectance composite.
+
+    Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
+    """
+    def __init__(self, *args, **kwargs):
+        """Initialize the compositor with values from the user or from the configuration file.
+
+        If `dem_filename` can't be found or opened then correction is done
+        assuming TOA or sealevel options.
+
+        :param dem_filename: path to the ancillary 'averaged heights' file
+        :param dem_sds: variable name to load from the ancillary file
+        """
+        self.dem_file = kwargs.pop("dem_filename", "CMGDEM.hdf")
+        self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
+        super(CorrectedReflectance, self).__init__(*args, **kwargs)
+
+    def modifier_sunz_correction(self, datasets, optional_datasets=[], **info):
+        sza = [ds for ds in datasets if ds.info["standard_name"] == "solar_zenith_angle"][0]
+        mus = np.cos(np.deg2rad(sza))
+        new_datasets = []
+        for ds in datasets:
+            if not ds.info.get("sunz_corrected") and ds.info["standard_name"] == "reflectance":
+                LOG.debug("Correcting with sun zenith angle")
+                if mus.shape < ds.shape:
+                    factor = ds.shape[-1] / mus.shape[-1]
+                    new_datasets.append(ds / np.repeat(np.repeat(mus, factor, axis=0), factor, axis=1))
+                else:
+                    new_datasets.append(ds / mus)
+                new_datasets[-1].info = ds.info.copy()
+                new_datasets[-1].info["sunz_corrected"] = True
+            else:
+                new_datasets.append(ds)
+        new_optionals = []
+        for ds in optional_datasets:
+            if not ds.info["sunz_corrected"] and ds.info["standard_name"] == "reflectance":
+                LOG.debug("Correcting with sun zenith angle")
+                if mus.shape < ds.shape:
+                    factor = ds.shape[-1] / mus.shape[-1]
+                    new_datasets.append(ds / np.repeat(np.repeat(mus, factor, axis=0), factor, axis=1))
+                else:
+                    new_optionals.append(ds / mus)
+                new_optionals[-1].info = ds.info.copy()
+                new_optionals[-1].info["sunz_corrected"] = True
+            else:
+                new_optionals.append(ds)
+        return new_datasets, new_optionals, info
+
+    def __call__(self, datasets, optional_datasets=[], **info):
+        if len(datasets) != 5:
+            raise ValueError("Expected 5 datasets, got %d" % (len(datasets,)))
+
+        # Call any modifiers configured
+        for modifier in self.info["modifiers"]:
+            if hasattr(self, "modifier_" + modifier):
+                datasets, optional_datasets, info = getattr(self, "modifier_" + modifier)(
+                    datasets, optional_datasets=optional_datasets, **info)
+
+        if os.path.isfile(self.dem_file):
+            LOG.debug("Loading CREFL averaged elevation information from: %s", self.dem_file)
+            from netCDF4 import Dataset
+            nc = Dataset(self.dem_file, "r")
+            avg_elevation = nc.variables[self.dem_sds][:]
+        else:
+            avg_elevation = None
+
+        from satpy.composites.crefl_utils import run_crefl, get_coefficients
+        refl_datasets = datasets[:-4]
+        sensor_aa = datasets[-4]
+        sensor_za = datasets[-3]
+        solar_aa = datasets[-2]
+        solar_za = datasets[-1]
+        percent = refl_datasets[0].info["units"] == "%"
+        coefficients = [
+            get_coefficients(
+                ds.info["sensor"],
+                ds.info["wavelength_range"],
+                ds.info["resolution"]) for ds in refl_datasets]
+        results = run_crefl(refl_datasets, coefficients,
+                            sensor_aa.info["area"].lons,
+                            sensor_aa.info["area"].lats,
+                            sensor_aa, sensor_za, solar_aa, solar_za,
+                            avg_elevation=avg_elevation,
+                            percent=percent,
+                            )
+
+        info = {}
+        info.update(self.info)
+        info["name"] = self.info["name"]
+        info["area"] = refl_datasets[0].info["area"]
+        info["start_time"] = refl_datasets[0].info["start_time"]
+        info["end_time"] = refl_datasets[0].info["end_time"]
+        info.setdefault("standard_name", "corrected_reflectance")
+        info.setdefault("mode", "L")
+        factor = 100. if percent else 1.
+        return Projectable(
+            data=results[0].data * factor,
+            mask=results[0].mask,
             **info)
 
 
