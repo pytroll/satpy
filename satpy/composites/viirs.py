@@ -62,7 +62,7 @@ class VIIRSTrueColor(CompositeBase):
         info.update(self.info)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength_range"] = None
-        info.setdefault("mode", "RGB")
+        info["mode"] = self.info.get("mode", "RGB")
         return Projectable(
                            data=np.rollaxis(np.ma.dstack([projectable for projectable in projectables]), axis=2),
                            **info)
@@ -112,13 +112,13 @@ class VIIRSSharpTrueColor(CompositeBase):
             mask = p1.mask | p2.mask | p3.mask
 
         # Collect information that is the same between the projectables
-        info = combine_info(r, g, b)
+        info = combine_info(*datasets)
         # Update that information with configured information (including name)
         info.update(self.info)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength_range"] = None
         info.setdefault("standard_name", "true_color")
-        info.setdefault("mode", "RGB")
+        info["mode"] = self.info.get("mode", "RGB")
         return Projectable(
             data=np.concatenate(
                 ([r], [g], [b]), axis=0),
