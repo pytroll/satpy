@@ -42,9 +42,6 @@ def combine_info(*info_objects):
     Returns:
         the combined metadata
     """
-    if len(info_objects) < 2:
-        raise ValueError("Expected 2 or more InfoObjects to combine")
-
     shared_keys = None
     info_dicts = []
     # grab all of the dictionary objects provided and make a set of the shared keys
