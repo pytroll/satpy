@@ -27,7 +27,7 @@
 import os
 import logging
 from satpy.composites import CompositeBase, IncompatibleAreas
-from satpy.projectable import Projectable
+from satpy.projectable import Projectable, combine_info
 import numpy as np
 from scipy.special import erf
 
@@ -56,14 +56,11 @@ class VIIRSTrueColor(CompositeBase):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
 
-        # raise IncompatibleAreas
-        p1, p2, p3 = projectables
-        info = {}
+        # Collect information that is the same between the projectables
+        info = combine_info(*projectables)
+        # Update that information with configured information (including name)
         info.update(self.info)
-        info["name"] = self.info["name"]
-        info["area"] = p1.info["area"]
-        info["start_time"] = p1.info["start_time"]
-        info["end_time"] = p1.info["end_time"]
+        # Force certain pieces of metadata that we *know* to be true
         info["wavelength_range"] = None
         info.setdefault("mode", "RGB")
         return Projectable(
@@ -114,12 +111,11 @@ class VIIRSSharpTrueColor(CompositeBase):
             r, g, b = p1.data, p2.data, p3.data
             mask = p1.mask | p2.mask | p3.mask
 
-        info = {}
+        # Collect information that is the same between the projectables
+        info = combine_info(r, g, b)
+        # Update that information with configured information (including name)
         info.update(self.info)
-        info["name"] = self.info["name"]
-        info["area"] = p1.info["area"]
-        info["start_time"] = p1.info["start_time"]
-        info["end_time"] = p1.info["end_time"]
+        # Force certain pieces of metadata that we *know* to be true
         info["wavelength_range"] = None
         info.setdefault("standard_name", "true_color")
         info.setdefault("mode", "RGB")
