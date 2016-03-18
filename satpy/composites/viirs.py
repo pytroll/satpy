@@ -148,9 +148,46 @@ class CorrectedReflectance(CompositeBase):
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(CorrectedReflectance, self).__init__(*args, **kwargs)
 
+    def modifier_sunz_correction(self, datasets, optional_datasets=[], **info):
+        sza = [ds for ds in datasets if ds.info["standard_name"] == "solar_zenith_angle"][0]
+        mus = np.cos(np.deg2rad(sza))
+        new_datasets = []
+        for ds in datasets:
+            if not ds.info.get("sunz_corrected") and ds.info["standard_name"] == "reflectance":
+                LOG.debug("Correcting with sun zenith angle")
+                if mus.shape < ds.shape:
+                    factor = ds.shape[-1] / mus.shape[-1]
+                    new_datasets.append(ds / np.repeat(np.repeat(mus, factor, axis=0), factor, axis=1))
+                else:
+                    new_datasets.append(ds / mus)
+                new_datasets[-1].info = ds.info.copy()
+                new_datasets[-1].info["sunz_corrected"] = True
+            else:
+                new_datasets.append(ds)
+        new_optionals = []
+        for ds in optional_datasets:
+            if not ds.info["sunz_corrected"] and ds.info["standard_name"] == "reflectance":
+                LOG.debug("Correcting with sun zenith angle")
+                if mus.shape < ds.shape:
+                    factor = ds.shape[-1] / mus.shape[-1]
+                    new_datasets.append(ds / np.repeat(np.repeat(mus, factor, axis=0), factor, axis=1))
+                else:
+                    new_optionals.append(ds / mus)
+                new_optionals[-1].info = ds.info.copy()
+                new_optionals[-1].info["sunz_corrected"] = True
+            else:
+                new_optionals.append(ds)
+        return new_datasets, new_optionals, info
+
     def __call__(self, datasets, optional_datasets=[], **info):
         if len(datasets) != 5:
             raise ValueError("Expected 5 datasets, got %d" % (len(datasets,)))
+
+        # Call any modifiers configured
+        for modifier in self.info["modifiers"]:
+            if hasattr(self, "modifier_" + modifier):
+                datasets, optional_datasets, info = getattr(self, "modifier_" + modifier)(
+                    datasets, optional_datasets=optional_datasets, **info)
 
         if os.path.isfile(self.dem_file):
             LOG.debug("Loading CREFL averaged elevation information from: %s", self.dem_file)
@@ -188,8 +225,9 @@ class CorrectedReflectance(CompositeBase):
         info["end_time"] = refl_datasets[0].info["end_time"]
         info.setdefault("standard_name", "corrected_reflectance")
         info.setdefault("mode", "L")
+        factor = 100. if percent else 1.
         return Projectable(
-            data=results[0].data,
+            data=results[0].data * factor,
             mask=results[0].mask,
             **info)
 
