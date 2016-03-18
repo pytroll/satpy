@@ -48,6 +48,8 @@ FILL_INT16 =32767
 
 TAUSTEP4SPHALB = 0.0001
 MAXNUMSPHALBVALUES = 4000    # with no aerosol taur <= 0.4 in all bands everywhere
+REFLMIN = -0.01
+REFLMAX = 1.6
 
 def csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
@@ -174,15 +176,15 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
                 return v
 
 
-def get_coefficients(sensor, nominal_wavelength, resolution=0):
+def get_coefficients(sensor, wavelength_range, resolution=0):
     """
 
     :param sensor: sensor of the band to be corrected
-    :param nominal_wavelengths: tuple of nonimal wavelengths for the corresponding reflectance band
+    :param wavelength_range: 3-element tuple of (min wavelength, nominal wavelength, max wavelength)
     :param resolution: resolution of the band to be corrected
     :return: aH2O, bH2O, aO3, taur0 coefficient values
     """
-    idx = find_coefficient_index(sensor, nominal_wavelength, resolution=resolution)
+    idx = find_coefficient_index(sensor, wavelength_range, resolution=resolution)
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
@@ -219,9 +221,8 @@ def run_crefl(reflectance_bands, coefficients,
         height[height < 0.] = 0.0
         del lat, lon, row, col
 
-    DEG2RAD = np.pi/180.0
-    mus = np.cos(solar_zenith * DEG2RAD)
-    muv = np.cos(sensor_zenith * DEG2RAD)
+    mus = np.cos(np.deg2rad(solar_zenith))
+    muv = np.cos(np.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
@@ -259,8 +260,8 @@ def run_crefl(reflectance_bands, coefficients,
 
     phios = phi + 180.0
     xcos1 = 1.0
-    xcos2 = np.cos(phios * DEG2RAD)
-    xcos3 = np.cos(2.0 * phios * DEG2RAD)
+    xcos2 = np.cos(np.deg2rad(phios))
+    xcos3 = np.cos(2.0 * np.deg2rad(phios))
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
     xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
@@ -318,6 +319,7 @@ def run_crefl(reflectance_bands, coefficients,
         tOG = tO3 * tO2
 
         if rhoray.shape[1] != refl.shape[1]:
+            LOG.debug("Interpolating CREFL calculations for higher resolution bands")
             # Assume we need to interpolate
             # FIXME: Do real bilinear interpolation instead of "nearest"
             factor = int(refl.shape[1] / rhoray.shape[1])
@@ -332,6 +334,7 @@ def run_crefl(reflectance_bands, coefficients,
         else:
             corr_refl = (refl / tOG - rhoray) / TtotraytH2O
         corr_refl /= (1.0 + corr_refl * sphalb)
+        np.clip(corr_refl, REFLMIN, REFLMAX, out=corr_refl)
         odata.append(corr_refl)
 
     return odata
