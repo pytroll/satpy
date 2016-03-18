@@ -213,7 +213,7 @@ def run_crefl(reflectance_bands, coefficients,
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
-        height = 0.0
+        height = np.zeros(lon.shape, dtype=np.float)
     else:
         row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
         col = np.int32((lon + 180.0) * avg_elevation.shape[1] / 360.0)
