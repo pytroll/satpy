@@ -388,13 +388,15 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        new_scn.wishlist = self.wishlist
         new_scn.compositors = self.compositors.copy()
         for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id not in datasets:
                 continue
             new_scn[ds_id] = projectable.resample(destination, **kwargs)
+        # MUST set this after assigning the resampled datasets otherwise
+        # composite prereqs that were resampled will be considered "wishlisted"
+        new_scn.wishlist = self.wishlist
 
         # recompute anything from the wishlist that needs it (combining multiple resolutions, etc.)
         keepables = None
