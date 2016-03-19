@@ -77,12 +77,28 @@ class VIIRSSharpTrueColor(CompositeBase):
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets),))
 
+        area = None
+
         # raise IncompatibleAreas
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
             if high_res.info["area"] != p1.info["area"]:
-                raise IncompatibleAreas("High resolution band is not mapped the same area as the low resolution bands")
+                if np.mod(high_res.shape[0], p1.shape[0]) or np.mod(high_res.shape[1], p1.shape[1]):
+                    raise IncompatibleAreas("High resolution band is not mapped the same area as the low resolution bands")
+                else:
+                    f0 = high_res.shape[0] / p1.shape[0]
+                    f1 = high_res.shape[1] / p1.shape[1]
+                    p1 = np.ma.repeat(np.ma.repeat(p1, f0, axis=0),
+                                      f1, axis=1)
+                    p2 = np.ma.repeat(np.ma.repeat(p2, f0, axis=0),
+                                      f1, axis=1)
+                    p3 = np.ma.repeat(np.ma.repeat(p3, f0, axis=0),
+                                      f1, axis=1)
+                    p1.info["area"] = high_res.info["area"]
+                    p2.info["area"] = high_res.info["area"]
+                    p3.info["area"] = high_res.info["area"]
+                    area = high_res.info["area"]
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
                 ratio = high_res.data / p1.data
@@ -119,6 +135,8 @@ class VIIRSSharpTrueColor(CompositeBase):
         info["wavelength_range"] = None
         info.setdefault("standard_name", "true_color")
         info["mode"] = self.info.get("mode", "RGB")
+        if area is not None:
+            info['area'] = area
         return Projectable(
             data=np.concatenate(
                 ([r], [g], [b]), axis=0),
