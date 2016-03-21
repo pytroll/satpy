@@ -231,14 +231,10 @@ class CorrectedReflectance(CompositeBase):
                             percent=percent,
                             )
 
-        info = {}
+        info = combine_info(*refl_datasets)
         info.update(self.info)
-        info["name"] = self.info["name"]
-        info["area"] = refl_datasets[0].info["area"]
-        info["start_time"] = refl_datasets[0].info["start_time"]
-        info["end_time"] = refl_datasets[0].info["end_time"]
         info.setdefault("standard_name", "corrected_reflectance")
-        info.setdefault("mode", "L")
+        info["mode"] = self.info.get("mode", "L")
         factor = 100. if percent else 1.
         return Projectable(
             data=results[0].data * factor,
