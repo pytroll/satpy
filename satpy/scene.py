@@ -327,9 +327,12 @@ class Scene(InfoObject):
             if compositor.info["optional_prerequisites"]:
                 keepables |= self.compute(*compositor.info["optional_prerequisites"])
 
+            # Resolve the simple name of a prereq to the fully qualified
             prereq_datasets = [self[prereq] for prereq in compositor.info["prerequisites"]]
             optional_datasets = [self[prereq] for prereq in compositor.info["optional_prerequisites"]
                                  if prereq in self]
+            compositor.info["prerequisites"] = [ds.info["id"] for ds in prereq_datasets]
+            compositor.info["optional_prerequisites"] = [ds.info["id"] for ds in optional_datasets]
             try:
                 comp_projectable = compositor(prereq_datasets, optional_datasets=optional_datasets, **self.info)
 
