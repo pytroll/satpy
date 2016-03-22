@@ -285,12 +285,20 @@ class NUCAPSFileReader(GenericFileReader):
 class NUCAPSReader(ConfigBasedReader):
     """Reader for NUCAPS NetCDF4 files.
     """
-    def __init__(self, default_file_reader=NUCAPSFileReader, default_config_filename="readers/nucaps.cfg", **kwargs):
+    def __init__(self, default_file_reader=NUCAPSFileReader, default_config_filename="readers/nucaps.cfg",
+                 mask_surface=None, surface_pressure=None, **kwargs):
+        """Configure reader behavior.
+
+        :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
+
+        """
         self.pressure_dataset_names = defaultdict(list)
         super(NUCAPSReader, self).__init__(default_file_reader=default_file_reader,
                                            default_config_filename=default_config_filename,
                                            **kwargs
                                            )
+        self.default_file_reader = self.config_options.get("default_file_reader") if default_file_reader is None else default_file_reader
+        self.mask_surface = self.config_options.get("mask_surface") if mask_surface is None else mask_surface
 
     def load_section_file_key(self, section_name, section_options):
         super(NUCAPSReader, self).load_section_file_key(section_name, section_options.copy())
@@ -325,9 +333,23 @@ class NUCAPSReader(ConfigBasedReader):
                 super(NUCAPSReader, self).load_section_dataset(section_name, new_section_options)
 
     def load(self, datasets_to_load, metadata=None, pressure_levels=None, **dataset_info):
+        """Load data from one or more set of files.
+
+        :param pressure_levels: mask out certain pressure levels:
+                                True for all levels
+                                (min, max) for a range of pressure levels
+                                [...] list of levels to include
+        """
         if pressure_levels is not None and "pressure_levels" not in metadata:
             LOG.debug("Adding 'pressure_levels' to metadata for pressure level filtering")
             metadata.add("pressure_levels")
+        if self.mask_surface:
+            if "pressure_levels" not in metadata:
+                LOG.debug("Adding 'pressure_levels' to metadata for surface pressure filtering")
+                metadata.add("pressure_levels")
+            if "surface_pressure" not in metadata:
+                LOG.debug("Adding 'pressure_levels' to metadata for surface pressure filtering")
+                metadata.add("surface_pressure")
 
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
@@ -337,7 +359,7 @@ class NUCAPSReader(ConfigBasedReader):
                 if ds_level is not None:
                     if pressure_levels is True:
                         # they want all pressure levels
-                        True
+                        continue
                     elif len(pressure_levels) == 2 and pressure_levels[0] <= ds_level <= pressure_levels[1]:
                         # given a min and a max pressure level
                         continue
@@ -346,6 +368,7 @@ class NUCAPSReader(ConfigBasedReader):
                         continue
                     else:
                         # they don't want this dataset at this pressure level
+                        LOG.debug("Removing dataset to load: %s", ds_id)
                         datasets_to_load.remove(ds_id)
                         continue
 
@@ -374,6 +397,31 @@ class NUCAPSReader(ConfigBasedReader):
 
                 datasets_loaded[ds_id] = ds_obj[:, levels_mask]
                 datasets_loaded[ds_id].info["pressure_levels"] = ds_levels[levels_mask]
+
+        if self.mask_surface:
+            LOG.debug("Filtering pressure levels at or below the surface pressure")
+            for ds_id in datasets_to_load:
+                ds = datasets_loaded[ds_id]
+                if "surface_pressure" not in ds.info or "pressure_levels" not in ds.info:
+                    continue
+                data_pressure = ds.info["pressure_levels"]
+                surface_pressure = ds.info["surface_pressure"]
+                if isinstance(surface_pressure, float):
+                    # scalar needs to become array for each record
+                    surface_pressure = np.repeat(surface_pressure, ds.shape[0])
+                if surface_pressure.ndim == 1 and surface_pressure.shape[0] == ds.shape[0]:
+                    # surface is one element per record
+                    LOG.debug("Filtering %s at and below the surface pressure", ds_id)
+                    if ds.ndim == 2:
+                        surface_pressure = np.repeat(surface_pressure[:, None], data_pressure.shape[0], axis=1)
+                        data_pressure = np.repeat(data_pressure[None, :], surface_pressure.shape[0], axis=0)
+                        ds.mask[data_pressure >= surface_pressure] = True
+                    else:
+                        # entire dataset represents one pressure level
+                        data_pressure = ds.info["pressure_level"]
+                        ds.mask[data_pressure >= surface_pressure] = True
+                else:
+                    LOG.warning("Not sure how to handle shape of 'surface_pressure' metadata")
 
         return datasets_loaded
 
