@@ -209,6 +209,11 @@ class NUCAPSFileReader(GenericFileReader):
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
             factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
             return factors
+        elif file_units == "g/g" and output_units == "g/kg":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
+            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 1000.0, -999)
+            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 1000.0, -999)
+            return factors
         elif file_units == "1" and output_units == "%":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
