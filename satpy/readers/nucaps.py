@@ -291,10 +291,11 @@ class NUCAPSReader(ConfigBasedReader):
     """Reader for NUCAPS NetCDF4 files.
     """
     def __init__(self, default_file_reader=NUCAPSFileReader, default_config_filename="readers/nucaps.cfg",
-                 mask_surface=None, surface_pressure=None, **kwargs):
+                 mask_surface=None, mask_quality=None, **kwargs):
         """Configure reader behavior.
 
         :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
+        :param mask_quality: mask anything where the `quality_flag` metadata is ``!= 1``.
 
         """
         self.pressure_dataset_names = defaultdict(list)
@@ -304,6 +305,7 @@ class NUCAPSReader(ConfigBasedReader):
                                            )
         self.default_file_reader = self.config_options.get("default_file_reader") if default_file_reader is None else default_file_reader
         self.mask_surface = self.config_options.get("mask_surface") if mask_surface is None else mask_surface
+        self.mask_quality = self.config_options.get("mask_quality") if mask_quality is None else mask_quality
 
     def load_section_file_key(self, section_name, section_options):
         super(NUCAPSReader, self).load_section_file_key(section_name, section_options.copy())
@@ -355,6 +357,9 @@ class NUCAPSReader(ConfigBasedReader):
             if "surface_pressure" not in metadata:
                 LOG.debug("Adding 'pressure_levels' to metadata for surface pressure filtering")
                 metadata.add("surface_pressure")
+        if self.mask_quality and "quality_flag" not in metadata:
+            LOG.debug("Adding 'quality_flag' to metadata for quality flag filtering")
+            metadata.add("quality_flag")
 
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
@@ -387,7 +392,7 @@ class NUCAPSReader(ConfigBasedReader):
                     LOG.debug("No 'pressure_levels' metadata included in dataset")
                     continue
                 if ds_levels.shape[0] != ds_obj.shape[-1]:
-                    LOG.debug("Dataset '{}' doesn't contain multiple pressure levels".format(ds_id))
+                    # LOG.debug("Dataset '{}' doesn't contain multiple pressure levels".format(ds_id))
                     continue
 
                 if pressure_levels is True:
@@ -427,6 +432,16 @@ class NUCAPSReader(ConfigBasedReader):
                         ds.mask[data_pressure >= surface_pressure] = True
                 else:
                     LOG.warning("Not sure how to handle shape of 'surface_pressure' metadata")
+
+        if self.mask_quality:
+            LOG.debug("Filtering data based on quality flags")
+            for ds_id in datasets_to_load:
+                ds = datasets_loaded[ds_id]
+                if "quality_flag" not in ds.info:
+                    continue
+                quality_flag = ds.info["quality_flag"]
+                LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
+                ds.mask[quality_flag != 1, ...] = True
 
         return datasets_loaded
 
