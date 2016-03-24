@@ -40,7 +40,7 @@ version = imp.load_source('satpy.version', 'satpy/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(
     os.path.realpath(__file__)).split(os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pyresample', 'trollsift', 'trollimage', 'pykdtree', 'six']
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample', 'trollsift', 'trollimage', 'pykdtree', 'six']
 
 if sys.version < '2.7':
     requires.append('ordereddict')
@@ -50,12 +50,6 @@ test_requires = ['behave']
 
 if sys.version < '3.0':
     test_requires.append('mock')
-
-try:
-    from PIL import Image
-except ImportError:
-    requires.append("pillow")
-
 
 def _config_data_files(base_dirs, extensions=(".cfg",)):
     """Find all subdirectory configuration files
