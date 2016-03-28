@@ -28,6 +28,7 @@ import os
 import logging
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.projectable import Projectable, combine_info
+from satpy.config import get_environ_ancpath
 import numpy as np
 from scipy.special import erf
 
@@ -156,9 +157,15 @@ class CorrectedReflectance(CompositeBase):
         assuming TOA or sealevel options.
 
         :param dem_filename: path to the ancillary 'averaged heights' file
+                             default: CMGDEM.hdf
+                             environment override: os.path.join(<SATPY_ANCPATH>, <CREFL_ANCFILENAME>)
         :param dem_sds: variable name to load from the ancillary file
         """
-        self.dem_file = kwargs.pop("dem_filename", "CMGDEM.hdf")
+        dem_filename = kwargs.pop("dem_filename", os.environ.get("CREFL_ANCFILENAME", "CMGDEM.hdf"))
+        if os.path.exists(dem_filename):
+            self.dem_file = dem_filename
+        else:
+            self.dem_file = os.path.join(get_environ_ancpath(), dem_filename)
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(CorrectedReflectance, self).__init__(*args, **kwargs)
 
