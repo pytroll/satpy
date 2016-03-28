@@ -161,7 +161,6 @@ def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CON
         if not composite_configs:
             LOG.debug("No composite config found called %s", config_filename)
             continue
-        composite_configs.reverse()
         compositors.update(_get_compositors_from_configs(composite_configs, composite_names, sensor_names, **kwargs))
     return compositors
 
