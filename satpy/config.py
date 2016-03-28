@@ -68,7 +68,8 @@ def config_search_paths(filename, *search_dirs, **kwargs):
     if kwargs.get("check_exists", True):
         paths = [x for x in paths if os.path.isfile(x)]
 
-    return paths
+    # flip the order of the list so builtins are loaded first
+    return paths[::-1]
 
 
 def get_config(filename, *search_dirs, **kwargs):
