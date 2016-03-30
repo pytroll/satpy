@@ -246,6 +246,7 @@ class CorrectedReflectance(CompositeBase):
         return Projectable(
             data=results[0].data * factor,
             mask=results[0].mask,
+            dtype=refl_datasets[0].dtype,
             **info)
 
 
