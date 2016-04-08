@@ -101,11 +101,16 @@ def copy_info1(func):
 
 
 class Dataset(np.ma.MaskedArray):
+    _array_kwargs = ["mask", "dtype", "copy", "subok", "ndmin", "keep_mask", "hard_mask", "shrink"]
+    _shared_kwargs = ["fill_value"]
 
     def __new__(cls, data, **info):
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
-        obj = np.ma.MaskedArray(data, mask=info.pop("mask", None)).view(cls)
+        # pull out kwargs that are meant for the masked array
+        array_kwargs = {k: info.pop(k) for k in cls._array_kwargs if k in info}
+        array_kwargs.update({k: info[k] for k in cls._shared_kwargs if k in info})
+        obj = np.ma.MaskedArray(data, **array_kwargs).view(cls)
         # add the new attribute to the created instance
         obj.info = getattr(data, "info", {})
         obj.info.update(info)
@@ -123,7 +128,7 @@ class Dataset(np.ma.MaskedArray):
     def _update_from(self, obj):
         """Copies some attributes of obj to self.
         """
-        np.ma.MaskedArray._update_from(self, obj)
+        super(Dataset, self)._update_from(obj)
         if self.info is None:
             self.info = {}
         self._update_info(obj)
@@ -133,7 +138,7 @@ class Dataset(np.ma.MaskedArray):
         if obj is None:
             return
         self.info = getattr(self, 'info', {})
-        np.ma.MaskedArray.__array_finalize__(self, obj)
+        super(Dataset, self).__array_finalize__(obj)
         self._update_info(obj)
 
     @copy_info
