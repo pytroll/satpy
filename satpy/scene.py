@@ -157,7 +157,7 @@ class Scene(InfoObject):
         return "\n".join(res)
 
     def __iter__(self):
-        return self.datasets.itervalues()
+        return self.datasets.values()
 
     def __getitem__(self, key):
         return self.datasets[key]
