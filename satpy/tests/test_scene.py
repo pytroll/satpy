@@ -91,6 +91,16 @@ class TestScene(unittest.TestCase):
         scn = Scene(ppp_config_dir="foo")
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
+    def test_iter(self):
+        from satpy import Scene, Projectable
+        import numpy as np
+        scene = Scene()
+        scene["1"] = Projectable(np.arange(5))
+        scene["2"] = Projectable(np.arange(5))
+        scene["3"] = Projectable(np.arange(5))
+        for x in scene:
+            self.assertIsInstance(x, Projectable)
+
 
 
 def suite():
