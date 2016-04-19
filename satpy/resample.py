@@ -150,10 +150,10 @@ class KDTreeResampler(BaseResampler):
                 lons, lats = area.lons, area.lats
 
             try:
-                mask = lons.mask
+                mask_hash = hashlib.sha1(area.mask).hexdigest()
             except AttributeError:
-                mask = "False"
-            area_hash = "".join((hashlib.sha1(mask).hexdigest(),
+                mask_hash = "False"
+            area_hash = "".join((mask_hash,
                                  hashlib.sha1(lons).hexdigest(),
                                  hashlib.sha1(lats).hexdigest()))
         area.kdtree_hash = area_hash
