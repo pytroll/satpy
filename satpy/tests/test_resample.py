@@ -24,7 +24,6 @@
 
 import unittest
 import mock
-import satpy.resample
 
 class TestCache(unittest.TestCase):
     """
@@ -34,6 +33,7 @@ class TestCache(unittest.TestCase):
     def test_kd_cache(self):
         """Test the cache in kd resampler.
         """
+        import satpy.resample
         satpy.resample.CACHE_SIZE = 3
 
         with mock.patch('satpy.resample.get_neighbour_info') as get_neighbour_info:
