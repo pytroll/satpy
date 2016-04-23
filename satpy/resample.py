@@ -401,7 +401,7 @@ class EWAResampler(BaseResampler):
                 **kwargs):
         rows = self.cache["rows"]
         cols = self.cache["cols"]
-        out_arr = np.empty(data.shape, dtype=data.dtype)
+        out_arr = np.empty(self.target_geo_def.shape, dtype=data.dtype)
         # if the data is scan based then check its metadata or the passed kwargs
         # otherwise assume the entire input swath is one large "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get("rows_per_scan", data.shape[0])
