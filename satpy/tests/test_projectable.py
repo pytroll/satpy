@@ -358,7 +358,7 @@ class TestProjectable(unittest.TestCase):
         p = projectable.Projectable(data=tuple())
         p_str = str(p)
 
-    @mock.patch('satpy.projectable.resample')
+    @mock.patch('satpy.resample.resample')
     def test_resample_2D(self, mock_resampler):
         data = np.arange(25).reshape((5, 5))
         mock_resampler.return_value = data
@@ -379,7 +379,7 @@ class TestProjectable(unittest.TestCase):
         self.assertTrue(isinstance(res, projectable.Projectable))
         np.testing.assert_array_equal(res.data, mock_resampler.return_value)
 
-    @mock.patch('satpy.projectable.resample')
+    @mock.patch('satpy.resample.resample')
     def test_resample_3D(self, mock_resampler):
         data = np.arange(75).reshape((3, 5, 5))
         mock_resampler.return_value = np.rollaxis(data, 0, 3)
