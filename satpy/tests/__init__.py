@@ -42,6 +42,7 @@ from satpy.tests import (#test_satin_helpers,
 
 import unittest
 
+
 def suite():
     """The global test suite.
     """
@@ -64,5 +65,8 @@ def suite():
     mysuite.addTests(test_readers.suite())
     mysuite.addTests(test_resample.suite())
 
-
     return mysuite
+
+
+def load_tests(loader, tests, pattern):
+    return suite()
