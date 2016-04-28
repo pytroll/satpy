@@ -441,7 +441,7 @@ class NUCAPSReader(ConfigBasedReader):
                     continue
                 quality_flag = ds.info["quality_flag"]
                 LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
-                ds.mask[quality_flag != 1, ...] = True
+                ds.mask[quality_flag != 0, ...] = True
 
         return datasets_loaded
 
