@@ -62,8 +62,13 @@ def combine_info(*info_objects):
     # combine all of the dictionaries
     shared_info = {}
     for k in shared_keys:
-        if all(nfo[k] == info_dicts[0][k] for nfo in info_dicts[1:]):
-            shared_info[k] = info_dicts[0][k]
+        values = [nfo[k] for nfo in info_dicts]
+        any_arrays = any([isinstance(val, np.ndarray) for val in values])
+        if any_arrays:
+            if all(np.all(val == values[0]) for val in values[1:]):
+                shared_info[k] = values[0]
+        elif all(val == values[0] for val in values[1:]):
+            shared_info[k] = values[0]
 
     return shared_info
 
