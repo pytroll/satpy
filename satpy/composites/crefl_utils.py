@@ -171,8 +171,11 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
         # wavelength range is actually a band name
         return index_map[wavelength_range]
     else:
-        for (min_wl, nom_wl, max_wl), v in index_map.items():
-            if min_wl <= wavelength_range[1] <= max_wl:
+        for k, v in index_map.items():
+            if isinstance(k, str):
+                # we are analyzing wavelengths and ignoring dataset names
+                continue
+            if k[0] <= wavelength_range[1] <= k[2]:
                 return v
 
 
