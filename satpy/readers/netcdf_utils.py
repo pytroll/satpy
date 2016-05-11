@@ -79,6 +79,7 @@ class NetCDF4FileWrapper(object):
             file_handle.set_auto_maskandscale(auto_maskandscale)
 
         self.collect_metadata("", file_handle)
+        self.collect_dimensions("", file_handle)
         file_handle.close()
 
     def _collect_attrs(self, name, obj):
@@ -107,6 +108,11 @@ class NetCDF4FileWrapper(object):
             self.metadata[var_name + "/shape"] = var_obj.shape
             self._collect_attrs(var_name, var_obj)
         self._collect_attrs(name, obj)
+
+    def collect_dimensions(self, name, obj):
+        for dim_name, dim_obj in obj.dimensions.items():
+            dim_name = "{}/dimension/{}".format(name, dim_name)
+            self.metadata[dim_name] = dim_obj.size
 
     def __getitem__(self, key):
         val = self.metadata[key]
