@@ -994,7 +994,7 @@ class ConfigBasedReader(Reader):
                     else:
                         metadata_dict[metadata_id] = md
                 except (KeyError, ValueError):
-                    LOG.debug("Could not load metadata '%s' for dataset '%s'", metadata_id, ds_id)
+                    LOG.debug("Could not load metadata '%s' for dataset '%s'", metadata_id, ds_id, exc_info=True)
                     continue
 
         return loaded_metadata
