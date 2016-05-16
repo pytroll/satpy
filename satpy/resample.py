@@ -28,7 +28,7 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 from pyresample.kd_tree import get_neighbour_info, get_sample_from_neighbour_info
-from pyresample.ewa import _ll2cr, _fornav
+from pyresample.ewa import ll2cr, fornav
 from logging import getLogger
 import numpy as np
 import hashlib
@@ -336,11 +336,6 @@ class EWAResampler(BaseResampler):
                 LOG.debug("Computing ll2cr parameters")
 
         lons, lats = source_geo_def.get_lonlats()
-        # copy the lons/lats so they can be modified in place and we can
-        # assign fill values. Assumes masked arrays of floats to use NaN
-        # (who stores lons/lats as non-floats?)
-        lon_arr = lons.filled(np.nan).astype(np.float64)
-        lat_arr = lats.filled(np.nan).astype(np.float64)
         fill_in = np.nan
         grid_name = getattr(self.target_geo_def, "name", "N/A")
         p = self.target_geo_def.proj4_string
@@ -356,11 +351,10 @@ class EWAResampler(BaseResampler):
             # we are remapping to a static unchanging grid/area with all of
             # its parameters specified
             # inplace operation so lon_arr and lat_arr are written to
-            swath_points_in_grid = _ll2cr.ll2cr_static(lon_arr, lat_arr, fill_in,
-                                                        p, cw, ch, w, h, ox, oy)
+            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
         else:
-            results = _ll2cr.ll2cr_dynamic(lon_arr, lat_arr, fill_in, p, cw, ch,
-                                           width=w, height=h, origin_x=ox, origin_y=oy)
+            raise NotImplementedError("Dynamic ll2cr is not supported by satpy yet")
+            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
             swath_points_in_grid, lon_orig, lat_orig, origin_x, origin_y, width, height = results
 
             # edit the grid information because now we know what it is
@@ -401,24 +395,15 @@ class EWAResampler(BaseResampler):
                 **kwargs):
         rows = self.cache["rows"]
         cols = self.cache["cols"]
-        out_arr = np.empty(self.target_geo_def.shape, dtype=data.dtype)
         # if the data is scan based then check its metadata or the passed kwargs
         # otherwise assume the entire input swath is one large "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get("rows_per_scan", data.shape[0])
-
-        if np.issubdtype(data.dtype, np.floating):
-            fill = np.nan
-        elif np.issubdtype(data.dtype, np.integer):
-            fill = -999
-        else:
-            raise ValueError("Unsupported input data type for EWA Resampling: {}".format(data.dtype))
-        data = data.filled(fill)
-
-        results = _fornav.fornav_wrapper(cols, rows, (data,), (out_arr,), fill, fill, rows_per_scan,
+        num_valid_points, out_arrs = fornav(cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
                                  weight_count=weight_count, weight_min=weight_min,
                                  weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
-                                 maximum_weight_mode=maximum_weight_mode)
-        num_valid_points = results[0]
+                                 maximum_weight_mode=maximum_weight_mode, **kwargs)
+        num_valid_points = num_valid_points[0]
+        out_arr = out_arrs[0]
 
         grid_covered_ratio = num_valid_points / float(out_arr.size)
         grid_covered = grid_covered_ratio > self.grid_coverage
