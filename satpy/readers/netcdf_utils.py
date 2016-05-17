@@ -112,7 +112,7 @@ class NetCDF4FileWrapper(object):
     def collect_dimensions(self, name, obj):
         for dim_name, dim_obj in obj.dimensions.items():
             dim_name = "{}/dimension/{}".format(name, dim_name)
-            self.metadata[dim_name] = dim_obj.size
+            self.metadata[dim_name] = len(dim_obj)
 
     def __getitem__(self, key):
         val = self.metadata[key]
