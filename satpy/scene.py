@@ -160,6 +160,19 @@ class Scene(InfoObject):
         for x in self.datasets.values():
             yield x
 
+    def iter_by_area(self):
+        """Generate datasets grouped by Area
+
+        :return: generator of (area_obj, list of dataset objects)
+        """
+        datasets_by_area = {}
+        for ds in self:
+            datasets_by_area.setdefault(str(ds.info["area"]), (ds.info["area"], []))
+            datasets_by_area[str(ds.info["area"])][1].append(ds.info["id"])
+
+        for area_name, (area_obj, ds_list) in datasets_by_area.items():
+            yield area_obj, ds_list
+
     def __getitem__(self, key):
         return self.datasets[key]
 
