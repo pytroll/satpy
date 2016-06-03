@@ -1156,8 +1156,11 @@ class MultiFileReader(object):
         return np.ma.array(data, mask=mask, copy=False)
 
     def load_metadata(self, item, join_method="append", axis=0):
-        if join_method not in ["append", "append_granule", "first"]:
+        if join_method not in ["append", "extend_granule", "append_granule", "first"]:
             raise ValueError("Unknown metadata 'join_method': {}".format(join_method))
+        elif join_method == "extend_granule":
+            # we expect a list from the file reader
+            return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=axis)
         elif join_method == "append_granule":
             return np.concatenate(tuple([fr[item]] for fr in self.file_readers), axis=axis)
         elif join_method == "append":
