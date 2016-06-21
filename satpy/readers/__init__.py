@@ -205,9 +205,9 @@ class ReaderFinder(object):
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
 
-    def __call__(self, filenames=None, sensor=None, reader_name=None):
-        if reader_name is not None:
-            return [self._find_reader(reader_name, filenames)]
+    def __call__(self, filenames=None, sensor=None, reader=None):
+        if reader is not None:
+            return [self._find_reader(reader, filenames)]
         elif sensor is not None:
             return list(self._find_sensors_readers(sensor, filenames))
         elif filenames is not None:
@@ -257,8 +257,10 @@ class ReaderFinder(object):
     def _find_reader(self, reader, filenames):
         """Find and get info for the *reader* for *filenames*
         """
-        # were we given a path to a config file?
-        if not os.path.exists(reader):
+        if not isinstance(reader, str):
+            # we were given an instance of a reader or reader-like object
+            return reader
+        elif not os.path.exists(reader):
             # no, we were given a name of a reader
             config_fn = reader + ".cfg" if "." not in reader else reader
             config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
