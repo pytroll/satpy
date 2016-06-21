@@ -180,7 +180,7 @@ class Scene(InfoObject):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.datasets[key] = value
-        self.wishlist.add(key)
+        self.wishlist.add(self.datasets.get_key(key))
 
     def __delitem__(self, key):
         k = self.datasets.get_key(key)
