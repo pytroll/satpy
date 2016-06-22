@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010, 2011, 2012, 2013, 2014, 2015
+# Copyright (c) 2010-2016
 
 # Author(s):
 
@@ -25,29 +25,73 @@
 """Scene objects to hold satellite data.
 """
 
+import logging
+import os
+
+from satpy.composites import IncompatibleAreas, load_compositors
+from satpy.config import (config_search_paths, get_environ_config_dir,
+                          runtime_import)
+from satpy.projectable import InfoObject, Projectable
+from satpy.readers import DatasetDict, DatasetID, ReaderFinder
+
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
-import os
-import logging
 
-from satpy.config import get_environ_config_dir, runtime_import, config_search_paths
-from satpy.projectable import Projectable, InfoObject
-from satpy.readers import ReaderFinder, DatasetDict, DatasetID
-from satpy.composites import IncompatibleAreas, load_compositors
 
 LOG = logging.getLogger(__name__)
 
 
+class Node(object):
+    """A node object."""
+
+    def __init__(self, data):
+        """Init the node object."""
+        self.data = data
+        self.children = []
+        self.parents = []
+
+    def add_child(self, obj):
+        """Add a child to the node."""
+        self.children.append(obj)
+        obj.parents.append(self)
+
+    def __str__(self):
+        """Display the node."""
+        return self.display()
+
+    def display(self, previous=0):
+        """Display the node."""
+        return ((" +" * previous) + str(self.data) + '\n' +
+                ''.join([child.display(previous + 1) for child in self.children]))
+
+    def leaves(self):
+        """Get the leaves of the tree starting at this root."""
+        if not self.children:
+            return [self]
+        else:
+            res = list()
+            for child in self.children:
+                res.extend(child.leaves())
+            return res
+
+    def trunk(self):
+        """Get the trunk of the tree starting at this root."""
+        res = []
+        if self.children:
+            if self.data is not None:
+                res.append(self)
+            for child in self.children:
+                res.extend(child.trunk())
+        return res
+
+
 class Scene(InfoObject):
-    """
-    The almighty scene class.
-    """
+    """The almighty scene class."""
 
     def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, base_dir=None, **info):
-        """The Scene object constructor.
-        """
+        """The Scene object constructor."""
         # Get PPP_CONFIG_DIR
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         # Set the PPP_CONFIG_DIR in the environment in case it's used else where in pytroll
@@ -63,8 +107,9 @@ class Scene(InfoObject):
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir, **self.info)
+        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir)
         reader_instances = finder(reader_name=reader_name, sensor=self.info.get("sensor"), filenames=filenames)
+
         # reader finder could return multiple readers
         sensors = []
         for reader_instance in reader_instances:
@@ -153,15 +198,17 @@ class Scene(InfoObject):
         return load_compositors(sensor_names=self.info["sensor"], ppp_config_dir=self.ppp_config_dir)
 
     def __str__(self):
+        """Generate a nice print out for the scene."""
         res = (str(proj) for proj in self.datasets.values())
         return "\n".join(res)
 
     def __iter__(self):
+        """Iterate over the datasets."""
         for x in self.datasets.values():
             yield x
 
     def iter_by_area(self):
-        """Generate datasets grouped by Area
+        """Generate datasets grouped by Area.
 
         :return: generator of (area_obj, list of dataset objects)
         """
@@ -174,23 +221,150 @@ class Scene(InfoObject):
             yield area_obj, ds_list
 
     def __getitem__(self, key):
+        """Get a dataset."""
         return self.datasets[key]
 
     def __setitem__(self, key, value):
+        """Add the item to the scene."""
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.datasets[key] = value
         self.wishlist.add(key)
 
     def __delitem__(self, key):
+        """Remove the item from the scene."""
         k = self.datasets.get_key(key)
         self.wishlist.remove(k)
         del self.datasets[k]
 
     def __contains__(self, name):
+        """Check if the dataset is in the scene."""
         return name in self.datasets
 
-    def read(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
+    def _find_dependencies(self, dataset_key, **kwargs):
+        """Find the dependencies for *dataset_key*."""
+        sensor_names = set()
+
+        # 0 check if the dataset is already loaded
+
+        if dataset_key in self.datasets:
+            return Node(self.datasets[dataset_key])
+
+        # 1 try to get dataset from reader
+        for reader_name, reader_instance in self.readers.items():
+            sensor_names |= set(reader_instance.sensor_names)
+            try:
+                ds_id = reader_instance.get_dataset_key(dataset_key)
+            except KeyError:
+                LOG.debug("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
+            else:
+                return Node(ds_id)
+
+        # 2 try to find a composite that matches
+        try:
+            self.compositors.update(load_compositors([dataset_key], sensor_names,
+                                                     ppp_config_dir=self.ppp_config_dir,
+                                                     **kwargs))
+            compositor = self.compositors[dataset_key]
+
+        except KeyError:
+            raise KeyError("Can't find anything called %s" % str(dataset_key))
+
+        # 2.1 get the prerequisites
+        prereqs = [self._find_dependencies(prereq, **kwargs)
+                   for prereq in compositor.info["prerequisites"]]
+        optional_prereqs = [self._find_dependencies(prereq, **kwargs)
+                            for prereq in compositor.info["optional_prerequisites"]]
+
+        root = Node((compositor, prereqs, optional_prereqs))
+
+        for prereq in prereqs + optional_prereqs:
+            if prereq is not None:
+                root.add_child(prereq)
+
+        return root
+
+    def create_deptree(self, dataset_keys):
+        """Create the dependency tree."""
+        tree = Node(None)
+        for key in dataset_keys:
+            tree.add_child(self._find_dependencies(key))
+        return tree
+
+    def read_datasets(self, dataset_nodes, calibration=None, polarization=None, resolution=None, **kwargs):
+        """Read the given datasets from file."""
+        # TODO: handle optional datasets.
+        sensor_names = set()
+        loaded_datasets = {}
+        # get datasets from readers
+
+        if calibration is not None and not isinstance(calibration, (list, tuple)):
+            calibration = [calibration]
+        if resolution is not None and not isinstance(resolution, (list, tuple)):
+            resolution = [resolution]
+        if polarization is not None and not isinstance(polarization, (list, tuple)):
+            polarization = [polarization]
+
+        for reader_name, reader_instance in self.readers.items():
+
+            sensor_names |= set(reader_instance.sensor_names)
+            ds_ids = []
+            for node in dataset_nodes:
+                dataset_key = node.data
+                try:
+                    ds_id = reader_instance.get_dataset_key(dataset_key,
+                                                            calibration=calibration,
+                                                            resolution=resolution,
+                                                            polarization=polarization)
+                except KeyError:
+                    LOG.debug("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
+                # if we haven't loaded this projectable then add it to the list to be loaded
+                if ds_id not in self.datasets or not self.datasets[ds_id].is_loaded():
+                    ds_ids.append(ds_id)
+            new_datasets = reader_instance.load(ds_ids, **kwargs)
+            loaded_datasets.update(new_datasets)
+        self.datasets.update(loaded_datasets)
+        return new_datasets
+
+# TODO: unload unneeded stuff
+
+    def read_composites(self, compositor_nodes, **kwargs):
+        # TODO: does this work ?
+        composites = []
+        for item in reversed(compositor_nodes):
+            compositor, prereqs, optional_prereqs = item.data
+            if compositor.info['name'] not in self.datasets:
+                prereqs = [self.datasets[prereq.data] for prereq in prereqs]
+                optional_prereqs = [self.datasets[prereq.data] for prereq in optional_prereqs]
+                composite = compositor(prereqs, optional_prereqs=optional_prereqs, **self.info)
+                composite.info['name'] = compositor.info['name']
+
+                self.datasets[compositor.info['name']] = composite
+                try:
+                    self.wishlist.remove(composite.info['name'])
+                except KeyError:
+                    pass
+                else:
+                    self.wishlist.add(composite.info['id'])
+
+            composites.append(self.datasets[compositor.info['name']])
+        return composites
+
+    def read_from_deptree(self, dataset_keys, **kwargs):
+        """Read the data by generating a dependency tree."""
+        # TODO: handle wishlist (keepables)
+        dataset_keys = set(dataset_keys)
+        self.wishlist |= dataset_keys
+
+        tree = self.create_deptree(dataset_keys)
+        datasets = self.read_datasets(tree.leaves(), **kwargs)
+        composites = self.read_composites(tree.trunk(), **kwargs)
+
+    def read(self, dataset_keys, **kwargs):
+        return self.read_from_deptree(dataset_keys, **kwargs)
+        # return self.read_old(dataset_keys, **kwargs)
+
+    def read_old(self, dataset_keys, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read the composites called *dataset_keys* or their prerequisites.
         """
         # FIXME: Should this be a set?
@@ -268,8 +442,8 @@ class Scene(InfoObject):
                         compositor = self.compositors[band]
                     except KeyError:
                         self.compositors.update(load_compositors([band], sensor_names,
-                                                     ppp_config_dir=self.ppp_config_dir,
-                                                     **kwargs))
+                                                                 ppp_config_dir=self.ppp_config_dir,
+                                                                 **kwargs))
                         compositor = self.compositors[band]
 
                     prereqs = list()
@@ -393,7 +567,8 @@ class Scene(InfoObject):
     def load(self, wishlist, calibration=None, resolution=None, polarization=None, metadata=None, **kwargs):
         """Read, compute and unload.
         """
-        self.read(wishlist, calibration=calibration, resolution=resolution, polarization=polarization, metadata=metadata, **kwargs)
+        self.read(wishlist, calibration=calibration, resolution=resolution,
+                  polarization=polarization, metadata=metadata, **kwargs)
         keepables = None
         if kwargs.get("compute", True):
             keepables = self.compute()
