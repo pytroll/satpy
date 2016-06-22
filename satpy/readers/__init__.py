@@ -651,15 +651,15 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "offset",
+class FileKey(namedtuple("FileKey", ["name", "variable_name", "factor", "offset",
                                      "dtype", "standard_name", "units", "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
-                scaling_factors=None, offset=None,
+                factor=None, offset=None,
                 dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
         if isinstance(dtype, (str, six.text_type)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, offset,
+        return super(FileKey, cls).__new__(cls, name, variable_name, factor, offset,
                                            dtype, standard_name, units, file_units, kwargs)
 
 

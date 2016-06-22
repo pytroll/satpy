@@ -37,15 +37,15 @@ def _setup_file_keys():
         FileKey("instrument_short_name", "Instrument_Short_Name"),
         FileKey("platform_short_name", "Platform_Short_Name"),
         FileKey("geo_file_reference", "N_GEO_Ref"),
-        FileKey("radiance", "Radiance", scaling_factors="radiance_factors", units="W m-2 sr-1"),
+        FileKey("radiance", "Radiance", factor="radiance_factors", units="W m-2 sr-1"),
         FileKey("radiance_factors", "RadianceFactors"),
-        FileKey("reflectance", "Reflectance", scaling_factors="reflectance_factors", units="%"),
+        FileKey("reflectance", "Reflectance", factor="reflectance_factors", units="%"),
         FileKey("reflectance_factors", "ReflectanceFactors"),
-        FileKey("brightness_temperature", "BrightnessTemperature", scaling_factors="bt_factors", units="K"),
+        FileKey("brightness_temperature", "BrightnessTemperature", factor="bt_factors", units="K"),
         FileKey("bt_factors", "BrightnessTemperatureFactors"),
-        FileKey("unknown_data", "FakeData", scaling_factors="bad_factors"),
+        FileKey("unknown_data", "FakeData", factor="bad_factors"),
         FileKey("unknown_data2", "FakeData", file_units="fake", dtype="int64"),
-        FileKey("unknown_data3", "FakeDataFloat", scaling_factors="nonexistent"),
+        FileKey("unknown_data3", "FakeDataFloat", factor="nonexistent"),
         FileKey("bad_factors", "BadFactors"),
         FileKey("longitude", "Longitude"),
         FileKey("latitude", "Latitude"),
@@ -113,7 +113,8 @@ class TestHDF5MetaData(unittest.TestCase):
     @mock.patch("h5py.File")
     @mock.patch("os.path.exists")
     def test_init_basic(self, os_exists_mock, h5py_file_mock):
-        from satpy.readers.viirs_sdr import HDF5MetaData, h5py
+        import h5py
+        from satpy.readers.viirs_sdr import HDF5MetaData
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
         f_handle.attrs = {
@@ -131,7 +132,8 @@ class TestHDF5MetaData(unittest.TestCase):
     @mock.patch("h5py.File")
     @mock.patch("os.path.exists")
     def test_collect_metadata(self, os_exists_mock, h5py_file_mock):
-        from satpy.readers.viirs_sdr import HDF5MetaData, h5py
+        import h5py
+        from satpy.readers.viirs_sdr import HDF5MetaData
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
         h = HDF5MetaData("fake.h5")
@@ -154,7 +156,8 @@ class TestHDF5MetaData(unittest.TestCase):
     @mock.patch("h5py.File")
     @mock.patch("os.path.exists")
     def test_getitem(self, os_exists_mock, h5py_file_mock):
-        from satpy.readers.viirs_sdr import HDF5MetaData, h5py
+        import h5py
+        from satpy.readers.viirs_sdr import HDF5MetaData
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
         fake_dataset = f_handle["fake"].value
