@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015.
+# Copyright (c) 2015-2016.
 
 # Author(s):
 
@@ -36,6 +36,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from trollsift.parser import globify, Parser
 
+import yaml
 from satpy.plugin_base import Plugin
 from satpy.projectable import Projectable
 from satpy.config import runtime_import, config_search_paths, glob_config
@@ -213,6 +214,10 @@ class ReaderFinder(object):
         elif filenames is not None:
             return list(self._find_files_readers(filenames))
         return []
+    def config_files(self):
+        # return (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
+        #        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
+        return glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)
 
     def _find_sensors_readers(self, sensor, filenames):
         """Find the readers for the given *sensor* and *filenames*
@@ -223,7 +228,8 @@ class ReaderFinder(object):
             sensor_set = set(sensor)
 
         reader_names = set()
-        for config_file in glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir):
+        config_files = self.get_all_config_files()
+        for config_file in config_files:
             # This is just used to find the individual reader configurations, not necessarily the individual files
             config_fn = os.path.basename(config_file)
             if config_fn in reader_names:
@@ -263,7 +269,10 @@ class ReaderFinder(object):
             config_fn = reader + ".cfg" if "." not in reader else reader
             config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
             if not config_files:
-                raise ValueError("Can't find config file for reader: {}".format(reader))
+                config_fn = reader + ".yaml" if "." not in reader else reader
+                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                if not config_files:
+                    raise ValueError("Can't find config file for reader: {}".format(reader))
         else:
             # we may have been given a dependent config file (depends on builtin configuration)
             # so we need to find the others
@@ -287,7 +296,9 @@ class ReaderFinder(object):
         """Find the reader info for the provided *files*.
         """
         reader_names = set()
-        for config_file in glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir):
+        config_files = (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
+                        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
+        for config_file in config_files:
             # This is just used to find the individual reader configurations, not necessarily the individual files
             config_fn = os.path.basename(config_file)
             if config_fn in reader_names:
@@ -363,8 +374,28 @@ class ReaderFinder(object):
         return sorted(filenames)
 
     def _read_reader_config(self, config_files):
-        """Read the reader *cfg_file* and return the info extracted.
+        """Read the reader *config_files* and return the info extracted.
         """
+        if config_files[0].endswith('.cfg'):
+            return self._read_reader_config_cfg(config_files)
+        elif config_files[0].endswith('.yaml'):
+            return self._read_reader_config_yaml(config_files)
+
+    def _read_reader_config_yaml(self, config_files):
+        conf = {}
+        LOG.debug('Reading ' + str(config_files))
+        for config_file in config_files:
+            with open(config_file) as fd:
+                conf.update(yaml.load(fd.read()))
+
+        try:
+            reader_info = conf['reader']
+        except KeyError:
+            raise MalformedConfigError("Malformed config file {}: missing reader 'reader'".format(config_files))
+        reader_info['config_files'] = config_files
+        return reader_info
+
+    def _read_reader_config_cfg(self, config_files):
         conf = configparser.RawConfigParser()
         successes = conf.read(config_files)
         if not successes:
