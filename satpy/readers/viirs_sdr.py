@@ -35,12 +35,10 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 import os.path
 from datetime import datetime, timedelta
 import numpy as np
-import h5py
 import logging
 
 from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 from satpy.readers.hdf5_utils import HDF5MetaData
-import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
