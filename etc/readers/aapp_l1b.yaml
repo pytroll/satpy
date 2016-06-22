@@ -2,7 +2,7 @@ reader:
     name: avhrr_aapp_l1b
     description: AAPP l1b Reader for AVHRR
     # could this be a python hook ?
-    reader: satpy.readers.aapp_l1b.AAPPL1BReader
+    reader: !!python/name:satpy.readers.yaml_reader.YAMLBasedReader ''
     sensors: [avhrr/3, avhrr/2]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
