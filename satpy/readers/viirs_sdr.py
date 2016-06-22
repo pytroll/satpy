@@ -35,11 +35,10 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 import os.path
 from datetime import datetime, timedelta
 import numpy as np
-import h5py
 import logging
 
 from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
-import six
+from satpy.readers.hdf5_utils import HDF5MetaData
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -79,41 +78,6 @@ def _get_invalid_info(granule_data):
                " vdne:" + str((granule_data == -999.3).sum()) +
                " soub:" + str((granule_data == -999.2).sum()))
     return msg
-
-
-class HDF5MetaData(object):
-    """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
-    """
-    def __init__(self, filename, **kwargs):
-        self.metadata = {}
-        self.filename = filename
-        if not os.path.exists(filename):
-            raise IOError("File {} does not exist!".format(filename))
-        file_handle = h5py.File(self.filename, 'r')
-        file_handle.visititems(self.collect_metadata)
-        self._collect_attrs('', file_handle.attrs)
-        file_handle.close()
-
-    def _collect_attrs(self, name, attrs):
-        for key, value in six.iteritems(attrs):
-            value = np.squeeze(value)
-            if issubclass(value.dtype.type, str):
-                self.metadata["{}/attr/{}".format(name, key)] = str(value)
-            else:
-                self.metadata["{}/attr/{}".format(name, key)] = value
-
-    def collect_metadata(self, name, obj):
-        if isinstance(obj, h5py.Dataset):
-            self.metadata[name] = obj
-            self.metadata[name + "/shape"] = obj.shape
-        self._collect_attrs(name, obj.attrs)
-
-    def __getitem__(self, key):
-        val = self.metadata[key]
-        if isinstance(val, h5py.Dataset):
-            # these datasets are closed and inaccessible when the file is closed, need to reopen
-            return h5py.File(self.filename, 'r')[key].value
-        return val
 
 
 class SDRFileReader(GenericFileReader):

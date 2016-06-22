@@ -651,15 +651,16 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units",
-                                     "file_units", "kwargs"])):
+class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "offset",
+                                     "dtype", "standard_name", "units", "file_units", "kwargs"])):
     def __new__(cls, name, variable_name,
-                scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
+                scaling_factors=None, offset=None,
+                dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
         if isinstance(dtype, (str, six.text_type)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units,
-                                           file_units, kwargs)
+        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, offset,
+                                           dtype, standard_name, units, file_units, kwargs)
 
 
 class ConfigBasedReader(Reader):
@@ -1224,7 +1225,6 @@ class GenericFileReader(object):
         """
         return self._end_time
 
-    @abstractmethod
     def _parse_datetime(self, date_str):
         """Return datetime object by parsing the provided string(s).
         """
