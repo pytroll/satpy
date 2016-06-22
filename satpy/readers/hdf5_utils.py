@@ -29,8 +29,7 @@ import os.path
 from datetime import datetime, timedelta
 import numpy as np
 import logging
-
-from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
+import h5py
 import six
 
 NO_DATE = datetime(1958, 1, 1)
