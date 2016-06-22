@@ -181,7 +181,7 @@ class EDRFileReader(GenericFileReader):
             data_out = data[:].astype(var_info.dtype)
             mask_out = np.zeros_like(data_out, dtype=np.bool)
 
-        factor_attr_name = var_info.scaling_factors
+        factor_attr_name = var_info.factor
         offset_attr_name = var_info.offset
         if factor_attr_name and offset_attr_name:
             try:

@@ -249,9 +249,9 @@ class SDRFileReader(GenericFileReader):
             data_out = data[:].astype(var_info.dtype)
             mask_out = np.zeros_like(data_out, dtype=np.bool)
 
-        if var_info.scaling_factors:
+        if var_info.factor:
             try:
-                factors = self[var_info.scaling_factors]
+                factors = self[var_info.factor]
             except KeyError:
                 LOG.debug("No scaling factors found for %s", item)
                 factors = None
