@@ -23,13 +23,15 @@
 """The :mod:`satpy.plugin_base` module defines the plugin API.
 """
 
-import os
 import logging
+import os
+
+from satpy.config import config_search_paths, get_environ_config_dir
+
 try:
     import configparser
 except:
     from six.moves import configparser
-from satpy.config import get_environ_config_dir, config_search_paths
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class Plugin(object):
     """The base plugin class. It is not to be used as is, it has to be
     inherited by other classes.
     """
+
     def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
 
