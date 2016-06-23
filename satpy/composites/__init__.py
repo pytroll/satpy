@@ -24,14 +24,17 @@
 """Base classes for composite objects.
 """
 
-from satpy.projectable import InfoObject, Projectable
-import numpy as np
 import logging
-from satpy.tools import sunzen_corr_cos
-import six
-from satpy.config import CONFIG_PATH, runtime_import, config_search_paths
-from satpy.readers import DatasetID
 import os
+
+import numpy as np
+import six
+
+from satpy.config import CONFIG_PATH, config_search_paths, runtime_import
+from satpy.projectable import InfoObject, Projectable, combine_info
+from satpy.readers import DatasetID
+from satpy.tools import sunzen_corr_cos
+
 try:
     import configparser
 except:
@@ -46,13 +49,17 @@ class IncompatibleAreas(Exception):
     """
     pass
 
+
 class CompositeReader(object):
     """Read composites using the configuration files on disk.
     """
+
     def __init__(self, composite_names, sensor_names=None):
         pass
 
 # FIXME: is kwargs really used here ? what for ? This should be made explicit probably
+
+
 def _get_compositors_from_configs(composite_configs, composite_names, sensor_names=None, **kwargs):
     """Use the *composite_configs* to return the compositors for requested *composite_names*.
 
@@ -76,8 +83,8 @@ def _get_compositors_from_configs(composite_configs, composite_names, sensor_nam
 
             # Check if the caller only wants composites for a certain sensor
             if (options["sensor"] is not None and
-                        sensor_names is not None and
-                        not (set(sensor_names) & set(options["sensor"]))):
+                    sensor_names is not None and
+                    not (set(sensor_names) & set(options["sensor"]))):
                 continue
             # Check if the caller only wants composites with certain names
             if composite_names is not None and options["name"] not in composite_names:
@@ -85,7 +92,7 @@ def _get_compositors_from_configs(composite_configs, composite_names, sensor_nam
 
             if options["name"] in compositors:
                 LOG.debug("Duplicate composite found, previous composite '%s' will be overwritten",
-                            options["name"])
+                          options["name"])
 
             # Get other identifiers that could be used to filter the prerequisites
             other_identifiers = {}
@@ -142,7 +149,6 @@ def _get_compositors_from_configs(composite_configs, composite_names, sensor_nam
     return compositors
 
 
-
 def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CONFIG_PATH, **kwargs):
     """Load the requested *composite_names*.
 
@@ -166,6 +172,7 @@ def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CON
 
 
 class CompositeBase(InfoObject):
+
     def __init__(self, name, prerequisites=[], optional_prerequisites=[], metadata_requirements=[], **kwargs):
         # Required info
         kwargs["name"] = name
@@ -189,6 +196,7 @@ class CompositeBase(InfoObject):
         from pprint import pformat
         return pformat(self.info)
 
+
 class SunZenithNormalize(object):
     # FIXME: the cache should be cleaned up
     coszen = {}
@@ -198,23 +206,26 @@ class SunZenithNormalize(object):
         key = (projectable.info["start_time"], projectable.info["area"].name)
         if key not in self.coszen:
             LOG.debug("Computing sun zenith angles.")
-            self.coszen[key] = np.ma.masked_outside(cos_zen(projectable.info["start_time"],
-                                                    *projectable.info["area"].get_lonlats()),
-                                                    0.035, # about 88 degrees.
+            self.coszen[key] = np.ma.masked_outside(cos_zen(np.datetime64(projectable.info["start_time"]),
+                                                            *projectable.info["area"].get_lonlats()),
+                                                    0.035,  # about 88 degrees.
                                                     1,
                                                     copy=False)
         return sunzen_corr_cos(projectable, self.coszen[key])
 
 
 class RGBCompositor(CompositeBase):
+
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
         the_data = np.rollaxis(np.ma.dstack([projectable for projectable in projectables]), axis=2)
-        info = projectables[0].info.copy()
-        info.update(projectables[1].info)
-        info.update(projectables[2].info)
+        #info = projectables[0].info.copy()
+        # info.update(projectables[1].info)
+        # info.update(projectables[2].info)
+        info = combine_info(*projectables)
         info.update(self.info)
+        info['id'] = DatasetID(self.info['name'])
         # FIXME: should this be done here ?
         info["wavelength_range"] = None
         info.pop("units", None)
@@ -236,6 +247,7 @@ class RGBCompositor(CompositeBase):
 
 
 class SunCorrectedRGB(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         suncorrector = SunZenithNormalize()
         for i, projectable in enumerate(projectables):
@@ -249,6 +261,7 @@ class SunCorrectedRGB(RGBCompositor):
 
 
 class Airmass(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
 
@@ -271,6 +284,7 @@ class Airmass(RGBCompositor):
 
 
 class Convection(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
 
@@ -293,6 +307,7 @@ class Convection(RGBCompositor):
 
 
 class Dust(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make a Dust RGB image composite.
 
