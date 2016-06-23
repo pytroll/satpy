@@ -26,6 +26,7 @@ import glob
 import logging
 import numbers
 import os
+from fnmatch import fnmatch
 
 import six
 import yaml
@@ -56,7 +57,11 @@ class YAMLBasedReader(object):
         self.ids = {}
         self.get_dataset_ids()
 
-    def check(self, base_dir, filenames=None, sensor=None, reader_name=None):
+    def select_files(self, base_dir=None, filenames=None, sensor=None, reader_name=None):
+
+        if reader_name is not None and self.info['name'] != reader_name:
+            return filenames, []
+
         if isinstance(sensor, (str, six.text_type)):
             sensor_set = set([sensor])
         elif sensor is not None:
@@ -64,17 +69,17 @@ class YAMLBasedReader(object):
         else:
             sensor_set = set()
 
+        if sensor is not None and not (set(self.info.get("sensors")) & sensor_set):
+            return filenames, []
+
         file_set = set()
         if filenames:
             file_set |= set(filenames)
 
-        if sensor is None or not (set(self.info.get("sensors")) & sensor_set):
-            return filenames, []
-        # config_fn = reader_name + ".yaml" if "." not in reader_name else reader_name
-        # if (reader not in self.config_files and
-        #    reader =
-
-        self.info["filenames"] = self.find_filenames(base_dir)
+        if filenames is None:
+            self.info["filenames"] = self.find_filenames(base_dir)
+        else:
+            self.info["filenames"] = self.match_filenames(filenames, base_dir)
         if not self.info["filenames"]:
             LOG.warning("No filenames found for reader: %s", reader_info["name"])
         file_set -= set(self.info['filenames'])
@@ -85,23 +90,19 @@ class YAMLBasedReader(object):
         LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
         return file_set, self.info['filenames']
 
-    # TODO: remove this function if it isn't used
-    def assign_matching_files(self, files, base_dir=None):
-        """Assign *files* to the *reader_info*
-        """
-        pause
-        files = list(files)
+    def match_filenames(self, filenames, base_dir=None):
+        result = []
         for file_pattern in self.file_patterns:
             if base_dir is not None:
                 file_pattern = os.path.join(base_dir, file_pattern)
             pattern = globify(file_pattern)
-            for filename in list(files):
+            if not filenames:
+                return result
+            for filename in list(filenames):
                 if fnmatch(os.path.basename(filename), os.path.basename(pattern)):
-                    self.info["filenames"].append(filename)
-                    files.remove(filename)
-
-        # return remaining/unmatched files
-        return files
+                    result.append(filename)
+                    filenames.remove(filename)
+        return result
 
     def find_filenames(self, directory, file_patterns=None):
         if file_patterns is None:

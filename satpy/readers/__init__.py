@@ -25,33 +25,39 @@
 
 """
 
+import glob
 import logging
 import numbers
 import os
-import numpy as np
-import six
-from abc import abstractmethod, abstractproperty, ABCMeta
-from fnmatch import fnmatch
+from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import namedtuple
 from datetime import datetime, timedelta
-from trollsift.parser import globify, Parser
+from fnmatch import fnmatch
 
+import numpy as np
+import six
 import yaml
+
+from satpy.config import config_search_paths, glob_config, runtime_import
 from satpy.plugin_base import Plugin
 from satpy.projectable import Projectable
-from satpy.config import runtime_import, config_search_paths, glob_config
+from trollsift.parser import Parser, globify
 
 try:
     import configparser
 except ImportError:
     from six.moves import configparser
-import glob
+
 
 LOG = logging.getLogger(__name__)
 
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization", "calibration")
-DatasetID = namedtuple("Dataset", " ".join(DATASET_KEYS))
+DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None)
+
+
+class MalformedConfigError(Exception):
+    pass
 
 
 class DatasetDict(dict):
@@ -59,6 +65,7 @@ class DatasetDict(dict):
 
     Note: Internal dictionary keys are `DatasetID` objects.
     """
+
     def __init__(self, *args, **kwargs):
         super(DatasetDict, self).__init__(*args, **kwargs)
 
@@ -182,6 +189,7 @@ class DatasetDict(dict):
         d["resolution"] = key.resolution
         d["calibration"] = key.calibration
         d["polarization"] = key.polarization
+        d['id'] = key
         # you can't change the wavelength of a dataset, that doesn't make sense
         if "wavelength_range" in d and d["wavelength_range"] != key.wavelength:
             raise TypeError("Can't change the wavelength of a dataset")
@@ -201,19 +209,39 @@ class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
 
-    def __init__(self, ppp_config_dir=None, base_dir=None, **info):
-        self.info = info
+    def __init__(self, ppp_config_dir=None, base_dir=None):
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
 
     def __call__(self, filenames=None, sensor=None, reader_name=None):
-        if reader_name is not None:
-            return [self._find_reader(reader_name, filenames)]
-        elif sensor is not None:
-            return list(self._find_sensors_readers(sensor, filenames))
-        elif filenames is not None:
-            return list(self._find_files_readers(filenames))
-        return []
+
+        reader_names = set()
+        reader_instances = []
+
+        for config_file in self.config_files():
+            config_basename = os.path.basename(config_file)
+            if config_basename in reader_names:
+                continue
+            else:
+                reader_names.add(config_basename)
+            reader_configs = config_search_paths(os.path.join("readers", config_basename), self.ppp_config_dir)
+            try:
+                reader_info = self._read_reader_config(reader_configs)
+            except (MalformedConfigError, yaml.YAMLError) as err:
+                LOG.info('Cannot use %s', str(reader_configs))
+                LOG.debug(str(err))
+                continue
+            try:
+                reader_instance = reader_info['reader'](config_files=reader_configs)
+            except KeyError as err:
+                LOG.info('Cannot use %s', str(reader_configs))
+                LOG.debug(str(err))
+                continue
+            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor, reader_name)
+            if loadable_files:
+                reader_instances.append(reader_instance)
+        return reader_instances
+
     def config_files(self):
         # return (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
         #        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
@@ -245,19 +273,6 @@ class ReaderFinder(object):
                 LOG.debug("Invalid reader config found: %s", config_fn, exc_info=True)
                 continue
 
-            if "sensor" in reader_info and (set(reader_info["sensor"]) & sensor_set):
-                # we want this reader
-                if filenames:
-                    # returns a copy of the filenames remaining to be matched
-                    filenames = self.assign_matching_files(reader_info, *filenames, base_dir=self.base_dir)
-                    if filenames:
-                        raise IOError("Don't know how to open the following files: {}".format(str(filenames)))
-                else:
-                    # find the files for this reader based on its file patterns
-                    reader_info["filenames"] = self.get_filenames(reader_info, self.base_dir)
-                    if not reader_info["filenames"]:
-                        LOG.warning("No filenames found for reader: %s", reader_info["name"])
-                        continue
                 yield self._load_reader(reader_info)
 
     def _find_reader(self, reader, filenames):
@@ -329,7 +344,6 @@ class ReaderFinder(object):
         """Get the filenames from disk given the patterns in *reader_info*.
         This assumes that the scene info contains start_time at least (possibly end_time too).
         """
-
         filenames = []
         info = self.info.copy()
         for key in self.info.keys():
@@ -340,7 +354,6 @@ class ReaderFinder(object):
         reader_end = reader_info.get("end_time")
         if reader_start is None:
             raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
-
         for pattern in reader_info["file_patterns"]:
             if base_dir:
                 pattern = os.path.join(base_dir, pattern)
@@ -415,12 +428,13 @@ class ReaderFinder(object):
                 reader_info["sensor"] = filter(None, reader_info.setdefault("sensor", "").split(","))
                 # XXX: Readers can have separate start/end times from the
                 # rest fo the scene...might be a bad idea?
-                reader_info.setdefault("start_time", self.info.get("start_time"))
-                reader_info.setdefault("end_time", self.info.get("end_time"))
-                reader_info.setdefault("area", self.info.get("area"))
+                # reader_info.setdefault("start_time", self.info.get("start_time"))
+                # reader_info.setdefault("end_time", self.info.get("end_time"))
+                # reader_info.setdefault("area", self.info.get("area"))
                 try:
                     reader_class = reader_info["reader"]
                     reader_name = reader_info["name"]
+                    reader_info["reader"] = runtime_import(reader_class)
                 except KeyError:
                     break
                 file_patterns.extend(reader_info["file_patterns"])
@@ -435,9 +449,9 @@ class ReaderFinder(object):
                     sensors |= set(conf.get(section, "sensor").split(","))
 
         if reader_class is None:
-            raise ValueError("Malformed config file {}: missing reader 'reader'".format(config_files))
+            raise MalformedConfigError("Malformed config file {}: missing reader 'reader'".format(config_files))
         if reader_name is None:
-            raise ValueError("Malformed config file {}: missing reader 'name'".format(config_files))
+            raise MalformedConfigError("Malformed config file {}: missing reader 'name'".format(config_files))
         reader_info["file_patterns"] = file_patterns
         reader_info["config_files"] = config_files
         reader_info["filenames"] = []
@@ -454,10 +468,8 @@ class ReaderFinder(object):
         except ImportError as err:
             raise ImportError("Could not import reader class '{}' for reader '{}': {}".format(
                 reader_info["reader"], reader_info["name"], str(err)))
+        reader_instance = loader(reader_info['config_files'])
 
-        reader_instance = loader(**reader_info)
-        # fixme: put this in the calling function
-        # self.readers[reader_info["name"]] = reader_instance
         return reader_instance
 
     @staticmethod
@@ -558,7 +570,8 @@ class Reader(Plugin):
 
         # optional or not applicable for all datasets for Dataset identification
         if "wavelength_range" in section_options:
-            section_options["wavelength_range"] = tuple(float(wvl) for wvl in section_options.get("wavelength_range").split(','))
+            section_options["wavelength_range"] = tuple(float(wvl)
+                                                        for wvl in section_options.get("wavelength_range").split(','))
         else:
             section_options["wavelength_range"] = None
 
@@ -622,7 +635,8 @@ class Reader(Plugin):
         """
         # get by wavelength
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.datasets.keys() if ds.wavelength and (ds.wavelength[0] <= key <= ds.wavelength[2])]
+            datasets = [ds for ds in self.datasets.keys() if ds.wavelength and (
+                ds.wavelength[0] <= key <= ds.wavelength[2])]
             datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
 
             if not datasets:
@@ -655,7 +669,8 @@ class Reader(Plugin):
             datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
         if calibration is not None:
             # order calibration from highest level to lowest level
-            calibration = [x for x in ["brightness_temperature", "reflectance", "radiance", "counts"] if x in calibration]
+            calibration = [x for x in ["brightness_temperature",
+                                       "reflectance", "radiance", "counts"] if x in calibration]
             datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
         if polarization is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
@@ -682,6 +697,7 @@ class Reader(Plugin):
 
 class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units",
                                      "file_units", "kwargs"])):
+
     def __new__(cls, name, variable_name,
                 scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
         if isinstance(dtype, (str, six.text_type)):
@@ -706,7 +722,8 @@ class ConfigBasedReader(Reader):
         super(ConfigBasedReader, self).__init__(**kwargs)
 
         # Set up the default class for reading individual files
-        self.default_file_reader = self.config_options.get("default_file_reader") if default_file_reader is None else default_file_reader
+        self.default_file_reader = self.config_options.get(
+            "default_file_reader") if default_file_reader is None else default_file_reader
         if isinstance(self.default_file_reader, (str, six.text_type)):
             self.default_file_reader = self._runtime_import(self.default_file_reader)
         if self.default_file_reader is None:
@@ -1106,6 +1123,7 @@ class ConfigBasedReader(Reader):
 
 class MultiFileReader(object):
     # FIXME: file_type isn't used here. Do we really need it ?
+
     def __init__(self, file_type, file_readers, file_keys, **kwargs):
         """
         :param file_type:
@@ -1319,4 +1337,3 @@ class GenericFileReader(object):
     @abstractmethod
     def get_swath_data(self, item, data_out=None, mask_out=None):
         raise NotImplementedError
-
