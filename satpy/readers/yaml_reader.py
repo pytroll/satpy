@@ -81,12 +81,12 @@ class YAMLBasedReader(object):
         else:
             self.info["filenames"] = self.match_filenames(filenames, base_dir)
         if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", reader_info["name"])
+            LOG.warning("No filenames found for reader: %s", self.name)
         file_set -= set(self.info['filenames'])
         if file_set:
             raise IOError("Don't know how to open the following files: {}".format(str(file_set)))
         if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", reader_info["name"])
+            LOG.warning("No filenames found for reader: %s", self.name)
         LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
         return file_set, self.info['filenames']
 
