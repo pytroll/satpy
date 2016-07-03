@@ -143,6 +143,14 @@ class YAMLBasedReader(object):
             # filenames = self.find_filenames(base_directory, self.config['file_types'][filetype]['file_patterns'])
             filenames = self.info['filenames']
             for filename in filenames:
+                match = False
+                for pattern in self.config['file_types'][filetype]['file_patterns']:
+                    if not fnmatch(os.path.basename(filename), globify(pattern)):
+                        continue
+                    else:
+                        match = True
+                if not match:
+                    continue
                 if filename in loaded_filenames:
                     fhd = loaded_filenames[filename]
                 else:
