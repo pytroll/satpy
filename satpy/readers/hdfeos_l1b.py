@@ -34,22 +34,23 @@ http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
 w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 import glob
-from fnmatch import fnmatch
+import hashlib
+import logging
+import math
+import multiprocessing
 import os.path
 from ConfigParser import ConfigParser
-import multiprocessing
+from fnmatch import fnmatch
 
-import math
 import numpy as np
-from pyhdf.SD import SD
+
 from pyhdf.error import HDF4Error
-import hashlib
+from pyhdf.SD import SD
 from pyresample import geometry
-
 from satpy.config import CONFIG_PATH
-from satpy.plugin_base import Reader
+from satpy.projectable import Projectable
+from satpy.readers.yaml_reader import SatFileHandler
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -63,74 +64,87 @@ def get_filename(template, time_slot):
     return file_list[0]
 
 
-class ModisReader(Reader):
+class HDFEOSFileReader(SatFileHandler):
 
-    pformat = "hdfeos_l1b"
+    def __init__(self, filename):
+        self.filename = filename
+        try:
+            self.sd = SD(str(self.filename))
+        except HDF4Error as err:
+            raise ValueError("Could not load data from " + str(self.filename)
+                             + ": " + str(err))
+        self.sd = SD(self.filename)
+        self.mda = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
+        self.mda.update(self.read_mda(self.sd.attributes()['StructMetadata.0']))
+        self.mda.update(self.read_mda(self.sd.attributes()['ArchiveMetadata.0']))
+
+    def start_time(self):
+        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
+                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
+        return np.datetime64(date)
+
+    def end_time(self):
+        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
+                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
+        return np.datetime64(date)
+
+    def read_mda(self, attribute):
+        lines = attribute.split('\n')
+        mda = {}
+        current_dict = mda
+        path = []
+        for line in lines:
+            if not line:
+                continue
+            if line == 'END':
+                break
+            key, val = line.split('=')
+            key = key.strip()
+            val = val.strip()
+            try:
+                val = eval(val)
+            except NameError:
+                pass
+            if key in ['GROUP', 'OBJECT']:
+                new_dict = {}
+                path.append(val)
+                current_dict[val] = new_dict
+                current_dict = new_dict
+            elif key in ['END_GROUP', 'END_OBJECT']:
+                if val != path[-1]:
+                    raise SyntaxError
+                path = path[:-1]
+                current_dict = mda
+                for item in path:
+                    current_dict = current_dict[item]
+            elif key in ['CLASS', 'NUM_VAL']:
+                pass
+            else:
+                current_dict[key] = val
+        return mda
+
+
+class HDFEOSGeoReader(HDFEOSFileReader):
+
+    def load(self, keys):
+        pass
+
+
+class HDFEOSBandReader(HDFEOSFileReader):
 
     res = {"1": 1000,
            "Q": 250,
            "H": 500}
 
-    def __init__(self, *args, **kwargs):
-        Reader.__init__(self, *args, **kwargs)
-        self.datafiles = {}
-        self.geofile = None
-        self.filename = None
-        self.data = None
-        self.areas = {}
+    def __init__(self, filename):
+        HDFEOSFileReader.__init__(self, filename)
 
-    def load(self, satscene, *args, **kwargs):
+        ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        self.resolution = self.res[ds[-3]]
+
+    def load(self, keys):
         """Read data from file and load it into *satscene*.
         """
-        del args
-        conf = ConfigParser()
-        conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-        options = dict(conf.items(satscene.instrument_name + "-level2",
-                                  raw=True))
-        options["resolution"] = 1000
-        options["geofile"] = os.path.join(options["dir"], options["geofile"])
-        options.update(kwargs)
-
-        if isinstance(kwargs.get("filename"), (list, set, tuple)):
-            # we got the entire dataset.
-            for fname in kwargs["filename"]:
-                if fnmatch(os.path.basename(fname), "M?D02?km*"):
-                    resolution = self.res[os.path.basename(fname)[5]]
-                    self.datafiles[resolution] = fname
-                elif fnmatch(os.path.basename(fname), "M?D03*"):
-                    self.geofile = fname
-        elif ((kwargs.get("filename") is not None) and
-              fnmatch(os.path.basename(options["filename"]), "M?D02?km*")):
-            # read just one file
-            logger.debug("Reading from file: " + str(options["filename"]))
-            filename = options["filename"]
-            resolution = self.res[os.path.basename(filename)[5]]
-            self.datafiles[resolution] = filename
-        else:
-            # find files according to config
-            resolution = int(options["resolution"]) or 1000
-
-            for res in [250, 500, 1000]:
-                datafile = os.path.join(options['dir'],
-                                        options["filename" + str(res)])
-                try:
-                    self.datafiles[res] = get_filename(datafile,
-                                                       satscene.time_slot)
-                except IOError:
-                    self.datafiles[res] = None
-                    logger.warning("Can't find file for resolution %s with template: %s",
-                                   str(res), datafile)
-
-            try:
-                self.geofile = get_filename(options["geofile"],
-                                            satscene.time_slot)
-            except IOError:
-                self.geofile = None
-                logger.warning("Can't find geofile with template: %s",
-                               options['geofile'])
-
-        resolution = options["resolution"]
-        cores = options.get("cores", max(multiprocessing.cpu_count() / 4, 1))
 
         datadict = {
             1000: ['EV_250_Aggr1km_RefSB',
@@ -141,48 +155,29 @@ class ModisReader(Reader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
-        loaded_bands = []
+        projectables = []
 
-        # process by dataset, reflective and emissive datasets separately
+        keys = [key for key in keys if key.resolution == self.resolution]
+        datasets = datadict[self.resolution]
+        key_names = [key.name for key in keys]
+        for dataset in datasets:
+            subdata = self.sd.select(dataset)
+            band_names = subdata.attributes()["band_names"].split(",")
 
-        resolutions = [250, 500, 1000]
-
-        for res in resolutions:
-            if res < resolution:
-                continue
-            logger.debug("Working on resolution %d", res)
-            self.filename = self.datafiles[res]
-
-            logger.debug("Using " + str(cores) + " cores for interpolation")
-
-            try:
-                self.data = SD(str(self.filename))
-            except HDF4Error as err:
-                logger.warning("Could not load data from " + str(self.filename)
-                               + ": " + str(err))
-                continue
-
-            datasets = datadict[res]
-            for dataset in datasets:
-                subdata = self.data.select(dataset)
-                band_names = subdata.attributes()["band_names"].split(",")
-                if len(satscene.channels_to_load & set(band_names)) > 0:
-                    # get the relative indices of the desired channels
-                    indices = [i for i, band in enumerate(band_names)
-                               if band in satscene.channels_to_load]
-                    uncertainty = self.data.select(dataset + "_Uncert_Indexes")
-                    if dataset.endswith('Emissive'):
-                        array = calibrate_tb(
-                            subdata, uncertainty, indices, band_names)
-                    else:
-                        array = calibrate_refl(subdata, uncertainty, indices)
-                    for (i, idx) in enumerate(indices):
-                        if band_names[idx] in loaded_bands:
-                            continue
-                        satscene[band_names[idx]] = array[i]
-                        # fix the resolution to match the loaded data.
-                        satscene[band_names[idx]].resolution = res
-                        loaded_bands.append(band_names[idx])
+            if len(set(key_names) & set(band_names)) > 0:
+                # get the relative indices of the desired channels
+                indices = [i for i, band in enumerate(band_names)
+                           if band in key_names]
+                uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
+                if dataset.endswith('Emissive'):
+                    array = calibrate_tb(
+                        subdata, uncertainty, indices, band_names)
+                else:
+                    array = calibrate_refl(subdata, uncertainty, indices)
+                for (i, idx) in enumerate(indices):
+                    dsid = [key for key in keys if key.name == band_names[idx]][0]
+                    projectables.append(Projectable(array[i], id=dsid))
+        return projectables
 
         # Get the orbit number
         if not satscene.orbit:
@@ -303,27 +298,11 @@ class ModisReader(Reader):
         return self.data.select("SensorAzimuth")
 
 
-def load(satscene, *args, **kwargs):
-    """Read data from file and load it into *satscene*.
-    """
-    del args
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = kwargs
-    for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw=True):
-        options[option] = value
-    options["resolution"] = kwargs.get("resolution", 1000)
-    options["filename"] = kwargs.get("filename")
-
-    CASES[satscene.instrument_name](satscene, options)
-
-
 def calibrate_refl(subdata, uncertainty, indices):
     """Calibration for reflective channels.
     """
     del uncertainty
-    #uncertainty_array = uncertainty.get()
+    # uncertainty_array = uncertainty.get()
     # array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
 
@@ -349,7 +328,7 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
     """Calibration for the emissive channels.
     """
     del uncertainty
-    #uncertainty_array = uncertainty.get()
+    # uncertainty_array = uncertainty.get()
     # array = np.ma.MaskedArray(subdata.get(),
     #                          mask=(uncertainty_array >= 15))
 
@@ -461,107 +440,6 @@ def load_modis(satscene, options):
     load_generic(satscene, filename, resolution, cores)
 
 
-def load_generic(satscene, filename, resolution, cores):
-    """Read modis data, generic part.
-    """
-
-    try:
-        data = SD(str(filename))
-    except HDF4Error as err:
-        logger.warning("Could not load data from " + str(filename)
-                       + ": " + str(err))
-        return
-
-    datadict = {
-        1000: ['EV_250_Aggr1km_RefSB',
-               'EV_500_Aggr1km_RefSB',
-               'EV_1KM_RefSB',
-               'EV_1KM_Emissive'],
-        500: ['EV_250_Aggr500_RefSB',
-              'EV_500_RefSB'],
-        250: ['EV_250_RefSB']}
-
-    datasets = datadict[resolution]
-
-    loaded_bands = []
-
-    # process by dataset, reflective and emissive datasets separately
-
-    for dataset in datasets:
-        subdata = data.select(dataset)
-        band_names = subdata.attributes()["band_names"].split(",")
-        if len(satscene.channels_to_load & set(band_names)) > 0:
-            # get the relative indices of the desired channels
-            indices = [i for i, band in enumerate(band_names)
-                       if band in satscene.channels_to_load]
-            uncertainty = data.select(dataset + "_Uncert_Indexes")
-            if dataset.endswith('Emissive'):
-                array = calibrate_tb(subdata, uncertainty, indices, band_names)
-            else:
-                array = calibrate_refl(subdata, uncertainty, indices)
-            for (i, idx) in enumerate(indices):
-                satscene[band_names[idx]] = array[i]
-                # fix the resolution to match the loaded data.
-                satscene[band_names[idx]].resolution = resolution
-                loaded_bands.append(band_names[idx])
-
-    # Get the orbit number
-    if not satscene.orbit:
-        mda = data.attributes()["CoreMetadata.0"]
-        orbit_idx = mda.index("ORBITNUMBER")
-        satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-    # Get the geolocation
-    # if resolution != 1000:
-    #    logger.warning("Cannot load geolocation at this resolution (yet).")
-    #    return
-
-    lat, lon = get_lat_lon(satscene, resolution, filename, cores)
-    area = geometry.SwathDefinition(lons=lon, lats=lat)
-    for band_name in loaded_bands:
-        satscene[band_name].area = area
-
-    # Trimming out dead sensor lines (detectors) on aqua:
-    # (in addition channel 21 is noisy)
-    if satscene.satname == "aqua":
-        for band in ["6", "27", "36"]:
-            if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-                continue
-            width = satscene[band].data.shape[1]
-            height = satscene[band].data.shape[0]
-            indices = satscene[band].data.mask.sum(1) < width
-            if indices.sum() == height:
-                continue
-            satscene[band] = satscene[band].data[indices, :]
-            satscene[band].area = geometry.SwathDefinition(
-                lons=satscene[band].area.lons[indices, :],
-                lats=satscene[band].area.lats[indices, :])
-            satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
-                                           + str(satscene.time_slot) + "_"
-                                           + str(satscene[band].shape) + "_"
-                                           + str(band))
-
-    # Trimming out dead sensor lines (detectors) on terra:
-    # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
-    if satscene.satname == "terra":
-        for band in ["29"]:
-            if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-                continue
-            width = satscene[band].data.shape[1]
-            height = satscene[band].data.shape[0]
-            indices = satscene[band].data.mask.sum(1) < width
-            if indices.sum() == height:
-                continue
-            satscene[band] = satscene[band].data[indices, :]
-            satscene[band].area = geometry.SwathDefinition(
-                lons=satscene[band].area.lons[indices, :],
-                lats=satscene[band].area.lats[indices, :])
-            satscene[band].area.area_id = ("swath_" + satscene.fullname + "_"
-                                           + str(satscene.time_slot) + "_"
-                                           + str(satscene[band].shape) + "_"
-                                           + str(band))
-
-
 def get_lat_lon(satscene, resolution, filename, cores=1):
     """Read lat and lon.
     """
@@ -633,333 +511,3 @@ def get_lat_lon_modis(satscene, options):
         lon, lat = modis1kmto250m(lon, lat, cores)
 
     return lat, lon
-
-
-def get_lonlat(satscene, row, col):
-    """Estimate lon and lat.
-    """
-    import glob
-
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    path = conf.get("modis-level2", "dir")
-    geofile_tmpl = conf.get("modis-level2", "geofile")
-
-    filename_tmpl = satscene.time_slot.strftime(geofile_tmpl)
-    file_list = glob.glob(os.path.join(path, filename_tmpl))
-
-    if len(file_list) > 1:
-        raise IOError("More than 1 geolocation file matching!" + filename_tmpl)
-    elif len(file_list) == 0:
-        logger.info("No MODIS geolocation file matching: " + filename_tmpl
-                    + ", estimating")
-        filename = ""
-    else:
-        filename = file_list[0]
-        logger.debug("Geolocation file = " + filename)
-
-    if(os.path.exists(filename) and
-       (satscene.lon is None or satscene.lat is None)):
-        data = SD(filename)
-        lat = data.select("Latitude")
-        fill_value = lat.attributes()["_FillValue"]
-        satscene.lat = np.ma.masked_equal(lat.get(), fill_value)
-        lon = data.select("Longitude")
-        fill_value = lon.attributes()["_FillValue"]
-        satscene.lon = np.ma.masked_equal(lon.get(), fill_value)
-
-    estimate = True
-
-    try:
-        lon = satscene.lon[row, col]
-        lat = satscene.lat[row, col]
-        if(satscene.lon.mask[row, col] == False and
-           satscene.lat.mask[row, col] == False):
-            estimate = False
-    except TypeError:
-        pass
-    except IndexError:
-        pass
-
-    if not estimate:
-        return lon, lat
-
-    from satpy.saturn.two_line_elements import Tle
-
-    tle = Tle(satellite=satscene.satname)
-    track_start = tle.get_latlonalt(satscene.time_slot)
-    track_end = tle.get_latlonalt(satscene.time_slot + satscene.granularity)
-
-    # WGS84
-    # flattening
-    f__ = 1 / 298.257223563
-    # semi_major_axis
-    a__ = 6378137.0
-
-    s__, alpha12, alpha21 = vinc_dist(f__, a__,
-                                      track_start[0], track_start[1],
-                                      track_end[0], track_end[1])
-    scanlines = satscene.granularity.seconds / satscene.span
-
-    if row < scanlines / 2:
-        if row == 0:
-            track_now = track_start
-        else:
-            track_now = vinc_pt(f__, a__, track_start[0], track_start[1],
-                                alpha12, (s__ * row) / scanlines)
-        lat_now = track_now[0]
-        lon_now = track_now[1]
-
-        s__, alpha12, alpha21 = vinc_dist(f__, a__,
-                                          lat_now, lon_now,
-                                          track_end[0], track_end[1])
-        fac = 1
-    else:
-        if scanlines - row - 1 == 0:
-            track_now = track_end
-        else:
-            track_now = vinc_pt(f__, a__, track_end[0], track_end[1], alpha21,
-                                (s__ * (scanlines - row - 1)) / scanlines)
-        lat_now = track_now[0]
-        lon_now = track_now[1]
-
-        s__, alpha12, alpha21 = vinc_dist(f__, a__,
-                                          lat_now, lon_now,
-                                          track_start[0], track_start[1])
-        fac = -1
-
-    if col < 1354 / 2:
-        lat, lon, alp = vinc_pt(f__, a__, lat_now, lon_now,
-                                alpha12 + np.pi / 2 * fac,
-                                2340000.0 / 2 - (2340000.0 / 1354) * col)
-    else:
-        lat, lon, alp = vinc_pt(f__, a__, lat_now, lon_now,
-                                alpha12 - np.pi / 2 * fac,
-                                (2340000.0 / 1354) * col - 2340000.0 / 2)
-        del alp
-    lon = np.rad2deg(lon)
-    lat = np.rad2deg(lat)
-
-    if lon > 180:
-        lon -= 360
-    if lon <= -180:
-        lon += 360
-
-    return lon, lat
-
-
-def vinc_dist(f__, a__, phi1, lembda1, phi2, lembda2):
-    """ 
-
-    Returns the distance between two geographic points on the ellipsoid
-    and the forward and reverse azimuths between these points.
-    lats, longs and azimuths are in radians, distance in metres 
-
-    Returns ( s__, alpha12,  alpha21 ) as a tuple
-
-    """
-
-    if (abs(phi2 - phi1) < 1e-8) and (abs(lembda2 - lembda1) < 1e-8):
-        return 0.0, 0.0, 0.0
-
-    two_pi = 2.0 * math.pi
-
-    b__ = a__ * (1.0 - f__)
-
-    tan_u1 = (1 - f__) * math.tan(phi1)
-    tan_u2 = (1 - f__) * math.tan(phi2)
-
-    u_1 = math.atan(tan_u1)
-    u_2 = math.atan(tan_u2)
-
-    lembda = lembda2 - lembda1
-    last_lembda = -4000000.0                # an impossibe value
-    omega = lembda
-
-    # Iterate the following equations,
-    #  until there is no significant change in lembda
-
-    while (last_lembda < -3000000.0 or
-           lembda != 0 and
-           abs((last_lembda - lembda) / lembda) > 1.0e-9):
-
-        sqr_sin_sigma = (pow(math.cos(u_2) * math.sin(lembda), 2) +
-                         pow((math.cos(u_1) * math.sin(u_2) -
-                              math.sin(u_1) * math.cos(u_2) *
-                              math.cos(lembda)), 2))
-
-        sin_sigma = math.sqrt(sqr_sin_sigma)
-
-        cos_sigma = (math.sin(u_1) * math.sin(u_2) +
-                     math.cos(u_1) * math.cos(u_2) * math.cos(lembda))
-
-        sigma = math.atan2(sin_sigma, cos_sigma)
-
-        sin_alpha = (math.cos(u_1) * math.cos(u_2) * math.sin(lembda) /
-                     math.sin(sigma))
-        alpha = math.asin(sin_alpha)
-
-        cos2sigma_m = (math.cos(sigma) -
-                       (2 * math.sin(u_1) * math.sin(u_2) /
-                        pow(math.cos(alpha), 2)))
-
-        c__ = ((f__ / 16) * pow(math.cos(alpha), 2) *
-               (4 + f__ * (4 - 3 * pow(math.cos(alpha), 2))))
-
-        last_lembda = lembda
-
-        lembda = (omega + (1 - c__) * f__ * math.sin(alpha) *
-                  (sigma + c__ * math.sin(sigma) *
-                   (cos2sigma_m + c__ * math.cos(sigma) *
-                    (-1 + 2 * pow(cos2sigma_m, 2)))))
-
-    u2_ = pow(math.cos(alpha), 2) * (a__ * a__ - b__ * b__) / (b__ * b__)
-
-    aa_ = 1 + (u2_ / 16384) * (4096 + u2_ * (-768 + u2_ * (320 - 175 * u2_)))
-
-    bb_ = (u2_ / 1024) * (256 + u2_ * (-128 + u2_ * (74 - 47 * u2_)))
-
-    delta_sigma = bb_ * sin_sigma * (cos2sigma_m + (bb_ / 4) *
-                                     (cos_sigma * (-1 + 2 * pow(cos2sigma_m, 2)) -
-                                      (bb_ / 6) * cos2sigma_m * (-3 + 4 * sqr_sin_sigma) *
-                                      (-3 + 4 * pow(cos2sigma_m, 2))))
-
-    s__ = b__ * aa_ * (sigma - delta_sigma)
-
-    alpha12 = (math.atan2((math.cos(u_2) * math.sin(lembda)),
-                          (math.cos(u_1) * math.sin(u_2) -
-                           math.sin(u_1) * math.cos(u_2) * math.cos(lembda))))
-
-    alpha21 = (math.atan2((math.cos(u_1) * math.sin(lembda)),
-                          (-math.sin(u_1) * math.cos(u_2) +
-                           math.cos(u_1) * math.sin(u_2) * math.cos(lembda))))
-
-    if (alpha12 < 0.0):
-        alpha12 = alpha12 + two_pi
-    if (alpha12 > two_pi):
-        alpha12 = alpha12 - two_pi
-
-    alpha21 = alpha21 + two_pi / 2.0
-    if (alpha21 < 0.0):
-        alpha21 = alpha21 + two_pi
-    if (alpha21 > two_pi):
-        alpha21 = alpha21 - two_pi
-
-    return s__, alpha12,  alpha21
-
-# END of Vincenty's Inverse formulae
-
-
-#----------------------------------------------------------------------------
-# Vincenty's Direct formulae                                                |
-# Given: latitude and longitude of a point (phi1, lembda1) and              |
-# the geodetic azimuth (alpha12)                                            |
-# and ellipsoidal distance in metres (s) to a second point,                 |
-#                                                                           |
-# Calculate: the latitude and longitude of the second point (phi2, lembda2) |
-# and the reverse azimuth (alpha21).                                        |
-#                                                                           |
-#----------------------------------------------------------------------------
-
-def vinc_pt(f__, a__, phi1, lembda1, alpha12, s__):
-    """
-
-    Returns the lat and long of projected point and reverse azimuth
-    given a reference point and a distance and azimuth to project.
-    lats, longs and azimuths are passed in decimal degrees
-
-    Returns ( phi2,  lambda2,  alpha21 ) as a tuple 
-
-    """
-
-    two_pi = 2.0 * math.pi
-
-    if (alpha12 < 0.0):
-        alpha12 = alpha12 + two_pi
-    if (alpha12 > two_pi):
-        alpha12 = alpha12 - two_pi
-
-    b__ = a__ * (1.0 - f__)
-
-    tan_u1 = (1 - f__) * math.tan(phi1)
-    u_1 = math.atan(tan_u1)
-    sigma1 = math.atan2(tan_u1, math.cos(alpha12))
-    sinalpha = math.cos(u_1) * math.sin(alpha12)
-    cosalpha_sq = 1.0 - sinalpha * sinalpha
-
-    u_2 = cosalpha_sq * (a__ * a__ - b__ * b__) / (b__ * b__)
-    aa_ = 1.0 + (u_2 / 16384) * (4096 + u_2 * (-768 + u_2 *
-                                               (320 - 175 * u_2)))
-    bb_ = (u_2 / 1024) * (256 + u_2 * (-128 + u_2 * (74 - 47 * u_2)))
-
-    # Starting with the approximation
-    sigma = (s__ / (b__ * aa_))
-
-    last_sigma = 2.0 * sigma + 2.0  # something impossible
-
-    # Iterate the following three equations
-    # until there is no significant change in sigma
-
-    # two_sigma_m , delta_sigma
-
-    while (abs((last_sigma - sigma) / sigma) > 1.0e-9):
-
-        two_sigma_m = 2 * sigma1 + sigma
-
-        delta_sigma = (bb_ * math.sin(sigma) *
-                       (math.cos(two_sigma_m)
-                        + (bb_ / 4) * (math.cos(sigma) *
-                                       (-1 + 2 * math.pow(math.cos(two_sigma_m),
-                                                          2)
-                                        - (bb_ / 6) * math.cos(two_sigma_m) *
-                                        (-3 + 4 * math.pow(math.sin(sigma), 2)) *
-                                        (-3 + 4 * math.pow(math.cos(two_sigma_m),
-                                                           2))))))
-        last_sigma = sigma
-        sigma = (s__ / (b__ * aa_)) + delta_sigma
-
-    phi2 = math.atan2((math.sin(u_1) * math.cos(sigma) +
-                       math.cos(u_1) * math.sin(sigma) * math.cos(alpha12)),
-                      ((1 - f__) * math.sqrt(math.pow(sinalpha, 2) +
-                                             pow(math.sin(u_1) *
-                                                 math.sin(sigma) -
-                                                 math.cos(u_1) *
-                                                 math.cos(sigma) *
-                                                 math.cos(alpha12), 2))))
-
-    lembda = math.atan2((math.sin(sigma) * math.sin(alpha12)),
-                        (math.cos(u_1) * math.cos(sigma) -
-                         math.sin(u_1) * math.sin(sigma) * math.cos(alpha12)))
-
-    cc_ = (f__ / 16) * cosalpha_sq * (4 + f__ * (4 - 3 * cosalpha_sq))
-
-    omega = lembda - (1 - cc_) * f__ * sinalpha *  \
-        (sigma + cc_ * math.sin(sigma) * (math.cos(two_sigma_m) +
-                                          cc_ * math.cos(sigma) *
-                                          (-1 + 2 *
-                                           math.pow(math.cos(two_sigma_m), 2))))
-
-    lembda2 = lembda1 + omega
-
-    alpha21 = math.atan2(sinalpha, (-math.sin(u_1) * math.sin(sigma) +
-                                    math.cos(u_1) * math.cos(sigma) *
-                                    math.cos(alpha12)))
-
-    alpha21 = alpha21 + two_pi / 2.0
-    if (alpha21 < 0.0):
-        alpha21 = alpha21 + two_pi
-    if (alpha21 > two_pi):
-        alpha21 = alpha21 - two_pi
-
-    return phi2,  lembda2,  alpha21
-
-# END of Vincenty's Direct formulae
-
-
-CASES = {
-    "modis": load_modis
-}
-
-LAT_LON_CASES = {
-    "modis": get_lat_lon_modis
-}
