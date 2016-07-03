@@ -255,11 +255,15 @@ class Scene(InfoObject):
             sensor_names |= set(reader_instance.sensor_names)
             try:
                 ds_id = reader_instance.get_dataset_key(dataset_key)
-                self.wishlist.remove(dataset_key)
             except KeyError:
                 LOG.debug("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
             else:
-                self.wishlist.add(ds_id)
+                try:
+                    self.wishlist.remove(dataset_key)
+                except KeyError:
+                    pass
+                else:
+                    self.wishlist.add(ds_id)
                 return Node(ds_id)
 
         # 2 try to find a composite that matches
