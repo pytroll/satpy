@@ -27,12 +27,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to Modis level 1b format send through Eumetcast.
+"""Interface to Modis level 1b format.
 http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
 http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
 3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
 w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
+
 import glob
 import hashlib
 import logging
@@ -49,22 +50,13 @@ from pyhdf.SD import SD
 from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
-from satpy.readers.yaml_reader import SatFileHandler
+from satpy.readers import DatasetID
+from satpy.readers.yaml_reader import GeoFileHandler, SatFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-def get_filename(template, time_slot):
-    tmpl = time_slot.strftime(template)
-    file_list = glob.glob(tmpl)
-    if len(file_list) > 1:
-        raise IOError("More than 1 file matching template %s", tmpl)
-    elif len(file_list) == 0:
-        raise IOError("No EOS MODIS file matching " + tmpl)
-    return file_list[0]
-
-
-class HDFEOSFileReader(SatFileHandler):
+class HDFEOSFileReader(object):
 
     def __init__(self, filename):
         self.filename = filename
@@ -124,13 +116,153 @@ class HDFEOSFileReader(SatFileHandler):
         return mda
 
 
-class HDFEOSGeoReader(HDFEOSFileReader):
+class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
 
-    def load(self, keys):
-        pass
+    def __init__(self, filename):
+        HDFEOSFileReader.__init__(self, filename)
+
+        ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        if ds.endswith('D03'):
+            self.resolution = 1000
+        else:
+            self.resolution = 5000
+        self.cache = {}
+
+    def get_area(self, resolution):
+        lons_id = DatasetID('Longitude', resolution=resolution)
+        lats_id = DatasetID('Latitude', resolution=resolution)
+        try:
+            lons = self.cache[lons_id]
+            lats = self.cache[lats_id]
+        except KeyError:
+            lons, lats = self.load([lons_id, lats_id], interpolate=False, raw=True)
+            from geotiepoints.geointerpolator import GeoInterpolator
+            lons, lats = self._interpolate([lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
+            self.cache[lons_id] = lons
+            self.cache[lats_id] = lats
+        area = geometry.SwathDefinition(lons=lons, lats=lats)
+        area.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
+        return area
+
+    def load(self, keys, interpolate=True, raw=False):
+        projectables = []
+        for key in keys:
+            dataset = self.sd.select(key.name)
+            fill_value = dataset.attributes()["_FillValue"]
+            try:
+                scale_factor = dataset.attributes()["scale_factor"]
+            except KeyError:
+                scale_factor = 1
+            data = np.ma.masked_equal(dataset.get(), fill_value) * scale_factor
+
+            # TODO: interpolate if needed
+            if key.resolution is not None and key.resolution < self.resolution and interpolate:
+                data = self._interpolate(data, self.resolution, key.resolution)
+            if raw:
+                projectables.append(data)
+            else:
+                projectables.append(Projectable(data, id=key))
+
+        return projectables
+
+    @staticmethod
+    def _interpolate(data, coarse_resolution, resolution, interpolator=None):
+        if resolution == coarse_resolution:
+            return data
+
+        if interpolator is None:
+            from geotiepoints.interpolator import Interpolator
+            interpolator = Interpolator
+
+        logger.debug("Interpolating from " + str(coarse_resolution)
+                     + " to " + str(resolution))
+
+        if isinstance(data, (tuple, list, set)):
+            lines = data[0].shape[0]
+        else:
+            lines = data.shape[0]
+
+        if coarse_resolution == 5000:
+            coarse_cols = np.arange(2, 1354, 5)
+            lines *= 5
+            coarse_rows = np.arange(2, lines, 5)
+
+        elif coarse_resolution == 1000:
+            coarse_cols = np.arange(1354)
+            coarse_rows = np.arange(lines)
+
+        if resolution == 1000:
+            fine_cols = np.arange(1354)
+            fine_rows = np.arange(lines)
+            chunk_size = 10
+        elif resolution == 500:
+            fine_cols = np.arange(1354 * 2) / 2.0
+            fine_rows = (np.arange(lines * 2) - 0.5) / 2.0
+            chunk_size = 20
+        elif resolution == 250:
+            fine_cols = np.arange(1354 * 4) / 4.0
+            fine_rows = (np.arange(lines * 4) + 1.5) / 4.0
+            chunk_size = 40
+
+        along_track_order = 1
+        cross_track_order = 3
+
+        satint = interpolator(data,
+                              (coarse_rows, coarse_cols),
+                              (fine_rows, fine_cols),
+                              along_track_order,
+                              cross_track_order,
+                              chunk_size=chunk_size)
+
+        satint.fill_borders("y", "x")
+        return satint.interpolate()
+
+    def get_lonlat(self, resolution, cores=1):
+        """Read lat and lon.
+        """
+        if resolution in self.areas:
+            return self.areas[resolution]
+        logger.debug("generating lon, lat at %d", resolution)
+        if self.geofile is not None:
+            coarse_resolution = 1000
+            filename = self.geofile
+        else:
+            coarse_resolution = 5000
+            logger.info("Using 5km geolocation and interpolating")
+            filename = (self.datafiles.get(1000) or
+                        self.datafiles.get(500) or
+                        self.datafiles.get(250))
+
+        logger.debug("Loading geolocation from file: " + str(filename)
+                     + " at resolution " + str(coarse_resolution))
+
+        data = SD(str(filename))
+        lat = data.select("Latitude")
+        fill_value = lat.attributes()["_FillValue"]
+        lat = np.ma.masked_equal(lat.get(), fill_value)
+        lon = data.select("Longitude")
+        fill_value = lon.attributes()["_FillValue"]
+        lon = np.ma.masked_equal(lon.get(), fill_value)
+
+        if resolution == coarse_resolution:
+            self.areas[resolution] = lon, lat
+            return lon, lat
+
+        from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
+        logger.debug("Interpolating from " + str(coarse_resolution)
+                     + " to " + str(resolution))
+        if coarse_resolution == 5000:
+            lon, lat = modis5kmto1km(lon, lat)
+        if resolution == 500:
+            lon, lat = modis1kmto500m(lon, lat, cores)
+        if resolution == 250:
+            lon, lat = modis1kmto250m(lon, lat, cores)
+
+        self.areas[resolution] = lon, lat
+        return lon, lat
 
 
-class HDFEOSBandReader(HDFEOSFileReader):
+class HDFEOSBandReader(HDFEOSFileReader, SatFileHandler):
 
     res = {"1": 1000,
            "Q": 250,
@@ -143,9 +275,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
         self.resolution = self.res[ds[-3]]
 
     def load(self, keys):
-        """Read data from file and load it into *satscene*.
+        """Read data from file and return the corresponding projectables.
         """
-
         datadict = {
             1000: ['EV_250_Aggr1km_RefSB',
                    'EV_500_Aggr1km_RefSB',
@@ -156,8 +287,13 @@ class HDFEOSBandReader(HDFEOSFileReader):
             250: ['EV_250_RefSB']}
 
         projectables = []
+        platform_name = self.mda['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
 
         keys = [key for key in keys if key.resolution == self.resolution]
+        if len(keys) == 0:
+            logger.debug("Nothing to read in %s.", self.filename)
+            return projectables
         datasets = datadict[self.resolution]
         key_names = [key.name for key in keys]
         for dataset in datasets:
@@ -176,7 +312,17 @@ class HDFEOSBandReader(HDFEOSFileReader):
                     array = calibrate_refl(subdata, uncertainty, indices)
                 for (i, idx) in enumerate(indices):
                     dsid = [key for key in keys if key.name == band_names[idx]][0]
-                    projectables.append(Projectable(array[i], id=dsid))
+                    area = self.navigation_reader.get_area(self.resolution)
+                    projectable = Projectable(array[i], id=dsid, area=area)
+                    if ((platform_name == 'Aqua' and dsid.name in ["6", "27", "36"]) or
+                            (platform_name == 'Terra' and dsid.name in ["29"])):
+                        height, width = projectable.shape
+                        row_indices = projectable.mask.sum(1) == width
+                        if row_indices.sum() == height:
+                            continue
+                        projectable.mask[indices, :] = True
+
+                    projectables.append(projectable)
         return projectables
 
         # Get the orbit number
@@ -236,50 +382,6 @@ class HDFEOSBandReader(HDFEOSFileReader):
                                                     band_name].shape) + "_"
                                                 + str(band_uid))
             satscene[band_name].area_id = satscene[band_name].area.area_id
-
-    def get_lonlat(self, resolution, cores=1):
-        """Read lat and lon.
-        """
-        if resolution in self.areas:
-            return self.areas[resolution]
-        logger.debug("generating lon, lat at %d", resolution)
-        if self.geofile is not None:
-            coarse_resolution = 1000
-            filename = self.geofile
-        else:
-            coarse_resolution = 5000
-            logger.info("Using 5km geolocation and interpolating")
-            filename = (self.datafiles.get(1000) or
-                        self.datafiles.get(500) or
-                        self.datafiles.get(250))
-
-        logger.debug("Loading geolocation from file: " + str(filename)
-                     + " at resolution " + str(coarse_resolution))
-
-        data = SD(str(filename))
-        lat = data.select("Latitude")
-        fill_value = lat.attributes()["_FillValue"]
-        lat = np.ma.masked_equal(lat.get(), fill_value)
-        lon = data.select("Longitude")
-        fill_value = lon.attributes()["_FillValue"]
-        lon = np.ma.masked_equal(lon.get(), fill_value)
-
-        if resolution == coarse_resolution:
-            self.areas[resolution] = lon, lat
-            return lon, lat
-
-        from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
-        logger.debug("Interpolating from " + str(coarse_resolution)
-                     + " to " + str(resolution))
-        if coarse_resolution == 5000:
-            lon, lat = modis5kmto1km(lon, lat)
-        if resolution == 500:
-            lon, lat = modis1kmto500m(lon, lat, cores)
-        if resolution == 250:
-            lon, lat = modis1kmto250m(lon, lat, cores)
-
-        self.areas[resolution] = lon, lat
-        return lon, lat
 
     # These have to be interpolated...
     def get_height(self):
@@ -404,110 +506,8 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
     return array
 
 
-def load_modis(satscene, options):
-    """Read modis data from file and load it into *satscene*.
-
-    *resolution* parameters specifies in which resolution to load the data. If
-     the specified resolution is not available for the channel, it is NOT
-     loaded. If no resolution is specified, the 1km resolution (aggregated) is
-     used.
-    """
-    if options["filename"] is not None:
-        logger.debug("Reading from file: " + str(options["filename"]))
-        filename = options["filename"]
-        res = {"1": 1000,
-               "Q": 250,
-               "H": 500}
-        resolution = res[os.path.split(filename)[1][5]]
-    else:
-        resolution = int(options["resolution"]) or 1000
-
-        filename_tmpl = satscene.time_slot.strftime(options["filename" +
-                                                            str(resolution)])
-        file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
-        if len(file_list) > 1:
-            raise IOError("More than 1 file matching!")
-        elif len(file_list) == 0:
-            raise IOError("No EOS MODIS file matching " +
-                          filename_tmpl + " in " +
-                          options["dir"])
-        filename = file_list[0]
-
-    cores = options.get("cores", 1)
-
-    logger.debug("Using " + str(cores) + " cores for interpolation")
-
-    load_generic(satscene, filename, resolution, cores)
-
-
-def get_lat_lon(satscene, resolution, filename, cores=1):
-    """Read lat and lon.
-    """
-
-    conf = ConfigParser()
-    conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-    options = {}
-    for option, value in conf.items(satscene.instrument_name + "-level2",
-                                    raw=True):
-        options[option] = value
-
-    options["filename"] = filename
-    options["resolution"] = resolution
-    options["cores"] = cores
-    return LAT_LON_CASES[satscene.instrument_name](satscene, options)
-
-
-def get_lat_lon_modis(satscene, options):
-    """Read lat and lon.
-    """
-    filename_tmpl = satscene.time_slot.strftime(options["geofile"])
-    file_list = glob.glob(os.path.join(options["dir"], filename_tmpl))
-
-    if len(file_list) == 0:
-        # Try in the same directory as the data
-        data_dir = os.path.split(options["filename"])[0]
-        file_list = glob.glob(os.path.join(data_dir, filename_tmpl))
-
-    if len(file_list) > 1:
-        logger.warning("More than 1 geolocation file matching!")
-        filename = max(file_list, key=lambda x: os.stat(x).st_mtime)
-        coarse_resolution = 1000
-    elif len(file_list) == 0:
-        logger.warning("No geolocation file matching " + filename_tmpl
-                       + " in " + options["dir"])
-        logger.debug("Using 5km geolocation and interpolating")
-        filename = options["filename"]
-        coarse_resolution = 5000
-    else:
-        filename = file_list[0]
-        coarse_resolution = 1000
-
-    logger.debug("Loading geolocation file: " + str(filename)
-                 + " at resolution " + str(coarse_resolution))
-
-    resolution = options["resolution"]
-
-    data = SD(str(filename))
-    lat = data.select("Latitude")
-    fill_value = lat.attributes()["_FillValue"]
-    lat = np.ma.masked_equal(lat.get(), fill_value)
-    lon = data.select("Longitude")
-    fill_value = lon.attributes()["_FillValue"]
-    lon = np.ma.masked_equal(lon.get(), fill_value)
-
-    if resolution == coarse_resolution:
-        return lat, lon
-
-    cores = options["cores"]
-
-    from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
-    logger.debug("Interpolating from " + str(coarse_resolution)
-                 + " to " + str(resolution))
-    if coarse_resolution == 5000:
-        lon, lat = modis5kmto1km(lon, lat)
-    if resolution == 500:
-        lon, lat = modis1kmto500m(lon, lat, cores)
-    if resolution == 250:
-        lon, lat = modis1kmto250m(lon, lat, cores)
-
-    return lat, lon
+if __name__ == '__main__':
+    from satpy.utils import debug_on
+    debug_on()
+    br = HDFEOSBandReader('/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
+    gr = HDFEOSGeoReader('/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')

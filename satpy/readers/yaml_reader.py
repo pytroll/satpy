@@ -32,7 +32,7 @@ import six
 import yaml
 
 from satpy.readers import DatasetID
-from trollsift.parser import globify
+from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
 
@@ -81,12 +81,12 @@ class YAMLBasedReader(object):
         else:
             self.info["filenames"] = self.match_filenames(filenames, base_dir)
         if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", self.name)
+            LOG.warning("No filenames found for reader: %s", reader_info["name"])
         file_set -= set(self.info['filenames'])
         if file_set:
             raise IOError("Don't know how to open the following files: {}".format(str(file_set)))
         if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", self.name)
+            LOG.warning("No filenames found for reader: %s", reader_info["name"])
         LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
         return file_set, self.info['filenames']
 
@@ -140,23 +140,39 @@ class YAMLBasedReader(object):
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
             filetype = self.ids[dsid][1]['file_type']
+            types = {filetype: self.config['file_types'][filetype]['file_patterns']}
+            if 'navigation' in self.ids[dsid][1]:
+                nav_type = self.ids[dsid][1]['navigation']
+                nav_patterns = self.config['file_types'][nav_type]['file_patterns']
+                types[nav_type] = nav_patterns
+
             # filenames = self.find_filenames(base_directory, self.config['file_types'][filetype]['file_patterns'])
             filenames = self.info['filenames']
-            for filename in filenames:
-                match = False
-                for pattern in self.config['file_types'][filetype]['file_patterns']:
-                    if not fnmatch(os.path.basename(filename), globify(pattern)):
-                        continue
-                    else:
-                        match = True
-                if not match:
-                    continue
+            res = match_file_names_and_types(filenames, types)
+            for filename, file_info in res[filetype]:
                 if filename in loaded_filenames:
                     fhd = loaded_filenames[filename]
                 else:
                     fhd = self.config['file_types'][filetype]['file_reader'](filename)
+                    if 'navigation' in self.ids[dsid][1]:
+                        match = True
+                        for nav_name, nav_info in res[nav_type]:
+                            # This might be too strict for some data types/filenames
+                            shared_items = set(nav_info.items()) & set(file_info.items())
+                            if len(shared_items) == len(nav_info):
+                                break
+                        else:
+                            LOG.warning("Can't find a navigation file for %s", filename)
+                            match = False
+                        if match:
+                            if nav_name in loaded_filenames:
+                                fhd.navigation_reader = loaded_filenames[nav_name]
+                            else:
+                                fhd.navigation_reader = self.config['file_types'][nav_type]['file_reader'](nav_name)
+                                loaded_filenames[nav_name] = fhd.navigation_reader
                     loaded_filenames[filename] = fhd
                 datasets.setdefault(dsid, []).append(fhd)
+
         return multiload(datasets, area, start_time, end_time)
 
     def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
@@ -169,7 +185,6 @@ class YAMLBasedReader(object):
         if isinstance(key, numbers.Number):
             datasets = [ds for ds in self.ids if ds.wavelength and (ds.wavelength[0] <= key <= ds.wavelength[2])]
             datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
-
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
         elif isinstance(key, DatasetID):
@@ -206,12 +221,26 @@ class YAMLBasedReader(object):
             datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
         if polarization is not None:
             datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
+
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(str(key)))
         if aslist:
             return datasets
         else:
             return datasets[0]
+
+
+def match_file_names_and_types(filenames, filetypes):
+    res = {}
+    for filename in filenames:
+        for filetype, patterns in filetypes.items():
+            for pattern in patterns:
+                if fnmatch(os.path.basename(filename), globify(pattern)):
+                    res.setdefault(filetype, []).append((filename, parse(pattern, os.path.basename(filename))))
+                    break
+            if filename in res:
+                break
+    return res
 
 
 def my_vstack(arrays):
@@ -272,6 +301,7 @@ class SatFileHandler(object):
 
     def __init__(self, filename):
         self.filename = filename
+        self.navigation_reader = None
 
     def get_shape(self, dataset_id):
         raise NotImplementedError
@@ -280,4 +310,10 @@ class SatFileHandler(object):
         raise NotImplementedError
 
     def end_time(self):
+        raise NotImplementedError
+
+
+class GeoFileHandler(SatFileHandler):
+
+    def get_area(self, resolution=None):
         raise NotImplementedError
