@@ -729,6 +729,23 @@ class ConfigBasedReader(Reader):
         if self.default_file_reader is None:
             raise RuntimeError("'default_file_reader' is a required argument")
 
+    def check(self, base_dir, filenames=None, sensor=None, reader_name=None):
+        if isinstance(sensor, (str, six.text_type)):
+            sensor_set = set([sensor])
+        elif sensor is not None:
+            sensor_set = set(sensor)
+        else:
+            sensor_set = set()
+
+        file_set = set()
+        if filenames:
+            file_set |= set(filenames)
+
+        if sensor is None or not (set(self.info.get("sensors")) & sensor_set):
+            return filenames, []
+
+        self.filenames = self.find_filenames(base_dir)
+
         # Determine what we know about the files provided and create file readers to read them
         file_types = self.identify_file_types(self.filenames)
         # TODO: Add ability to discover files when none are provided
@@ -751,6 +768,15 @@ class ConfigBasedReader(Reader):
 
             file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
             self.file_readers[file_type_name] = file_reader
+
+    def find_filenames(self, directory, file_patterns=None):
+        if file_patterns is None:
+            file_patterns = self.file_patterns
+            # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
+        filelist = []
+        for pattern in file_patterns:
+            filelist.extend(glob.iglob(os.path.join(directory, globify(pattern))))
+        return filelist
 
     @property
     def available_datasets(self):
