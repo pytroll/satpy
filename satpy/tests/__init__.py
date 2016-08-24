@@ -23,6 +23,11 @@
 """The tests package.
 """
 
+import sys
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 from satpy.tests import (#test_satin_helpers,
                         #test_pp_core, # crash
                         #test_channel,
@@ -40,7 +45,6 @@ from satpy.tests import (#test_satin_helpers,
                         #test_visir,
                         )
 
-import unittest
 
 
 def suite():

@@ -90,8 +90,9 @@ class Node(object):
 class Scene(InfoObject):
     """The almighty scene class."""
 
-    def __init__(self, filenames=None, ppp_config_dir=None, reader_name=None, base_dir=None, **info):
-        """The Scene object constructor."""
+    def __init__(self, filenames=None, ppp_config_dir=None, reader=None, base_dir=None, **info):
+        """The Scene object constructor.
+        """
         # Get PPP_CONFIG_DIR
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         # Set the PPP_CONFIG_DIR in the environment in case it's used else where in pytroll
@@ -107,9 +108,8 @@ class Scene(InfoObject):
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir)
-        reader_instances = finder(reader_name=reader_name, sensor=self.info.get("sensor"), filenames=filenames)
-
+        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir, **self.info)
+        reader_instances = finder(reader=reader, sensor=self.info.get("sensor"), filenames=filenames)
         # reader finder could return multiple readers
         sensors = []
         for reader_instance in reader_instances:
@@ -229,7 +229,7 @@ class Scene(InfoObject):
         if not isinstance(value, Projectable):
             raise ValueError("Only 'Projectable' objects can be assigned")
         self.datasets[key] = value
-        self.wishlist.add(key)
+        self.wishlist.add(self.datasets.get_key(key))
 
     def __delitem__(self, key):
         """Remove the item from the scene."""
@@ -455,8 +455,8 @@ class Scene(InfoObject):
                         compositor = self.compositors[band]
                     except KeyError:
                         self.compositors.update(load_compositors([band], sensor_names,
-                                                                 ppp_config_dir=self.ppp_config_dir,
-                                                                 **kwargs))
+                                                ppp_config_dir=self.ppp_config_dir,
+                                                **kwargs))
                         compositor = self.compositors[band]
 
                     prereqs = list()

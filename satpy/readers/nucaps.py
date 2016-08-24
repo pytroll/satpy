@@ -264,9 +264,9 @@ class NUCAPSFileReader(GenericFileReader):
             lut = self[var_info.kwargs["lut"]][:]
             # Note: Need to use the original data as `data_out` might be a non-integer data type
             data_out[:] = lut[data.ravel()].reshape(data.shape)
-        elif var_info.scaling_factors:
+        elif var_info.factor:
             # L1B has 2 separate factors
-            factors_name, offset_name = var_info.scaling_factors.split(",")
+            factors_name, offset_name = var_info.factor.split(",")
             try:
                 factors = (self[factors_name], self[offset_name])
             except KeyError:

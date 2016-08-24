@@ -25,7 +25,6 @@
 """
 
 import numpy as np
-from satpy.resample import resample, get_area_def
 import six
 
 class InfoObject(object):
@@ -406,6 +405,8 @@ class Projectable(Dataset):
         Returns:
             A resampled projectable, with updated .info["area"] field
         """
+        # avoid circular imports, this is just a convenience function anyway
+        from satpy.resample import resample, get_area_def
         # call the projection stuff here
         source_area = self.info["area"]
 

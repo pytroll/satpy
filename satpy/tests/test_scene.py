@@ -24,7 +24,11 @@
 """
 
 import os
-import unittest
+import sys
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 import mock
 
 # clear the config dir environment variable so it doesn't interfere
@@ -43,7 +47,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.ReaderFinder') as findermock:
             scene = Scene(filenames=filenames)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None)
-            findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
+            findermock.return_value.assert_called_once_with(reader=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_empty_filenames(self):
         from satpy.scene import Scene
@@ -58,7 +62,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.ReaderFinder') as findermock:
             scene = Scene(sensor=sensors)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, sensor=sensors)
-            findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
+            findermock.return_value.assert_called_once_with(reader=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_sensor_and_filenames(self):
         from satpy.scene import Scene
@@ -68,7 +72,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.ReaderFinder') as findermock:
             scene = Scene(sensor=sensors, filenames=filenames)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None, sensor=sensors)
-            findermock.return_value.assert_called_once_with(reader_name=reader_name, sensor=sensors, filenames=filenames)
+            findermock.return_value.assert_called_once_with(reader=reader_name, sensor=sensors, filenames=filenames)
 
     def test_init_with_reader(self):
         from satpy.scene import Scene
@@ -76,9 +80,9 @@ class TestScene(unittest.TestCase):
         filenames = ["1", "2", "3"]
         sensors = None
         with mock.patch('satpy.scene.ReaderFinder') as findermock:
-            scene = Scene(reader_name=reader, filenames=filenames)
+            scene = Scene(reader=reader, filenames=filenames)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY, base_dir=None)
-            findermock.return_value.assert_called_once_with(reader_name=reader, sensor=sensors, filenames=filenames)
+            findermock.return_value.assert_called_once_with(reader=reader, sensor=sensors, filenames=filenames)
 
     def test_init_alone(self):
         from satpy.scene import Scene
