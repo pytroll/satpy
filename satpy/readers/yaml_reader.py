@@ -83,8 +83,6 @@ class YAMLBasedReader(object):
         if not self.info["filenames"]:
             LOG.warning("No filenames found for reader: %s", self.name)
         file_set -= set(self.info['filenames'])
-        if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", self.name)
         LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
         return file_set, self.info['filenames']
 
