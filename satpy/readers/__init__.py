@@ -213,7 +213,7 @@ class ReaderFinder(object):
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
 
-    def __call__(self, filenames=None, sensor=None, reader_name=None):
+    def __call__(self, filenames=None, sensor=None, reader=None):
 
         reader_names = set()
         reader_instances = []
@@ -237,10 +237,12 @@ class ReaderFinder(object):
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor, reader_name)
+            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor, reader)
             if loadable_files:
                 reader_instances.append(reader_instance)
-        if filenames:
+        if not reader_instances:
+            raise ValueError("No supported files found")
+        elif filenames:
             LOG.warning("Don't know how to open the following files: {}".format(str(filenames)))
         return reader_instances
 
