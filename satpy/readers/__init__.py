@@ -240,6 +240,8 @@ class ReaderFinder(object):
             filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor, reader_name)
             if loadable_files:
                 reader_instances.append(reader_instance)
+        if filenames:
+            LOG.warning("Don't know how to open the following files: {}".format(str(filenames)))
         return reader_instances
 
     def config_files(self):
