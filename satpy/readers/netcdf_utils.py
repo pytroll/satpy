@@ -68,7 +68,7 @@ class NetCDF4FileWrapper(object):
 
     """
     def __init__(self, filename, auto_maskandscale=False, **kwargs):
-        self.metadata = {}
+        self.file_content = {}
         self.filename = filename
         if not os.path.exists(filename):
             raise IOError("File {} does not exist!".format(filename))
@@ -89,9 +89,9 @@ class NetCDF4FileWrapper(object):
             value = getattr(obj, key)
             value = np.squeeze(value)
             if issubclass(value.dtype.type, str) or np.issubdtype(value.dtype, np.character):
-                self.metadata["{}/attr/{}".format(name, key)] = str(value)
+                self.file_content["{}/attr/{}".format(name, key)] = str(value)
             else:
-                self.metadata["{}/attr/{}".format(name, key)] = value
+                self.file_content["{}/attr/{}".format(name, key)] = value
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -104,18 +104,18 @@ class NetCDF4FileWrapper(object):
             self.collect_metadata(base_name + group_name, group_obj)
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
-            self.metadata[var_name] = var_obj
-            self.metadata[var_name + "/shape"] = var_obj.shape
+            self.file_content[var_name] = var_obj
+            self.file_content[var_name + "/shape"] = var_obj.shape
             self._collect_attrs(var_name, var_obj)
         self._collect_attrs(name, obj)
 
     def collect_dimensions(self, name, obj):
         for dim_name, dim_obj in obj.dimensions.items():
             dim_name = "{}/dimension/{}".format(name, dim_name)
-            self.metadata[dim_name] = len(dim_obj)
+            self.file_content[dim_name] = len(dim_obj)
 
     def __getitem__(self, key):
-        val = self.metadata[key]
+        val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             v = netCDF4.Dataset(self.filename, 'r')
@@ -124,4 +124,4 @@ class NetCDF4FileWrapper(object):
         return val
 
     def __contains__(self, item):
-        return item in self.metadata
+        return item in self.file_content
