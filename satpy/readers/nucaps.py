@@ -33,7 +33,7 @@ import logging
 from collections import defaultdict
 
 from satpy.readers import ConfigBasedReader, FileKey, GenericFileReader
-from satpy.readers.netcdf_utils import NetCDF4FileWrapper
+from satpy.readers.netcdf_utils import NetCDF4FileHandler
 import six
 
 NO_DATE = datetime(1958, 1, 1)
@@ -67,7 +67,7 @@ class NUCAPSFileReader(GenericFileReader):
 
         See `NetCDF4FileWrapper` for more information.
         """
-        handle = NetCDF4FileWrapper(filename, **kwargs)
+        handle = NetCDF4FileHandler(filename, **kwargs)
         return handle.filename, handle
 
     def variable_path(self, item):

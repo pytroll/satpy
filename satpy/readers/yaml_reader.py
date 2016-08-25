@@ -30,7 +30,6 @@ from fnmatch import fnmatch
 
 import six
 import yaml
-
 from satpy.readers import DatasetID
 from trollsift.parser import globify, parse
 
@@ -290,27 +289,3 @@ def multiload(datasets, area, start_time, end_time):
     # TODO: take care of the metadata
 
     return res
-
-
-# what about file pattern and config ?
-class SatFileHandler(object):
-
-    def __init__(self, filename, filename_info):
-        self.filename = filename
-        self.navigation_reader = None
-        self.filename_info = filename_info
-
-    def get_shape(self, dataset_id):
-        raise NotImplementedError
-
-    def start_time(self):
-        raise NotImplementedError
-
-    def end_time(self):
-        raise NotImplementedError
-
-
-class GeoFileHandler(SatFileHandler):
-
-    def get_area(self, resolution=None):
-        raise NotImplementedError

@@ -38,7 +38,7 @@ import numpy as np
 import logging
 
 from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
-from satpy.readers.hdf5_utils import HDF5MetaData
+from satpy.readers.hdf5_utils import HDF5FileHandler
 from trollsift.parser import parse as filename_parse
 
 NO_DATE = datetime(1958, 1, 1)
@@ -48,7 +48,7 @@ LOG = logging.getLogger(__name__)
 
 class EDRFileReader(GenericFileReader):
     def create_file_handle(self, filename, **kwargs):
-        handle = HDF5MetaData(filename, **kwargs)
+        handle = HDF5FileHandler(filename, **kwargs)
         return handle.filename, handle
 
     def __getitem__(self, item):
