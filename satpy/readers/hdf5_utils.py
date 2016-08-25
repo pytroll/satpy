@@ -41,7 +41,7 @@ class HDF5MetaData(object):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
     def __init__(self, filename, **kwargs):
-        self.metadata = {}
+        self.file_content = {}
         self.filename = filename
         if not os.path.exists(filename):
             raise IOError("File {} does not exist!".format(filename))
@@ -54,18 +54,18 @@ class HDF5MetaData(object):
         for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
             if issubclass(value.dtype.type, str):
-                self.metadata["{}/attr/{}".format(name, key)] = str(value)
+                self.file_content["{}/attr/{}".format(name, key)] = str(value)
             else:
-                self.metadata["{}/attr/{}".format(name, key)] = value
+                self.file_content["{}/attr/{}".format(name, key)] = value
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
-            self.metadata[name] = obj
-            self.metadata[name + "/shape"] = obj.shape
+            self.file_content[name] = obj
+            self.file_content[name + "/shape"] = obj.shape
         self._collect_attrs(name, obj.attrs)
 
     def __getitem__(self, key):
-        val = self.metadata[key]
+        val = self.file_content[key]
         if isinstance(val, h5py.Dataset):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             return h5py.File(self.filename, 'r')[key].value

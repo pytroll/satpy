@@ -145,16 +145,16 @@ class YAMLBasedReader(object):
             # filenames = self.find_filenames(base_directory, self.config['file_types'][filetype]['file_patterns'])
             filenames = self.info['filenames']
             res = match_file_names_and_types(filenames, types)
-            for filename, file_info in res[filetype]:
+            for filename, filename_info in res[filetype]:
                 if filename in loaded_filenames:
                     fhd = loaded_filenames[filename]
                 else:
-                    fhd = self.config['file_types'][filetype]['file_reader'](filename)
+                    fhd = self.config['file_types'][filetype]['file_reader'](filename, filename_info)
                     if 'navigation' in self.ids[dsid][1]:
                         match = True
                         for nav_name, nav_info in res[nav_type]:
                             # This might be too strict for some data types/filenames
-                            shared_items = set(nav_info.items()) & set(file_info.items())
+                            shared_items = set(nav_info.items()) & set(filename_info.items())
                             if len(shared_items) == len(nav_info):
                                 break
                         else:
@@ -295,9 +295,10 @@ def multiload(datasets, area, start_time, end_time):
 # what about file pattern and config ?
 class SatFileHandler(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename, filename_info):
         self.filename = filename
         self.navigation_reader = None
+        self.filename_metadata = filename_info
 
     def get_shape(self, dataset_id):
         raise NotImplementedError

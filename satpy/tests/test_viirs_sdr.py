@@ -149,9 +149,9 @@ class TestHDF5MetaData(unittest.TestCase):
             h.collect_metadata("fake", obj_mock)
             self.assertTrue(collect_attrs_patch.called)
             self.assertEqual(collect_attrs_patch.call_args, (("fake", obj_mock.attrs),))
-            self.assertIn("fake", h.metadata)
-            self.assertIn("fake/shape", h.metadata)
-            self.assertEqual(h.metadata["fake/shape"], DEFAULT_FILE_SHAPE)
+            self.assertIn("fake", h.file_content)
+            self.assertIn("fake/shape", h.file_content)
+            self.assertEqual(h.file_content["fake/shape"], DEFAULT_FILE_SHAPE)
 
     @mock.patch("h5py.File")
     @mock.patch("os.path.exists")
@@ -162,8 +162,8 @@ class TestHDF5MetaData(unittest.TestCase):
         f_handle = h5py_file_mock.return_value
         fake_dataset = f_handle["fake"].value
         h = HDF5MetaData("fake.h5")
-        h.metadata["fake"] = mock.Mock(spec=h5py.Dataset)
-        h.metadata["fake_other"] = 5
+        h.file_content["fake"] = mock.Mock(spec=h5py.Dataset)
+        h.file_content["fake_other"] = 5
         data = h["fake"]
         self.assertEqual(data, fake_dataset)
         data = h["fake_other"]
