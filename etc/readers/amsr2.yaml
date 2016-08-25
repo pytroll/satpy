@@ -1,0 +1,99 @@
+reader:
+    name: amsr2
+    description: GCOM-W1 AMSR2 instrument HDF5 reader
+    # could this be a python hook ?
+    reader: !!python/name:satpy.readers.yaml_reader.YAMLBasedReader ''
+    sensors: [amsr2]
+    default_channels: []
+
+navigation:
+  amsr2_10km:
+      description: standard 10km navigation
+      file_type: amsr2_l1b
+      latitude_key: 'Latitude of Observation Point for 89A'
+      longitude_key: 'Longitude of Observation Point for 89A'
+      nadir_resolution: [10000]
+      fill_value: -9999.0
+  amsr2_5km_a:
+      description: 5km navigation for the special 89GHz A channels (actually 5km)
+      file_type: amsr2_l1b
+      latitude_key: 'Latitude of Observation Point for 89A'
+      longitude_key: 'Longitude of Observation Point for 89A'
+      nadir_resolution: [5000]
+      fill_value: -9999.0
+  amsr2_5km_b:
+      description: 5km navigation for the special 89GHz B channels (actually 5km)
+      file_type: amsr2_l1b
+      latitude_key: 'Latitude of Observation Point for 89B'
+      longitude_key: 'Longitude of Observation Point for 89B'
+      nadir_resolution: [5000]
+      fill_value: -9999.0
+
+
+datasets:
+    btemp_10.7v:
+        name: 'btemp_10.7v'
+        # FIXME: These are actually GHz not micrometers
+        wavelength_range: [10.7, 10.7, 10.7]
+        resolution: 10000
+        navigation: amsr2_10km
+        standard_name: brightness_temperature
+        polarization: V
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (10.7GHz,V)"
+        fill_value: 65535
+    btemp_10.7h:
+        name: 'btemp_10.7h'
+        wavelength_range: [10.7, 10.7, 10.7]
+        resolution: 10000
+        navigation: amsr2_10km
+        standard_name: brightness_temperature
+        polarization: H
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (10.7GHz,H)"
+        fill_value: 65535
+    btemp_89.0av:
+        name: 'btemp_89.0av'
+        wavelength_range: [89.0, 89.0, 89.0]
+        resolution: 5000
+        navigation: amsr2_5km_a
+        standard_name: brightness_temperature
+        polarization: V
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (89.0GHz-A,V)"
+        fill_value: 65535
+    btemp_89.0ah:
+        name: 'btemp_89.0ah'
+        wavelength_range: [89.0, 89.0, 89.0]
+        resolution: 5000
+        navigation: amsr2_5km_a
+        standard_name: brightness_temperature
+        polarization: H
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (89.0GHz-A,H)"
+        fill_value: 65535
+    btemp_89.0bv:
+        name: 'btemp_89.0bv'
+        wavelength_range: [89.0, 89.0, 89.0]
+        resolution: 5000
+        navigation: amsr2_5km_b
+        standard_name: brightness_temperature
+        polarization: V
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (89.0GHz-B,V)"
+        fill_value: 65535
+    btemp_89.0bh:
+        name: 'btemp_89.0bh'
+        wavelength_range: [89.0, 89.0, 89.0]
+        resolution: 5000
+        navigation: amsr2_5km_b
+        standard_name: brightness_temperature
+        polarization: H
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (89.0GHz-B,H)"
+        fill_value: 65535
+
+file_types:
+    amsr2_l1b:
+        file_reader: !!python/name:satpy.readers.amsr2_l1b.AMSR2L1BFileHandler ''
+        file_patterns: ['{platform_shortname:3s}{instrument_shortname:3s}_{start_time:%Y%m%d%H%M}_{path_number:3d}{orbit_direction:1s}_{process_level:2s}{process_kind:2s}{product_id:3s}{resolution_id:1s}{dev_id:1s}{product_version:1s}{algorithm_version:3d}{parameter_version:3d}.h5']
