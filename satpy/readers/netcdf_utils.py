@@ -66,8 +66,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         wrapper["group/subgroup/var_name/shape"]
 
     """
-    def __init__(self, filename, filename_info, auto_maskandscale=False):
-        super(NetCDF4FileHandler, self).__init__(filename, filename_info)
+    def __init__(self, filename, filename_info, auto_maskandscale=False, **kwargs):
+        super(NetCDF4FileHandler, self).__init__(filename, filename_info, **kwargs)
         self.file_content = {}
         file_handle = netCDF4.Dataset(self.filename, 'r')
 
