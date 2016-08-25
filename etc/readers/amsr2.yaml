@@ -52,6 +52,27 @@ datasets:
         file_type: amsr2_l1b
         file_key: "Brightness Temperature (10.7GHz,H)"
         fill_value: 65535
+    btemp_36.5v:
+        name: 'btemp_36.5v'
+        # FIXME: These are actually GHz not micrometers
+        wavelength_range: [36.5, 36.5, 36.5]
+        resolution: 10000
+        navigation: amsr2_10km
+        standard_name: brightness_temperature
+        polarization: V
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (36.5GHz,V)"
+        fill_value: 65535
+    btemp_36.5h:
+        name: 'btemp_36.5h'
+        wavelength_range: [36.5, 36.5, 36.5]
+        resolution: 10000
+        navigation: amsr2_10km
+        standard_name: brightness_temperature
+        polarization: H
+        file_type: amsr2_l1b
+        file_key: "Brightness Temperature (36.5GHz,H)"
+        fill_value: 65535
     btemp_89.0av:
         name: 'btemp_89.0av'
         wavelength_range: [89.0, 89.0, 89.0]
