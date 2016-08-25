@@ -39,6 +39,8 @@ import logging
 
 from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 from satpy.readers.hdf5_utils import HDF5MetaData
+from satpy.readers.yaml_reader import YAMLBasedReader
+import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -278,9 +280,9 @@ class SDRFileReader(GenericFileReader):
         return data_out, mask_out
 
 
-class VIIRSSDRReader(ConfigBasedReader):
+class VIIRSINISDRReader(ConfigBasedReader):
     def __init__(self, default_file_reader=SDRFileReader, default_config_filename="readers/viirs_sdr.cfg", **kwargs):
-        super(VIIRSSDRReader, self).__init__(default_file_reader=default_file_reader,
+        super(VIIRSINISDRReader, self).__init__(default_file_reader=default_file_reader,
                                              default_config_filename=default_config_filename,
                                              **kwargs
                                              )
@@ -310,5 +312,9 @@ class VIIRSSDRReader(ConfigBasedReader):
                     "do not match the configured geolocation ({})".format(file_type))
             self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
-        return super(VIIRSSDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
+        return super(VIIRSINISDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
+
+
+class VIIRSSDRReader(YAMLBasedReader):
+    pass
 
