@@ -298,7 +298,7 @@ class SatFileHandler(object):
     def __init__(self, filename, filename_info):
         self.filename = filename
         self.navigation_reader = None
-        self.filename_metadata = filename_info
+        self.filename_info = filename_info
 
     def get_shape(self, dataset_id):
         raise NotImplementedError
