@@ -218,6 +218,10 @@ class ReaderFinder(object):
         reader_names = set()
         reader_instances = []
 
+        if filenames is None and sensor is None and reader is None:
+            # we weren't given anything to search through
+            return reader_instances
+
         for config_file in self.config_files():
             config_basename = os.path.basename(config_file)
             if config_basename in reader_names:
