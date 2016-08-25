@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from satpy.readers import ConfigBasedReader, GenericFileReader
-from satpy.readers.netcdf_utils import NetCDF4FileWrapper
+from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -42,7 +42,7 @@ class L1BFileReader(GenericFileReader):
     """VIIRS L1B File Reader
     """
     def create_file_handle(self, filename, **kwargs):
-        handle = NetCDF4FileWrapper(filename, **kwargs)
+        handle = NetCDF4FileHandler(filename, **kwargs)
         return handle.filename, handle
 
     def __getitem__(self, item):

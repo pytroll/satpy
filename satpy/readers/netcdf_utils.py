@@ -32,15 +32,14 @@ from datetime import datetime, timedelta
 import numpy as np
 import logging
 
-from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
-import six
+from satpy.readers.file_handlers import BaseFileHandler
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
-class NetCDF4FileWrapper(object):
+class NetCDF4FileHandler(BaseFileHandler):
     """Small class for inspecting a NetCDF4 file and retrieving its metadata/header data.
 
     File information can be accessed using bracket notation. Variables are
@@ -67,11 +66,9 @@ class NetCDF4FileWrapper(object):
         wrapper["group/subgroup/var_name/shape"]
 
     """
-    def __init__(self, filename, auto_maskandscale=False, **kwargs):
+    def __init__(self, filename, filename_info, auto_maskandscale=False):
+        super(NetCDF4FileHandler, self).__init__(filename, filename_info)
         self.file_content = {}
-        self.filename = filename
-        if not os.path.exists(filename):
-            raise IOError("File {} does not exist!".format(filename))
         file_handle = netCDF4.Dataset(self.filename, 'r')
 
         self.auto_maskandscale= auto_maskandscale

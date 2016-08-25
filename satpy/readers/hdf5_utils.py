@@ -31,20 +31,19 @@ import numpy as np
 import logging
 import h5py
 import six
+from satpy.readers.file_handlers import BaseFileHandler
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
-class HDF5MetaData(object):
+class HDF5FileHandler(BaseFileHandler):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
-    def __init__(self, filename, **kwargs):
+    def __init__(self, filename, filename_info):
+        super(HDF5FileHandler, self).__init__(filename, filename_info)
         self.file_content = {}
-        self.filename = filename
-        if not os.path.exists(filename):
-            raise IOError("File {} does not exist!".format(filename))
         file_handle = h5py.File(self.filename, 'r')
         file_handle.visititems(self.collect_metadata)
         self._collect_attrs('', file_handle.attrs)

@@ -107,14 +107,14 @@ class FakeHDF5MetaData(object):
 
 class TestHDF5MetaData(unittest.TestCase):
     def test_init_doesnt_exist(self):
-        from satpy.readers.viirs_sdr import HDF5MetaData
-        self.assertRaises(IOError, HDF5MetaData, "test_asdflkajsd.h5")
+        from satpy.readers.viirs_sdr import HDF5FileHandler
+        self.assertRaises(IOError, HDF5FileHandler, "test_asdflkajsd.h5")
 
     @mock.patch("h5py.File")
     @mock.patch("os.path.exists")
     def test_init_basic(self, os_exists_mock, h5py_file_mock):
         import h5py
-        from satpy.readers.viirs_sdr import HDF5MetaData
+        from satpy.readers.viirs_sdr import HDF5FileHandler
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
         f_handle.attrs = {
@@ -123,7 +123,7 @@ class TestHDF5MetaData(unittest.TestCase):
             "test_arr": np.arange(5),
         }
         # f_handle.visititems.side_effect = lambda f: f()
-        h = HDF5MetaData("fake.h5")
+        h = HDF5FileHandler("fake.h5")
         self.assertTrue(h5py_file_mock.called)
         self.assertTrue(f_handle.visititems.called)
         self.assertTrue(f_handle.close.called)
@@ -133,10 +133,10 @@ class TestHDF5MetaData(unittest.TestCase):
     @mock.patch("os.path.exists")
     def test_collect_metadata(self, os_exists_mock, h5py_file_mock):
         import h5py
-        from satpy.readers.viirs_sdr import HDF5MetaData
+        from satpy.readers.viirs_sdr import HDF5FileHandler
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
-        h = HDF5MetaData("fake.h5")
+        h = HDF5FileHandler("fake.h5")
         with mock.patch.object(h, "_collect_attrs") as collect_attrs_patch:
             obj_mock = mock.Mock()
             h.collect_metadata("fake", obj_mock)
@@ -157,11 +157,11 @@ class TestHDF5MetaData(unittest.TestCase):
     @mock.patch("os.path.exists")
     def test_getitem(self, os_exists_mock, h5py_file_mock):
         import h5py
-        from satpy.readers.viirs_sdr import HDF5MetaData
+        from satpy.readers.viirs_sdr import HDF5FileHandler
         os_exists_mock.return_value = True
         f_handle = h5py_file_mock.return_value
         fake_dataset = f_handle["fake"].value
-        h = HDF5MetaData("fake.h5")
+        h = HDF5FileHandler("fake.h5")
         h.file_content["fake"] = mock.Mock(spec=h5py.Dataset)
         h.file_content["fake_other"] = 5
         data = h["fake"]

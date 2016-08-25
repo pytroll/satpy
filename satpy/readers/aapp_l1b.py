@@ -43,12 +43,12 @@ import numpy as np
 
 from pyresample.geometry import SwathDefinition
 from satpy.projectable import Projectable
-from satpy.readers.yaml_reader import SatFileHandler
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-class AVHRRAAPPL1BFile(SatFileHandler):
+class AVHRRAAPPL1BFile(BaseFileHandler):
 
     def __init__(self, filename):
         super(AVHRRAAPPL1BFile, self).__init__(filename)

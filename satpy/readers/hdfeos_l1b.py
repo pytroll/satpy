@@ -51,7 +51,7 @@ from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers import DatasetID
-from satpy.readers.yaml_reader import GeoFileHandler, SatFileHandler
+from satpy.readers.file_handlers import BaseFileHandler, GeoFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +262,7 @@ class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
         return lon, lat
 
 
-class HDFEOSBandReader(HDFEOSFileReader, SatFileHandler):
+class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
 
     res = {"1": 1000,
            "Q": 250,
