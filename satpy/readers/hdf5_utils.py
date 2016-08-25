@@ -41,8 +41,8 @@ LOG = logging.getLogger(__name__)
 class HDF5FileHandler(BaseFileHandler):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
-    def __init__(self, filename, filename_info):
-        super(HDF5FileHandler, self).__init__(filename, filename_info)
+    def __init__(self, filename, filename_info, **kwargs):
+        super(HDF5FileHandler, self).__init__(filename, filename_info, **kwargs)
         self.file_content = {}
         file_handle = h5py.File(self.filename, 'r')
         file_handle.visititems(self.collect_metadata)

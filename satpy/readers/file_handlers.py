@@ -24,10 +24,13 @@
 # what about file pattern and config ?
 class BaseFileHandler(object):
 
-    def __init__(self, filename, filename_info):
+    def __init__(self, filename, filename_info, **kwargs):
         self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
+
+    def get_dataset(self, dataset_id, ds_info, out=None):
+        raise NotImplementedError
 
     def get_shape(self, dataset_id):
         raise NotImplementedError
@@ -41,5 +44,5 @@ class BaseFileHandler(object):
 
 class GeoFileHandler(BaseFileHandler):
 
-    def get_area(self, resolution=None):
+    def get_area(self, nav_name, nav_info, lon_out, lat_out):
         raise NotImplementedError

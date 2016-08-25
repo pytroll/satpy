@@ -30,8 +30,11 @@ from fnmatch import fnmatch
 
 import six
 import yaml
-from satpy.readers import DatasetID
+import numpy as np
+from satpy.readers import DatasetID, DatasetDict
+from satpy.projectable import Projectable, combine_info
 from trollsift.parser import globify, parse
+from pyresample import geometry
 
 LOG = logging.getLogger(__name__)
 
@@ -129,46 +132,135 @@ class YAMLBasedReader(object):
                 self.ids[dsid] = dskey, dataset
         return ids
 
+    def _load_file_handler(self, filetype, start_time, end_time, area):
+        # create the handler for this file type
+        filetype_info = self.config['file_types'][filetype]
+        filetype_cls = filetype_info['file_reader']
+        res = match_file_names_and_types(self.info["filenames"], {filetype: filetype_info['file_patterns']})
+
+        file_handlers = []
+        for filename, filename_info in res[filetype]:
+            file_handler = filetype_cls(filename, filename_info, **filetype_info)
+
+            # Only add this file handler if it is within the time we want
+            if start_time and file_handler.start_time() < start_time:
+                continue
+            if end_time and file_handler.end_time() > end_time:
+                continue
+
+            # TODO: Area filtering
+
+            # this file is in the time/area we want
+            file_handlers.append(file_handler)
+
+        # TODO: Separate file loading from data loading so we can assert that we have the same number of files for each type
+        # sort the file handlers by start time
+        file_handlers = sorted(file_handlers, key=lambda x: x.start_time())
+        return file_handlers
+
+    def _load_dataset(self, file_handlers, dsid, ds_info):
+        # TODO: Put this in it's own function probably
+        try:
+            # Can we allow the file handlers to do inplace data writes?
+            all_shapes = [fh.get_shape(dsid, **ds_info) for fh in file_handlers]
+            # rows accumlate, columns stay the same
+            overall_shape = (sum([x[0] for x in all_shapes]), all_shapes[0][1])
+        except (NotImplementedError, Exception):
+            # FIXME: Is NotImplementedError included in Exception for all versions of Python?
+            all_shapes = None
+            overall_shape = None
+
+        if overall_shape is None:
+            # can't optimize by using inplace loading
+            projectables = []
+            for fh in file_handlers:
+                projectables.append(fh.get_dataset(dsid, ds_info))
+
+            # Join them all together
+            all_shapes = [x.shape for x in projectables]
+            proj = Projectable(np.vstack(projectables), **combine_info(*projectables))
+            del projectables  # clean up some space since we don't need these anymore
+        else:
+            # we can optimize
+            # create a projectable object for the file handler to fill in
+            proj = Projectable(np.empty(overall_shape, dtype=ds_info.get('dtype', np.float32)))
+
+            offset = 0
+            for idx, fh in enumerate(file_handlers):
+                granule_height = all_shapes[idx][0]
+                # XXX: Does this work with masked arrays and subclasses of them?
+                # Otherwise, have to send in separate data, mask, and info parameters to be filled in
+                fh.get_dataset(dsid, ds_info, out=proj[offset: offset + granule_height])
+                offset += granule_height
+
+        # Update the metadata
+        proj.info['start_time'] = file_handlers[0].start_time()
+        proj.info['end_time'] = file_handlers[-1].end_time()
+
+        return all_shapes, proj
+
+    def _load_area(self, file_handlers, nav_name, nav_info, all_shapes, shape):
+        lons = np.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        lats = np.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        offset = 0
+        for idx, fh in enumerate(file_handlers):
+            granule_height = all_shapes[idx][0]
+            fh.get_area(nav_name, nav_info,
+                         lon_out=lons[offset: offset + granule_height],
+                         lat_out=lats[offset: offset + granule_height])
+            offset += granule_height
+
+        area = geometry.SwathDefinition(lons, lats)
+        # FIXME: How do we name areas?
+        area.name = nav_name
+        return area
+
     def load(self, dataset_keys, area=None, start_time=None, end_time=None, **kwargs):
-        loaded_filenames = {}
-        datasets = {}
+        loaded_filetypes = {}
+        loaded_navs = {}
+        datasets = DatasetDict()
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
-            filetype = self.ids[dsid][1]['file_type']
-            types = {filetype: self.config['file_types'][filetype]['file_patterns']}
-            if 'navigation' in self.ids[dsid][1]:
-                nav_type = self.ids[dsid][1]['navigation']
-                nav_patterns = self.config['file_types'][nav_type]['file_patterns']
-                types[nav_type] = nav_patterns
+            ds_info = self.ids[dsid][1]
+            # HACK: wavelength is a list from pyyaml but a tuple in the dsid
+            # when setting it in the DatasetDict it will fail because they are not equal
+            if "wavelength_range" in ds_info:
+                ds_info["wavelength_range"] = tuple(ds_info["wavelength_range"])
 
-            # filenames = self.find_filenames(base_directory, self.config['file_types'][filetype]['file_patterns'])
-            filenames = self.info['filenames']
-            res = match_file_names_and_types(filenames, types)
-            for filename, filename_info in res[filetype]:
-                if filename in loaded_filenames:
-                    fhd = loaded_filenames[filename]
+            # Get the file handler to load this dataset
+            filetype = ds_info['file_type']
+            if filetype in loaded_filetypes:
+                file_handlers = loaded_filetypes[filetype]
+            else:
+                file_handlers = self._load_file_handler(filetype, start_time, end_time, area)
+                loaded_filetypes[filetype] = file_handlers
+
+            all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
+            datasets[dsid] = proj
+
+            if 'area' not in proj.info or proj.info['area'] is None:
+                # we need to load the area because the file handlers didn't
+                nav_name = ds_info.get('navigation')
+                if nav_name is None or nav_name not in self.config['navigation']:
+                    # we don't know how to load navigation
+                    # XXX: Warning instead?
+                    raise ValueError("Can't load navigation for {}".format(dsid))
+                elif nav_name in loaded_navs:
+                    ds_area = loaded_navs[nav_name]
                 else:
-                    fhd = self.config['file_types'][filetype]['file_reader'](filename, filename_info)
-                    if 'navigation' in self.ids[dsid][1]:
-                        match = True
-                        for nav_name, nav_info in res[nav_type]:
-                            # This might be too strict for some data types/filenames
-                            shared_items = set(nav_info.items()) & set(filename_info.items())
-                            if len(shared_items) == len(nav_info):
-                                break
-                        else:
-                            LOG.warning("Can't find a navigation file for %s", filename)
-                            match = False
-                        if match:
-                            if nav_name in loaded_filenames:
-                                fhd.navigation_reader = loaded_filenames[nav_name]
-                            else:
-                                fhd.navigation_reader = self.config['file_types'][nav_type]['file_reader'](nav_name)
-                                loaded_filenames[nav_name] = fhd.navigation_reader
-                    loaded_filenames[filename] = fhd
-                datasets.setdefault(dsid, []).append(fhd)
+                    nav_info = self.config['navigation'][nav_name]
+                    nav_filetype = nav_info['file_type']
+                    if nav_filetype in loaded_filetypes:
+                        nav_fhs = loaded_filetypes[nav_filetype]
+                    else:
+                        nav_fhs = self._load_file_handler(nav_filetype, start_time, end_time, area)
+                        loaded_filetypes[nav_filetype] = nav_fhs
 
-        return multiload(datasets, area, start_time, end_time)
+                    ds_area = self._load_area(nav_fhs, nav_name, nav_info, all_shapes, proj.shape)
+                    loaded_navs[nav_name] = ds_area
+                proj.info["area"] = ds_area
+
+        return datasets
 
     def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
         """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
