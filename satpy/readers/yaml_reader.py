@@ -200,8 +200,8 @@ class YAMLBasedReader(object):
         return all_shapes, proj
 
     def _load_area(self, file_handlers, nav_name, nav_info, all_shapes, shape):
-        lons = np.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        lats = np.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
