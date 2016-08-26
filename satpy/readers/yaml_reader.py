@@ -239,8 +239,7 @@ class YAMLBasedReader(object):
                 nav_name = ds_info.get('navigation')
                 if nav_name is None or nav_name not in self.config['navigation']:
                     # we don't know how to load navigation
-                    # XXX: Warning instead?
-                    raise ValueError("Can't load navigation for {}".format(dsid))
+                    LOG.warning("Can't load navigation for {}".format(dsid))
                 elif nav_name in loaded_navs:
                     ds_area = loaded_navs[nav_name]
                 else:
