@@ -1,5 +1,5 @@
 reader:
-    name: amsr2
+    name: amsr2_l1b
     description: GCOM-W1 AMSR2 instrument HDF5 reader
     # could this be a python hook ?
     reader: !!python/name:satpy.readers.yaml_reader.YAMLBasedReader ''
