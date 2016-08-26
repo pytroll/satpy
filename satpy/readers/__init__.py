@@ -214,21 +214,26 @@ class ReaderFinder(object):
         self.base_dir = base_dir
 
     def __call__(self, filenames=None, sensor=None, reader=None):
-
-        reader_names = set()
         reader_instances = []
 
-        if filenames is None and sensor is None and reader is None:
+        if not filenames and sensor is None and reader is None:
             # we weren't given anything to search through
             return reader_instances
 
-        for config_file in self.config_files():
+        if reader is not None:
+            # given a config filename or reader name
+            if not reader.endswith(".yaml") and not reader.endswith(".cfg"):
+                reader += ".yaml"
+            config_files = [reader]
+        else:
+            config_files = self.config_files()
+        # FUTURE: Allow for a reader instance to be passed
+
+        filenames = set(filenames)  # may have been given an iterator
+        for config_file in config_files:
             config_basename = os.path.basename(config_file)
-            if config_basename in reader_names:
-                continue
-            else:
-                reader_names.add(config_basename)
             reader_configs = config_search_paths(os.path.join("readers", config_basename), self.ppp_config_dir)
+
             try:
                 reader_info = self._read_reader_config(reader_configs)
             except (MalformedConfigError, yaml.YAMLError) as err:
@@ -241,13 +246,13 @@ class ReaderFinder(object):
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor, reader)
+            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor)
             if loadable_files:
                 reader_instances.append(reader_instance)
+        if filenames:
+            LOG.warning("Don't know how to open the following files: {}".format(str(filenames)))
         if not reader_instances:
             raise ValueError("No supported files found")
-        elif filenames:
-            LOG.warning("Don't know how to open the following files: {}".format(str(filenames)))
         return reader_instances
 
     def config_files(self):

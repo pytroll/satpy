@@ -59,11 +59,7 @@ class YAMLBasedReader(object):
         self.ids = {}
         self.get_dataset_ids()
 
-    def select_files(self, base_dir=None, filenames=None, sensor=None, reader_name=None):
-
-        if reader_name is not None and self.info['name'] != reader_name:
-            return filenames, []
-
+    def select_files(self, base_dir=None, filenames=None, sensor=None):
         if isinstance(sensor, (str, six.text_type)):
             sensor_set = set([sensor])
         elif sensor is not None:
