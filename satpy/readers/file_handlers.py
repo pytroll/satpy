@@ -20,6 +20,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
+from satpy.projectable import combine_info
 
 # what about file pattern and config ?
 class BaseFileHandler(object):
@@ -34,6 +35,35 @@ class BaseFileHandler(object):
 
     def get_shape(self, dataset_id):
         raise NotImplementedError
+
+    def combine_info(self, all_infos):
+        """Combine metadata for multiple datasets.
+
+        When loading data from multiple files it can be non-trivial to combine
+        things like start_time, end_time, start_orbit, end_orbit, etc.
+
+        By default this method will produce a dictionary containing all values
+        that were equal across **all** provided info dictionaries.
+
+        Additionally it performs the logical comparisons to produce the
+        following if they exist:
+
+         - start_time
+         - end_time
+         - start_orbit
+         - end_orbit
+
+        """
+        combined_info = combine_info(*all_infos)
+        if 'start_time' not in combined_info and 'start_time' in all_infos[0]:
+            combined_info['start_time'] = min(i['start_time'] for i in all_infos)
+        if 'end_time' not in combined_info and 'end_time' in all_infos[0]:
+            combined_info['end_time'] = max(i['end_time'] for i in all_infos)
+        if 'start_orbit' not in combined_info and 'start_orbit' in all_infos[0]:
+            combined_info['start_orbit'] = min(i['start_orbit'] for i in all_infos)
+        if 'end_orbit' not in combined_info and 'end_orbit' in all_infos[0]:
+            combined_info['end_orbit'] = max(i['end_orbit'] for i in all_infos)
+        return combined_info
 
     def start_time(self):
         raise NotImplementedError

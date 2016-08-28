@@ -174,7 +174,8 @@ class YAMLBasedReader(object):
 
             # Join them all together
             all_shapes = [x.shape for x in projectables]
-            proj = Projectable(np.vstack(projectables), **combine_info(*projectables))
+            combined_info = file_handlers[0].combine_info([p.info for p in projectables])
+            proj = Projectable(np.vstack(projectables), **combined_info)
             del projectables  # clean up some space since we don't need these anymore
         else:
             # we can optimize
@@ -186,6 +187,7 @@ class YAMLBasedReader(object):
                 granule_height = all_shapes[idx][0]
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
+                # TODO: Combine info in a sane way
                 fh.get_dataset(dsid, ds_info, out=proj[offset: offset + granule_height])
                 offset += granule_height
 
