@@ -48,5 +48,9 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             "name": ds_key.name,
             "id": ds_key,
             "units": self[var_path + "/attr/UNIT"],
+            "platform": self["/attr/PlatformShortName"].item(),
+            "sensor": self["/attr/SensorShortName"].item(),
+            "start_orbit": int(self["/attr/StartOrbitNumber"].item()),
+            "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
         })
         return Projectable(data, mask=mask, **ds_info)
