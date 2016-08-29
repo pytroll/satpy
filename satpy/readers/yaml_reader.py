@@ -56,10 +56,23 @@ class YAMLBasedReader(object):
         self.file_patterns = []
         for file_type in self.config['file_types'].values():
             self.file_patterns.extend(file_type['file_patterns'])
+        self.file_handlers = {}
         self.ids = {}
         self.get_dataset_ids()
 
-    def select_files(self, base_dir=None, filenames=None, sensor=None):
+    @property
+    def start_time(self):
+        if not self.file_handlers:
+            raise RuntimeError("Start time unknown until files are selected")
+        return min(x.start_time() for x in self.file_handlers.values()[0])
+
+    @property
+    def end_time(self):
+        if not self.file_handlers:
+            raise RuntimeError("End time unknown until files are selected")
+        return max(x.end_time() for x in self.file_handlers.values()[0])
+
+    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
         if isinstance(sensor, (str, six.text_type)):
             sensor_set = set([sensor])
         elif sensor is not None:
@@ -82,6 +95,36 @@ class YAMLBasedReader(object):
             LOG.warning("No filenames found for reader: %s", self.name)
         file_set -= set(self.info['filenames'])
         LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
+
+        # Organize filenames in to file types and create file handlers
+        remaining_filenames = set(self.info['filenames'])
+        for filetype, filetype_info in self.config['file_types'].items():
+            filetype_cls = filetype_info['file_reader']
+            patterns = filetype_info['file_patterns']
+            self.file_handlers[filetype] = []
+            for pattern in patterns:
+                used_filenames = set()
+                for filename in remaining_filenames:
+                    if fnmatch(os.path.basename(filename), globify(pattern)):
+                        # we know how to use this file (even if we may not use it later)
+                        used_filenames.add(filename)
+                        filename_info = parse(pattern, os.path.basename(filename))
+                        file_handler = filetype_cls(filename, filename_info, **filetype_info)
+
+                        # Only add this file handler if it is within the time we want
+                        if start_time and file_handler.start_time() < start_time:
+                            continue
+                        if end_time and file_handler.end_time() > end_time:
+                            continue
+
+                        # TODO: Area filtering
+
+                        self.file_handlers[filetype].append(file_handler)
+                remaining_filenames -= used_filenames
+
+            # Sort the file handlers by start time
+            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time())
+
         return file_set, self.info['filenames']
 
     def match_filenames(self, filenames, base_dir=None):
@@ -127,32 +170,6 @@ class YAMLBasedReader(object):
                 ids.append(dsid)
                 self.ids[dsid] = dskey, dataset
         return ids
-
-    def _load_file_handler(self, filetype, start_time, end_time, area):
-        # create the handler for this file type
-        filetype_info = self.config['file_types'][filetype]
-        filetype_cls = filetype_info['file_reader']
-        res = match_file_names_and_types(self.info["filenames"], {filetype: filetype_info['file_patterns']})
-
-        file_handlers = []
-        for filename, filename_info in res[filetype]:
-            file_handler = filetype_cls(filename, filename_info, **filetype_info)
-
-            # Only add this file handler if it is within the time we want
-            if start_time and file_handler.start_time() < start_time:
-                continue
-            if end_time and file_handler.end_time() > end_time:
-                continue
-
-            # TODO: Area filtering
-
-            # this file is in the time/area we want
-            file_handlers.append(file_handler)
-
-        # TODO: Separate file loading from data loading so we can assert that we have the same number of files for each type
-        # sort the file handlers by start time
-        file_handlers = sorted(file_handlers, key=lambda x: x.start_time())
-        return file_handlers
 
     def _load_dataset(self, file_handlers, dsid, ds_info):
         # TODO: Put this in it's own function probably
@@ -214,7 +231,6 @@ class YAMLBasedReader(object):
         return area
 
     def load(self, dataset_keys, area=None, start_time=None, end_time=None, **kwargs):
-        loaded_filetypes = {}
         loaded_navs = {}
         datasets = DatasetDict()
         for dataset_key in dataset_keys:
@@ -227,11 +243,9 @@ class YAMLBasedReader(object):
 
             # Get the file handler to load this dataset
             filetype = ds_info['file_type']
-            if filetype in loaded_filetypes:
-                file_handlers = loaded_filetypes[filetype]
-            else:
-                file_handlers = self._load_file_handler(filetype, start_time, end_time, area)
-                loaded_filetypes[filetype] = file_handlers
+            if filetype not in self.file_handlers:
+                raise RuntimeError("Required file type '{}' not found or loaded".format(filetype))
+            file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
             datasets[dsid] = proj
@@ -247,11 +261,9 @@ class YAMLBasedReader(object):
                 else:
                     nav_info = self.config['navigation'][nav_name]
                     nav_filetype = nav_info['file_type']
-                    if nav_filetype in loaded_filetypes:
-                        nav_fhs = loaded_filetypes[nav_filetype]
-                    else:
-                        nav_fhs = self._load_file_handler(nav_filetype, start_time, end_time, area)
-                        loaded_filetypes[nav_filetype] = nav_fhs
+                    if nav_filetype not in self.file_handlers:
+                        raise RuntimeError("Required file type '{}' not found or loaded".format(nav_filetype))
+                    nav_fhs = self.file_handlers[nav_filetype]
 
                     ds_area = self._load_area(nav_fhs, nav_name, nav_info, all_shapes, proj.shape)
                     loaded_navs[nav_name] = ds_area
