@@ -120,6 +120,14 @@ class Scene(InfoObject):
         if not self.info.get("sensor"):
             self.info["sensor"] = sensors
 
+    @property
+    def start_time(self):
+        return min(x.start_time for x in self.readers.values())
+
+    @property
+    def end_time(self):
+        return max(x.end_time for x in self.readers.values())
+
     def available_datasets(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name* if specified, that can be loaded.
 

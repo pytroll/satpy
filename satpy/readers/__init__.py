@@ -209,9 +209,12 @@ class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
 
-    def __init__(self, ppp_config_dir=None, base_dir=None):
+    def __init__(self, ppp_config_dir=None, base_dir=None, start_time=None, end_time=None, area=None):
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
+        self.start_time = start_time
+        self.end_time = end_time
+        self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None):
         reader_instances = []
@@ -226,7 +229,7 @@ class ReaderFinder(object):
                 reader += ".yaml"
             config_files = [reader]
         else:
-            config_files = self.config_files()
+            config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
         filenames = set(filenames)  # may have been given an iterator
@@ -246,7 +249,10 @@ class ReaderFinder(object):
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor)
+            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor,
+                                                                     start_time=self.start_time,
+                                                                     end_time=self.end_time,
+                                                                     area=self.area)
             if loadable_files:
                 reader_instances.append(reader_instance)
         if filenames:
