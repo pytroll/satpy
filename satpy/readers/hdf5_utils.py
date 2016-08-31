@@ -25,12 +25,14 @@
 """Helpers for reading netcdf-based files.
 
 """
+import logging
 import os.path
 from datetime import datetime, timedelta
-import numpy as np
-import logging
+
 import h5py
+import numpy as np
 import six
+
 from satpy.readers.file_handlers import BaseFileHandler
 
 NO_DATE = datetime(1958, 1, 1)
@@ -41,8 +43,9 @@ LOG = logging.getLogger(__name__)
 class HDF5FileHandler(BaseFileHandler):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
-    def __init__(self, filename, filename_info, **kwargs):
-        super(HDF5FileHandler, self).__init__(filename, filename_info, **kwargs)
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         file_handle = h5py.File(self.filename, 'r')
         file_handle.visititems(self.collect_metadata)
@@ -69,4 +72,3 @@ class HDF5FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             return h5py.File(self.filename, 'r')[key].value
         return val
-

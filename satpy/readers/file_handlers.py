@@ -22,10 +22,13 @@
 
 from satpy.projectable import combine_info
 
+
 # what about file pattern and config ?
+
+
 class BaseFileHandler(object):
 
-    def __init__(self, filename, filename_info, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info):
         self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
@@ -74,5 +77,5 @@ class BaseFileHandler(object):
 
 class GeoFileHandler(BaseFileHandler):
 
-    def get_area(self, nav_name, nav_info, lon_out, lat_out):
+    def get_area(self, nav_name, nav_info, resolution, lon_out, lat_out):
         raise NotImplementedError

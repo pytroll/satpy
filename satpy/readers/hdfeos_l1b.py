@@ -44,10 +44,10 @@ from ConfigParser import ConfigParser
 from fnmatch import fnmatch
 
 import numpy as np
+from pyresample import geometry
 
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
-from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers import DatasetID
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 class HDFEOSFileReader(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename, filename_info, filetype_info):
         self.filename = filename
         try:
             self.sd = SD(str(self.filename))
@@ -118,8 +118,8 @@ class HDFEOSFileReader(object):
 
 class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
 
-    def __init__(self, filename):
-        HDFEOSFileReader.__init__(self, filename)
+    def __init__(self, filename, filename_info, filetype_info):
+        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
@@ -128,9 +128,10 @@ class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
             self.resolution = 5000
         self.cache = {}
 
-    def get_area(self, resolution):
-        lons_id = DatasetID('Longitude', resolution=resolution)
-        lats_id = DatasetID('Latitude', resolution=resolution)
+    def get_area(self, nav_name, nav_info, resolution, lon_out=None, lat_out=None):
+        # TODO: read in place when lon_out and lat_out are provided
+        lons_id = DatasetID(nav_info['longitude_key'], resolution=resolution)
+        lats_id = DatasetID(nav_info['latitude_key'], resolution=resolution)
         try:
             lons = self.cache[lons_id]
             lats = self.cache[lats_id]
@@ -140,9 +141,16 @@ class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
             lons, lats = self._interpolate([lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
             self.cache[lons_id] = lons
             self.cache[lats_id] = lats
-        area = geometry.SwathDefinition(lons=lons, lats=lats)
-        area.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
-        return area
+
+        if lon_out is not None:
+            lon_out[:] = lons[:]
+        if lat_out is not None:
+            lat_out[:] = lats[:]
+
+        return lons, lats
+        #area = geometry.SwathDefinition(lons=lons, lats=lats)
+        #area.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
+        # return area
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
@@ -268,11 +276,56 @@ class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
            "Q": 250,
            "H": 500}
 
-    def __init__(self, filename):
-        HDFEOSFileReader.__init__(self, filename)
+    def __init__(self, filename, filename_info, filetype_info):
+        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         self.resolution = self.res[ds[-3]]
+
+    def get_dataset(self, key, info):
+        """Read data from file and return the corresponding projectables.
+        """
+        datadict = {
+            1000: ['EV_250_Aggr1km_RefSB',
+                   'EV_500_Aggr1km_RefSB',
+                   'EV_1KM_RefSB',
+                   'EV_1KM_Emissive'],
+            500: ['EV_250_Aggr500_RefSB',
+                  'EV_500_RefSB'],
+            250: ['EV_250_RefSB']}
+
+        platform_name = self.mda['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+
+        if self.resolution != key.resolution:
+            return
+
+        datasets = datadict[self.resolution]
+
+        for dataset in datasets:
+            subdata = self.sd.select(dataset)
+            band_names = subdata.attributes()["band_names"].split(",")
+
+            # get the relative indices of the desired channel
+            try:
+                index = band_names.index(key.name)
+            except ValueError:
+                continue
+            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
+            if dataset.endswith('Emissive'):
+                array = calibrate_tb(subdata, uncertainty, [index], band_names)
+            else:
+                array = calibrate_refl(subdata, uncertainty, [index])
+
+            projectable = Projectable(array[0], id=key)
+            if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
+                    (platform_name == 'Terra' and key.name in ["29"])):
+                height, width = projectable.shape
+                row_indices = projectable.mask.sum(1) == width
+                if row_indices.sum() != height:
+                    projectable.mask[row_indices, :] = True
+            print projectable
+            return projectable
 
     def load(self, keys):
         """Read data from file and return the corresponding projectables.

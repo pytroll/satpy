@@ -9,8 +9,8 @@ navigation:
   hdf_eos_geo:
       description: MODIS navigation
       file_type: hdf_eos_geo
-      latitude_key: latitude
-      longitude_key: longitude
+      latitude_key: Latitude
+      longitude_key: Longitude
       nadir_resolution: [1000]
       rows_per_scan: 10
 
