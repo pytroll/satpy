@@ -4,18 +4,20 @@
 """
 
 import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
+
 from satpy.projectable import Projectable
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class AMSR2L1BFileHandler(HDF5FileHandler):
+
     def start_time(self):
         return self.filename_info["start_time"]
 
     def end_time(self):
         return self.filename_info["start_time"]
 
-    def get_area(self, nav_name, nav_info, lon_out, lat_out):
+    def get_area(self, nav_name, nav_info, resolution, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
 

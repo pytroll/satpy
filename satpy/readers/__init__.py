@@ -232,7 +232,9 @@ class ReaderFinder(object):
             config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
-        filenames = set(filenames)  # may have been given an iterator
+        if filenames is not None:
+            filenames = set(filenames)  # may have been given an iterator
+
         for config_file in config_files:
             config_basename = os.path.basename(config_file)
             reader_configs = config_search_paths(os.path.join("readers", config_basename), self.ppp_config_dir)

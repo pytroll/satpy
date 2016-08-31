@@ -28,13 +28,14 @@ import numbers
 import os
 from fnmatch import fnmatch
 
+import numpy as np
 import six
 import yaml
-import numpy as np
-from satpy.readers import DatasetID, DatasetDict
-from satpy.projectable import Projectable, combine_info
-from trollsift.parser import globify, parse
 from pyresample import geometry
+
+from satpy.projectable import Projectable, combine_info
+from satpy.readers import DatasetDict, DatasetID
+from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ class YAMLBasedReader(object):
                         # we know how to use this file (even if we may not use it later)
                         used_filenames.add(filename)
                         filename_info = parse(pattern, os.path.basename(filename))
-                        file_handler = filetype_cls(filename, filename_info, **filetype_info)
+                        file_handler = filetype_cls(filename, filename_info, filetype_info)
 
                         # Only add this file handler if it is within the time we want
                         if start_time and file_handler.start_time() < start_time:
@@ -187,7 +188,9 @@ class YAMLBasedReader(object):
             # can't optimize by using inplace loading
             projectables = []
             for fh in file_handlers:
-                projectables.append(fh.get_dataset(dsid, ds_info))
+                projectable = fh.get_dataset(dsid, ds_info)
+                if projectable is not None:
+                    projectables.append(projectable)
 
             # Join them all together
             all_shapes = [x.shape for x in projectables]
@@ -214,15 +217,15 @@ class YAMLBasedReader(object):
 
         return all_shapes, proj
 
-    def _load_area(self, file_handlers, nav_name, nav_info, all_shapes, shape):
+    def _load_area(self, file_handlers, nav_name, nav_info, all_shapes, shape, resolution=None):
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
-            fh.get_area(nav_name, nav_info,
-                         lon_out=lons[offset: offset + granule_height],
-                         lat_out=lats[offset: offset + granule_height])
+            fh.get_area(nav_name, nav_info, resolution=resolution,
+                        lon_out=lons[offset: offset + granule_height],
+                        lat_out=lats[offset: offset + granule_height])
             offset += granule_height
 
         area = geometry.SwathDefinition(lons, lats)
@@ -230,7 +233,7 @@ class YAMLBasedReader(object):
         area.name = nav_name
         return area
 
-    def load(self, dataset_keys, area=None, start_time=None, end_time=None, **kwargs):
+    def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         loaded_navs = {}
         datasets = DatasetDict()
         for dataset_key in dataset_keys:
@@ -265,7 +268,7 @@ class YAMLBasedReader(object):
                         raise RuntimeError("Required file type '{}' not found or loaded".format(nav_filetype))
                     nav_fhs = self.file_handlers[nav_filetype]
 
-                    ds_area = self._load_area(nav_fhs, nav_name, nav_info, all_shapes, proj.shape)
+                    ds_area = self._load_area(nav_fhs, nav_name, nav_info, all_shapes, proj.shape, dsid.resolution)
                     loaded_navs[nav_name] = ds_area
                 proj.info["area"] = ds_area
 

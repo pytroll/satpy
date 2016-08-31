@@ -108,7 +108,10 @@ class Scene(InfoObject):
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
-        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir, **self.info)
+        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir, base_dir=base_dir,
+                              start_time=self.info.get('start_time'),
+                              end_time=self.info.get('end_time'),
+                              area=self.info.get('area'),)
         reader_instances = finder(reader=reader, sensor=self.info.get("sensor"), filenames=filenames)
         # reader finder could return multiple readers
         sensors = []
@@ -342,7 +345,10 @@ class Scene(InfoObject):
                 # if we haven't loaded this projectable then add it to the list to be loaded
                 if ds_id not in self.datasets or not self.datasets[ds_id].is_loaded():
                     ds_ids.append(ds_id)
-            new_datasets = reader_instance.load(ds_ids, **kwargs)
+            new_datasets = reader_instance.load(ds_ids,
+                                                start_time=kwargs.get('start_time'),
+                                                end_time=kwargs.get('end_time'),
+                                                area=kwargs.get('area'))
             loaded_datasets.update(new_datasets)
         self.datasets.update(loaded_datasets)
         return new_datasets
@@ -463,8 +469,8 @@ class Scene(InfoObject):
                         compositor = self.compositors[band]
                     except KeyError:
                         self.compositors.update(load_compositors([band], sensor_names,
-                                                ppp_config_dir=self.ppp_config_dir,
-                                                **kwargs))
+                                                                 ppp_config_dir=self.ppp_config_dir,
+                                                                 **kwargs))
                         compositor = self.compositors[band]
 
                     prereqs = list()
