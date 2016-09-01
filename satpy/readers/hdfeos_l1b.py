@@ -319,13 +319,13 @@ class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
 
-            projectable = Projectable(array[0], id=key)
-            if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
-                    (platform_name == 'Terra' and key.name in ["29"])):
-                height, width = projectable.shape
-                row_indices = projectable.mask.sum(1) == width
-                if row_indices.sum() != height:
-                    projectable.mask[row_indices, :] = True
+            projectable = Projectable(array[0], id=key, mask=array[0].mask)
+            # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
+            #         (platform_name == 'Terra' and key.name in ["29"])):
+            #     height, width = projectable.shape
+            #     row_indices = projectable.mask.sum(1) == width
+            #     if row_indices.sum() != height:
+            #         projectable.mask[row_indices, :] = True
             return projectable
 
     def load(self, keys):
@@ -457,12 +457,6 @@ class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
 def calibrate_refl(subdata, uncertainty, indices):
     """Calibration for reflective channels.
     """
-    del uncertainty
-    # uncertainty_array = uncertainty.get()
-    # array = np.ma.MaskedArray(subdata.get(),
-    #                          mask=(uncertainty_array >= 15))
-
-    # FIXME: The loading should not be done here.
 
     array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
     valid_range = subdata.attributes()["valid_range"]
@@ -470,6 +464,8 @@ def calibrate_refl(subdata, uncertainty, indices):
                                  valid_range[0],
                                  valid_range[1],
                                  copy=False)
+    array = np.ma.masked_where((uncertainty.get()[indices, :, :] >= 15), array, False)
+
     array = array * np.float32(1.0)
     offsets = np.array(subdata.attributes()["reflectance_offsets"],
                        dtype=np.float32)[indices]
@@ -477,18 +473,13 @@ def calibrate_refl(subdata, uncertainty, indices):
                       dtype=np.float32)[indices]
     dims = (len(indices), 1, 1)
     array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
+
     return array
 
 
 def calibrate_tb(subdata, uncertainty, indices, band_names):
     """Calibration for the emissive channels.
     """
-    del uncertainty
-    # uncertainty_array = uncertainty.get()
-    # array = np.ma.MaskedArray(subdata.get(),
-    #                          mask=(uncertainty_array >= 15))
-
-    # FIXME: The loading should not be done here.
 
     array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
     valid_range = subdata.attributes()["valid_range"]
@@ -496,7 +487,7 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
                                  valid_range[0],
                                  valid_range[1],
                                  copy=False)
-
+    array = np.ma.masked_where((uncertainty.get()[indices, :, :] >= 15), array, False)
     offsets = np.array(subdata.attributes()["radiance_offsets"],
                        dtype=np.float32)[indices]
     scales = np.array(subdata.attributes()["radiance_scales"],
