@@ -27,15 +27,18 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-from pyresample.kd_tree import get_neighbour_info, get_sample_from_neighbour_info
-from pyresample.ewa import ll2cr, fornav
-from logging import getLogger
-import numpy as np
 import hashlib
 import json
 import os
-import six
 from copy import deepcopy
+from logging import getLogger
+
+import numpy as np
+import six
+from pyresample.ewa import fornav, ll2cr
+from pyresample.kd_tree import (get_neighbour_info,
+                                get_sample_from_neighbour_info)
+
 from satpy.config import get_config, get_config_path
 from satpy.projectable import Projectable
 
@@ -252,7 +255,7 @@ class KDTreeResampler(BaseResampler):
                       "index_array": index_array,
                       "distance_array": distance_array,
                       "source_geo_def": source_geo_def,
-                     }
+                      }
 
         self.caches[kd_hash] = self.cache
         while len(self.caches) > CACHE_SIZE:
@@ -294,7 +297,7 @@ class EWAResampler(BaseResampler):
         super(EWAResampler, self).__init__(source_geo_def, target_geo_def, **kwargs)
 
     def precompute(self, mask=None,
-                   #nprocs=1,
+                   # nprocs=1,
                    cache_dir=False,
                    **kwargs):
         """Generate row and column arrays and store it for later use.
@@ -368,7 +371,8 @@ class EWAResampler(BaseResampler):
         fraction_in = swath_points_in_grid / float(lon_arr.size)
         swath_used = fraction_in > self.swath_usage
         if not swath_used:
-            LOG.info("Data does not fit in grid %s because it only %f%% of the swath is used" % (grid_name, fraction_in * 100))
+            LOG.info("Data does not fit in grid %s because it only %f%% of the swath is used" %
+                     (grid_name, fraction_in * 100))
             raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
         else:
             LOG.debug("Data fits in grid %s and uses %f%% of the swath", grid_name, fraction_in * 100)
@@ -399,9 +403,9 @@ class EWAResampler(BaseResampler):
         # otherwise assume the entire input swath is one large "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get("rows_per_scan", data.shape[0])
         num_valid_points, out_arrs = fornav(cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
-                                 weight_count=weight_count, weight_min=weight_min,
-                                 weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
-                                 maximum_weight_mode=maximum_weight_mode, **kwargs)
+                                            weight_count=weight_count, weight_min=weight_min,
+                                            weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
+                                            maximum_weight_mode=maximum_weight_mode, **kwargs)
         num_valid_points = num_valid_points[0]
         out_arr = out_arrs[0]
 
