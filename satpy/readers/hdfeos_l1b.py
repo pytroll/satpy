@@ -128,10 +128,10 @@ class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
             self.resolution = 5000
         self.cache = {}
 
-    def get_area(self, nav_name, nav_info, resolution, lon_out=None, lat_out=None):
+    def get_area(self, navid, nav_info, lon_out=None, lat_out=None):
         # TODO: read in place when lon_out and lat_out are provided
-        lons_id = DatasetID(nav_info['longitude_key'], resolution=resolution)
-        lats_id = DatasetID(nav_info['latitude_key'], resolution=resolution)
+        lons_id = DatasetID(nav_info['longitude_key'], resolution=navid.resolution)
+        lats_id = DatasetID(nav_info['latitude_key'], resolution=navid.resolution)
         try:
             lons = self.cache[lons_id]
             lats = self.cache[lats_id]
@@ -147,9 +147,11 @@ class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
         if lat_out is not None:
             lat_out[:] = lats[:]
 
+        #navid.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
+
         return lons, lats
         #area = geometry.SwathDefinition(lons=lons, lats=lats)
-        #area.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
+        #
         # return area
 
     def load(self, keys, interpolate=True, raw=False):
@@ -324,7 +326,6 @@ class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
                 row_indices = projectable.mask.sum(1) == width
                 if row_indices.sum() != height:
                     projectable.mask[row_indices, :] = True
-            print projectable
             return projectable
 
     def load(self, keys):

@@ -17,7 +17,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
     def end_time(self):
         return self.filename_info["start_time"]
 
-    def get_area(self, nav_name, nav_info, resolution, lon_out, lat_out):
+    def get_area(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         lat_key = nav_info["latitude_key"]
 
