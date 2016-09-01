@@ -77,5 +77,5 @@ class BaseFileHandler(object):
 
 class GeoFileHandler(BaseFileHandler):
 
-    def get_area(self, nav_name, nav_info, resolution, lon_out, lat_out):
+    def get_area(self, navid, nav_info, lon_out, lat_out):
         raise NotImplementedError

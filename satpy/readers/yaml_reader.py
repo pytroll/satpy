@@ -34,7 +34,7 @@ import yaml
 from pyresample import geometry
 
 from satpy.projectable import Projectable, combine_info
-from satpy.readers import DatasetDict, DatasetID
+from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
@@ -217,20 +217,20 @@ class YAMLBasedReader(object):
 
         return all_shapes, proj
 
-    def _load_area(self, file_handlers, nav_name, nav_info, all_shapes, shape, resolution=None):
+    def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
-            fh.get_area(nav_name, nav_info, resolution=resolution,
+            fh.get_area(navid, nav_info,
                         lon_out=lons[offset: offset + granule_height],
                         lat_out=lats[offset: offset + granule_height])
             offset += granule_height
 
         area = geometry.SwathDefinition(lons, lats)
         # FIXME: How do we name areas?
-        area.name = nav_name
+        area.name = navid.name
         return area
 
     def load(self, dataset_keys, area=None, start_time=None, end_time=None):
@@ -255,21 +255,21 @@ class YAMLBasedReader(object):
 
             if 'area' not in proj.info or proj.info['area'] is None:
                 # we need to load the area because the file handlers didn't
-                nav_name = ds_info.get('navigation')
-                if nav_name is None or nav_name not in self.config['navigation']:
+                navid = AreaID(ds_info.get('navigation'), dsid.resolution)
+                if navid.name is None or navid.name not in self.config['navigation']:
                     # we don't know how to load navigation
                     LOG.warning("Can't load navigation for {}".format(dsid))
-                elif nav_name in loaded_navs:
-                    ds_area = loaded_navs[nav_name]
+                elif navid.name in loaded_navs:
+                    ds_area = loaded_navs[navid.name]
                 else:
-                    nav_info = self.config['navigation'][nav_name]
+                    nav_info = self.config['navigation'][navid.name]
                     nav_filetype = nav_info['file_type']
                     if nav_filetype not in self.file_handlers:
                         raise RuntimeError("Required file type '{}' not found or loaded".format(nav_filetype))
                     nav_fhs = self.file_handlers[nav_filetype]
 
-                    ds_area = self._load_area(nav_fhs, nav_name, nav_info, all_shapes, proj.shape, dsid.resolution)
-                    loaded_navs[nav_name] = ds_area
+                    ds_area = self._load_area(navid, nav_fhs, nav_info, all_shapes, proj.shape)
+                    loaded_navs[navid.name] = ds_area
                 proj.info["area"] = ds_area
 
         return datasets
