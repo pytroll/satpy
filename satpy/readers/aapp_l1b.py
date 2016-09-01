@@ -40,8 +40,8 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-
 from pyresample.geometry import SwathDefinition
+
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
 
-    def __init__(self, filename):
-        super(AVHRRAAPPL1BFile, self).__init__(filename)
+    def __init__(self, filename, filename_info, filetype_info):
+        super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info, filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
@@ -60,6 +60,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._is3b = None
         self.lons = None
         self.lats = None
+        self.area = None
         self.read()
 
     def start_time(self):
@@ -73,17 +74,18 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def shape(self):
         return self._data.shape
 
-    def load(self, keys):
-        datasets = self.calibrate(keys)
-        self.navigate()
+    def get_dataset(self, key, info):
+        """Get a dataset from the file."""
+        dataset = self.calibrate([key])[0]
         # TODO get metadata
-        # FIXME the geolocation should be masked!
-        area = SwathDefinition(self.lons, self.lats)
-        # FIXME
-        area.name = 'wla'
-        for dataset in datasets:
-            dataset.info['area'] = area
-        return datasets
+        if self.lons is None or self.lats is None:
+            self.navigate()
+        if self.area is None:
+            self.area = SwathDefinition(self.lons, self.lats)
+            self.area.name = 'wla'
+
+        dataset.info['area'] = self.area
+        return dataset
 
     def read(self):
         """Read the data.
@@ -152,7 +154,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             # Is it 3a or 3b:
             is3b = np.expand_dims(np.bitwise_and(
                 np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
-            self._is3b = np.repeat(is3b[:, np.newaxis], self._data['hrpt'][0].shape[0], axis=1)
+            self._is3b = np.repeat(is3b, self._data['hrpt'][0].shape[0], axis=1)
 
         for idx, name in enumerate(['1', '2', '3a']):
             if name in chns:
