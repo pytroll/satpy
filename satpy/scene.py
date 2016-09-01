@@ -325,7 +325,7 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
 
             sensor_names |= set(reader_instance.sensor_names)
-            ds_ids = []
+            ds_ids = set()
             for node in dataset_nodes:
                 dataset_key = node.data
                 try:
@@ -344,7 +344,7 @@ class Scene(InfoObject):
 
                 # if we haven't loaded this projectable then add it to the list to be loaded
                 if ds_id not in self.datasets or not self.datasets[ds_id].is_loaded():
-                    ds_ids.append(ds_id)
+                    ds_ids.add(ds_id)
             new_datasets = reader_instance.load(ds_ids,
                                                 start_time=kwargs.get('start_time'),
                                                 end_time=kwargs.get('end_time'),
