@@ -195,7 +195,7 @@ class YAMLBasedReader(object):
             # Join them all together
             all_shapes = [x.shape for x in projectables]
             combined_info = file_handlers[0].combine_info([p.info for p in projectables])
-            proj = Projectable(np.vstack(projectables), **combined_info)
+            proj = Projectable(np.ma.vstack(projectables), **combined_info)
             del projectables  # clean up some space since we don't need these anymore
         else:
             # we can optimize
@@ -236,6 +236,7 @@ class YAMLBasedReader(object):
     def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         loaded_navs = {}
         datasets = DatasetDict()
+
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
             ds_info = self.ids[dsid][1]
