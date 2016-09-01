@@ -150,7 +150,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                  'radiance': 'W*m-2*sr-1*cm ?'
                  }
 
-        if "3a" in chns or "3b" in chns:
+        if ("3a" in chns or "3b" in chns) and self._is3b is None:
             # Is it 3a or 3b:
             is3b = np.expand_dims(np.bitwise_and(
                 np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
