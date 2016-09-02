@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2013, 2014, 2015.
+# Copyright (c) 2010-2016.
 
 # Author(s):
 
@@ -26,18 +26,17 @@
 """Interface to Eumetcast level 1.5 HRIT/LRIT format. Uses the MIPP reader.
 """
 import ConfigParser
+import logging
 import os
+
 from pyproj import Proj
 
-from mipp import xrit
-from mipp import CalibrationError, ReaderError
-
+from mipp import CalibrationError, ReaderError, xrit
 from satpy.config import CONFIG_PATH
-import logging
-from trollsift.parser import Parser
-
-from satpy.satin.helper_functions import area_defs_to_extent
 from satpy.projectable import Projectable
+from satpy.readers import Reader
+from satpy.satin.helper_functions import area_defs_to_extent
+from trollsift.parser import Parser
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,8 +49,6 @@ try:
     IS_PYRESAMPLE_LOADED = True
 except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
-
-from satpy.readers import Reader
 
 
 class XritReader(Reader):
@@ -95,7 +92,6 @@ class XritReader(Reader):
                 file_info = parser.parse(filename)
                 if file_info["dataset_name"] == ds.name:
                     channel_files.append(filename)
-
 
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and areas is not None:
@@ -167,6 +163,3 @@ class XritReader(Reader):
 
             projectables[ds] = projectable
         return projectables
-
-
-
