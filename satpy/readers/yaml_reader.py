@@ -88,7 +88,7 @@ class YAMLBasedReader(object):
         if filenames:
             file_set |= set(filenames)
 
-        if filenames is None:
+        if not filenames:
             self.info["filenames"] = self.find_filenames(base_dir)
         else:
             self.info["filenames"] = self.match_filenames(filenames, base_dir)
@@ -147,6 +147,7 @@ class YAMLBasedReader(object):
             file_patterns = self.file_patterns
             # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
         filelist = []
+
         for pattern in file_patterns:
             filelist.extend(glob.iglob(os.path.join(directory, globify(pattern))))
         return filelist
