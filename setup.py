@@ -108,6 +108,7 @@ setup(name=NAME,
                       'hdf_eos': ['pyhdf'],
                       'viirs': ['h5py'],
                       'nc': ['netCDF4'],
+                      'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
                       'proj': ['pyresample'],
                       'pyspectral': ['pyspectral'],
                       'pyorbital': ['pyorbital >= v0.2.3']}
