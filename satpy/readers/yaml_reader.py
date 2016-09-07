@@ -40,7 +40,7 @@ from trollsift.parser import globify, parse
 LOG = logging.getLogger(__name__)
 
 
-class YAMLBasedReader(object):
+class BaseYAMLHandler(object):
 
     def __init__(self, config_files):
         self.config = {}
@@ -48,32 +48,20 @@ class YAMLBasedReader(object):
         for config_file in config_files:
             with open(config_file) as fd:
                 self.config.update(yaml.load(fd))
-        self.datasets = self.config['datasets']
+
         self.info = self.config['reader']
         self.name = self.info['name']
-        self.sensor_names = self.info['sensors']
-
-        self.info['filenames'] = []
         self.file_patterns = []
         for file_type in self.config['file_types'].values():
             self.file_patterns.extend(file_type['file_patterns'])
-        self.file_handlers = {}
+
+        self.sensor_names = self.info['sensors']
+        self.datasets = self.config['datasets']
+        self.info['filenames'] = []
         self.ids = {}
         self.get_dataset_ids()
 
-    @property
-    def start_time(self):
-        if not self.file_handlers:
-            raise RuntimeError("Start time unknown until files are selected")
-        return min(x.start_time() for x in self.file_handlers.values()[0])
-
-    @property
-    def end_time(self):
-        if not self.file_handlers:
-            raise RuntimeError("End time unknown until files are selected")
-        return max(x.end_time() for x in self.file_handlers.values()[0])
-
-    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
+    def select_files(self, base_dir=None, filenames=None, sensor=None):
         if isinstance(sensor, (str, six.text_type)):
             sensor_set = set([sensor])
         elif sensor is not None:
@@ -95,36 +83,8 @@ class YAMLBasedReader(object):
         if not self.info["filenames"]:
             LOG.warning("No filenames found for reader: %s", self.name)
         file_set -= set(self.info['filenames'])
-        LOG.debug("Assigned to %s: %s", self.info['name'], self.info['filenames'])
-
-        # Organize filenames in to file types and create file handlers
-        remaining_filenames = set(self.info['filenames'])
-        for filetype, filetype_info in self.config['file_types'].items():
-            filetype_cls = filetype_info['file_reader']
-            patterns = filetype_info['file_patterns']
-            self.file_handlers[filetype] = []
-            for pattern in patterns:
-                used_filenames = set()
-                for filename in remaining_filenames:
-                    if fnmatch(os.path.basename(filename), globify(pattern)):
-                        # we know how to use this file (even if we may not use it later)
-                        used_filenames.add(filename)
-                        filename_info = parse(pattern, os.path.basename(filename))
-                        file_handler = filetype_cls(filename, filename_info, filetype_info)
-
-                        # Only add this file handler if it is within the time we want
-                        if start_time and file_handler.start_time() < start_time:
-                            continue
-                        if end_time and file_handler.end_time() > end_time:
-                            continue
-
-                        # TODO: Area filtering
-
-                        self.file_handlers[filetype].append(file_handler)
-                remaining_filenames -= used_filenames
-
-            # Sort the file handlers by start time
-            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time())
+        LOG.debug("Assigned to %s: %s", self.info[
+                  'name'], self.info['filenames'])
 
         return file_set, self.info['filenames']
 
@@ -149,8 +109,70 @@ class YAMLBasedReader(object):
         filelist = []
 
         for pattern in file_patterns:
-            filelist.extend(glob.iglob(os.path.join(directory, globify(pattern))))
+            filelist.extend(glob.iglob(
+                os.path.join(directory, globify(pattern))))
         return filelist
+
+    def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
+        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
+
+        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
+        """
+        # TODO This can be made simpler
+        # get by wavelength
+        if isinstance(key, numbers.Number):
+            datasets = [ds for ds in self.ids if ds.wavelength and (
+                ds.wavelength[0] <= key <= ds.wavelength[2])]
+            datasets = sorted(
+                datasets, key=lambda ch: abs(ch.wavelength[1] - key))
+            if not datasets:
+                raise KeyError("Can't find any projectable at %gum" % key)
+        elif isinstance(key, DatasetID):
+            if key.name is not None:
+                datasets = self.get_dataset_key(key.name, aslist=True)
+            elif key.wavelength is not None:
+                datasets = self.get_dataset_key(key.wavelength, aslist=True)
+            else:
+                raise KeyError("Can't find any projectable '{}'".format(key))
+
+            if calibration is None and key.calibration is not None:
+                calibration = [key.calibration]
+            if resolution is None and key.resolution is not None:
+                resolution = [key.resolution]
+            if polarization is None and key.polarization is not None:
+                polarization = [key.polarization]
+        # get by name
+        else:
+            datasets = [ds_id for ds_id in self.ids if ds_id.name == key]
+            if not datasets:
+                raise KeyError(
+                    "Can't find any projectable called '{}'".format(key))
+        # default calibration choices
+        if calibration is None:
+            calibration = ["brightness_temperature", "reflectance"]
+
+        if resolution is not None:
+            if not isinstance(resolution, (tuple, list, set)):
+                resolution = [resolution]
+            datasets = [
+                ds_id for ds_id in datasets if ds_id.resolution in resolution]
+        if calibration is not None:
+            # order calibration from highest level to lowest level
+            calibration = [x for x in ["brightness_temperature",
+                                       "reflectance", "radiance", "counts"] if x in calibration]
+            datasets = [
+                ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
+        if polarization is not None:
+            datasets = [
+                ds_id for ds_id in datasets if ds_id.polarization in polarization]
+
+        if not datasets:
+            raise KeyError(
+                "Can't find any projectable matching '{}'".format(str(key)))
+        if aslist:
+            return datasets
+        else:
+            return datasets[0]
 
     def get_dataset_ids(self):
         """Get the dataset ids from the config."""
@@ -173,15 +195,76 @@ class YAMLBasedReader(object):
                 self.ids[dsid] = dskey, dataset
         return ids
 
+
+class YAMLBasedReader(BaseYAMLHandler):
+
+    def __init__(self, config_files):
+        super(YAMLBasedReader, self).__init__(config_files)
+
+        self.file_handlers = {}
+
+    @property
+    def start_time(self):
+        if not self.file_handlers:
+            raise RuntimeError("Start time unknown until files are selected")
+        return min(x.start_time() for x in self.file_handlers.values()[0])
+
+    @property
+    def end_time(self):
+        if not self.file_handlers:
+            raise RuntimeError("End time unknown until files are selected")
+        return max(x.end_time() for x in self.file_handlers.values()[0])
+
+    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
+        res = super(YAMLBasedReader, self).select_files(
+            base_dir, filenames, sensor)
+
+        # Organize filenames in to file types and create file handlers
+        remaining_filenames = set(self.info['filenames'])
+        for filetype, filetype_info in self.config['file_types'].items():
+            filetype_cls = filetype_info['file_reader']
+            patterns = filetype_info['file_patterns']
+            self.file_handlers[filetype] = []
+            for pattern in patterns:
+                used_filenames = set()
+                for filename in remaining_filenames:
+                    if fnmatch(os.path.basename(filename), globify(pattern)):
+                        # we know how to use this file (even if we may not use
+                        # it later)
+                        used_filenames.add(filename)
+                        filename_info = parse(
+                            pattern, os.path.basename(filename))
+                        file_handler = filetype_cls(
+                            filename, filename_info, filetype_info)
+
+                        # Only add this file handler if it is within the time
+                        # we want
+                        if start_time and file_handler.start_time() < start_time:
+                            continue
+                        if end_time and file_handler.end_time() > end_time:
+                            continue
+
+                        # TODO: Area filtering
+
+                        self.file_handlers[filetype].append(file_handler)
+                remaining_filenames -= used_filenames
+
+            # Sort the file handlers by start time
+            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time())
+
+        return res
+
     def _load_dataset(self, file_handlers, dsid, ds_info):
         # TODO: Put this in it's own function probably
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [fh.get_shape(dsid, **ds_info) for fh in file_handlers]
+            all_shapes = [fh.get_shape(dsid, **ds_info)
+                          for fh in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = (sum([x[0] for x in all_shapes]), all_shapes[0][1])
         except (NotImplementedError, Exception):
-            # FIXME: Is NotImplementedError included in Exception for all versions of Python?
+            # FIXME: Is NotImplementedError included in Exception for all
+            # versions of Python?
             all_shapes = None
             overall_shape = None
 
@@ -195,13 +278,15 @@ class YAMLBasedReader(object):
 
             # Join them all together
             all_shapes = [x.shape for x in projectables]
-            combined_info = file_handlers[0].combine_info([p.info for p in projectables])
+            combined_info = file_handlers[0].combine_info(
+                [p.info for p in projectables])
             proj = Projectable(np.ma.vstack(projectables), **combined_info)
             del projectables  # clean up some space since we don't need these anymore
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            proj = Projectable(np.empty(overall_shape, dtype=ds_info.get('dtype', np.float32)))
+            proj = Projectable(
+                np.empty(overall_shape, dtype=ds_info.get('dtype', np.float32)))
 
             offset = 0
             for idx, fh in enumerate(file_handlers):
@@ -209,7 +294,8 @@ class YAMLBasedReader(object):
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
-                fh.get_dataset(dsid, ds_info, out=proj[offset: offset + granule_height])
+                fh.get_dataset(dsid, ds_info, out=proj[
+                               offset: offset + granule_height])
                 offset += granule_height
 
         # Update the metadata
@@ -242,14 +328,17 @@ class YAMLBasedReader(object):
             dsid = self.get_dataset_key(dataset_key)
             ds_info = self.ids[dsid][1]
             # HACK: wavelength is a list from pyyaml but a tuple in the dsid
-            # when setting it in the DatasetDict it will fail because they are not equal
+            # when setting it in the DatasetDict it will fail because they are
+            # not equal
             if "wavelength_range" in ds_info:
-                ds_info["wavelength_range"] = tuple(ds_info["wavelength_range"])
+                ds_info["wavelength_range"] = tuple(
+                    ds_info["wavelength_range"])
 
             # Get the file handler to load this dataset
             filetype = ds_info['file_type']
             if filetype not in self.file_handlers:
-                raise RuntimeError("Required file type '{}' not found or loaded".format(filetype))
+                raise RuntimeError(
+                    "Required file type '{}' not found or loaded".format(filetype))
             file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
@@ -267,68 +356,16 @@ class YAMLBasedReader(object):
                     nav_info = self.config['navigation'][navid.name]
                     nav_filetype = nav_info['file_type']
                     if nav_filetype not in self.file_handlers:
-                        raise RuntimeError("Required file type '{}' not found or loaded".format(nav_filetype))
+                        raise RuntimeError(
+                            "Required file type '{}' not found or loaded".format(nav_filetype))
                     nav_fhs = self.file_handlers[nav_filetype]
 
-                    ds_area = self._load_area(navid, nav_fhs, nav_info, all_shapes, proj.shape)
+                    ds_area = self._load_area(
+                        navid, nav_fhs, nav_info, all_shapes, proj.shape)
                     loaded_navs[navid.name] = ds_area
                 proj.info["area"] = ds_area
 
         return datasets
-
-    def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
-        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
-
-        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
-        """
-        # TODO This can be made simpler
-        # get by wavelength
-        if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.ids if ds.wavelength and (ds.wavelength[0] <= key <= ds.wavelength[2])]
-            datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
-            if not datasets:
-                raise KeyError("Can't find any projectable at %gum" % key)
-        elif isinstance(key, DatasetID):
-            if key.name is not None:
-                datasets = self.get_dataset_key(key.name, aslist=True)
-            elif key.wavelength is not None:
-                datasets = self.get_dataset_key(key.wavelength, aslist=True)
-            else:
-                raise KeyError("Can't find any projectable '{}'".format(key))
-
-            if calibration is None and key.calibration is not None:
-                calibration = [key.calibration]
-            if resolution is None and key.resolution is not None:
-                resolution = [key.resolution]
-            if polarization is None and key.polarization is not None:
-                polarization = [key.polarization]
-        # get by name
-        else:
-            datasets = [ds_id for ds_id in self.ids if ds_id.name == key]
-            if not datasets:
-                raise KeyError("Can't find any projectable called '{}'".format(key))
-        # default calibration choices
-        if calibration is None:
-            calibration = ["brightness_temperature", "reflectance"]
-
-        if resolution is not None:
-            if not isinstance(resolution, (tuple, list, set)):
-                resolution = [resolution]
-            datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
-        if calibration is not None:
-            # order calibration from highest level to lowest level
-            calibration = [x for x in ["brightness_temperature",
-                                       "reflectance", "radiance", "counts"] if x in calibration]
-            datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
-        if polarization is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
-
-        if not datasets:
-            raise KeyError("Can't find any projectable matching '{}'".format(str(key)))
-        if aslist:
-            return datasets
-        else:
-            return datasets[0]
 
 
 def match_file_names_and_types(filenames, filetypes):
@@ -337,7 +374,8 @@ def match_file_names_and_types(filenames, filetypes):
         for filetype, patterns in filetypes.items():
             for pattern in patterns:
                 if fnmatch(os.path.basename(filename), globify(pattern)):
-                    res.setdefault(filetype, []).append((filename, parse(pattern, os.path.basename(filename))))
+                    res.setdefault(filetype, []).append(
+                        (filename, parse(pattern, os.path.basename(filename))))
                     break
             if filename in res:
                 break
