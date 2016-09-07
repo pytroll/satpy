@@ -1,0 +1,55 @@
+reader:
+    name: avhrr_eps
+    description: EPS Reader for AVHRR
+    reader: !!python/name:satpy.readers.yaml_reader.YAMLBasedReader ''
+    sensors: [avhrr/3, avhrr/2]
+    default_channels: [1, 2, 3a, 3b, 4, 5]
+
+datasets:
+    '1':
+        name: '1'
+        wavelength_range: [0.58, 0.63, 0.68]
+        resolution: 1050
+        standard_name: [reflectance, radiance]
+        calibration: [reflectance, radiance]
+        file_type: avhrr_eps
+    '2':
+        name: '2'
+        wavelength_range: [0.725, 0.8625, 1.0]
+        resolution: 1050
+        standard_name: [reflectance, radiance]
+        calibration: [reflectance, radiance]
+        file_type: avhrr_eps
+    '3a':
+        name: '3a'
+        wavelength_range: [1.58, 1.61, 1.64]
+        resolution: 1050
+        standard_name: [reflectance, radiance]
+        calibration: [reflectance, radiance]
+        file_type: avhrr_eps
+    '3b':
+        name: '3b'
+        wavelength_range: [3.55, 3.74, 3.93]
+        resolution: 1050
+        standard_name: [brightness_temperature, radiance]
+        calibration: [brightness_temperature, radiance]
+        file_type: avhrr_eps
+    '4':
+        name: '4'
+        wavelength_range: [10.3, 10.8, 11.3]
+        resolution: 1050
+        standard_name: [brightness_temperature, radiance]
+        calibration: [brightness_temperature, radiance]
+        file_type: avhrr_eps
+    '5':
+        name: '5'
+        wavelength_range: [11.5, 12.0, 12.5]
+        resolution: 1050
+        standard_name: [brightness_temperature, radiance]
+        calibration: [brightness_temperature, radiance]
+        file_type: avhrr_eps
+
+file_types:
+    avhrr_eps:
+        file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''
+        file_patterns: ['AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}']
