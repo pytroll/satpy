@@ -236,9 +236,7 @@ class ReaderFinder(object):
             config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
-        if filenames is not None:
-            filenames = set(filenames)  # may have been given an iterator
-
+        remaining_filenames = set(filenames) if filenames is not None else None
         for config_file in config_files:
             config_basename = os.path.basename(config_file)
             reader_configs = config_search_paths(os.path.join("readers", config_basename), self.ppp_config_dir)
@@ -255,14 +253,19 @@ class ReaderFinder(object):
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            filenames, loadable_files = reader_instance.select_files(self.base_dir, filenames, sensor,
-                                                                     start_time=self.start_time,
-                                                                     end_time=self.end_time,
-                                                                     area=self.area)
+            remaining_filenames, loadable_files = reader_instance.select_files(self.base_dir, remaining_filenames, sensor,
+                                                                               start_time=self.start_time,
+                                                                               end_time=self.end_time,
+                                                                               area=self.area)
             if loadable_files:
                 reader_instances.append(reader_instance)
-        if filenames:
-            LOG.warning("Don't know how to open the following files: {}".format(str(filenames)))
+            if filenames is not None and not remaining_filenames:
+                # we were given filenames to look through and found a reader
+                # for all of them
+                break
+
+        if remaining_filenames:
+            LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
         if not reader_instances:
             raise ValueError("No supported files found")
         return reader_instances
