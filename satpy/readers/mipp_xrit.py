@@ -25,18 +25,16 @@
 
 """Interface to Eumetcast level 1.5 HRIT/LRIT format. Uses the MIPP reader.
 """
-import ConfigParser
 import logging
 import os
-
-from pyproj import Proj
+from fnmatch import fnmatch
 
 from mipp import CalibrationError, ReaderError, xrit
-from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
-from satpy.readers import Reader
+from satpy.readers import DatasetDict
+from satpy.readers.yaml_reader import BaseYAMLHandler
 from satpy.satin.helper_functions import area_defs_to_extent
-from trollsift.parser import Parser
+from trollsift.parser import globify, parse
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,31 +49,22 @@ except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
 
 
-class XritReader(Reader):
-
+class xRITFile(BaseYAMLHandler):
     '''Class for reading XRIT data.
     '''
-    pformat = "mipp_xrit"
 
-    def __init__(self, *args, **kwargs):
-        Reader.__init__(self, *args, **kwargs)
+    def __init__(self, config_files):
+        super(xRITFile, self).__init__(config_files)
+        self.info['filenames'] = []
+        self.file_patterns = []
+        for file_type in self.config['file_types'].values():
+            self.file_patterns.extend(file_type['file_patterns'])
 
-    def load(self, datasets_to_load, calibrate=True, areas=None, **kwargs):
-        """Read imager data from file and return datasets.
-        """
-        LOGGER.debug("Channels to load: %s" % datasets_to_load)
-
-        area_converted_to_extent = False
-
-        pattern = self.file_patterns[0]
-        parser = Parser(pattern)
-
+    def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         image_files = []
-        prologue_file = None
-        epilogue_file = None
-
+        pattern = self.file_patterns[0]
         for filename in self.filenames:
-            file_info = parser.parse(filename)
+            file_info = parse(pattern, os.path.basename(filename))
             if file_info["segment"] == "EPI":
                 epilogue_file = filename
             elif file_info["segment"] == "PRO":
@@ -83,28 +72,36 @@ class XritReader(Reader):
             else:
                 image_files.append(filename)
 
-        projectables = {}
+        start_times = set()
+        datasets = DatasetDict()
+        area_converted_to_extent = False
         area_extent = None
-        for ds in datasets_to_load:
+        for ds in dataset_keys:
 
             channel_files = []
             for filename in image_files:
-                file_info = parser.parse(filename)
+                file_info = parse(pattern, os.path.basename(filename))
                 if file_info["dataset_name"] == ds.name:
                     channel_files.append(filename)
-
+                start_times.add(file_info['start_time'])
             # Convert area definitions to maximal area_extent
-            if not area_converted_to_extent and areas is not None:
+            if not area_converted_to_extent and area is not None:
                 metadata = xrit.sat.load_files(prologue_file,
                                                channel_files,
                                                epilogue_file,
                                                only_metadata=True)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
-                area_extent = area_defs_to_extent(areas, metadata.proj4_params)
+                area_extent = area_defs_to_extent(
+                    [area], metadata.proj4_params)
                 area_converted_to_extent = True
 
             try:
+                calibrate = 1
+                if ds.calibration == 'counts':
+                    calibrate = 0
+                elif ds.calibration == 'radiance':
+                    calibrate = 2
                 image = xrit.sat.load_files(prologue_file,
                                             channel_files,
                                             epilogue_file,
@@ -131,13 +128,17 @@ class XritReader(Reader):
                 # if dataset can't be found, go on with next dataset
                 LOGGER.error(str(err))
                 continue
+            if len(metadata.instruments) != 1:
+                sensor = None
+            else:
+                sensor = metadata.instruments[0]
 
             projectable = Projectable(data,
                                       name=ds.name,
                                       units=metadata.calibration_unit,
-                                      wavelength_range=self.datasets[ds]["wavelength_range"],
-                                      sensor=self.datasets[ds]["sensor"],
-                                      start_time=self.start_time)
+                                      sensor=sensor,
+                                      start_time=min(start_times),
+                                      id=ds)
 
             # Build an area on the fly from the mipp metadata
             proj_params = getattr(metadata, "proj4_params").split(" ")
@@ -161,5 +162,43 @@ class XritReader(Reader):
             else:
                 LOGGER.info("Could not build area, pyresample missing...")
 
-            projectables[ds] = projectable
-        return projectables
+            datasets[ds] = projectable
+
+        return datasets
+
+    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
+        file_set, info_filenames = super(xRITFile, self).select_files(
+            base_dir, filenames, sensor)
+
+        # for pattern in self.file_patterns:
+        #    for filename in filenames:
+        #        parse(pattern, os.path.basename(filename))
+
+        matching_filenames = []
+
+        # Organize filenames in to file types and create file handlers
+        remaining_filenames = set(self.info['filenames'])
+        for filetype, filetype_info in self.config['file_types'].items():
+            patterns = filetype_info['file_patterns']
+            for pattern in patterns:
+                used_filenames = set()
+                for filename in remaining_filenames:
+                    if fnmatch(os.path.basename(filename), globify(pattern)):
+                        # we know how to use this file (even if we may not use
+                        # it later)
+                        used_filenames.add(filename)
+                        filename_info = parse(
+                            pattern, os.path.basename(filename))
+                        # Only add this file handler if it is within the time
+                        # we want
+                        if start_time and filename_info['start_time'] < start_time:
+                            continue
+                        if end_time and filename_info.get('end_time', filename_info['start_time']) > end_time:
+                            continue
+
+                        matching_filenames.append(filename)
+                        # TODO: Area filtering
+
+                remaining_filenames -= used_filenames
+        self.filenames = matching_filenames
+        return set(matching_filenames), info_filenames
