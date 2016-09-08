@@ -161,7 +161,7 @@ class HRPTFile(BaseFileHandler):
 
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
 
-        jdays = (np.datetime64(self.start_time()) - np.datetime64(str(
+        jdays = (np.datetime64(self.start_time) - np.datetime64(str(
             self.year) + '-01-01T00:00:00Z')) / np.timedelta64(1, 'D')
         if index < 2 or key.name == '3a':
             data = calibrate_solar(data, index, self.year, jdays,
@@ -228,13 +228,15 @@ class HRPTFile(BaseFileHandler):
 
         self.area = SwathDefinition(self.lons, self.lats)
         self.area.name = '_'.join([self.platform_name, str(self.start_time()),
-                                   str(self.end_time())])
+                                   str(self.end_time)])
         return self.area
 
+    @property
     def start_time(self):
         return time_seconds(self._data["timecode"][0, np.newaxis, :],
                             self.year).astype(datetime)[0]
 
+    @property
     def end_time(self):
         return time_seconds(self._data["timecode"][-1, np.newaxis, :],
                             self.year).astype(datetime)[0]

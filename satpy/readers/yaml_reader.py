@@ -221,13 +221,13 @@ class FileYAMLReader(AbstractYAMLReader):
     def start_time(self):
         if not self.file_handlers:
             raise RuntimeError("Start time unknown until files are selected")
-        return min(x.start_time() for x in self.file_handlers.values()[0])
+        return min(x.start_time for x in self.file_handlers.values()[0])
 
     @property
     def end_time(self):
         if not self.file_handlers:
             raise RuntimeError("End time unknown until files are selected")
-        return max(x.end_time() for x in self.file_handlers.values()[0])
+        return max(x.end_time for x in self.file_handlers.values()[0])
 
     def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
         res = super(FileYAMLReader, self).select_files(
@@ -253,9 +253,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
                         # Only add this file handler if it is within the time
                         # we want
-                        if start_time and file_handler.start_time() < start_time:
+                        if start_time and file_handler.start_time < start_time:
                             continue
-                        if end_time and file_handler.end_time() > end_time:
+                        if end_time and file_handler.end_time > end_time:
                             continue
 
                         # TODO: Area filtering
@@ -264,7 +264,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 remaining_filenames -= used_filenames
 
             # Sort the file handlers by start time
-            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time())
+            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time)
 
         return res
 
@@ -312,8 +312,8 @@ class FileYAMLReader(AbstractYAMLReader):
                 offset += granule_height
 
         # Update the metadata
-        proj.info['start_time'] = file_handlers[0].start_time()
-        proj.info['end_time'] = file_handlers[-1].end_time()
+        proj.info['start_time'] = file_handlers[0].start_time
+        proj.info['end_time'] = file_handlers[-1].end_time
 
         return all_shapes, proj
 

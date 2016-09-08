@@ -20,6 +20,9 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
+from abc import ABCMeta, abstractmethod, abstractproperty
+
+import six
 import numpy as np
 from pyresample.geometry import SwathDefinition
 
@@ -29,7 +32,7 @@ from satpy.projectable import combine_info
 # what about file pattern and config ?
 
 
-class BaseFileHandler(object):
+class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     def __init__(self, filename, filename_info, filetype_info):
         self.filename = filename
@@ -84,14 +87,10 @@ class BaseFileHandler(object):
 
         return combined_info
 
+    @abstractproperty
     def start_time(self):
         raise NotImplementedError
 
+    @abstractproperty
     def end_time(self):
-        raise NotImplementedError
-
-
-class GeoFileHandler(BaseFileHandler):
-
-    def get_area(self, navid, nav_info, lon_out, lat_out):
         raise NotImplementedError

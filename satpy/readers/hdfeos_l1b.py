@@ -51,7 +51,7 @@ from pyhdf.SD import SD
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers import DatasetID
-from satpy.readers.file_handlers import BaseFileHandler, GeoFileHandler
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +70,13 @@ class HDFEOSFileReader(object):
         self.mda.update(self.read_mda(self.sd.attributes()['StructMetadata.0']))
         self.mda.update(self.read_mda(self.sd.attributes()['ArchiveMetadata.0']))
 
+    @property
     def start_time(self):
         date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
                 self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
         return np.datetime64(date)
 
+    @property
     def end_time(self):
         date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
                 self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
@@ -116,7 +118,7 @@ class HDFEOSFileReader(object):
         return mda
 
 
-class HDFEOSGeoReader(HDFEOSFileReader, GeoFileHandler):
+class HDFEOSGeoReader(HDFEOSFileReader):
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
