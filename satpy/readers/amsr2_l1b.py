@@ -11,9 +11,11 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 
 class AMSR2L1BFileHandler(HDF5FileHandler):
 
+    @property
     def start_time(self):
         return self.filename_info["start_time"]
 
+    @property
     def end_time(self):
         return self.filename_info["start_time"]
 

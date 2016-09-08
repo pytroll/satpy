@@ -290,8 +290,8 @@ class EPSAVHRRFile(BaseFileHandler):
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_full_lonlats()
             self.area = SwathDefinition(self.lons, self.lats)
-            self.area.name = '_'.join([self.platform_name, str(self.start_time()),
-                                       str(self.end_time())])
+            self.area.name = '_'.join([self.platform_name, str(self.start_time),
+                                       str(self.end_time)])
         return self.area
 
     @property
@@ -302,9 +302,11 @@ class EPSAVHRRFile(BaseFileHandler):
     def sensor_name(self):
         return self.sensors[self["INSTRUMENT_ID"]]
 
+    @property
     def start_time(self):
         return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
 
+    @property
     def end_time(self):
         return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
 
