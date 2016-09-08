@@ -32,7 +32,7 @@ from fnmatch import fnmatch
 from mipp import CalibrationError, ReaderError, xrit
 from satpy.projectable import Projectable
 from satpy.readers import DatasetDict
-from satpy.readers.yaml_reader import BaseYAMLHandler
+from satpy.readers.yaml_reader import AbstractYAMLReader
 from satpy.satin.helper_functions import area_defs_to_extent
 from trollsift.parser import globify, parse
 
@@ -49,7 +49,7 @@ except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
 
 
-class xRITFile(BaseYAMLHandler):
+class xRITFile(AbstractYAMLReader):
     '''Class for reading XRIT data.
     '''
 

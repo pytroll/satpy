@@ -39,7 +39,7 @@ import logging
 
 from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.readers.yaml_reader import YAMLBasedReader
+from satpy.readers.yaml_reader import FileYAMLReader
 import six
 
 NO_DATE = datetime(1958, 1, 1)
@@ -315,6 +315,6 @@ class VIIRSINISDRReader(ConfigBasedReader):
         return super(VIIRSINISDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
 
 
-class VIIRSSDRReader(YAMLBasedReader):
+class VIIRSSDRReader(FileYAMLReader):
     pass
 
