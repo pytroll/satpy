@@ -57,13 +57,23 @@ class xRITFile(AbstractYAMLReader):
         super(xRITFile, self).__init__(config_files)
         self.info['filenames'] = []
         self.file_patterns = []
+        self._start_time = None
+        self._end_time = None
         for file_type in self.config['file_types'].values():
             self.file_patterns.extend(file_type['file_patterns'])
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
     def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         image_files = []
         pattern = self.file_patterns[0]
-        for filename in self.filenames:
+        for filename in self.info['filenames']:
             file_info = parse(pattern, os.path.basename(filename))
             if file_info["segment"] == "EPI":
                 epilogue_file = filename
@@ -178,6 +188,8 @@ class xRITFile(AbstractYAMLReader):
 
         # Organize filenames in to file types and create file handlers
         remaining_filenames = set(self.info['filenames'])
+        start_times = []
+        end_times = []
         for filetype, filetype_info in self.config['file_types'].items():
             patterns = filetype_info['file_patterns']
             for pattern in patterns:
@@ -191,14 +203,23 @@ class xRITFile(AbstractYAMLReader):
                             pattern, os.path.basename(filename))
                         # Only add this file handler if it is within the time
                         # we want
-                        if start_time and filename_info['start_time'] < start_time:
+                        file_start = filename_info['start_time']
+                        file_end = filename_info.get('end_time', file_start)
+                        if start_time and file_start < start_time:
                             continue
-                        if end_time and filename_info.get('end_time', filename_info['start_time']) > end_time:
+                        if end_time and file_end > end_time:
                             continue
 
+                        start_times.append(file_start)
+                        end_times.append(file_end)
                         matching_filenames.append(filename)
                         # TODO: Area filtering
 
                 remaining_filenames -= used_filenames
-        self.filenames = matching_filenames
-        return set(matching_filenames), info_filenames
+
+        if matching_filenames:
+            # Assign the start time and end time
+            self._start_time = min(start_times)
+            self._end_time = max(end_times)
+        self.info['filenames'] = matching_filenames
+        return file_set, info_filenames
