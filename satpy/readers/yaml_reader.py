@@ -27,20 +27,22 @@ import logging
 import numbers
 import os
 from fnmatch import fnmatch
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 import six
 import yaml
 from pyresample import geometry
 
-from satpy.projectable import Projectable, combine_info
+from satpy.projectable import Projectable
 from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
 
 
-class AbstractYAMLReader(object):
+class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
+    __metaclass__ = ABCMeta
 
     def __init__(self, config_files):
         self.config = {}
@@ -60,6 +62,18 @@ class AbstractYAMLReader(object):
         self.info['filenames'] = []
         self.ids = {}
         self.get_dataset_ids()
+
+    @abstractproperty
+    def start_time(self):
+        raise NotImplementedError()
+
+    @abstractproperty
+    def end_time(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def load(self):
+        raise NotImplementedError()
 
     def select_files(self, base_dir=None, filenames=None, sensor=None):
         if isinstance(sensor, (str, six.text_type)):
@@ -255,7 +269,6 @@ class FileYAMLReader(AbstractYAMLReader):
         return res
 
     def _load_dataset(self, file_handlers, dsid, ds_info):
-        # TODO: Put this in it's own function probably
         try:
             # Can we allow the file handlers to do inplace data writes?
             all_shapes = [fh.get_shape(dsid, **ds_info)
@@ -366,70 +379,3 @@ class FileYAMLReader(AbstractYAMLReader):
                 proj.info["area"] = ds_area
 
         return datasets
-
-
-def match_file_names_and_types(filenames, filetypes):
-    res = {}
-    for filename in filenames:
-        for filetype, patterns in filetypes.items():
-            for pattern in patterns:
-                if fnmatch(os.path.basename(filename), globify(pattern)):
-                    res.setdefault(filetype, []).append(
-                        (filename, parse(pattern, os.path.basename(filename))))
-                    break
-            if filename in res:
-                break
-    return res
-
-
-def my_vstack(arrays):
-    return arrays[0]
-
-# what about the metadata ?
-
-
-def multiload(datasets, area, start_time, end_time):
-    files = {}
-    # select files to use
-    trimmed_datasets = datasets.copy()
-    first_start_time = None
-    last_end_time = None
-    for dataset, fhds in trimmed_datasets.items():
-        for fhd in reversed(fhds):
-            remove = False
-            if start_time and fhd.start_time() < start_time:
-                remove = True
-            else:
-                if first_start_time is None or first_start_time > fhd.start_time():
-                    first_start_time = fhd.start_time()
-            if end_time and fhd.end_time() > fhd.end_time():
-                remove = True
-            else:
-                if last_end_time is None or last_end_time < fhd.end_time():
-                    last_end_time = fhd.end_time()
-            # TODO: area-based selection
-            if remove:
-                fhds.remove(fhd)
-            else:
-                files.setdefault(fhd, []).append(dataset)
-
-    res = []
-    for fhd, datasets in files.items():
-        res.extend(fhd.load(datasets))
-
-    # sort datasets by ds_id and time
-
-    datasets = {}
-    for dataset in res:
-        datasets.setdefault(dataset.info['id'], []).append(dataset)
-
-    # FIXME: stacks should end up being datasets.
-    res = dict([(key, my_vstack(dss)) for key, dss in datasets.items()])
-
-    # for dataset in res:
-#        dataset.info['start_time'] = first_start_time
-#        dataset.info['end_time'] = last_end_time
-
-    # TODO: take care of the metadata
-
-    return res
