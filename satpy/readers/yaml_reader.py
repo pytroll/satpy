@@ -40,7 +40,7 @@ from trollsift.parser import globify, parse
 LOG = logging.getLogger(__name__)
 
 
-class BaseYAMLHandler(object):
+class AbstractYAMLReader(object):
 
     def __init__(self, config_files):
         self.config = {}
@@ -196,10 +196,10 @@ class BaseYAMLHandler(object):
         return ids
 
 
-class YAMLBasedReader(BaseYAMLHandler):
+class FileYAMLReader(AbstractYAMLReader):
 
     def __init__(self, config_files):
-        super(YAMLBasedReader, self).__init__(config_files)
+        super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
 
@@ -216,7 +216,7 @@ class YAMLBasedReader(BaseYAMLHandler):
         return max(x.end_time() for x in self.file_handlers.values()[0])
 
     def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
-        res = super(YAMLBasedReader, self).select_files(
+        res = super(FileYAMLReader, self).select_files(
             base_dir, filenames, sensor)
 
         # Organize filenames in to file types and create file handlers
