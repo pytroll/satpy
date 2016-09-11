@@ -25,6 +25,7 @@
 import glob
 import logging
 import numbers
+import itertools
 import os
 from fnmatch import fnmatch
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -192,21 +193,52 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get the dataset ids from the config."""
         ids = []
         for dskey, dataset in self.datasets.items():
-            nb_ids = 1
-            for key, val in dataset.items():
-                if not key.endswith('range') and isinstance(val, (list, tuple, set)):
-                    nb_ids = len(val)
-                    break
-            for idx in range(nb_ids):
-                kwargs = {'name': dataset.get('name'),
-                          'wavelength': tuple(dataset.get('wavelength_range'))}
-                for key in ['resolution', 'calibration', 'polarization']:
-                    kwargs[key] = dataset.get(key)
-                    if isinstance(kwargs[key], (list, tuple, set)):
-                        kwargs[key] = kwargs[key][idx]
-                dsid = DatasetID(**kwargs)
+            # Build each permutation/product of the dataset
+            id_kwargs = []
+            for key in DatasetID._fields:
+                val = dataset.get(key)
+                if key == 'wavelength':
+                    # wavelength range should be a tuple
+                    id_kwargs.append((tuple(dataset['wavelength_range']),))
+                else:
+                    if isinstance(val, (list, tuple, set)):
+                        # this key has multiple choices
+                        # (ex. 250 meter, 500 meter, 1000 meter resolutions)
+                        id_kwargs.append(val)
+                    elif isinstance(val, dict):
+                        id_kwargs.append(val.keys())
+                    else:
+                        # this key only has one choice so make it a one
+                        # item iterable
+                        id_kwargs.append((val,))
+            for id_params in itertools.product(*id_kwargs):
+                dsid = DatasetID(*id_params)
                 ids.append(dsid)
-                self.ids[dsid] = dskey, dataset
+
+                # create dataset infos specifically for this permutation
+                ds_info = dataset.copy()
+                # skip first 2 (name and wavelength)
+                for key in dsid._fields[2:]:
+                    if isinstance(ds_info.get(key), dict):
+                        ds_info.update(ds_info[key][getattr(dsid, key)])
+                        ds_info[key] = getattr(dsid, key)
+                self.ids[dsid] = dskey, ds_info
+
+            # for idx in range(nb_ids):
+            #     id_kwargs = {'name': dataset.get('name'),
+            #                  'wavelength': tuple(dataset.get('wavelength_range'))}
+            #     ds_kwargs = dataset.copy()
+            #     for key in ['resolution', 'calibration', 'polarization']:
+            #         id_kwargs[key] = dataset.get(key)
+            #         if isinstance(id_kwargs[key], (list, tuple, set)):
+            #             id_kwargs[key] = id_kwargs[key][idx]
+            #             ds_kwargs[key] = id_kwargs[key][idx]
+            #     for key in set(ds_kwargs.keys) - set(id_kwargs.keys()):
+            #         if isinstance(ds_kwargs[key], (list, tuple, set)):
+            #             ds_kwargs[key] = ds_kwargs[key][idx]
+            #     dsid = DatasetID(**id_kwargs)
+            #     ids.append(dsid)
+            #     self.ids[dsid] = dskey, ds_kwargs
         return ids
 
 
@@ -271,7 +303,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def _load_dataset(self, file_handlers, dsid, ds_info):
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [fh.get_shape(dsid, **ds_info)
+            all_shapes = [fh.get_shape(dsid, ds_info)
                           for fh in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = (sum([x[0] for x in all_shapes]), all_shapes[0][1])
@@ -300,6 +332,7 @@ class FileYAMLReader(AbstractYAMLReader):
             # create a projectable object for the file handler to fill in
             proj = Projectable(
                 np.empty(overall_shape, dtype=ds_info.get('dtype', np.float32)))
+            proj.mask = np.empty(overall_shape, dtype=np.bool)  # overwrite single boolean 'False'
 
             offset = 0
             for idx, fh in enumerate(file_handlers):
@@ -319,7 +352,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        lons.mask = np.empty(shape, dtype=np.bool)  # overwrite single boolean 'False'
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
+        lats.mask = np.empty(shape, dtype=np.bool)
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]

@@ -42,7 +42,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_dataset(self, dataset_id, ds_info, out=None):
         raise NotImplementedError
 
-    def get_shape(self, dataset_id):
+    def get_shape(self, dataset_id, ds_info):
         raise NotImplementedError
 
     def combine_info(self, all_infos):
