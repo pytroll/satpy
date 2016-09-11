@@ -1,0 +1,71 @@
+reader:
+  description: Generic NASA VIIRS L1B Reader
+  name: viirs_l1b
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [viirs]
+  default_datasets:
+
+navigation:
+  vgeoi:
+      description: VIIRS L1B I-band Navigation
+      file_type: vgeoi
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [371]
+      rows_per_scan: 32
+  vgeom:
+      description: VIIRS L1B M-band Navigation
+      file_type: vgeom
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [742]
+      rows_per_scan: 16
+  vgeod:
+      description: VIIRS L1B DNB Navigation
+      file_type: vgeod
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [742]
+      rows_per_scan: 16
+
+datasets:
+  I01:
+    name: I01
+    wavelength_range: [0.600, 0.640, 0.680]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: reflectance
+        units: "%"
+      radiance:
+        standard_name: radiance
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  I04:
+    name: I04
+    wavelength_range: [3.580, 3.740, 3.900]
+    resolution: 371
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: radiance
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+
+file_types:
+  vgeoi:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+  vgeom:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+  vgeod:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+  vl1bi:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
