@@ -25,15 +25,15 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
 
         # FIXME: Lower frequency channels need CoRegistration parameters applied
         if self[lon_key].shape[1] > lon_out.shape[1]:
-            lon_data = self[lon_key][:, ::2]
-            lat_data = self[lat_key][:, ::2]
+            lon_out.data[:] = self[lon_key][:, ::2]
+            lat_out.data[:] = self[lat_key][:, ::2]
         else:
-            lon_data = self[lon_key]
-            lat_data = self[lat_key]
+            lon_out.data[:] = self[lon_key]
+            lat_out.data[:] = self[lat_key]
 
         fill_value = nav_info.get("fill_value", -9999.)
-        lon_out[:] = np.ma.masked_array(lon_data, mask=lon_data == fill_value)
-        lat_out[:] = np.ma.masked_array(lat_data, mask=lat_data == fill_value)
+        lon_out.mask[:] = lon_out == fill_value
+        lat_out.mask[:] = lat_out == fill_value
 
         return {}
 
