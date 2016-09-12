@@ -29,6 +29,7 @@ import os
 
 import numpy as np
 import six
+import yaml
 
 from satpy.config import CONFIG_PATH, config_search_paths, runtime_import
 from satpy.projectable import InfoObject, Projectable, combine_info
@@ -57,99 +58,102 @@ class CompositeReader(object):
     def __init__(self, composite_names, sensor_names=None):
         pass
 
-# FIXME: is kwargs really used here ? what for ? This should be made explicit probably
+# FIXME: is kwargs really used here ? what for ? This should be made
+# explicit probably
 
 
 def _get_compositors_from_configs(composite_configs, composite_names, sensor_names=None, **kwargs):
     """Use the *composite_configs* to return the compositors for requested *composite_names*.
 
-    :param composite_configs:
-    :param composite_names:
-    :return: A list of loaded compositors
+    Args:
+        composite_configs: the config files to load from
+        composite_names: get compositors to fetch
+
+    Returns:
+        A list of loaded compositors
     """
 
-    conf = configparser.ConfigParser()
-    conf.read(composite_configs)
+    conf = {}
+    files_processed = []
+    for composite_config in composite_configs:
+        if composite_config in files_processed:
+            continue
+        files_processed.append(composite_config)
+        with open(composite_config) as conf_file:
+            conf.update(yaml.load(conf_file))
+
+    modifiers = {}
+
+    for modifier_name, options in conf['modifiers'].items():
+
+        try:
+            loader = options.pop('compositor')
+        except KeyError:
+            raise ValueError(
+                "'modifier' missing or empty in config files: %s" % (composite_configs,))
+        options['name'] = modifier_name
+        # Check if the caller only wants composites for a certain sensor
+        if ('sensor' in options and
+                sensor_names is not None and
+                not (set(sensor_names) & set(options["sensor"]))):
+            continue
+        # Check if the caller only wants composites with certain names
+        if composite_names is not None and modifier_name not in composite_names:
+            continue
+
+        # fix prerequisites in case of modifiers
+        prereqs = []
+        for item in options['prerequisites']:
+            if isinstance(item, dict):
+                # look into modifiers for matches and adapt the prerequisites
+                # accordingly
+
+                prereqs.append(item.keys()[0])
+            else:
+                prereqs.append(item)
+        options['prerequisites'] = prereqs
+
+        options.update(**kwargs)
+        modifiers[modifier_name] = loader, options
+
     compositors = {}
-    for section_name in conf.sections():
-        if section_name.startswith("composite:"):
-            options = dict(conf.items(section_name))
-            options["sensor"] = options.setdefault("sensor", None)
-            if options.get("sensor", None):
-                options["sensor"] = set(options["sensor"].split(","))
-            comp_cls = options.pop("compositor", None)
-            if not comp_cls:
-                raise ValueError("'compositor' missing or empty in config files: %s" % (composite_configs,))
 
-            # Check if the caller only wants composites for a certain sensor
-            if (options["sensor"] is not None and
-                    sensor_names is not None and
-                    not (set(sensor_names) & set(options["sensor"]))):
-                continue
-            # Check if the caller only wants composites with certain names
-            if composite_names is not None and options["name"] not in composite_names:
-                continue
+    for composite_name, options in conf['composites'].items():
 
-            if options["name"] in compositors:
-                LOG.debug("Duplicate composite found, previous composite '%s' will be overwritten",
-                          options["name"])
+        try:
+            loader = options.pop('compositor')
+        except KeyError:
+            raise ValueError(
+                "'compositor' missing or empty in config files: %s" % (composite_configs,))
+        options['name'] = composite_name
+        # Check if the caller only wants composites for a certain sensor
+        if ('sensor' in options and
+                sensor_names is not None and
+                not (set(sensor_names) & set(options["sensor"]))):
+            continue
+        # Check if the caller only wants composites with certain names
+        if composite_names is not None and composite_name not in composite_names:
+            continue
 
-            # Get other identifiers that could be used to filter the prerequisites
-            other_identifiers = {}
-            for o_id in ["resolution", "calibration", "polarization"]:
-                if o_id in options:
-                    other_identifiers[o_id] = options[o_id].split(",")
-            optional_other_identifiers = {}
-            for o_id in ["resolution", "calibration", "polarization"]:
-                if "optional_" + o_id in options:
-                    optional_other_identifiers[o_id] = options["optional_" + o_id].split(",")
+        # fix prerequisites in case of modifiers
+        prereqs = []
+        print options['prerequisites']
+        for item in options['prerequisites']:
+            if isinstance(item, dict):
+                prereqs.append(item.keys()[0])
+            else:
+                prereqs.append(item)
+        options['prerequisites'] = prereqs
 
-            def _normalize_prereqs(prereqs, other_identifiers):
-                # Pull out prerequisites
-                prerequisites = prereqs.split(",")
-                prereqs = []
-                for idx, prerequisite in enumerate(prerequisites):
-                    ds_id = {"name": None, "wavelength": None}
-                    # convert the prerequisite
-                    try:
-                        # prereqs can be wavelengths
-                        ds_id["wavelength"] = float(prerequisite)
-                    except ValueError:
-                        # or names
-                        ds_id["name"] = prerequisite
-
-                    # add further filtering to the prerequisites via the DatasetID namedtuple
-                    for o_id, vals in other_identifiers.items():
-                        ds_id[o_id] = vals[idx]
-
-                    prereqs.append(DatasetID(**ds_id))
-
-                return prereqs
-
-            if "prerequisites" in options:
-                options["prerequisites"] = _normalize_prereqs(options["prerequisites"], other_identifiers)
-
-            if "optional_prerequisites" in options:
-                options["optional_prerequisites"] = _normalize_prereqs(options["optional_prerequisites"],
-                                                                       optional_other_identifiers)
-
-            if "metadata_requirements" in options:
-                options["metadata_requirements"] = options["metadata_requirements"].split(",")
-
-            try:
-                loader = runtime_import(comp_cls)
-            except ImportError:
-                LOG.warning("Could not import composite class '%s' for"
-                            " compositor '%s'", comp_cls, options["name"])
-                continue
-
-            options.update(**kwargs)
-            comp = loader(**options)
-            compositors[options["name"]] = comp
-    return compositors
+        options.update(**kwargs)
+        comp = loader(**options)
+        compositors[composite_name] = comp
+    print compositors
+    return compositors, modifiers
 
 
-def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CONFIG_PATH, **kwargs):
+def load_compositors(composite_names=None, sensor_names=None,
+                     ppp_config_dir=CONFIG_PATH, **kwargs):
     """Load the requested *composite_names*.
 
     :param composite_names: The name of the desired composites
@@ -159,15 +163,24 @@ def load_compositors(composite_names=None, sensor_names=None, ppp_config_dir=CON
     """
     if sensor_names is None:
         sensor_names = []
-    config_filenames = ["generic.cfg"] + [sensor_name + ".cfg" for sensor_name in sensor_names]
+    config_filenames = ["generic.yaml"] + \
+        [sensor_name + ".yaml" for sensor_name in sensor_names]
     compositors = dict()
+    modifiers = dict()
     for config_filename in config_filenames:
         LOG.debug("Looking for composites config file %s", config_filename)
-        composite_configs = config_search_paths(os.path.join("composites", config_filename), ppp_config_dir)
+        composite_configs = config_search_paths(os.path.join("composites",
+                                                             config_filename),
+                                                ppp_config_dir)
         if not composite_configs:
             LOG.debug("No composite config found called %s", config_filename)
             continue
-        compositors.update(_get_compositors_from_configs(composite_configs, composite_names, sensor_names, **kwargs))
+        new_compositors, new_modifiers = _get_compositors_from_configs(composite_configs,
+                                                                       composite_names,
+                                                                       sensor_names,
+                                                                       **kwargs)
+        compositors.update(new_compositors)
+        modifiers.update(new_modifiers)
     return compositors
 
 
@@ -179,10 +192,6 @@ class CompositeBase(InfoObject):
         kwargs["prerequisites"] = prerequisites
         kwargs["optional_prerequisites"] = optional_prerequisites
         kwargs["metadata_requirements"] = metadata_requirements
-        if "modifiers" in kwargs:
-            kwargs["modifiers"] = kwargs["modifiers"].split(",")
-        else:
-            kwargs["modifiers"] = []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -214,12 +223,39 @@ class SunZenithNormalize(object):
         return sunzen_corr_cos(projectable, self.coszen[key])
 
 
+class CO2Corrector(CompositeBase):
+
+    def __call__(self, (ir_039, ir_108, ir_134), optional_datasets=None, **info):
+        """CO2 correction of the brightness temperature of the MSG 3.9um
+        channel.
+
+        .. math::
+
+          T4_CO2corr = (BT(IR3.9)^4 + Rcorr)^0.25
+          Rcorr = BT(IR10.8)^4 - (BT(IR10.8)-dt_CO2)^4
+          dt_CO2 = (BT(IR10.8)-BT(IR13.4))/4.0
+        """
+
+        dt_co2 = (ir_108 - ir_134) / 4.0
+        rcorr = ir_108 ** 4 - (ir_108 - dt_co2) ** 4
+        t4_co2corr = ir_039 ** 4 + rcorr
+        t4_co2corr.data = np.ma.where(t4_co2corr > 0.0, t4_co2corr, 0)
+        t4_co2corr = t4_co2corr ** 0.25
+
+        t4_co2corr.info = ir_039.info.copy()
+        t4_co2corr.info.setdefault('modifiers', []).append('co2_correction')
+
+        return t4_co2corr
+
+
 class RGBCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
-        the_data = np.rollaxis(np.ma.dstack([projectable for projectable in projectables]), axis=2)
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables),))
+        the_data = np.rollaxis(np.ma.dstack(
+            [projectable for projectable in projectables]), axis=2)
         #info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
@@ -251,7 +287,8 @@ class SunCorrectedRGB(RGBCompositor):
     def __call__(self, projectables, *args, **kwargs):
         suncorrector = SunZenithNormalize()
         for i, projectable in enumerate(projectables):
-            # FIXME: check the wavelength instead, so radiances can be corrected too.
+            # FIXME: check the wavelength instead, so radiances can be
+            # corrected too.
             if projectable.info.get("units") == "%":
                 projectables[i] = suncorrector(projectable)
         res = RGBCompositor.__call__(self,
