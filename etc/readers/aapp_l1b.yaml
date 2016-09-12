@@ -9,45 +9,63 @@ reader:
 datasets:
     '1':
         name: '1'
-        wavelength_range: [0.58, 0.63, 0.68]
+        wavelength: [0.58, 0.63, 0.68]
         resolution: 1050
-        standard_name: [reflectance, radiance]
-        calibration: [reflectance, radiance]
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
     '2':
         name: '2'
-        wavelength_range: [0.725, 0.8625, 1.0]
+        wavelength: [0.725, 0.8625, 1.0]
         resolution: 1050
-        standard_name: [reflectance, radiance]
-        calibration: [reflectance, radiance]
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
     '3a':
         name: '3a'
-        wavelength_range: [1.58, 1.61, 1.64]
+        wavelength: [1.58, 1.61, 1.64]
         resolution: 1050
-        standard_name: [reflectance, radiance]
-        calibration: [reflectance, radiance]
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
     '3b':
         name: '3b'
-        wavelength_range: [3.55, 3.74, 3.93]
+        wavelength: [3.55, 3.74, 3.93]
         resolution: 1050
-        standard_name: [brightness_temperature, radiance]
-        calibration: [brightness_temperature, radiance]
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
     '4':
         name: '4'
-        wavelength_range: [10.3, 10.8, 11.3]
+        wavelength: [10.3, 10.8, 11.3]
         resolution: 1050
-        standard_name: [brightness_temperature, radiance]
-        calibration: [brightness_temperature, radiance]
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
     '5':
         name: '5'
-        wavelength_range: [11.5, 12.0, 12.5]
+        wavelength: [11.5, 12.0, 12.5]
         resolution: 1050
-        standard_name: [brightness_temperature, radiance]
-        calibration: [brightness_temperature, radiance]
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
         file_type: avhrr_aapp_l1b
 
 file_types:

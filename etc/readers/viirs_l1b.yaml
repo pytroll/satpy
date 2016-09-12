@@ -31,7 +31,7 @@ navigation:
 datasets:
   I01:
     name: I01
-    wavelength_range: [0.600, 0.640, 0.680]
+    wavelength: [0.600, 0.640, 0.680]
     resolution: 371
     calibration:
       reflectance:
@@ -44,7 +44,7 @@ datasets:
     file_type: vl1bi
   I04:
     name: I04
-    wavelength_range: [3.580, 3.740, 3.900]
+    wavelength: [3.580, 3.740, 3.900]
     resolution: 371
     calibration:
       brightness_temperature:
