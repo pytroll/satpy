@@ -197,48 +197,36 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             id_kwargs = []
             for key in DatasetID._fields:
                 val = dataset.get(key)
-                if key == 'wavelength':
-                    # wavelength range should be a tuple
-                    id_kwargs.append((tuple(dataset['wavelength_range']),))
+                if key == "wavelength" and isinstance(val, list):
+                    # special case: wavelength can be [min, nominal, max]
+                    # but is still considered 1 option
+                    # it also needs to be a tuple so it can be used in
+                    # a dictionary key (DatasetID)
+                    id_kwargs.append((tuple(val),))
+                elif isinstance(val, (list, tuple, set)):
+                    # this key has multiple choices
+                    # (ex. 250 meter, 500 meter, 1000 meter resolutions)
+                    id_kwargs.append(val)
+                elif isinstance(val, dict):
+                    id_kwargs.append(val.keys())
                 else:
-                    if isinstance(val, (list, tuple, set)):
-                        # this key has multiple choices
-                        # (ex. 250 meter, 500 meter, 1000 meter resolutions)
-                        id_kwargs.append(val)
-                    elif isinstance(val, dict):
-                        id_kwargs.append(val.keys())
-                    else:
-                        # this key only has one choice so make it a one
-                        # item iterable
-                        id_kwargs.append((val,))
+                    # this key only has one choice so make it a one
+                    # item iterable
+                    id_kwargs.append((val,))
             for id_params in itertools.product(*id_kwargs):
                 dsid = DatasetID(*id_params)
                 ids.append(dsid)
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                # skip first 2 (name and wavelength)
-                for key in dsid._fields[2:]:
+                for key in dsid._fields:
                     if isinstance(ds_info.get(key), dict):
                         ds_info.update(ds_info[key][getattr(dsid, key)])
-                        ds_info[key] = getattr(dsid, key)
+                    # this is important for wavelength which was converted
+                    # to a tuple
+                    ds_info[key] = getattr(dsid, key)
                 self.ids[dsid] = dskey, ds_info
 
-            # for idx in range(nb_ids):
-            #     id_kwargs = {'name': dataset.get('name'),
-            #                  'wavelength': tuple(dataset.get('wavelength_range'))}
-            #     ds_kwargs = dataset.copy()
-            #     for key in ['resolution', 'calibration', 'polarization']:
-            #         id_kwargs[key] = dataset.get(key)
-            #         if isinstance(id_kwargs[key], (list, tuple, set)):
-            #             id_kwargs[key] = id_kwargs[key][idx]
-            #             ds_kwargs[key] = id_kwargs[key][idx]
-            #     for key in set(ds_kwargs.keys) - set(id_kwargs.keys()):
-            #         if isinstance(ds_kwargs[key], (list, tuple, set)):
-            #             ds_kwargs[key] = ds_kwargs[key][idx]
-            #     dsid = DatasetID(**id_kwargs)
-            #     ids.append(dsid)
-            #     self.ids[dsid] = dskey, ds_kwargs
         return ids
 
 
@@ -375,12 +363,6 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
             ds_info = self.ids[dsid][1]
-            # HACK: wavelength is a list from pyyaml but a tuple in the dsid
-            # when setting it in the DatasetDict it will fail because they are
-            # not equal
-            if "wavelength_range" in ds_info:
-                ds_info["wavelength_range"] = tuple(
-                    ds_info["wavelength_range"])
 
             # Get the file handler to load this dataset
             filetype = ds_info['file_type']

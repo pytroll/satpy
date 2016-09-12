@@ -34,7 +34,7 @@ datasets:
   btemp_10.7v:
     name: 'btemp_10.7v'
     # FIXME: These are actually GHz not micrometers
-    wavelength_range: [10.7, 10.7, 10.7]
+    wavelength: [10.7, 10.7, 10.7]
     resolution: 10000
     navigation: amsr2_10km
     standard_name: brightness_temperature
@@ -44,7 +44,7 @@ datasets:
     fill_value: 65535
   btemp_10.7h:
     name: 'btemp_10.7h'
-    wavelength_range: [10.7, 10.7, 10.7]
+    wavelength: [10.7, 10.7, 10.7]
     resolution: 10000
     navigation: amsr2_10km
     standard_name: brightness_temperature
@@ -54,7 +54,7 @@ datasets:
     fill_value: 65535
   btemp_36.5v:
     name: 'btemp_36.5v'
-    wavelength_range: [36.5, 36.5, 36.5]
+    wavelength: [36.5, 36.5, 36.5]
     resolution: 10000
     navigation: amsr2_10km
     standard_name: brightness_temperature
@@ -64,7 +64,7 @@ datasets:
     fill_value: 65535
   btemp_36.5h:
     name: 'btemp_36.5h'
-    wavelength_range: [36.5, 36.5, 36.5]
+    wavelength: [36.5, 36.5, 36.5]
     resolution: 10000
     navigation: amsr2_10km
     standard_name: brightness_temperature
@@ -74,7 +74,7 @@ datasets:
     fill_value: 65535
   btemp_89.0av:
     name: 'btemp_89.0av'
-    wavelength_range: [89.0, 89.0, 89.0]
+    wavelength: [89.0, 89.0, 89.0]
     resolution: 5000
     navigation: amsr2_5km_a
     standard_name: brightness_temperature
@@ -84,7 +84,7 @@ datasets:
     fill_value: 65535
   btemp_89.0ah:
     name: 'btemp_89.0ah'
-    wavelength_range: [89.0, 89.0, 89.0]
+    wavelength: [89.0, 89.0, 89.0]
     resolution: 5000
     navigation: amsr2_5km_a
     standard_name: brightness_temperature
@@ -94,7 +94,7 @@ datasets:
     fill_value: 65535
   btemp_89.0bv:
     name: 'btemp_89.0bv'
-    wavelength_range: [89.0, 89.0, 89.0]
+    wavelength: [89.0, 89.0, 89.0]
     resolution: 5000
     navigation: amsr2_5km_b
     standard_name: brightness_temperature
@@ -104,7 +104,7 @@ datasets:
     fill_value: 65535
   btemp_89.0bh:
     name: 'btemp_89.0bh'
-    wavelength_range: [89.0, 89.0, 89.0]
+    wavelength: [89.0, 89.0, 89.0]
     resolution: 5000
     navigation: amsr2_5km_b
     standard_name: brightness_temperature

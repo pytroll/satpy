@@ -107,6 +107,16 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
+    def get_file_units(self, var_path):
+        try:
+            file_units = self[var_path + '/attr/units']
+            # they were almost completely CF compliant...
+            if file_units == "none":
+                file_units = "1"
+        except KeyError:
+            # no file units specified
+            file_units = None
+
     def get_area(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         valid_min = self[lon_key + '/attr/valid_min']
@@ -147,6 +157,9 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
                 # special scaling parameters
                 scale_factor = self[var_path + '/attr/radiance_scale_factor']
                 scale_offset = self[var_path + '/attr/radiance_add_offset']
+                file_units = self[var_path + '/attr/radiance_units']
+                if file_units == 'Watts/meter^2/steradian/micrometer':
+                    file_units = 'W m-2 um-1 sr-1'
             else:
                 # we are getting a btemp band but we want the radiance values
                 # these are stored directly in the primary variable

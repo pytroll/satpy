@@ -21,7 +21,7 @@ datasets:
     resolution: [250, 500, 1000]
     calibration: reflectance
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.62
     - 0.645
     - 0.67
@@ -30,7 +30,7 @@ datasets:
     name: '10'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.483
     - 0.488
     - 0.493
@@ -39,7 +39,7 @@ datasets:
     name: '11'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.526
     - 0.531
     - 0.536
@@ -48,7 +48,7 @@ datasets:
     name: '12'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.546
     - 0.551
     - 0.556
@@ -57,7 +57,7 @@ datasets:
     name: '13hi'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.662
     - 0.667
     - 0.672
@@ -66,7 +66,7 @@ datasets:
     name: '13lo'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.662
     - 0.667
     - 0.672
@@ -75,7 +75,7 @@ datasets:
     name: '14hi'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.673
     - 0.678
     - 0.683
@@ -84,7 +84,7 @@ datasets:
     name: '14lo'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.673
     - 0.678
     - 0.683
@@ -93,7 +93,7 @@ datasets:
     name: '15'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.743
     - 0.748
     - 0.753
@@ -102,7 +102,7 @@ datasets:
     name: '16'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.862
     - 0.8695
     - 0.877
@@ -111,7 +111,7 @@ datasets:
     name: '17'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.89
     - 0.905
     - 0.92
@@ -120,7 +120,7 @@ datasets:
     name: '18'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.931
     - 0.936
     - 0.941
@@ -129,7 +129,7 @@ datasets:
     name: '19'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.915
     - 0.94
     - 0.965
@@ -139,7 +139,7 @@ datasets:
     resolution: [250, 500, 1000]
     calibration: reflectance
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.841
     - 0.8585
     - 0.876
@@ -148,7 +148,7 @@ datasets:
     name: '20'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 3.66
     - 3.75
     - 3.84
@@ -157,7 +157,7 @@ datasets:
     name: '21'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 3.929
     - 3.959
     - 3.989
@@ -166,7 +166,7 @@ datasets:
     name: '22'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 3.929
     - 3.959
     - 3.989
@@ -175,7 +175,7 @@ datasets:
     name: '23'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 4.02
     - 4.05
     - 4.08
@@ -184,7 +184,7 @@ datasets:
     name: '24'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 4.433
     - 4.4655
     - 4.498
@@ -193,7 +193,7 @@ datasets:
     name: '25'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 4.482
     - 4.5155
     - 4.549
@@ -202,7 +202,7 @@ datasets:
     name: '26'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 1.36
     - 1.375
     - 1.39
@@ -211,7 +211,7 @@ datasets:
     name: '27'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 6.535
     - 6.715
     - 6.895
@@ -220,7 +220,7 @@ datasets:
     name: '28'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 7.175
     - 7.325
     - 7.475
@@ -229,7 +229,7 @@ datasets:
     name: '29'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 8.4
     - 8.55
     - 8.7
@@ -238,7 +238,7 @@ datasets:
     name: '3'
     resolution: [500, 1000]
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.459
     - 0.469
     - 0.479
@@ -247,7 +247,7 @@ datasets:
     name: '30'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 9.58
     - 9.73
     - 9.88
@@ -256,7 +256,7 @@ datasets:
     name: '31'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 10.78
     - 11.03
     - 11.28
@@ -265,7 +265,7 @@ datasets:
     name: '32'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 11.77
     - 12.02
     - 12.27
@@ -274,7 +274,7 @@ datasets:
     name: '33'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 13.185
     - 13.335
     - 13.485
@@ -283,7 +283,7 @@ datasets:
     name: '34'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 13.485
     - 13.635
     - 13.785
@@ -292,7 +292,7 @@ datasets:
     name: '35'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 13.785
     - 13.935
     - 14.085
@@ -301,7 +301,7 @@ datasets:
     name: '36'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 14.085
     - 14.235
     - 14.385
@@ -310,7 +310,7 @@ datasets:
     name: '4'
     resolution: [500, 1000]
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.545
     - 0.555
     - 0.565
@@ -319,7 +319,7 @@ datasets:
     name: '5'
     resolution: [500, 1000]
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 1.23
     - 1.24
     - 1.25
@@ -328,7 +328,7 @@ datasets:
     name: '6'
     resolution: [500, 1000]
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 1.628
     - 1.64
     - 1.652
@@ -337,7 +337,7 @@ datasets:
     name: '7'
     resolution: [500, 1000]
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 2.105
     - 2.13
     - 2.155
@@ -346,7 +346,7 @@ datasets:
     name: '8'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.405
     - 0.4125
     - 0.42
@@ -355,7 +355,7 @@ datasets:
     name: '9'
     resolution: 1000
     navigation: hdf_eos_geo
-    wavelength_range:
+    wavelength:
     - 0.438
     - 0.443
     - 0.448
