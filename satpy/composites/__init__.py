@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015
+# Copyright (c) 2015-2016
 
 # Author(s):
 
@@ -20,7 +20,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Base classes for composite objects.
 """
 
@@ -31,7 +30,7 @@ import numpy as np
 import six
 import yaml
 
-from satpy.config import CONFIG_PATH, config_search_paths, runtime_import
+from satpy.config import CONFIG_PATH, config_search_paths, glob_config
 from satpy.projectable import InfoObject, Projectable, combine_info
 from satpy.readers import DatasetID
 from satpy.tools import sunzen_corr_cos
@@ -51,142 +50,131 @@ class IncompatibleAreas(Exception):
     pass
 
 
-class CompositeReader(object):
+class CompositorLoader(object):
     """Read composites using the configuration files on disk.
     """
 
-    def __init__(self, composite_names, sensor_names=None):
-        pass
+    def __init__(self, ppp_config_dir=CONFIG_PATH):
+        from satpy.config import glob_config
 
-# FIXME: is kwargs really used here ? what for ? This should be made
-# explicit probably
+        self.modifiers = {}
+        self.compositors = {}
+        self.ppp_config_dir = ppp_config_dir
 
+    def load_sensor_composites(self, sensor_names):
+        config_filenames = [sensor_name + ".yaml"
+                            for sensor_name in sensor_names]
+        for config_filename in config_filenames:
+            LOG.debug("Looking for composites config file %s", config_filename)
+            composite_configs = config_search_paths(
+                os.path.join("composites", config_filename),
+                self.ppp_config_dir)
+            if not composite_configs:
+                LOG.debug("No composite config found called %s",
+                          config_filename)
+                continue
+            for composite_config in composite_configs:
+                self._load_config(composite_config)
 
-def _get_compositors_from_configs(composite_configs, composite_names, sensor_names=None, **kwargs):
-    """Use the *composite_configs* to return the compositors for requested *composite_names*.
+    def load_compositor(self, key, sensor_names):
+        for sensor_name in sensor_names:
+            if sensor_name not in self.compositors:
+                self.load_sensor_composites([sensor_name])
+            try:
+                return self.compositors[sensor_name][key]
+            except KeyError:
+                continue
+        raise KeyError
 
-    Args:
-        composite_configs: the config files to load from
-        composite_names: get compositors to fetch
+    def load_compositors(self, sensor_names):
+        res = {}
+        for sensor_name in sensor_names:
+            if sensor_name not in self.compositors:
+                self.load_sensor_composites([sensor_name])
 
-    Returns:
-        A list of loaded compositors
-    """
+            res.update(self.compositors[sensor_name])
+        return res
 
-    conf = {}
-    files_processed = []
-    for composite_config in composite_configs:
-        if composite_config in files_processed:
-            continue
-        files_processed.append(composite_config)
+    def _load_config(self, composite_config, **kwargs):
         with open(composite_config) as conf_file:
-            conf.update(yaml.load(conf_file))
-
-    modifiers = {}
-
-    for modifier_name, options in conf['modifiers'].items():
+            conf = yaml.load(conf_file)
 
         try:
-            loader = options.pop('compositor')
+            sensor_name = conf['sensor_name']
         except KeyError:
-            raise ValueError(
-                "'modifier' missing or empty in config files: %s" % (composite_configs,))
-        options['name'] = modifier_name
-        # Check if the caller only wants composites for a certain sensor
-        if ('sensor' in options and
-                sensor_names is not None and
-                not (set(sensor_names) & set(options["sensor"]))):
-            continue
-        # Check if the caller only wants composites with certain names
-        if composite_names is not None and modifier_name not in composite_names:
-            continue
+            LOG.debug('No "sensor_name" tag found in %s, skipping.',
+                      composite_config)
+            return
 
-        # fix prerequisites in case of modifiers
-        prereqs = []
-        for item in options['prerequisites']:
-            if isinstance(item, dict):
-                # look into modifiers for matches and adapt the prerequisites
-                # accordingly
+        sensor_id = sensor_name.split('/')[-1]
+        sensor_deps = sensor_name.split('/')[:-1]
 
-                prereqs.append(item.keys()[0])
-            else:
-                prereqs.append(item)
-        options['prerequisites'] = prereqs
+        compositors = self.compositors.setdefault(sensor_id, {})
+        modifiers = self.modifiers.setdefault(sensor_id, {})
 
-        options.update(**kwargs)
-        modifiers[modifier_name] = loader, options
-
-    compositors = {}
-
-    for composite_name, options in conf['composites'].items():
+        for sensor_dep in reversed(sensor_deps):
+            if sensor_dep not in self.compositors or sensor_dep not in self.modifiers:
+                self.load_sensor_composites([sensor_dep])
 
         try:
-            loader = options.pop('compositor')
-        except KeyError:
-            raise ValueError(
-                "'compositor' missing or empty in config files: %s" % (composite_configs,))
-        options['name'] = composite_name
-        # Check if the caller only wants composites for a certain sensor
-        if ('sensor' in options and
-                sensor_names is not None and
-                not (set(sensor_names) & set(options["sensor"]))):
-            continue
-        # Check if the caller only wants composites with certain names
-        if composite_names is not None and composite_name not in composite_names:
-            continue
+            compositors.update(self.compositors[sensor_deps[-1]])
+            modifiers.update(self.modifiers[sensor_deps[-1]])
+        except IndexError:
+            # No deps, so no updating is needed
+            pass
 
-        # fix prerequisites in case of modifiers
-        prereqs = []
-        print options['prerequisites']
-        for item in options['prerequisites']:
-            if isinstance(item, dict):
-                prereqs.append(item.keys()[0])
-            else:
-                prereqs.append(item)
-        options['prerequisites'] = prereqs
+        for i in ['modifiers', 'composites']:
+            for composite_name, options in conf[i].items():
+                try:
+                    loader = options.pop('compositor')
+                except KeyError:
+                    raise ValueError("'compositor' missing or empty in %s" %
+                                     composite_config)
+                options['name'] = composite_name
 
-        options.update(**kwargs)
-        comp = loader(**options)
-        compositors[composite_name] = comp
-    print compositors
-    return compositors, modifiers
+                # fix prerequisites in case of modifiers
+                prereqs = []
+                for item in options.get('prerequisites', []):
 
+                    if isinstance(item, dict):
+                        #prereqs.append(item.keys()[0])
+                        if len(item.keys()) > 1:
+                            raise RuntimeError('Wrong prerequisite definition')
+                        key = item.keys()[0]
+                        mods = item.values()[0]
+                        comp_name = key
+                        for modifier in mods:
+                            comp_name = '_'.join((str(comp_name), modifier))
 
-def load_compositors(composite_names=None, sensor_names=None,
-                     ppp_config_dir=CONFIG_PATH, **kwargs):
-    """Load the requested *composite_names*.
+                            mloader, moptions = modifiers[modifier]
+                            moptions = moptions.copy()
+                            moptions.update(**kwargs)
+                            moptions['name'] = comp_name
+                            moptions['prerequisites'] = (
+                                [key] + moptions['prerequisites'])
+                            compositors[comp_name] = mloader(**moptions)
+                        prereqs.append(comp_name)
+                    else:
+                        prereqs.append(item)
+                options['prerequisites'] = prereqs
 
-    :param composite_names: The name of the desired composites
-    :param sensor_names:  The name of the desired sensors to load composites for
-    :param ppp_config_dir: The config directory
-    :return: A list of loaded compositors
-    """
-    if sensor_names is None:
-        sensor_names = []
-    config_filenames = ["generic.yaml"] + \
-        [sensor_name + ".yaml" for sensor_name in sensor_names]
-    compositors = dict()
-    modifiers = dict()
-    for config_filename in config_filenames:
-        LOG.debug("Looking for composites config file %s", config_filename)
-        composite_configs = config_search_paths(os.path.join("composites",
-                                                             config_filename),
-                                                ppp_config_dir)
-        if not composite_configs:
-            LOG.debug("No composite config found called %s", config_filename)
-            continue
-        new_compositors, new_modifiers = _get_compositors_from_configs(composite_configs,
-                                                                       composite_names,
-                                                                       sensor_names,
-                                                                       **kwargs)
-        compositors.update(new_compositors)
-        modifiers.update(new_modifiers)
-    return compositors
+                if i == 'composites':
+                    options.update(**kwargs)
+                    comp = loader(**options)
+                    compositors[composite_name] = comp
+                elif i == 'modifiers':
+                    modifiers[composite_name] = loader, options
+
+        return conf
 
 
 class CompositeBase(InfoObject):
-
-    def __init__(self, name, prerequisites=[], optional_prerequisites=[], metadata_requirements=[], **kwargs):
+    def __init__(self,
+                 name,
+                 prerequisites=[],
+                 optional_prerequisites=[],
+                 metadata_requirements=[],
+                 **kwargs):
         # Required info
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites
@@ -206,11 +194,11 @@ class CompositeBase(InfoObject):
         return pformat(self.info)
 
 
-class SunZenithNormalize(object):
+class SunZenithCorrector(CompositeBase):
     # FIXME: the cache should be cleaned up
     coszen = {}
 
-    def __call__(self, projectable,  *args, **kwargs):
+    def __call__(self, (projectable, ), **info):
         from pyorbital.astronomy import cos_zen
         key = (projectable.info["start_time"], projectable.info["area"].name)
         if key not in self.coszen:
@@ -224,8 +212,9 @@ class SunZenithNormalize(object):
 
 
 class CO2Corrector(CompositeBase):
-
-    def __call__(self, (ir_039, ir_108, ir_134), optional_datasets=None, **info):
+    def __call__(self, (ir_039, ir_108, ir_134),
+                 optional_datasets=None,
+                 **info):
         """CO2 correction of the brightness temperature of the MSG 3.9um
         channel.
 
@@ -235,27 +224,27 @@ class CO2Corrector(CompositeBase):
           Rcorr = BT(IR10.8)^4 - (BT(IR10.8)-dt_CO2)^4
           dt_CO2 = (BT(IR10.8)-BT(IR13.4))/4.0
         """
-
+        LOG.info('Applying CO2 correction')
         dt_co2 = (ir_108 - ir_134) / 4.0
-        rcorr = ir_108 ** 4 - (ir_108 - dt_co2) ** 4
-        t4_co2corr = ir_039 ** 4 + rcorr
-        t4_co2corr.data = np.ma.where(t4_co2corr > 0.0, t4_co2corr, 0)
-        t4_co2corr = t4_co2corr ** 0.25
+        rcorr = ir_108**4 - (ir_108 - dt_co2)**4
+        t4_co2corr = ir_039**4 + rcorr
+        t4_co2corr = np.ma.where(t4_co2corr > 0.0, t4_co2corr, 0)
+        t4_co2corr = t4_co2corr**0.25
 
-        t4_co2corr.info = ir_039.info.copy()
-        t4_co2corr.info.setdefault('modifiers', []).append('co2_correction')
+        info = ir_039.info.copy()
+        info.setdefault('modifiers', []).append('co2_correction')
 
-        return t4_co2corr
+        return Projectable(t4_co2corr, mask=t4_co2corr.mask, **info)
 
 
 class RGBCompositor(CompositeBase):
-
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables),))
-        the_data = np.rollaxis(np.ma.dstack(
-            [projectable for projectable in projectables]), axis=2)
+                             (len(projectables), ))
+        the_data = np.rollaxis(
+            np.ma.dstack([projectable for projectable in projectables]),
+            axis=2)
         #info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
@@ -282,23 +271,7 @@ class RGBCompositor(CompositeBase):
         return Projectable(data=the_data, **info)
 
 
-class SunCorrectedRGB(RGBCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        suncorrector = SunZenithNormalize()
-        for i, projectable in enumerate(projectables):
-            # FIXME: check the wavelength instead, so radiances can be
-            # corrected too.
-            if projectable.info.get("units") == "%":
-                projectables[i] = suncorrector(projectable)
-        res = RGBCompositor.__call__(self,
-                                     projectables,
-                                     *args, **kwargs)
-        return res
-
-
 class Airmass(RGBCompositor):
-
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
 
@@ -312,16 +285,13 @@ class Airmass(RGBCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[0] - projectables[1],
-                                      projectables[2] - projectables[3],
-                                      projectables[0]),
-                                     *args, **kwargs)
+        res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
+                                            projectables[2] - projectables[3],
+                                            projectables[0]), *args, **kwargs)
         return res
 
 
 class Convection(RGBCompositor):
-
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
 
@@ -335,16 +305,14 @@ class Convection(RGBCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[3] - projectables[4],
-                                      projectables[2] - projectables[5],
-                                      projectables[1] - projectables[0]),
+        res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
+                                            projectables[2] - projectables[5],
+                                            projectables[1] - projectables[0]),
                                      *args, **kwargs)
         return res
 
 
 class Dust(RGBCompositor):
-
     def __call__(self, projectables, *args, **kwargs):
         """Make a Dust RGB image composite.
 
@@ -358,9 +326,7 @@ class Dust(RGBCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self,
-                                     (projectables[2] - projectables[1],
-                                      projectables[1] - projectables[0],
-                                      projectables[1]),
-                                     *args, **kwargs)
+        res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
+                                            projectables[1] - projectables[0],
+                                            projectables[1]), *args, **kwargs)
         return res
