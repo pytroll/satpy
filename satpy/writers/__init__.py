@@ -20,26 +20,28 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Shared objects of the various writer classes.
 
 For now, this includes enhancement configuration utilities.
 """
 
-import logging
-from satpy.config import get_environ_config_dir, config_search_paths
-from satpy.plugin_base import Plugin
-from trollsift import parser
-from trollimage.image import Image
-import os
+import glob
 import json
+import logging
+import os
+
+from satpy.config import config_search_paths, get_environ_config_dir
+from satpy.plugin_base import Plugin
+from trollimage.image import Image
+from trollsift import parser
+
 try:
     import configparser
 except ImportError:
     from six.moves import configparser
-import glob
 
 LOG = logging.getLogger(__name__)
+
 
 def _determine_mode(dataset):
     if "mode" in dataset.info:
@@ -54,9 +56,15 @@ def _determine_mode(dataset):
     elif dataset.shape[0] == 4:
         return "RGBA"
     else:
-        raise RuntimeError("Can't determine 'mode' of dataset: %s" % (dataset.info.get("name", None),))
+        raise RuntimeError("Can't determine 'mode' of dataset: %s" %
+                           (dataset.info.get("name", None), ))
 
-def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=None, enhancement_config_file=None):
+
+def get_enhanced_image(dataset,
+                       enhancer=None,
+                       fill_value=None,
+                       ppp_config_dir=None,
+                       enhancement_config_file=None):
     mode = _determine_mode(dataset)
 
     if ppp_config_dir is None:
@@ -66,7 +74,9 @@ def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=N
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
     if enhancer.enhancement_tree is None:
-        raise RuntimeError("No enhancement configuration files found or specified, can not automatically enhance dataset")
+        raise RuntimeError(
+            "No enhancement configuration files found or specified, cannot"
+            " automatically enhance dataset")
 
     if dataset.info.get("sensor", None):
         enhancer.add_sensor_enhancements(dataset.info["sensor"])
@@ -79,6 +89,7 @@ def get_enhanced_image(dataset, enhancer=None, fill_value=None, ppp_config_dir=N
 
     return img
 
+
 def show(dataset, **kwargs):
     """Display the dataset as an image.
     """
@@ -88,6 +99,7 @@ def show(dataset, **kwargs):
     img = get_enhanced_image(dataset, **kwargs)
     img.show()
 
+
 def to_image(dataset, copy=True, **kwargs):
     # Only add keywords if they are present
     for key in ["mode", "fill_value", "palette"]:
@@ -95,16 +107,13 @@ def to_image(dataset, copy=True, **kwargs):
             kwargs.setdefault(key, dataset.info[key])
 
     if dataset.ndim == 2:
-        return Image([dataset],
-                      copy=copy,
-                      **kwargs)
+        return Image([dataset], copy=copy, **kwargs)
     elif dataset.ndim == 3:
-        return Image([band for band in dataset],
-                      copy=copy,
-                      **kwargs)
+        return Image([band for band in dataset], copy=copy, **kwargs)
     else:
-        raise ValueError("Don't know how to convert array with ndim %d to image" % dataset.ndim)
-
+        raise ValueError(
+            "Don't know how to convert array with ndim %d to image" %
+            dataset.ndim)
 
 
 class Writer(Plugin):
@@ -112,15 +121,22 @@ class Writer(Plugin):
     abstract class to be inherited.
     """
 
-    def __init__(self, name=None, fill_value=None, file_pattern=None, enhancement_config=None, base_dir=None, **kwargs):
+    def __init__(self,
+                 name=None,
+                 fill_value=None,
+                 file_pattern=None,
+                 base_dir=None,
+                 **kwargs):
         # Load the config
         Plugin.__init__(self, **kwargs)
 
         # Use options from the config file if they weren't passed as arguments
-        self.name = self.config_options.get("name", None) if name is None else name
-        self.fill_value = self.config_options.get("fill_value", None) if fill_value is None else fill_value
-        self.file_pattern = self.config_options.get("file_pattern", None) if file_pattern is None else file_pattern
-        enhancement_config = self.config_options.get("enhancement_config", None) if enhancement_config is None else enhancement_config
+        self.name = self.config_options.get("name",
+                                            None) if name is None else name
+        self.fill_value = self.config_options.get(
+            "fill_value", None) if fill_value is None else fill_value
+        self.file_pattern = self.config_options.get(
+            "file_pattern", None) if file_pattern is None else file_pattern
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
@@ -128,7 +144,6 @@ class Writer(Plugin):
             self.fill_value = float(self.fill_value)
 
         self.create_filename_parser(base_dir)
-        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
 
     def create_filename_parser(self, base_dir):
         # just in case a writer needs more complex file patterns
@@ -137,15 +152,51 @@ class Writer(Plugin):
             file_pattern = os.path.join(base_dir, self.file_pattern)
         else:
             file_pattern = self.file_pattern
-        self.filename_parser = parser.Parser(file_pattern) if file_pattern else None
+        self.filename_parser = parser.Parser(
+            file_pattern) if file_pattern else None
 
     def load_section_writer(self, section_name, section_options):
         self.config_options = section_options
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
-            raise RuntimeError("No filename pattern or specific filename provided")
+            raise RuntimeError(
+                "No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
+
+    def save_datasets(self, datasets, **kwargs):
+        """Save all datasets to one or more files.
+
+        Subclasses can use this method to save all datasets to one single
+        file or optimize the writing of individual datasets. By default
+        this simply calls `save_dataset` for each dataset provided.
+        """
+        for ds in datasets:
+            self.save_dataset(ds, **kwargs)
+
+    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+        """Saves the *dataset* to a given *filename*.
+        """
+        raise NotImplementedError(
+            "Writer '%s' has not implemented dataset saving" % (self.name, ))
+
+
+class ImageWriter(Writer):
+    def __init__(self,
+                 name=None,
+                 fill_value=None,
+                 file_pattern=None,
+                 enhancement_config=None,
+                 base_dir=None,
+                 **kwargs):
+        Writer.__init__(self, name, fill_value, file_pattern, base_dir,
+                        **kwargs)
+        enhancement_config = self.config_options.get(
+            "enhancement_config",
+            None) if enhancement_config is None else enhancement_config
+
+        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
+                                 enhancement_config_file=enhancement_config)
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
@@ -154,25 +205,20 @@ class Writer(Plugin):
         img = get_enhanced_image(dataset, self.enhancer, fill_value)
         self.save_image(img, filename=filename, **kwargs)
 
-    def save_datasets(self, datasets, **kwargs):
-        """Save all datasets to one or more files.
-
-        Subclasses can use this method to save all datasets to one single file
-        or optimize the writing of individual datasets. By default this simply
-        calls `save_dataset` for each dataset provided.
-        """
-        for ds in datasets:
-            self.save_dataset(ds, **kwargs)
-
     def save_image(self, img, filename=None, **kwargs):
-        raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
+        raise NotImplementedError(
+            "Writer '%s' has not implemented image saving" % (self.name, ))
 
 
 class EnhancementDecisionTree(object):
     any_key = None
 
     def __init__(self, *config_files, **kwargs):
-        self.attrs = kwargs.pop("attrs", ("name", "platform", "sensor", "standard_name", "units",))
+        self.attrs = kwargs.pop("attrs", ("name",
+                                          "platform",
+                                          "sensor",
+                                          "standard_name",
+                                          "units", ))
         self.prefix = kwargs.pop("prefix", "enhancement:")
         self.tree = {}
         self.add_config_to_tree(*config_files)
@@ -192,14 +238,16 @@ class EnhancementDecisionTree(object):
             if not section_name.startswith(self.prefix):
                 continue
             attrs = dict(conf.items(section_name))
-            # Set a path in the tree for each section in the configuration files
+            # Set a path in the tree for each section in the configuration
+            # files
             curr_level = self.tree
             for attr in self.attrs:
                 # or None is necessary if they have empty strings
                 this_attr = attrs.get(attr, self.any_key) or None
                 if attr == self.attrs[-1]:
                     # if we are at the last attribute, then assign the value
-                    # set the dictionary of attributes because the config is not persistent
+                    # set the dictionary of attributes because the config is
+                    # not persistent
                     curr_level[this_attr] = attrs
                 elif this_attr not in curr_level:
                     curr_level[this_attr] = {}
@@ -213,15 +261,20 @@ class EnhancementDecisionTree(object):
         match = None
         try:
             if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
-                # we know what we're searching for, try to find a pattern that uses this attribute
-                match = self._find_match(curr_level[kwargs[attrs[0]]], attrs[1:], kwargs)
+                # we know what we're searching for, try to find a pattern
+                # that uses this attribute
+                match = self._find_match(curr_level[kwargs[attrs[0]]],
+                                         attrs[1:], kwargs)
         except TypeError:
             # we don't handle multiple values (for example sensor) atm.
-            LOG.debug("Strange stuff happening in decision tree for %s: %s", attrs[0], kwargs[attrs[0]])
+            LOG.debug("Strange stuff happening in decision tree for %s: %s",
+                      attrs[0], kwargs[attrs[0]])
 
         if match is None and self.any_key in curr_level:
-            # if we couldn't find it using the attribute then continue with the other attributes down the 'any' path
-            match = self._find_match(curr_level[self.any_key], attrs[1:], kwargs)
+            # if we couldn't find it using the attribute then continue with
+            # the other attributes down the 'any' path
+            match = self._find_match(curr_level[self.any_key], attrs[1:],
+                                     kwargs)
         return match
 
     def find_match(self, **kwargs):
@@ -233,7 +286,8 @@ class EnhancementDecisionTree(object):
 
         if match is None:
             # only possible if no default section was provided
-            raise KeyError("No enhancement configuration found for %s" % (kwargs.get("uid", None),))
+            raise KeyError("No enhancement configuration found for %s" %
+                           (kwargs.get("uid", None), ))
         for key, val in match.items():
             try:
                 match[key] = json.loads(val)
@@ -245,29 +299,32 @@ class EnhancementDecisionTree(object):
 
 
 class Enhancer(object):
-
     """
     Helper class to get enhancement information for images.
     """
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
         """
-        :param ppp_config_dir: Points to the base configuration directory
-        :param enhancement_config_file: The enhancement configuration to apply, False to leave as is.
-        :return:
+        Args:
+            ppp_config_dir: Points to the base configuration directory
+            enhancement_config_file: The enhancement configuration to
+                apply, False to leave as is.
         """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
         # Set enhancement_config_file to False for no enhancements
         if self.enhancement_config_file is None:
-            # it wasn't specified in the config or in the kwargs, we should provide a default
+            # it wasn't specified in the config or in the kwargs, we should
+            # provide a default
             config_fn = os.path.join("enhancements", "generic.cfg")
-            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(
+                config_fn, self.ppp_config_dir)
         if not isinstance(self.enhancement_config_file, (list, tuple)):
             self.enhancement_config_file = [self.enhancement_config_file]
 
         if self.enhancement_config_file:
-            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
+            self.enhancement_tree = EnhancementDecisionTree(
+                *self.enhancement_config_file)
         else:
             # They don't want any automatic enhancements
             self.enhancement_tree = None
@@ -282,7 +339,8 @@ class Enhancer(object):
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".cfg")
             config_files = config_search_paths(config_fn, self.ppp_config_dir)
-            # Note: Enhancement configuration files can't overwrite individual options, only entire sections are overwritten
+            # Note: Enhancement configuration files can't overwrite individual
+            # options, only entire sections are overwritten
             for config_file in config_files:
                 yield config_file
 
@@ -290,7 +348,8 @@ class Enhancer(object):
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
         for config_file in self.get_sensor_enhancement_config(sensor):
-            if config_file not in self.sensor_enhancement_configs.append(config_file):
+            if config_file not in self.sensor_enhancement_configs.append(
+                    config_file):
                 self.sensor_enhancement_configs.append(config_file)
                 new_configs.append(config_file)
 
@@ -299,5 +358,6 @@ class Enhancer(object):
 
     def apply(self, img, **info):
         enh_kwargs = self.enhancement_tree.find_match(**info)
-        LOG.debug("Enhancement configuration options: %s" % (str(enh_kwargs),))
+        LOG.debug("Enhancement configuration options: %s" %
+                  (str(enh_kwargs), ))
         img.enhance(**enh_kwargs)

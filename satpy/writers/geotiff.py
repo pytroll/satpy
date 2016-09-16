@@ -19,53 +19,55 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """GeoTIFF writer objects for creating GeoTIFF files from `Projectable` objects.
 
 """
 
 import logging
+
 import numpy as np
-from satpy.writers import Writer
-from satpy.utils import ensure_dir
 from osgeo import gdal, osr
 
+from satpy.utils import ensure_dir
+from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
 
-class GeoTIFFWriter(Writer):
-    GDAL_OPTIONS = (
-        "tfw",
-        "rpb",
-        "rpctxt",
-        "interleave",
-        "tiled",
-        "blockxsize",
-        "blockysize",
-        "nbits",
-        "compress",
-        "num_threads",
-        "predictor",
-        "discard_lsb",
-        "sparse_ok",
-        "jpeg_quality",
-        "jpegtablesmode",
-        "zlevel",
-        "photometric",
-        "alpha",
-        "profile",
-        "bigtiff",
-        "pixeltype",
-        "copy_src_overviews",
-
-    )
+class GeoTIFFWriter(ImageWriter):
+    GDAL_OPTIONS = ("tfw",
+                    "rpb",
+                    "rpctxt",
+                    "interleave",
+                    "tiled",
+                    "blockxsize",
+                    "blockysize",
+                    "nbits",
+                    "compress",
+                    "num_threads",
+                    "predictor",
+                    "discard_lsb",
+                    "sparse_ok",
+                    "jpeg_quality",
+                    "jpegtablesmode",
+                    "zlevel",
+                    "photometric",
+                    "alpha",
+                    "profile",
+                    "bigtiff",
+                    "pixeltype",
+                    "copy_src_overviews", )
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
-        Writer.__init__(self, default_config_filename="writers/geotiff.cfg", **kwargs)
+        ImageWriter.__init__(self,
+                             default_config_filename="writers/geotiff.cfg",
+                             **kwargs)
 
-        self.floating_point = bool(self.config_options.get("floating_point", None) if floating_point is None else floating_point)
-        self.tags = self.config_options.get("tags", None) if tags is None else tags
+        self.floating_point = bool(self.config_options.get(
+            "floating_point", None) if floating_point is None else
+                                   floating_point)
+        self.tags = self.config_options.get("tags",
+                                            None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -120,13 +122,16 @@ class GeoTIFFWriter(Writer):
         floating_point = floating_point if floating_point is not None else self.floating_point
 
         if "alpha" in kwargs:
-            raise ValueError("Keyword 'alpha' is automatically set and should not be specified")
+            raise ValueError(
+                "Keyword 'alpha' is automatically set and should not be specified")
 
         if floating_point:
             if img.mode != "L":
-                raise ValueError("Image must be in 'L' mode for floating point geotiff saving")
+                raise ValueError(
+                    "Image must be in 'L' mode for floating point geotiff saving")
             if img.fill_value is None:
-                LOG.warning("Image with floats cannot be transparent, so setting fill_value to 0")
+                LOG.warning(
+                    "Image with floats cannot be transparent, so setting fill_value to 0")
                 fill_value = 0
             datasets = [img.datasets[0].astype(np.float64)]
             fill_value = img.fill_value or [0]
@@ -148,72 +153,47 @@ class GeoTIFFWriter(Writer):
 
         LOG.debug("Saving to GeoTiff: %s", filename)
 
-        g_opts = ["{0}={1}".format(k.upper(), str(v)) for k, v in self.gdal_options.items()]
+        g_opts = ["{0}={1}".format(k.upper(), str(v))
+                  for k, v in self.gdal_options.items()]
 
         ensure_dir(filename)
         if img.mode == "L":
             if fill_value is not None:
-                dst_ds = raster.Create(filename,
-                                       img.width,
-                                       img.height,
-                                       1,
-                                       gformat,
-                                       g_opts)
+                dst_ds = raster.Create(filename, img.width, img.height, 1,
+                                       gformat, g_opts)
             else:
                 g_opts.append("ALPHA=YES")
-                dst_ds = raster.Create(filename,
-                                       img.width,
-                                       img.height,
-                                       2,
-                                       gformat,
-                                       g_opts)
-            self._gdal_write_datasets(dst_ds, datasets,
-                                      opacity, fill_value)
+                dst_ds = raster.Create(filename, img.width, img.height, 2,
+                                       gformat, g_opts)
+            self._gdal_write_datasets(dst_ds, datasets, opacity, fill_value)
         elif img.mode == "LA":
             g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename,
-                                   img.width,
-                                   img.height,
-                                   2,
-                                   gformat,
+            dst_ds = raster.Create(filename, img.width, img.height, 2, gformat,
                                    g_opts)
-            self._gdal_write_datasets(dst_ds,
-                                      datasets[:-1], datasets[1],
+            self._gdal_write_datasets(dst_ds, datasets[:-1], datasets[1],
                                       fill_value)
         elif img.mode == "RGB":
             if fill_value is not None:
-                dst_ds = raster.Create(filename,
-                                       img.width,
-                                       img.height,
-                                       3,
-                                       gformat,
-                                       g_opts)
+                dst_ds = raster.Create(filename, img.width, img.height, 3,
+                                       gformat, g_opts)
             else:
                 g_opts.append("ALPHA=YES")
-                dst_ds = raster.Create(filename,
-                                       img.width,
-                                       img.height,
-                                       4,
-                                       gformat,
-                                       g_opts)
+                dst_ds = raster.Create(filename, img.width, img.height, 4,
+                                       gformat, g_opts)
 
-            self._gdal_write_datasets(dst_ds, datasets,
-                                      opacity, fill_value)
+            self._gdal_write_datasets(dst_ds, datasets, opacity, fill_value)
 
         elif img.mode == "RGBA":
             g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename,
-                                   img.width,
-                                   img.height,
-                                   4,
-                                   gformat,
+            dst_ds = raster.Create(filename, img.width, img.height, 4, gformat,
                                    g_opts)
 
-            self._gdal_write_datasets(dst_ds,
-                                      datasets[:-1], datasets[3],
+            self._gdal_write_datasets(dst_ds, datasets[:-1], datasets[3],
                                       fill_value)
         else:
-            raise NotImplementedError("Saving to GeoTIFF using image mode %s is not implemented." % img.mode)
+            raise NotImplementedError(
+                "Saving to GeoTIFF using image mode %s is not implemented." %
+                img.mode)
 
         # Create raster GeoTransform based on upper left corner and pixel
         # resolution ... if not overwritten by argument geotransform.
@@ -223,7 +203,7 @@ class GeoTIFFWriter(Writer):
             area = img.info["area"]
             try:
                 geotransform = [area.area_extent[0], area.pixel_size_x, 0,
-                                   area.area_extent[3], 0, -area.pixel_size_y]
+                                area.area_extent[3], 0, -area.pixel_size_y]
                 dst_ds.SetGeoTransform(geotransform)
                 srs = osr.SpatialReference()
 
@@ -235,23 +215,24 @@ class GeoTIFFWriter(Writer):
                     pass
                 try:
                     # Check for epsg code.
-                    srs.SetAuthority('PROJCS', 'EPSG',
-                                     int(area.proj_dict['init'].
-                                         split('epsg:')[1]))
+                    srs.SetAuthority(
+                        'PROJCS', 'EPSG',
+                        int(area.proj_dict['init'].split('epsg:')[1]))
                 except (KeyError, IndexError):
                     pass
                 srs = srs.ExportToWkt()
                 dst_ds.SetProjection(srs)
             except AttributeError:
-                LOG.warning("Can't save geographic information to geotiff, unsupported area type")
+                LOG.warning(
+                    "Can't save geographic information to geotiff, unsupported area type")
 
         tags = self.tags.copy()
         if "start_time" in img.info:
-            tags.update({'TIFFTAG_DATETIME': img.info["start_time"].strftime("%Y:%m:%d %H:%M:%S")})
+            tags.update({'TIFFTAG_DATETIME': img.info["start_time"].strftime(
+                "%Y:%m:%d %H:%M:%S")})
 
         dst_ds.SetMetadata(tags, '')
 
         # Close the dataset
 
         dst_ds = None
-

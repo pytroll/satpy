@@ -18,20 +18,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-
 """
 """
 
 import logging
-from satpy.writers import Writer
+
+from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
 
-class PillowWriter(Writer):
-
+class PillowWriter(ImageWriter):
     def __init__(self, **kwargs):
-        Writer.__init__(self, default_config_filename="writers/simple_image.cfg", **kwargs)
+        ImageWriter.__init__(
+            self,
+            default_config_filename="writers/simple_image.cfg",
+            **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
         filename = filename or self.get_filename(**img.info)
