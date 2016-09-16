@@ -22,7 +22,6 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Interface to Eumetcast level 1.5 HRIT/LRIT format. Uses the MIPP reader.
 """
 import logging
@@ -37,7 +36,6 @@ from satpy.satin.helper_functions import area_defs_to_extent
 from trollsift.parser import globify, parse
 
 LOGGER = logging.getLogger(__name__)
-
 
 try:
     # Work around for on demand import of pyresample. pyresample depends
@@ -143,12 +141,21 @@ class xRITFile(AbstractYAMLReader):
             else:
                 sensor = metadata.instruments[0]
 
-            projectable = Projectable(data,
-                                      name=ds.name,
-                                      units=metadata.calibration_unit,
-                                      sensor=sensor,
-                                      start_time=min(start_times),
-                                      id=ds)
+            standard_names = {'1': 'counts',
+                              'W m-2 sr-1 m-1':
+                              'toa_outgoing_radiance_per_unit_wavelength',
+                              '%': 'toa_bidirectional_reflectance',
+                              'K':
+                              'toa_brightness_temperature'}
+
+            projectable = Projectable(
+                data,
+                name=ds.name,
+                units=metadata.calibration_unit,
+                standard_name=standard_names[metadata.calibration_unit],
+                sensor=sensor,
+                start_time=min(start_times),
+                id=ds)
 
             # Build an area on the fly from the mipp metadata
             proj_params = getattr(metadata, "proj4_params").split(" ")
@@ -160,15 +167,9 @@ class xRITFile(AbstractYAMLReader):
             if IS_PYRESAMPLE_LOADED:
                 # Build area_def on-the-fly
                 projectable.info["area"] = geometry.AreaDefinition(
-
-                    str(metadata.area_extent) +
-                    str(data.shape),
-                    "On-the-fly area",
-                    proj_dict["proj"],
-                    proj_dict,
-                    data.shape[1],
-                    data.shape[0],
-                    metadata.area_extent)
+                    str(metadata.area_extent) + str(data.shape),
+                    "On-the-fly area", proj_dict["proj"], proj_dict,
+                    data.shape[1], data.shape[0], metadata.area_extent)
             else:
                 LOGGER.info("Could not build area, pyresample missing...")
 
@@ -176,7 +177,13 @@ class xRITFile(AbstractYAMLReader):
 
         return datasets
 
-    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
+    def select_files(self,
+                     base_dir=None,
+                     filenames=None,
+                     sensor=None,
+                     start_time=None,
+                     end_time=None,
+                     area=None):
         file_set, info_filenames = super(xRITFile, self).select_files(
             base_dir, filenames, sensor)
 
@@ -199,8 +206,8 @@ class xRITFile(AbstractYAMLReader):
                         # we know how to use this file (even if we may not use
                         # it later)
                         used_filenames.add(filename)
-                        filename_info = parse(
-                            pattern, os.path.basename(filename))
+                        filename_info = parse(pattern,
+                                              os.path.basename(filename))
                         # Only add this file handler if it is within the time
                         # we want
                         file_start = filename_info['start_time']
