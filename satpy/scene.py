@@ -646,14 +646,17 @@ class Scene(InfoObject):
         conf = configparser.RawConfigParser()
         successes = conf.read(config_files)
         if not successes:
-            raise IOError("Writer configuration files do not exist: %s" % (config_files,))
+            raise IOError("Writer configuration files do not exist: %s" %
+                          (config_files, ))
 
         for section_name in conf.sections():
             if section_name.startswith("writer:"):
                 options = dict(conf.items(section_name))
                 writer_class_name = options["writer"]
                 writer_class = runtime_import(writer_class_name)
-                writer = writer_class(ppp_config_dir=self.ppp_config_dir, config_file=config_files, **kwargs)
+                writer = writer_class(ppp_config_dir=self.ppp_config_dir,
+                                      config_files=config_files,
+                                      **kwargs)
                 return writer
 
     def save_dataset(self, dataset_id, filename=None, writer=None, **kwargs):
@@ -663,7 +666,8 @@ class Scene(InfoObject):
             if filename is None:
                 writer = self.get_writer("geotiff", **kwargs)
             else:
-                writer = self.get_writer_by_ext(os.path.splitext(filename)[1], **kwargs)
+                writer = self.get_writer_by_ext(
+                    os.path.splitext(filename)[1], **kwargs)
         else:
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id], filename=filename)
@@ -680,12 +684,12 @@ class Scene(InfoObject):
 
     def get_writer(self, writer="geotiff", **kwargs):
         config_fn = writer + ".cfg" if "." not in writer else writer
-        config_files = config_search_paths(os.path.join("writers", config_fn), self.ppp_config_dir)
+        config_files = config_search_paths(
+            os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)
         return self.load_writer_config(**kwargs)
 
     def get_writer_by_ext(self, extension, **kwargs):
-        mapping = {".tiff": "geotiff",
-                   ".tif":  "geotiff",
-                   }
-        return self.get_writer(mapping.get(extension.lower(), "simple_image"), **kwargs)
+        mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
+        return self.get_writer(
+            mapping.get(extension.lower(), "simple_image"), **kwargs)
