@@ -79,11 +79,11 @@ composites:
     - 0.635
     standard_name: natural
   natural_sun:
-    compositor: !!python/name:satpy.composites.SunCorrectedRGB ''
+    compositor: !!python/name:satpy.composites.RGBCompositor ''
     prerequisites:
-    - 1.63
-    - 0.85
-    - 0.635
+    - 1.63: [sunz_correction]
+    - 0.85: [sunz_correction]
+    - 0.635: [sunz_correction]
     standard_name: natural
   night_fog:
     compositor: !!python/name:satpy.composites.Dust ''
@@ -103,6 +103,6 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor ''
     prerequisites:
     - 0.6: [sunz_correction]
-    - 0.8
+    - 0.8: [sunz_correction]
     - 10.8
     standard_name: overview
