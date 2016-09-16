@@ -1,0 +1,221 @@
+reader:
+  description: Generic Eumetsat Compact VIIRS Reader
+  name: viirs_compact
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [viirs]
+  default_datasets:
+
+datasets:
+  M01:
+    name: M01
+    wavelength: [0.402,0.412,0.422]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M02:
+    name: M02
+    wavelength: [0.436,0.445,0.454]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M03:
+    name: M03
+    wavelength: [0.478,0.488,0.498]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M04:
+    name: M04
+    wavelength: [0.545,0.555,0.565]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M05:
+    name: M05
+    wavelength: [0.662,0.672,0.682]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M06:
+    name: M06
+    wavelength: [0.739,0.746,0.754]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M07:
+    name: M07
+    wavelength: [0.846,0.865,0.885]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M08:
+    name: M08
+    wavelength: [1.230,1.240,1.250]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M09:
+    name: M09
+    wavelength: [1.371,1.378,1.386]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M10:
+    name: M10
+    wavelength: [1.580,1.610,1.640]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M11:
+    name: M11
+    wavelength: [2.225,2.250,2.275]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M12:
+    name: M12
+    wavelength: [3.610,3.700,3.790]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M13:
+    name: M13
+    wavelength: [3.973,4.050,4.128]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M14:
+    name: M14
+    wavelength: [8.400,8.550,8.700]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M15:
+    name: M15
+    wavelength: [10.263,10.763,11.263]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+  M16:
+    name: M16
+    wavelength: [11.538,12.013,12.489]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: compact_m
+
+
+file_types:
+  compact_m:
+    file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactMFileHandler ''
+    file_patterns: ['SVMC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5']
