@@ -124,6 +124,8 @@ class CompositorLoader(object):
             pass
 
         for i in ['modifiers', 'composites']:
+            if i not in conf:
+                continue
             for composite_name, options in conf[i].items():
                 try:
                     loader = options.pop('compositor')
