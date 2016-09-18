@@ -73,14 +73,53 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
                                                        filetype_info)
         self.h5f = h5py.File(self.filename, "r")
         self.finfo = filename_info
+        self.lons = None
+        self.lats = None
+
+        self.scans = self.h5f["All_Data"]["NumberOfScans"][0]
+        self.geostuff = self.h5f["All_Data"]["VIIRS-MOD-GEO_All"]
+        self.c_align = self.geostuff["AlignmentCoefficient"].value[
+            np.newaxis, np.newaxis, :, np.newaxis]
+        self.c_exp = self.geostuff["ExpansionCoefficient"].value[
+            np.newaxis, np.newaxis, :, np.newaxis]
+        # FIXME:  this supposes  there is  only one  tiepoint zone  in the
+        # track direction
+        channel = 'M15'
+        self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
+                        channel].attrs["TiePointZoneSizeTrack"][0]
+        self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
+                           channel].attrs["PixelOffsetTrack"]
+        self.scan_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
+                          channel].attrs["PixelOffsetScan"]
+
+        try:
+            self.group_locations = self.h5f[
+                "All_Data/VIIRS-MOD-GEO_All/"
+                "TiePointZoneGroupLocationScanCompact"].value
+        except KeyError:
+            self.group_locations = [0]
+
+        self.tpz_sizes = self.h5f["All_Data/VIIRS-%s-SDR_All" %
+                                  channel].attrs["TiePointZoneSizeScan"]
+        self.nb_tpzs = self.h5f[
+            "All_Data/VIIRS-MOD-GEO_All/NumberOfTiePointZonesScan"].value
+
+        self.senazi, self.senzen = None, None
+        self.solazi, self.solzen = None, None
 
     def get_dataset(self, key, info):
-        m_data = self.read_m(key)
+        if key.name in chans_dict:
+            m_data = self.read_m(key)
+        else:
+            m_data = self.read_geo(key)
         m_data.info.update(info)
-        lons, lats = self.navigate_m(key)
+        if self.lons is None or self.lats is None:
+            self.lons, self.lats = self.navigate_m(key)
         m_area_def = SwathDefinition(
-            np.ma.masked_where(m_data.mask, lons),
-            np.ma.masked_where(m_data.mask, lats))
+            np.ma.masked_where(m_data.mask, self.lons,
+                               copy=False),
+            np.ma.masked_where(m_data.mask, self.lats,
+                               copy=False))
         m_area_def.name = 'yo'
         m_data.info['area'] = m_area_def
         return m_data
@@ -96,6 +135,25 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         if end_time < self.start_time:
             end_time += timedelta(days=1)
         return end_time
+
+    def read_geo(self, key):
+        if key.name in ['sensor_zenith_angle', 'sensor_azimuth_angle']:
+            if self.senazi is None or self.senzen is None:
+                self.senazi, self.senzen = self.angles("SatelliteZenithAngle",
+                                                       "SatelliteAzimuthAngle")
+            if key.name == 'sensor_zenith_angle':
+                return Projectable(self.senzen, copy=False)
+            else:
+                return Projectable(self.senazi, copy=False)
+
+        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
+            if self.senazi is None or self.senzen is None:
+                self.solazi, self.solzen = self.angles("SolarZenithAngle",
+                                                       "SolarAzimuthAngle")
+            if key.name == 'solar_zenith_angle':
+                return Projectable(self.solzen, copy=False)
+            else:
+                return Projectable(self.solazi, copy=False)
 
     def read_m(self, key, calibrate=1):
 
@@ -164,313 +222,89 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         return Projectable(arr, units=unit)
 
     def navigate_m(self, key):
-        h5f = self.h5f
-        channel = chans_dict[key.name]
 
-        if not channel.startswith("M"):
-            raise ValueError("Unknow channel type for band %s", channel)
-
-        scans = h5f["All_Data"]["NumberOfScans"][0]
-        geostuff = h5f["All_Data"]["VIIRS-MOD-GEO_All"]
-        all_c_align = geostuff["AlignmentCoefficient"].value[
-            np.newaxis, np.newaxis, :, np.newaxis]
-        all_c_exp = geostuff["ExpansionCoefficient"].value[
-            np.newaxis, np.newaxis, :, np.newaxis]
-        all_lon = geostuff["Longitude"].value
-        all_lat = geostuff["Latitude"].value
+        all_lon = self.geostuff["Longitude"].value
+        all_lat = self.geostuff["Latitude"].value
 
         res = []
 
-        # FIXME:  this supposes  there is  only one  tiepoint zone  in the
-        # track direction
-        scan_size = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                        channel].attrs["TiePointZoneSizeTrack"][0]
-        track_offset = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                           channel].attrs["PixelOffsetTrack"]
-        scan_offset = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                          channel].attrs["PixelOffsetScan"]
-
-        try:
-            group_locations = h5f["All_Data/VIIRS-MOD-GEO_All/"
-                                  "TiePointZoneGroupLocationScanCompact"].value
-        except KeyError:
-            group_locations = [0]
         param_start = 0
-        for tpz_size, nb_tpz, start in \
-            zip(h5f["All_Data/VIIRS-%s-SDR_All" % \
-                    channel].attrs["TiePointZoneSizeScan"],
-                h5f["All_Data/VIIRS-MOD-GEO_All/NumberOfTiePointZonesScan"].value,
-                group_locations):
+        for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
+                                           self.group_locations):
+
             lon = all_lon[:, start:start + nb_tpz + 1]
             lat = all_lat[:, start:start + nb_tpz + 1]
-            c_align = all_c_align[:, :, param_start:param_start + nb_tpz, :]
-            c_exp = all_c_exp[:, :, param_start:param_start + nb_tpz, :]
+
+            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
+            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
+
             param_start += nb_tpz
-            nties = nb_tpz
+
             if (np.max(lon) - np.min(lon) > 90) or (np.max(abs(lat)) > 60):
                 x, y, z = lonlat2xyz(lon, lat)
-                x, y, z = (
-                    expand_array(x, scans, c_align, c_exp, scan_size, tpz_size,
-                                 nties, track_offset, scan_offset),
-                    expand_array(y, scans, c_align, c_exp, scan_size, tpz_size,
-                                 nties, track_offset, scan_offset),
-                    expand_array(z, scans, c_align, c_exp, scan_size, tpz_size,
-                                 nties, track_offset, scan_offset))
+                x, y, z = (expand_array(x, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset),
+                           expand_array(y, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset),
+                           expand_array(z, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset))
                 res.append(xyz2lonlat(x, y, z))
             else:
-                res.append(
-                    (expand_array(lon, scans, c_align, c_exp, scan_size,
-                                  tpz_size, nties, track_offset, scan_offset),
-                     expand_array(lat, scans, c_align, c_exp, scan_size,
-                                  tpz_size, nties, track_offset, scan_offset)))
+                res.append((expand_array(
+                    lon, self.scans, c_align, c_exp, self.scan_size, tpz_size,
+                    nb_tpz, self.track_offset, self.scan_offset), expand_array(
+                        lat, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset)
+                            ))
         lons, lats = zip(*res)
         return np.hstack(lons), np.hstack(lats)
 
+    def angles(self, zen_name, azi_name):
 
-def load(satscene, *args, **kwargs):
-    del args
+        all_lat = self.geostuff["Latitude"].value
+        all_zen = self.geostuff[zen_name].value
+        all_azi = self.geostuff[azi_name].value
 
-    files_to_load = []
-    files_to_delete = []
+        res = []
 
-    try:
-        filename = kwargs.get("filename")
-        logger.debug("reading %s", str(filename))
-        if filename is not None:
-            if isinstance(filename, (list, set, tuple)):
-                files = filename
+        param_start = 0
+        for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
+                                           self.group_locations):
+            lat = all_lat[:, start:start + nb_tpz + 1]
+            zen = all_zen[:, start:start + nb_tpz + 1]
+            azi = all_azi[:, start:start + nb_tpz + 1]
+
+            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
+            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
+
+            param_start += nb_tpz
+
+            if (np.max(azi) - np.min(azi) > 5) or (np.min(azi) < 10) or (
+                    np.max(abs(lat)) > 80):
+                x, y, z = lonlat2xyz(azi, 90 - zen)
+                x, y, z = (expand_array(x, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset),
+                           expand_array(y, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset),
+                           expand_array(z, self.scans, c_align, c_exp,
+                                        self.scan_size, tpz_size, nb_tpz,
+                                        self.track_offset, self.scan_offset))
+                azi, zen = xyz2lonlat(x, y, z)
+                res.append((azi, 90 - zen))
             else:
-                files = [filename]
-            files_to_load = []
-            for filename in files:
-                pathname, ext = os.path.splitext(filename)
-                if ext == ".bz2":
-                    zipfile = bz2.BZ2File(filename)
-                    newname = os.path.join("/tmp", os.path.basename(pathname))
-                    if not os.path.exists(newname):
-                        with open(newname, "wb") as fp_:
-                            fp_.write(zipfile.read())
-                    zipfile.close()
-                    files_to_load.append(newname)
-                    files_to_delete.append(newname)
-                else:
-                    files_to_load.append(filename)
-        else:
-            time_start, time_end = kwargs.get("time_interval",
-                                              (satscene.time_slot, None))
-
-            conf = ConfigParser()
-            conf.read(os.path.join(CONFIG_PATH, satscene.fullname + ".cfg"))
-            options = {}
-            for option, value in conf.items(
-                    satscene.instrument_name + "-level2",
-                    raw=True):
-                options[option] = value
-
-            template = os.path.join(options["dir"], options["filename"])
-
-            second = timedelta(seconds=1)
-            files_to_load = []
-
-            if time_end is not None:
-                time = time_start - second * 85
-                files_to_load = []
-                while time <= time_end:
-                    fname = time.strftime(template)
-                    flist = glob.glob(fname)
-                    try:
-                        files_to_load.append(flist[0])
-                        time += second * 80
-                    except IndexError:
-                        pass
-                    time += second
-
-            else:
-                files_to_load = glob.glob(time_start.strftime(template))
-
-        chan_dict = {"M01": "M1",
-                     "M02": "M2",
-                     "M03": "M3",
-                     "M04": "M4",
-                     "M05": "M5",
-                     "M06": "M6",
-                     "M07": "M7",
-                     "M08": "M8",
-                     "M09": "M9",
-                     "M10": "M10",
-                     "M11": "M11",
-                     "M12": "M12",
-                     "M13": "M13",
-                     "M14": "M14",
-                     "M15": "M15",
-                     "M16": "M16",
-                     "DNB": "DNB"}
-
-        channels = [(chn, chan_dict[chn]) for chn in satscene.channels_to_load
-                    if chn in chan_dict]
-        try:
-            channels_to_load, chans = zip(*channels)
-        except ValueError:
-            return
-
-        m_chans = []
-        dnb_chan = []
-        for chn in chans:
-            if chn.startswith('M'):
-                m_chans.append(chn)
-            elif chn.startswith('DNB'):
-                dnb_chan.append(chn)
-            else:
-                raise ValueError("Reading of channel %s not implemented", chn)
-
-        m_datas = []
-        m_lonlats = []
-        dnb_datas = []
-        dnb_lonlats = []
-
-        for fname in files_to_load:
-            is_dnb = os.path.basename(fname).startswith('SVDNBC')
-            logger.debug("Reading %s", fname)
-            if is_dnb:
-                if tables:
-                    h5f = tables.open_file(fname, "r")
-                else:
-                    logger.warning("DNB data could not be read from %s, "
-                                   "PyTables not available.", fname)
-                    continue
-            else:
-                h5f = h5py.File(fname, "r")
-            if m_chans and not is_dnb:
-                try:
-                    arr, m_units = read_m(h5f, m_chans)
-                    m_datas.append(arr)
-                    m_lonlats.append(navigate_m(h5f, m_chans[0]))
-                except KeyError:
-                    pass
-            if dnb_chan and is_dnb and tables:
-                try:
-                    arr, dnb_units = read_dnb(h5f)
-                    dnb_datas.append(arr)
-                    dnb_lonlats.append(navigate_dnb(h5f))
-                except KeyError:
-                    pass
-            h5f.close()
-
-        if len(m_lonlats) > 0:
-            m_lons = np.ma.vstack([lonlat[0] for lonlat in m_lonlats])
-            m_lats = np.ma.vstack([lonlat[1] for lonlat in m_lonlats])
-        if len(dnb_lonlats) > 0:
-            dnb_lons = np.ma.vstack([lonlat[0] for lonlat in dnb_lonlats])
-            dnb_lats = np.ma.vstack([lonlat[1] for lonlat in dnb_lonlats])
-
-        m_i = 0
-        dnb_i = 0
-        for chn in channels_to_load:
-            if m_datas and chn.startswith('M'):
-                m_data = np.ma.vstack([dat[m_i] for dat in m_datas])
-                satscene[chn] = m_data
-                satscene[chn].info["units"] = m_units[m_i]
-                m_i += 1
-            if dnb_datas and chn.startswith('DNB'):
-                dnb_data = np.ma.vstack([dat[dnb_i] for dat in dnb_datas])
-                satscene[chn] = dnb_data
-                satscene[chn].info["units"] = dnb_units[dnb_i]
-                dnb_i += 1
-
-        if m_datas:
-            m_area_def = SwathDefinition(
-                np.ma.masked_where(m_data.mask, m_lons),
-                np.ma.masked_where(m_data.mask, m_lats))
-        else:
-            logger.warning("No M channel data available.")
-
-        if dnb_datas:
-            dnb_area_def = SwathDefinition(
-                np.ma.masked_where(dnb_data.mask,
-                                   dnb_lons), np.ma.masked_where(dnb_data.mask,
-                                                                 dnb_lats))
-        else:
-            logger.warning("No DNB data available.")
-
-        for chn in channels_to_load:
-            if "DNB" not in chn and m_datas:
-                satscene[chn].area = m_area_def
-
-        if dnb_datas:
-            for chn in dnb_chan:
-                satscene[chn].area = dnb_area_def
-
-    finally:
-        for fname in files_to_delete:
-            if os.path.exists(fname):
-                os.remove(fname)
-
-
-def read_m(h5f, channels, calibrate=1):
-
-    chan_dict = dict([(key.split("-")[
-        1], key) for key in h5f["All_Data"].keys() if key.startswith("VIIRS")])
-
-    scans = h5f["All_Data"]["NumberOfScans"][0]
-    res = []
-    units = []
-    arr_mask = np.ma.nomask
-
-    for channel in channels:
-        rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
-        if channel in ("M9", ):
-            arr = rads[:scans * 16, :].astype(np.float32)
-            arr[arr > 65526] = np.nan
-            arr = np.ma.masked_array(arr, mask=arr_mask)
-        else:
-            arr = np.ma.masked_greater(rads[:scans * 16, :].astype(np.float32),
-                                       65526)
-        try:
-            arr = np.ma.where(arr <= rads.attrs['Threshold'],
-                              arr * rads.attrs['RadianceScaleLow'] +
-                              rads.attrs['RadianceOffsetLow'],
-                              arr * rads.attrs['RadianceScaleHigh'] + \
-                              rads.attrs['RadianceOffsetHigh'],)
-            arr_mask = arr.mask
-        except KeyError:
-            print "KeyError"
-            pass
-        unit = "W m-2 sr-1 μm-1"
-        if calibrate == 0:
-            raise NotImplementedError("Can't get counts from this data")
-        if calibrate == 1:
-            # do calibrate
-            try:
-                # First guess: VIS or NIR data
-                a_vis = rads.attrs['EquivalentWidth']
-                b_vis = rads.attrs['IntegratedSolarIrradiance']
-                dse = rads.attrs['EarthSunDistanceNormalised']
-                arr *= 100 * np.pi * a_vis / b_vis * (dse**2)
-                unit = "%"
-            except KeyError:
-                # Maybe it's IR data?
-                try:
-                    a_ir = rads.attrs['BandCorrectionCoefficientA']
-                    b_ir = rads.attrs['BandCorrectionCoefficientB']
-                    lambda_c = rads.attrs['CentralWaveLength']
-                    arr *= 1e6
-                    arr = (h * c) / (k * lambda_c * \
-                                     np.log(1 +
-                                            (2 * h * c ** 2) /
-                                            ((lambda_c ** 5) * arr)))
-                    arr *= a_ir
-                    arr += b_ir
-                    unit = "K"
-                except KeyError:
-                    logger.warning("Calibration failed.")
-
-        elif calibrate != 2:
-            raise ValueError("Calibrate parameter should be 1 or 2")
-        arr[arr < 0] = 0
-        res.append(arr)
-        units.append(unit)
-
-    return res, units
+                res.append((expand_array(
+                    azi, self.scans, c_align, c_exp, self.scan_size, tpz_size,
+                    nb_tpz, self.track_offset, self.scan_offset), expand_array(
+                        zen, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset)
+                            ))
+        azi, zen = zip(*res)
+        return np.hstack(azi), np.hstack(zen)
 
 
 def read_dnb(h5f):
@@ -532,68 +366,6 @@ def xyz2lonlat(x, y, z):
     lon = np.rad2deg(np.arctan2(y, x))
     lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
     return lon, lat
-
-
-def navigate_m(h5f, channel):
-
-    if not channel.startswith("M"):
-        raise ValueError("Unknow channel type for band %s", channel)
-
-    scans = h5f["All_Data"]["NumberOfScans"][0]
-    geostuff = h5f["All_Data"]["VIIRS-MOD-GEO_All"]
-    all_c_align = geostuff["AlignmentCoefficient"].value[
-        np.newaxis, np.newaxis, :, np.newaxis]
-    all_c_exp = geostuff["ExpansionCoefficient"].value[
-        np.newaxis, np.newaxis, :, np.newaxis]
-    all_lon = geostuff["Longitude"].value
-    all_lat = geostuff["Latitude"].value
-
-    res = []
-
-    # FIXME:  this supposes  there is  only one  tiepoint zone  in the
-    # track direction
-    scan_size = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                    channel].attrs["TiePointZoneSizeTrack"][0]
-    track_offset = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                       channel].attrs["PixelOffsetTrack"]
-    scan_offset = h5f["All_Data/VIIRS-%s-SDR_All" % \
-                      channel].attrs["PixelOffsetScan"]
-
-    try:
-        group_locations = h5f["All_Data/VIIRS-MOD-GEO_All/"
-                              "TiePointZoneGroupLocationScanCompact"].value
-    except KeyError:
-        group_locations = [0]
-    param_start = 0
-    for tpz_size, nb_tpz, start in \
-        zip(h5f["All_Data/VIIRS-%s-SDR_All" % \
-                channel].attrs["TiePointZoneSizeScan"],
-            h5f["All_Data/VIIRS-MOD-GEO_All/NumberOfTiePointZonesScan"].value,
-            group_locations):
-        lon = all_lon[:, start:start + nb_tpz + 1]
-        lat = all_lat[:, start:start + nb_tpz + 1]
-        c_align = all_c_align[:, :, param_start:param_start + nb_tpz, :]
-        c_exp = all_c_exp[:, :, param_start:param_start + nb_tpz, :]
-        param_start += nb_tpz
-        nties = nb_tpz
-        if (np.max(lon) - np.min(lon) > 90) or (np.max(abs(lat)) > 60):
-            x, y, z = lonlat2xyz(lon, lat)
-            x, y, z = (
-                expand_array(x, scans, c_align, c_exp, scan_size, tpz_size,
-                             nties, track_offset, scan_offset),
-                expand_array(y, scans, c_align, c_exp, scan_size, tpz_size,
-                             nties, track_offset, scan_offset), expand_array(
-                                 z, scans, c_align, c_exp, scan_size, tpz_size,
-                                 nties, track_offset, scan_offset))
-            res.append(xyz2lonlat(x, y, z))
-        else:
-            res.append(
-                (expand_array(lon, scans, c_align, c_exp, scan_size, tpz_size,
-                              nties, track_offset, scan_offset),
-                 expand_array(lat, scans, c_align, c_exp, scan_size, tpz_size,
-                              nties, track_offset, scan_offset)))
-    lons, lats = zip(*res)
-    return np.hstack(lons), np.hstack(lats)
 
 
 def navigate_dnb(h5f):
