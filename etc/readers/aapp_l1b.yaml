@@ -68,6 +68,22 @@ datasets:
             standard_name: radiance
         file_type: avhrr_aapp_l1b
 
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+
+    sensor_zenith_angle:
+        name: sensor_zenith_angle
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+
+    sun_sensor_azimuth_difference_angle:
+        name: sun_sensor_azimuth_difference_angle
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+
+
 file_types:
     avhrr_aapp_l1b:
         file_reader: !!python/name:satpy.readers.aapp_l1b.AVHRRAAPPL1BFile ''

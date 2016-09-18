@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013, 2014, 2015
+# Copyright (c) 2012, 2013, 2014, 2015, 2016
 
 # Author(s):
 
@@ -47,42 +47,71 @@ from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
+CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
+
+ANGLES = {'sensor_zenith_angle': 'satz',
+          'solar_zenith_angle': 'sunz',
+          'sun_sensor_azimuth_difference_angle': 'azidiff'}
+
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info, filetype_info)
+        super(AVHRRAAPPL1BFile, self).__init__(
+            filename, filename_info, filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
         self._data = None
         self._header = None
         self._is3b = None
+        self._shape = None
         self.lons = None
         self.lats = None
         self.area = None
         self.read()
+
+        self.sunz, self.satz, self.azidiff = None, None, None
 
     def start_time(self):
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(days=int(self._data['scnlindy'][0]) - 1,
                                                                      milliseconds=int(self._data['scnlintime'][0]))
 
     def end_time(self):
-        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(days=int(self._data['scnlindy'][-1]) - 1,
-                                                                      milliseconds=int(self._data['scnlintime'][-1]))
+        return (datetime(self._data['scnlinyr'][-1], 1, 1) +
+                timedelta(days=int(self._data['scnlindy'][-1]) - 1,
+                          milliseconds=int(self._data['scnlintime'][-1])))
 
     def shape(self):
-        return self._data.shape
+        # return self._data.shape
+        return self._shape
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-        dataset = self.calibrate([key])[0]
+
+        if key.name in CHANNEL_NAMES:
+            dataset = self.calibrate([key])[0]
+        else:  # Get sun-sat angles
+            if key.name in ANGLES:
+                if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
+                    dataset = Projectable(
+                        getattr(self, ANGLES[key.name]), copy=False)
+                else:
+                    dataset = self.get_angles(key.name)
+            else:
+                logger.exception(
+                    "Not a supported sun-sensor viewing angle: %s", key.name)
+                raise
+
         # TODO get metadata
         if self.lons is None or self.lats is None:
             self.navigate()
         if self.area is None:
             self.area = SwathDefinition(self.lons, self.lats)
             self.area.name = 'wla'
+
+        if not self._shape:
+            self._shape = dataset.shape
 
         dataset.info['area'] = self.area
         return dataset
@@ -99,6 +128,43 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         self._header = header
         self._data = data
+
+    def get_angles(self, angle_id):
+        """Get sun-satellite viewing angles"""
+
+        tic = datetime.now()
+
+        sunz40km = self._data["ang"][:, :, 0] * 1e-2
+        satz40km = self._data["ang"][:, :, 1] * 1e-2
+        azidiff40km = self._data["ang"][:, :, 2] * 1e-2
+
+        try:
+            from geotiepoints.interpolator import Interpolator
+        except ImportError:
+            logger.warning("Could not interpolate sun-sat angles, "
+                           "python-geotiepoints missing.")
+            self.sunz, self.satz, self.azidiff = sunz40km, satz40km, azidiff40km
+        else:
+            cols40km = np.arange(24, 2048, 40)
+            cols1km = np.arange(2048)
+            lines = sunz40km.shape[0]
+            rows40km = np.arange(lines)
+            rows1km = np.arange(lines)
+
+            along_track_order = 1
+            cross_track_order = 3
+
+            satint = Interpolator([sunz40km, satz40km, azidiff40km],
+                                  (rows40km, cols40km),
+                                  (rows1km, cols1km),
+                                  along_track_order,
+                                  cross_track_order)
+            self.sunz, self.satz, self.azidiff = satint.interpolate()
+
+            logger.debug("Interpolate sun-sat angles: time %s",
+                         str(datetime.now() - tic))
+
+        return Projectable(getattr(self, ANGLES[angle_id]), copy=False)
 
     def navigate(self):
         """Return the longitudes and latitudes of the scene.
@@ -140,7 +206,8 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         if calib_coeffs is None:
             calib_coeffs = {}
 
-        chns = dict((dataset_id.name, dataset_id) for dataset_id in dataset_ids)
+        chns = dict((dataset_id.name, dataset_id)
+                    for dataset_id in dataset_ids)
 
         res = []
         # FIXME this should be done in _vis_calibrate
@@ -154,14 +221,16 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             # Is it 3a or 3b:
             is3b = np.expand_dims(np.bitwise_and(
                 np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
-            self._is3b = np.repeat(is3b, self._data['hrpt'][0].shape[0], axis=1)
+            self._is3b = np.repeat(
+                is3b, self._data['hrpt'][0].shape[0], axis=1)
 
         for idx, name in enumerate(['1', '2', '3a']):
             if name in chns:
                 coeffs = calib_coeffs.get('ch' + name)
                 # FIXME data should be masked before calibration
                 ds = Projectable(_vis_calibrate(self._data, idx,
-                                                chns[name].calibration, pre_launch_coeffs,
+                                                chns[
+                                                    name].calibration, pre_launch_coeffs,
                                                 coeffs, mask=(name == '3a' and self._is3b)),
                                  units=units[chns[name].calibration],
                                  id=chns[name],
@@ -405,14 +474,14 @@ def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False,
         slope2 = np.expand_dims(calib_coeffs[2], 1)
         intercept2 = np.expand_dims(calib_coeffs[3], 1)
     else:
-        slope1 = \
-            np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
-        intercept1 = \
-            np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
-        slope2 = \
-            np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
-        intercept2 = \
-            np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
+        slope1 = np.expand_dims(
+            data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
+        intercept1 = np.expand_dims(
+            data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
+        slope2 = np.expand_dims(
+            data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
+        intercept2 = np.expand_dims(
+            data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
 
         if chn == 2:
             slope2[slope2 < 0] += 0.4294967296
@@ -493,12 +562,12 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
     else:  # AAPP 1 to 4
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
-    #tb_[tb_ <= 0] = np.nan
+    # tb_[tb_ <= 0] = np.nan
     # Data with count=0 are often related to erroneous (bad) lines, but in case
     # of saturation (channel 3b) count=0 can be observed and associated to a
     # real measurement. So we leave out this filtering to the user!
     # tb_[count == 0] = np.nan
-    #tb_[rad == 0] = np.nan
+    # tb_[rad == 0] = np.nan
     tb_ = np.ma.masked_array(tb_, copy=False, mask=mask)
     tb_ = np.ma.masked_invalid(tb_, copy=False)
     if calib_type == 'brightness_temperature':
