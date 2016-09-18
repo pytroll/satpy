@@ -214,6 +214,26 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: compact_m
 
+  sensor_azimuth_angle:
+    name: sensor_azimuth_angle
+    resolution: 742
+    file_type: compact_m
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    resolution: 742
+    file_type: compact_m
+
+  sensor_zenith_angle:
+    name: sensor_zenith_angle
+    resolution: 742
+    file_type: compact_m
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    resolution: 742
+    file_type: compact_m
+
 
 file_types:
   compact_m:
