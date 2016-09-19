@@ -24,13 +24,13 @@
 Original code written by Ralph Kuehn with modifications by David Hoese and Martin Raspaud.
 Ralph's code was originally based on the C crefl code distributed for VIIRS and MODIS.
 """
+import logging
 import os
 import sys
-import logging
+
 import numpy as np
 
 LOG = logging.getLogger(__name__)
-
 
 bUseV171 = False
 
@@ -44,44 +44,60 @@ else:
 MAXSOLZ = 86.5
 MAXAIRMASS = 18
 SCALEHEIGHT = 8000
-FILL_INT16 =32767
+FILL_INT16 = 32767
 
 TAUSTEP4SPHALB = 0.0001
-MAXNUMSPHALBVALUES = 4000    # with no aerosol taur <= 0.4 in all bands everywhere
+MAXNUMSPHALBVALUES = 4000  # with no aerosol taur <= 0.4 in all bands everywhere
 REFLMIN = -0.01
 REFLMAX = 1.6
 
+
 def csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
-    a= [ -.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004, 0.00107857]
-    xx = a[0] + a[1]*tau + a[2]*tau**2 + a[3]*tau**3 + a[4]*tau**4 + a[5]*tau**5
+    a = [-.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004,
+         0.00107857]
+    xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[
+        5] * tau**5
 
     # xx = a[0]
     # xftau = 1.0
     # for i in xrange(5):
     #     xftau = xftau*tau
     #     xx = xx + a[i] * xftau
-    fintexp1 = xx-np.log(tau)
+    fintexp1 = xx - np.log(tau)
     fintexp3 = (np.exp(-tau) * (1.0 - tau) + tau**2 * fintexp1) / 2.0
 
-    return (3.0 * tau - fintexp3 * (4.0 + 2.0 * tau) + 2.0 * np.exp(-tau)) / (4.0 + 3.0 * tau)
+    return (3.0 * tau - fintexp3 *
+            (4.0 + 2.0 * tau) + 2.0 * np.exp(-tau)) / (4.0 + 3.0 * tau)
 
 # From crefl.1.7.1
 if bUseV171:
-    aH2O =  np.array([-5.60723, -5.25251, 0, 0, -6.29824, -7.70944, -3.91877, 0, 0, 0, 0, 0, 0, 0, 0, 0 ])
-    bH2O =  np.array([0.820175, 0.725159, 0, 0, 0.865732, 0.966947, 0.745342, 0, 0, 0, 0, 0, 0, 0, 0, 0 ])
+    aH2O = np.array([-5.60723, -5.25251, 0, 0, -6.29824, -7.70944, -3.91877, 0,
+                     0, 0, 0, 0, 0, 0, 0, 0])
+    bH2O = np.array([0.820175, 0.725159, 0, 0, 0.865732, 0.966947, 0.745342, 0,
+                     0, 0, 0, 0, 0, 0, 0, 0])
     #const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
-    aO3 =  np.array([0.0715289, 0, 0.00743232, 0.089691, 0, 0, 0, 0.001, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
+    aO3 = np.array(
+        [0.0715289, 0, 0.00743232, 0.089691, 0, 0, 0, 0.001, 0.00383, 0.0225,
+         0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
     #const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
-    taur0 = np.array([0.05100, 0.01631, 0.19325, 0.09536, 0.00366, 0.00123, 0.00043, 0.3139, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
+    taur0 = np.array(
+        [0.05100, 0.01631, 0.19325, 0.09536, 0.00366, 0.00123, 0.00043, 0.3139,
+         0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
 else:
     #From polar2grid cviirs.c
-    aH2O =  np.array([0.000406601 ,0.0015933 , 0,1.78644e-05 ,0.00296457 ,0.000617252 , 0.000996563,0.00222253 ,0.00094005 , 0.000563288, 0, 0, 0, 0, 0, 0 ])
-    bH2O =  np.array([0.812659,0.832931 , 1., 0.8677850, 0.806816 , 0.944958 ,0.78812 ,0.791204 ,0.900564 ,0.942907 , 0, 0, 0, 0, 0, 0 ])
+    aH2O = np.array(
+        [0.000406601, 0.0015933, 0, 1.78644e-05, 0.00296457, 0.000617252,
+         0.000996563, 0.00222253, 0.00094005, 0.000563288, 0, 0, 0, 0, 0, 0])
+    bH2O = np.array([0.812659, 0.832931, 1., 0.8677850, 0.806816, 0.944958,
+                     0.78812, 0.791204, 0.900564, 0.942907, 0, 0, 0, 0, 0, 0])
     #/*const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
-    aO3 =  np.array([ 0.0433461, 0.0,    0.0178299   ,0.0853012 , 0, 0, 0, 0.0813531,   0, 0, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
+    aO3 = np.array([0.0433461, 0.0, 0.0178299, 0.0853012, 0, 0, 0, 0.0813531,
+                    0, 0, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
     #/*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
-    taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740,0.00369 ,0.00132 ,0.00033 ,0.05373 ,0.01561 ,0.00129, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
+    taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740, 0.00369, 0.00132,
+                      0.00033, 0.05373, 0.01561, 0.00129, 0.1131, 0.0994,
+                      0.0446, 0.0416, 0.0286, 0.0155])
 
 # Map of pixel resolutions -> wavelength -> coefficient index
 # Map of pixel resolutions -> band name -> coefficient index
@@ -187,14 +203,22 @@ def get_coefficients(sensor, wavelength_range, resolution=0):
     :param resolution: resolution of the band to be corrected
     :return: aH2O, bH2O, aO3, taur0 coefficient values
     """
-    idx = find_coefficient_index(sensor, wavelength_range, resolution=resolution)
+    idx = find_coefficient_index(sensor,
+                                 wavelength_range,
+                                 resolution=resolution)
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
-def run_crefl(reflectance_bands, coefficients,
-              lon, lat,
-              sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith,
-              avg_elevation=None, percent=False):
+def run_crefl(reflectance_bands,
+              coefficients,
+              lon,
+              lat,
+              sensor_azimuth,
+              sensor_zenith,
+              solar_azimuth,
+              solar_zenith,
+              avg_elevation=None,
+              percent=False):
     """Run main crefl algorithm.
 
     All input parameters are per-pixel values meaning they are the same size
@@ -231,12 +255,13 @@ def run_crefl(reflectance_bands, coefficients,
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
 
     # From GetAtmVariables
-    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES*TAUSTEP4SPHALB, MAXNUMSPHALBVALUES)
+    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
+                           MAXNUMSPHALBVALUES)
     sphalb0 = csalbr(tau_step)
 
-    air_mass = 1.0/mus + 1/muv
-    ii,jj = np.where(np.greater(air_mass,MAXAIRMASS))
-    air_mass[ii,jj] = -1.0
+    air_mass = 1.0 / mus + 1 / muv
+    ii, jj = np.where(np.greater(air_mass, MAXAIRMASS))
+    air_mass[ii, jj] = -1.0
 
     # FROM FUNCTION CHAND
     # phi: azimuthal difference between sun and observation in degree
@@ -253,7 +278,8 @@ def run_crefl(reflectance_bands, coefficients,
     #         float pl[5];
     #         double fs01, fs02, fs0, fs1, fs2;
     as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
-           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
+           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02,
+           -3.503695e-02]
     as1 = [0.19666292, -5.439061e-02]
     as2 = [0.14545937, -2.910845e-02]
     #         float phios, xcos1, xcos2, xcos3;
@@ -266,7 +292,8 @@ def run_crefl(reflectance_bands, coefficients,
     xcos2 = np.cos(np.deg2rad(phios))
     xcos3 = np.cos(2.0 * np.deg2rad(phios))
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
+        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
     # pl[0] = 1.0
@@ -275,8 +302,10 @@ def run_crefl(reflectance_bands, coefficients,
     # pl[3] = mus * mus + muv * muv
     # pl[4] = mus * mus * muv * muv
 
-    fs01 = as0[0] + (mus + muv)*as0[1] + (mus * muv)*as0[2] + (mus * mus + muv * muv)*as0[3] + (mus * mus * muv * muv)*as0[4]
-    fs02 = as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8] + (mus * mus * muv * muv)*as0[9]
+    fs01 = as0[0] + (mus + muv) * as0[1] + (mus * muv) * as0[2] + (
+        mus * mus + muv * muv) * as0[3] + (mus * mus * muv * muv) * as0[4]
+    fs02 = as0[5] + (mus + muv) * as0[6] + (mus * muv) * as0[7] + (
+        mus * mus + muv * muv) * as0[8] + (mus * mus * muv * muv) * as0[9]
     #         for (i = 0; i < 5; i++) {
     #                 fs01 += (double) (pl[i] * as0[i]);
     #                 fs02 += (double) (pl[i] * as0[5 + i]);
@@ -295,7 +324,7 @@ def run_crefl(reflectance_bands, coefficients,
         fs2 = as2[0] + xlntaur * as2[1]
         del xlntaur
         trdown = np.exp(-taur / mus)
-        trup= np.exp(-taur / muv)
+        trup = np.exp(-taur / muv)
         xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
         xitm2 = (1.0 - trdown) * (1.0 - trup)
         xitot1 = xph1 * (xitm1 + xitm2 * fs0)
@@ -316,20 +345,27 @@ def run_crefl(reflectance_bands, coefficients,
             if bUseV171:
                 tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
             else:
-                tH2O = np.exp(-(ah2o*(np.power((air_mass * UH2O),bh2o))))
+                tH2O = np.exp(-(ah2o * (np.power((air_mass * UH2O), bh2o))))
         #t02 = exp(-m * aO2)
         TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
         tOG = tO3 * tO2
 
         if rhoray.shape[1] != refl.shape[1]:
-            LOG.debug("Interpolating CREFL calculations for higher resolution bands")
+            LOG.debug(
+                "Interpolating CREFL calculations for higher resolution bands")
             # Assume we need to interpolate
             # FIXME: Do real bilinear interpolation instead of "nearest"
             factor = int(refl.shape[1] / rhoray.shape[1])
-            rhoray = np.repeat(np.repeat(rhoray, factor, axis=0), factor, axis=1)
+            rhoray = np.repeat(
+                np.repeat(rhoray, factor, axis=0),
+                factor, axis=1)
             tOG = np.repeat(np.repeat(tOG, factor, axis=0), factor, axis=1)
-            TtotraytH2O = np.repeat(np.repeat(TtotraytH2O, factor, axis=0), factor, axis=1)
-            sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
+            TtotraytH2O = np.repeat(
+                np.repeat(TtotraytH2O, factor, axis=0),
+                factor, axis=1)
+            sphalb = np.repeat(
+                np.repeat(sphalb, factor, axis=0),
+                factor, axis=1)
 
         # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
         if percent:

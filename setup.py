@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2015.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
+# Copyright (c) 2009-2016.
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
+#   David Hoese <david.hoese@ssec.wisc.edu>
 
 # This file is part of satpy.
 
@@ -29,11 +25,12 @@
 
 """Setup file for satpy.
 """
-import os.path
-from setuptools import setup
 import imp
+import os.path
 import sys
 from glob import glob
+
+from setuptools import setup
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
@@ -50,6 +47,7 @@ test_requires = ['behave']
 
 if sys.version < '3.0':
     test_requires.append('mock')
+
 
 def _config_data_files(base_dirs, extensions=(".cfg",)):
     """Find all subdirectory configuration files

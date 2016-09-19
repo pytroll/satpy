@@ -23,9 +23,11 @@
 """MultiScene object to blend satellite data.
 """
 
-from satpy.scene import Scene
 import numpy as np
+
 from satpy.projectable import Projectable
+from satpy.scene import Scene
+
 
 def stack(datasets):
     """First dataset at the bottom."""
@@ -40,10 +42,12 @@ def stack(datasets):
 
     return base
 
+
 def stack_time(datasets):
     """Oldest time at the bottom."""
 
     return stack(sorted(datasets, key=lambda x: x.info['start_time']))
+
 
 class MultiScene(object):
 
@@ -65,9 +69,11 @@ class MultiScene(object):
         common_datasets = None
         for layer in self.layers:
             if common_datasets is None:
-                common_datasets = set([dataset.info['id'].name for dataset in layer])
+                common_datasets = set(
+                    [dataset.info['id'].name for dataset in layer])
             else:
-                common_datasets &= set([dataset.info['id'].name for dataset in layer])
+                common_datasets &= set(
+                    [dataset.info['id'].name for dataset in layer])
         for dataset_id in common_datasets:
             datasets = [layer[dataset_id] for layer in self.layers]
             scn[dataset_id] = blend_function(datasets)
@@ -82,14 +88,14 @@ if __name__ == '__main__':
     debug_on()
     scenes = [
         Scene(platform_name="Meteosat-10", sensor="seviri",
-              start_time=datetime(2015, 4, 20, 10, 0),
+              start_time=datetime(2016, 9, 6, 11, 0),
               base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT"),
 
         Scene(platform_name="SNPP", sensor="viirs",
-              start_time=datetime(2015, 3, 11, 11, 18),
-              end_time=datetime(2015, 3, 11, 11, 26),
+              start_time=datetime(2016, 9, 6, 10, 51),
+              end_time=datetime(2016, 9, 6, 11, 0),
               base_dir="/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR")
-            ]
+    ]
 
     mscn = MultiScene(scenes)
     mscn.load(['overview_sun'])

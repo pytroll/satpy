@@ -19,7 +19,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """The :mod:`satpy.plugin_base` module defines the plugin API.
 """
 
@@ -41,14 +40,19 @@ class Plugin(object):
     inherited by other classes.
     """
 
-    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
+    def __init__(self,
+                 ppp_config_dir=None,
+                 default_config_filename=None,
+                 config_files=None,
+                 **kwargs):
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
 
         self.default_config_filename = default_config_filename
         self.config_files = config_files
         if self.config_files is None and self.default_config_filename is not None:
             # Specify a default
-            self.config_files = config_search_paths(self.default_config_filename, self.ppp_config_dir)
+            self.config_files = config_search_paths(
+                self.default_config_filename, self.ppp_config_dir)
         if not isinstance(self.config_files, (list, tuple)):
             self.config_files = [self.config_files]
 
@@ -74,6 +78,7 @@ class Plugin(object):
         # Assumes only one section with "reader:" prefix
         for section_name in conf.sections():
             section_type = self.get_section_type(section_name)
-            load_func = "load_section_%s" % (section_type,)
+            load_func = "load_section_%s" % (section_type, )
             if hasattr(self, load_func):
-                getattr(self, load_func)(section_name, dict(conf.items(section_name)))
+                getattr(self, load_func)(section_name,
+                                         dict(conf.items(section_name)))
