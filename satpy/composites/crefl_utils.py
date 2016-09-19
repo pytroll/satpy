@@ -56,15 +56,15 @@ def csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
     a = [-.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004,
          0.00107857]
-    xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[
-        5] * tau**5
+    #xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[5] * tau**5
+    #xx = np.polyval(a[::-1], tau)
 
     # xx = a[0]
     # xftau = 1.0
     # for i in xrange(5):
     #     xftau = xftau*tau
     #     xx = xx + a[i] * xftau
-    fintexp1 = xx - np.log(tau)
+    fintexp1 = np.polyval(a[::-1], tau) - np.log(tau)
     fintexp3 = (np.exp(-tau) * (1.0 - tau) + tau**2 * fintexp1) / 2.0
 
     return (3.0 * tau - fintexp3 *
@@ -206,11 +206,116 @@ def get_coefficients(sensor, wavelength_range, resolution=0):
     idx = find_coefficient_index(sensor,
                                  wavelength_range,
                                  resolution=resolution)
+
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
-def run_crefl(reflectance_bands,
-              coefficients,
+def chand(phi, muv, mus, taur):
+    # FROM FUNCTION CHAND
+    # phi: azimuthal difference between sun and observation in degree
+    #      (phi=0 in backscattering direction)
+    # mus: cosine of the sun zenith angle
+    # muv: cosine of the observation zenith angle
+    # taur: molecular optical depth
+    # rhoray: molecular path reflectance
+    # constant xdep: depolarization factor (0.0279)
+    #          xfd = (1-xdep/(2-xdep)) / (1 + 2*xdep/(2-xdep)) = 2 * (1 - xdep) / (2 + xdep) = 0.958725775
+    # */
+    xfd = 0.958725775
+    xbeta2 = 0.5
+    #         float pl[5];
+    #         double fs01, fs02, fs0, fs1, fs2;
+    as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
+           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02,
+           -3.503695e-02]
+    as1 = [0.19666292, -5.439061e-02]
+    as2 = [0.14545937, -2.910845e-02]
+    #         float phios, xcos1, xcos2, xcos3;
+    #         float xph1, xph2, xph3, xitm1, xitm2;
+    #         float xlntaur, xitot1, xitot2, xitot3;
+    #         int i, ib;
+
+    phios = np.deg2rad(phi + 180.0)
+    xcos1 = 1.0
+    xcos2 = np.cos(phios)
+    xcos3 = np.cos(2.0 * phios)
+    xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
+        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
+    xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
+
+    # pl[0] = 1.0
+    # pl[1] = mus + muv
+    # pl[2] = mus * muv
+    # pl[3] = mus * mus + muv * muv
+    # pl[4] = mus * mus * muv * muv
+
+    fs01 = as0[0] + (mus + muv) * as0[1] + (mus * muv) * as0[2] + (
+        mus * mus + muv * muv) * as0[3] + (mus * mus * muv * muv) * as0[4]
+    fs02 = as0[5] + (mus + muv) * as0[6] + (mus * muv) * as0[7] + (
+        mus * mus + muv * muv) * as0[8] + (mus * mus * muv * muv) * as0[9]
+    #         for (i = 0; i < 5; i++) {
+    #                 fs01 += (double) (pl[i] * as0[i]);
+    #                 fs02 += (double) (pl[i] * as0[5 + i]);
+    #         }
+
+    #for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
+
+    # ib = find_coefficient_index(center_wl)
+    # if ib is None:
+    #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
+
+    xlntaur = np.log(taur)
+    fs0 = fs01 + fs02 * xlntaur
+    fs1 = as1[0] + xlntaur * as1[1]
+    fs2 = as2[0] + xlntaur * as2[1]
+    del xlntaur
+    trdown = np.exp(-taur / mus)
+    trup = np.exp(-taur / muv)
+    xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
+    xitm2 = (1.0 - trdown) * (1.0 - trup)
+    xitot1 = xph1 * (xitm1 + xitm2 * fs0)
+    xitot2 = xph2 * (xitm1 + xitm2 * fs1)
+    xitot3 = xph3 * (xitm1 + xitm2 * fs2)
+    rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
+    return rhoray, trdown, trup
+
+
+def get_atm_variables(mus, muv, phi, height, (ah2o, bh2o, ao3, tau)):
+    # From GetAtmVariables
+    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
+                           MAXNUMSPHALBVALUES)
+    sphalb0 = csalbr(tau_step)
+
+    air_mass = 1.0 / mus + 1 / muv
+    ii, jj = np.where(np.greater(air_mass, MAXAIRMASS))
+    air_mass[ii, jj] = -1.0
+
+    taur = tau * np.exp(-height / SCALEHEIGHT)
+
+    rhoray, trdown, trup = chand(phi, muv, mus, taur)
+
+    sphalb = sphalb0[np.int32(taur / TAUSTEP4SPHALB + 0.5)]
+    Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
+    Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
+    tO3 = 1.0
+    tO2 = 1.0
+    tH2O = 1.0
+
+    if ao3 != 0:
+        tO3 = np.exp(-air_mass * UO3 * ao3)
+    if bh2o != 0:
+        if bUseV171:
+            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
+        else:
+            tH2O = np.exp(-(ah2o * (np.power((air_mass * UH2O), bh2o))))
+    #t02 = exp(-m * aO2)
+    TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
+    tOG = tO3 * tO2
+    return sphalb, rhoray, TtotraytH2O, tOG
+
+
+def run_crefl(refl, (ah2o, bh2o, ao3, tau),
               lon,
               lat,
               sensor_azimuth,
@@ -240,7 +345,8 @@ def run_crefl(reflectance_bands,
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
-        height = np.zeros(lon.shape, dtype=np.float)
+        #height = np.zeros(lon.shape, dtype=np.float)
+        height = 0.
     else:
         row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
         col = np.int32((lon + 180.0) * avg_elevation.shape[1] / 360.0)
@@ -254,126 +360,29 @@ def run_crefl(reflectance_bands,
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
 
-    # From GetAtmVariables
-    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
-                           MAXNUMSPHALBVALUES)
-    sphalb0 = csalbr(tau_step)
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(
+        mus, muv, phi, height, (ah2o, bh2o, ao3, tau))
 
-    air_mass = 1.0 / mus + 1 / muv
-    ii, jj = np.where(np.greater(air_mass, MAXAIRMASS))
-    air_mass[ii, jj] = -1.0
+    if rhoray.shape[1] != refl.shape[1]:
+        LOG.debug(
+            "Interpolating CREFL calculations for higher resolution bands")
+        # Assume we need to interpolate
+        # FIXME: Do real bilinear interpolation instead of "nearest"
+        factor = int(refl.shape[1] / rhoray.shape[1])
+        rhoray = np.repeat(np.repeat(rhoray, factor, axis=0), factor, axis=1)
+        tOG = np.repeat(np.repeat(tOG, factor, axis=0), factor, axis=1)
+        TtotraytH2O = np.repeat(
+            np.repeat(TtotraytH2O, factor, axis=0),
+            factor, axis=1)
+        sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
 
-    # FROM FUNCTION CHAND
-    # phi: azimuthal difference between sun and observation in degree
-    #      (phi=0 in backscattering direction)
-    # mus: cosine of the sun zenith angle
-    # muv: cosine of the observation zenith angle
-    # taur: molecular optical depth
-    # rhoray: molecular path reflectance
-    # constant xdep: depolarization factor (0.0279)
-    #          xfd = (1-xdep/(2-xdep)) / (1 + 2*xdep/(2-xdep)) = 2 * (1 - xdep) / (2 + xdep) = 0.958725775
-    # */
-    xfd = 0.958725775
-    xbeta2 = 0.5
-    #         float pl[5];
-    #         double fs01, fs02, fs0, fs1, fs2;
-    as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
-           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02,
-           -3.503695e-02]
-    as1 = [0.19666292, -5.439061e-02]
-    as2 = [0.14545937, -2.910845e-02]
-    #         float phios, xcos1, xcos2, xcos3;
-    #         float xph1, xph2, xph3, xitm1, xitm2;
-    #         float xlntaur, xitot1, xitot2, xitot3;
-    #         int i, ib;
+    # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
+    if percent:
+        corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
+    else:
+        corr_refl = (refl / tOG - rhoray) / TtotraytH2O
+    corr_refl /= (1.0 + corr_refl * sphalb)
+    np.clip(corr_refl, REFLMIN, REFLMAX, out=corr_refl)
+    return corr_refl
 
-    phios = phi + 180.0
-    xcos1 = 1.0
-    xcos2 = np.cos(np.deg2rad(phios))
-    xcos3 = np.cos(2.0 * np.deg2rad(phios))
-    xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
-        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
-    xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
-
-    # pl[0] = 1.0
-    # pl[1] = mus + muv
-    # pl[2] = mus * muv
-    # pl[3] = mus * mus + muv * muv
-    # pl[4] = mus * mus * muv * muv
-
-    fs01 = as0[0] + (mus + muv) * as0[1] + (mus * muv) * as0[2] + (
-        mus * mus + muv * muv) * as0[3] + (mus * mus * muv * muv) * as0[4]
-    fs02 = as0[5] + (mus + muv) * as0[6] + (mus * muv) * as0[7] + (
-        mus * mus + muv * muv) * as0[8] + (mus * mus * muv * muv) * as0[9]
-    #         for (i = 0; i < 5; i++) {
-    #                 fs01 += (double) (pl[i] * as0[i]);
-    #                 fs02 += (double) (pl[i] * as0[5 + i]);
-    #         }
-
-    odata = []
-    for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
-        # ib = find_coefficient_index(center_wl)
-        # if ib is None:
-        #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
-
-        taur = tau * np.exp(-height / SCALEHEIGHT)
-        xlntaur = np.log(taur)
-        fs0 = fs01 + fs02 * xlntaur
-        fs1 = as1[0] + xlntaur * as1[1]
-        fs2 = as2[0] + xlntaur * as2[1]
-        del xlntaur
-        trdown = np.exp(-taur / mus)
-        trup = np.exp(-taur / muv)
-        xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
-        xitm2 = (1.0 - trdown) * (1.0 - trup)
-        xitot1 = xph1 * (xitm1 + xitm2 * fs0)
-        xitot2 = xph2 * (xitm1 + xitm2 * fs1)
-        xitot3 = xph3 * (xitm1 + xitm2 * fs2)
-        rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
-
-        sphalb = sphalb0[np.int32(taur / TAUSTEP4SPHALB + 0.5)]
-        Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
-        Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
-        tO3 = 1.0
-        tO2 = 1.0
-        tH2O = 1.0
-
-        if ao3 != 0:
-            tO3 = np.exp(-air_mass * UO3 * ao3)
-        if bh2o != 0:
-            if bUseV171:
-                tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
-            else:
-                tH2O = np.exp(-(ah2o * (np.power((air_mass * UH2O), bh2o))))
-        #t02 = exp(-m * aO2)
-        TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
-        tOG = tO3 * tO2
-
-        if rhoray.shape[1] != refl.shape[1]:
-            LOG.debug(
-                "Interpolating CREFL calculations for higher resolution bands")
-            # Assume we need to interpolate
-            # FIXME: Do real bilinear interpolation instead of "nearest"
-            factor = int(refl.shape[1] / rhoray.shape[1])
-            rhoray = np.repeat(
-                np.repeat(rhoray, factor, axis=0),
-                factor, axis=1)
-            tOG = np.repeat(np.repeat(tOG, factor, axis=0), factor, axis=1)
-            TtotraytH2O = np.repeat(
-                np.repeat(TtotraytH2O, factor, axis=0),
-                factor, axis=1)
-            sphalb = np.repeat(
-                np.repeat(sphalb, factor, axis=0),
-                factor, axis=1)
-
-        # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
-        if percent:
-            corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
-        else:
-            corr_refl = (refl / tOG - rhoray) / TtotraytH2O
-        corr_refl /= (1.0 + corr_refl * sphalb)
-        np.clip(corr_refl, REFLMIN, REFLMAX, out=corr_refl)
-        odata.append(corr_refl)
-
-    return odata
+    #return odata
