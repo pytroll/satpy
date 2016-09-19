@@ -314,8 +314,8 @@ class ReflectanceCorrector(CompositeBase):
                                         refl_data.info["wavelength"],
                                         refl_data.info["resolution"])
 
-        results = run_crefl([refl_data],
-                            [coefficients],
+        results = run_crefl(refl_data,
+                            coefficients,
                             sensor_aa.info["area"].lons,
                             sensor_aa.info["area"].lats,
                             sensor_aa,
