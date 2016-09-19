@@ -202,23 +202,22 @@ class SunZenithCorrector(CompositeBase):
     coszen = {}
 
     def __call__(self, projectables, **info):
-
-        projectable = projectables[0]
-        if len(projectables) == 2:
-            sunz = projectables[1]
+        key = (projectables[0].info["start_time"],
+               projectables[0].info["area"].name)
+        LOG.debug("Applying sun zen correction")
+        if len(projectables) == 1:
+            if key not in self.coszen:
+                from pyorbital.astronomy import cos_zen
+                LOG.debug("Computing sun zenith angles.")
+                self.coszen[key] = np.ma.masked_outside(cos_zen(np.datetime64(projectables[0].info["start_time"]),
+                                                                *projectables[0].info["area"].get_lonlats()),
+                                                        0.035,  # about 88 degrees.
+                                                        1,
+                                                        copy=False)
+            coszen = self.coszen[key]
         else:
-            sunz = None
-        from pyorbital.astronomy import cos_zen
-        key = (projectable.info["start_time"], projectable.info["area"].name)
-        if key not in self.coszen and sunz is None:
-            LOG.debug("Computing sun zenith angles.")
-            self.coszen[key] = np.ma.masked_outside(cos_zen(np.datetime64(projectable.info["start_time"]),
-                                                            *projectable.info["area"].get_lonlats()),
-                                                    0.035,  # about 88 degrees.
-                                                    1,
-                                                    copy=False)
-            sunz = self.coszen[key]
-        return sunzen_corr_cos(projectable, sunz)
+            coszen = np.cos(np.deg2rad(projectables[1]))
+        return sunzen_corr_cos(projectables[0], coszen)
 
 
 class CO2Corrector(CompositeBase):
