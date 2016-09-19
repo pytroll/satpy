@@ -8,6 +8,7 @@ reader:
 datasets:
   M01:
     name: M01
+    sensor: viirs
     wavelength: [0.402,0.412,0.422]
     resolution: 742
     calibration:
@@ -21,6 +22,7 @@ datasets:
 
   M02:
     name: M02
+    sensor: viirs
     wavelength: [0.436,0.445,0.454]
     resolution: 742
     calibration:
@@ -34,6 +36,7 @@ datasets:
 
   M03:
     name: M03
+    sensor: viirs
     wavelength: [0.478,0.488,0.498]
     resolution: 742
     calibration:
@@ -47,6 +50,7 @@ datasets:
 
   M04:
     name: M04
+    sensor: viirs
     wavelength: [0.545,0.555,0.565]
     resolution: 742
     calibration:
@@ -60,6 +64,7 @@ datasets:
 
   M05:
     name: M05
+    sensor: viirs
     wavelength: [0.662,0.672,0.682]
     resolution: 742
     calibration:
@@ -73,6 +78,7 @@ datasets:
 
   M06:
     name: M06
+    sensor: viirs
     wavelength: [0.739,0.746,0.754]
     resolution: 742
     calibration:
@@ -86,6 +92,7 @@ datasets:
 
   M07:
     name: M07
+    sensor: viirs
     wavelength: [0.846,0.865,0.885]
     resolution: 742
     calibration:
@@ -99,6 +106,7 @@ datasets:
 
   M08:
     name: M08
+    sensor: viirs
     wavelength: [1.230,1.240,1.250]
     resolution: 742
     calibration:
@@ -112,8 +120,9 @@ datasets:
 
   M09:
     name: M09
-    wavelength: [1.371,1.378,1.386]
+    sensor: viirs
     resolution: 742
+    wavelength: [1.371,1.378,1.386]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -125,6 +134,7 @@ datasets:
 
   M10:
     name: M10
+    sensor: viirs
     wavelength: [1.580,1.610,1.640]
     resolution: 742
     calibration:
@@ -138,8 +148,9 @@ datasets:
 
   M11:
     name: M11
-    wavelength: [2.225,2.250,2.275]
+    sensor: viirs
     resolution: 742
+    wavelength: [2.225,2.250,2.275]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -151,6 +162,7 @@ datasets:
 
   M12:
     name: M12
+    sensor: viirs
     wavelength: [3.610,3.700,3.790]
     resolution: 742
     calibration:
@@ -164,6 +176,7 @@ datasets:
 
   M13:
     name: M13
+    sensor: viirs
     wavelength: [3.973,4.050,4.128]
     resolution: 742
     calibration:
@@ -177,8 +190,9 @@ datasets:
 
   M14:
     name: M14
-    wavelength: [8.400,8.550,8.700]
+    sensor: viirs
     resolution: 742
+    wavelength: [8.400,8.550,8.700]
     calibration:
       reflectance:
         standard_name: toa_brightness_temperature
@@ -190,8 +204,9 @@ datasets:
 
   M15:
     name: M15
-    wavelength: [10.263,10.763,11.263]
+    sensor: viirs
     resolution: 742
+    wavelength: [10.263,10.763,11.263]
     calibration:
       reflectance:
         standard_name: toa_brightness_temperature
@@ -203,6 +218,7 @@ datasets:
 
   M16:
     name: M16
+    sensor: viirs
     wavelength: [11.538,12.013,12.489]
     resolution: 742
     calibration:
@@ -214,25 +230,37 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: compact_m
 
-  sensor_azimuth_angle:
-    name: sensor_azimuth_angle
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: viirs
     resolution: 742
     file_type: compact_m
+    units: degree
+    standard_name: platform_azimuth_angle
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
+    sensor: viirs
     resolution: 742
     file_type: compact_m
+    units: degree
+    standard_name: solar_azimuth_angle
 
-  sensor_zenith_angle:
-    name: sensor_zenith_angle
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: viirs
     resolution: 742
     file_type: compact_m
+    units: degree
+    standard_name: platform_zenith_angle
 
   solar_zenith_angle:
     name: solar_zenith_angle
+    sensor: viirs
     resolution: 742
     file_type: compact_m
+    units: degree
+    standard_name: solar_zenith_angle
 
 
 file_types:

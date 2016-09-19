@@ -137,19 +137,19 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         return end_time
 
     def read_geo(self, key):
-        if key.name in ['sensor_zenith_angle', 'sensor_azimuth_angle']:
+        if key.name in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             if self.senazi is None or self.senzen is None:
-                self.senazi, self.senzen = self.angles("SatelliteZenithAngle",
-                                                       "SatelliteAzimuthAngle")
-            if key.name == 'sensor_zenith_angle':
+                self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
+                                                       "SatelliteZenithAngle")
+            if key.name == 'satellite_zenith_angle':
                 return Projectable(self.senzen, copy=False)
             else:
                 return Projectable(self.senazi, copy=False)
 
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
-            if self.senazi is None or self.senzen is None:
-                self.solazi, self.solzen = self.angles("SolarZenithAngle",
-                                                       "SolarAzimuthAngle")
+            if self.solazi is None or self.solzen is None:
+                self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
+                                                       "SolarZenithAngle")
             if key.name == 'solar_zenith_angle':
                 return Projectable(self.solzen, copy=False)
             else:
@@ -262,7 +262,7 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         lons, lats = zip(*res)
         return np.hstack(lons), np.hstack(lats)
 
-    def angles(self, zen_name, azi_name):
+    def angles(self, azi_name, zen_name):
 
         all_lat = self.geostuff["Latitude"].value
         all_zen = self.geostuff[zen_name].value
