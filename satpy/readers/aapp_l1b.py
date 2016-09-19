@@ -229,8 +229,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 ds = Projectable(
                     _vis_calibrate(self._data,
                                    idx,
-                                   chns[
-                                       name].calibration,
+                                   chns[name].calibration,
                                    pre_launch_coeffs,
                                    coeffs,
                                    mask=(name == '3a' and self._is3b)),

@@ -146,6 +146,7 @@ class CompositorLoader(object):
                         mods = item.values()[0]
                         comp_name = key
                         for modifier in mods:
+                            prev_comp_name = comp_name
                             comp_name = '_'.join((str(comp_name), modifier))
 
                             mloader, moptions = modifiers[modifier]
@@ -153,7 +154,7 @@ class CompositorLoader(object):
                             moptions.update(**kwargs)
                             moptions['name'] = comp_name
                             moptions['prerequisites'] = (
-                                [key] + moptions['prerequisites'])
+                                [prev_comp_name] + moptions['prerequisites'])
                             compositors[comp_name] = mloader(**moptions)
                         prereqs.append(comp_name)
                     else:
