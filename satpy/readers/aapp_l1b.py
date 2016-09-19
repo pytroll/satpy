@@ -24,7 +24,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -55,10 +54,9 @@ ANGLES = {'sensor_zenith_angle': 'satz',
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
-
     def __init__(self, filename, filename_info, filetype_info):
-        super(AVHRRAAPPL1BFile, self).__init__(
-            filename, filename_info, filetype_info)
+        super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
+                                               filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
@@ -74,13 +72,14 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self.sunz, self.satz, self.azidiff = None, None, None
 
     def start_time(self):
-        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(days=int(self._data['scnlindy'][0]) - 1,
-                                                                     milliseconds=int(self._data['scnlintime'][0]))
+        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][0]) - 1,
+            milliseconds=int(self._data['scnlintime'][0]))
 
     def end_time(self):
-        return (datetime(self._data['scnlinyr'][-1], 1, 1) +
-                timedelta(days=int(self._data['scnlindy'][-1]) - 1,
-                          milliseconds=int(self._data['scnlintime'][-1])))
+        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][-1]) - 1,
+            milliseconds=int(self._data['scnlintime'][-1]))
 
     def shape(self):
         # return self._data.shape
@@ -95,7 +94,8 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
                     dataset = Projectable(
-                        getattr(self, ANGLES[key.name]), copy=False)
+                        getattr(self, ANGLES[key.name]),
+                        copy=False)
                 else:
                     dataset = self.get_angles(key.name)
             else:
@@ -154,11 +154,9 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             along_track_order = 1
             cross_track_order = 3
 
-            satint = Interpolator([sunz40km, satz40km, azidiff40km],
-                                  (rows40km, cols40km),
-                                  (rows1km, cols1km),
-                                  along_track_order,
-                                  cross_track_order)
+            satint = Interpolator(
+                [sunz40km, satz40km, azidiff40km], (rows40km, cols40km),
+                (rows1km, cols1km), along_track_order, cross_track_order)
             self.sunz, self.satz, self.azidiff = satint.interpolate()
 
             logger.debug("Interpolate sun-sat angles: time %s",
@@ -189,16 +187,16 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             along_track_order = 1
             cross_track_order = 3
 
-            satint = SatelliteInterpolator((lons40km, lats40km),
-                                           (rows40km, cols40km),
-                                           (rows1km, cols1km),
-                                           along_track_order,
-                                           cross_track_order)
+            satint = SatelliteInterpolator(
+                (lons40km, lats40km), (rows40km, cols40km), (rows1km, cols1km),
+                along_track_order, cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            logger.debug("Navigation time %s",
-                         str(datetime.now() - tic))
+            logger.debug("Navigation time %s", str(datetime.now() - tic))
 
-    def calibrate(self, dataset_ids, pre_launch_coeffs=False, calib_coeffs=None):
+    def calibrate(self,
+                  dataset_ids,
+                  pre_launch_coeffs=False,
+                  calib_coeffs=None):
         """Calibrate the data
         """
         tic = datetime.now()
@@ -214,37 +212,45 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         units = {'reflectance': '%',
                  'brightness_temperature': 'K',
                  'counts': '',
-                 'radiance': 'W*m-2*sr-1*cm ?'
-                 }
+                 'radiance': 'W*m-2*sr-1*cm ?'}
 
         if ("3a" in chns or "3b" in chns) and self._is3b is None:
             # Is it 3a or 3b:
-            is3b = np.expand_dims(np.bitwise_and(
-                np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
-            self._is3b = np.repeat(
-                is3b, self._data['hrpt'][0].shape[0], axis=1)
+            is3b = np.expand_dims(
+                np.bitwise_and(
+                    np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
+            self._is3b = np.repeat(is3b,
+                                   self._data['hrpt'][0].shape[0], axis=1)
 
         for idx, name in enumerate(['1', '2', '3a']):
             if name in chns:
                 coeffs = calib_coeffs.get('ch' + name)
                 # FIXME data should be masked before calibration
-                ds = Projectable(_vis_calibrate(self._data, idx,
-                                                chns[
-                                                    name].calibration, pre_launch_coeffs,
-                                                coeffs, mask=(name == '3a' and self._is3b)),
-                                 units=units[chns[name].calibration],
-                                 id=chns[name],
-                                 **chns[name]._asdict())
+                ds = Projectable(
+                    _vis_calibrate(self._data,
+                                   idx,
+                                   chns[
+                                       name].calibration,
+                                   pre_launch_coeffs,
+                                   coeffs,
+                                   mask=(name == '3a' and self._is3b)),
+                    units=units[chns[name].calibration],
+                    id=chns[name],
+                    **chns[name]._asdict())
                 res.append(ds)
 
         for idx, name in enumerate(['3b', '4', '5']):
             if name in chns:
-                ds = Projectable(_ir_calibrate(self._header, self._data, idx,
-                                               chns[name].calibration,
-                                               mask=(name == '3b' and (np.logical_not(self._is3b)))),
-                                 units=units[chns[name].calibration],
-                                 id=chns[name],
-                                 **chns[name]._asdict())
+                ds = Projectable(
+                    _ir_calibrate(self._header,
+                                  self._data,
+                                  idx,
+                                  chns[name].calibration,
+                                  mask=(name == '3b' and
+                                        (np.logical_not(self._is3b)))),
+                    units=units[chns[name].calibration],
+                    id=chns[name],
+                    **chns[name]._asdict())
                 res.append(ds)
 
         logger.debug("Calibration time %s", str(datetime.now() - tic))
@@ -388,8 +394,7 @@ _HEADERTYPE = np.dtype([("siteid", "S3"),
                         ("bbtempchn5", "<i2", (5, )),
                         ("reserved21", "<i2"),
                         ("refvolt", "<i2", (5, )),
-                        ("reserved22", "<i2"),
-                        ])
+                        ("reserved22", "<i2"), ])
 
 # AAPP 1b scanline
 
@@ -428,12 +433,15 @@ _SCANTYPE = np.dtype([("scnlin", "<i2"),
                       ("tipmfhd", "<i2", (7, 5)),
                       # cpu telemetry
                       ("cputel", "S6", (2, 5)),
-                      ("filler7", "<i2", (67, )),
-                      ])
+                      ("filler7", "<i2", (67, )), ])
 
 
-def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False,
-                   calib_coeffs=None, mask=False):
+def _vis_calibrate(data,
+                   chn,
+                   calib_type,
+                   pre_launch_coeffs=False,
+                   calib_coeffs=None,
+                   mask=False):
     """Visible channel calibration only.
 
     *calib_type* in count, reflectance, radiance
@@ -474,14 +482,14 @@ def _vis_calibrate(data, chn, calib_type, pre_launch_coeffs=False,
         slope2 = np.expand_dims(calib_coeffs[2], 1)
         intercept2 = np.expand_dims(calib_coeffs[3], 1)
     else:
-        slope1 = np.expand_dims(
-            data["calvis"][:, chn, coeff_idx, 0] * 1e-10, 1)
-        intercept1 = np.expand_dims(
-            data["calvis"][:, chn, coeff_idx, 1] * 1e-7, 1)
-        slope2 = np.expand_dims(
-            data["calvis"][:, chn, coeff_idx, 2] * 1e-10, 1)
-        intercept2 = np.expand_dims(
-            data["calvis"][:, chn, coeff_idx, 3] * 1e-7, 1)
+        slope1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10,
+                                1)
+        intercept1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] *
+                                    1e-7, 1)
+        slope2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10,
+                                1)
+        intercept2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] *
+                                    1e-7, 1)
 
         if chn == 2:
             slope2[slope2 < 0] += 0.4294967296
@@ -514,10 +522,10 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
     # Count to radiance conversion:
     rad = k1_ * count * count + k2_ * count + k3_
 
-    all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
-                                             np.equal(k2_, 0)),
-                              np.equal(k3_, 0))
-    idx = np.indices((all_zero.shape[0],))
+    all_zero = np.logical_and(
+        np.logical_and(
+            np.equal(k1_, 0), np.equal(k2_, 0)), np.equal(k3_, 0))
+    idx = np.indices((all_zero.shape[0], ))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
         logger.info("Suspicious scan lines: %s", str(suspect_line_nums))
@@ -541,10 +549,10 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
     if calib_type == 2:
         return rad
 
-    all_zero = np.logical_and(np.logical_and(np.equal(k1_, 0),
-                                             np.equal(k2_, 0)),
-                              np.equal(k3_, 0))
-    idx = np.indices((all_zero.shape[0],))
+    all_zero = np.logical_and(
+        np.logical_and(
+            np.equal(k1_, 0), np.equal(k2_, 0)), np.equal(k3_, 0))
+    idx = np.indices((all_zero.shape[0], ))
     suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
     if suspect_line_nums.any():
         logger.info("Suspect scan lines: %s", str(suspect_line_nums))
@@ -577,6 +585,7 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
 
 
 if __name__ == '__main__':
+
     def norm255(a__):
         """normalize array to uint8.
         """
