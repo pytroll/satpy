@@ -219,7 +219,7 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
             raise ValueError("Calibrate parameter should be 1 or 2")
         arr[arr < 0] = 0
 
-        return Projectable(arr, units=unit)
+        return Projectable(arr, units=unit, copy=False)
 
     def navigate_m(self, key):
 
@@ -241,25 +241,22 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
             param_start += nb_tpz
 
             if (np.max(lon) - np.min(lon) > 90) or (np.max(abs(lat)) > 60):
-                x, y, z = lonlat2xyz(lon, lat)
-                x, y, z = (expand_array(x, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset),
-                           expand_array(y, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset),
-                           expand_array(z, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset))
-                res.append(xyz2lonlat(x, y, z))
+                expanded = []
+                for data in lonlat2xyz(lon, lat):
+                    expanded.append(expand_array(
+                        data, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+                res.append(xyz2lonlat(*expanded))
             else:
-                res.append((expand_array(
-                    lon, self.scans, c_align, c_exp, self.scan_size, tpz_size,
-                    nb_tpz, self.track_offset, self.scan_offset), expand_array(
-                        lat, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset)
-                            ))
+                expanded = []
+                for data in (lon, lat):
+                    expanded.append(expand_array(
+                        data, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+                res.append(expanded)
+
         lons, lats = zip(*res)
+
         return np.hstack(lons), np.hstack(lats)
 
     def angles(self, azi_name, zen_name):
@@ -284,25 +281,23 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
 
             if (np.max(azi) - np.min(azi) > 5) or (np.min(azi) < 10) or (
                     np.max(abs(lat)) > 80):
-                x, y, z = lonlat2xyz(azi, 90 - zen)
-                x, y, z = (expand_array(x, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset),
-                           expand_array(y, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset),
-                           expand_array(z, self.scans, c_align, c_exp,
-                                        self.scan_size, tpz_size, nb_tpz,
-                                        self.track_offset, self.scan_offset))
-                azi, zen = xyz2lonlat(x, y, z)
+                expanded = []
+                for data in lonlat2xyz(azi, 90 - zen):
+                    expanded.append(expand_array(
+                        data, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+
+                azi, zen = xyz2lonlat(*expanded)
+
                 res.append((azi, 90 - zen))
             else:
-                res.append((expand_array(
-                    azi, self.scans, c_align, c_exp, self.scan_size, tpz_size,
-                    nb_tpz, self.track_offset, self.scan_offset), expand_array(
-                        zen, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset)
-                            ))
+                expanded = []
+                for data in (azi, zen):
+                    expanded.append(expand_array(
+                        data, self.scans, c_align, c_exp, self.scan_size,
+                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+                res.append(expanded)
+
         azi, zen = zip(*res)
         return np.hstack(azi), np.hstack(zen)
 
