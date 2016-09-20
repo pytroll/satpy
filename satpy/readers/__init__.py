@@ -20,7 +20,6 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Shared objects of the various reader classes.
 
 """
@@ -48,10 +47,10 @@ try:
 except ImportError:
     from six.moves import configparser
 
-
 LOG = logging.getLogger(__name__)
 
-DATASET_KEYS = ("name", "wavelength", "resolution", "polarization", "calibration")
+DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
+                "calibration")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None)
 
@@ -107,7 +106,8 @@ class DatasetDict(dict):
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
-                if k.wavelength is not None and self._wl_match(k.wavelength, key):
+                if k.wavelength is not None and self._wl_match(k.wavelength,
+                                                               key):
                     return k
         # get by name
         else:
@@ -115,27 +115,39 @@ class DatasetDict(dict):
                 if self._name_match(k.name, key):
                     return k
 
-    def get_keys(self, name_or_wl, resolution=None, polarization=None, calibration=None):
+    def get_keys(self,
+                 name_or_wl,
+                 resolution=None,
+                 polarization=None,
+                 calibration=None):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
-            keys = [k for k in self.keys() if self._wl_match(k.wavelength, name_or_wl)]
+            keys = [k for k in self.keys()
+                    if self._wl_match(k.wavelength, name_or_wl)]
         elif isinstance(name_or_wl, (str, six.text_type)):
-            keys = [k for k in self.keys() if self._name_match(k.name, name_or_wl)]
+            keys = [k for k in self.keys()
+                    if self._name_match(k.name, name_or_wl)]
         else:
             raise TypeError("First argument must be a wavelength or name")
 
         if resolution is not None:
             if not isinstance(resolution, (list, tuple)):
-                resolution = (resolution,)
-            keys = [k for k in keys if k.resolution is not None and k.resolution in resolution]
+                resolution = (resolution, )
+            keys = [k for k in keys
+                    if k.resolution is not None and k.resolution in resolution]
         if polarization is not None:
             if not isinstance(polarization, (list, tuple)):
-                polarization = (polarization,)
-            keys = [k for k in keys if k.polarization is not None and k.polarization in polarization]
+                polarization = (polarization, )
+            keys = [k for k in keys
+                    if k.polarization is not None and k.polarization in
+                    polarization]
         if calibration is not None:
             if not isinstance(calibration, (list, tuple)):
-                calibration = (calibration,)
-            keys = [k for k in keys if k.calibration is not None and k.calibration in calibration]
+                calibration = (calibration, )
+            keys = [
+                k for k in keys
+                if k.calibration is not None and k.calibration in calibration
+            ]
 
         return keys
 
@@ -144,15 +156,25 @@ class DatasetDict(dict):
         for key in DATASET_KEYS:
             if getattr(did, key) is not None:
                 if key == "wavelength":
-                    keys = [k for k in keys if getattr(k, key) is not None and self._wl_match(getattr(k, key),
-                                                                                              getattr(did, key))]
+                    keys = [k for k in keys
+                            if getattr(k, key) is not None and self._wl_match(
+                                getattr(k, key), getattr(did, key))]
                 else:
-                    keys = [k for k in keys if getattr(k, key) is not None and getattr(k, key) == getattr(did, key)]
+                    keys = [k for k in keys
+                            if getattr(k, key) is not None and getattr(k, key)
+                            == getattr(did, key)]
 
         return keys
 
-    def get_item(self, name_or_wl, resolution=None, polarization=None, calibration=None):
-        keys = self.get_keys(name_or_wl, resolution=resolution, polarization=polarization, calibration=calibration)
+    def get_item(self,
+                 name_or_wl,
+                 resolution=None,
+                 polarization=None,
+                 calibration=None):
+        keys = self.get_keys(name_or_wl,
+                             resolution=resolution,
+                             polarization=polarization,
+                             calibration=calibration)
         if not keys:
             raise KeyError("No keys found matching provided filters")
 
@@ -177,15 +199,14 @@ class DatasetDict(dict):
                 else:
                     new_name = d.get("name")
                 # this is a new key and it's not a full DatasetID tuple
-                key = DatasetID(
-                    name=new_name,
-                    resolution=d.get("resolution"),
-                    wavelength=d.get("wavelength_range"),
-                    polarization=d.get("polarization"),
-                    calibration=d.get("calibration"),
-                )
+                key = DatasetID(name=new_name,
+                                resolution=d.get("resolution"),
+                                wavelength=d.get("wavelength_range"),
+                                polarization=d.get("polarization"),
+                                calibration=d.get("calibration"), )
                 if key.name is None and key.wavelength is None:
-                    raise ValueError("One of 'name' or 'wavelength_range' info values should be set.")
+                    raise ValueError(
+                        "One of 'name' or 'wavelength_range' info values should be set.")
 
         # update the 'value' with the information contained in the key
         d["name"] = key.name
@@ -213,7 +234,12 @@ class ReaderFinder(object):
     """Finds readers given a scene, filenames, sensors, and/or a reader_name
     """
 
-    def __init__(self, ppp_config_dir=None, base_dir=None, start_time=None, end_time=None, area=None):
+    def __init__(self,
+                 ppp_config_dir=None,
+                 base_dir=None,
+                 start_time=None,
+                 end_time=None,
+                 area=None):
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
         self.start_time = start_time
@@ -239,7 +265,8 @@ class ReaderFinder(object):
         remaining_filenames = set(filenames) if filenames is not None else None
         for config_file in config_files:
             config_basename = os.path.basename(config_file)
-            reader_configs = config_search_paths(os.path.join("readers", config_basename), self.ppp_config_dir)
+            reader_configs = config_search_paths(
+                os.path.join("readers", config_basename), self.ppp_config_dir)
 
             try:
                 reader_info = self._read_reader_config(reader_configs)
@@ -248,15 +275,19 @@ class ReaderFinder(object):
                 LOG.debug(str(err))
                 continue
             try:
-                reader_instance = reader_info['reader'](config_files=reader_configs)
+                reader_instance = reader_info['reader'](
+                    config_files=reader_configs)
             except KeyError as err:
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            remaining_filenames, loadable_files = reader_instance.select_files(self.base_dir, remaining_filenames, sensor,
-                                                                               start_time=self.start_time,
-                                                                               end_time=self.end_time,
-                                                                               area=self.area)
+            remaining_filenames, loadable_files = reader_instance.select_files(
+                self.base_dir,
+                remaining_filenames,
+                sensor,
+                start_time=self.start_time,
+                end_time=self.end_time,
+                area=self.area)
             if loadable_files:
                 reader_instances.append(reader_instance)
             if filenames is not None and not remaining_filenames:
@@ -265,7 +296,9 @@ class ReaderFinder(object):
                 break
 
         if remaining_filenames:
-            LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
+            LOG.warning(
+                "Don't know how to open the following files: {}".format(str(
+                    remaining_filenames)))
         if not reader_instances:
             raise ValueError("No supported files found")
         return reader_instances
@@ -273,7 +306,8 @@ class ReaderFinder(object):
     def config_files(self):
         # return (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
         #        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
-        return glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)
+        return glob_config(
+            os.path.join("readers", "*.yaml"), self.ppp_config_dir)
 
     def _find_sensors_readers(self, sensor, filenames):
         """Find the readers for the given *sensor* and *filenames*
@@ -293,12 +327,15 @@ class ReaderFinder(object):
                 continue
 
             try:
-                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                config_files = config_search_paths(
+                    os.path.join("readers", config_fn), self.ppp_config_dir)
                 reader_info = self._read_reader_config(config_files)
                 LOG.debug("Successfully read reader config: %s", config_fn)
                 reader_names.add(config_fn)
             except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_fn, exc_info=True)
+                LOG.debug("Invalid reader config found: %s",
+                          config_fn,
+                          exc_info=True)
                 continue
 
                 yield self._load_reader(reader_info)
@@ -310,28 +347,39 @@ class ReaderFinder(object):
         if not os.path.exists(reader):
             # no, we were given a name of a reader
             config_fn = reader + ".cfg" if "." not in reader else reader
-            config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+            config_files = config_search_paths(
+                os.path.join("readers", config_fn), self.ppp_config_dir)
             if not config_files:
                 config_fn = reader + ".yaml" if "." not in reader else reader
-                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                config_files = config_search_paths(
+                    os.path.join("readers", config_fn), self.ppp_config_dir)
                 if not config_files:
-                    raise ValueError("Can't find config file for reader: {}".format(reader))
+                    raise ValueError(
+                        "Can't find config file for reader: {}".format(reader))
         else:
             # we may have been given a dependent config file (depends on builtin configuration)
             # so we need to find the others
             config_fn = os.path.basename(reader)
-            config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+            config_files = config_search_paths(
+                os.path.join("readers", config_fn), self.ppp_config_dir)
             config_files.insert(0, reader)
 
         reader_info = self._read_reader_config(config_files)
         if filenames:
-            filenames = self.assign_matching_files(reader_info, *filenames, base_dir=self.base_dir)
+            filenames = self.assign_matching_files(reader_info,
+                                                   *filenames,
+                                                   base_dir=self.base_dir)
             if filenames:
-                raise IOError("Don't know how to open the following files: {}".format(str(filenames)))
+                raise IOError(
+                    "Don't know how to open the following files: {}".format(
+                        str(filenames)))
         else:
-            reader_info["filenames"] = self.get_filenames(reader_info, base_dir=self.base_dir)
+            pause
+            reader_info["filenames"] = self.get_filenames(
+                reader_info, base_dir=self.base_dir)
             if not reader_info["filenames"]:
-                raise RuntimeError("No filenames found for reader: {}".format(reader_info["name"]))
+                raise RuntimeError("No filenames found for reader: {}".format(
+                    reader_info["name"]))
 
         return self._load_reader(reader_info)
 
@@ -339,8 +387,11 @@ class ReaderFinder(object):
         """Find the reader info for the provided *files*.
         """
         reader_names = set()
-        config_files = (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
-                        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
+        config_files = (
+            list(glob_config(
+                os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
+            list(glob_config(
+                os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
         for config_file in config_files:
             # This is just used to find the individual reader configurations, not necessarily the individual files
             config_fn = os.path.basename(config_file)
@@ -349,15 +400,20 @@ class ReaderFinder(object):
                 continue
 
             try:
-                config_files = config_search_paths(os.path.join("readers", config_fn), self.ppp_config_dir)
+                config_files = config_search_paths(
+                    os.path.join("readers", config_fn), self.ppp_config_dir)
                 reader_info = self._read_reader_config(config_files)
                 LOG.debug("Successfully read reader config: %s", config_fn)
                 reader_names.add(config_fn)
             except ValueError:
-                LOG.debug("Invalid reader config found: %s", config_fn, exc_info=True)
+                LOG.debug("Invalid reader config found: %s",
+                          config_fn,
+                          exc_info=True)
                 continue
 
-            files = self.assign_matching_files(reader_info, *files, base_dir=self.base_dir)
+            files = self.assign_matching_files(reader_info,
+                                               *files,
+                                               base_dir=self.base_dir)
 
             if reader_info["filenames"]:
                 # we have some files for this reader so let's create it
@@ -366,7 +422,9 @@ class ReaderFinder(object):
             if not files:
                 break
         if files:
-            raise IOError("Don't know how to open the following files: {}".format(str(files)))
+            raise IOError(
+                "Don't know how to open the following files: {}".format(str(
+                    files)))
 
     def get_filenames(self, reader_info, base_dir=None):
         """Get the filenames from disk given the patterns in *reader_info*.
@@ -381,7 +439,8 @@ class ReaderFinder(object):
         reader_start = reader_info["start_time"]
         reader_end = reader_info.get("end_time")
         if reader_start is None:
-            raise ValueError("'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
+            raise ValueError(
+                "'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
         for pattern in reader_info["file_patterns"]:
             if base_dir:
                 pattern = os.path.join(base_dir, pattern)
@@ -391,20 +450,24 @@ class ReaderFinder(object):
                 try:
                     metadata = parser.parse(filename)
                 except ValueError:
-                    LOG.info("Can't get any metadata from filename: %s from %s", pattern, filename)
+                    LOG.info(
+                        "Can't get any metadata from filename: %s from %s",
+                        pattern, filename)
                     metadata = {}
-                if "end_time" in metadata and metadata["start_time"] > metadata["end_time"]:
+                if "end_time" in metadata and metadata[
+                        "start_time"] > metadata["end_time"]:
                     mdate = metadata["start_time"].date()
                     mtime = metadata["end_time"].time()
                     if mtime < metadata["start_time"].time():
                         mdate += timedelta(days=1)
                     metadata["end_time"] = datetime.combine(mdate, mtime)
-                meta_start = metadata.get("start_time", metadata.get("nominal_time"))
+                meta_start = metadata.get("start_time",
+                                          metadata.get("nominal_time"))
                 meta_end = metadata.get("end_time", datetime(1950, 1, 1))
                 if reader_end:
                     # get the data within the time interval
                     if ((reader_start <= meta_start <= reader_end) or
-                            (reader_start <= meta_end <= reader_end)):
+                        (reader_start <= meta_end <= reader_end)):
                         filenames.append(filename)
                 else:
                     # get the data containing start_time
@@ -432,7 +495,9 @@ class ReaderFinder(object):
         try:
             reader_info = conf['reader']
         except KeyError:
-            raise MalformedConfigError("Malformed config file {}: missing reader 'reader'".format(config_files))
+            raise MalformedConfigError(
+                "Malformed config file {}: missing reader 'reader'".format(
+                    config_files))
         reader_info['config_files'] = config_files
         return reader_info
 
@@ -440,7 +505,9 @@ class ReaderFinder(object):
         conf = configparser.RawConfigParser()
         successes = conf.read(config_files)
         if not successes:
-            raise ValueError("No valid configuration files found named: {}".format(config_files))
+            raise ValueError(
+                "No valid configuration files found named: {}".format(
+                    config_files))
         LOG.debug("Read config from %s", str(successes))
 
         file_patterns = []
@@ -452,8 +519,11 @@ class ReaderFinder(object):
         for section in conf.sections():
             if section.startswith("reader:"):
                 reader_info = dict(conf.items(section))
-                reader_info["file_patterns"] = filter(None, reader_info.setdefault("file_patterns", "").split(","))
-                reader_info["sensor"] = filter(None, reader_info.setdefault("sensor", "").split(","))
+                reader_info["file_patterns"] = filter(
+                    None, reader_info.setdefault("file_patterns",
+                                                 "").split(","))
+                reader_info["sensor"] = filter(None, reader_info.setdefault(
+                    "sensor", "").split(","))
                 # XXX: Readers can have separate start/end times from the
                 # rest fo the scene...might be a bad idea?
                 # reader_info.setdefault("start_time", self.info.get("start_time"))
@@ -471,15 +541,20 @@ class ReaderFinder(object):
                     sensors |= set(reader_info["sensor"])
             else:
                 if conf.has_option(section, "file_patterns"):
-                    file_patterns.extend(conf.get(section, "file_patterns").split(","))
+                    file_patterns.extend(conf.get(section,
+                                                  "file_patterns").split(","))
 
                 if conf.has_option(section, "sensor"):
                     sensors |= set(conf.get(section, "sensor").split(","))
 
         if reader_class is None:
-            raise MalformedConfigError("Malformed config file {}: missing reader 'reader'".format(config_files))
+            raise MalformedConfigError(
+                "Malformed config file {}: missing reader 'reader'".format(
+                    config_files))
         if reader_name is None:
-            raise MalformedConfigError("Malformed config file {}: missing reader 'name'".format(config_files))
+            raise MalformedConfigError(
+                "Malformed config file {}: missing reader 'name'".format(
+                    config_files))
         reader_info["file_patterns"] = file_patterns
         reader_info["config_files"] = config_files
         reader_info["filenames"] = []
@@ -494,8 +569,9 @@ class ReaderFinder(object):
         try:
             loader = runtime_import(reader_info["reader"])
         except ImportError as err:
-            raise ImportError("Could not import reader class '{}' for reader '{}': {}".format(
-                reader_info["reader"], reader_info["name"], str(err)))
+            raise ImportError(
+                "Could not import reader class '{}' for reader '{}': {}".format(
+                    reader_info["reader"], reader_info["name"], str(err)))
         reader_instance = loader(reader_info['config_files'])
 
         return reader_instance
@@ -510,7 +586,8 @@ class ReaderFinder(object):
                 file_pattern = os.path.join(kwargs["base_dir"], file_pattern)
             pattern = globify(file_pattern)
             for filename in list(files):
-                if fnmatch(os.path.basename(filename), os.path.basename(pattern)):
+                if fnmatch(
+                        os.path.basename(filename), os.path.basename(pattern)):
                     reader_info["filenames"].append(filename)
                     files.remove(filename)
 
@@ -522,9 +599,11 @@ class Reader(Plugin):
     """Reader plugins. They should have a *pformat* attribute, and implement
     the *load* method. This is an abstract class to be inherited.
     """
-    splittable_dataset_options = ["file_patterns", "navigation", "standard_name", "units"]
+    splittable_dataset_options = ["file_patterns", "navigation",
+                                  "standard_name", "units"]
 
-    def __init__(self, name=None,
+    def __init__(self,
+                 name=None,
                  file_patterns=None,
                  filenames=None,
                  description="",
@@ -547,10 +626,14 @@ class Reader(Plugin):
 
         # Use options from the config file if they weren't passed as arguments
         self.name = self.config_options.get("name") if name is None else name
-        self.file_patterns = self.config_options.get("file_patterns") if file_patterns is None else file_patterns
-        self.filenames = self.config_options.get("filenames", []) if filenames is None else filenames
-        self.description = self.config_options.get("description") if description is None else description
-        self.sensor = self.config_options.get("sensor", "").split(",") if sensor is None else set(sensor)
+        self.file_patterns = self.config_options.get(
+            "file_patterns") if file_patterns is None else file_patterns
+        self.filenames = self.config_options.get(
+            "filenames", []) if filenames is None else filenames
+        self.description = self.config_options.get(
+            "description") if description is None else description
+        self.sensor = self.config_options.get(
+            "sensor", "").split(",") if sensor is None else set(sensor)
 
         # These can't be provided by a configuration file
         self.start_time = start_time
@@ -575,7 +658,8 @@ class Reader(Plugin):
 
         :return: generator of loadable dataset names
         """
-        LOG.warning("Asking for available datasets from 'dumb' reader, all datasets being returned")
+        LOG.warning(
+            "Asking for available datasets from 'dumb' reader, all datasets being returned")
         return self.dataset_names
 
     @property
@@ -593,29 +677,34 @@ class Reader(Plugin):
 
     def load_section_dataset(self, section_name, section_options):
         # required for Dataset identification
-        section_options["resolution"] = tuple(float(res) for res in section_options.get("resolution").split(','))
+        section_options["resolution"] = tuple(
+            float(res) for res in section_options.get("resolution").split(','))
         num_permutations = len(section_options["resolution"])
 
         # optional or not applicable for all datasets for Dataset identification
         if "wavelength_range" in section_options:
-            section_options["wavelength_range"] = tuple(float(wvl)
-                                                        for wvl in section_options.get("wavelength_range").split(','))
+            section_options["wavelength_range"] = tuple(
+                float(wvl)
+                for wvl in section_options.get("wavelength_range").split(','))
         else:
             section_options["wavelength_range"] = None
 
         if "calibration" in section_options:
-            section_options["calibration"] = tuple(section_options.get("calibration").split(','))
+            section_options["calibration"] = tuple(section_options.get(
+                "calibration").split(','))
         else:
             section_options["calibration"] = [None] * num_permutations
 
         if "polarization" in section_options:
-            section_options["polarization"] = tuple(section_options.get("polarization").split(','))
+            section_options["polarization"] = tuple(section_options.get(
+                "polarization").split(','))
         else:
             section_options["polarization"] = [None] * num_permutations
 
         # Sanity checks
         assert "name" in section_options
-        assert section_options["wavelength_range"] is None or (len(section_options["wavelength_range"]) == 3)
+        assert section_options["wavelength_range"] is None or (
+            len(section_options["wavelength_range"]) == 3)
         assert num_permutations == len(section_options["calibration"])
         assert num_permutations == len(section_options["polarization"])
 
@@ -626,29 +715,30 @@ class Reader(Plugin):
             else:
                 section_options[k] = [None]
 
-        for k in self.splittable_dataset_options + ["calibration", "polarization"]:
+        for k in self.splittable_dataset_options + ["calibration",
+                                                    "polarization"]:
             if len(section_options[k]) == 1:
                 # if a single value is used for all permutations, repeat it
                 section_options[k] *= num_permutations
             else:
-                assert(num_permutations == len(section_options[k]))
+                assert (num_permutations == len(section_options[k]))
 
         # Add each possible permutation of this dataset to the datasets list for later use
-        for idx, (res, cal, pol) in enumerate(zip(section_options["resolution"],
-                                                  section_options["calibration"],
-                                                  section_options["polarization"])):
-            bid = DatasetID(
-                name=section_options["name"],
-                wavelength=section_options["wavelength_range"],
-                resolution=res,
-                calibration=cal,
-                polarization=pol,
-            )
+        for idx, (res, cal, pol) in enumerate(zip(section_options[
+                "resolution"], section_options["calibration"], section_options[
+                    "polarization"])):
+            bid = DatasetID(name=section_options["name"],
+                            wavelength=section_options["wavelength_range"],
+                            resolution=res,
+                            calibration=cal,
+                            polarization=pol, )
 
             opts = section_options.copy()
             # get only the specific permutations value that we want
             opts["id"] = bid
-            for k in self.splittable_dataset_options + ["resolution", "calibration", "polarization"]:
+            for k in self.splittable_dataset_options + [
+                    "resolution", "calibration", "polarization"
+            ]:
                 opts[k] = opts[k][idx]
             self.datasets[bid] = opts
 
@@ -656,16 +746,23 @@ class Reader(Plugin):
         name = section_name.split(":")[-1]
         self.metadata_info[name] = section_options
 
-    def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
+    def get_dataset_key(self,
+                        key,
+                        calibration=None,
+                        resolution=None,
+                        polarization=None,
+                        aslist=False):
         """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
 
         If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
         """
         # get by wavelength
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.datasets.keys() if ds.wavelength and (
-                ds.wavelength[0] <= key <= ds.wavelength[2])]
-            datasets = sorted(datasets, key=lambda ch: abs(ch.wavelength[1] - key))
+            datasets = [ds for ds in self.datasets.keys()
+                        if ds.wavelength and (ds.wavelength[0] <= key <=
+                                              ds.wavelength[2])]
+            datasets = sorted(datasets,
+                              key=lambda ch: abs(ch.wavelength[1] - key))
 
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
@@ -685,26 +782,34 @@ class Reader(Plugin):
                 polarization = [key.polarization]
         # get by name
         else:
-            datasets = [ds_id for ds_id in self.datasets.keys() if ds_id.name == key]
+            datasets = [ds_id for ds_id in self.datasets.keys()
+                        if ds_id.name == key]
             if not datasets:
-                raise KeyError("Can't find any projectable called '{}'".format(key))
+                raise KeyError("Can't find any projectable called '{}'".format(
+                    key))
 
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance"]
 
         if resolution is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id.resolution in resolution]
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.resolution in resolution]
         if calibration is not None:
             # order calibration from highest level to lowest level
-            calibration = [x for x in ["brightness_temperature",
-                                       "reflectance", "radiance", "counts"] if x in calibration]
-            datasets = [ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
+            calibration = [x
+                           for x in ["brightness_temperature", "reflectance",
+                                     "radiance", "counts"] if x in calibration]
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.calibration is None or ds_id.calibration in
+                        calibration]
         if polarization is not None:
-            datasets = [ds_id for ds_id in datasets if ds_id.polarization in polarization]
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.polarization in polarization]
 
         if not datasets:
-            raise KeyError("Can't find any projectable matching '{}'".format(str(key)))
+            raise KeyError("Can't find any projectable matching '{}'".format(
+                str(key)))
         if aslist:
             return datasets
         else:
@@ -723,20 +828,30 @@ class Reader(Plugin):
         raise NotImplementedError
 
 
-class FileKey(namedtuple("FileKey", ["name", "variable_name", "scaling_factors", "dtype", "standard_name", "units",
-                                     "file_units", "kwargs"])):
-
-    def __new__(cls, name, variable_name,
-                scaling_factors=None, dtype=np.float32, standard_name=None, units=None, file_units=None, **kwargs):
+class FileKey(namedtuple("FileKey",
+                         ["name", "variable_name", "scaling_factors", "dtype",
+                          "standard_name", "units", "file_units", "kwargs"])):
+    def __new__(cls,
+                name,
+                variable_name,
+                scaling_factors=None,
+                dtype=np.float32,
+                standard_name=None,
+                units=None,
+                file_units=None,
+                **kwargs):
         if isinstance(dtype, (str, six.text_type)):
             # get the data type from numpy
             dtype = getattr(np, dtype)
-        return super(FileKey, cls).__new__(cls, name, variable_name, scaling_factors, dtype, standard_name, units,
-                                           file_units, kwargs)
+        return super(FileKey, cls).__new__(
+            cls, name, variable_name, scaling_factors, dtype, standard_name,
+            units, file_units, kwargs)
 
 
 class ConfigBasedReader(Reader):
-    splittable_dataset_options = Reader.splittable_dataset_options + ["file_type", "file_key"]
+    splittable_dataset_options = Reader.splittable_dataset_options + [
+        "file_type", "file_key"
+    ]
     file_key_class = FileKey
 
     def __init__(self, default_file_reader=None, **kwargs):
@@ -753,7 +868,8 @@ class ConfigBasedReader(Reader):
         self.default_file_reader = self.config_options.get(
             "default_file_reader") if default_file_reader is None else default_file_reader
         if isinstance(self.default_file_reader, (str, six.text_type)):
-            self.default_file_reader = self._runtime_import(self.default_file_reader)
+            self.default_file_reader = self._runtime_import(
+                self.default_file_reader)
         if self.default_file_reader is None:
             raise RuntimeError("'default_file_reader' is a required argument")
 
@@ -778,23 +894,25 @@ class ConfigBasedReader(Reader):
         file_types = self.identify_file_types(self.filenames)
         # TODO: Add ability to discover files when none are provided
         if not file_types:
-            raise ValueError("No input files found matching the configured file types")
+            raise ValueError(
+                "No input files found matching the configured file types")
 
         num_files = 0
         for file_type_name, file_type_files in file_types.items():
             file_type_files = self._get_swathsegment(file_type_files)
-            LOG.debug("File type %s has %d files after segment selection", file_type_name, len(file_type_files))
+            LOG.debug("File type %s has %d files after segment selection",
+                      file_type_name, len(file_type_files))
 
             if not file_type_files:
-                raise IOError("No files matching!: " +
-                              "Start time = " + str(self.start_time) +
-                              "  End time = " + str(self.end_time))
+                raise IOError("No files matching!: " + "Start time = " + str(
+                    self.start_time) + "  End time = " + str(self.end_time))
             elif num_files and len(file_type_files) != num_files:
                 raise IOError("Varying numbers of files found", file_type_name)
             else:
                 num_files = len(file_type_files)
 
-            file_reader = MultiFileReader(file_type_name, file_types[file_type_name], self.file_keys)
+            file_reader = MultiFileReader(
+                file_type_name, file_types[file_type_name], self.file_keys)
             self.file_readers[file_type_name] = file_reader
 
     def find_filenames(self, directory, file_patterns=None):
@@ -803,7 +921,8 @@ class ConfigBasedReader(Reader):
             # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
         filelist = []
         for pattern in file_patterns:
-            filelist.extend(glob.iglob(os.path.join(directory, globify(pattern))))
+            filelist.extend(glob.iglob(os.path.join(directory, globify(
+                pattern))))
         return filelist
 
     @property
@@ -838,10 +957,9 @@ class ConfigBasedReader(Reader):
             from trollsched.boundary import AreaBoundary
 
             lons, lats = self.area.get_boundary_lonlats()
-            area_boundary = AreaBoundary((lons.side1, lats.side1),
-                                         (lons.side2, lats.side2),
-                                         (lons.side3, lats.side3),
-                                         (lons.side4, lats.side4))
+            area_boundary = AreaBoundary(
+                (lons.side1, lats.side1), (lons.side2, lats.side2),
+                (lons.side3, lats.side3), (lons.side4, lats.side4))
             area_boundary.decimate(500)
             contour_poly = area_boundary.contour_poly
 
@@ -854,7 +972,8 @@ class ConfigBasedReader(Reader):
             if self.area is not None:
                 ring_lons, ring_lats = file_reader.ring_lonlats
                 if ring_lons is None:
-                    raise ValueError("Granule selection by area is not supported by this reader")
+                    raise ValueError(
+                        "Granule selection by area is not supported by this reader")
                 coords = np.vstack((ring_lons, ring_lats))
                 poly = SphPolygon(np.deg2rad(coords))
                 if poly.intersection(contour_poly) is not None:
@@ -904,7 +1023,8 @@ class ConfigBasedReader(Reader):
         gross_lon_data = file_reader.get_swath_data(lon_key)
         gross_lat_data = file_reader.get_swath_data(lat_key)
 
-        lon_data, lat_data = self._interpolate_navigation(gross_lon_data, gross_lat_data)
+        lon_data, lat_data = self._interpolate_navigation(gross_lon_data,
+                                                          gross_lat_data)
         if extra_mask is not None:
             lon_data = np.ma.masked_where(extra_mask, lon_data)
             lat_data = np.ma.masked_where(extra_mask, lat_data)
@@ -912,10 +1032,9 @@ class ConfigBasedReader(Reader):
         # FIXME: Is this really needed/does it belong here? Can we have a dummy/simple object?
         from pyresample import geometry
         area = geometry.SwathDefinition(lons=lon_data, lats=lat_data)
-        area_name = ("swath_" +
-                     file_reader.start_time.isoformat() + "_" +
-                     file_reader.end_time.isoformat() + "_" +
-                     "_" + "_".join(str(x) for x in lon_data.shape))
+        area_name = ("swath_" + file_reader.start_time.isoformat() + "_" +
+                     file_reader.end_time.isoformat() + "_" + "_" + "_".join(
+                         str(x) for x in lon_data.shape))
         # FIXME: Which one is used now:
         area.area_id = area_name
         area.name = area_name
@@ -935,7 +1054,8 @@ class ConfigBasedReader(Reader):
             file_types[file_type_name] = []
 
             if default_file_reader is None:
-                file_reader_class = file_type_info.get("file_reader", self.default_file_reader)
+                file_reader_class = file_type_info.get(
+                    "file_reader", self.default_file_reader)
             else:
                 file_reader_class = default_file_reader
 
@@ -948,7 +1068,9 @@ class ConfigBasedReader(Reader):
                     # Add a wildcard to the front for path information
                     # FIXME: Is there a better way to generalize this besides removing the path every time
                     if fnmatch(fn, "*" + globify(file_pattern)):
-                        reader = file_reader_class(file_type_name, fn, self.file_keys, **file_type_info)
+                        reader = file_reader_class(file_type_name, fn,
+                                                   self.file_keys, **
+                                                   file_type_info)
                         tmp_matching.append(reader)
                     else:
                         tmp_remaining.append(fn)
@@ -969,18 +1091,21 @@ class ConfigBasedReader(Reader):
 
     def load_section_file_type(self, section_name, section_options):
         name = section_name.split(":")[-1]
-        section_options["file_patterns"] = section_options["file_patterns"].split(",")
+        section_options["file_patterns"] = section_options[
+            "file_patterns"].split(",")
         # Don't create the file reader object yet
         self.file_types[name] = section_options
 
     def load_section_file_key(self, section_name, section_options):
         name = section_name.split(":")[-1]
-        self.file_keys[name] = self.file_key_class(name=name, **section_options)
+        self.file_keys[name] = self.file_key_class(name=name,
+                                                   **section_options)
 
     def load_section_navigation(self, section_name, section_options):
         name = section_name.split(":")[-1]
         if "rows_per_scan" in section_options:
-            section_options["rows_per_scan"] = int(section_options["rows_per_scan"])
+            section_options["rows_per_scan"] = int(section_options[
+                "rows_per_scan"])
         self.navigations[name] = section_options
 
     def load_section_calibration(self, section_name, section_options):
@@ -1002,7 +1127,8 @@ class ConfigBasedReader(Reader):
             dataset_info[k] = []
         for idx, ft in enumerate(self.datasets[ds_id]["file_type"]):
             if ft in self.file_readers:
-                for k in ["file_type", "file_key", "calibration", "navigation"]:
+                for k in ["file_type", "file_key", "calibration", "navigation"
+                          ]:
                     dataset_info[k].append(self.datasets[ds_id][k][idx])
 
         # By default do the first calibration for a dataset
@@ -1013,10 +1139,12 @@ class ConfigBasedReader(Reader):
             if cname in calibration:
                 cal_index = idx
                 cal_name = cname
-                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name, ds_id)
+                LOG.debug("Using calibration '%s' for dataset '%s'", cal_name,
+                          ds_id)
                 break
         else:
-            LOG.debug("Using default calibration '%s' for dataset '%s'", cal_name, ds_id)
+            LOG.debug("Using default calibration '%s' for dataset '%s'",
+                      cal_name, ds_id)
 
         # Load metadata and calibration information for this dataset
         try:
@@ -1031,16 +1159,19 @@ class ConfigBasedReader(Reader):
 
                 if val not in info_dict and k != "calibration":
                     # We don't care if the calibration has its own section
-                    raise RuntimeError("Unknown '{}': {}".format(k, val,))
+                    raise RuntimeError("Unknown '{}': {}".format(k, val, ))
                 dataset_info[k] = val
 
                 if k == "file_key":
                     # collect any other metadata
-                    dataset_info["standard_name"] = self.file_keys[val].standard_name
+                    dataset_info["standard_name"] = self.file_keys[
+                        val].standard_name
                     # dataset_info["file_units"] = self.file_keys[val].file_units
                     # dataset_info["units"] = self.file_keys[val].units
         except (IndexError, KeyError):
-            raise RuntimeError("Could not get information to perform calibration '{}'".format(cal_name))
+            raise RuntimeError(
+                "Could not get information to perform calibration '{}'".format(
+                    cal_name))
 
         return dataset_info
 
@@ -1053,7 +1184,8 @@ class ConfigBasedReader(Reader):
         if metadata_to_load is None:
             return loaded_metadata
 
-        metadata_to_load = set(metadata_to_load) & set(self.metadata_info.keys())
+        metadata_to_load = set(metadata_to_load) & set(self.metadata_info.keys(
+        ))
         datasets_to_load = set(datasets_to_load) & set(self.datasets.keys())
 
         if not datasets_to_load:
@@ -1084,26 +1216,32 @@ class ConfigBasedReader(Reader):
                     file_type = nav_info["file_type"]
 
                 if file_type not in self.file_readers:
-                    LOG.warning("File type '%s' not loaded for metadata '%s'", file_type, metadata_id)
+                    LOG.warning("File type '%s' not loaded for metadata '%s'",
+                                file_type, metadata_id)
                     continue
                 file_reader = self.file_readers[file_type]
                 try:
-                    md = file_reader.load_metadata(file_key,
-                                                   join_method=md_info.get("join_method", "append"),
-                                                   axis=int(md_info.get("axis", "0")))
+                    md = file_reader.load_metadata(
+                        file_key,
+                        join_method=md_info.get("join_method", "append"),
+                        axis=int(md_info.get("axis", "0")))
                     if destination == "AREA":
                         area_metadata[metadata_id] = md
                     else:
                         metadata_dict[metadata_id] = md
                 except (KeyError, ValueError):
-                    LOG.debug("Could not load metadata '%s' for dataset '%s'", metadata_id, ds_id, exc_info=True)
+                    LOG.debug("Could not load metadata '%s' for dataset '%s'",
+                              metadata_id,
+                              ds_id,
+                              exc_info=True)
                     continue
 
         return loaded_metadata
 
     def load(self, datasets_to_load, metadata=None, **dataset_info):
         if dataset_info:
-            LOG.warning("Unsupported options for viirs reader: %s", str(dataset_info))
+            LOG.warning("Unsupported options for viirs reader: %s",
+                        str(dataset_info))
 
         datasets_loaded = DatasetDict()
         datasets_to_load = set(datasets_to_load) & set(self.datasets.keys())
@@ -1142,7 +1280,8 @@ class ConfigBasedReader(Reader):
 
             # Load the navigation information first
             if nav_name not in areas:
-                areas[nav_name] = area = self.load_navigation(nav_name, dep_file_type=file_type)
+                areas[nav_name] = area = self.load_navigation(
+                    nav_name, dep_file_type=file_type)
             else:
                 area = areas[nav_name]
 
@@ -1152,10 +1291,13 @@ class ConfigBasedReader(Reader):
                 dataset_info["units"] = file_reader.get_units(file_key)
             dataset_info.setdefault("platform", file_reader.platform_name)
             dataset_info.setdefault("sensor", file_reader.sensor_name)
-            dataset_info.setdefault("start_orbit", file_reader.begin_orbit_number)
+            dataset_info.setdefault("start_orbit",
+                                    file_reader.begin_orbit_number)
             dataset_info.setdefault("end_orbit", file_reader.end_orbit_number)
             if "rows_per_scan" in self.navigations[nav_name]:
-                dataset_info.setdefault("rows_per_scan", self.navigations[nav_name]["rows_per_scan"])
+                dataset_info.setdefault(
+                    "rows_per_scan",
+                    self.navigations[nav_name]["rows_per_scan"])
             projectable = Projectable(data=data,
                                       start_time=file_reader.start_time,
                                       end_time=file_reader.end_time,
@@ -1165,7 +1307,8 @@ class ConfigBasedReader(Reader):
             datasets_loaded[projectable.info["id"]] = projectable
 
         # Load metadata for all of the datasets
-        loaded_metadata = self.load_metadata(datasets_loaded.keys(), areas, metadata)
+        loaded_metadata = self.load_metadata(datasets_loaded.keys(), areas,
+                                             metadata)
         for ds_id, metadata_info in loaded_metadata.items():
             area_metadata = metadata_info.pop("_area_metadata")
             datasets_loaded[ds_id].info.update(metadata_info)
@@ -1235,24 +1378,27 @@ class MultiFileReader(object):
         num_rows = sum([x[0] for x in granule_shapes])
         if len(granule_shapes[0]) < 2:
             num_cols = 1
-            output_shape = (num_rows,)
+            output_shape = (num_rows, )
         else:
             num_cols = granule_shapes[0][-1]
             output_shape = (num_rows, num_cols)
 
         if filename:
-            raise NotImplementedError("Saving data arrays to disk is not supported yet")
+            raise NotImplementedError(
+                "Saving data arrays to disk is not supported yet")
             # data = np.memmap(filename, dtype=var_info.dtype, mode='w', shape=(num_rows, num_cols))
         else:
             data = np.empty(output_shape, dtype=var_info.dtype)
             mask = np.zeros_like(data, dtype=np.bool)
 
         idx = 0
-        for granule_shape, file_reader in zip(granule_shapes, self.file_readers):
+        for granule_shape, file_reader in zip(granule_shapes,
+                                              self.file_readers):
             # Get the data from each individual file reader (assumes it gets the data with the right data type)
-            file_reader.get_swath_data(item,
-                                       data_out=data[idx: idx + granule_shape[0]],
-                                       mask_out=mask[idx: idx + granule_shape[0]])
+            file_reader.get_swath_data(
+                item,
+                data_out=data[idx:idx + granule_shape[0]],
+                mask_out=mask[idx:idx + granule_shape[0]])
             idx += granule_shape[0]
 
         # FIXME: This may get ugly when using memmaps, maybe move projectable creation here instead
@@ -1260,11 +1406,16 @@ class MultiFileReader(object):
 
     def load_metadata(self, item, join_method="append", axis=0):
         if join_method not in ["append", "append_granule", "first"]:
-            raise ValueError("Unknown metadata 'join_method': {}".format(join_method))
+            raise ValueError("Unknown metadata 'join_method': {}".format(
+                join_method))
         elif join_method == "append_granule":
-            return np.concatenate(tuple([fr[item]] for fr in self.file_readers), axis=axis)
+            return np.concatenate(
+                tuple([fr[item]] for fr in self.file_readers),
+                axis=axis)
         elif join_method == "append":
-            return np.concatenate(tuple(fr[item] for fr in self.file_readers), axis=axis)
+            return np.concatenate(
+                tuple(fr[item] for fr in self.file_readers),
+                axis=axis)
         elif join_method == "first":
             return self.file_readers[0][item]
 
@@ -1300,7 +1451,8 @@ class GenericFileReader(object):
         self.file_type = file_type
         self.file_keys = file_keys
         self.file_info = kwargs
-        self.filename, self.file_handle = self.create_file_handle(filename, **kwargs)
+        self.filename, self.file_handle = self.create_file_handle(filename, **
+                                                                  kwargs)
 
         # need to "cache" these properties because they might be used a lot
         self._start_time = self._get_start_time()
