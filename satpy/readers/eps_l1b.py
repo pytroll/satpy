@@ -34,7 +34,7 @@ from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers import ConfigBasedReader, GenericFileReader
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.satin.xmlformat import XMLFormat
+from satpy.readers.xmlformat import XMLFormat
 
 LOG = logging.getLogger(__name__)
 
