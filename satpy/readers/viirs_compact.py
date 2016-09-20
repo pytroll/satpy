@@ -65,25 +65,34 @@ h = 6.6260755e-34  # m2kg.s-1
 k = 1.380658e-23  # m2kg.s-2.K-1
 
 
-class VIIRSCompactMFileHandler(BaseFileHandler):
+class VIIRSCompactFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(VIIRSCompactMFileHandler, self).__init__(filename, filename_info,
-                                                       filetype_info)
+        super(VIIRSCompactFileHandler, self).__init__(filename, filename_info,
+                                                      filetype_info)
         self.h5f = h5py.File(self.filename, "r")
         self.finfo = filename_info
         self.lons = None
         self.lats = None
 
         self.scans = self.h5f["All_Data"]["NumberOfScans"][0]
-        self.geostuff = self.h5f["All_Data"]["VIIRS-MOD-GEO_All"]
+        for key in self.h5f["All_Data"].keys():
+            if key.startswith("VIIRS") and key.endswith("GEO_All"):
+                self.geostuff = self.h5f["All_Data"][key]
+                break
+
         self.c_align = self.geostuff["AlignmentCoefficient"].value[
             np.newaxis, np.newaxis, :, np.newaxis]
         self.c_exp = self.geostuff["ExpansionCoefficient"].value[
             np.newaxis, np.newaxis, :, np.newaxis]
+
+        for key in self.h5f["All_Data"].keys():
+            if key.startswith("VIIRS") and key.endswith("SDR_All"):
+                channel = key.split('-')[1]
+                break
+
         # FIXME:  this supposes  there is  only one  tiepoint zone  in the
         # track direction
-        channel = 'M15'
         self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" %
                                   channel].attrs["TiePointZoneSizeTrack"][0]
         self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
@@ -92,16 +101,14 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
                                     channel].attrs["PixelOffsetScan"]
 
         try:
-            self.group_locations = self.h5f[
-                "All_Data/VIIRS-MOD-GEO_All/"
+            self.group_locations = self.geostuff[
                 "TiePointZoneGroupLocationScanCompact"].value
         except KeyError:
             self.group_locations = [0]
 
         self.tpz_sizes = self.h5f["All_Data/VIIRS-%s-SDR_All" %
                                   channel].attrs["TiePointZoneSizeScan"]
-        self.nb_tpzs = self.h5f[
-            "All_Data/VIIRS-MOD-GEO_All/NumberOfTiePointZonesScan"].value
+        self.nb_tpzs = self.geostuff["NumberOfTiePointZonesScan"].value
 
         self.senazi, self.senzen = None, None
         self.solazi, self.solzen = None, None
@@ -154,10 +161,10 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
             else:
                 return Projectable(self.solazi, copy=False)
 
-    def read_m(self, key, calibrate=1):
+    def read_m(self, dataset_key):
 
         h5f = self.h5f
-        channel = chans_dict[key.name]
+        channel = chans_dict[dataset_key.name]
         chan_dict = dict([(key.split("-")[1], key)
                           for key in h5f["All_Data"].keys()
                           if key.startswith("VIIRS")])
@@ -167,7 +174,14 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         units = []
         arr_mask = np.ma.nomask
 
-        rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
+        if channel.startswith('M'):
+            rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
+        elif channel == 'DNB':
+            import tables
+            h5ft = tables.open_file(self.filename, "r")
+            rads = h5ft.get_node("/All_Data/VIIRS-DNB-SDR_All").Radiance.read()
+            h5ft.close()
+
         if channel in ("M9", ):
             arr = rads[:scans * 16, :].astype(np.float32)
             arr[arr > 65526] = np.nan
@@ -182,13 +196,13 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
                               arr * rads.attrs['RadianceScaleHigh'] +
                               rads.attrs['RadianceOffsetHigh'],)
             arr_mask = arr.mask
-        except KeyError:
-            LOG.info("Missing attribute for channel scaling.")
+        except (KeyError, AttributeError):
+            logger.info("Missing attribute for channel scaling.")
             pass
         unit = "W m-2 sr-1 μm-1"
-        if calibrate == 0:
+        if dataset_key.calibration == 'counts':
             raise NotImplementedError("Can't get counts from this data")
-        if calibrate == 1:
+        if dataset_key.calibration in ['reflectance', 'brightness_temperature']:
             # do calibrate
             try:
                 # First guess: VIS or NIR data
@@ -214,8 +228,9 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
                 except KeyError:
                     logger.warning("Calibration failed.")
 
-        elif calibrate != 2:
-            raise ValueError("Calibrate parameter should be 1 or 2")
+        elif dataset_key.calibration != 'radiance':
+            raise ValueError("Calibration parameter should be radiance, "
+                             "reflectance or brightness_temperature")
         arr[arr < 0] = 0
 
         return Projectable(arr, units=unit, copy=False)
