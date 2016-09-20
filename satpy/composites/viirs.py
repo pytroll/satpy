@@ -330,9 +330,9 @@ class ReflectanceCorrector(CompositeBase):
         #info.setdefault("standard_name", "corrected_reflectance")
         #info["mode"] = self.info.get("mode", "L")
         factor = 100. if percent else 1.
-        return Projectable(data=results[0].data * factor,
-                           mask=results[0].mask,
-                           dtype=results[0].dtype,
+        return Projectable(data=results.data * factor,
+                           mask=results.mask,
+                           dtype=results.dtype,
                            **info)
 
 
