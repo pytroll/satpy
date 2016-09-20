@@ -309,183 +309,10 @@ class ReaderFinder(object):
         return glob_config(
             os.path.join("readers", "*.yaml"), self.ppp_config_dir)
 
-    def _find_sensors_readers(self, sensor, filenames):
-        """Find the readers for the given *sensor* and *filenames*
-        """
-        if isinstance(sensor, (str, six.text_type)):
-            sensor_set = set([sensor])
-        else:
-            sensor_set = set(sensor)
-
-        reader_names = set()
-        config_files = self.get_all_config_files()
-        for config_file in config_files:
-            # This is just used to find the individual reader configurations, not necessarily the individual files
-            config_fn = os.path.basename(config_file)
-            if config_fn in reader_names:
-                # we've already loaded this reader (even if we found it through another environment)
-                continue
-
-            try:
-                config_files = config_search_paths(
-                    os.path.join("readers", config_fn), self.ppp_config_dir)
-                reader_info = self._read_reader_config(config_files)
-                LOG.debug("Successfully read reader config: %s", config_fn)
-                reader_names.add(config_fn)
-            except ValueError:
-                LOG.debug("Invalid reader config found: %s",
-                          config_fn,
-                          exc_info=True)
-                continue
-
-                yield self._load_reader(reader_info)
-
-    def _find_reader(self, reader, filenames):
-        """Find and get info for the *reader* for *filenames*
-        """
-        # were we given a path to a config file?
-        if not os.path.exists(reader):
-            # no, we were given a name of a reader
-            config_fn = reader + ".cfg" if "." not in reader else reader
-            config_files = config_search_paths(
-                os.path.join("readers", config_fn), self.ppp_config_dir)
-            if not config_files:
-                config_fn = reader + ".yaml" if "." not in reader else reader
-                config_files = config_search_paths(
-                    os.path.join("readers", config_fn), self.ppp_config_dir)
-                if not config_files:
-                    raise ValueError(
-                        "Can't find config file for reader: {}".format(reader))
-        else:
-            # we may have been given a dependent config file (depends on builtin configuration)
-            # so we need to find the others
-            config_fn = os.path.basename(reader)
-            config_files = config_search_paths(
-                os.path.join("readers", config_fn), self.ppp_config_dir)
-            config_files.insert(0, reader)
-
-        reader_info = self._read_reader_config(config_files)
-        if filenames:
-            filenames = self.assign_matching_files(reader_info,
-                                                   *filenames,
-                                                   base_dir=self.base_dir)
-            if filenames:
-                raise IOError(
-                    "Don't know how to open the following files: {}".format(
-                        str(filenames)))
-        else:
-            pause
-            reader_info["filenames"] = self.get_filenames(
-                reader_info, base_dir=self.base_dir)
-            if not reader_info["filenames"]:
-                raise RuntimeError("No filenames found for reader: {}".format(
-                    reader_info["name"]))
-
-        return self._load_reader(reader_info)
-
-    def _find_files_readers(self, files):
-        """Find the reader info for the provided *files*.
-        """
-        reader_names = set()
-        config_files = (
-            list(glob_config(
-                os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
-            list(glob_config(
-                os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
-        for config_file in config_files:
-            # This is just used to find the individual reader configurations, not necessarily the individual files
-            config_fn = os.path.basename(config_file)
-            if config_fn in reader_names:
-                # we've already loaded this reader (even if we found it through another environment)
-                continue
-
-            try:
-                config_files = config_search_paths(
-                    os.path.join("readers", config_fn), self.ppp_config_dir)
-                reader_info = self._read_reader_config(config_files)
-                LOG.debug("Successfully read reader config: %s", config_fn)
-                reader_names.add(config_fn)
-            except ValueError:
-                LOG.debug("Invalid reader config found: %s",
-                          config_fn,
-                          exc_info=True)
-                continue
-
-            files = self.assign_matching_files(reader_info,
-                                               *files,
-                                               base_dir=self.base_dir)
-
-            if reader_info["filenames"]:
-                # we have some files for this reader so let's create it
-                yield self._load_reader(reader_info)
-
-            if not files:
-                break
-        if files:
-            raise IOError(
-                "Don't know how to open the following files: {}".format(str(
-                    files)))
-
-    def get_filenames(self, reader_info, base_dir=None):
-        """Get the filenames from disk given the patterns in *reader_info*.
-        This assumes that the scene info contains start_time at least (possibly end_time too).
-        """
-        filenames = []
-        info = self.info.copy()
-        for key in self.info.keys():
-            if key.endswith("_time"):
-                info.pop(key, None)
-
-        reader_start = reader_info["start_time"]
-        reader_end = reader_info.get("end_time")
-        if reader_start is None:
-            raise ValueError(
-                "'start_time' keyword required with 'sensor' and 'reader' keyword arguments")
-        for pattern in reader_info["file_patterns"]:
-            if base_dir:
-                pattern = os.path.join(base_dir, pattern)
-            parser = Parser(str(pattern))
-            # FIXME: what if we are browsing a huge archive ?
-            for filename in glob.iglob(parser.globify(info.copy())):
-                try:
-                    metadata = parser.parse(filename)
-                except ValueError:
-                    LOG.info(
-                        "Can't get any metadata from filename: %s from %s",
-                        pattern, filename)
-                    metadata = {}
-                if "end_time" in metadata and metadata[
-                        "start_time"] > metadata["end_time"]:
-                    mdate = metadata["start_time"].date()
-                    mtime = metadata["end_time"].time()
-                    if mtime < metadata["start_time"].time():
-                        mdate += timedelta(days=1)
-                    metadata["end_time"] = datetime.combine(mdate, mtime)
-                meta_start = metadata.get("start_time",
-                                          metadata.get("nominal_time"))
-                meta_end = metadata.get("end_time", datetime(1950, 1, 1))
-                if reader_end:
-                    # get the data within the time interval
-                    if ((reader_start <= meta_start <= reader_end) or
-                        (reader_start <= meta_end <= reader_end)):
-                        filenames.append(filename)
-                else:
-                    # get the data containing start_time
-                    if "end_time" in metadata and meta_start <= reader_start <= meta_end:
-                        filenames.append(filename)
-                    elif meta_start == reader_start:
-                        filenames.append(filename)
-        return sorted(filenames)
-
     def _read_reader_config(self, config_files):
         """Read the reader *config_files* and return the info extracted.
         """
-        if config_files[0].endswith('.cfg'):
-            return self._read_reader_config_cfg(config_files)
-        elif config_files[0].endswith('.yaml'):
-            return self._read_reader_config_yaml(config_files)
 
-    def _read_reader_config_yaml(self, config_files):
         conf = {}
         LOG.debug('Reading ' + str(config_files))
         for config_file in config_files:
@@ -501,67 +328,6 @@ class ReaderFinder(object):
         reader_info['config_files'] = config_files
         return reader_info
 
-    def _read_reader_config_cfg(self, config_files):
-        conf = configparser.RawConfigParser()
-        successes = conf.read(config_files)
-        if not successes:
-            raise ValueError(
-                "No valid configuration files found named: {}".format(
-                    config_files))
-        LOG.debug("Read config from %s", str(successes))
-
-        file_patterns = []
-        sensors = set()
-        reader_name = None
-        reader_class = None
-        reader_info = None
-        # Only one reader: section per config file
-        for section in conf.sections():
-            if section.startswith("reader:"):
-                reader_info = dict(conf.items(section))
-                reader_info["file_patterns"] = filter(
-                    None, reader_info.setdefault("file_patterns",
-                                                 "").split(","))
-                reader_info["sensor"] = filter(None, reader_info.setdefault(
-                    "sensor", "").split(","))
-                # XXX: Readers can have separate start/end times from the
-                # rest fo the scene...might be a bad idea?
-                # reader_info.setdefault("start_time", self.info.get("start_time"))
-                # reader_info.setdefault("end_time", self.info.get("end_time"))
-                # reader_info.setdefault("area", self.info.get("area"))
-                try:
-                    reader_class = reader_info["reader"]
-                    reader_name = reader_info["name"]
-                    reader_info["reader"] = runtime_import(reader_class)
-                except KeyError:
-                    break
-                file_patterns.extend(reader_info["file_patterns"])
-
-                if reader_info["sensor"]:
-                    sensors |= set(reader_info["sensor"])
-            else:
-                if conf.has_option(section, "file_patterns"):
-                    file_patterns.extend(conf.get(section,
-                                                  "file_patterns").split(","))
-
-                if conf.has_option(section, "sensor"):
-                    sensors |= set(conf.get(section, "sensor").split(","))
-
-        if reader_class is None:
-            raise MalformedConfigError(
-                "Malformed config file {}: missing reader 'reader'".format(
-                    config_files))
-        if reader_name is None:
-            raise MalformedConfigError(
-                "Malformed config file {}: missing reader 'name'".format(
-                    config_files))
-        reader_info["file_patterns"] = file_patterns
-        reader_info["config_files"] = config_files
-        reader_info["filenames"] = []
-        reader_info["sensor"] = tuple(sensors)
-
-        return reader_info
-
     @staticmethod
     def _load_reader(reader_info):
         """Import and setup the reader from *reader_info*
@@ -575,24 +341,6 @@ class ReaderFinder(object):
         reader_instance = loader(reader_info['config_files'])
 
         return reader_instance
-
-    @staticmethod
-    def assign_matching_files(reader_info, *files, **kwargs):
-        """Assign *files* to the *reader_info*
-        """
-        files = list(files)
-        for file_pattern in reader_info["file_patterns"]:
-            if kwargs.get("base_dir"):
-                file_pattern = os.path.join(kwargs["base_dir"], file_pattern)
-            pattern = globify(file_pattern)
-            for filename in list(files):
-                if fnmatch(
-                        os.path.basename(filename), os.path.basename(pattern)):
-                    reader_info["filenames"].append(filename)
-                    files.remove(filename)
-
-        # return remaining/unmatched files
-        return files
 
 
 class Reader(Plugin):
@@ -1069,8 +817,8 @@ class ConfigBasedReader(Reader):
                     # FIXME: Is there a better way to generalize this besides removing the path every time
                     if fnmatch(fn, "*" + globify(file_pattern)):
                         reader = file_reader_class(file_type_name, fn,
-                                                   self.file_keys, **
-                                                   file_type_info)
+                                                   self.file_keys,
+                                                   **file_type_info)
                         tmp_matching.append(reader)
                     else:
                         tmp_remaining.append(fn)
@@ -1127,8 +875,8 @@ class ConfigBasedReader(Reader):
             dataset_info[k] = []
         for idx, ft in enumerate(self.datasets[ds_id]["file_type"]):
             if ft in self.file_readers:
-                for k in ["file_type", "file_key", "calibration", "navigation"
-                          ]:
+                for k in ["file_type", "file_key", "calibration",
+                          "navigation"]:
                     dataset_info[k].append(self.datasets[ds_id][k][idx])
 
         # By default do the first calibration for a dataset
@@ -1451,8 +1199,8 @@ class GenericFileReader(object):
         self.file_type = file_type
         self.file_keys = file_keys
         self.file_info = kwargs
-        self.filename, self.file_handle = self.create_file_handle(filename, **
-                                                                  kwargs)
+        self.filename, self.file_handle = self.create_file_handle(filename,
+                                                                  **kwargs)
 
         # need to "cache" these properties because they might be used a lot
         self._start_time = self._get_start_time()

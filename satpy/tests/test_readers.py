@@ -127,38 +127,38 @@ class TestReaders(unittest.TestCase):
     #         for j in range(len(res)):
     #             self.assertAlmostEqual(res[j], geo_extents[i][j], 2)
 
-    @mock.patch("glob.glob")
-    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock,
-                                                         **mock_objs):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
-
-        def fake_read_config(config_file):
-            if config_file in ["valid", "no_found_files"]:
-                return {"name": "fake_reader",
-                        "sensor": ["foo"],
-                        "config_files": config_file}
-            else:
-                raise ValueError("Fake ValueError")
-
-        def fake_get_filenames(reader_info):
-            if reader_info["config_files"] == "valid":
-                return ["file1", "file2"]
-            return []
-
-        with mock.patch.multiple("satpy.readers.ReaderFinder",
-                                 _read_reader_config=mock.DEFAULT,
-                                 get_filenames=mock.DEFAULT,
-                                 _load_reader=mock.DEFAULT) as mock_objs:
-            mock_objs["_read_reader_config"].side_effect = fake_read_config
-            mock_objs["get_filenames"].side_effect = fake_get_filenames
-
-            scn = Scene()
-            finder = ReaderFinder(scn)
-            finder._find_sensors_readers("foo", None)
-
     ## FIXME replace the following with tests on reader.select_files
+    #
+    # @mock.patch("glob.glob")
+    # def test_find_sensors_readers_single_sensor_no_files(self, glob_mock,
+    #                                                      **mock_objs):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
+    #
+    #     def fake_read_config(config_file):
+    #         if config_file in ["valid", "no_found_files"]:
+    #             return {"name": "fake_reader",
+    #                     "sensor": ["foo"],
+    #                     "config_files": config_file}
+    #         else:
+    #             raise ValueError("Fake ValueError")
+    #
+    #     def fake_get_filenames(reader_info):
+    #         if reader_info["config_files"] == "valid":
+    #             return ["file1", "file2"]
+    #         return []
+    #
+    #     with mock.patch.multiple("satpy.readers.ReaderFinder",
+    #                              _read_reader_config=mock.DEFAULT,
+    #                              get_filenames=mock.DEFAULT,
+    #                              _load_reader=mock.DEFAULT) as mock_objs:
+    #         mock_objs["_read_reader_config"].side_effect = fake_read_config
+    #         mock_objs["get_filenames"].side_effect = fake_get_filenames
+    #
+    #         scn = Scene()
+    #         finder = ReaderFinder(scn)
+    #         finder._find_sensors_readers("foo", None)
 
     # def test_get_filenames_with_start_time_provided(self):
     #     from satpy.scene import Scene
