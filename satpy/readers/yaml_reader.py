@@ -173,7 +173,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     key))
         # default calibration choices
         if calibration is None:
-            calibration = ["brightness_temperature", "reflectance"]
+            calibration = ["brightness_temperature", "reflectance", "radiance"]
 
         if resolution is not None:
             if not isinstance(resolution, (tuple, list, set)):
@@ -247,6 +247,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
+
     def __init__(self, config_files):
         super(FileYAMLReader, self).__init__(config_files)
 
