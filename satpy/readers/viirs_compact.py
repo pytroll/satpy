@@ -26,14 +26,12 @@ import bz2
 import glob
 import logging
 import os
-from ConfigParser import ConfigParser
 from datetime import datetime, timedelta
 
 import h5py
 import numpy as np
 from pyresample.geometry import SwathDefinition
 
-from mpop import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -68,6 +66,7 @@ k = 1.380658e-23  # m2kg.s-2.K-1
 
 
 class VIIRSCompactMFileHandler(BaseFileHandler):
+
     def __init__(self, filename, filename_info, filetype_info):
         super(VIIRSCompactMFileHandler, self).__init__(filename, filename_info,
                                                        filetype_info)
@@ -85,12 +84,12 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
         # FIXME:  this supposes  there is  only one  tiepoint zone  in the
         # track direction
         channel = 'M15'
-        self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
-                        channel].attrs["TiePointZoneSizeTrack"][0]
-        self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
-                           channel].attrs["PixelOffsetTrack"]
-        self.scan_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" % \
-                          channel].attrs["PixelOffsetScan"]
+        self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" %
+                                  channel].attrs["TiePointZoneSizeTrack"][0]
+        self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
+                                     channel].attrs["PixelOffsetTrack"]
+        self.scan_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
+                                    channel].attrs["PixelOffsetScan"]
 
         try:
             self.group_locations = self.h5f[
@@ -180,11 +179,11 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
             arr = np.ma.where(arr <= rads.attrs['Threshold'],
                               arr * rads.attrs['RadianceScaleLow'] +
                               rads.attrs['RadianceOffsetLow'],
-                              arr * rads.attrs['RadianceScaleHigh'] + \
+                              arr * rads.attrs['RadianceScaleHigh'] +
                               rads.attrs['RadianceOffsetHigh'],)
             arr_mask = arr.mask
         except KeyError:
-            print "KeyError"
+            LOG.info("Missing attribute for channel scaling.")
             pass
         unit = "W m-2 sr-1 μm-1"
         if calibrate == 0:
@@ -205,7 +204,7 @@ class VIIRSCompactMFileHandler(BaseFileHandler):
                     b_ir = rads.attrs['BandCorrectionCoefficientB']
                     lambda_c = rads.attrs['CentralWaveLength']
                     arr *= 1e6
-                    arr = (h * c) / (k * lambda_c * \
+                    arr = (h * c) / (k * lambda_c *
                                      np.log(1 +
                                             (2 * h * c ** 2) /
                                             ((lambda_c ** 5) * arr)))
@@ -419,21 +418,3 @@ def navigate_dnb(h5f):
                               nties, track_offset, scan_offset)))
     lons, lats = zip(*res)
     return np.hstack(lons), np.hstack(lats)
-
-
-if __name__ == '__main__':
-    #filename = "/local_disk/data/satellite/polar/compact_viirs/SVMC_npp_d20140114_t1245125_e1246367_b11480_c20140114125427496143_eum_ops.h5"
-    filename = "/local_disk/data/satellite/polar/compact_viirs/mymy.h5"
-    h5f = h5py.File(filename, 'r')
-    # ch1, ch2, ch3, ch4 = read(h5f, ["M5", "M4", "M2", "M12"])
-    # img = GeoImage((ch1, ch2, ch3),
-    #                None,
-    #                None,
-    #                fill_value=None,
-    #                mode="RGB")
-
-    # img.enhance(stretch="linear")
-    # img.enhance(gamma=2.0)
-    # img.show()
-
-    lons, lats = navigate_m(h5f)
