@@ -235,10 +235,6 @@ def chand(phi, muv, mus, taur):
     #         float xlntaur, xitot1, xitot2, xitot3;
     #         int i, ib;
 
-    phios = np.deg2rad(phi + 180.0)
-    xcos1 = 1.0
-    xcos2 = np.cos(phios)
-    xcos3 = np.cos(2.0 * phios)
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
     xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
         1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
@@ -269,14 +265,24 @@ def chand(phi, muv, mus, taur):
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
-    del xlntaur
+    del xlntaur, fs01, fs02
+
     trdown = np.exp(-taur / mus)
     trup = np.exp(-taur / muv)
+
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
     xitot1 = xph1 * (xitm1 + xitm2 * fs0)
     xitot2 = xph2 * (xitm1 + xitm2 * fs1)
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
+    del xph1, xph2, xph3, xitm1, xitm2, fs0, fs1, fs2
+
+    phios = np.deg2rad(phi + 180.0)
+    xcos1 = 1.0
+    xcos2 = np.cos(phios)
+    xcos3 = np.cos(2.0 * phios)
+    del phios
+
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
     return rhoray, trdown, trup
 
@@ -383,6 +389,7 @@ def run_crefl(refl, (ah2o, bh2o, ao3, tau),
         corr_refl = (refl / tOG - rhoray) / TtotraytH2O
     corr_refl /= (1.0 + corr_refl * sphalb)
     np.clip(corr_refl, REFLMIN, REFLMAX, out=corr_refl)
+
     return corr_refl
 
     #return odata
