@@ -23,12 +23,12 @@
 # New stuff
 
 import glob
+import itertools
 import logging
 import numbers
-import itertools
 import os
-from fnmatch import fnmatch
 from abc import ABCMeta, abstractmethod, abstractproperty
+from fnmatch import fnmatch
 
 import numpy as np
 import six
@@ -84,7 +84,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         else:
             sensor_set = set()
 
-        if sensor is not None and not (set(self.info.get("sensors")) & sensor_set):
+        if sensor is not None and not (set(self.info.get("sensors")) &
+                                       sensor_set):
             return filenames, []
 
         file_set = set()
@@ -99,7 +100,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             LOG.warning("No filenames found for reader: %s", self.name)
         file_set -= set(self.info['filenames'])
         LOG.debug("Assigned to %s: %s", self.info[
-                  'name'], self.info['filenames'])
+            'name'], self.info['filenames'])
 
         return file_set, self.info['filenames']
 
@@ -112,7 +113,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if not filenames:
                 return result
             for filename in list(filenames):
-                if fnmatch(os.path.basename(filename), os.path.basename(pattern)):
+                if fnmatch(
+                        os.path.basename(filename), os.path.basename(pattern)):
                     result.append(filename)
                     filenames.remove(filename)
         return result
@@ -122,13 +124,19 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             file_patterns = self.file_patterns
             # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
         filelist = []
-
+        if directory is None:
+            directory = ''
         for pattern in file_patterns:
-            filelist.extend(glob.iglob(
-                os.path.join(directory, globify(pattern))))
+            filelist.extend(glob.iglob(os.path.join(directory, globify(
+                pattern))))
         return filelist
 
-    def get_dataset_key(self, key, calibration=None, resolution=None, polarization=None, aslist=False):
+    def get_dataset_key(self,
+                        key,
+                        calibration=None,
+                        resolution=None,
+                        polarization=None,
+                        aslist=False):
         """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
 
         If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
@@ -136,10 +144,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         # TODO This can be made simpler
         # get by wavelength
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.ids if ds.wavelength and (
-                ds.wavelength[0] <= key <= ds.wavelength[2])]
-            datasets = sorted(
-                datasets, key=lambda ch: abs(ch.wavelength[1] - key))
+            datasets = [ds for ds in self.ids
+                        if ds.wavelength and (ds.wavelength[0] <= key <=
+                                              ds.wavelength[2])]
+            datasets = sorted(datasets,
+                              key=lambda ch: abs(ch.wavelength[1] - key))
             if not datasets:
                 raise KeyError("Can't find any projectable at %gum" % key)
         elif isinstance(key, DatasetID):
@@ -160,8 +169,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         else:
             datasets = [ds_id for ds_id in self.ids if ds_id.name == key]
             if not datasets:
-                raise KeyError(
-                    "Can't find any projectable called '{}'".format(key))
+                raise KeyError("Can't find any projectable called '{}'".format(
+                    key))
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance"]
@@ -170,20 +179,27 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if not isinstance(resolution, (tuple, list, set)):
                 resolution = [resolution]
             datasets = [
-                ds_id for ds_id in datasets if ds_id.resolution in resolution]
+                ds_id for ds_id in datasets if ds_id.resolution in resolution
+            ]
         if calibration is not None:
             # order calibration from highest level to lowest level
-            calibration = [x for x in ["brightness_temperature",
-                                       "reflectance", "radiance", "counts"] if x in calibration]
+            calibration = [x
+                           for x in ["brightness_temperature", "reflectance",
+                                     "radiance", "counts"] if x in calibration]
             datasets = [
-                ds_id for ds_id in datasets if ds_id.calibration is None or ds_id.calibration in calibration]
+                ds_id for ds_id in datasets
+                if ds_id.calibration is None or ds_id.calibration in
+                calibration
+            ]
         if polarization is not None:
             datasets = [
-                ds_id for ds_id in datasets if ds_id.polarization in polarization]
+                ds_id for ds_id in datasets
+                if ds_id.polarization in polarization
+            ]
 
         if not datasets:
-            raise KeyError(
-                "Can't find any projectable matching '{}'".format(str(key)))
+            raise KeyError("Can't find any projectable matching '{}'".format(
+                str(key)))
         if aslist:
             return datasets
         else:
@@ -202,7 +218,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     # but is still considered 1 option
                     # it also needs to be a tuple so it can be used in
                     # a dictionary key (DatasetID)
-                    id_kwargs.append((tuple(val),))
+                    id_kwargs.append((tuple(val), ))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -212,7 +228,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 else:
                     # this key only has one choice so make it a one
                     # item iterable
-                    id_kwargs.append((val,))
+                    id_kwargs.append((val, ))
             for id_params in itertools.product(*id_kwargs):
                 dsid = DatasetID(*id_params)
                 ids.append(dsid)
@@ -231,7 +247,6 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
-
     def __init__(self, config_files):
         super(FileYAMLReader, self).__init__(config_files)
 
@@ -249,9 +264,15 @@ class FileYAMLReader(AbstractYAMLReader):
             raise RuntimeError("End time unknown until files are selected")
         return max(x.end_time for x in self.file_handlers.values()[0])
 
-    def select_files(self, base_dir=None, filenames=None, sensor=None, start_time=None, end_time=None, area=None):
-        res = super(FileYAMLReader, self).select_files(
-            base_dir, filenames, sensor)
+    def select_files(self,
+                     base_dir=None,
+                     filenames=None,
+                     sensor=None,
+                     start_time=None,
+                     end_time=None,
+                     area=None):
+        res = super(FileYAMLReader, self).select_files(base_dir, filenames,
+                                                       sensor)
 
         # Organize filenames in to file types and create file handlers
         remaining_filenames = set(self.info['filenames'])
@@ -266,10 +287,10 @@ class FileYAMLReader(AbstractYAMLReader):
                         # we know how to use this file (even if we may not use
                         # it later)
                         used_filenames.add(filename)
-                        filename_info = parse(
-                            pattern, os.path.basename(filename))
-                        file_handler = filetype_cls(
-                            filename, filename_info, filetype_info)
+                        filename_info = parse(pattern,
+                                              os.path.basename(filename))
+                        file_handler = filetype_cls(filename, filename_info,
+                                                    filetype_info)
 
                         # Only add this file handler if it is within the time
                         # we want
@@ -291,8 +312,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def _load_dataset(self, file_handlers, dsid, ds_info):
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [fh.get_shape(dsid, ds_info)
-                          for fh in file_handlers]
+            all_shapes = [fh.get_shape(dsid, ds_info) for fh in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = (sum([x[0] for x in all_shapes]), all_shapes[0][1])
         except (NotImplementedError, Exception):
@@ -318,9 +338,12 @@ class FileYAMLReader(AbstractYAMLReader):
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            proj = Projectable(
-                np.empty(overall_shape, dtype=ds_info.get('dtype', np.float32)))
-            proj.mask = np.empty(overall_shape, dtype=np.bool)  # overwrite single boolean 'False'
+            proj = Projectable(np.empty(overall_shape,
+                                        dtype=ds_info.get('dtype',
+                                                          np.float32)))
+            proj.mask = np.empty(
+                overall_shape,
+                dtype=np.bool)  # overwrite single boolean 'False'
 
             offset = 0
             for idx, fh in enumerate(file_handlers):
@@ -328,8 +351,10 @@ class FileYAMLReader(AbstractYAMLReader):
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
-                fh.get_dataset(dsid, ds_info, out=proj[
-                               offset: offset + granule_height])
+                fh.get_dataset(dsid,
+                               ds_info,
+                               out=proj[
+                                   offset:offset + granule_height])
                 offset += granule_height
 
         # Update the metadata
@@ -340,15 +365,17 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        lons.mask = np.empty(shape, dtype=np.bool)  # overwrite single boolean 'False'
+        lons.mask = np.empty(shape,
+                             dtype=np.bool)  # overwrite single boolean 'False'
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         lats.mask = np.empty(shape, dtype=np.bool)
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
-            fh.get_area(navid, nav_info,
-                        lon_out=lons[offset: offset + granule_height],
-                        lat_out=lats[offset: offset + granule_height])
+            fh.get_area(navid,
+                        nav_info,
+                        lon_out=lons[offset:offset + granule_height],
+                        lat_out=lats[offset:offset + granule_height])
             offset += granule_height
 
         area = geometry.SwathDefinition(lons, lats)
@@ -368,7 +395,8 @@ class FileYAMLReader(AbstractYAMLReader):
             filetype = ds_info['file_type']
             if filetype not in self.file_handlers:
                 raise RuntimeError(
-                    "Required file type '{}' not found or loaded".format(filetype))
+                    "Required file type '{}' not found or loaded".format(
+                        filetype))
             file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
@@ -377,7 +405,8 @@ class FileYAMLReader(AbstractYAMLReader):
             if 'area' not in proj.info or proj.info['area'] is None:
                 # we need to load the area because the file handlers didn't
                 navid = AreaID(ds_info.get('navigation'), dsid.resolution)
-                if navid.name is None or navid.name not in self.config['navigation']:
+                if navid.name is None or navid.name not in self.config[
+                        'navigation']:
                     # we don't know how to load navigation
                     LOG.warning("Can't load navigation for {}".format(dsid))
                 elif navid.name in loaded_navs:
@@ -387,11 +416,12 @@ class FileYAMLReader(AbstractYAMLReader):
                     nav_filetype = nav_info['file_type']
                     if nav_filetype not in self.file_handlers:
                         raise RuntimeError(
-                            "Required file type '{}' not found or loaded".format(nav_filetype))
+                            "Required file type '{}' not found or loaded".format(
+                                nav_filetype))
                     nav_fhs = self.file_handlers[nav_filetype]
 
-                    ds_area = self._load_area(
-                        navid, nav_fhs, nav_info, all_shapes, proj.shape)
+                    ds_area = self._load_area(navid, nav_fhs, nav_info,
+                                              all_shapes, proj.shape)
                     loaded_navs[navid.name] = ds_area
                 proj.info["area"] = ds_area
 
