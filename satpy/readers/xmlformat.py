@@ -19,10 +19,8 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """Reads a format from an xml file to create dtypes and scaling factor arrays.
 """
-
 
 from xml.etree.ElementTree import ElementTree
 
@@ -34,8 +32,7 @@ TYPEC = {"boolean": ">i1",
          "integer2": ">i2",
          "integer4": ">i4",
          "uinteger2": ">u2",
-         "uinteger4": ">u4",
-         }
+         "uinteger4": ">u4", }
 
 
 def process_delimiter(elt, ascii=False):
@@ -43,18 +40,19 @@ def process_delimiter(elt, ascii=False):
     """
     del elt, ascii
 
+
 def process_field(elt, ascii=False):
     """Process a 'field' tag.
     """
 
     # NOTE: if there is a variable defined in this field and it is different
     # from the default, we could change the value and restart.
-    
+
     scale = np.uint8(1)
     if elt.get("type") == "bitfield" and not ascii:
         current_type = ">u" + str(int(elt.get("length")) / 8)
         scale = np.dtype(current_type).type(1)
-    elif(elt.get("length") is not None):
+    elif (elt.get("length") is not None):
         if ascii:
             add = 33
         else:
@@ -63,14 +61,13 @@ def process_field(elt, ascii=False):
     else:
         current_type = TYPEC[elt.get("type")]
         try:
-            scale = (10
-                     / float(elt.get("scaling-factor", "10").replace("^", "e")))
-        except ValueError:
             scale = (10 /
-                     np.array(elt.get("scaling-factor").replace("^",
-                                                                "e").split(","),
-                              dtype=np.float))
-        
+                     float(elt.get("scaling-factor", "10").replace("^", "e")))
+        except ValueError:
+            scale = (10 / np.array(
+                elt.get("scaling-factor").replace("^", "e").split(","),
+                dtype=np.float))
+
     return ((elt.get("name"), current_type, scale))
 
 
@@ -80,7 +77,6 @@ def process_array(elt, ascii=False):
     del ascii
     chld = elt.getchildren()
     if len(chld) > 1:
-        print "stop"
         raise ValueError()
     chld = chld[0]
     try:
@@ -99,15 +95,17 @@ def process_array(elt, ascii=False):
     else:
         return (myname, current_type, (length, ), scale)
 
+
 CASES = {"delimiter": process_delimiter,
          "field": process_field,
-         "array": process_array,
-         }
+         "array": process_array, }
+
 
 def to_dtype(val):
     """Parse *val* to return a dtype.
     """
     return np.dtype([i[:-1] for i in val])
+
 
 def to_scaled_dtype(val):
     """Parse *val* to return a dtype.
@@ -123,7 +121,7 @@ def to_scaled_dtype(val):
                 res.append((i[0], type(i[-1])) + i[2:-1])
 
     return np.dtype(res)
- 
+
 
 def to_scales(val):
     """Parse *val* to return an array of scale factors.
@@ -137,7 +135,7 @@ def to_scales(val):
                 res.append((i[0], i[3].dtype, i[2]))
             except AttributeError:
                 res.append((i[0], type(i[3]), i[2]))
-            
+
     dtype = np.dtype(res)
 
     scales = np.zeros((1, ), dtype=dtype)
@@ -160,7 +158,6 @@ def parse_format(xml_file):
     for param in tree.find("parameters").getchildren():
         VARIABLES[param.get("name")] = param.get("value")
 
-
     types_scales = {}
 
     for prod in tree.find("product"):
@@ -172,7 +169,6 @@ def parse_format(xml_file):
                 res.append(lres)
         types_scales[(prod.tag, int(prod.get("subclass")))] = res
 
-
     types = {}
     stypes = {}
     scales = {}
@@ -183,6 +179,7 @@ def parse_format(xml_file):
         scales[key] = to_scales(val)
 
     return types, stypes, scales
+
 
 def _apply_scales(array, scales, dtype):
     """Apply scales to the array.
@@ -198,11 +195,11 @@ def _apply_scales(array, scales, dtype):
                 raise
     return new_array
 
-class XMLFormat(object):
 
+class XMLFormat(object):
     """XMLFormat object.
     """
-    
+
     def __init__(self, filename):
         self.types, self.stypes, self.scales = parse_format(filename)
 
@@ -221,6 +218,6 @@ class XMLFormat(object):
         """
         return _apply_scales(array, *self.translator[array.dtype])
 
+
 if __name__ == '__main__':
     pass
-
