@@ -21,6 +21,7 @@
 
 import os
 import sys
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -41,31 +42,45 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_init_dict(self):
         from satpy.readers import DatasetDict, DatasetID
-        regular_dict = {
-            DatasetID(name="test", wavelength=(0, 0.5, 1)): "1",
-        }
+        regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
     def test_get_keys_by_datasetid(self):
         from satpy.readers import DatasetDict, DatasetID
-        did_list = [DatasetID(name="test", wavelength=(0, 0.5, 1), resolution=1000),
-                    DatasetID(name="testh", wavelength=(0, 0.5, 1), resolution=500),
-                    DatasetID(name="test2", wavelength=(1, 1.5, 2), resolution=1000)]
+        did_list = [DatasetID(
+            name="test", wavelength=(0, 0.5, 1),
+            resolution=1000), DatasetID(name="testh",
+                                        wavelength=(0, 0.5, 1),
+                                        resolution=500),
+                    DatasetID(name="test2",
+                              wavelength=(1, 1.5, 2),
+                              resolution=1000)]
         val_list = ["1", "1h", "2"]
         d = DatasetDict(dict(zip(did_list, val_list)))
-        self.assertIn(did_list[0], d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
-        self.assertIn(did_list[1], d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
-        self.assertIn(did_list[2], d.get_keys_by_datasetid(DatasetID(wavelength=1.5)))
-        self.assertIn(did_list[0], d.get_keys_by_datasetid(DatasetID(resolution=1000)))
-        self.assertIn(did_list[2], d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+        self.assertIn(did_list[0],
+                      d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+        self.assertIn(did_list[1],
+                      d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+        self.assertIn(did_list[2],
+                      d.get_keys_by_datasetid(DatasetID(wavelength=1.5)))
+        self.assertIn(did_list[0],
+                      d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+        self.assertIn(did_list[2],
+                      d.get_keys_by_datasetid(DatasetID(resolution=1000)))
 
     def test_get_item(self):
         from satpy.readers import DatasetDict, DatasetID
         regular_dict = {
-            DatasetID(name="test", wavelength=(0, 0.5, 1), resolution=1000): "1",
-            DatasetID(name="testh", wavelength=(0, 0.5, 1), resolution=500): "1h",
-            DatasetID(name="test2", wavelength=(1, 1.5, 2), resolution=1000): "2",
+            DatasetID(name="test",
+                      wavelength=(0, 0.5, 1),
+                      resolution=1000): "1",
+            DatasetID(name="testh",
+                      wavelength=(0, 0.5, 1),
+                      resolution=500): "1h",
+            DatasetID(name="test2",
+                      wavelength=(1, 1.5, 2),
+                      resolution=1000): "2",
         }
         d = DatasetDict(regular_dict)
 
@@ -77,7 +92,6 @@ class TestDatasetDict(unittest.TestCase):
 
 
 class TestReaders(unittest.TestCase):
-
     '''Class for testing satpy.satin'''
 
     # def test_lonlat_to_geo_extent(self):
@@ -113,33 +127,9 @@ class TestReaders(unittest.TestCase):
     #         for j in range(len(res)):
     #             self.assertAlmostEqual(res[j], geo_extents[i][j], 2)
 
-    def test_get_filenames_with_start_time_provided(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0)}
-
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), ["file2"])
-
     @mock.patch("glob.glob")
-    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock, **mock_objs):
+    def test_find_sensors_readers_single_sensor_no_files(self, glob_mock,
+                                                         **mock_objs):
         from satpy.scene import Scene
         from satpy.readers import ReaderFinder
         glob_mock.return_value = ["valid", "no_found_files", "not_valid"]
@@ -168,132 +158,162 @@ class TestReaders(unittest.TestCase):
             finder = ReaderFinder(scn)
             finder._find_sensors_readers("foo", None)
 
-    def test_get_filenames_with_start_time_and_end_time(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(2015, 6, 23, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(2015, 6, 24, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(2015, 6, 24, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(2015, 6, 24, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(2015, 6, 24, 0, 7)},
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+    ## FIXME replace the following with tests on reader.select_files
 
-    def test_get_filenames_with_start_time_and_npp_style_end_time(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
-                                                               "end_time": datetime(1950, 1, 1, 23, 59)},
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
-                                                               "end_time": datetime(1950, 1, 1, 0, 1)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
-                                                               "end_time": datetime(1950, 1, 1, 0, 3)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
-                                                               "end_time": datetime(1950, 1, 1, 0, 5)},
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
-                                                               "end_time": datetime(1950, 1, 1, 0, 7)},
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+    # def test_get_filenames_with_start_time_provided(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 0)}
+    #
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4",
+    #                                    "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [
+    #                 {"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+    #                  "end_time": datetime(2015, 6, 23, 23, 59)},
+    #                 {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+    #                  "end_time": datetime(2015, 6, 24, 0, 1)},
+    #                 {"start_time": datetime(2015, 6, 24, 0, 1),  # file3
+    #                  "end_time": datetime(2015, 6, 24, 0, 3)},
+    #                 {"start_time": datetime(2015, 6, 24, 0, 3),  # file4
+    #                  "end_time": datetime(2015, 6, 24, 0, 5)},
+    #                 {"start_time": datetime(2015, 6, 24, 0, 5),  # file5
+    #                  "end_time": datetime(2015, 6, 24, 0, 7)},
+    #             ]
+    #             self.assertEqual(finder.get_filenames(reader_info), ["file2"])
+    #
 
-    def test_get_filenames_with_start_time(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0),
-                       "end_time": datetime(2015, 6, 24, 0, 6)}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), ["file3", "file4", "file5"])
-
-    def test_get_filenames_with_only_start_times_wrong(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 0)}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), [])
-
-    def test_get_filenames_with_only_start_times_right(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene()
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": datetime(2015, 6, 24, 0, 1)}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertEqual(finder.get_filenames(reader_info), ["file3"])
-
-    def test_get_filenames_to_error(self):
-        from satpy.scene import Scene
-        from satpy.readers import ReaderFinder
-        from datetime import datetime
-        scn = Scene(start_time="bla")
-        finder = ReaderFinder(scn)
-        reader_info = {"file_patterns": ["foo"],
-                       "start_time": None}
-        with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
-            mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
-            with mock.patch("satpy.readers.Parser") as mock_parser:
-                mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
-                                                              {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
-                                                              {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
-                                                              {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
-                                                              {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
-                                                              ]
-                self.assertRaises(ValueError, finder.get_filenames, reader_info)
+    # def test_get_filenames_with_start_time_and_end_time(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 0),
+    #                    "end_time": datetime(2015, 6, 24, 0, 6)}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+    #                                                            "end_time": datetime(2015, 6, 23, 23, 59)},
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+    #                                                            "end_time": datetime(2015, 6, 24, 0, 1)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
+    #                                                            "end_time": datetime(2015, 6, 24, 0, 3)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
+    #                                                            "end_time": datetime(2015, 6, 24, 0, 5)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
+    #                                                            "end_time": datetime(2015, 6, 24, 0, 7)},
+    #                                                           ]
+    #             self.assertEqual(finder.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+    #
+    # def test_get_filenames_with_start_time_and_npp_style_end_time(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 0),
+    #                    "end_time": datetime(2015, 6, 24, 0, 6)}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57),  # file1
+    #                                                            "end_time": datetime(1950, 1, 1, 23, 59)},
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59),  # file2
+    #                                                            "end_time": datetime(1950, 1, 1, 0, 1)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1),    # file3
+    #                                                            "end_time": datetime(1950, 1, 1, 0, 3)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3),    # file4
+    #                                                            "end_time": datetime(1950, 1, 1, 0, 5)},
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5),    # file5
+    #                                                            "end_time": datetime(1950, 1, 1, 0, 7)},
+    #                                                           ]
+    #             self.assertEqual(finder.get_filenames(reader_info), ["file2", "file3", "file4", "file5"])
+    #
+    # def test_get_filenames_with_start_time(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 0),
+    #                    "end_time": datetime(2015, 6, 24, 0, 6)}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
+    #                                                           ]
+    #             self.assertEqual(finder.get_filenames(reader_info), ["file3", "file4", "file5"])
+    #
+    # def test_get_filenames_with_only_start_times_wrong(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 0)}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
+    #                                                           ]
+    #             self.assertEqual(finder.get_filenames(reader_info), [])
+    #
+    # def test_get_filenames_with_only_start_times_right(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene()
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": datetime(2015, 6, 24, 0, 1)}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
+    #                                                           ]
+    #             self.assertEqual(finder.get_filenames(reader_info), ["file3"])
+    #
+    # def test_get_filenames_to_error(self):
+    #     from satpy.scene import Scene
+    #     from satpy.readers import ReaderFinder
+    #     from datetime import datetime
+    #     scn = Scene(start_time="bla")
+    #     finder = ReaderFinder(scn)
+    #     reader_info = {"file_patterns": ["foo"],
+    #                    "start_time": None}
+    #     with mock.patch("satpy.readers.glob.iglob") as mock_iglob:
+    #         mock_iglob.return_value = ["file1", "file2", "file3", "file4", "file5"]
+    #         with mock.patch("satpy.readers.Parser") as mock_parser:
+    #             mock_parser.return_value.parse.side_effect = [{"start_time": datetime(2015, 6, 23, 23, 57)},  # file1
+    #                                                           {"start_time": datetime(2015, 6, 23, 23, 59)},  # file2
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 1)},    # file3
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 3)},    # file4
+    #                                                           {"start_time": datetime(2015, 6, 24, 0, 5)},    # file5
+    #                                                           ]
+    #             self.assertRaises(ValueError, finder.get_filenames, reader_info)
 
 
 def suite():
@@ -305,6 +325,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
 
     return mysuite
+
 
 if __name__ == "__main__":
     unittest.main()
