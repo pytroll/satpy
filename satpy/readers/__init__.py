@@ -300,7 +300,7 @@ class ReaderFinder(object):
                 "Don't know how to open the following files: {}".format(str(
                     remaining_filenames)))
         if not reader_instances:
-            raise ValueError("No supported files found")
+            LOG.warning("No supported files found")
         return reader_instances
 
     def config_files(self):
