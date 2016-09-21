@@ -300,12 +300,10 @@ class ReaderFinder(object):
                 "Don't know how to open the following files: {}".format(str(
                     remaining_filenames)))
         if not reader_instances:
-            LOG.warning("No supported files found")
+            raise ValueError("No supported files found")
         return reader_instances
 
     def config_files(self):
-        # return (list(glob_config(os.path.join("readers", "*.cfg"), self.ppp_config_dir)) +
-        #        list(glob_config(os.path.join("readers", "*.yaml"), self.ppp_config_dir)))
         return glob_config(
             os.path.join("readers", "*.yaml"), self.ppp_config_dir)
 
