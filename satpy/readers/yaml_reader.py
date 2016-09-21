@@ -171,9 +171,6 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if not datasets:
                 raise KeyError("Can't find any projectable called '{}'".format(
                     key))
-        # default calibration choices
-        if calibration is None:
-            calibration = ["brightness_temperature", "reflectance", "radiance"]
 
         if resolution is not None:
             if not isinstance(resolution, (tuple, list, set)):
@@ -181,16 +178,27 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             datasets = [
                 ds_id for ds_id in datasets if ds_id.resolution in resolution
             ]
-        if calibration is not None:
-            # order calibration from highest level to lowest level
+
+        # default calibration choices
+        if calibration is None:
+            calibration = ["brightness_temperature",
+                           "reflectance", 'radiance', 'counts']
+        else:
             calibration = [x
                            for x in ["brightness_temperature", "reflectance",
                                      "radiance", "counts"] if x in calibration]
-            datasets = [
-                ds_id for ds_id in datasets
-                if ds_id.calibration is None or ds_id.calibration in
-                calibration
-            ]
+
+        new_datasets = []
+        for cal_name in ["brightness_temperature", "reflectance", "radiance", "counts"]:
+            # order calibration from highest level to lowest level
+            for ds_id in datasets:
+                if ds_id.calibration == cal_name:
+                    new_datasets.append(ds_id)
+        for ds_id in datasets:
+            if ds_id.calibration is None:
+                new_datasets.append(ds_id)
+        datasets = new_datasets
+
         if polarization is not None:
             datasets = [
                 ds_id for ds_id in datasets
