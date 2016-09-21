@@ -408,7 +408,7 @@ class Scene(InfoObject):
                         new_prereqs.append(prereq.data)
                     else:
                         new_prereqs.append(prereq.data[0].info['name'])
-                #prereqs = [self.datasets[prereq.data] for prereq in prereqs]
+
                 prereqs = [self.datasets[prereq] for prereq in new_prereqs]
                 optional_prereqs = [self.datasets[prereq.data]
                                     for prereq in optional_prereqs]
@@ -418,6 +418,7 @@ class Scene(InfoObject):
                 composite.info['name'] = compositor.info['name']
 
                 self.datasets[compositor.info['name']] = composite
+
                 try:
                     self.wishlist.remove(composite.info['name'])
                 except KeyError:
