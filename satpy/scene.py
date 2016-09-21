@@ -412,9 +412,15 @@ class Scene(InfoObject):
                 prereqs = [self.datasets[prereq] for prereq in new_prereqs]
                 optional_prereqs = [self.datasets[prereq.data]
                                     for prereq in optional_prereqs]
-                composite = compositor(prereqs,
-                                       optional_prereqs=optional_prereqs,
-                                       **self.info)
+                try:
+                    composite = compositor(prereqs,
+                                           optional_prereqs=optional_prereqs,
+                                           **self.info)
+                except IncompatibleAreas:
+                    LOG.warning("Delaying generation of %s "
+                                "because of incompatible areas",
+                                compositor.info['name'])
+                    continue
                 composite.info['name'] = compositor.info['name']
 
                 self.datasets[compositor.info['name']] = composite
