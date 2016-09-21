@@ -162,6 +162,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 return Projectable(self.solazi, copy=False)
 
     def read_m(self, dataset_key):
+        logger.debug('Reading %s.', dataset_key.name)
 
         h5f = self.h5f
         channel = chans_dict[dataset_key.name]
@@ -197,7 +198,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                               rads.attrs['RadianceOffsetHigh'],)
             arr_mask = arr.mask
         except (KeyError, AttributeError):
-            logger.info("Missing attribute for channel scaling.")
+            logger.info("Missing attribute for scaling of %s.", channel)
             pass
         unit = "W m-2 sr-1 μm-1"
         if dataset_key.calibration == 'counts':
