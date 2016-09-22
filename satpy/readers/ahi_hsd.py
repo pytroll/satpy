@@ -23,16 +23,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Advanced Himawari Imager (AHI) standard format data reader
+
+http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+
 """
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
                      "11", "12", "13", "14", "15", "16")
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
+from pyresample import geometry
 
+from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
 
@@ -210,8 +215,8 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(VIIRSCompactFileHandler, self).__init__(filename, filename_info,
-                                                      filetype_info)
+        super(AHIHSDFileHandler, self).__init__(filename, filename_info,
+                                                filetype_info)
 
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.units = dict([(i, 'counts') for i in AHI_CHANNEL_NAMES])
@@ -220,8 +225,27 @@ class AHIHSDFileHandler(BaseFileHandler):
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.lons = None
         self.lats = None
+        self.segment_number = filename_info['segment_number']
+        self.total_segments = filename_info['total_segments']
 
-    def read_band(self):
+        self.basic_info = np.memmap(self.filename,
+                                    dtype=_BASIC_INFO_TYPE,
+                                    shape=(1, ))
+
+    @property
+    def start_time(self):
+        return (datetime(1858, 11, 17) +
+                timedelta(days=float(self.basic_info['observation_start_time'])))
+
+    @property
+    def end_time(self):
+        return (datetime(1858, 11, 17) +
+                timedelta(days=float(self.basic_info['observation_end_time'])))
+
+    def get_dataset(self, key, info):
+        return self.read_band(key, info)
+
+    def read_band(self, key, info):
         """Read the data"""
         tic = datetime.now()
         header = {}
@@ -235,6 +259,8 @@ class AHIHSDFileHandler(BaseFileHandler):
             header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
             logger.debug("Band number = " +
                          str(header["block5"]['band_number'][0]))
+            logger.debug('Time_interval: %s - %s',
+                         str(self.start_time), str(self.end_time))
             band_number = header["block5"]['band_number'][0]
             if band_number < 7:
                 cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
@@ -295,122 +321,126 @@ class AHIHSDFileHandler(BaseFileHandler):
 
             dummy = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
 
-            nlines = header["block2"]['number_of_lines']
-            ncols = header["block2"]['number_of_columns']
-            dtype = np.dtype([('counts', '<u2', (nlines, ncols))])
-            data = np.fromfile(fp_, dtype=dtype, count=1)
+            nlines = int(header["block2"]['number_of_lines'][0])
+            ncols = int(header["block2"]['number_of_columns'][0])
+            data = np.fromfile(fp_, dtype='<u2', count=nlines *
+                               ncols).reshape((nlines, ncols))
 
-            self._header[str(band_number)] = header
-            self._data[str(band_number)] = data
+        self._header = header
+
+        data = np.ma.masked_equal(data,
+                                  header['block5'][
+                                      "count_value_error_pixels"][0],
+                                  copy=False)
+        data = np.ma.masked_equal(data,
+                                  header['block5'][
+                                      "count_value_outside_scan_pixels"][0],
+                                  copy=False)
+
+        proj_info = header['block3'][0]
+        cfac = proj_info['CFAC']
+        lfac = proj_info['LFAC']
+        coff = proj_info['COFF']
+        loff = proj_info['LOFF']
+        a = proj_info['earth_equatorial_radius'] * 1000
+        h = proj_info['distance_from_earth_center'] * 1000 - a
+        b = proj_info['earth_polar_radius'] * 1000
+        lon_0 = proj_info['sub_lon']
+
+        c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
+        ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        c, l = ncols, (1 + self.total_segments -
+                       self.segment_number) * nlines - nlines
+        ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
 
         logger.debug("Reading time " + str(datetime.now() - tic))
 
-    def calibrate(self, chns=AHI_CHANNEL_NAMES, calibrate=1):
+        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
+                       np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
+
+        area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosh8',
+            {'a': a,
+             'b': b,
+             'lon_0': lon_0,
+             'h': h,
+             'proj': 'geos',
+             'units': 'm'},
+            data.shape[1],
+            data.shape[0],
+            area_extent)
+        area.lons, area.lats = area.get_lonlats()
+
+        area.lons = np.ma.masked_outside(area.lons, -180, 180)
+        area.lats = np.ma.masked_outside(area.lats, -90, 90)
+
+        data = self.calibrate(data, key.calibration)
+
+        return Projectable(data,
+                           units=info['units'],
+                           standard_name=info['standard_name'],
+                           wavelenght=info['wavelength'],
+                           resolution='resolution',
+                           id=key,
+                           area=area,
+                           name=key.name)
+
+    def calibrate(self, data, calibration):
         """Calibrate the data"""
         tic = datetime.now()
 
-        for chan in chns:
+        if calibration == 'counts':
+            return data
 
-            if chan in ['1', '2', '3', '4', '5', '6']:
-                self.channels[chan] = _vis_calibrate(self._header[chan],
-                                                     self._data[chan],
-                                                     calibrate)
-                if calibrate == 0:
-                    self.units[chan] = ''
-                elif calibrate == 2:
-                    self.units[chan] = 'W*m-2*sr-1*um-1'
-                else:
-                    self.units[chan] = '%'
-
-            else:
-                self.channels[chan] = _ir_calibrate(self._header[chan],
-                                                    self._data[chan],
-                                                    calibrate)
-                if calibrate == 0:
-                    self.units[chan] = ''
-                elif calibrate == 2:
-                    self.units[chan] = 'W*m-2*sr-1*um-1'
-                else:
-                    self.units[chan] = 'K'
+        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            data = self.convert_to_radiance(data)
+        if calibration == 'reflectance':
+            data = self._vis_calibrate(data)
+        elif calibration == 'brightness_temperature':
+            data = self._ir_calibrate(data)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return data
 
+    def convert_to_radiance(self, data):
+        """Calibrate to radiance.
+        """
 
-def _vis_calibrate(header, data, calib_type):
-    """Visible channel calibration only.
-    *calib_type* = 0: Counts
-    *calib_type* = 1: Reflectances
-    *calib_type* = 2: Radiances
-    """
-    # Calibration count to radiance or albedo.
+        channel = data.astype(np.float)
 
-    channel = data["counts"][0, :, :].astype(np.float)
-    channel[channel == header['block5'][
-        "count_value_error_pixels"][0]] = np.nan
-    channel[channel == header['block5'][
-        "count_value_outside_scan_pixels"][0]] = np.nan
+        band_number = self._header['block5']['band_number'][0]
+        gain = self._header["block5"]["gain_count2rad_conversion"][0]
+        offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-    band_number = header['block5']['band_number'][0]
-    gain = header["block5"]["gain_count2rad_conversion"][0]
-    offset = header["block5"]["offset_count2rad_conversion"][0]
-    coeff = header["calibration"]["coeff_rad2albedo_conversion"]
-    if calib_type == 2:
-        if band_number >= 7:
-            raise CalibrationError("Band is not a SW Visible band and " +
-                                   "cannot be converted to albedo!")
-        channel = channel * gain + offset
-    elif calib_type == 1:
-        channel = (channel * gain + offset) * coeff
+        return channel * gain + offset
 
-    channel[channel < 0] = np.nan
-    return np.ma.masked_array(channel, np.isnan(channel))
+    def _vis_calibrate(self, data):
+        """Visible channel calibration only.
+        """
+        coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
+        return np.ma.masked_less(data * coeff, 0, copy=False)
 
+    def _ir_calibrate(self, data):
+        """IR calibration
+        """
 
-def _ir_calibrate(header, data, calib_type):
-    """IR calibration
-    *calib_type* = 0: Counts
-    *calib_type* = 1: BT
-    *calib_type* = 2: Radiances
-    """
-
-    band_number = header['block5']['band_number'][0]
-    if band_number < 7:
-        raise CalibrationError("Band is not a AHI IR band and " +
-                               "cannot be converted to brightness " +
-                               "temperatures")
-
-    channel = data["counts"][0, :, :].astype(np.float)
-    channel[channel == header['block5'][
-        "count_value_error_pixels"][0]] = np.nan
-    channel[channel == header['block5'][
-        "count_value_outside_scan_pixels"][0]] = np.nan
-
-    gain = header["block5"]["gain_count2rad_conversion"][0]
-    offset = header["block5"]["offset_count2rad_conversion"][0]
-
-    if calib_type == 2 or calib_type == 1:
-        channel = channel * gain + offset
-
-    if calib_type == 1:
-        # First calculate the effective brightness temperature using the
-        # radiance, the central wavelength and the planck function:
-
-        cwl = header['block5']["central_wave_length"][0] * 1e-6
-        c__ = header['calibration']["speed_of_light"][0]
-        h__ = header['calibration']["planck_constant"][0]
-        k__ = header['calibration']["boltzmann_constant"][0]
+        cwl = self._header['block5']["central_wave_length"][0] * 1e-6
+        c__ = self._header['calibration']["speed_of_light"][0]
+        h__ = self._header['calibration']["planck_constant"][0]
+        k__ = self._header['calibration']["boltzmann_constant"][0]
         a__ = (h__ * c__) / (k__ * cwl)
-        b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * channel)) + 1
+        b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * data)) + 1
         Te_ = a__ / np.log(b__)
 
-        c0_ = header['calibration']["c0_rad2tb_conversion"][0]
-        c1_ = header['calibration']["c1_rad2tb_conversion"][0]
-        c2_ = header['calibration']["c2_rad2tb_conversion"][0]
+        c0_ = self._header['calibration']["c0_rad2tb_conversion"][0]
+        c1_ = self._header['calibration']["c1_rad2tb_conversion"][0]
+        c2_ = self._header['calibration']["c2_rad2tb_conversion"][0]
 
         channel = c0_ + c1_ * Te_ + c2_ * Te_ ** 2
 
-    channel[channel < 0] = np.nan
-    return np.ma.masked_array(channel, np.isnan(channel))
+        return np.ma.masked_less(channel, 0, copy=False)
 
 
 def show(data, negate=False):
@@ -436,7 +466,7 @@ if __name__ == "__main__":
     SCENE = ahisf([TESTFILE])
     SCENE.read_band(TESTFILE)
     SCENE.calibrate(['13'])
-    #SCENE.calibrate(['13'], calibrate=0)
+    # SCENE.calibrate(['13'], calibrate=0)
 
     # print SCENE._data['13']['counts'][0].shape
 

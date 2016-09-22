@@ -114,3 +114,11 @@ composites:
     - 0.8: [sunz_correction]
     - 10.8
     standard_name: overview
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    prerequisites:
+    - 0.65
+    - 0.5
+    - 0.45
+    standard_name: true_color

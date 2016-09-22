@@ -18,7 +18,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b01
 
   B02:
     name: B02
@@ -32,7 +32,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b02
 
   B03:
     name: B03
@@ -46,7 +46,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b03
 
   B04:
     name: B04
@@ -60,7 +60,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b04
 
   B05:
     name: B05
@@ -74,7 +74,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b05
 
   B06:
     name: B06
@@ -88,7 +88,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b06
 
   B07:
     name: B07
@@ -102,7 +102,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b07
 
   B08:
     name: B08
@@ -116,7 +116,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b08
 
   B09:
     name: B09
@@ -130,7 +130,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b09
 
   B10:
     name: B10
@@ -144,7 +144,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b10
 
   B11:
     name: B11
@@ -158,7 +158,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b11
 
   B12:
     name: B12
@@ -172,7 +172,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b12
 
   B13:
     name: B13
@@ -186,7 +186,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b13
 
   B14:
     name: B14
@@ -200,7 +200,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b14
 
   B15:
     name: B15
@@ -214,7 +214,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b15
 
   B16:
     name: B16
@@ -228,10 +228,55 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hsd_file
+    file_type: hsd_b16
 
 
 file_types:
-  hsd_file:
+  hsd_b01:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_FLDK_R10_S1010.DAT']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_FLDK_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b02:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_FLDK_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b03:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_FLDK_R05_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b04:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_FLDK_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b05:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b06:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b07:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b08:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b09:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b10:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b11:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b12:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b13:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b14:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b15:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b16:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_FLDK_R20_S{segment_number:2d}{total_segments:2d}.DAT']

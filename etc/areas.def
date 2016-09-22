@@ -1,3 +1,12 @@
+REGION: australia {
+	NAME:	australia
+	PCS_ID:	merc_132.5_-27.5
+	PCS_DEF:	proj=merc,lat_0=-27.5,lon_0=132.5,ellps=WGS84
+	XSIZE:	1001
+	YSIZE:	895
+	AREA_EXTENT:	(-2504688.5428486555, -5591295.9185533915, 2504688.5428486555, -1111475.102852225)
+};
+
 REGION: mali {
 	NAME:	mali
 	PCS_ID:	merc_-1.0_19.0
