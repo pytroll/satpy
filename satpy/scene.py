@@ -111,6 +111,11 @@ class Scene(InfoObject):
         self.compositors = {}
         self.wishlist = set()
 
+        if filenames is None and base_dir is None:
+            LOG.info('Neither filenames nor base_dir provided, '
+                     'creating an empty scene.')
+            return
+
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
