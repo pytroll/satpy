@@ -139,7 +139,7 @@ class CompositorLoader(object):
                 for item in options.get('prerequisites', []):
 
                     if isinstance(item, dict):
-                        #prereqs.append(item.keys()[0])
+                        # prereqs.append(item.keys()[0])
                         if len(item.keys()) > 1:
                             raise RuntimeError('Wrong prerequisite definition')
                         key = item.keys()[0]
@@ -172,6 +172,7 @@ class CompositorLoader(object):
 
 
 class CompositeBase(InfoObject):
+
     def __init__(self,
                  name,
                  prerequisites=[],
@@ -211,7 +212,8 @@ class SunZenithCorrector(CompositeBase):
                 LOG.debug("Computing sun zenith angles.")
                 self.coszen[key] = np.ma.masked_outside(cos_zen(np.datetime64(projectables[0].info["start_time"]),
                                                                 *projectables[0].info["area"].get_lonlats()),
-                                                        0.035,  # about 88 degrees.
+                                                        # about 88 degrees.
+                                                        0.035,
                                                         1,
                                                         copy=False)
             coszen = self.coszen[key]
@@ -220,7 +222,47 @@ class SunZenithCorrector(CompositeBase):
         return sunzen_corr_cos(projectables[0], coszen)
 
 
+class NIRReflectance(CompositeBase):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the reflectance part of an NIR channel. Not supposed to be used
+        for wavelength outside [3, 4] µm.
+        """
+        try:
+            from pyspectral.near_infrared_reflectance import Calculator
+        except ImportError:
+            LOG.info("Couldn't load pyspectral")
+            raise
+
+        nir, tb11 = projectables
+
+        sun_zenith = None
+        tb13_4 = None
+
+        for dataset in optional_datasets:
+            if dataset.info["standard_name"] == "solar_zenith_angle":
+                sun_zenith = dataset
+            elif (dataset.info['units'] == 'K' and
+                  "wavelengh" in dataset.info and
+                  dataset.info["wavelength"][0] <= 13.4 <= dataset.info["wavelength"][2]):
+                tb13_4 = dataset
+
+        # Check if the sun-zenith angle was provided:
+        if sun_zenith is None:
+            from pyorbital.astronomy import sun_zenith_angle as sza
+            lons, lats = nir.info["area"].get_lonlats()
+            sun_zenith = sza(nir.info['start_time'], lons, lats)
+
+        refl39 = Calculator(nir.info['platform_name'],
+                            nir.info['sensor'], nir.info['name'])
+
+        return Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
+                                                       tb11, tb13_4),
+                           **nir.info)
+
+
 class CO2Corrector(CompositeBase):
+
     def __call__(self, projectables, optional_datasets=None, **info):
         """CO2 correction of the brightness temperature of the MSG 3.9um
         channel.
@@ -284,6 +326,7 @@ class RGBCompositor(CompositeBase):
 
 
 class Airmass(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
 
@@ -304,6 +347,7 @@ class Airmass(RGBCompositor):
 
 
 class Convection(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
 
@@ -325,6 +369,7 @@ class Convection(RGBCompositor):
 
 
 class Dust(RGBCompositor):
+
     def __call__(self, projectables, *args, **kwargs):
         """Make a Dust RGB image composite.
 
