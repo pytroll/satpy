@@ -33,11 +33,13 @@ from datetime import datetime
 
 import numpy as np
 
+from satpy.readers.file_handlers import BaseFileHandler
+
 
 class CalibrationError(Exception):
     pass
 
-LOGGER = logging.getLogger('ahi_hsd')
+logger = logging.getLogger('ahi_hsd')
 
 # Basic information block:
 _BASIC_INFO_TYPE = np.dtype([("hblock_number", "u1"),
@@ -231,7 +233,8 @@ class AHIHSDFileHandler(BaseFileHandler):
             header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
             header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
             header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
-            print "Band number = " + str(header["block5"]['band_number'][0])
+            logger.debug("Band number = " +
+                         str(header["block5"]['band_number'][0]))
             band_number = header["block5"]['band_number'][0]
             if band_number < 7:
                 cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
@@ -300,7 +303,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             self._header[str(band_number)] = header
             self._data[str(band_number)] = data
 
-        LOGGER.debug("Reading time " + str(datetime.now() - tic))
+        logger.debug("Reading time " + str(datetime.now() - tic))
 
     def calibrate(self, chns=AHI_CHANNEL_NAMES, calibrate=1):
         """Calibrate the data"""
@@ -330,7 +333,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                 else:
                     self.units[chan] = 'K'
 
-        LOGGER.debug("Calibration time " + str(datetime.now() - tic))
+        logger.debug("Calibration time " + str(datetime.now() - tic))
 
 
 def _vis_calibrate(header, data, calib_type):
@@ -435,7 +438,7 @@ if __name__ == "__main__":
     SCENE.calibrate(['13'])
     #SCENE.calibrate(['13'], calibrate=0)
 
-    print SCENE._data['13']['counts'][0].shape
+    # print SCENE._data['13']['counts'][0].shape
 
     show(SCENE.channels['13'], negate=False)
 
