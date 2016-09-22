@@ -64,6 +64,8 @@ c = 299792458  # m.s-1
 h = 6.6260755e-34  # m2kg.s-1
 k = 1.380658e-23  # m2kg.s-2.K-1
 
+short_names = {'NPP': 'Suomi-NPP'}
+
 
 class VIIRSCompactFileHandler(BaseFileHandler):
 
@@ -113,14 +115,24 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.senazi, self.senzen = None, None
         self.solazi, self.solzen = None, None
 
+        self.mda = {}
+        short_name = self.h5f.attrs['Platform_Short_Name'][0][0]
+        self.mda['platform_name'] = short_names.get(short_name, short_name)
+        self.mda['sensor'] = 'viirs'
+
     def get_dataset(self, key, info):
+        """Load a dataset
+        """
+
+        logger.debug('Reading %s.', key.name)
+
         if key.name in chans_dict:
-            m_data = self.read_m(key)
+            m_data = self.read_dataset(key, info)
         else:
-            m_data = self.read_geo(key)
+            m_data = self.read_geo(key, info)
         m_data.info.update(info)
         if self.lons is None or self.lats is None:
-            self.lons, self.lats = self.navigate_m(key)
+            self.lons, self.lats = self.navigate(key)
         m_area_def = SwathDefinition(
             np.ma.masked_where(m_data.mask, self.lons,
                                copy=False),
@@ -142,28 +154,28 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             end_time += timedelta(days=1)
         return end_time
 
-    def read_geo(self, key):
+    def read_geo(self, key, info):
+        """Read angles.
+        """
         if key.name in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             if self.senazi is None or self.senzen is None:
                 self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
                                                        "SatelliteZenithAngle")
             if key.name == 'satellite_zenith_angle':
-                return Projectable(self.senzen, copy=False)
+                return Projectable(self.senzen, copy=False, name=key.name, **self.mda)
             else:
-                return Projectable(self.senazi, copy=False)
+                return Projectable(self.senazi, copy=False, name=key.name, **self.mda)
 
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
             if self.solazi is None or self.solzen is None:
                 self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
                                                        "SolarZenithAngle")
             if key.name == 'solar_zenith_angle':
-                return Projectable(self.solzen, copy=False)
+                return Projectable(self.solzen, copy=False, name=key.name, **self.mda)
             else:
-                return Projectable(self.solazi, copy=False)
+                return Projectable(self.solazi, copy=False, name=key.name, **self.mda)
 
-    def read_m(self, dataset_key):
-        logger.debug('Reading %s.', dataset_key.name)
-
+    def read_dataset(self, dataset_key, info):
         h5f = self.h5f
         channel = chans_dict[dataset_key.name]
         chan_dict = dict([(key.split("-")[1], key)
@@ -234,9 +246,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                              "reflectance or brightness_temperature")
         arr[arr < 0] = 0
 
-        return Projectable(arr, units=unit, copy=False)
+        return Projectable(arr, units=unit, copy=False, name=dataset_key.name, **self.mda)
 
-    def navigate_m(self, key):
+    def navigate(self, key):
 
         all_lon = self.geostuff["Longitude"].value
         all_lat = self.geostuff["Latitude"].value
