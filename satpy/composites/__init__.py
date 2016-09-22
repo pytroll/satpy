@@ -246,13 +246,17 @@ class CO2Corrector(CompositeBase):
 
 
 class RGBCompositor(CompositeBase):
+
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
-        the_data = np.rollaxis(
-            np.ma.dstack([projectable for projectable in projectables]),
-            axis=2)
+        try:
+            the_data = np.rollaxis(
+                np.ma.dstack([projectable for projectable in projectables]),
+                axis=2)
+        except ValueError:
+            raise IncompatibleAreas
         #info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
