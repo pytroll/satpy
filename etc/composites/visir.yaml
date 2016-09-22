@@ -10,6 +10,14 @@ modifiers:
     - 10.8
     - 13.4
 
+  nir_reflectance:
+    compositor: !!python/name:satpy.composites.NIRReflectance ''
+    prerequisites:
+    - 11
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+
 composites:
   airmass:
     compositor: !!python/name:satpy.composites.Airmass ''
@@ -47,7 +55,7 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor ''
     prerequisites:
     - 0.85
-    - 3.7
+    - 3.7: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
   dust:
