@@ -111,11 +111,6 @@ class Scene(InfoObject):
         self.compositors = {}
         self.wishlist = set()
 
-        if filenames is None and base_dir is None:
-            LOG.info('Neither filenames nor base_dir provided, '
-                     'creating an empty scene.')
-            return
-
         if filenames is not None and not filenames:
             raise ValueError("Filenames are specified but empty")
 
@@ -124,9 +119,18 @@ class Scene(InfoObject):
                               start_time=self.info.get('start_time'),
                               end_time=self.info.get('end_time'),
                               area=self.info.get('area'), )
-        reader_instances = finder(reader=reader,
-                                  sensor=self.info.get("sensor"),
-                                  filenames=filenames)
+        try:
+            reader_instances = finder(reader=reader,
+                                      sensor=self.info.get("sensor"),
+                                      filenames=filenames)
+        except ValueError as err:
+            if filenames is None and base_dir is None:
+                LOG.info('Neither filenames nor base_dir provided, '
+                         'creating an empty scene (error was %s)', str(err))
+                reader_instances = []
+            else:
+                raise
+
         # reader finder could return multiple readers
         sensors = []
         for reader_instance in reader_instances:
