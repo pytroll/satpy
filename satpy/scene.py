@@ -323,10 +323,15 @@ class Scene(InfoObject):
         # 2.1 get the prerequisites
         prereqs = [self._find_dependencies(prereq, **kwargs)
                    for prereq in compositor.info["prerequisites"]]
-        optional_prereqs = [
-            self._find_dependencies(prereq, **kwargs)
-            for prereq in compositor.info["optional_prerequisites"]
-        ]
+        optional_prereqs = []
+
+        for prereq in compositor.info["optional_prerequisites"]:
+            try:
+                optional_prereqs.append(
+                    self._find_dependencies(prereq, **kwargs))
+            except KeyError as err:
+                LOG.debug('Skipping optional %s: %s',
+                          str(prereq), str(err))
 
         root = Node((compositor, prereqs, optional_prereqs))
         #root = Node(compositor.info['name'])
@@ -423,7 +428,7 @@ class Scene(InfoObject):
                                     for prereq in optional_prereqs]
                 try:
                     composite = compositor(prereqs,
-                                           optional_prereqs=optional_prereqs,
+                                           optional_datasets=optional_prereqs,
                                            **self.info)
                 except IncompatibleAreas:
                     LOG.warning("Delaying generation of %s "
