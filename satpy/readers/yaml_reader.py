@@ -330,6 +330,7 @@ class FileYAMLReader(AbstractYAMLReader):
             all_shapes = None
             overall_shape = None
 
+        cls = ds_info.get("container", Projectable)
         if overall_shape is None:
             # can't optimize by using inplace loading
             projectables = []
@@ -342,14 +343,13 @@ class FileYAMLReader(AbstractYAMLReader):
             all_shapes = [x.shape for x in projectables]
             combined_info = file_handlers[0].combine_info(
                 [p.info for p in projectables])
-            proj = Projectable(np.ma.vstack(projectables), **combined_info)
+            proj = cls(np.ma.vstack(projectables), **combined_info)
             del projectables  # clean up some space since we don't need these anymore
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            proj = Projectable(np.empty(overall_shape,
-                                        dtype=ds_info.get('dtype',
-                                                          np.float32)))
+            proj = cls(np.empty(overall_shape,
+                       dtype=ds_info.get('dtype', np.float32)))
             proj.mask = np.empty(
                 overall_shape,
                 dtype=np.bool)  # overwrite single boolean 'False'
@@ -411,7 +411,7 @@ class FileYAMLReader(AbstractYAMLReader):
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
             datasets[dsid] = proj
 
-            if 'area' not in proj.info or proj.info['area'] is None:
+            if isinstance(proj, Projectable) and ('area' not in proj.info or proj.info['area'] is None):
                 # we need to load the area because the file handlers didn't
                 navid = AreaID(ds_info.get('navigation'), dsid.resolution)
                 if navid.name is None or navid.name not in self.config[

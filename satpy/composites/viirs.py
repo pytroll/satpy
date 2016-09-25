@@ -543,13 +543,11 @@ class ERFDNB(CompositeBase):
     def __init__(self, *args, **kwargs):
         self.saturation_correction = kwargs.pop(
             "saturation_correction", False) in [True, "True", "true"]
-        kwargs.setdefault("metadata_requirements",
-                          ["moon_illumination_fraction"])
         super(ERFDNB, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, **info):
-        if len(datasets) != 3:
-            raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
+        if len(datasets) != 4:
+            raise ValueError("Expected 4 datasets, got %d" % (len(datasets), ))
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
@@ -563,12 +561,8 @@ class ERFDNB(CompositeBase):
         else:
             unit_factor = 1.
 
-        moon_illum_name = self.info["metadata_requirements"][0]
-        if moon_illum_name not in dnb_data.info:
-            raise RuntimeError("Could not find '%s' metadata in DNB dataset" %
-                               (moon_illum_name, ))
         # convert to decimal instead of %
-        moon_illum_fraction = np.mean(dnb_data.info[moon_illum_name]) * 0.01
+        moon_illum_fraction = np.mean(datasets[3]) * 0.01
 
         ### From Steve Miller and Curtis Seaman
         # maxval = 10.^(-1.7 - (((2.65+moon_factor1+moon_factor2))*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
@@ -745,7 +739,7 @@ def local_histogram_equalization (data, mask_to_equalize, valid_data_mask=None, 
     returns the equalized data
     """
 
-    out = out if out is not None else np.zeros_like(data)
+    out = out if out is not None else np.ma.zeros_like(data)
     # if we don't have a valid mask, use the mask of what we should be equalizing
     if valid_data_mask is None:
         valid_data_mask = mask_to_equalize
@@ -903,7 +897,7 @@ def local_histogram_equalization (data, mask_to_equalize, valid_data_mask=None, 
                     temp_sum /= unused_weight + 1
 
                 # now that we've calculated the weighted sum for this tile, set it in our data array
-                out[min_row:max_row, min_col:max_col][
+                out.data[min_row:max_row, min_col:max_col][
                     temp_mask_to_equalize] = temp_sum
                 """
                 # TEMP, test without using weights

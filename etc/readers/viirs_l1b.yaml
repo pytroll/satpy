@@ -340,12 +340,17 @@ datasets:
     resolution: 743
     navigation: vgeod
     file_type: vgeod
-    file_key: observation_data/solar_zenith
+    file_key: geolocation_data/solar_zenith
   DNB_LZA:
     name: DNB_LZA
     standard_name: lunar_zenith_angle
     resolution: 743
     navigation: vgeod
     file_type: vgeod
-    file_key: observation_data/lunar_zenith
+    file_key: geolocation_data/lunar_zenith
+  dnb_moon_illumination_fraction:
+    name: dnb_moon_illumination_fraction
+    container: !!python/name:satpy.projectable.Dataset
+    file_type: vgeod
+    file_key: /attr/moon_illumination_fraction
 
