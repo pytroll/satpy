@@ -28,34 +28,6 @@ navigation:
       nadir_resolution: [742]
       rows_per_scan: 16
 
-datasets:
-  I01:
-    name: I01
-    wavelength: [0.600, 0.640, 0.680]
-    resolution: 371
-    calibration:
-      reflectance:
-        standard_name: reflectance
-        units: "%"
-      radiance:
-        standard_name: radiance
-        units: W m-2 um-1 sr-1
-    navigation: vgeoi
-    file_type: vl1bi
-  I04:
-    name: I04
-    wavelength: [3.580, 3.740, 3.900]
-    resolution: 371
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: radiance
-        units: W m-2 um-1 sr-1
-    navigation: vgeoi
-    file_type: vl1bi
-
 file_types:
   vgeoi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
@@ -69,3 +41,311 @@ file_types:
   vl1bi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
     file_patterns: ['VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+  vl1bm:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+  vl1bd:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler ''
+    file_patterns: ['VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
+
+datasets:
+  I01:
+    name: I01
+    wavelength: [0.600, 0.640, 0.680]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  I02:
+    name: I02
+    wavelength: [0.845, 0.865, 0.884]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  I03:
+    name: I03
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  I04:
+    name: I04
+    wavelength: [3.580, 3.740, 3.900]
+    resolution: 371
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  I05:
+    name: I05
+    wavelength: [10.500, 11.450, 12.300]
+    resolution: 371
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeoi
+    file_type: vl1bi
+  M01:
+    name: M01
+    wavelength: [0.402, 0.412, 0.422]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M02:
+    name: M02
+    wavelength: [0.436, 0.445, 0.454]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M03:
+    name: M03
+    wavelength: [0.478, 0.488, 0.498]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M04:
+    name: M04
+    wavelength: [0.545, 0.555, 0.565]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M05:
+    name: M05
+    wavelength: [0.662, 0.672, 0.682]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M06:
+    name: M06
+    wavelength: [0.739, 0.746, 0.754]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M07:
+    name: M07
+    wavelength: [0.846, 0.865, 0.885]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M08:
+    name: M08
+    wavelength: [1.230, 1.240, 1.250]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M09:
+    name: M09
+    wavelength: [1.371, 1.378, 1.386]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M10:
+    name: M10
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M11:
+    name: M11
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M12:
+    name: M12
+    wavelength: [3.610, 3.700, 3.790]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M13:
+    name: M13
+    wavelength: [3.973, 4.050, 4.128]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M14:
+    name: M14
+    wavelength: [8.400, 8.550, 8.700]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M15:
+    name: M15
+    wavelength: [10.263, 10.763, 11.263]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  M16:
+    name: M16
+    wavelength: [11.538, 12.013, 12.489]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    navigation: vgeom
+    file_type: vl1bm
+  DNB:
+    name: DNB
+    wavelength: [11.538, 12.013, 12.489]
+    resolution: 743
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 sr-1
+        file_units: W cm-2 sr-1
+    navigation: vgeod
+    file_type: vl1bd
+    file_key: observation_data/DNB_observations
+  DNB_SZA:
+    name: DNB_SZA
+    standard_name: solar_zenith_angle
+    resolution: 743
+    navigation: vgeod
+    file_type: vgeod
+    file_key: observation_data/solar_zenith
+  DNB_LZA:
+    name: DNB_LZA
+    standard_name: lunar_zenith_angle
+    resolution: 743
+    navigation: vgeod
+    file_type: vgeod
+    file_key: observation_data/lunar_zenith
+
