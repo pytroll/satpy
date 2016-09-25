@@ -391,7 +391,7 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             area_defs = [fh.get_area_def(navid, nav_info)
                          for fh in file_handlers]
-        except AttributeError:
+        except NotImplementedError:
             pass
         else:
             final_area = copy.deepcopy(area_defs[0])
