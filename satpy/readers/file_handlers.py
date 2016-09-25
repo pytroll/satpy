@@ -22,8 +22,8 @@
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 
-import six
 import numpy as np
+import six
 from pyresample.geometry import SwathDefinition
 
 from satpy.projectable import combine_info
@@ -43,6 +43,9 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
     def get_shape(self, dataset_id, ds_info):
+        raise NotImplementedError
+
+    def get_area_def(self, area_id, area_info):
         raise NotImplementedError
 
     def combine_info(self, all_infos):
