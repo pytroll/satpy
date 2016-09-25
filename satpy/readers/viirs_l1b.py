@@ -151,13 +151,15 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             out = np.ma.empty(shape, dtype=dtype)
             out.mask = np.zeros(shape, dtype=np.bool)
 
-        if dataset_id.calibration == 'radiance':
-            if ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.calibration == 'radiance' and file_units is None:
+            rad_units_path = var_path + '/attr/radiance_units'
+            if ds_info['units'] == 'W m-2 um-1 sr-1' and rad_units_path in self:
                 # we are getting a reflectance band but we want the radiance values
                 # special scaling parameters
                 scale_factor = self[var_path + '/attr/radiance_scale_factor']
                 scale_offset = self[var_path + '/attr/radiance_add_offset']
-                file_units = self[var_path + '/attr/radiance_units']
+                if file_units is None:
+                    file_units = self[var_path + '/attr/radiance_units']
                 if file_units == 'Watts/meter^2/steradian/micrometer':
                     file_units = 'W m-2 um-1 sr-1'
             else:
