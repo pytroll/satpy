@@ -22,6 +22,7 @@
 
 # New stuff
 
+import copy
 import glob
 import itertools
 import logging
@@ -377,7 +378,7 @@ class FileYAMLReader(AbstractYAMLReader):
                                out=shuttle)
                 offset += granule_height
         # FIXME: areas could be concatenated here
-        del out_info['area']
+        out_info.pop('area', None)
         proj = Projectable(data, mask=mask,
                            copy=False, **out_info)
         # Update the metadata
@@ -387,6 +388,30 @@ class FileYAMLReader(AbstractYAMLReader):
         return all_shapes, proj
 
     def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
+        try:
+            area_defs = [fh.get_area_def(navid, nav_info)
+                         for fh in file_handlers]
+        except AttributeError:
+            pass
+        else:
+            final_area = copy.deepcopy(area_defs[0])
+
+            for area_def in area_defs[1:]:
+                different_items = (set(final_area.proj_dict.items()) ^
+                                   set(area_def.proj_dict.items()))
+                if different_items:
+                    break
+                if (final_area.area_extent[0] == area_def.area_extent[0] and
+                        final_area.area_extent[2] == area_def.area_extent[2] and
+                        final_area.area_extent[1] == area_def.area_extent[3]):
+                    current_extent = list(final_area.area_extent)
+                    current_extent[1] = area_def.area_extent[1]
+                    final_area.area_extent = current_extent
+                    final_area.y_size += area_def.y_size
+                else:
+                    break
+            else:
+                return final_area
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         lons.mask = np.empty(shape,
                              dtype=np.bool)  # overwrite single boolean 'False'
@@ -446,10 +471,10 @@ class FileYAMLReader(AbstractYAMLReader):
                         loaded_navs[navid.name] = ds_area
                         proj.info["area"] = ds_area
 
-                    except AttributeError:
+                    except AttributeError as err:
                         # we don't know how to load navigation
                         LOG.warning(
-                            "Can't load navigation for {}".format(dsid))
+                            "Can't load navigation for {}: {}".format(dsid, str(err)))
                 elif navid.name in loaded_navs:
                     proj.info["area"] = loaded_navs[navid.name]
                 else:
