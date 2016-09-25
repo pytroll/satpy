@@ -1,0 +1,35 @@
+sensor_name: visir/viirs
+
+composites:
+  fog:
+    compositor: !!python/name:satpy.composites.viirs.VIIRSFog
+    prerequisites:
+    - I05
+    - I04
+    standard_name: temperature_difference
+  histogram_dnb:
+    compositor: !!python/name:satpy.composites.viirs.HistogramDNB
+    prerequisites:
+    - DNB
+    - DNB_SZA
+    standard_name: equalized_radiance
+    units: "1"
+  adaptive_dnb:
+    compositor: !!python/name:satpy.composites.viirs.AdaptiveDNB
+    prerequisites:
+    - DNB
+    - DNB_SZA
+    adaptive_day: multiple
+    adaptive_mixed: always
+    adaptive_night: never
+    standard_name: equalized_radiance
+    units: "1"
+  dynamic_dnb:
+    compositor: !!python/name:satpy.composites.viirs.ERFDNB
+    prerequisites:
+    - DNB
+    - DNB_SZA
+    - DNB_LZA
+    - dnb_moon_illumination_fraction
+    standard_name: equalized_radiance
+    units: "1"

@@ -39,7 +39,7 @@ import yaml
 
 from satpy.config import config_search_paths, glob_config, runtime_import
 from satpy.plugin_base import Plugin
-from satpy.projectable import Projectable
+from satpy.projectable import Dataset
 from trollsift.parser import Parser, globify
 
 try:
@@ -187,9 +187,9 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__getitem__(key)
 
     def __setitem__(self, key, value):
-        """Support assigning 'Projectable' objects or dictionaries of metadata.
+        """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.info if isinstance(value, Projectable) else value
+        d = value.info if isinstance(value, Dataset) else value
         if not isinstance(key, DatasetID):
             old_key = key
             key = self.get_key(key)

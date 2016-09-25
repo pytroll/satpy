@@ -75,11 +75,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             return res
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        if factors is None or factors[0] is None:
+            factors = [1, 0]
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
-        if factors is None or factors[0] is None:
-            factors = [1, 0]
         factors = np.array(factors)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
@@ -135,7 +135,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def get_dataset(self, dataset_id, ds_info, out=None):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
-        shape = self[var_path + '/shape']
+        if var_path + '/shape' not in self:
+            # loading a scalar value
+            shape = 1
+        else:
+            shape = self[var_path + '/shape']
         file_units = ds_info.get('file_units')
         if file_units is None:
             try:
@@ -170,14 +174,14 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             out.data[:] = np.require(self[var_path][:], dtype=dtype)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
-        elif ds_info['units'] == '%':
+        elif ds_info.get('units') == '%':
             # normal reflectance
             out.data[:] = np.require(self[var_path][:], dtype=dtype)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
             scale_factor = self[var_path + '/attr/scale_factor']
             scale_offset= self[var_path + '/attr/add_offset']
-        elif ds_info['units'] == 'K':
+        elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get('lut', 'observation_data/{}_brightness_temperature_lut'.format(dataset_id.name))
@@ -186,6 +190,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             valid_min = self[lut_var_path + '/attr/valid_min']
             valid_max = self[lut_var_path + '/attr/valid_max']
             scale_factor = scale_offset = None
+        elif shape == 1:
+            out.data[:] = self[var_path]
+            scale_factor = None
+            scale_offset = None
+            valid_min = None
+            valid_max = None
         else:
             out.data[:] = np.require(self[var_path][:], dtype=dtype)
             valid_min = self[var_path + '/attr/valid_min']
@@ -196,9 +206,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             except KeyError:
                 scale_factor = scale_offset = None
 
-        out.mask[:] = (out < valid_min) | (out > valid_max)
+        if valid_min is not None and valid_max is not None:
+            out.mask[:] = (out < valid_min) | (out > valid_max)
+
         factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, file_units, ds_info["units"])
+        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
             out.data[:] *= factors[0]
             out.data[:] += factors[1]
@@ -212,4 +224,5 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        return Projectable(out, **ds_info)
+        cls = ds_info.pop("container", Projectable)
+        return cls(out, **ds_info)
