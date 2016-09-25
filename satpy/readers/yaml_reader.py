@@ -125,7 +125,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def find_filenames(self, directory, file_patterns=None):
         if file_patterns is None:
             file_patterns = self.file_patterns
-            # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
+            # file_patterns.extend(item['file_patterns'] for item in
+            # self.config['file_types'])
         filelist = []
         if directory is None:
             directory = ''
@@ -400,6 +401,11 @@ class FileYAMLReader(AbstractYAMLReader):
                         lat_out=lats[offset:offset + granule_height])
             offset += granule_height
 
+        lons[lons < -180] = np.ma.masked
+        lons[lons > 180] = np.ma.masked
+        lats[lats < -90] = np.ma.masked
+        lats[lats > 90] = np.ma.masked
+
         area = geometry.SwathDefinition(lons, lats)
         # FIXME: How do we name areas?
         area.name = navid.name
@@ -429,10 +435,23 @@ class FileYAMLReader(AbstractYAMLReader):
                 navid = AreaID(ds_info.get('navigation'), dsid.resolution)
                 if navid.name is None or navid.name not in self.config[
                         'navigation']:
-                    # we don't know how to load navigation
-                    LOG.warning("Can't load navigation for {}".format(dsid))
+                    try:
+                        nav_filetype = filetype
+                        navid = dsid
+                        nav_info = ds_info
+                        nav_fhs = self.file_handlers[nav_filetype]
+
+                        ds_area = self._load_area(navid, nav_fhs, nav_info,
+                                                  all_shapes, proj.shape)
+                        loaded_navs[navid.name] = ds_area
+                        proj.info["area"] = ds_area
+
+                    except AttributeError:
+                        # we don't know how to load navigation
+                        LOG.warning(
+                            "Can't load navigation for {}".format(dsid))
                 elif navid.name in loaded_navs:
-                    ds_area = loaded_navs[navid.name]
+                    proj.info["area"] = loaded_navs[navid.name]
                 else:
                     nav_info = self.config['navigation'][navid.name]
                     nav_filetype = nav_info['file_type']
@@ -445,6 +464,6 @@ class FileYAMLReader(AbstractYAMLReader):
                     ds_area = self._load_area(navid, nav_fhs, nav_info,
                                               all_shapes, proj.shape)
                     loaded_navs[navid.name] = ds_area
-                proj.info["area"] = ds_area
+                    proj.info["area"] = ds_area
 
         return datasets
