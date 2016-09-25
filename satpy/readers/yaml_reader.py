@@ -28,6 +28,7 @@ import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
+from collections import namedtuple
 from fnmatch import fnmatch
 
 import numpy as np
@@ -40,6 +41,8 @@ from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
+
+Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
@@ -347,12 +350,17 @@ class FileYAMLReader(AbstractYAMLReader):
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            proj = Projectable(np.empty(overall_shape,
-                                        dtype=ds_info.get('dtype',
-                                                          np.float32)))
-            proj.mask = np.empty(
-                overall_shape,
-                dtype=np.bool)  # overwrite single boolean 'False'
+            # proj = Projectable(np.empty(overall_shape,
+                                        # dtype = ds_info.get('dtype',
+                                        #                  np.float32)))
+
+            # overwrite single boolean 'False'
+            # proj.mask = np.ma.make_mask_none(overall_shape)
+            out_info = {}
+            data = np.empty(overall_shape,
+                            dtype=ds_info.get('dtype',
+                                              np.float32))
+            mask = np.ma.make_mask_none(overall_shape)
 
             offset = 0
             for idx, fh in enumerate(file_handlers):
@@ -360,12 +368,17 @@ class FileYAMLReader(AbstractYAMLReader):
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
+                shuttle = Shuttle(data[offset:offset + granule_height],
+                                  mask[offset:offset + granule_height],
+                                  out_info)
                 fh.get_dataset(dsid,
                                ds_info,
-                               out=proj[
-                                   offset:offset + granule_height])
+                               out=shuttle)
                 offset += granule_height
-
+        # FIXME: areas could be concatenated here
+        del out_info['area']
+        proj = Projectable(data, mask=mask,
+                           copy=False, **out_info)
         # Update the metadata
         proj.info['start_time'] = file_handlers[0].start_time
         proj.info['end_time'] = file_handlers[-1].end_time
