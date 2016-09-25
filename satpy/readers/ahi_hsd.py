@@ -235,6 +235,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                                    dtype=_DATA_INFO_TYPE,
                                    shape=(1, ),
                                    offset=_BASIC_INFO_TYPE.itemsize)
+        self.proj_info = np.memmap(self.filename,
+                                   dtype=_PROJ_INFO_TYPE,
+                                   shape=(1, ),
+                                   offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize)[0]
 
     def get_shape(self, dsid, ds_info):
         return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
@@ -262,7 +266,48 @@ class AHIHSDFileHandler(BaseFileHandler):
             from satpy.yaml_reader import Shuttle
             return Shuttle(out.data, out.mask, out.info)
 
-    def bug_get_area(self, key, info, lon_out, lat_out):
+    def get_area_def(self, key, info):
+
+        cfac = np.uint32(self.proj_info['CFAC'])
+        lfac = np.uint32(self.proj_info['LFAC'])
+        coff = np.float32(self.proj_info['COFF'])
+        loff = np.float32(self.proj_info['LOFF'])
+        a = float(self.proj_info['earth_equatorial_radius'] * 1000)
+        h = float(self.proj_info['distance_from_earth_center'] * 1000 - a)
+        b = float(self.proj_info['earth_polar_radius'] * 1000)
+        lon_0 = float(self.proj_info['sub_lon'])
+        nlines = int(self.data_info['number_of_lines'])
+        ncols = int(self.data_info['number_of_columns'])
+
+        c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
+        ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        c, l = ncols, (1 + self.total_segments -
+                       self.segment_number) * nlines - nlines
+        ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+
+        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
+                       np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosh8',
+            proj_dict,
+            ncols,
+            nlines,
+            area_extent)
+
+        self.area = area
+        return area
+
+    def get_area(self, key, info, lon_out, lat_out):
         logger.debug('Computing area for %s', str(key))
         lon_out[:], lat_out[:] = self.area.get_lonlats()
 
@@ -354,42 +399,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         out.mask[header['block5']["count_value_error_pixels"]
                  [0] == out.data] = True
 
-        proj_info = header['block3'][0]
-        cfac = proj_info['CFAC']
-        lfac = proj_info['LFAC']
-        coff = proj_info['COFF']
-        loff = proj_info['LOFF']
-        a = proj_info['earth_equatorial_radius'] * 1000
-        h = proj_info['distance_from_earth_center'] * 1000 - a
-        b = proj_info['earth_polar_radius'] * 1000
-        lon_0 = proj_info['sub_lon']
-
-        c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
-        ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-        c, l = ncols, (1 + self.total_segments -
-                       self.segment_number) * nlines - nlines
-        ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-
         logger.debug("Reading time " + str(datetime.now() - tic))
-
-        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
-                       np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
-
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosh8',
-            {'a': a,
-             'b': b,
-             'lon_0': lon_0,
-             'h': h,
-             'proj': 'geos',
-             'units': 'm'},
-            out.data.shape[1],
-            out.data.shape[0],
-            area_extent)
-
-        self.area = area
 
         self.calibrate(out, key.calibration)
 
@@ -398,7 +408,6 @@ class AHIHSDFileHandler(BaseFileHandler):
                         wavelength=info['wavelength'],
                         resolution='resolution',
                         id=key,
-                        area=area,
                         name=key.name)
         out.info.update(new_info)
 
