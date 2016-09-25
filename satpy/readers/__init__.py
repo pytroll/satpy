@@ -55,7 +55,7 @@ DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None)
 
 AREA_KEYS = ("name", "resolution", "terrain_correction")
-AreaID = namedtuple("DatasetID", " ".join(AREA_KEYS))
+AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
 AreaID.__new__.__defaults__ = (None, None, None, None, None)
 
 
