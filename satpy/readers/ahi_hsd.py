@@ -474,6 +474,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         data.data[:] = np.polyval([c2_, c1_, c0_], data.data)
 
         data.mask[data.data < 0] = True
+        data.mask[np.isnan(data.data)] = True
 
 
 def show(data, negate=False):
