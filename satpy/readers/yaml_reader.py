@@ -377,10 +377,10 @@ class FileYAMLReader(AbstractYAMLReader):
                                ds_info,
                                out=shuttle)
                 offset += granule_height
+            out_info.pop('area', None)
+            proj = Projectable(data, mask=mask,
+                               copy=False, **out_info)
         # FIXME: areas could be concatenated here
-        out_info.pop('area', None)
-        proj = Projectable(data, mask=mask,
-                           copy=False, **out_info)
         # Update the metadata
         proj.info['start_time'] = file_handlers[0].start_time
         proj.info['end_time'] = file_handlers[-1].end_time
