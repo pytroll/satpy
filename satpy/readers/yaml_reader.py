@@ -408,6 +408,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     current_extent[1] = area_def.area_extent[1]
                     final_area.area_extent = current_extent
                     final_area.y_size += area_def.y_size
+                    final_area.shape = (final_area.y_size, final_area.x_size)
                 else:
                     break
             else:
