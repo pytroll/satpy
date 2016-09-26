@@ -22,12 +22,14 @@
 
 # New stuff
 
+import copy
 import glob
 import itertools
 import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
+from collections import namedtuple
 from fnmatch import fnmatch
 
 import numpy as np
@@ -40,6 +42,8 @@ from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
+
+Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
@@ -122,7 +126,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def find_filenames(self, directory, file_patterns=None):
         if file_patterns is None:
             file_patterns = self.file_patterns
-            # file_patterns.extend(item['file_patterns'] for item in self.config['file_types'])
+            # file_patterns.extend(item['file_patterns'] for item in
+            # self.config['file_types'])
         filelist = []
         if directory is None:
             directory = ''
@@ -348,11 +353,16 @@ class FileYAMLReader(AbstractYAMLReader):
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            proj = cls(np.empty(overall_shape,
-                       dtype=ds_info.get('dtype', np.float32)))
-            proj.mask = np.empty(
-                overall_shape,
-                dtype=np.bool)  # overwrite single boolean 'False'
+            #proj = cls(np.empty(overall_shape,
+            #           dtype=ds_info.get('dtype', np.float32)))
+            
+            # overwrite single boolean 'False'
+            # proj.mask = np.ma.make_mask_none(overall_shape)
+            out_info = {}
+            data = np.empty(overall_shape,
+                            dtype=ds_info.get('dtype',
+                                              np.float32))
+            mask = np.ma.make_mask_none(overall_shape)
 
             offset = 0
             for idx, fh in enumerate(file_handlers):
@@ -360,12 +370,17 @@ class FileYAMLReader(AbstractYAMLReader):
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
+                shuttle = Shuttle(data[offset:offset + granule_height],
+                                  mask[offset:offset + granule_height],
+                                  out_info)
                 fh.get_dataset(dsid,
                                ds_info,
-                               out=proj[
-                                   offset:offset + granule_height])
+                               out=shuttle)
                 offset += granule_height
-
+            out_info.pop('area', None)
+            proj = cls(data, mask=mask,
+                       copy=False, **out_info)
+        # FIXME: areas could be concatenated here
         # Update the metadata
         proj.info['start_time'] = file_handlers[0].start_time
         proj.info['end_time'] = file_handlers[-1].end_time
@@ -373,6 +388,31 @@ class FileYAMLReader(AbstractYAMLReader):
         return all_shapes, proj
 
     def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
+        try:
+            area_defs = [fh.get_area_def(navid, nav_info)
+                         for fh in file_handlers]
+        except NotImplementedError:
+            pass
+        else:
+            final_area = copy.deepcopy(area_defs[0])
+
+            for area_def in area_defs[1:]:
+                different_items = (set(final_area.proj_dict.items()) ^
+                                   set(area_def.proj_dict.items()))
+                if different_items:
+                    break
+                if (final_area.area_extent[0] == area_def.area_extent[0] and
+                        final_area.area_extent[2] == area_def.area_extent[2] and
+                        final_area.area_extent[1] == area_def.area_extent[3]):
+                    current_extent = list(final_area.area_extent)
+                    current_extent[1] = area_def.area_extent[1]
+                    final_area.area_extent = current_extent
+                    final_area.y_size += area_def.y_size
+                    final_area.shape = (final_area.y_size, final_area.x_size)
+                else:
+                    break
+            else:
+                return final_area
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         lons.mask = np.empty(shape,
                              dtype=np.bool)  # overwrite single boolean 'False'
@@ -386,6 +426,11 @@ class FileYAMLReader(AbstractYAMLReader):
                         lon_out=lons[offset:offset + granule_height],
                         lat_out=lats[offset:offset + granule_height])
             offset += granule_height
+
+        lons[lons < -180] = np.ma.masked
+        lons[lons > 180] = np.ma.masked
+        lats[lats < -90] = np.ma.masked
+        lats[lats > 90] = np.ma.masked
 
         area = geometry.SwathDefinition(lons, lats)
         # FIXME: How do we name areas?
@@ -416,10 +461,23 @@ class FileYAMLReader(AbstractYAMLReader):
                 navid = AreaID(ds_info.get('navigation'), dsid.resolution)
                 if navid.name is None or navid.name not in self.config[
                         'navigation']:
-                    # we don't know how to load navigation
-                    LOG.warning("Can't load navigation for {}".format(dsid))
+                    try:
+                        nav_filetype = filetype
+                        navid = dsid
+                        nav_info = ds_info
+                        nav_fhs = self.file_handlers[nav_filetype]
+
+                        ds_area = self._load_area(navid, nav_fhs, nav_info,
+                                                  all_shapes, proj.shape)
+                        loaded_navs[navid.name] = ds_area
+                        proj.info["area"] = ds_area
+
+                    except AttributeError as err:
+                        # we don't know how to load navigation
+                        LOG.warning(
+                            "Can't load navigation for {}: {}".format(dsid, str(err)))
                 elif navid.name in loaded_navs:
-                    ds_area = loaded_navs[navid.name]
+                    proj.info["area"] = loaded_navs[navid.name]
                 else:
                     nav_info = self.config['navigation'][navid.name]
                     nav_filetype = nav_info['file_type']
@@ -432,6 +490,6 @@ class FileYAMLReader(AbstractYAMLReader):
                     ds_area = self._load_area(navid, nav_fhs, nav_info,
                                               all_shapes, proj.shape)
                     loaded_navs[navid.name] = ds_area
-                proj.info["area"] = ds_area
+                    proj.info["area"] = ds_area
 
         return datasets
