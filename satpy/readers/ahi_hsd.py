@@ -231,6 +231,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.basic_info = np.memmap(self.filename,
                                     dtype=_BASIC_INFO_TYPE,
                                     shape=(1, ))
+        self.data_info = np.memmap(self.filename,
+                                   dtype=_DATA_INFO_TYPE,
+                                   shape=(1, ),
+                                   offset=_BASIC_INFO_TYPE.itemsize)
+        self.proj_info = np.memmap(self.filename,
+                                   dtype=_PROJ_INFO_TYPE,
+                                   shape=(1, ),
+                                   offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize)[0]
+
+    def get_shape(self, dsid, ds_info):
+        return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
 
     @property
     def start_time(self):
@@ -242,10 +253,65 @@ class AHIHSDFileHandler(BaseFileHandler):
         return (datetime(1858, 11, 17) +
                 timedelta(days=float(self.basic_info['observation_end_time'])))
 
-    def get_dataset(self, key, info):
-        return self.read_band(key, info)
+    def get_dataset(self, key, info, out=None):
+        to_return = out is None
+        if out is None:
+            nlines = int(self.data_info['number_of_lines'])
+            ncols = int(self.data_info['number_of_columns'])
+            out = Projectable(np.ma.empty((nlines, ncols), dtype=np.float32))
 
-    def read_band(self, key, info):
+        self.read_band(key, info, out)
+
+        if to_return:
+            from satpy.yaml_reader import Shuttle
+            return Shuttle(out.data, out.mask, out.info)
+
+    def get_area_def(self, key, info):
+
+        cfac = np.uint32(self.proj_info['CFAC'])
+        lfac = np.uint32(self.proj_info['LFAC'])
+        coff = np.float32(self.proj_info['COFF'])
+        loff = np.float32(self.proj_info['LOFF'])
+        a = float(self.proj_info['earth_equatorial_radius'] * 1000)
+        h = float(self.proj_info['distance_from_earth_center'] * 1000 - a)
+        b = float(self.proj_info['earth_polar_radius'] * 1000)
+        lon_0 = float(self.proj_info['sub_lon'])
+        nlines = int(self.data_info['number_of_lines'])
+        ncols = int(self.data_info['number_of_columns'])
+
+        c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
+        ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        c, l = ncols, (1 + self.total_segments -
+                       self.segment_number) * nlines - nlines
+        ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+
+        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
+                       np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosh8',
+            proj_dict,
+            ncols,
+            nlines,
+            area_extent)
+
+        self.area = area
+        return area
+
+    def get_area(self, key, info, lon_out, lat_out):
+        logger.debug('Computing area for %s', str(key))
+        lon_out[:], lat_out[:] = self.area.get_lonlats()
+
+    def read_band(self, key, info, out=None):
         """Read the data"""
         tic = datetime.now()
         header = {}
@@ -323,104 +389,60 @@ class AHIHSDFileHandler(BaseFileHandler):
 
             nlines = int(header["block2"]['number_of_lines'][0])
             ncols = int(header["block2"]['number_of_columns'][0])
-            data = np.fromfile(fp_, dtype='<u2', count=nlines *
-                               ncols).reshape((nlines, ncols))
 
+            out.data[:] = np.fromfile(fp_, dtype='<u2', count=nlines *
+                                      ncols).reshape((nlines, ncols)).astype(np.float32)
         self._header = header
 
-        data = np.ma.masked_equal(data,
-                                  header['block5'][
-                                      "count_value_error_pixels"][0],
-                                  copy=False)
-        data = np.ma.masked_equal(data,
-                                  header['block5'][
-                                      "count_value_outside_scan_pixels"][0],
-                                  copy=False)
-
-        proj_info = header['block3'][0]
-        cfac = proj_info['CFAC']
-        lfac = proj_info['LFAC']
-        coff = proj_info['COFF']
-        loff = proj_info['LOFF']
-        a = proj_info['earth_equatorial_radius'] * 1000
-        h = proj_info['distance_from_earth_center'] * 1000 - a
-        b = proj_info['earth_polar_radius'] * 1000
-        lon_0 = proj_info['sub_lon']
-
-        c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
-        ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-        c, l = ncols, (1 + self.total_segments -
-                       self.segment_number) * nlines - nlines
-        ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        out.mask[header['block5']["count_value_outside_scan_pixels"]
+                 [0] == out.data] = True
+        out.mask[header['block5']["count_value_error_pixels"]
+                 [0] == out.data] = True
 
         logger.debug("Reading time " + str(datetime.now() - tic))
 
-        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
-                       np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
+        self.calibrate(out, key.calibration)
 
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosh8',
-            {'a': a,
-             'b': b,
-             'lon_0': lon_0,
-             'h': h,
-             'proj': 'geos',
-             'units': 'm'},
-            data.shape[1],
-            data.shape[0],
-            area_extent)
-        area.lons, area.lats = area.get_lonlats()
-
-        area.lons = np.ma.masked_outside(area.lons, -180, 180)
-        area.lats = np.ma.masked_outside(area.lats, -90, 90)
-
-        data = self.calibrate(data, key.calibration)
-
-        return Projectable(data,
-                           units=info['units'],
-                           standard_name=info['standard_name'],
-                           wavelenght=info['wavelength'],
-                           resolution='resolution',
-                           id=key,
-                           area=area,
-                           name=key.name)
+        new_info = dict(units=info['units'],
+                        standard_name=info['standard_name'],
+                        wavelength=info['wavelength'],
+                        resolution='resolution',
+                        id=key,
+                        name=key.name)
+        out.info.update(new_info)
 
     def calibrate(self, data, calibration):
         """Calibrate the data"""
         tic = datetime.now()
 
         if calibration == 'counts':
-            return data
+            return
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            data = self.convert_to_radiance(data)
+            self.convert_to_radiance(data)
         if calibration == 'reflectance':
-            data = self._vis_calibrate(data)
+            self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
-            data = self._ir_calibrate(data)
+            self._ir_calibrate(data)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
-        return data
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance.
         """
 
-        channel = data.astype(np.float)
-
-        band_number = self._header['block5']['band_number'][0]
         gain = self._header["block5"]["gain_count2rad_conversion"][0]
         offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-        return channel * gain + offset
+        data.data[:] *= gain
+        data.data[:] += offset
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only.
         """
         coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
-        return np.ma.masked_less(data * coeff, 0, copy=False)
+        data.data[:] *= coeff
+        data.mask[data.data < 0] = True
 
     def _ir_calibrate(self, data):
         """IR calibration
@@ -431,16 +453,28 @@ class AHIHSDFileHandler(BaseFileHandler):
         h__ = self._header['calibration']["planck_constant"][0]
         k__ = self._header['calibration']["boltzmann_constant"][0]
         a__ = (h__ * c__) / (k__ * cwl)
-        b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * data)) + 1
-        Te_ = a__ / np.log(b__)
+
+        #b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * data.data)) + 1
+
+        data.data[:] *= 1.0e6 * cwl ** 5
+        data.data[:] **= -1
+        data.data[:] *= (2 * h__ * c__ ** 2)
+        data.data[:] += 1
+
+        #Te_ = a__ / np.log(b__)
+
+        data.data[:] = a__ / np.log(data.data)
 
         c0_ = self._header['calibration']["c0_rad2tb_conversion"][0]
         c1_ = self._header['calibration']["c1_rad2tb_conversion"][0]
         c2_ = self._header['calibration']["c2_rad2tb_conversion"][0]
 
-        channel = c0_ + c1_ * Te_ + c2_ * Te_ ** 2
+        #data.data[:] = c0_ + c1_ * Te_ + c2_ * Te_ ** 2
 
-        return np.ma.masked_less(channel, 0, copy=False)
+        data.data[:] = np.polyval([c2_, c1_, c0_], data.data)
+
+        data.mask[data.data < 0] = True
+        data.mask[np.isnan(data.data)] = True
 
 
 def show(data, negate=False):
