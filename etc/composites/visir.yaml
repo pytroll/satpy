@@ -2,16 +2,16 @@ sensor_name: visir
 
 modifiers:
   sunz_correction:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector ''
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
 
   co2_correction:
-    compositor: !!python/name:satpy.composites.CO2Corrector ''
+    compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
     - 10.8
     - 13.4
 
   nir_reflectance:
-    compositor: !!python/name:satpy.composites.NIRReflectance ''
+    compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
     - 11
     optional_prerequisites:
@@ -20,7 +20,7 @@ modifiers:
 
 composites:
   airmass:
-    compositor: !!python/name:satpy.composites.Airmass ''
+    compositor: !!python/name:satpy.composites.Airmass
     prerequisites:
     - 6.7
     - 7.3
@@ -28,21 +28,21 @@ composites:
     - 10.8
     standard_name: airmass
   ash:
-    compositor: !!python/name:satpy.composites.Dust ''
+    compositor: !!python/name:satpy.composites.Dust
     prerequisites:
     - 8.7
     - 10.8
     - 12.0
     standard_name: ash
   cloudtop:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 3.75
     - 10.8
     - 12.0
     standard_name: cloudtop
   convection:
-    compositor: !!python/name:satpy.composites.Convection ''
+    compositor: !!python/name:satpy.composites.Convection
     prerequisites:
     - 0.635
     - 1.63
@@ -52,63 +52,63 @@ composites:
     - 10.8
     standard_name: convection
   day_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 0.85
     - 3.7: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
   dust:
-    compositor: !!python/name:satpy.composites.Dust ''
+    compositor: !!python/name:satpy.composites.Dust
     prerequisites:
     - 8.7
     - 10.8
     - 12.0
     standard_name: dust
   fog:
-    compositor: !!python/name:satpy.composites.Dust ''
+    compositor: !!python/name:satpy.composites.Dust
     prerequisites:
     - 8.7
     - 10.8
     - 12.0
     standard_name: fog
   green_snow:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 1.63
     - 0.635
     - 10.8
     standard_name: green_snow
   natural:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 1.63
     - 0.85
     - 0.635
     standard_name: natural
   natural_sun:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 1.63: [sunz_correction]
     - 0.85: [sunz_correction]
     - 0.635: [sunz_correction]
     standard_name: natural
   night_fog:
-    compositor: !!python/name:satpy.composites.Dust ''
+    compositor: !!python/name:satpy.composites.Dust
     prerequisites:
     - 3.75
     - 10.8
     - 12.0
     standard_name: night_fog
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 0.6
     - 0.8
     - 10.8
     standard_name: overview
   overview_sun:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 0.6: [sunz_correction]
     - 0.8: [sunz_correction]
@@ -116,7 +116,7 @@ composites:
     standard_name: overview
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 0.65
     - 0.5

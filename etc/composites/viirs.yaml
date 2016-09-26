@@ -2,7 +2,7 @@ sensor_name: visir/viirs
 
 modifiers:
   reflectance_corrector:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector ''
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -10,14 +10,14 @@ modifiers:
     - solar_zenith_angle
 
   sunz_correction:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector ''
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
     - solar_zenith_angle
 
 composites:
 
   true_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - M05: [sunz_correction, reflectance_corrector]
     - M04: [sunz_correction, reflectance_corrector]
@@ -25,7 +25,7 @@ composites:
     standard_name: true_color
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - M05: [sunz_correction]
     - M04: [sunz_correction]
@@ -33,7 +33,7 @@ composites:
     standard_name: true_color
 
   night_overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - DNB
     - DNB
@@ -41,7 +41,7 @@ composites:
     standard_name: overview
 
   night_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor ''
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - DNB
     - M12
