@@ -50,9 +50,9 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration")
+                "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None)
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
 
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
@@ -119,7 +119,8 @@ class DatasetDict(dict):
                  name_or_wl,
                  resolution=None,
                  polarization=None,
-                 calibration=None):
+                 calibration=None,
+                 modifiers=None):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
             keys = [k for k in self.keys()
@@ -148,6 +149,11 @@ class DatasetDict(dict):
                 k for k in keys
                 if k.calibration is not None and k.calibration in calibration
             ]
+        if modifiers is not None:
+            keys = [
+                k for k in keys
+                if k.modifiers is not None and k.modifiers == modifiers
+            ]
 
         return keys
 
@@ -170,11 +176,13 @@ class DatasetDict(dict):
                  name_or_wl,
                  resolution=None,
                  polarization=None,
-                 calibration=None):
+                 calibration=None,
+                 modifiers=None):
         keys = self.get_keys(name_or_wl,
                              resolution=resolution,
                              polarization=polarization,
-                             calibration=calibration)
+                             calibration=calibration,
+                             modifiers=modifiers)
         if not keys:
             raise KeyError("No keys found matching provided filters")
 
@@ -203,7 +211,8 @@ class DatasetDict(dict):
                                 resolution=d.get("resolution"),
                                 wavelength=d.get("wavelength_range"),
                                 polarization=d.get("polarization"),
-                                calibration=d.get("calibration"), )
+                                calibration=d.get("calibration"),
+                                modifiers=d.get("modifiers"))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
                         "One of 'name' or 'wavelength_range' info values should be set.")
@@ -214,6 +223,7 @@ class DatasetDict(dict):
         d["resolution"] = key.resolution
         d["calibration"] = key.calibration
         d["polarization"] = key.polarization
+        d["modifiers"] = key.modifiers
         d['id'] = key
         # you can't change the wavelength of a dataset, that doesn't make sense
         if "wavelength_range" in d and d["wavelength_range"] != key.wavelength:

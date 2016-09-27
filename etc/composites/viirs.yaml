@@ -20,31 +20,42 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_corrector, rayleigh_corrector]
-    - M04: [sunz_corrector, rayleigh_corrector]
-    - M03: [sunz_corrector, rayleigh_corrector]
-    # FIXME: Ratio is wrong due to sunz correction producing high output (I think)
+    - name: M05
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M04
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M03
+      modifiers: [sunz_corrector, rayleigh_corrector]
+# FIXME: Ratio is wrong due to sunz correction producing high output (I think)
 #    optional_prerequisites:
 #    - I01: [sunz_corrector, rayleigh_corrector]
+
     standard_name: true_color
 
   sharp_true_color:
     compositor: !!python/name:satpy.composites.viirs.VIIRSSharpTrueColor
     prerequisites:
-    - M05: [sunz_corrector, rayleigh_corrector]
-    - M04: [sunz_corrector, rayleigh_corrector]
-    - M03: [sunz_corrector, rayleigh_corrector]
+    - name: M05
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M04
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M03
+      modifiers: [sunz_corrector, rayleigh_corrector]
     optional_prerequisites:
-    - I01: [sunz_corrector, rayleigh_corrector]
+    - name: I01
+      modifiers: [sunz_corrector, rayleigh_corrector]
     standard_name: true_color
     high_resolution_band: red
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_corrector]
-    - M04: [sunz_corrector]
-    - M03: [sunz_corrector]
+    - name: M05
+      modifiers: [sunz_corrector]
+    - name: M04
+      modifiers: [sunz_corrector]
+    - name: M03
+      modifiers: [sunz_corrector]
     standard_name: true_color
 
   night_overview:
