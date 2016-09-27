@@ -29,6 +29,7 @@ import os
 import sys
 
 import numpy as np
+from memory_profiler import profile
 
 LOG = logging.getLogger(__name__)
 
@@ -76,16 +77,20 @@ if bUseV171:
                      0, 0, 0, 0, 0, 0, 0, 0])
     bH2O = np.array([0.820175, 0.725159, 0, 0, 0.865732, 0.966947, 0.745342, 0,
                      0, 0, 0, 0, 0, 0, 0, 0])
-    #const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
+    # const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0,
+    # 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119,
+    # 0.00263};*/
     aO3 = np.array(
         [0.0715289, 0, 0.00743232, 0.089691, 0, 0, 0, 0.001, 0.00383, 0.0225,
          0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
-    #const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
+    # const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,
+    # 0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994,
+    # 0.0446, 0.0416, 0.0286, 0.0155};*/
     taur0 = np.array(
         [0.05100, 0.01631, 0.19325, 0.09536, 0.00366, 0.00123, 0.00043, 0.3139,
          0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
 else:
-    #From polar2grid cviirs.c
+    # From polar2grid cviirs.c
     aH2O = np.array(
         [0.000406601, 0.0015933, 0, 1.78644e-05, 0.00296457, 0.000617252,
          0.000996563, 0.00222253, 0.00094005, 0.000563288, 0, 0, 0, 0, 0, 0])
@@ -173,6 +178,7 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
     :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
              None is returned if no matching wavelength is found
     """
+
     index_map = COEFF_INDEX_MAP[sensor.lower()]
     # Find the best resolution of coefficients
     for res in sorted(index_map.keys()):
@@ -255,13 +261,14 @@ def chand(phi, muv, mus, taur):
     #                 fs02 += (double) (pl[i] * as0[5 + i]);
     #         }
 
-    #for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
+    # for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
 
     # ib = find_coefficient_index(center_wl)
     # if ib is None:
     #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
     xlntaur = np.log(taur)
+
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
@@ -287,7 +294,8 @@ def chand(phi, muv, mus, taur):
     return rhoray, trdown, trup
 
 
-def get_atm_variables(mus, muv, phi, height, (ah2o, bh2o, ao3, tau)):
+def get_atm_variables(mus, muv, phi, height, coeffs):
+    (ah2o, bh2o, ao3, tau) = coeffs
     # From GetAtmVariables
     tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
                            MAXNUMSPHALBVALUES)
@@ -321,7 +329,7 @@ def get_atm_variables(mus, muv, phi, height, (ah2o, bh2o, ao3, tau)):
     return sphalb, rhoray, TtotraytH2O, tOG
 
 
-def run_crefl(refl, (ah2o, bh2o, ao3, tau),
+def run_crefl(refl, coeffs,
               lon,
               lat,
               sensor_azimuth,
@@ -348,6 +356,9 @@ def run_crefl(refl, (ah2o, bh2o, ao3, tau),
 
     """
     # FUTURE: Find a way to compute the average elevation before hand
+
+    (ah2o, bh2o, ao3, tau) = coeffs
+
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
@@ -382,7 +393,8 @@ def run_crefl(refl, (ah2o, bh2o, ao3, tau),
             factor, axis=1)
         sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
 
-    # Note: Assume that fill/invalid values are either NaN or we are dealing with masked arrays
+    # Note: Assume that fill/invalid values are either NaN or we are dealing
+    # with masked arrays
     if percent:
         corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
     else:
@@ -392,4 +404,4 @@ def run_crefl(refl, (ah2o, bh2o, ao3, tau),
 
     return corr_refl
 
-    #return odata
+    # return odata
