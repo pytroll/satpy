@@ -12,7 +12,8 @@ composites:
   cloudtop:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 3.75: [co2_correction]
+    - name: 3.75
+      modifiers: [co2_correction]
     - 10.8
     - 12.0
     standard_name: cloudtop
@@ -21,7 +22,8 @@ composites:
     prerequisites:
     - 0.635
     - 1.63
-    - 3.75: [co2_correction]
+    - name: 3.75
+      modifiers: [co2_correction]
     - 6.7
     - 7.3
     - 10.8
@@ -29,7 +31,8 @@ composites:
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
-    - 3.75: [co2_correction]
+    - name: 3.75
+      modifiers: [co2_correction]
     - 10.8
     - 12.0
     standard_name: night_fog
