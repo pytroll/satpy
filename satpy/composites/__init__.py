@@ -137,32 +137,61 @@ class CompositorLoader(object):
                 # fix prerequisites in case of modifiers
                 prereqs = []
                 for item in options.get('prerequisites', []):
-
                     if isinstance(item, dict):
                         # prereqs.append(item.keys()[0])
-                        if len(item.keys()) > 1:
-                            raise RuntimeError('Wrong prerequisite definition')
-                        key = item.keys()[0]
-                        mods = item.values()[0]
-                        comp_name = key
+                        # if len(item.keys()) > 1:
+                        # raise RuntimeError('Wrong prerequisite definition')
+
+                        mods = item.get('modifiers', tuple())
+
+                        key = DatasetID(item.get('name'),
+                                        item.get('wavelength'),
+                                        item.get('resolution'),
+                                        item.get('polarization'),
+                                        item.get('calibration'),
+                                        mods)
+
+                        # key = item.keys()[0]
+                        # mods = item.values()[0]
+                        comp_id = DatasetID(item.get('name'),
+                                            item.get('wavelength'),
+                                            item.get('resolution'),
+                                            item.get('polarization'),
+                                            item.get('calibration'),
+                                            tuple())
+                        comp_name = item.get('name')
+                        mods = key.modifiers
                         for modifier in mods:
                             prev_comp_name = comp_name
-                            comp_name = '_'.join((str(comp_name), modifier))
-
+                            prev_comp_id = comp_id
+                            # comp_name = '_'.join((str(comp_name), modifier))
+                            # comp_name =
+                            new_mods = tuple(
+                                list(comp_id.modifiers or []) + [modifier])
+                            comp_id = DatasetID(key.name,
+                                                key.wavelength,
+                                                key.resolution,
+                                                key.polarization,
+                                                key.calibration,
+                                                new_mods)
+                            comp_name = key.name
                             mloader, moptions = modifiers[modifier]
                             moptions = moptions.copy()
                             moptions.update(**kwargs)
-                            moptions['name'] = comp_name
+                            moptions['name'] = modifier
+                            moptions['id'] = comp_id
                             moptions['prerequisites'] = (
-                                [prev_comp_name] + moptions['prerequisites'])
-                            compositors[comp_name] = mloader(**moptions)
-                        prereqs.append(comp_name)
+                                [prev_comp_id] + moptions['prerequisites'])
+
+                            compositors[comp_id] = mloader(**moptions)
+                        prereqs.append(comp_id)
                     else:
                         prereqs.append(item)
                 options['prerequisites'] = prereqs
 
                 if i == 'composites':
                     options.update(**kwargs)
+                    options['id'] = options['name']
                     comp = loader(**options)
                     compositors[composite_name] = comp
                 elif i == 'modifiers':
@@ -197,6 +226,25 @@ class CompositeBase(InfoObject):
         from pprint import pformat
         return pformat(self.info)
 
+    def apply_modifier_info(self, origin, destination):
+        mods = origin.info.get('modifiers', [])
+        if mods is None:
+            mods = []
+        else:
+            mods = list(mods)
+
+        mods.append(self.info['name'])
+        old_id = origin.info['id']
+        did = DatasetID(old_id.name,
+                        old_id.wavelength,
+                        old_id.resolution,
+                        old_id.polarization,
+                        old_id.calibration,
+                        tuple(mods))
+
+        destination.info['modifiers'] = mods
+        destination.info['id'] = did
+
 
 class SunZenithCorrector(CompositeBase):
     # FIXME: the cache should be cleaned up
@@ -219,7 +267,10 @@ class SunZenithCorrector(CompositeBase):
             coszen = self.coszen[key]
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
-        return sunzen_corr_cos(projectables[0], coszen)
+
+        proj = sunzen_corr_cos(projectables[0], coszen)
+        self.apply_modifier_info(projectables[0], proj)
+        return proj
 
 
 class NIRReflectance(CompositeBase):
@@ -256,9 +307,12 @@ class NIRReflectance(CompositeBase):
         refl39 = Calculator(nir.info['platform_name'],
                             nir.info['sensor'], nir.info['name'])
 
-        return Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
+        proj = Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
                                                        tb11, tb13_4),
                            **nir.info)
+        self.apply_modifier_info(nir, proj)
+
+        return proj
 
 
 class CO2Corrector(CompositeBase):
@@ -284,7 +338,11 @@ class CO2Corrector(CompositeBase):
         info = ir_039.info.copy()
         info.setdefault('modifiers', []).append('co2_correction')
 
-        return Projectable(t4_co2corr, mask=t4_co2corr.mask, **info)
+        proj = Projectable(t4_co2corr, mask=t4_co2corr.mask, **info)
+
+        self.apply_modifier_info(ir_039, proj)
+
+        return proj
 
 
 class RGBCompositor(CompositeBase):
@@ -299,7 +357,7 @@ class RGBCompositor(CompositeBase):
                 axis=2)
         except ValueError:
             raise IncompatibleAreas
-        #info = projectables[0].info.copy()
+        # info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
         info = combine_info(*projectables)
@@ -340,9 +398,13 @@ class Airmass(RGBCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
-                                            projectables[2] - projectables[3],
-                                            projectables[0]), *args, **kwargs)
+        try:
+            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
+                                                projectables[2] -
+                                                projectables[3],
+                                                projectables[0]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
         return res
 
 
@@ -361,10 +423,14 @@ class Convection(RGBCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
-                                            projectables[2] - projectables[5],
-                                            projectables[1] - projectables[0]),
-                                     *args, **kwargs)
+        try:
+            res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
+                                                projectables[2] -
+                                                projectables[5],
+                                                projectables[1] - projectables[0]),
+                                         *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
         return res
 
 
@@ -383,7 +449,12 @@ class Dust(RGBCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
-                                            projectables[1] - projectables[0],
-                                            projectables[1]), *args, **kwargs)
+        try:
+            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
+                                                projectables[1] -
+                                                projectables[0],
+                                                projectables[1]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+
         return res

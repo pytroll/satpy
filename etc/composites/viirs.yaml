@@ -19,17 +19,23 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_correction, reflectance_corrector]
-    - M04: [sunz_correction, reflectance_corrector]
-    - M03: [sunz_correction, reflectance_corrector]
+    - name: M05
+      modifiers: [sunz_correction, reflectance_corrector]
+    - name: M04
+      modifiers: [sunz_correction, reflectance_corrector]
+    - name: M03
+      modifiers: [sunz_correction, reflectance_corrector]
     standard_name: true_color
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_correction]
-    - M04: [sunz_correction]
-    - M03: [sunz_correction]
+    - name: M05
+      modifiers: [sunz_correction]
+    - name: M04
+      modifiers: [sunz_correction]
+    - name: M03
+      modifiers: [sunz_correction]
     standard_name: true_color
 
   night_overview:
