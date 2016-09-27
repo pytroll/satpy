@@ -322,6 +322,38 @@ datasets:
         units: W m-2 um-1 sr-1
     navigation: vgeom
     file_type: vl1bm
+  M_SOLZ:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 742
+    units: degrees
+    navigation: vgeom
+    file_type: vgeom
+    file_key: geolocation_data/solar_zenith
+  M_SOLA:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 742
+    units: degrees
+    navigation: vgeom
+    file_type: vgeom
+    file_key: geolocation_data/solar_azimuth
+  M_SENZ:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 742
+    units: degrees
+    navigation: vgeom
+    file_type: vgeom
+    file_key: geolocation_data/sensor_zenith
+  M_SENA:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 742
+    units: degrees
+    navigation: vgeom
+    file_type: vgeom
+    file_key: geolocation_data/sensor_azimuth
   DNB:
     name: DNB
     wavelength: [11.538, 12.013, 12.489]

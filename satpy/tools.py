@@ -24,7 +24,7 @@
 
 import numpy as np
 
-def sunzen_corr_cos(data, cos_zen, limit=80.):
+def sunzen_corr_cos(data, cos_zen, limit=88.):
     '''Perform Sun zenith angle correction to the given *data* using
     cosine of the zenith angle (*cos_zen*).  The correction is limited
     to *limit* degrees (default: 80.0 degrees).  For larger zenith

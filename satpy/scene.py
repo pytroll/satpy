@@ -422,10 +422,16 @@ class Scene(InfoObject):
                         new_prereqs.append(prereq.data)
                     else:
                         new_prereqs.append(prereq.data[0].info['name'])
+                new_opt_prereqs = []
+                for prereq in optional_prereqs:
+                    if isinstance(prereq.data, DatasetID):
+                        new_opt_prereqs.append(prereq.data)
+                    else:
+                        new_opt_prereqs.append(prereq.data[0].info['name'])
 
                 prereqs = [self.datasets[prereq] for prereq in new_prereqs]
-                optional_prereqs = [self.datasets[prereq.data]
-                                    for prereq in optional_prereqs]
+                optional_prereqs = [self.datasets[prereq]
+                                    for prereq in new_opt_prereqs]
                 try:
                     composite = compositor(prereqs,
                                            optional_datasets=optional_prereqs,
