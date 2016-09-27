@@ -1,15 +1,16 @@
 sensor_name: visir/viirs
 
 modifiers:
-  reflectance_corrector:
+  rayleigh_corrector:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
     prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
     - solar_azimuth_angle
     - solar_zenith_angle
 
-  sunz_correction:
+  sunz_corrector:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
     - solar_zenith_angle
@@ -19,17 +20,31 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_correction, reflectance_corrector]
-    - M04: [sunz_correction, reflectance_corrector]
-    - M03: [sunz_correction, reflectance_corrector]
+    - M05: [sunz_corrector, rayleigh_corrector]
+    - M04: [sunz_corrector, rayleigh_corrector]
+    - M03: [sunz_corrector, rayleigh_corrector]
+    # FIXME: Ratio is wrong due to sunz correction producing high output (I think)
+#    optional_prerequisites:
+#    - I01: [sunz_corrector, rayleigh_corrector]
     standard_name: true_color
+
+  sharp_true_color:
+    compositor: !!python/name:satpy.composites.viirs.VIIRSSharpTrueColor
+    prerequisites:
+    - M05: [sunz_corrector, rayleigh_corrector]
+    - M04: [sunz_corrector, rayleigh_corrector]
+    - M03: [sunz_corrector, rayleigh_corrector]
+    optional_prerequisites:
+    - I01: [sunz_corrector, rayleigh_corrector]
+    standard_name: true_color
+    high_resolution_band: red
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - M05: [sunz_correction]
-    - M04: [sunz_correction]
-    - M03: [sunz_correction]
+    - M05: [sunz_corrector]
+    - M04: [sunz_corrector]
+    - M03: [sunz_corrector]
     standard_name: true_color
 
   night_overview:

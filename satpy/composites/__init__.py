@@ -73,7 +73,7 @@ class CompositorLoader(object):
                 LOG.debug("No composite config found called %s",
                           config_filename)
                 continue
-            for composite_config in composite_configs:
+            for composite_config in set(composite_configs):
                 self._load_config(composite_config)
 
     def load_compositor(self, key, sensor_names):
@@ -135,31 +135,32 @@ class CompositorLoader(object):
                 options['name'] = composite_name
 
                 # fix prerequisites in case of modifiers
-                prereqs = []
-                for item in options.get('prerequisites', []):
+                for prereq_key in ('prerequisites', 'optional_prerequisites'):
+                    prereqs = []
+                    for item in options.get(prereq_key, []):
 
-                    if isinstance(item, dict):
-                        # prereqs.append(item.keys()[0])
-                        if len(item.keys()) > 1:
-                            raise RuntimeError('Wrong prerequisite definition')
-                        key = item.keys()[0]
-                        mods = item.values()[0]
-                        comp_name = key
-                        for modifier in mods:
-                            prev_comp_name = comp_name
-                            comp_name = '_'.join((str(comp_name), modifier))
+                        if isinstance(item, dict):
+                            # prereqs.append(item.keys()[0])
+                            if len(item.keys()) > 1:
+                                raise RuntimeError('Wrong prerequisite definition')
+                            key = item.keys()[0]
+                            mods = item.values()[0]
+                            comp_name = key
+                            for modifier in mods:
+                                prev_comp_name = comp_name
+                                comp_name = '_'.join((str(comp_name), modifier))
 
-                            mloader, moptions = modifiers[modifier]
-                            moptions = moptions.copy()
-                            moptions.update(**kwargs)
-                            moptions['name'] = comp_name
-                            moptions['prerequisites'] = (
-                                [prev_comp_name] + moptions['prerequisites'])
-                            compositors[comp_name] = mloader(**moptions)
-                        prereqs.append(comp_name)
-                    else:
-                        prereqs.append(item)
-                options['prerequisites'] = prereqs
+                                mloader, moptions = modifiers[modifier]
+                                moptions = moptions.copy()
+                                moptions.update(**kwargs)
+                                moptions['name'] = comp_name
+                                moptions['prerequisites'] = (
+                                    [prev_comp_name] + moptions['prerequisites'])
+                                compositors[comp_name] = mloader(**moptions)
+                            prereqs.append(comp_name)
+                        else:
+                            prereqs.append(item)
+                    options[prereq_key] = prereqs
 
                 if i == 'composites':
                     options.update(**kwargs)
@@ -203,6 +204,9 @@ class SunZenithCorrector(CompositeBase):
     coszen = {}
 
     def __call__(self, projectables, **info):
+        if projectables[0].info.get("sunz_corrected"):
+            LOG.debug("Sun zen correction already applied")
+            return projectables[0]
         key = (projectables[0].info["start_time"],
                projectables[0].info["area"].name)
         LOG.debug("Applying sun zen correction")
@@ -219,7 +223,9 @@ class SunZenithCorrector(CompositeBase):
             coszen = self.coszen[key]
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
-        return sunzen_corr_cos(projectables[0], coszen)
+        p = sunzen_corr_cos(projectables[0], coszen)
+        p.info["sunz_corrected"] = True
+        return p
 
 
 class NIRReflectance(CompositeBase):
