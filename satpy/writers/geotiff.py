@@ -65,7 +65,7 @@ class GeoTIFFWriter(ImageWriter):
 
         self.floating_point = bool(self.config_options.get(
             "floating_point", None) if floating_point is None else
-                                   floating_point)
+            floating_point)
         self.tags = self.config_options.get("tags",
                                             None) if tags is None else tags
         if self.tags is None:
@@ -215,11 +215,8 @@ class GeoTIFFWriter(ImageWriter):
                     pass
                 try:
                     # Check for epsg code.
-                    srs.SetAuthority(
-                        'PROJCS', 'EPSG',
-                        int(area.proj_dict['init'].split('epsg:')[1]))
-                    srs.ImportFromEPSG(int(area.proj_dict['init'].lower(
-                    ).split('epsg:')[1]))
+                    srs.ImportFromEPSG(int(
+                        area.proj_dict['init'].lower().split('epsg:')[1]))
                 except (KeyError, IndexError):
                     pass
                 srs = srs.ExportToWkt()
