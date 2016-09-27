@@ -415,29 +415,37 @@ class Scene(InfoObject):
         composites = []
         for item in reversed(compositor_nodes):
             compositor, prereqs, optional_prereqs = item.data
-            if compositor.info['name'] not in self.datasets:
+            if compositor.info['id'] not in self.datasets:
                 new_prereqs = []
                 for prereq in prereqs:
                     if isinstance(prereq.data, DatasetID):
                         new_prereqs.append(prereq.data)
                     else:
-                        new_prereqs.append(prereq.data[0].info['name'])
+                        new_prereqs.append(prereq.data[0].info['id'])
+                new_opt_prereqs = []
+                for prereq in optional_prereqs:
+                    if isinstance(prereq.data, DatasetID):
+                        new_opt_prereqs.append(prereq.data)
+                    else:
+                        new_opt_prereqs.append(prereq.data[0].info['id'])
 
                 prereqs = [self.datasets[prereq] for prereq in new_prereqs]
-                optional_prereqs = [self.datasets[prereq.data]
-                                    for prereq in optional_prereqs]
+                optional_prereqs = [self.datasets[prereq]
+                                    for prereq in new_opt_prereqs]
+
                 try:
                     composite = compositor(prereqs,
                                            optional_datasets=optional_prereqs,
                                            **self.info)
+
                 except IncompatibleAreas:
                     LOG.warning("Delaying generation of %s "
                                 "because of incompatible areas",
                                 compositor.info['name'])
                     continue
-                composite.info['name'] = compositor.info['name']
+                composite.info['name'] = compositor.info['id']
 
-                self.datasets[compositor.info['name']] = composite
+                self.datasets[composite.info['id']] = composite
 
                 try:
                     self.wishlist.remove(composite.info['name'])
@@ -446,7 +454,7 @@ class Scene(InfoObject):
                 else:
                     self.wishlist.add(composite.info['id'])
 
-            composites.append(self.datasets[compositor.info['name']])
+            composites.append(self.datasets[compositor.info['id']])
         return composites
 
     def read_from_deptree(self, dataset_keys, **kwargs):
@@ -518,6 +526,8 @@ class Scene(InfoObject):
                 comp_projectable.info.setdefault("wavelength_range", None)
                 comp_projectable.info.setdefault("polarization", None)
                 comp_projectable.info.setdefault("calibration", None)
+                comp_projectable.info.setdefault("modifiers", None)
+
                 # FIXME: Should this be a requirement of anything creating a
                 # Dataset? Special handling by .info?
                 band_id = DatasetID(
@@ -525,7 +535,8 @@ class Scene(InfoObject):
                     resolution=comp_projectable.info["resolution"],
                     wavelength=comp_projectable.info["wavelength_range"],
                     polarization=comp_projectable.info["polarization"],
-                    calibration=comp_projectable.info["calibration"], )
+                    calibration=comp_projectable.info["calibration"],
+                    modifiers=comp_projectable.info["modifiers"])
                 comp_projectable.info["id"] = band_id
                 self.datasets[band_id] = comp_projectable
 
