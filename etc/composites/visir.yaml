@@ -55,7 +55,8 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 0.85
-    - 3.7: [nir_reflectance]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
   dust:
@@ -89,9 +90,12 @@ composites:
   natural_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 1.63: [sunz_corrector]
-    - 0.85: [sunz_corrector]
-    - 0.635: [sunz_corrector]
+    - wavelength: 1.63
+      modifiers: [sunz_corrector]
+    - wavelength: 0.85
+      modifiers: [sunz_corrector]
+    - wavelength: 0.635
+      modifiers: [sunz_corrector]
     standard_name: natural
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
@@ -110,8 +114,10 @@ composites:
   overview_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 0.6: [sunz_corrector]
-    - 0.8: [sunz_corrector]
+    - wavelength: 0.6
+      modifiers: [sunz_corrector]
+    - wavelength: 0.8
+      modifiers: [sunz_corrector]
     - 10.8
     standard_name: overview
 

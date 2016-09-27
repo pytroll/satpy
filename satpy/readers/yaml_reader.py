@@ -35,8 +35,8 @@ from fnmatch import fnmatch
 import numpy as np
 import six
 import yaml
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.projectable import Projectable
 from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
@@ -141,6 +141,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                         calibration=None,
                         resolution=None,
                         polarization=None,
+                        modifiers=None,
                         aslist=False):
         """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
 
@@ -170,6 +171,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 resolution = [key.resolution]
             if polarization is None and key.polarization is not None:
                 polarization = [key.polarization]
+            if modifiers is None and key.modifiers is not None:
+                modifiers = key.modifiers
         # get by name
         else:
             datasets = [ds_id for ds_id in self.ids if ds_id.name == key]
@@ -210,6 +213,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 if ds_id.polarization in polarization
             ]
 
+        if modifiers is not None:
+            datasets = [
+                ds_id for ds_id in datasets
+                if ds_id.modifiers == modifiers
+            ]
+
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(
                 str(key)))
@@ -226,12 +235,15 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             id_kwargs = []
             for key in DatasetID._fields:
                 val = dataset.get(key)
-                if key == "wavelength" and isinstance(val, list):
+                if key in ["wavelength", "modifiers"] and isinstance(val, list):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
                     # it also needs to be a tuple so it can be used in
                     # a dictionary key (DatasetID)
                     id_kwargs.append((tuple(val), ))
+                elif key == "modifiers" and val is None:
+                    # empty modifiers means no modifiers applied
+                    id_kwargs.append((tuple(), ))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -353,9 +365,9 @@ class FileYAMLReader(AbstractYAMLReader):
         else:
             # we can optimize
             # create a projectable object for the file handler to fill in
-            #proj = cls(np.empty(overall_shape,
+            # proj = cls(np.empty(overall_shape,
             #           dtype=ds_info.get('dtype', np.float32)))
-            
+
             # overwrite single boolean 'False'
             # proj.mask = np.ma.make_mask_none(overall_shape)
             out_info = {}
@@ -408,7 +420,11 @@ class FileYAMLReader(AbstractYAMLReader):
                     current_extent[1] = area_def.area_extent[1]
                     final_area.area_extent = current_extent
                     final_area.y_size += area_def.y_size
-                    final_area.shape = (final_area.y_size, final_area.x_size)
+                    try:
+                        final_area.shape = (
+                            final_area.y_size, final_area.x_size)
+                    except AttributeError:
+                        pass
                 else:
                     break
             else:
