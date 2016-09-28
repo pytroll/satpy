@@ -136,59 +136,60 @@ class CompositorLoader(object):
 
                 # fix prerequisites in case of modifiers
 
-                prereqs = []
-                for item in options.get('prerequisites', []):
-                    if isinstance(item, dict):
-                        # prereqs.append(item.keys()[0])
-                        # if len(item.keys()) > 1:
-                        # raise RuntimeError('Wrong prerequisite definition')
+                for prereq_type in ['prerequisites', 'optional_prerequisites']:
+                    prereqs = []
+                    for item in options.get(prereq_type, []):
+                        if isinstance(item, dict):
+                            # prereqs.append(item.keys()[0])
+                            # if len(item.keys()) > 1:
+                            # raise RuntimeError('Wrong prerequisite definition')
 
-                        mods = item.get('modifiers', tuple())
+                            mods = item.get('modifiers', tuple())
 
-                        key = DatasetID(item.get('name'),
-                                        item.get('wavelength'),
-                                        item.get('resolution'),
-                                        item.get('polarization'),
-                                        item.get('calibration'),
-                                        mods)
-
-                        # key = item.keys()[0]
-                        # mods = item.values()[0]
-                        comp_id = DatasetID(item.get('name'),
+                            key = DatasetID(item.get('name'),
                                             item.get('wavelength'),
                                             item.get('resolution'),
                                             item.get('polarization'),
                                             item.get('calibration'),
-                                            tuple())
-                        comp_name = item.get('name')
-                        mods = key.modifiers
-                        for modifier in mods:
-                            prev_comp_name = comp_name
-                            prev_comp_id = comp_id
-                            # comp_name = '_'.join((str(comp_name), modifier))
-                            # comp_name =
-                            new_mods = tuple(
-                                list(comp_id.modifiers or []) + [modifier])
-                            comp_id = DatasetID(key.name,
-                                                key.wavelength,
-                                                key.resolution,
-                                                key.polarization,
-                                                key.calibration,
-                                                new_mods)
-                            comp_name = key.name
-                            mloader, moptions = modifiers[modifier]
-                            moptions = moptions.copy()
-                            moptions.update(**kwargs)
-                            moptions['name'] = modifier
-                            moptions['id'] = comp_id
-                            moptions['prerequisites'] = (
-                                [prev_comp_id] + moptions['prerequisites'])
+                                            mods)
 
-                            compositors[comp_id] = mloader(**moptions)
-                        prereqs.append(comp_id)
-                    else:
-                        prereqs.append(item)
-                options['prerequisites'] = prereqs
+                            # key = item.keys()[0]
+                            # mods = item.values()[0]
+                            comp_id = DatasetID(item.get('name'),
+                                                item.get('wavelength'),
+                                                item.get('resolution'),
+                                                item.get('polarization'),
+                                                item.get('calibration'),
+                                                tuple())
+                            comp_name = item.get('name')
+                            mods = key.modifiers
+                            for modifier in mods:
+                                prev_comp_name = comp_name
+                                prev_comp_id = comp_id
+                                # comp_name = '_'.join((str(comp_name), modifier))
+                                # comp_name =
+                                new_mods = tuple(
+                                    list(comp_id.modifiers or []) + [modifier])
+                                comp_id = DatasetID(key.name,
+                                                    key.wavelength,
+                                                    key.resolution,
+                                                    key.polarization,
+                                                    key.calibration,
+                                                    new_mods)
+                                comp_name = key.name
+                                mloader, moptions = modifiers[modifier]
+                                moptions = moptions.copy()
+                                moptions.update(**kwargs)
+                                moptions['name'] = modifier
+                                moptions['id'] = comp_id
+                                moptions['prerequisites'] = (
+                                    [prev_comp_id] + moptions['prerequisites'])
+
+                                compositors[comp_id] = mloader(**moptions)
+                            prereqs.append(comp_id)
+                        else:
+                            prereqs.append(item)
+                    options[prereq_type] = prereqs
 
                 if i == 'composites':
                     options.update(**kwargs)
