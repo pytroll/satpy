@@ -30,7 +30,7 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
-from satpy.projectable import InfoObject, Projectable
+from satpy.projectable import InfoObject, Projectable, Dataset
 from satpy.readers import DatasetDict, DatasetID, ReaderFinder
 
 try:
@@ -377,6 +377,10 @@ class Scene(InfoObject):
             ds_ids = set()
             for node in dataset_nodes:
                 dataset_key = node.data
+                if isinstance(dataset_key, Dataset):
+                    # we already loaded this in a previous call to `.load`
+                    continue
+
                 try:
                     ds_id = reader_instance.get_dataset_key(
                         dataset_key,
@@ -420,6 +424,8 @@ class Scene(InfoObject):
                 for prereq in prereqs:
                     if isinstance(prereq.data, DatasetID):
                         new_prereqs.append(prereq.data)
+                    elif isinstance(prereq.data, Dataset):
+                        new_prereqs.append(prereq.data.info['id'])
                     else:
                         new_prereqs.append(prereq.data[0].info['id'])
                 new_opt_prereqs = []
