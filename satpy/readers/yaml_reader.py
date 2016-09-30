@@ -68,6 +68,23 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.ids = {}
         self.get_dataset_ids()
 
+    @property
+    def all_dataset_ids(self):
+        return self.ids.keys()
+
+    @property
+    def all_dataset_names(self):
+        return (ds_id.name for ds_id in self.all_dataset_ids)
+
+    @property
+    def available_dataset_ids(self):
+        LOG.warning("Available datasets are unknown, returning all datasets...")
+        return self.all_dataset_ids
+
+    @property
+    def available_dataset_names(self):
+        return (ds_id.name for ds_id in self.available_dataset_ids)
+
     @abstractproperty
     def start_time(self):
         raise NotImplementedError()
@@ -279,6 +296,10 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
 
     @property
+    def available_dataset_ids(self):
+        return (ds_id for ds_id in self.all_dataset_ids if self.ids[ds_id][1]["file_type"] in self.file_handlers)
+
+    @property
     def start_time(self):
         if not self.file_handlers:
             raise RuntimeError("Start time unknown until files are selected")
@@ -305,7 +326,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for filetype, filetype_info in self.config['file_types'].items():
             filetype_cls = filetype_info['file_reader']
             patterns = filetype_info['file_patterns']
-            self.file_handlers[filetype] = []
+            file_handlers = []
             for pattern in patterns:
                 used_filenames = set()
                 for filename in remaining_filenames:
@@ -327,11 +348,14 @@ class FileYAMLReader(AbstractYAMLReader):
 
                         # TODO: Area filtering
 
-                        self.file_handlers[filetype].append(file_handler)
+                        file_handlers.append(file_handler)
                 remaining_filenames -= used_filenames
-
-            # Sort the file handlers by start time
-            self.file_handlers[filetype].sort(key=lambda fh: fh.start_time)
+            # Only create an entry in the file handlers dictionary if
+            # we have those files
+            if file_handlers:
+                # Sort the file handlers by start time
+                file_handlers.sort(key=lambda fh: fh.start_time)
+                self.file_handlers[filetype] = file_handlers
 
         return res
 

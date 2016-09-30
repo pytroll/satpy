@@ -150,7 +150,7 @@ class Scene(InfoObject):
     def end_time(self):
         return max(x.end_time for x in self.readers.values())
 
-    def available_datasets(self, reader_name=None, composites=False):
+    def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
         if specified, that can be loaded.
 
@@ -168,15 +168,18 @@ class Scene(InfoObject):
         except (AttributeError, KeyError):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
-        available_datasets = [dataset_name
+        available_datasets = [dataset_id
                               for reader in readers
-                              for dataset_name in reader.available_datasets]
+                              for dataset_id in reader.available_dataset_ids]
         if composites:
             available_datasets += list(self.available_composites(
                 available_datasets))
         return available_datasets
 
-    def all_datasets(self, reader_name=None, composites=False):
+    def available_dataset_names(self):
+        return [x.name for x in self.available_dataset_ids()]
+
+    def all_dataset_ids(self, reader_name=None, composites=False):
         """Get names of all datasets from loaded readers or `reader_name` if
         specified..
 
@@ -190,12 +193,15 @@ class Scene(InfoObject):
         except (AttributeError, KeyError):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
-        all_datasets = [dataset_name
+        all_datasets = [dataset_id
                         for reader in readers
-                        for dataset_name in reader.dataset_names]
+                        for dataset_id in reader.all_dataset_ids]
         if composites:
             all_datasets += self.all_composites()
         return all_datasets
+
+    def all_dataset_names(self):
+        return [x.name for x in self.all_dataset_ids()]
 
     def available_composites(self, available_datasets=None):
         """Get names of compositors that can be generated from the available
@@ -204,35 +210,36 @@ class Scene(InfoObject):
         :return: generator of available compositor's names
         """
         if available_datasets is None:
-            available_datasets = self.available_datasets(composites=False)
+            available_datasets = self.available_dataset_ids(composites=False)
+        else:
+            if not all(isinstance(ds_id, DatasetID) for ds_id in available_datasets):
+                raise ValueError("'available_datasets' must all be DatasetID objects")
 
         available_datasets = set(available_datasets)
+        available_dataset_names = set(ds_id.name for ds_id in available_datasets)
         # composite_objects = self.all_composites_objects()
-        for composite_name, composite_obj in self.all_composites_objects(
+        composites = []
+        for composite_name, composite_obj in self.all_composite_objects(
         ).items():
             ###
-            for reader_name, reader_instance in self.readers.items():
-                try:
-                    # overwrite any semi-qualified IDs with the fully qualified
-                    # ID
-                    prereqs = [
-                        reader_instance.get_dataset_key(prereq).name
-                        for prereq in composite_obj.info["prerequisites"]
-                    ]
-                    if not (set(prereqs) - available_datasets):
-                        # we have all the prereqs in the available datasets
-                        yield composite_name
-                except KeyError:
-                    continue
+            for prereq in composite_obj.info['prerequisites']:
+                if isinstance(prereq, DatasetID) and prereq not in available_datasets:
+                    break
+                elif prereq not in available_dataset_names:
+                    break
+            else:
+                # we made it through all the prereqs, must have them all
+                composites.append(composite_name)
+        return composites
 
     def all_composites(self):
         """Get all composite names that are configured.
 
         :return: generator of configured composite names
         """
-        return (c.info["name"] for c in self.all_composites_objects().values())
+        return (c.info["name"] for c in self.all_composite_objects().values())
 
-    def all_composites_objects(self):
+    def all_composite_objects(self):
         """Get all compositors that are configured.
 
         :return: dictionary of composite name to compositor object
