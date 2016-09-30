@@ -176,8 +176,9 @@ class Scene(InfoObject):
                 available_datasets))
         return available_datasets
 
-    def available_dataset_names(self):
-        return [x.name for x in self.available_dataset_ids()]
+    def available_dataset_names(self, reader_name=None, composites=False):
+        return [x.name if isinstance(x, DatasetID) else x
+                for x in self.available_dataset_ids(reader_name=reader_name, composites=composites)]
 
     def all_dataset_ids(self, reader_name=None, composites=False):
         """Get names of all datasets from loaded readers or `reader_name` if
@@ -200,8 +201,9 @@ class Scene(InfoObject):
             all_datasets += self.all_composites()
         return all_datasets
 
-    def all_dataset_names(self):
-        return [x.name for x in self.all_dataset_ids()]
+    def all_dataset_names(self, reader_name=None, composites=False):
+        return [x.name if isinstance(x, DatasetID) else x
+                for x in self.all_dataset_ids(reader_name=reader_name, composites=composites)]
 
     def available_composites(self, available_datasets=None):
         """Get names of compositors that can be generated from the available
