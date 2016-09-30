@@ -81,9 +81,9 @@ def step_impl(context):
     scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
-    context.available_datasets = scn.available_datasets()
+    context.available_dataset_ids = scn.available_datasets()
 
 
 @then(u'available datasets is returned')
 def step_impl(context):
-    assert (len(context.available_datasets) >= 5)
+    assert (len(context.available_dataset_ids) >= 5)
