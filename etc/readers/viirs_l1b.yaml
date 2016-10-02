@@ -356,7 +356,7 @@ datasets:
     file_key: geolocation_data/sensor_azimuth
   DNB:
     name: DNB
-    wavelength: [11.538, 12.013, 12.489]
+    wavelength: [0.500, 0.700, 0.900]
     resolution: 743
     calibration:
       radiance:

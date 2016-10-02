@@ -174,7 +174,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             elif dataset_id.calibration == 'brightness_temperature':
                 file_units = "K"
             else:
-                LOG.debug("Unknown units for file key '%s'", item)
+                LOG.debug("Unknown units for file key '%s'", dataset_id)
 
         return file_units
 

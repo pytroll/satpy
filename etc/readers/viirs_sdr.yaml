@@ -25,6 +25,11 @@ navigation:
     file_type: gmodo
     longitude_key: All_Data/{file_group}_All/Longitude
     latitude_key: All_Data/{file_group}_All/Latitude
+  gdnbo:
+    description: Spheroid or TC DNB resolution geolocation
+    file_type: gdnbo
+    longitude_key: All_Data/{file_group}_All/Longitude
+    latitude_key: All_Data/{file_group}_All/Latitude
 datasets:
   I01:
     name: I01
@@ -321,6 +326,73 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
 
+  M_SOLZ:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 742
+    units: degrees
+    navigation: gmtco
+#    navigation: [gmtco, gmodo]
+    file_type: gmtco
+    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+  M_SOLA:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 742
+    units: degrees
+    navigation: gmtco
+#    navigation: [gmtco, gmodo]
+    file_type: gmtco
+    file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
+  M_SENZ:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 742
+    units: degrees
+    navigation: gmtco
+#    navigation: [gmtco, gmodo]
+    file_type: gmtco
+    file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
+  M_SENA:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 742
+    units: degrees
+    navigation: gmtco
+#    navigation: [gmtco, gmodo]
+    file_type: gmtco
+    file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
+  DNB:
+    name: DNB
+    wavelength: [0.500, 0.700, 0.900]
+    resolution: 743
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 sr-1
+        file_units: W cm-2 sr-1
+    navigation: gdnbo
+    file_type: vdnbo
+  DNB_SZA:
+    name: DNB_SZA
+    standard_name: solar_zenith_angle
+    resolution: 743
+    navigation: gdnbo
+    file_type: gdnbo
+    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+  DNB_LZA:
+    name: DNB_LZA
+    standard_name: lunar_zenith_angle
+    resolution: 743
+    navigation: gdnbo
+    file_type: gdnbo
+    file_key: 'All_Data/{file_group}_All/LunarZenithAngle'
+  dnb_moon_illumination_fraction:
+    name: dnb_moon_illumination_fraction
+    container: !!python/name:satpy.projectable.Dataset
+    file_type: gdnbo
+    file_key: All_Data/{file_group}_All/MoonIllumFraction
+
 file_types:
   gitco:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
@@ -338,6 +410,10 @@ file_types:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
     file_patterns: ['GMODO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
     file_group: VIIRS-MOD-GEO
+  gdnbo:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['GDNBO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-DNB-GEO
   svi01:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
     file_patterns: ['SVI01_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
@@ -422,3 +498,7 @@ file_types:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
     file_patterns: ['SVM16_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
     file_group: VIIRS-M16-SDR
+  vdnbo:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVDNB_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-DNB-SDR
