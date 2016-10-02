@@ -38,6 +38,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
+        self.filetype_info = filetype_info
 
     def get_dataset(self, dataset_id, ds_info, out=None):
         raise NotImplementedError
