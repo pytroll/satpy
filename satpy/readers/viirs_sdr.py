@@ -37,9 +37,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import logging
 
-from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.projectable import Projectable
 import six
 
 NO_DATE = datetime(1958, 1, 1)
@@ -82,31 +82,19 @@ def _get_invalid_info(granule_data):
     return msg
 
 
-class SDRFileReader(GenericFileReader):
+class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader
     """
-    def create_file_handle(self, filename, **kwargs):
-        handle = HDF5FileHandler(filename, **kwargs)
-        return handle.filename, handle
-
     def __getitem__(self, item):
-        replace_aggr = None
-        if item.endswith("/shape") and item[:-6] in self.file_keys:
-            replace_aggr = self.file_keys[item[:-6]].kwargs.get("replace_aggr", None)
-            item = self.file_keys[item[:-6]].variable_name.format(**self.file_info) + "/shape"
-        elif item in self.file_keys:
-            replace_aggr = self.file_keys[item].kwargs.get("replace_aggr", None)
-            item = self.file_keys[item].variable_name.format(**self.file_info)
-
-        if replace_aggr:
+        if '*' in item:
             # this is an aggregated field that can't easily be loaded, need to join things together
             idx = 0
             base_item = item
-            item = base_item.replace(replace_aggr, str(idx))
+            item = base_item.replace('*', str(idx))
             result = []
             while True:
                 try:
-                    res = self.file_handle[item]
+                    res = super(VIIRSSDRFileHandler, self).__getitem__(item)
                     result.append(res)
                 except KeyError:
                     # no more granule keys
@@ -114,10 +102,10 @@ class SDRFileReader(GenericFileReader):
                     break
 
                 idx += 1
-                item = base_item.replace(replace_aggr, str(idx))
+                item = base_item.replace('*', str(idx))
             return result
         else:
-            return self.file_handle[item]
+            return super(VIIRSSDRFileHandler, self).__getitem__(item)
 
     def _parse_datetime(self, datestr, timestr):
         try:
@@ -130,64 +118,61 @@ class SDRFileReader(GenericFileReader):
             raise ValueError("Datetime invalid {}".format(time_val))
         return time_val
 
-    def _get_start_time(self):
-        return self._parse_datetime(self['beginning_date'], self['beginning_time'])
-
-    def _get_end_time(self):
-        return self._parse_datetime(self['ending_date'], self['ending_time'])
+    @property
+    def start_time(self):
+        default_start_date = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningDate'
+        default_start_time = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningTime'
+        date_var_path = self.filetype_info.get('start_date', default_start_date).format(**self.filetype_info)
+        time_var_path = self.filetype_info.get('start_time', default_start_time).format(**self.filetype_info)
+        return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
-    def ring_lonlats(self):
-        return self["gring_longitude"], self["gring_latitude"]
+    def end_time(self):
+        default_end_date = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingDate'
+        default_end_time = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingTime'
+        date_var_path = self.filetype_info.get('end_date', default_end_date).format(**self.filetype_info)
+        time_var_path = self.filetype_info.get('end_time', default_end_time).format(**self.filetype_info)
+        return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
-    def begin_orbit_number(self):
-        return int(self['beginning_orbit_number'])
+    def start_orbit_number(self):
+        default = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningOrbitNumber'
+        start_orbit_path = self.filetype_info.get('start_orbit', default).format(**self.filetype_info)
+        return int(self[start_orbit_path])
 
     @property
     def end_orbit_number(self):
-        return int(self['ending_orbit_number'])
+        default = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingOrbitNumber'
+        end_orbit_path = self.filetype_info.get('end_orbit', default).format(**self.filetype_info)
+        return int(self[end_orbit_path])
 
     @property
     def platform_name(self):
-        res = self['platform_short_name']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        default = '/attr/Platform_Short_Name'
+        platform_path = self.filetype_info.get('platform_name', default).format(**self.filetype_info)
+        return self[platform_path]
 
     @property
     def sensor_name(self):
-        res = self['instrument_short_name']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        default = 'Data_Products/{file_group}/attr/Instrument_Short_Name'
+        sensor_path = self.filetype_info.get('sensor_name', default).format(**self.filetype_info)
+        return self[sensor_path]
 
-    @property
-    def geofilename(self):
-        res = self['geo_file_reference']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
-
-    def get_file_units(self, item):
-        # What units should we expect from the file
-        file_units = self.file_keys[item].file_units
+    def get_file_units(self, dataset_id, ds_info):
+        file_units = ds_info.get("file_units")
 
         # Guess the file units if we need to (normally we would get this from the file)
         if file_units is None:
-            if "radiance" in item:
-                # we are getting some sort of radiance, probably DNB
-                file_units = "W cm-2 sr-1"
-            elif "reflectance" in item:
+            if dataset_id.calibration == 'radiance':
+                if "dnb" in dataset_id.name.lower():
+                    return 'W m-2 sr-1'
+                else:
+                    return 'W cm-2 sr-1'
+            elif dataset_id.calibration == 'reflectance':
                 # CF compliant unit for dimensionless
                 file_units = "1"
-            elif "temperature" in item:
+            elif dataset_id.calibration == 'brightness_temperature':
                 file_units = "K"
-            elif "longitude" in item or "latitude" in item:
-                file_units = "degrees"
             else:
                 LOG.debug("Unknown units for file key '%s'", item)
 
@@ -236,57 +221,90 @@ class SDRFileReader(GenericFileReader):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None):
-        """Get swath data, apply proper scalings, and apply proper masks.
-        """
-        # Can't guarantee proper file info until we get the data first
-        var_info = self.file_keys[item]
-        data = self[item]
+    def _generate_file_key(self, ds_id, ds_info, factors=False):
+        var_path = ds_info.get('file_key', 'All_Data/{file_group}_All/{calibration}')
+        calibration = {
+            'radiance': 'Radiance',
+            'reflectance': 'Reflectance',
+            'brightness_temperature': 'BrightnessTemperature',
+        }.get(ds_id.calibration)
+        var_path = var_path.format(calibration=calibration, **self.filetype_info)
+        return var_path
+
+    def get_shape(self, ds_id, ds_info):
+        var_path = self._generate_file_key(ds_id, ds_info)
+        return self[var_path + "/shape"]
+
+    def get_area(self, navid, nav_info, lon_out, lat_out):
+        lon_default = 'All_Data/{file_group}_All/Longitude'
+        lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
+        valid_min = -180.
+        valid_max = 180.
+        lon_out.data[:] = self[lon_key][:]
+        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
+
+        lat_default = 'All_Data/{file_group}_All/Latitude'
+        lat_key = nav_info.get("latitude_key", lat_default).format(**self.filetype_info)
+        valid_min = -90.
+        valid_max = 90.
+        lat_out.data[:] = self[lat_key][:]
+        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
+
+        return {}
+
+    def get_dataset(self, dataset_id, ds_info, out=None):
+        var_path = self._generate_file_key(dataset_id, ds_info)
+        factor_var_path = ds_info.get("factors_key", var_path + "Factors")
+        data = self[var_path]
+        dtype = ds_info.get("dtype", np.float32)
         is_floating = np.issubdtype(data.dtype, np.floating)
-        if data_out is not None:
+        if out is not None:
             # This assumes that we are promoting the dtypes (ex. float file data -> int array)
             # and that it happens automatically when assigning to the existing out array
-            data_out[:] = data
+            out.data[:] = data
         else:
-            data_out = data[:].astype(var_info.dtype)
-            mask_out = np.zeros_like(data_out, dtype=np.bool)
-
-        if var_info.factor:
-            try:
-                factors = self[var_info.factor]
-            except KeyError:
-                LOG.debug("No scaling factors found for %s", item)
-                factors = None
-        else:
-            factors = None
+            shape = self.get_shape(dataset_id, ds_info)
+            out = np.ma.empty(shape, dtype=dtype)
+            out.mask = np.zeros(shape, dtype=np.bool)
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
-            fill_max = float(var_info.kwargs.get("fill_max_float", -999.0))
-            mask_out[:] |= data_out <= fill_max
+            fill_max = float(ds_info.pop("fill_max_float", -999.0))
+            out.mask[:] |= out.data <= fill_max
         else:
             # If the data is an integer then we mask everything >= fill_min_int
-            fill_min = int(var_info.kwargs.get("fill_min_int", 65528))
-            mask_out[:] |= data_out >= fill_min
+            fill_min = int(ds_info.pop("fill_min_int", 65528))
+            out.mask[:] |= out.data >= fill_min
 
-        # Check if we need to do some unit conversion
-        file_units = self.get_file_units(item)
-        output_units = getattr(var_info, "units", file_units)
+        factors = None
+        try:
+            factors = self[factor_var_path]
+        except KeyError:
+            pass
+        if factors is None:
+            LOG.debug("No scaling factors found for %s", dataset_id)
+
+        file_units = self.get_file_units(dataset_id, ds_info)
+        output_units = ds_info.get("units", file_units)
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
 
         if factors is not None:
-            self.scale_swath_data(data_out, mask_out, factors)
+            self.scale_swath_data(out.data, out.mask, factors)
 
-        return data_out, mask_out
+        ds_info.update({
+            "name": dataset_id.name,
+            "id": dataset_id,
+            "units": ds_info.get("units", file_units),
+            "platform": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+        })
+        cls = ds_info.pop("container", Projectable)
+        return cls(out, **ds_info)
 
 
-class VIIRSINISDRReader(ConfigBasedReader):
-    def __init__(self, default_file_reader=SDRFileReader, default_config_filename="readers/viirs_sdr.cfg", **kwargs):
-        super(VIIRSINISDRReader, self).__init__(default_file_reader=default_file_reader,
-                                             default_config_filename=default_config_filename,
-                                             **kwargs
-                                             )
-
+class VIIRSSDRReader(FileYAMLReader):
     def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 
@@ -313,8 +331,4 @@ class VIIRSINISDRReader(ConfigBasedReader):
             self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
 
         return super(VIIRSINISDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
-
-
-class VIIRSSDRReader(FileYAMLReader):
-    pass
 

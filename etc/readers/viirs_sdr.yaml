@@ -1,0 +1,424 @@
+reader:
+  name: viirs_sdr
+  description: VIIRS SDR Reader
+  reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader ''
+  sensors: [viirs]
+  default_channels:
+navigation:
+  gitco:
+    description: Terrain-corrected I-band resolution geolocation
+    file_type: gitco
+    longitude_key: All_Data/{file_group}_All/Longitude
+    latitude_key: All_Data/{file_group}_All/Latitude
+  gimgo:
+    description: Spheroid I-band resolution geolocation
+    file_type: gimgo
+    longitude_key: All_Data/{file_group}_All/Longitude
+    latitude_key: All_Data/{file_group}_All/Latitude
+  gmtco:
+    description: Terrain-corrected M-band resolution geolocation
+    file_type: gmtco
+    longitude_key: All_Data/{file_group}_All/Longitude
+    latitude_key: All_Data/{file_group}_All/Latitude
+  gmodo:
+    description: Spheroid M-band resolution geolocation
+    file_type: gmodo
+    longitude_key: All_Data/{file_group}_All/Longitude
+    latitude_key: All_Data/{file_group}_All/Latitude
+datasets:
+  I01:
+    name: I01
+    wavelength: [0.600, 0.640, 0.680]
+    file_type: svi01
+    resolution: 371
+#    navigation: [gitco, gimgo]
+    navigation: gitco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  I02:
+    name: I02
+    wavelength: [0.845, 0.865, 0.884]
+    file_type: svi02
+    resolution: 371
+#    navigation: [gitco, gimgo]
+    navigation: gitco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  I03:
+    name: I03
+    wavelength: [1.580, 1.610, 1.640]
+    file_type: svi03
+    resolution: 371
+#    navigation: [gitco, gimgo]
+    navigation: gitco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  I04:
+    name: I04
+    wavelength: [3.580, 3.740, 3.900]
+    file_type: svi04
+    resolution: 371
+#    navigation: [gitco, gimgo]
+    navigation: gitco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  I05:
+    name: I05
+    wavelength: [10.500, 11.450, 12.300]
+    file_type: svi05
+    resolution: 371
+#    navigation: [gitco, gimgo]
+    navigation: gitco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M01:
+    name: M01
+    wavelength: [0.402, 0.412, 0.422]
+    file_type: svm01
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M02:
+    name: M02
+    wavelength: [0.436, 0.445, 0.454]
+    file_type: svm02
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M03:
+    name: M03
+    wavelength: [0.478, 0.488, 0.498]
+    file_type: svm03
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M04:
+    name: M04
+    wavelength: [0.545, 0.555, 0.565]
+    file_type: svm04
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M05:
+    name: M05
+    wavelength: [0.662, 0.672, 0.682]
+    file_type: svm05
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M06:
+    name: M06
+    wavelength: [0.739, 0.746, 0.754]
+    file_type: svm06
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M07:
+    name: M07
+    wavelength: [0.846, 0.865, 0.885]
+    file_type: svm07
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M08:
+    name: M08
+    wavelength: [1.230, 1.240, 1.250]
+    file_type: svm08
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M09:
+    name: M09
+    wavelength: [1.371, 1.378, 1.386]
+    file_type: svm09
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M10:
+    name: M10
+    wavelength: [1.580, 1.610, 1.640]
+    file_type: svm10
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M11:
+    name: M11
+    wavelength: [2.225, 2.250, 2.275]
+    file_type: svm11
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M12:
+    name: M12
+    wavelength: [3.610, 3.700, 3.790]
+    file_type: svm12
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M13:
+    name: M13
+    wavelength: [3.973, 4.050, 4.128]
+    file_type: svm13
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M14:
+    name: M14
+    wavelength: [8.400, 8.550, 8.700]
+    file_type: svm14
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M15:
+    name: M15
+    wavelength: [10.263, 10.763, 11.263]
+    file_type: svm15
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+  M16:
+    name: M16
+    wavelength: [11.538, 12.013, 12.489]
+    file_type: svm16
+    resolution: 742
+#    navigation: [gmtco, gmodo]
+    navigation: gmtco
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+
+file_types:
+  gitco:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['GITCO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-IMG-GEO-TC
+  gimgo:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['GIMGO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-IMG-GEO
+  gmtco:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['GMTCO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-MOD-GEO-TC
+  gmodo:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['GMODO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-MOD-GEO
+  svi01:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVI01_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-I1-SDR
+  svi02:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVI02_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-I2-SDR
+  svi03:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVI03_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-I3-SDR
+  svi04:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVI04_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-I4-SDR
+  svi05:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVI05_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-I5-SDR
+  svm01:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM01_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M1-SDR
+  svm02:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM02_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M2-SDR
+  svm03:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM03_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M3-SDR
+  svm04:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM04_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M4-SDR
+  svm05:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM05_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M5-SDR
+  svm06:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM06_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M6-SDR
+  svm07:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM07_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M7-SDR
+  svm08:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM08_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M8-SDR
+  svm09:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM09_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M9-SDR
+  svm10:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM10_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M10-SDR
+  svm11:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM11_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M11-SDR
+  svm12:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM12_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M12-SDR
+  svm13:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM13_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M13-SDR
+  svm14:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM14_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M14-SDR
+  svm15:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM15_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M15-SDR
+  svm16:
+    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
+    file_patterns: ['SVM16_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    file_group: VIIRS-M16-SDR
