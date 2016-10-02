@@ -477,6 +477,16 @@ class FileYAMLReader(AbstractYAMLReader):
         area.name = navid.name
         return area
 
+    def _preferred_filetype(self, filetypes):
+        if not isinstance(filetypes, list):
+            filetypes = [filetypes]
+
+        # look through the file types and use the first one that we have loaded
+        for ft in filetypes:
+            if ft in self.file_handlers:
+                return ft
+        return None
+
     def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         loaded_navs = {}
         datasets = DatasetDict()
@@ -485,12 +495,12 @@ class FileYAMLReader(AbstractYAMLReader):
             dsid = self.get_dataset_key(dataset_key)
             ds_info = self.ids[dsid][1]
 
-            # Get the file handler to load this dataset
-            filetype = ds_info['file_type']
-            if filetype not in self.file_handlers:
+            # Get the file handler to load this dataset (list or single string)
+            filetype = self._preferred_filetype(ds_info['file_type'])
+            if filetype is None:
                 raise RuntimeError(
                     "Required file type '{}' not found or loaded".format(
-                        filetype))
+                        ds_info['file_type']))
             file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
@@ -520,11 +530,11 @@ class FileYAMLReader(AbstractYAMLReader):
                     proj.info["area"] = loaded_navs[navid.name]
                 else:
                     nav_info = self.config['navigation'][navid.name]
-                    nav_filetype = nav_info['file_type']
-                    if nav_filetype not in self.file_handlers:
+                    nav_filetype = self._preferred_filetype(nav_info['file_type'])
+                    if nav_filetype is None:
                         raise RuntimeError(
                             "Required file type '{}' not found or loaded".format(
-                                nav_filetype))
+                                nav_info['file_type']))
                     nav_fhs = self.file_handlers[nav_filetype]
 
                     ds_area = self._load_area(navid, nav_fhs, nav_info,

@@ -333,7 +333,7 @@ datasets:
     units: degrees
     navigation: gmtco
 #    navigation: [gmtco, gmodo]
-    file_type: gmtco
+    file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
   M_SOLA:
     name: solar_azimuth_angle
@@ -342,7 +342,7 @@ datasets:
     units: degrees
     navigation: gmtco
 #    navigation: [gmtco, gmodo]
-    file_type: gmtco
+    file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
   M_SENZ:
     name: satellite_zenith_angle
@@ -351,7 +351,7 @@ datasets:
     units: degrees
     navigation: gmtco
 #    navigation: [gmtco, gmodo]
-    file_type: gmtco
+    file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
   M_SENA:
     name: satellite_azimuth_angle
@@ -360,7 +360,7 @@ datasets:
     units: degrees
     navigation: gmtco
 #    navigation: [gmtco, gmodo]
-    file_type: gmtco
+    file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
   DNB:
     name: DNB
