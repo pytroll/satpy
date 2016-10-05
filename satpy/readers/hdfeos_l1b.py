@@ -56,7 +56,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
-class HDFEOSFileReader(object):
+class HDFEOSFileReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         self.filename = filename
@@ -274,7 +274,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         return lon, lat
 
 
-class HDFEOSBandReader(HDFEOSFileReader, BaseFileHandler):
+class HDFEOSBandReader(HDFEOSFileReader):
 
     res = {"1": 1000,
            "Q": 250,
