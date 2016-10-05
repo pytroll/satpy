@@ -364,8 +364,12 @@ datasets:
 
 file_types:
   hdf_eos_data:
-    file_patterns: ['M{platform_indicator:1s}D02{resolution:1s}km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf']
+    file_patterns:
+    - 'M{platform_indicator:1s}D02{resolution:1s}km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.{resolution:s}.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader ''
   hdf_eos_geo:
-    file_patterns: ['M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf']
+    file_patterns:
+    - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSGeoReader ''
