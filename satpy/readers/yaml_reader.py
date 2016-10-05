@@ -74,7 +74,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def all_dataset_names(self):
-        return (ds_id.name for ds_id in self.all_dataset_ids)
+        # remove the duplicates from various calibration and resolutions
+        return set(ds_id.name for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
@@ -297,7 +298,12 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        return (ds_id for ds_id in self.all_dataset_ids if self.ids[ds_id][1]["file_type"] in self.file_handlers)
+        for ds_id in self.all_dataset_ids:
+            fts = self.ids[ds_id][1]["file_type"]
+            if isinstance(fts, str) and fts in self.file_handlers:
+                yield ds_id
+            elif any(ft in self.file_handlers for ft in fts):
+                yield ds_id
 
     @property
     def start_time(self):

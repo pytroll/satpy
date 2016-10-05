@@ -177,8 +177,8 @@ class Scene(InfoObject):
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
-        return [x.name if isinstance(x, DatasetID) else x
-                for x in self.available_dataset_ids(reader_name=reader_name, composites=composites)]
+        return list(set(x.name if isinstance(x, DatasetID) else x
+                        for x in self.available_dataset_ids(reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
         """Get names of all datasets from loaded readers or `reader_name` if
