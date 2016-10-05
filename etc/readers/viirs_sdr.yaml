@@ -34,6 +34,7 @@ datasets:
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
+    modifiers: [sunz_corrector]
     file_type: svi01
     resolution: 371
 #    navigation: [gitco, gimgo]
@@ -48,6 +49,7 @@ datasets:
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
+    modifiers: [sunz_corrector]
     file_type: svi02
     resolution: 371
 #    navigation: [gitco, gimgo]
@@ -62,6 +64,7 @@ datasets:
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
+    modifiers: [sunz_corrector]
     file_type: svi03
     resolution: 371
 #    navigation: [gitco, gimgo]
@@ -76,6 +79,7 @@ datasets:
   I04:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
+    modifiers: [sunz_corrector]
     file_type: svi04
     resolution: 371
 #    navigation: [gitco, gimgo]
@@ -90,6 +94,7 @@ datasets:
   I05:
     name: I05
     wavelength: [10.500, 11.450, 12.300]
+    modifiers: [sunz_corrector]
     file_type: svi05
     resolution: 371
 #    navigation: [gitco, gimgo]
@@ -104,6 +109,7 @@ datasets:
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
+    modifiers: [sunz_corrector]
     file_type: svm01
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -118,6 +124,7 @@ datasets:
   M02:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
+    modifiers: [sunz_corrector]
     file_type: svm02
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -132,6 +139,7 @@ datasets:
   M03:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
+    modifiers: [sunz_corrector]
     file_type: svm03
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -146,6 +154,7 @@ datasets:
   M04:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
+    modifiers: [sunz_corrector]
     file_type: svm04
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -160,6 +169,7 @@ datasets:
   M05:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
+    modifiers: [sunz_corrector]
     file_type: svm05
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -174,6 +184,7 @@ datasets:
   M06:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
+    modifiers: [sunz_corrector]
     file_type: svm06
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -188,6 +199,7 @@ datasets:
   M07:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
+    modifiers: [sunz_corrector]
     file_type: svm07
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -202,6 +214,7 @@ datasets:
   M08:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
+    modifiers: [sunz_corrector]
     file_type: svm08
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -216,6 +229,7 @@ datasets:
   M09:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
+    modifiers: [sunz_corrector]
     file_type: svm09
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -230,6 +244,7 @@ datasets:
   M10:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
+    modifiers: [sunz_corrector]
     file_type: svm10
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -244,6 +259,7 @@ datasets:
   M11:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
+    modifiers: [sunz_corrector]
     file_type: svm11
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -258,6 +274,7 @@ datasets:
   M12:
     name: M12
     wavelength: [3.610, 3.700, 3.790]
+    modifiers: [sunz_corrector]
     file_type: svm12
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -272,6 +289,7 @@ datasets:
   M13:
     name: M13
     wavelength: [3.973, 4.050, 4.128]
+    modifiers: [sunz_corrector]
     file_type: svm13
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -286,6 +304,7 @@ datasets:
   M14:
     name: M14
     wavelength: [8.400, 8.550, 8.700]
+    modifiers: [sunz_corrector]
     file_type: svm14
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -300,6 +319,7 @@ datasets:
   M15:
     name: M15
     wavelength: [10.263, 10.763, 11.263]
+    modifiers: [sunz_corrector]
     file_type: svm15
     resolution: 742
 #    navigation: [gmtco, gmodo]
@@ -314,6 +334,7 @@ datasets:
   M16:
     name: M16
     wavelength: [11.538, 12.013, 12.489]
+    modifiers: [sunz_corrector]
     file_type: svm16
     resolution: 742
 #    navigation: [gmtco, gmodo]
