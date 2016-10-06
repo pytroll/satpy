@@ -30,7 +30,7 @@ import numpy as np
 import six
 import yaml
 
-from satpy.config import CONFIG_PATH, config_search_paths, glob_config
+from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.projectable import InfoObject, Projectable, combine_info
 from satpy.readers import DatasetID
 from satpy.tools import sunzen_corr_cos
@@ -73,8 +73,7 @@ class CompositorLoader(object):
                 LOG.debug("No composite config found called %s",
                           config_filename)
                 continue
-            for composite_config in set(composite_configs):
-                self._load_config(composite_config)
+            self._load_config(composite_configs)
 
     def load_compositor(self, key, sensor_names):
         for sensor_name in sensor_names:
@@ -95,9 +94,14 @@ class CompositorLoader(object):
             res.update(self.compositors[sensor_name])
         return res
 
-    def _load_config(self, composite_config, **kwargs):
-        with open(composite_config) as conf_file:
-            conf = yaml.load(conf_file)
+    def _load_config(self, composite_configs, **kwargs):
+        if not isinstance(composite_configs, (list, tuple)):
+            composite_configs = [composite_configs]
+
+        conf = {}
+        for composite_config in composite_configs:
+            with open(composite_config) as conf_file:
+                conf = recursive_dict_update(conf, yaml.load(conf_file))
 
         try:
             sensor_name = conf['sensor_name']
@@ -273,7 +277,16 @@ class SunZenithCorrector(CompositeBase):
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
 
-        proj = sunzen_corr_cos(projectables[0], coszen)
+        if projectables[0].shape != coszen.shape:
+            # assume we were given lower resolution szen data than band data
+            LOG.debug(
+                "Interpolating coszen calculations for higher resolution band")
+            factor = int(projectables[0].shape[1] / coszen.shape[1])
+            coszen = np.repeat(np.repeat(coszen, factor, axis=0), factor, axis=1)
+
+        # sunz correction will be in place so we need a copy
+        proj = projectables[0].copy()
+        proj = sunzen_corr_cos(proj, coszen)
         self.apply_modifier_info(projectables[0], proj)
         return proj
 

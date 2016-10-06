@@ -29,7 +29,7 @@ import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import namedtuple, Mapping
+from collections import namedtuple
 from fnmatch import fnmatch
 
 import numpy as np
@@ -37,6 +37,7 @@ import six
 import yaml
 
 from pyresample import geometry
+from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
 from satpy.readers import AreaID, DatasetDict, DatasetID
 from trollsift.parser import globify, parse
@@ -44,23 +45,6 @@ from trollsift.parser import globify, parse
 LOG = logging.getLogger(__name__)
 
 Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
-
-
-def update(d, u):
-    """Recursive dictionary update using
-
-    Copied from:
-
-        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
-
-    """
-    for k, v in u.items():
-        if isinstance(v, Mapping):
-            r = update(d.get(k, {}), v)
-            d[k] = r
-        else:
-            d[k] = u[k]
-    return d
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
@@ -71,7 +55,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
-                self.config = update(self.config, yaml.load(fd))
+                self.config = recursive_dict_update(self.config, yaml.load(fd))
 
         self.info = self.config['reader']
         self.name = self.info['name']
