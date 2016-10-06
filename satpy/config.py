@@ -28,6 +28,7 @@
 import os
 import glob
 import logging
+from collections import Mapping
 
 from six.moves import configparser
 
@@ -112,3 +113,20 @@ def get_config_path(filename, *search_dirs):
     for path in paths:
         if os.path.exists(path):
             return path
+
+
+def recursive_dict_update(d, u):
+    """Recursive dictionary update using
+
+    Copied from:
+
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+
+    """
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            r = recursive_dict_update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d

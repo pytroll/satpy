@@ -29,7 +29,7 @@ import os
 import sys
 
 import numpy as np
-from memory_profiler import profile
+# from memory_profiler import profile
 
 LOG = logging.getLogger(__name__)
 
@@ -391,7 +391,10 @@ def run_crefl(refl, coeffs,
         TtotraytH2O = np.repeat(
             np.repeat(TtotraytH2O, factor, axis=0),
             factor, axis=1)
-        sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
+        # if average height wasn't provided then this should stay a scalar
+        if sphalb.size != 1:
+            # otherwise make it the same size as the other arrays
+            sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
 
     # Note: Assume that fill/invalid values are either NaN or we are dealing
     # with masked arrays
