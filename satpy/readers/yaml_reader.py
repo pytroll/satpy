@@ -29,7 +29,7 @@ import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import namedtuple
+from collections import namedtuple, Mapping
 from fnmatch import fnmatch
 
 import numpy as np
@@ -46,6 +46,23 @@ LOG = logging.getLogger(__name__)
 Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
+def update(d, u):
+    """Recursive dictionary update using
+
+    Copied from:
+
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+
+    """
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            r = update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
+
+
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     __metaclass__ = ABCMeta
 
@@ -54,7 +71,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
-                self.config.update(yaml.load(fd))
+                self.config = update(self.config, yaml.load(fd))
 
         self.info = self.config['reader']
         self.name = self.info['name']
