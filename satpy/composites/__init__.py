@@ -263,7 +263,7 @@ class SunZenithCorrector(CompositeBase):
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(np.datetime64(projectables[0].info["start_time"]),
+                self.coszen[key] = np.ma.masked_outside(cos_zen(projectables[0].info["start_time"],
                                                                 *projectables[0].info["area"].get_lonlats()),
                                                         # about 88 degrees.
                                                         0.035,
@@ -341,7 +341,6 @@ class CO2Corrector(CompositeBase):
         t4_co2corr = t4_co2corr**0.25
 
         info = ir_039.info.copy()
-        info.setdefault('modifiers', []).append('co2_correction')
 
         proj = Projectable(t4_co2corr, mask=t4_co2corr.mask, **info)
 
