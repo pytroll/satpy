@@ -41,13 +41,14 @@ import math
 import multiprocessing
 import os.path
 from ConfigParser import ConfigParser
+from datetime import datetime
 from fnmatch import fnmatch
 
 import numpy as np
-from pyresample import geometry
 
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
+from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
 from satpy.readers import DatasetID
@@ -67,20 +68,22 @@ class HDFEOSFileReader(BaseFileHandler):
                              + ": " + str(err))
         self.sd = SD(self.filename)
         self.mda = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.mda.update(self.read_mda(self.sd.attributes()['StructMetadata.0']))
-        self.mda.update(self.read_mda(self.sd.attributes()['ArchiveMetadata.0']))
+        self.mda.update(self.read_mda(
+            self.sd.attributes()['StructMetadata.0']))
+        self.mda.update(self.read_mda(
+            self.sd.attributes()['ArchiveMetadata.0']))
 
     @property
     def start_time(self):
         date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
                 self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
-        return np.datetime64(date)
+        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
         date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
                 self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
-        return np.datetime64(date)
+        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     def read_mda(self, attribute):
         lines = attribute.split('\n')
@@ -123,24 +126,32 @@ class HDFEOSGeoReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        ds = self.mda['INVENTORYMETADATA'][
+            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
             self.resolution = 1000
         else:
             self.resolution = 5000
         self.cache = {}
 
+    def get_area_def(self, *args, **kwargs):
+        raise NotImplementedError
+
     def get_area(self, navid, nav_info, lon_out=None, lat_out=None):
         # TODO: read in place when lon_out and lat_out are provided
-        lons_id = DatasetID(nav_info['longitude_key'], resolution=navid.resolution)
-        lats_id = DatasetID(nav_info['latitude_key'], resolution=navid.resolution)
+        lons_id = DatasetID(nav_info['longitude_key'],
+                            resolution=navid.resolution)
+        lats_id = DatasetID(nav_info['latitude_key'],
+                            resolution=navid.resolution)
         try:
             lons = self.cache[lons_id]
             lats = self.cache[lats_id]
         except KeyError:
-            lons, lats = self.load([lons_id, lats_id], interpolate=False, raw=True)
+            lons, lats = self.load(
+                [lons_id, lats_id], interpolate=False, raw=True)
             from geotiepoints.geointerpolator import GeoInterpolator
-            lons, lats = self._interpolate([lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
+            lons, lats = self._interpolate(
+                [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
             self.cache[lons_id] = lons
             self.cache[lats_id] = lats
 
@@ -283,7 +294,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        ds = self.mda['INVENTORYMETADATA'][
+            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         self.resolution = self.res[ds[-3]]
 
     def get_dataset(self, key, info):
@@ -367,7 +379,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
                 else:
                     array = calibrate_refl(subdata, uncertainty, indices)
                 for (i, idx) in enumerate(indices):
-                    dsid = [key for key in keys if key.name == band_names[idx]][0]
+                    dsid = [key for key in keys if key.name ==
+                            band_names[idx]][0]
                     area = self.navigation_reader.get_area(self.resolution)
                     projectable = Projectable(array[i], id=dsid, area=area)
                     if ((platform_name == 'Aqua' and dsid.name in ["6", "27", "36"]) or
@@ -466,7 +479,8 @@ def calibrate_refl(subdata, uncertainty, indices):
                                  valid_range[0],
                                  valid_range[1],
                                  copy=False)
-    array = np.ma.masked_where((uncertainty.get()[indices, :, :] >= 15), array, False)
+    array = np.ma.masked_where(
+        (uncertainty.get()[indices, :, :] >= 15), array, False)
 
     array = array * np.float32(1.0)
     offsets = np.array(subdata.attributes()["reflectance_offsets"],
@@ -489,7 +503,8 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
                                  valid_range[0],
                                  valid_range[1],
                                  copy=False)
-    array = np.ma.masked_where((uncertainty.get()[indices, :, :] >= 15), array, False)
+    array = np.ma.masked_where(
+        (uncertainty.get()[indices, :, :] >= 15), array, False)
     offsets = np.array(subdata.attributes()["radiance_offsets"],
                        dtype=np.float32)[indices]
     scales = np.array(subdata.attributes()["radiance_scales"],
@@ -556,5 +571,7 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
 if __name__ == '__main__':
     from satpy.utils import debug_on
     debug_on()
-    br = HDFEOSBandReader('/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
-    gr = HDFEOSGeoReader('/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')
+    br = HDFEOSBandReader(
+        '/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
+    gr = HDFEOSGeoReader(
+        '/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')
