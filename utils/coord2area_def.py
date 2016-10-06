@@ -39,9 +39,10 @@ REGION: france {
 
 """
 
-import sys
-from pyproj import Proj
 import argparse
+import sys
+
+from pyproj import Proj
 
 if __name__ == '__main__':
 
@@ -96,11 +97,12 @@ if __name__ == '__main__':
                    max(right_ex1, right_ex2, right_ex3),
                    max(down_ex1, down_ex2))
 
-    xsize = int((area_extent[2] - area_extent[0]) / res)
-    ysize = int((area_extent[3] - area_extent[1]) / res)
+    xsize = int(round((area_extent[2] - area_extent[0]) / res))
+    ysize = int(round((area_extent[3] - area_extent[1]) / res))
 
     proj4_string = "+" + \
-        " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) + ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
+        " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
+                   ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
     print proj4_string
 
@@ -126,7 +128,8 @@ if __name__ == '__main__':
     area_def = (proj4_string, area_extent)
     cw = ContourWriterAGG(args.shapes)
     #cw = ContourWriterAGG('/usr/share/gshhg-gmt-shp/')
-    cw.add_coastlines(img, (proj4_string, area_extent), resolution='l', width=0.5)
+    cw.add_coastlines(img, (proj4_string, area_extent),
+                      resolution='l', width=0.5)
 
     cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline='white', outline_opacity=175, width=1.0,
                 minor_outline='white', minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
