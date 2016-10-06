@@ -184,7 +184,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
-            lut_var_path = ds_info.get('lut', 'observation_data/{}_brightness_temperature_lut'.format(dataset_id.name))
+            lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             # we get the BT values from a look up table using the scaled radiance integers
             out.data[:] = np.require(self[lut_var_path][:][self[var_path][:].ravel()], dtype=dtype).reshape(shape)
             valid_min = self[lut_var_path + '/attr/valid_min']
