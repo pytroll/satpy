@@ -71,8 +71,13 @@ class xRITFile(AbstractYAMLReader):
     def load(self, dataset_keys, area=None, start_time=None, end_time=None):
         image_files = []
         pattern = self.file_patterns[0]
+        prologue_file = None
+        epilogue_file = None
         for filename in self.info['filenames']:
-            file_info = parse(pattern, os.path.basename(filename))
+            try:
+                file_info = parse(pattern, os.path.basename(filename))
+            except ValueError:
+                continue
             if file_info["segment"] == "EPI":
                 epilogue_file = filename
             elif file_info["segment"] == "PRO":
@@ -92,12 +97,19 @@ class xRITFile(AbstractYAMLReader):
                 if file_info["dataset_name"] == ds.name:
                     channel_files.append(filename)
                 start_times.add(file_info['start_time'])
+
+            if not channel_files:
+                continue
+            kwargs = {}
+            if 'platform_name' in self.info:
+                kwargs['platform_name'] = self.info['platform_name']
             # Convert area definitions to maximal area_extent
             if not area_converted_to_extent and area is not None:
                 metadata = xrit.sat.load_files(prologue_file,
                                                channel_files,
                                                epilogue_file,
-                                               only_metadata=True)
+                                               only_metadata=True,
+                                               **kwargs)
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
                 area_extent = area_defs_to_extent(
@@ -114,7 +126,8 @@ class xRITFile(AbstractYAMLReader):
                                             channel_files,
                                             epilogue_file,
                                             mask=True,
-                                            calibrate=calibrate)
+                                            calibrate=calibrate,
+                                            **kwargs)
                 if area_extent:
                     metadata, data = image(area_extent)
                 else:
@@ -126,7 +139,8 @@ class xRITFile(AbstractYAMLReader):
                                             channel_files,
                                             epilogue_file,
                                             mask=True,
-                                            calibrate=False)
+                                            calibrate=False,
+                                            **kwargs)
                 if area_extent:
                     metadata, data = image(area_extent)
                 else:
@@ -141,6 +155,9 @@ class xRITFile(AbstractYAMLReader):
             else:
                 sensor = metadata.instruments[0]
 
+            units = {'ALBEDO(%)': '%',
+                     'KELVIN': 'K'}
+
             standard_names = {'1': 'counts',
                               'W m-2 sr-1 m-1':
                               'toa_outgoing_radiance_per_unit_wavelength',
@@ -148,11 +165,13 @@ class xRITFile(AbstractYAMLReader):
                               'K':
                               'toa_brightness_temperature'}
 
+            unit = units.get(metadata.calibration_unit,
+                             metadata.calibration_unit)
             projectable = Projectable(
                 data,
                 name=ds.name,
-                units=metadata.calibration_unit,
-                standard_name=standard_names[metadata.calibration_unit],
+                units=unit,
+                standard_name=standard_names[unit],
                 sensor=sensor,
                 start_time=min(start_times),
                 id=ds)
