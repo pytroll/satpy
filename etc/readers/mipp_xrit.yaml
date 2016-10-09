@@ -16,9 +16,11 @@ datasets:
     wavelength: [0.5, 0.7, 0.9]
     calibration:
       reflectance:
-        standard_name: reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
-        standard_name: radiance
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
     file_type: xRIT
@@ -118,22 +120,58 @@ datasets:
     name: VIS006
     resolution: 3000.403165817
     wavelength: [0.56, 0.635, 0.71]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
     file_type: xRIT
 
   VIS008:
     name: VIS008
     resolution: 3000.403165817
     wavelength: [0.74, 0.81, 0.88]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
     file_type: xRIT
 
   WV_062:
     name: WV_062
     resolution: 3000.403165817
     wavelength: [5.35, 6.25, 7.15]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
     file_type: xRIT
 
   WV_073:
     name: WV_073
     resolution: 3000.403165817
     wavelength: [6.85, 7.35, 7.85]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
     file_type: xRIT
