@@ -35,8 +35,8 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -239,6 +239,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                                    dtype=_PROJ_INFO_TYPE,
                                    shape=(1, ),
                                    offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize)[0]
+        self.nav_info = np.memmap(self.filename,
+                                  dtype=_NAV_INFO_TYPE,
+                                  shape=(1, ),
+                                  offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize + _PROJ_INFO_TYPE.itemsize)[0]
 
     def get_shape(self, dsid, ds_info):
         return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
@@ -408,7 +412,13 @@ class AHIHSDFileHandler(BaseFileHandler):
                         wavelength=info['wavelength'],
                         resolution='resolution',
                         id=key,
-                        name=key.name)
+                        name=key.name,
+                        satellite_longitude=float(
+                            self.nav_info['SSP_longitude']),
+                        satellite_latitude=float(
+                            self.nav_info['SSP_latitude']),
+                        satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
+                                                 self.proj_info['earth_equatorial_radius']) * 1000)
         out.info.update(new_info)
 
     def calibrate(self, data, calibration):
