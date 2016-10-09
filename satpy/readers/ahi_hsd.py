@@ -441,7 +441,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Visible channel calibration only.
         """
         coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
-        data.data[:] *= coeff
+        data.data[:] *= coeff * 100
         data.mask[data.data < 0] = True
 
     def _ir_calibrate(self, data):
