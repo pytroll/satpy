@@ -30,7 +30,8 @@ import numpy as np
 import six
 import yaml
 
-from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
+from satpy.config import (CONFIG_PATH, config_search_paths,
+                          recursive_dict_update)
 from satpy.projectable import InfoObject, Projectable, combine_info
 from satpy.readers import DatasetID
 from satpy.tools import sunzen_corr_cos
@@ -94,6 +95,89 @@ class CompositorLoader(object):
             res.update(self.compositors[sensor_name])
         return res
 
+    def _process_composite_config(self, composite_name, conf,
+                                  composite_type, sensor_id, composite_config, **kwargs):
+
+        compositors = self.compositors[sensor_id]
+        modifiers = self.modifiers[sensor_id]
+
+        options = conf[composite_type][composite_name]
+
+        try:
+            loader = options.pop('compositor')
+        except KeyError:
+            if composite_name in compositors or composite_name in modifiers:
+                return conf
+            raise ValueError("'compositor' missing or empty in %s" %
+                             composite_config)
+
+        options['name'] = composite_name
+
+        # fix prerequisites in case of modifiers
+
+        for prereq_type in ['prerequisites', 'optional_prerequisites']:
+            prereqs = []
+            for item in options.get(prereq_type, []):
+                if isinstance(item, dict):
+
+                    mods = item.get('modifiers', tuple())
+
+                    key = DatasetID(item.get('name'),
+                                    item.get('wavelength'),
+                                    item.get('resolution'),
+                                    item.get('polarization'),
+                                    item.get('calibration'),
+                                    mods)
+
+                    comp_id = DatasetID(item.get('name'),
+                                        item.get('wavelength'),
+                                        item.get('resolution'),
+                                        item.get('polarization'),
+                                        item.get('calibration'),
+                                        tuple())
+                    comp_name = item.get('name')
+                    mods = key.modifiers
+                    for modifier in mods:
+                        prev_comp_name = comp_name
+                        prev_comp_id = comp_id
+                        new_mods = tuple(
+                            list(comp_id.modifiers or []) + [modifier])
+                        comp_id = DatasetID(key.name,
+                                            key.wavelength,
+                                            key.resolution,
+                                            key.polarization,
+                                            key.calibration,
+                                            new_mods)
+                        comp_name = key.name
+
+                        try:
+                            mloader, moptions = modifiers[modifier]
+                        except KeyError:
+                            self._process_composite_config(modifier, conf,
+                                                           composite_type, sensor_id, composite_config, **kwargs)
+                            mloader, moptions = modifiers[modifier]
+
+                        moptions = moptions.copy()
+                        moptions.update(**kwargs)
+                        moptions['name'] = modifier
+                        moptions['id'] = comp_id
+                        moptions['prerequisites'] = (
+                            [prev_comp_id] + moptions['prerequisites'])
+                        moptions['sensor'] = sensor_id
+                        compositors[comp_id] = mloader(**moptions)
+                    prereqs.append(comp_id)
+                else:
+                    prereqs.append(item)
+            options[prereq_type] = prereqs
+
+        if composite_type == 'composites':
+            options.update(**kwargs)
+            options['id'] = options['name']
+            comp = loader(**options)
+            compositors[composite_name] = comp
+        elif composite_type == 'modifiers':
+            modifiers[composite_name] = loader, options
+
     def _load_config(self, composite_configs, **kwargs):
         if not isinstance(composite_configs, (list, tuple)):
             composite_configs = [composite_configs]
@@ -102,7 +186,6 @@ class CompositorLoader(object):
         for composite_config in composite_configs:
             with open(composite_config) as conf_file:
                 conf = recursive_dict_update(conf, yaml.load(conf_file))
-
         try:
             sensor_name = conf['sensor_name']
         except KeyError:
@@ -127,81 +210,12 @@ class CompositorLoader(object):
             # No deps, so no updating is needed
             pass
 
-        for i in ['modifiers', 'composites']:
-            if i not in conf:
+        for composite_type in ['modifiers', 'composites']:
+            if composite_type not in conf:
                 continue
-            for composite_name, options in conf[i].items():
-                try:
-                    loader = options.pop('compositor')
-                except KeyError:
-                    raise ValueError("'compositor' missing or empty in %s" %
-                                     composite_config)
-                options['name'] = composite_name
-
-                # fix prerequisites in case of modifiers
-
-                for prereq_type in ['prerequisites', 'optional_prerequisites']:
-                    prereqs = []
-                    for item in options.get(prereq_type, []):
-                        if isinstance(item, dict):
-                            # prereqs.append(item.keys()[0])
-                            # if len(item.keys()) > 1:
-                            # raise RuntimeError('Wrong prerequisite definition')
-
-                            mods = item.get('modifiers', tuple())
-
-                            key = DatasetID(item.get('name'),
-                                            item.get('wavelength'),
-                                            item.get('resolution'),
-                                            item.get('polarization'),
-                                            item.get('calibration'),
-                                            mods)
-
-                            # key = item.keys()[0]
-                            # mods = item.values()[0]
-                            comp_id = DatasetID(item.get('name'),
-                                                item.get('wavelength'),
-                                                item.get('resolution'),
-                                                item.get('polarization'),
-                                                item.get('calibration'),
-                                                tuple())
-                            comp_name = item.get('name')
-                            mods = key.modifiers
-                            for modifier in mods:
-                                prev_comp_name = comp_name
-                                prev_comp_id = comp_id
-                                # comp_name = '_'.join((str(comp_name), modifier))
-                                # comp_name =
-                                new_mods = tuple(
-                                    list(comp_id.modifiers or []) + [modifier])
-                                comp_id = DatasetID(key.name,
-                                                    key.wavelength,
-                                                    key.resolution,
-                                                    key.polarization,
-                                                    key.calibration,
-                                                    new_mods)
-                                comp_name = key.name
-                                mloader, moptions = modifiers[modifier]
-                                moptions = moptions.copy()
-                                moptions.update(**kwargs)
-                                moptions['name'] = modifier
-                                moptions['id'] = comp_id
-                                moptions['prerequisites'] = (
-                                    [prev_comp_id] + moptions['prerequisites'])
-
-                                compositors[comp_id] = mloader(**moptions)
-                            prereqs.append(comp_id)
-                        else:
-                            prereqs.append(item)
-                    options[prereq_type] = prereqs
-
-                if i == 'composites':
-                    options.update(**kwargs)
-                    options['id'] = options['name']
-                    comp = loader(**options)
-                    compositors[composite_name] = comp
-                elif i == 'modifiers':
-                    modifiers[composite_name] = loader, options
+            for composite_name in conf[composite_type]:
+                self._process_composite_config(composite_name, conf,
+                                               composite_type, sensor_id, composite_config, **kwargs)
 
         return conf
 
