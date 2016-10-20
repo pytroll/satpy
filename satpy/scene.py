@@ -399,6 +399,7 @@ class Scene(InfoObject):
                 except KeyError:
                     LOG.debug("Can't find dataset %s in reader %s",
                               str(dataset_key), reader_name)
+                    ds_id = dataset_key
                 try:
                     self.wishlist.remove(dataset_key)
                 except KeyError:
