@@ -271,18 +271,19 @@ class SunZenithCorrector(CompositeBase):
     coszen = {}
 
     def __call__(self, projectables, **info):
-        if projectables[0].info.get("sunz_corrected"):
+        (vis, ) = projectables
+        if vis.info.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
-            return projectables[0]
-        key = (projectables[0].info["start_time"],
-               projectables[0].info["area"].name)
+            return vis
+        key = (vis.info["start_time"],
+               vis.info["area"].name)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(projectables[0].info["start_time"],
-                                                                *projectables[0].info["area"].get_lonlats()),
+                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
+                                                                *vis.info["area"].get_lonlats()),
                                                         # about 88 degrees.
                                                         0.035,
                                                         1,
@@ -291,17 +292,19 @@ class SunZenithCorrector(CompositeBase):
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
 
-        if projectables[0].shape != coszen.shape:
+        if vis.shape != coszen.shape:
             # assume we were given lower resolution szen data than band data
             LOG.debug(
                 "Interpolating coszen calculations for higher resolution band")
-            factor = int(projectables[0].shape[1] / coszen.shape[1])
-            coszen = np.repeat(np.repeat(coszen, factor, axis=0), factor, axis=1)
+            factor = int(vis.shape[1] / coszen.shape[1])
+            coszen = np.repeat(
+                np.repeat(coszen, factor, axis=0), factor, axis=1)
 
         # sunz correction will be in place so we need a copy
-        proj = projectables[0].copy()
+        proj = vis.copy()
         proj = sunzen_corr_cos(proj, coszen)
-        self.apply_modifier_info(projectables[0], proj)
+        vis.mask[coszen < 0] = True
+        self.apply_modifier_info(vis, proj)
         return proj
 
 
@@ -318,6 +321,7 @@ class NIRReflectance(CompositeBase):
             raise
 
         nir, tb11 = projectables
+        LOG.info('Getting reflective part of %s', nir.info['name'])
 
         sun_zenith = None
         tb13_4 = None
