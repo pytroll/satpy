@@ -92,7 +92,7 @@ class VIIRSSharpTrueColor(CompositeBase):
         if optional_datasets:
             high_res = optional_datasets[0]
             low_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
-            if True or high_res.info["area"] != low_res.info["area"]:
+            if high_res.info["area"] != low_res.info["area"]:
                 if np.mod(high_res.shape[0], low_res.shape[0]) or \
                     np.mod(high_res.shape[1], low_res.shape[1]):
                     raise IncompatibleAreas(
