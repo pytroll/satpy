@@ -365,7 +365,6 @@ class Scene(InfoObject):
                       resolution=None,
                       **kwargs):
         """Read the given datasets from file."""
-        # TODO: handle optional datasets.
         sensor_names = set()
         loaded_datasets = {}
         # get datasets from readers
@@ -424,8 +423,8 @@ class Scene(InfoObject):
 # TODO: unload unneeded stuff
 
     def read_composites(self, compositor_nodes, **kwargs):
-        # TODO: does this work ?
-        # FIXME: no, it doesn't
+        """Read (generate) composites.
+        """
         composites = []
         for item in reversed(compositor_nodes):
             compositor, prereqs, optional_prereqs = item.data
