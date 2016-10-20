@@ -1,0 +1,10 @@
+sensor_name: visir/olci
+
+composites:
+  true_color:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: 'Oa08'
+    - name: 'Oa06'
+    - name: 'Oa03'
+    standard_name: true_color
