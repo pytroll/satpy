@@ -29,9 +29,51 @@ import numpy as np
 
 import h5netcdf
 from satpy.projectable import Projectable
+from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
+
+
+class NCOLCIGeo(BaseFileHandler):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCOLCIGeo, self).__init__(filename, filename_info,
+                                        filetype_info)
+        self.nc = h5netcdf.File(filename, 'r')
+
+        self.cache = {}
+
+    def get_dataset(self, key, info=None):
+        """Load a dataset
+        """
+
+        if key in self.cache:
+            return self.cache[key]
+
+        logger.debug('Reading %s.', key.name)
+        variable = self.nc[key.name]
+
+        ds = (np.ma.masked_equal(variable[:],
+                                 variable.attrs['_FillValue']) *
+              (variable.attrs['scale_factor'] * 1.0) +
+              variable.attrs.get('add_offset', 0))
+        self.cache[key] = ds
+        return ds
+
+    def get_area(self, navid, nav_info, lon_out, lat_out):
+        """Load an area.
+        """
+        lon_out[:] = self.get_dataset(DatasetID('longitude'))
+        lat_out[:] = self.get_dataset(DatasetID('latitude'))
+
+    @property
+    def start_time(self):
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    @property
+    def end_time(self):
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCOLCI1B(BaseFileHandler):
