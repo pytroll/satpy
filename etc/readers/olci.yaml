@@ -8,7 +8,15 @@ reader:
 file_types:
     esa_l1b:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI1B
-        file_patterns: ['{dataset_name}_radiance.nc']
+        file_patterns: ['S3A_OL_1_EFR____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{stuff}.SEN3/{dataset_name}_radiance.nc']
+    esa_geo:
+        file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIGeo
+        file_patterns: ['S3A_OL_1_EFR____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{stuff}.SEN3/geo_coordinates.nc']
+
+navigation:
+  esa_geo:
+    description: Geolocation
+    file_type: esa_geo
 
 datasets:
   Oa01:
@@ -16,6 +24,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -27,6 +36,7 @@ datasets:
     sensor: olci
     wavelength: [0.4075, 0.4125, 0.4175]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -38,186 +48,223 @@ datasets:
     sensor: olci
     wavelength: [0.4375,0.4425,0.4475]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa04:
     name: Oa04
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa05:
     name: Oa05
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa06:
     name: Oa06
     sensor: olci
     wavelength: [0.555,0.56,0.565]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa07:
     name: Oa07
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa08:
     name: Oa08
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa09:
     name: Oa09
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa10:
     name: Oa10
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa11:
     name: Oa11
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa12:
     name: Oa12
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa13:
     name: Oa13
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa14:
     name: Oa14
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa15:
     name: Oa15
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa16:
     name: Oa16
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa17:
     name: Oa17
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa18:
     name: Oa18
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa19:
     name: Oa19
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa20:
     name: Oa20
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: esa_l1b
+
   Oa21:
     name: Oa21
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
+    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
