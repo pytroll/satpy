@@ -336,13 +336,19 @@ class FileYAMLReader(AbstractYAMLReader):
             file_handlers = []
             for pattern in patterns:
                 used_filenames = set()
+
+                levels = len(pattern.split('/'))
+
                 for filename in remaining_filenames:
-                    if fnmatch(os.path.basename(filename), globify(pattern)):
+                    filebase = os.path.join(
+                        *filename.split(os.path.sep)[-levels:])
+
+                    if fnmatch(filebase, globify(pattern)):
                         # we know how to use this file (even if we may not use
                         # it later)
                         used_filenames.add(filename)
                         filename_info = parse(pattern,
-                                              os.path.basename(filename))
+                                              filebase)
                         file_handler = filetype_cls(filename, filename_info,
                                                     filetype_info)
 
