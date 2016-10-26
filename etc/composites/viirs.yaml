@@ -32,6 +32,21 @@ composites:
     standard_name: true_color
     high_resolution_band: red
 
+  natural_color:
+    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
+    prerequisites:
+    - name: M11
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M07
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    - name: M05
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    optional_prerequisites:
+    - name: I01
+      modifiers: [sunz_corrector, rayleigh_corrector]
+    standard_name: true_color
+    high_resolution_band: blue
+
   true_color_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
