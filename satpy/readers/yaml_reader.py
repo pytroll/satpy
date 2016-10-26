@@ -488,6 +488,8 @@ class FileYAMLReader(AbstractYAMLReader):
         area = geometry.SwathDefinition(lons, lats)
         # FIXME: How do we name areas?
         area.name = navid.name
+        area.info = getattr(area, 'info', {})
+        area.info.update(nav_info)
         return area
 
     def _preferred_filetype(self, filetypes):
