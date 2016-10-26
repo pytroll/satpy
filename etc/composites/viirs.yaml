@@ -18,22 +18,7 @@ modifiers:
 composites:
 
   true_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor
-    prerequisites:
-    - name: M05
-      modifiers: [sunz_corrector, rayleigh_corrector]
-    - name: M04
-      modifiers: [sunz_corrector, rayleigh_corrector]
-    - name: M03
-      modifiers: [sunz_corrector, rayleigh_corrector]
-# FIXME: Ratio is wrong due to sunz correction producing high output (I think)
-#    optional_prerequisites:
-#    - I01: [sunz_corrector, rayleigh_corrector]
-
-    standard_name: true_color
-
-  sharp_true_color:
-    compositor: !!python/name:satpy.composites.viirs.VIIRSSharpTrueColor
+    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
     prerequisites:
     - name: M05
       modifiers: [sunz_corrector, rayleigh_corrector]
