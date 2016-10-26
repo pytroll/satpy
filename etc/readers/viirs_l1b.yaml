@@ -114,6 +114,38 @@ datasets:
         units: W m-2 um-1 sr-1
     navigation: vgeoi
     file_type: vl1bi
+  I_SOLZ:
+    name: i_solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 371
+    units: degrees
+    navigation: vgeoi
+    file_type: vgeoi
+    file_key: geolocation_data/solar_zenith
+  I_SOLA:
+    name: i_solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 371
+    units: degrees
+    navigation: vgeoi
+    file_type: vgeoi
+    file_key: geolocation_data/solar_azimuth
+  I_SENZ:
+    name: i_satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 371
+    units: degrees
+    navigation: vgeoi
+    file_type: vgeoi
+    file_key: geolocation_data/sensor_zenith
+  I_SENA:
+    name: i_satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 371
+    units: degrees
+    navigation: vgeoi
+    file_type: vgeoi
+    file_key: geolocation_data/sensor_azimuth
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
@@ -367,14 +399,14 @@ datasets:
     file_type: vl1bd
     file_key: observation_data/DNB_observations
   DNB_SZA:
-    name: DNB_SZA
+    name: dnb_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 743
     navigation: vgeod
     file_type: vgeod
     file_key: geolocation_data/solar_zenith
   DNB_LZA:
-    name: DNB_LZA
+    name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
     resolution: 743
     navigation: vgeod
