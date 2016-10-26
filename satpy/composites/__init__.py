@@ -271,7 +271,7 @@ class SunZenithCorrector(CompositeBase):
     coszen = {}
 
     def __call__(self, projectables, **info):
-        (vis, ) = projectables
+        vis = projectables[0]
         if vis.info.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
