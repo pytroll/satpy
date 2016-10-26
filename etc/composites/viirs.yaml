@@ -84,14 +84,14 @@ composites:
     compositor: !!python/name:satpy.composites.viirs.HistogramDNB
     prerequisites:
     - DNB
-    - DNB_SZA
+    - dnb_solar_zenith_angle
     standard_name: equalized_radiance
     units: "1"
   adaptive_dnb:
     compositor: !!python/name:satpy.composites.viirs.AdaptiveDNB
     prerequisites:
     - DNB
-    - DNB_SZA
+    - dnb_solar_zenith_angle
     adaptive_day: multiple
     adaptive_mixed: always
     adaptive_night: never
@@ -101,8 +101,8 @@ composites:
     compositor: !!python/name:satpy.composites.viirs.ERFDNB
     prerequisites:
     - DNB
-    - DNB_SZA
-    - DNB_LZA
+    - dnb_solar_zenith_angle
+    - dnb_lunar_zenith_angle
     - dnb_moon_illumination_fraction
     standard_name: equalized_radiance
     units: "1"
