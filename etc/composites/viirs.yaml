@@ -44,7 +44,7 @@ composites:
     optional_prerequisites:
     - name: I01
       modifiers: [sunz_corrector, rayleigh_corrector]
-    standard_name: true_color
+    standard_name: natural_color
     high_resolution_band: blue
 
   true_color_raw:
