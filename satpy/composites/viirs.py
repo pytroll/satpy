@@ -75,11 +75,11 @@ class VIIRSTrueColor(CompositeBase):
             **info)
 
 
-class VIIRSSharpTrueColor(CompositeBase):
+class RatioSharpenedRGB(CompositeBase):
 
     def __init__(self, *args, **kwargs):
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        super(VIIRSSharpTrueColor, self).__init__(*args, **kwargs)
+        super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, optional_datasets=[], **info):
         if len(datasets) != 3:
