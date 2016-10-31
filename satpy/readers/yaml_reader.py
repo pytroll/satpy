@@ -285,7 +285,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = getattr(dsid, key)
-                self.ids[dsid] = dskey, ds_info
+                self.ids[dsid] = ds_info
 
         return ids
 
@@ -300,7 +300,7 @@ class FileYAMLReader(AbstractYAMLReader):
     @property
     def available_dataset_ids(self):
         for ds_id in self.all_dataset_ids:
-            fts = self.ids[ds_id][1]["file_type"]
+            fts = self.ids[ds_id]["file_type"]
             if isinstance(fts, str) and fts in self.file_handlers:
                 yield ds_id
             elif any(ft in self.file_handlers for ft in fts):
@@ -508,7 +508,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
-            ds_info = self.ids[dsid][1]
+            ds_info = self.ids[dsid]
 
             # Get the file handler to load this dataset (list or single string)
             filetype = self._preferred_filetype(ds_info['file_type'])
