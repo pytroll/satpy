@@ -1,10 +1,10 @@
 sensor_name: visir
 
 modifiers:
-  sunz_corrector:
+  sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
 
-  co2_correction:
+  co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
     - 10.8
@@ -91,11 +91,11 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 1.63
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - wavelength: 0.635
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     standard_name: natural
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
@@ -115,9 +115,9 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.6
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - wavelength: 0.8
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - 10.8
     standard_name: overview
 

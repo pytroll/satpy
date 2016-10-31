@@ -1,7 +1,7 @@
 sensor_name: visir/viirs
 
 modifiers:
-  rayleigh_corrector:
+  rayleigh_corrected:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     prerequisites:
@@ -10,7 +10,7 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
-  sunz_corrector:
+  sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
     - solar_zenith_angle
@@ -21,14 +21,14 @@ composites:
     compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
     prerequisites:
     - name: M05
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M04
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M03
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
     high_resolution_band: red
 
@@ -36,14 +36,14 @@ composites:
     compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
     prerequisites:
     - name: M11
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M07
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: M05
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrector, rayleigh_corrector]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: natural_color
     high_resolution_band: blue
 
@@ -51,11 +51,11 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: M05
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - name: M04
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     - name: M03
-      modifiers: [sunz_corrector]
+      modifiers: [sunz_corrected]
     standard_name: true_color
 
   night_overview:

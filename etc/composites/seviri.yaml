@@ -1,7 +1,7 @@
 sensor_name: visir/seviri
 
 modifiers:
-  co2_correction:
+  co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     sensor: [seviri]
     prerequisites:
@@ -13,7 +13,7 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 3.75
-      modifiers: [co2_correction]
+      modifiers: [co2_corrected]
     - 10.8
     - 12.0
     standard_name: cloudtop
@@ -23,7 +23,7 @@ composites:
     - 0.635
     - 1.63
     - wavelength: 3.75
-      modifiers: [co2_correction]
+      modifiers: [co2_corrected]
     - 6.7
     - 7.3
     - 10.8
@@ -32,7 +32,7 @@ composites:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
     - wavelength: 3.75
-      modifiers: [co2_correction]
+      modifiers: [co2_corrected]
     - 10.8
     - 12.0
     standard_name: night_fog
