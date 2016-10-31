@@ -4,7 +4,7 @@ reader:
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader ''
   sensors: [viirs]
   default_channels:
-navigation:
+navigations:
   gitco:
     description: Terrain-corrected I-band resolution geolocation
     file_type: gitco

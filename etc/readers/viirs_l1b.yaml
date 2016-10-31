@@ -5,7 +5,7 @@ reader:
   sensors: [viirs]
   default_datasets:
 
-navigation:
+navigations:
   vgeoi:
       description: VIIRS L1B I-band Navigation
       file_type: vgeoi
