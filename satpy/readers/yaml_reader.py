@@ -525,7 +525,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 # we need to load the area because the file handlers didn't
                 navid = AreaID(ds_info.get('navigation'), dsid.resolution)
                 if navid.name is None or navid.name not in self.config[
-                        'navigation']:
+                        'navigations']:
                     try:
                         nav_filetype = filetype
                         navid = dsid
@@ -544,7 +544,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 elif navid.name in loaded_navs:
                     proj.info["area"] = loaded_navs[navid.name]
                 else:
-                    nav_info = self.config['navigation'][navid.name]
+                    nav_info = self.config['navigations'][navid.name]
                     nav_filetype = self._preferred_filetype(nav_info['file_type'])
                     if nav_filetype is None:
                         raise RuntimeError(

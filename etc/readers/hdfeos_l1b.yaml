@@ -5,7 +5,7 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
   sensors: [modis]
 
-navigation:
+navigations:
   hdf_eos_geo:
       description: MODIS navigation
       file_type: hdf_eos_geo

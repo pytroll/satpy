@@ -6,7 +6,7 @@ reader:
   sensors: [amsr2]
   default_channels: []
 
-navigation:
+navigations:
   amsr2_10km:
     description: standard 10km navigation
     file_type: amsr2_l1b

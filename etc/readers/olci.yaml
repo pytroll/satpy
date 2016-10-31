@@ -13,7 +13,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIGeo
         file_patterns: ['S3A_OL_1_EFR____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{stuff}.SEN3/geo_coordinates.nc']
 
-navigation:
+navigations:
   esa_geo:
     description: Geolocation
     file_type: esa_geo
