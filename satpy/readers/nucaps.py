@@ -246,7 +246,6 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
-            "units": self[var_path + '/attr/units'],
         })
         if 'standard_name' not in ds_info:
             ds_info['standard_name'] = self[var_path + '/attr/standard_name']
