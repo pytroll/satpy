@@ -29,6 +29,7 @@ datasets:
   H2O_MR:
     name: H2O_MR
     resolution: 0
+    standard_name:
     navigation: nucaps_geo
     file_type: nucaps
     pressure_based: True
@@ -39,6 +40,7 @@ datasets:
 #    file_type: nucaps
   Pressure_Levels:
     name: Pressure_Levels
+    standard_name: air_pressure
     file_type: nucaps
     file_key: Pressure
     index: 0

@@ -246,7 +246,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
+            "units": self[var_path + '/attr/units'],
         })
+        if 'standard_name' not in ds_info:
+            ds_info['standard_name'] = self[var_path + '/attr/standard_name']
         ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
 
         cls = ds_info.pop("container", Projectable)
@@ -287,6 +290,7 @@ class NUCAPSReader(FileYAMLReader):
                     new_ds_id = ds_id._replace(name=new_info['name'])
                     new_info['id'] = new_ds_id
                     self.ids[new_ds_id] = new_info
+                    self.pressure_dataset_names[ds_id.name].append(new_info['name'])
 
     def load(self, dataset_keys, area=None, start_time=None, end_time=None, pressure_levels=None):
         """Load data from one or more set of files.
