@@ -32,9 +32,9 @@ import h5py
 import logging
 from collections import defaultdict
 
-from satpy.readers import ConfigBasedReader, FileKey, GenericFileReader
+from satpy.projectable import Projectable
+from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -59,52 +59,12 @@ ALL_PRESSURE_LEVELS = [
 ]
 
 
-class NUCAPSFileReader(GenericFileReader):
+class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
-    def create_file_handle(self, filename, **kwargs):
-        """Create a handle to the file that provides data in a standard way.
-
-        See `NetCDF4FileWrapper` for more information.
-        """
-        handle = NetCDF4FileHandler(filename, **kwargs)
-        return handle.filename, handle
-
-    def variable_path(self, item):
-        """Return the file handle's item string, formatting if needed.
-
-        The file reader can be provided with extra keyword information
-        during `__init__` and this information will be used to format
-        the `file_key.variable_name` string. This formatted string can then
-        be passed to the file handle.
-        """
-        if item.endswith("/shape") and item[:-6] in self.file_keys:
-            item = self.file_keys[item[:-6]].variable_name.format(**self.file_info) + "/shape"
-        elif item in self.file_keys:
-            item = self.file_keys[item].variable_name.format(**self.file_info)
-        return item
-
-    def __getitem__(self, item):
-        """Return the provided item data from the file.
-
-        If the `item` is a `file_key` provided during `__init__` then use
-        the file key's `variable_name` instead. If the `file_key` has
-        an `index` or `pressure_index` to subset a data array then that
-        subsetting is also done here.
-        """
-        var_path = self.variable_path(item)
-        data = self.file_handle[var_path]
-        if item in self.file_keys:
-            var_info = self.file_keys[item]
-            if "index" in var_info.kwargs:
-                data = data[int(var_info.kwargs["index"])]
-            if "pressure_index" in var_info.kwargs:
-                data = data[..., int(var_info.kwargs["pressure_index"])]
-
-        return data
 
     def __contains__(self, item):
-        return item in self.file_handle
+        return item in self.file_content
 
     def _parse_datetime(self, datestr):
         """Parse NUCAPS datetime string.
@@ -112,24 +72,30 @@ class NUCAPSFileReader(GenericFileReader):
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
-    def begin_orbit_number(self):
+    def start_time(self):
+        return self._parse_datetime(self['/attr/time_coverage_start'])
+
+    @property
+    def end_time(self):
+        return self._parse_datetime(self['/attr/time_coverage_end'])
+
+    @property
+    def start_orbit_number(self):
         """Return orbit number for the beginning of the swath.
         """
-        return int(self['beginning_orbit_number'])
+        return int(self['/attr/start_orbit_number'])
 
     @property
     def end_orbit_number(self):
         """Return orbit number for the end of the swath.
         """
-        return int(self['ending_orbit_number'])
+        return int(self['/attr/end_orbit_number'])
 
     @property
     def platform_name(self):
         """Return standard platform name for the file's data.
         """
-        # FIXME: If an attribute is added to the file use it, for now hardcode
-        # res = self['platform_short_name']
-        res = "NPP"
+        res = self['/attr/platform_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
@@ -139,80 +105,35 @@ class NUCAPSFileReader(GenericFileReader):
     def sensor_name(self):
         """Return standard sensor or instrument name for the file's data.
         """
-        res = self['instrument_short_name']
+        res = self['/attr/instrument_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
             return res
 
-    def get_file_units(self, item):
-        """Return units of the data in the file for the `item` specified.
-        """
-        # What units should we expect from the file
-        file_units = self.file_keys[item].file_units
-
-        # Guess the file units if we need to (normally we would get this from the file)
-        if file_units is None:
-            # see if there is an attribute
-            try:
-                var_path = self.file_keys[item].variable_name
-                file_units = self[var_path + "/attr/units"]
-                # some file units don't follow the satpy standards
-                if file_units == "none":
-                    file_units = "1"
-                return file_units
-            except (AttributeError, KeyError):
-                LOG.debug("No units attribute found for '%s'", item)
-
-            if "radiance" in item:
-                # we are getting some sort of radiance, probably DNB
-                file_units = "W cm-2 sr-1"
-            elif "reflectance" in item:
-                # CF compliant unit for dimensionless
-                file_units = "1"
-            elif "temperature" in item:
-                file_units = "K"
-            elif "longitude" in item or "latitude" in item:
-                file_units = "degrees"
-            else:
-                LOG.debug("Unknown units for file key '%s'", item)
-
-        return file_units
-
-    def get_shape(self, item):
+    def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified.
         """
-        var_info = self.file_keys[item]
-        shape = self[item + "/shape"]
-        if "index" in var_info.kwargs:
+        var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
+        shape = self[var_path + "/shape"]
+        if "index" in ds_info:
             shape = shape[1:]
-        if "pressure_index" in var_info.kwargs:
+        if "pressure_index" in ds_info:
             shape = shape[:-1]
         return shape
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
-        """Adjust scaling factors to also convert file data to different units.
-
-        It is more efficient to only do arithmetic on the data array once, so
-        if converting units is a linear adjustment then we can "unscale" the
-        data out of the file and convert its units in one set of calculations.
-        """
+        if factors is None or factors[0] is None:
+            factors = [1, 0]
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
-        if factors is None:
-            factors = [1, 0]
         factors = np.array(factors)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
             factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
-            return factors
-        elif file_units == "g/g" and output_units == "g/kg":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 1000.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 1000.0, -999)
             return factors
         elif file_units == "1" and output_units == "%":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
@@ -222,76 +143,120 @@ class NUCAPSFileReader(GenericFileReader):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None):
-        """Get swath data, apply proper scalings, and apply proper masks.
-        """
-        # Can't guarantee proper file info until we get the data first
-        var_info = self.file_keys[item]
-        var_path = self.variable_path(item)
-        # NetCDF4 files for L1B have proper attributes so the NetCDF4 library
-        # can auto scale and auto mask the data
-        data = self[item]
-        valid_max_path = var_path + "/attr/valid_max"
-        valid_range_path = var_path + "/attr/valid_range"
-        fill_value_path = var_path + "/attr/_FillValue"
-        if valid_max_path in self:
-            valid_max = self[valid_max_path]
-        elif valid_range_path in self:
-            valid_max = self[valid_range_path][-1]
+    def combine_info(self, all_infos):
+        info = super(NUCAPSFileHandler, self).combine_info(all_infos)
+        info['Quality_Flag'] = np.concatenate(tuple(nfo['Quality_Flag'] for nfo in all_infos))
+        return info
+
+    def get_area(self, navid, nav_info, lon_out, lat_out):
+        lon_key = nav_info["longitude_key"]
+        try:
+            valid_min, valid_max = self[lon_key + '/attr/valid_range']
+        except KeyError:
+            valid_min = self[lon_key + '/attr/valid_min']
+            valid_max = self[lon_key + '/attr/valid_max']
+        lon_out.data[:] = self[lon_key][:]
+        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
+
+        lat_key = nav_info["latitude_key"]
+        try:
+            valid_min, valid_max = self[lat_key + '/attr/valid_range']
+        except KeyError:
+            valid_min = self[lat_key + '/attr/valid_min']
+            valid_max = self[lat_key + '/attr/valid_max']
+        lat_out.data[:] = self[lat_key][:]
+        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
+
+        return {}
+
+    def get_dataset(self, dataset_id, ds_info, out=None):
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        dtype = ds_info.get('dtype', np.float32)
+        if var_path + '/shape' not in self:
+            # loading a scalar value
+            shape = 1
         else:
-            valid_max = None
-        fill_value = self[fill_value_path] if fill_value_path in self else None
-        data = data[:]
-
-        if data_out is not None:
-            # This assumes that we are promoting the dtypes (ex. float file data -> int array)
-            # and that it happens automatically when assigning to the existing out array
-            data_out[:] = data
-        else:
-            data_out = data[:].astype(var_info.dtype)
-            mask_out = np.zeros_like(data_out, dtype=np.bool)
-
-        # Check if we need to do some unit conversion
-        # file_units = self.get_file_units(item)
-        # output_units = getattr(var_info, "units", file_units
-        if valid_max is not None:
-            mask_out[:] |= data_out > valid_max
-        if fill_value is not None:
-            mask_out[:] |= data_out == fill_value
-
-        if "lut" in var_info.kwargs:
-            factors = None
-            lut = self[var_info.kwargs["lut"]][:]
-            # Note: Need to use the original data as `data_out` might be a non-integer data type
-            data_out[:] = lut[data.ravel()].reshape(data.shape)
-        elif var_info.factor:
-            # L1B has 2 separate factors
-            factors_name, offset_name = var_info.factor.split(",")
+            shape = self.get_shape(dataset_id, ds_info)
+        file_units = ds_info.get('file_units')
+        if file_units is None:
             try:
-                factors = (self[factors_name], self[offset_name])
+                file_units = self[var_path + '/attr/units']
+                # they were almost completely CF compliant...
+                if file_units == "none":
+                    file_units = "1"
             except KeyError:
-                LOG.debug("No scaling factors found for %s", item)
-                factors = None
+                # no file units specified
+                file_units = None
+
+        if out is None:
+            out = np.ma.empty(shape, dtype=dtype)
+            out.mask = np.zeros(shape, dtype=np.bool)
+
+        try:
+            valid_min, valid_max = self[var_path + '/attr/valid_range']
+        except KeyError:
+            try:
+                valid_min = self[var_path + '/attr/valid_min']
+                valid_max = self[var_path + '/attr/valid_max']
+            except KeyError:
+                valid_min = valid_max = None
+        if var_path + '/attr/_FillValue' in self:
+            fill_value = self[var_path + '/attr/_FillValue']
         else:
-            factors = None
+            fill_value = None
 
-        # Check if we need to do some unit conversion
-        file_units = self.get_file_units(item)
-        output_units = getattr(var_info, "units", file_units)
-        factors = self.adjust_scaling_factors(factors, file_units, output_units)
+        d_tmp = np.require(self[var_path][:], dtype=dtype)
+        if "index" in ds_info:
+            d_tmp = d_tmp[int(ds_info["index"])]
+        if "pressure_index" in ds_info:
+            d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
+            # this is a pressure based field
+            # include surface_pressure as metadata
+            ds_info.setdefault('surface_pressure', self['Surface_Pressure'][:])
+            # include all the pressure levels
+            ds_info.setdefault('pressure_levels', self['Pressure'][0])
+        out.data[:] = d_tmp
+        del d_tmp
 
-        if factors is not None:
-            data_out *= factors[0]
-            data_out += factors[1]
+        scale_factor_path = var_path + '/attr/scale_factor'
+        if scale_factor_path in self:
+            scale_factor = self[scale_factor_path]
+            scale_offset = self[var_path + '/attr/add_offset']
+        else:
+            scale_factor = None
+            scale_offset = None
 
-        return data_out, mask_out
+        if valid_min is not None and valid_max is not None:
+            # the original .cfg/INI based reader only checked valid_max
+            out.mask[:] |= (out.data > valid_max) # | (out < valid_min)
+        if fill_value is not None:
+            out.mask[:] |= out.data == fill_value
+
+        factors = (scale_factor, scale_offset)
+        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
+        if factors[0] != 1 or factors[1] != 0:
+            out.data[:] *= factors[0]
+            out.data[:] += factors[1]
+
+        ds_info.update({
+            "name": dataset_id.name,
+            "id": dataset_id,
+            "units": ds_info.get("units", file_units),
+            "platform": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+        })
+        ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
+
+        cls = ds_info.pop("container", Projectable)
+        return cls(out, **ds_info)
 
 
-class NUCAPSReader(ConfigBasedReader):
+class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files.
     """
-    def __init__(self, default_file_reader=NUCAPSFileReader, default_config_filename="readers/nucaps.cfg",
-                 mask_surface=None, mask_quality=None, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
         """Configure reader behavior.
 
         :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
@@ -299,47 +264,31 @@ class NUCAPSReader(ConfigBasedReader):
 
         """
         self.pressure_dataset_names = defaultdict(list)
-        super(NUCAPSReader, self).__init__(default_file_reader=default_file_reader,
-                                           default_config_filename=default_config_filename,
-                                           **kwargs
-                                           )
-        self.default_file_reader = self.config_options.get("default_file_reader") if default_file_reader is None else default_file_reader
-        self.mask_surface = self.config_options.get("mask_surface") if mask_surface is None else mask_surface
-        self.mask_quality = self.config_options.get("mask_quality") if mask_quality is None else mask_quality
+        super(NUCAPSReader, self).__init__(config_files)
+        self.mask_surface = self.info.get('mask_surface', mask_surface)
+        self.mask_quality = self.info.get('mask_quality', mask_quality)
 
-    def load_section_file_key(self, section_name, section_options):
-        super(NUCAPSReader, self).load_section_file_key(section_name, section_options.copy())
-        if "pressure_based" in section_options:
-            # FUTURE: Pass pressure index from the dataset object to the file readers
-            for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
-                if lvl_num < 5.0:
-                    suffix = "_{:0.03f}mb".format(lvl_num)
-                else:
-                    suffix = "_{:0.0f}mb".format(lvl_num)
-                new_section_options = section_options.copy()
-                new_section_name = section_name + suffix
-                new_section_options["pressure_level"] = lvl_num
-                new_section_options["pressure_index"] = idx
-                super(NUCAPSReader, self).load_section_file_key(new_section_name, new_section_options)
+    def get_dataset_ids(self):
+        super(NUCAPSReader, self).get_dataset_ids()
+        for ds_id in list(self.ids.keys()):
+            ds_info = self.ids[ds_id]
+            if ds_info.get('pressure_based', False):
+                for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
+                    if lvl_num < 5.0:
+                        suffix = "_{:0.03f}mb".format(lvl_num)
+                    else:
+                        suffix = "_{:0.0f}mb".format(lvl_num)
 
-    def load_section_dataset(self, section_name, section_options):
-        super(NUCAPSReader, self).load_section_dataset(section_name, section_options.copy())
-        if "pressure_based" in section_options:
-            base_name = section_options["name"]
-            for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
-                if lvl_num < 5.0:
-                    suffix = "_{:0.03f}mb".format(lvl_num)
-                else:
-                    suffix = "_{:0.0f}mb".format(lvl_num)
-                new_section_options = section_options.copy()
-                new_section_options["name"] = base_name + suffix
-                new_section_options["file_key"] = section_options["file_key"] + suffix
-                new_section_options["pressure_level"] = lvl_num
-                new_section_options["pressure_index"] = idx
-                self.pressure_dataset_names[base_name].append(base_name + suffix)
-                super(NUCAPSReader, self).load_section_dataset(section_name, new_section_options)
+                    new_info = ds_info.copy()
+                    new_info['pressure_level'] = lvl_num
+                    new_info['pressure_index'] = idx
+                    new_info['file_key'] = '{}'.format(ds_id.name)
+                    new_info['name'] = ds_id.name + suffix
+                    new_ds_id = ds_id._replace(name=new_info['name'])
+                    new_info['id'] = new_ds_id
+                    self.ids[new_ds_id] = new_info
 
-    def load(self, datasets_to_load, metadata=None, pressure_levels=None, **dataset_info):
+    def load(self, dataset_keys, area=None, start_time=None, end_time=None, pressure_levels=None):
         """Load data from one or more set of files.
 
         :param pressure_levels: mask out certain pressure levels:
@@ -347,24 +296,10 @@ class NUCAPSReader(ConfigBasedReader):
                                 (min, max) for a range of pressure levels
                                 [...] list of levels to include
         """
-        if pressure_levels is not None and "pressure_levels" not in metadata:
-            LOG.debug("Adding 'pressure_levels' to metadata for pressure level filtering")
-            metadata.add("pressure_levels")
-        if self.mask_surface:
-            if "pressure_levels" not in metadata:
-                LOG.debug("Adding 'pressure_levels' to metadata for surface pressure filtering")
-                metadata.add("pressure_levels")
-            if "surface_pressure" not in metadata:
-                LOG.debug("Adding 'pressure_levels' to metadata for surface pressure filtering")
-                metadata.add("surface_pressure")
-        if self.mask_quality and "quality_flag" not in metadata:
-            LOG.debug("Adding 'quality_flag' to metadata for quality flag filtering")
-            metadata.add("quality_flag")
-
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
-            for ds_id in datasets_to_load[:]:
-                ds_info = self.datasets[ds_id]
+            for ds_id in dataset_keys.copy():
+                ds_info = self.ids[ds_id]
                 ds_level = ds_info.get("pressure_level")
                 if ds_level is not None:
                     if pressure_levels is True:
@@ -379,38 +314,52 @@ class NUCAPSReader(ConfigBasedReader):
                     else:
                         # they don't want this dataset at this pressure level
                         LOG.debug("Removing dataset to load: %s", ds_id)
-                        datasets_to_load.remove(ds_id)
+                        dataset_keys.remove(ds_id)
                         continue
 
-        datasets_loaded = super(NUCAPSReader, self).load(datasets_to_load, metadata=metadata, **dataset_info)
+            # Add pressure levels to the datasets to load if needed so
+            # we can do further filtering after loading
+            plevels_ds_id = self.get_dataset_key('Pressure_Levels')
+            remove_plevels = False
+            if plevels_ds_id not in dataset_keys:
+                dataset_keys.add(plevels_ds_id)
+                remove_plevels = True
+
+        datasets_loaded = super(NUCAPSReader, self).load(dataset_keys, start_time=start_time,
+                                                         end_time=end_time, area=area)
 
         if pressure_levels is not None:
+            if remove_plevels:
+                plevels_ds = datasets_loaded.pop(plevels_ds_id)
+                dataset_keys.remove(plevels_ds_id)
+            else:
+                plevels_ds = datasets_loaded[plevels_ds_id]
+
             for ds_id in datasets_loaded.keys():
                 ds_obj = datasets_loaded[ds_id]
-                ds_levels = ds_obj.info.get("pressure_levels")
-                if ds_levels is None:
+                if plevels_ds is None:
                     LOG.debug("No 'pressure_levels' metadata included in dataset")
                     continue
-                if ds_levels.shape[0] != ds_obj.shape[-1]:
+                if plevels_ds.shape[0] != ds_obj.shape[-1]:
                     # LOG.debug("Dataset '{}' doesn't contain multiple pressure levels".format(ds_id))
                     continue
 
                 if pressure_levels is True:
-                    levels_mask = np.ones(ds_levels.shape, dtype=np.bool)
+                    levels_mask = np.ones(plevels_ds.shape, dtype=np.bool)
                 elif len(pressure_levels) == 2:
                     # given a min and a max pressure level
-                    levels_mask = (ds_levels <= pressure_levels[1]) & (ds_levels >= pressure_levels[0])
+                    levels_mask = (plevels_ds <= pressure_levels[1]) & (plevels_ds >= pressure_levels[0])
                 else:
-                    levels_mask = np.zeros(ds_levels.shape, dtype=np.bool)
-                    for idx, ds_level in enumerate(ds_levels):
+                    levels_mask = np.zeros(plevels_ds.shape, dtype=np.bool)
+                    for idx, ds_level in enumerate(plevels_ds):
                         levels_mask[idx] = np.isclose(pressure_levels, ds_level).any()
 
                 datasets_loaded[ds_id] = ds_obj[:, levels_mask]
-                datasets_loaded[ds_id].info["pressure_levels"] = ds_levels[levels_mask]
+                datasets_loaded[ds_id].info["pressure_levels"] = plevels_ds[levels_mask]
 
         if self.mask_surface:
             LOG.debug("Filtering pressure levels at or below the surface pressure")
-            for ds_id in datasets_to_load:
+            for ds_id in dataset_keys:
                 ds = datasets_loaded[ds_id]
                 if "surface_pressure" not in ds.info or "pressure_levels" not in ds.info:
                     continue
@@ -435,7 +384,7 @@ class NUCAPSReader(ConfigBasedReader):
 
         if self.mask_quality:
             LOG.debug("Filtering data based on quality flags")
-            for ds_id in datasets_to_load:
+            for ds_id in dataset_keys:
                 ds = datasets_loaded[ds_id]
                 if "quality_flag" not in ds.info:
                     continue

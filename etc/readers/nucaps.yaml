@@ -1,0 +1,45 @@
+reader:
+  description: NUCAPS Retrieval Reader
+  name: nucaps
+  reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
+  sensors: [cris, atms]
+
+navigations:
+  nucaps_geo:
+      description: NUCAPS Geolocation
+      file_type: nucaps
+      longitude_key: Longitude
+      latitude_key: Latitude
+      nadir_resolution: [0]
+      rows_per_scan: 0
+
+file_types:
+  nucaps:
+    file_reader: !!python/name:satpy.readers.nucaps.NUCAPSFileHandler
+    file_patterns: ['NUCAPS-EDR_{nucaps_version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+
+datasets:
+  # units, resolution, standard_name come from file
+  Temperature:
+    name: Temperature
+    resolution: 0
+    navigation: nucaps_geo
+    file_type: nucaps
+    pressure_based: True
+  H2O_MR:
+    name: H2O_MR
+    resolution: 0
+    navigation: nucaps_geo
+    file_type: nucaps
+    pressure_based: True
+#  Quality_Flag:
+#    name: Quality_Flag
+#    resolution: 0
+#    navigation: nucaps_geo
+#    file_type: nucaps
+  Pressure_Levels:
+    name: Pressure_Levels
+    file_type: nucaps
+    file_key: Pressure
+    index: 0
+    container: !!python/name:satpy.projectable.Dataset

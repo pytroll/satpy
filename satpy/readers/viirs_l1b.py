@@ -95,9 +95,9 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         else:
             return factors
 
-    # def get_shape(self, ds_id, ds_info):
-    #     var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
-    #     return self[var_path + "/shape"]
+    def get_shape(self, ds_id, ds_info):
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
+        return self[var_path + "/shape"]
 
     @property
     def start_time(self):
@@ -106,16 +106,6 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     @property
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
-
-    def get_file_units(self, var_path):
-        try:
-            file_units = self[var_path + '/attr/units']
-            # they were almost completely CF compliant...
-            if file_units == "none":
-                file_units = "1"
-        except KeyError:
-            # no file units specified
-            file_units = None
 
     def get_area(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
