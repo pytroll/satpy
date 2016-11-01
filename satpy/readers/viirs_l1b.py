@@ -197,7 +197,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
                 scale_factor = scale_offset = None
 
         if valid_min is not None and valid_max is not None:
-            out.mask[:] = (out < valid_min) | (out > valid_max)
+            out.mask[:] |= (out.data < valid_min) | (out.data > valid_max)
 
         factors = (scale_factor, scale_offset)
         factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
