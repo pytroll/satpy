@@ -363,6 +363,7 @@ class Scene(InfoObject):
                       calibration=None,
                       polarization=None,
                       resolution=None,
+                      metadata=None,
                       **kwargs):
         """Read the given datasets from file."""
         sensor_names = set()
@@ -415,7 +416,8 @@ class Scene(InfoObject):
                 ds_ids,
                 start_time=kwargs.get('start_time'),
                 end_time=kwargs.get('end_time'),
-                area=kwargs.get('area'))
+                area=kwargs.get('area'),
+                **kwargs)
             loaded_datasets.update(new_datasets)
         self.datasets.update(loaded_datasets)
         return new_datasets
@@ -588,6 +590,8 @@ class Scene(InfoObject):
              resolution=None,
              polarization=None,
              metadata=None,
+             compute=True,
+             unload=True,
              **kwargs):
         """Read, compute and unload.
         """
@@ -598,9 +602,9 @@ class Scene(InfoObject):
                   metadata=metadata,
                   **kwargs)
         keepables = None
-        if kwargs.get("compute", True):
+        if compute:
             keepables = self.compute()
-        if kwargs.get("unload", True):
+        if unload:
             self.unload(keepables=keepables)
 
     def resample(self,

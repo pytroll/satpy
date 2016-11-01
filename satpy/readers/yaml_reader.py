@@ -377,7 +377,7 @@ class FileYAMLReader(AbstractYAMLReader):
             # Can we allow the file handlers to do inplace data writes?
             all_shapes = [fh.get_shape(dsid, ds_info) for fh in file_handlers]
             # rows accumlate, columns stay the same
-            overall_shape = (sum([x[0] for x in all_shapes]), all_shapes[0][1])
+            overall_shape = (sum([x[0] for x in all_shapes]),) + all_shapes[0][1:]
         except (NotImplementedError, Exception):
             # FIXME: Is NotImplementedError included in Exception for all
             # versions of Python?
