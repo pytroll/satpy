@@ -72,3 +72,6 @@ class HDF5FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             return h5py.File(self.filename, 'r')[key].value
         return val
+
+    def __contains__(self, item):
+        return item in self.file_content
