@@ -32,88 +32,44 @@ Format documentation:
 http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
 
 """
-import os.path
 from datetime import datetime, timedelta
 import numpy as np
 import logging
 
-from satpy.readers import ConfigBasedReader, MultiFileReader, FileKey, GenericFileReader
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from trollsift.parser import parse as filename_parse
+from satpy.projectable import Projectable
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
-class EDRFileReader(GenericFileReader):
-    def create_file_handle(self, filename, **kwargs):
-        handle = HDF5FileHandler(filename, **kwargs)
-        return handle.filename, handle
-
-    def __getitem__(self, item):
-        base_item = item
-        suffix = ""
-        if "/attr/" in item:
-            parts = item.split("/")
-            base_item = "/".join(parts[:-2])
-            suffix = "/" + "/".join(parts[-2:])
-        elif item.endswith("/shape"):
-            base_item = item[:-6]
-            suffix = "/shape"
-
-        replace_aggr = self.file_keys[base_item].kwargs.get("replace_aggr", None)
-        if base_item in self.file_keys:
-            var_info = self.file_keys[base_item]
-            item = var_info.variable_name.format(**self.file_info)
-            item += suffix
-
-        if replace_aggr:
-            # this is an aggregated field that can't easily be loaded, need to join things together
-            idx = 0
-            base_item = item
-            item = base_item.replace(replace_aggr, str(idx))
-            result = []
-            while True:
-                try:
-                    res = self.file_handle[item]
-                    result.append(res)
-                except KeyError:
-                    # no more granule keys
-                    LOG.debug("Aggregated granule stopping on '%s'", item)
-                    break
-
-                idx += 1
-                item = base_item.replace(replace_aggr, str(idx))
-            return result
-        else:
-            return self.file_handle[item]
-
-    def _get_start_time(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["start_time"]
-
-    def _get_end_time(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["end_time"]
-
-    # @property
-    # def ring_lonlats(self):
-    #     return self["gring_longitude"], self["gring_latitude"]
+class EDRFileHandler(HDF5FileHandler):
+    _fill_name = "_FillValue"
 
     @property
-    def begin_orbit_number(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["orbit"]
+    def start_time(self):
+        return self.filename_info['start_time']
+
+    @property
+    def end_time(self):
+        return self.filename_info['end_time']
+
+    @property
+    def start_orbit_number(self):
+        return self.filename_info['orbit']
 
     @property
     def end_orbit_number(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["orbit"]
+        return self.filename_info['orbit']
 
     @property
     def platform_name(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["platform_shortname"]
+        return self.filename_info['platform_shortname']
 
     @property
     def sensor_name(self):
-        return filename_parse(self.file_info["file_patterns"][0], self.filename)["instrument_shortname"]
+        return self.filename_info['instrument_shortname']
 
     def get_file_units(self, item):
         # What units should we expect from the file
@@ -124,8 +80,8 @@ class EDRFileReader(GenericFileReader):
 
         return file_units
 
-    def get_shape(self, item):
-        return self[item + "/shape"]
+    def get_shape(self, ds_id, ds_info):
+        return self[ds_info['file_key'] + '/shape']
 
     def scale_swath_data(self, data, mask, scaling_factors):
         """Scale swath data using scaling factors and offsets.
@@ -147,11 +103,11 @@ class EDRFileReader(GenericFileReader):
                 data[start_idx:end_idx] += b
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        if factors is None or factors[0] is None:
+            factors = [1, 0]
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
-        if factors is None:
-            factors = [1, 0]
         factors = np.array(factors)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
@@ -167,53 +123,94 @@ class EDRFileReader(GenericFileReader):
         else:
             return factors
 
-    def get_swath_data(self, item, data_out=None, mask_out=None):
-        """Get swath data, apply proper scalings, and apply proper masks.
-        """
-        # Can't guarantee proper file info until we get the data first
-        var_info = self.file_keys[item]
-        data = self[item]
-        if data_out is not None:
-            # This assumes that we are promoting the dtypes (ex. float file data -> int array)
-            # and that it happens automatically when assigning to the existing out array
-            data_out[:] = data
-        else:
-            data_out = data[:].astype(var_info.dtype)
-            mask_out = np.zeros_like(data_out, dtype=np.bool)
+    def get_area(self, navid, nav_info, lon_out, lat_out):
+        lon_key = nav_info["longitude_key"]
+        valid_min, valid_max = self[lon_key + '/attr/ValidRange']
+        fill_value = self[lon_key + '/attr/{}'.format(self._fill_name)]
+        lon_out.data[:] = self[lon_key][:]
+        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max) | (lon_out == fill_value)
 
-        factor_attr_name = var_info.factor
-        offset_attr_name = var_info.offset
-        if factor_attr_name and offset_attr_name:
+        lat_key = nav_info["latitude_key"]
+        valid_min, valid_max = self[lat_key + '/attr/ValidRange']
+        fill_value = self[lat_key + '/attr/{}'.format(self._fill_name)]
+        lat_out.data[:] = self[lat_key][:]
+        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max) | (lat_out == fill_value)
+
+        return {}
+
+    def get_dataset(self, dataset_id, ds_info, out=None):
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        dtype = ds_info.get('dtype', np.float32)
+        if var_path + '/shape' not in self:
+            # loading a scalar value
+            shape = 1
+        else:
+            shape = self.get_shape(dataset_id, ds_info)
+        file_units = ds_info.get('file_units')
+        if file_units is None:
             try:
-                factor = self[item + "/attr/{}".format(factor_attr_name)]
-                offset = self[item + "/attr/{}".format(offset_attr_name)]
+                file_units = self[var_path + '/attr/Units']
+                # they were almost completely CF compliant...
+                if file_units == "none":
+                    file_units = "1"
             except KeyError:
-                LOG.debug("No scaling factors found for %s", item)
-                factor = None
-                offset = None
+                # no file units specified
+                file_units = None
+
+        if out is None:
+            out = np.ma.empty(shape, dtype=dtype)
+            out.mask = np.zeros(shape, dtype=np.bool)
+
+        try:
+            valid_min, valid_max = self[var_path + '/attr/ValidRange']
+        except KeyError:
+            try:
+                valid_min = self[var_path + '/attr/ValidMin']
+                valid_max = self[var_path + '/attr/ValidMax']
+            except KeyError:
+                valid_min = valid_max = None
+        fill_name = '/attr/{}'.format(self._fill_name)
+        if fill_name in self:
+            fill_value = self[fill_name]
         else:
-            factor = None
-            offset = None
+            fill_value = None
 
-        fill_attr_name = var_info.kwargs.get("missing_attr")
-        if fill_attr_name:
-            fill_value = self[item + "/attr/{}".format(fill_attr_name)]
-            mask_out[:] |= data_out == fill_value
+        out.data[:] = np.require(self[var_path][:], dtype=dtype)
+        scale_factor_path = var_path + '/attr/scale_factor'
+        if scale_factor_path in self:
+            scale_factor = self[scale_factor_path]
+            scale_offset = self[var_path + '/attr/add_offset']
+        else:
+            scale_factor = None
+            scale_offset = None
 
-        # Check if we need to do some unit conversion
-        file_units = self.get_file_units(item)
-        output_units = getattr(var_info, "units", file_units)
-        factors = self.adjust_scaling_factors([factor, offset], file_units, output_units)
+        if valid_min is not None and valid_max is not None:
+            # the original .cfg/INI based reader only checked valid_max
+            out.mask[:] |= (out.data > valid_max) # | (out < valid_min)
+        if fill_value is not None:
+            out.mask[:] |= out.data == fill_value
 
-        if factors is not None and factors[0] is not None:
-            self.scale_swath_data(data_out, mask_out, factors)
+        factors = (scale_factor, scale_offset)
+        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
+        if factors[0] != 1 or factors[1] != 0:
+            out.data[:] *= factors[0]
+            out.data[:] += factors[1]
 
-        return data_out, mask_out
+        ds_info.update({
+            "name": dataset_id.name,
+            "id": dataset_id,
+            "units": ds_info.get("units", file_units),
+            "platform": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+        })
+        if 'standard_name' not in ds_info:
+            ds_info['standard_name'] = self[var_path + '/attr/Title']
+
+        cls = ds_info.pop("container", Projectable)
+        return cls(out, **ds_info)
 
 
-class OMPSEDRReader(ConfigBasedReader):
-    def __init__(self, default_file_reader=EDRFileReader, default_config_filename="readers/omps_edr.cfg", **kwargs):
-        super(OMPSEDRReader, self).__init__(default_file_reader=default_file_reader,
-                                            default_config_filename=default_config_filename,
-                                            **kwargs
-                                            )
+class EDREOSFileHandler(EDRFileHandler):
+    _fill_name = "MissingValue"
