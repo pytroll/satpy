@@ -278,6 +278,10 @@ class ReaderFinder(object):
             reader_configs = config_search_paths(
                 os.path.join("readers", config_basename), self.ppp_config_dir)
 
+            if not reader_configs:
+                LOG.warning("No reader configs found for '%s'", reader)
+                continue
+
             try:
                 reader_info = self._read_reader_config(reader_configs)
             except (MalformedConfigError, yaml.YAMLError) as err:
