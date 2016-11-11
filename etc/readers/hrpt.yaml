@@ -2,7 +2,7 @@ reader:
     name: avhrr_hrpt
     description: HRPT Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
-    sensors: [avhrr/3, avhrr/2]
+    sensors: [avhrr-3, avhrr-2]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
 datasets:
