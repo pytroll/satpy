@@ -28,11 +28,10 @@ import os
 from datetime import datetime
 
 import numpy as np
-from pyresample.geometry import SwathDefinition
 
+from pyresample.geometry import SwathDefinition
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
-from satpy.readers import ConfigBasedReader, GenericFileReader
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 
@@ -112,7 +111,7 @@ class EPSAVHRRFile(BaseFileHandler):
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
 
-    sensors = {"AVHR": "avhrr/3"}
+    sensors = {"AVHR": "avhrr-3"}
 
     def __init__(self, filename, filename_info, filetype_info):
         super(EPSAVHRRFile, self).__init__(
