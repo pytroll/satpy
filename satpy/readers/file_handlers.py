@@ -49,6 +49,9 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_area_def(self, area_id, area_info):
         raise NotImplementedError
 
+    def get_lonlats(self):
+        raise NotImplementedError
+
     def combine_info(self, all_infos):
         """Combine metadata for multiple datasets.
 

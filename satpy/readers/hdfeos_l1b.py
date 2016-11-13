@@ -137,7 +137,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
     def get_area_def(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_area(self, navid, nav_info, lon_out=None, lat_out=None):
+    def get_lonlats(self, navid, nav_info, lon_out=None, lat_out=None):
         # TODO: read in place when lon_out and lat_out are provided
         lons_id = DatasetID(nav_info['longitude_key'],
                             resolution=navid.resolution)
@@ -381,7 +381,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
                 for (i, idx) in enumerate(indices):
                     dsid = [key for key in keys if key.name ==
                             band_names[idx]][0]
-                    area = self.navigation_reader.get_area(self.resolution)
+                    area = self.navigation_reader.get_lonlats(self.resolution)
                     projectable = Projectable(array[i], id=dsid, area=area)
                     if ((platform_name == 'Aqua' and dsid.name in ["6", "27", "36"]) or
                             (platform_name == 'Terra' and dsid.name in ["29"])):

@@ -148,7 +148,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         info['Quality_Flag'] = np.concatenate(tuple(nfo['Quality_Flag'] for nfo in all_infos))
         return info
 
-    def get_area(self, navid, nav_info, lon_out, lat_out):
+    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         try:
             valid_min, valid_max = self[lon_key + '/attr/valid_range']

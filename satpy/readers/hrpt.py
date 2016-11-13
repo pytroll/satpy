@@ -156,7 +156,7 @@ class HRPTFile(BaseFileHandler):
         if key.calibration == 'counts':
             return Projectable(data,
                                mask=mask,
-                               area=self.get_area(),
+                               area=self.get_lonlats(),
                                units='1')
 
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
@@ -183,7 +183,7 @@ class HRPTFile(BaseFileHandler):
                                      chan, pg_spacecraft)
             units = 'K'
         # TODO: check if entirely masked before returning
-        return Projectable(data, mask=mask, area=self.get_area(), units=units)
+        return Projectable(data, mask=mask, area=self.get_lonlats(), units=units)
 
     def get_telemetry(self):
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
@@ -199,7 +199,7 @@ class HRPTFile(BaseFileHandler):
 
         return prt, ict, space
 
-    def get_area(self):
+    def get_lonlats(self):
         if self.area is not None:
             return self.area
         from pyorbital.orbital import Orbital

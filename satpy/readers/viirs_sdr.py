@@ -235,7 +235,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
-    def get_area(self, navid, nav_info, lon_out, lat_out):
+    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
         lon_default = 'All_Data/{file_group}_All/Longitude'
         lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
         valid_min = -180.

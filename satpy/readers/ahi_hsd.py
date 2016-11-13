@@ -311,7 +311,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def get_area(self, key, info, lon_out, lat_out):
+    def get_lonlats(self, key, info, lon_out, lat_out):
         logger.debug('Computing area for %s', str(key))
         lon_out[:], lat_out[:] = self.area.get_lonlats()
 

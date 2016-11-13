@@ -483,10 +483,10 @@ class FileYAMLReader(AbstractYAMLReader):
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
-            fh.get_area(navid,
-                        nav_info,
-                        lon_out=lons[offset:offset + granule_height],
-                        lat_out=lats[offset:offset + granule_height])
+            fh.get_lonlats(navid,
+                           nav_info,
+                           lon_out=lons[offset:offset + granule_height],
+                           lat_out=lats[offset:offset + granule_height])
             offset += granule_height
 
         lons[lons < -180] = np.ma.masked
