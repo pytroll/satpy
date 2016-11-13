@@ -62,7 +62,7 @@ class NCOLCIGeo(BaseFileHandler):
         self.cache[key] = ds
         return ds
 
-    def get_area(self, navid, nav_info, lon_out, lat_out):
+    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
         """Load an area.
         """
         lon_out[:] = self.get_dataset(DatasetID('longitude'))

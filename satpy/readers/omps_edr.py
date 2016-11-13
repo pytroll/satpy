@@ -123,7 +123,7 @@ class EDRFileHandler(HDF5FileHandler):
         else:
             return factors
 
-    def get_area(self, navid, nav_info, lon_out, lat_out):
+    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         valid_min, valid_max = self[lon_key + '/attr/ValidRange']
         fill_value = self[lon_key + '/attr/{}'.format(self._fill_name)]

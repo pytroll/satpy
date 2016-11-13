@@ -107,7 +107,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
-    def get_area(self, navid, nav_info, lon_out, lat_out):
+    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
         lon_key = nav_info["longitude_key"]
         valid_min = self[lon_key + '/attr/valid_min']
         valid_max = self[lon_key + '/attr/valid_max']

@@ -281,10 +281,10 @@ class EPSAVHRRFile(BaseFileHandler):
                 array = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
         proj = Projectable(array, mask=array.mask, id=key)
-        proj.info['area'] = self.get_area()
+        proj.info['area'] = self.get_lonlats()
         return proj
 
-    def get_area(self):
+    def get_lonlats(self):
         if self.area is None:
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_full_lonlats()
