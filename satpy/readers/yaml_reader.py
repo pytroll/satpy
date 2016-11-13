@@ -298,8 +298,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 class FileYAMLReader(AbstractYAMLReader):
 
-    def __init__(self, config_files):
-        super(FileYAMLReader, self).__init__(config_files)
+    def __init__(self, config_files,
+                 start_time=None,
+                 end_time=None,
+                 area=None):
+        super(FileYAMLReader, self).__init__(config_files,
+                                             start_time=start_time,
+                                             end_time=end_time,
+                                             area=area)
 
         self.file_handlers = {}
 
