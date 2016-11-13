@@ -290,7 +290,11 @@ class ReaderFinder(object):
                 continue
             try:
                 reader_instance = reader_info['reader'](
-                    config_files=reader_configs)
+                    config_files=reader_configs,
+                    start_time=self.start_time,
+                    end_time=self.end_time,
+                    area=self.area,
+                )
             except KeyError as err:
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
@@ -298,10 +302,7 @@ class ReaderFinder(object):
             remaining_filenames, loadable_files = reader_instance.select_files(
                 self.base_dir,
                 remaining_filenames,
-                sensor,
-                start_time=self.start_time,
-                end_time=self.end_time,
-                area=self.area)
+                sensor)
             if loadable_files:
                 reader_instances.append(reader_instance)
             if filenames is not None and not remaining_filenames:

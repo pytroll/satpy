@@ -412,12 +412,7 @@ class Scene(InfoObject):
                 if (ds_id not in self.datasets or
                         not self.datasets[ds_id].is_loaded()):
                     ds_ids.add(ds_id)
-            new_datasets = reader_instance.load(
-                ds_ids,
-                start_time=kwargs.get('start_time'),
-                end_time=kwargs.get('end_time'),
-                area=kwargs.get('area'),
-                **kwargs)
+            new_datasets = reader_instance.load(ds_ids, **kwargs)
             loaded_datasets.update(new_datasets)
         self.datasets.update(loaded_datasets)
         return new_datasets

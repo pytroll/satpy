@@ -50,8 +50,14 @@ Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     __metaclass__ = ABCMeta
 
-    def __init__(self, config_files):
+    def __init__(self, config_files,
+                 start_time=None,
+                 end_time=None,
+                 area=None):
         self.config = {}
+        self._start_time = start_time
+        self._end_time = end_time
+        self._area = area
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
@@ -321,10 +327,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def select_files(self,
                      base_dir=None,
                      filenames=None,
-                     sensor=None,
-                     start_time=None,
-                     end_time=None,
-                     area=None):
+                     sensor=None):
         res = super(FileYAMLReader, self).select_files(base_dir, filenames,
                                                        sensor)
 
@@ -354,9 +357,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
                         # Only add this file handler if it is within the time
                         # we want
-                        if start_time and file_handler.start_time < start_time:
+                        if self._start_time and file_handler.start_time < self._start_time:
                             continue
-                        if end_time and file_handler.end_time > end_time:
+                        if self._end_time and file_handler.end_time > self._end_time:
                             continue
 
                         # TODO: Area filtering
@@ -502,7 +505,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 return ft
         return None
 
-    def load(self, dataset_keys, area=None, start_time=None, end_time=None):
+    def load(self, dataset_keys):
         loaded_navs = {}
         datasets = DatasetDict()
 
