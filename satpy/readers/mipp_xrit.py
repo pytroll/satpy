@@ -51,12 +51,16 @@ class xRITFile(AbstractYAMLReader):
     '''Class for reading XRIT data.
     '''
 
-    def __init__(self, config_files):
-        super(xRITFile, self).__init__(config_files)
+    def __init__(self, config_files,
+                 start_time=None,
+                 end_time=None,
+                 area=None):
+        super(xRITFile, self).__init__(config_files,
+                                       start_time=start_time,
+                                       end_time=end_time,
+                                       area=area)
         self.info['filenames'] = []
         self.file_patterns = []
-        self._start_time = None
-        self._end_time = None
         for file_type in self.config['file_types'].values():
             self.file_patterns.extend(file_type['file_patterns'])
 
@@ -199,10 +203,7 @@ class xRITFile(AbstractYAMLReader):
     def select_files(self,
                      base_dir=None,
                      filenames=None,
-                     sensor=None,
-                     start_time=None,
-                     end_time=None,
-                     area=None):
+                     sensor=None):
         file_set, info_filenames = super(xRITFile, self).select_files(
             base_dir, filenames, sensor)
 
@@ -231,9 +232,9 @@ class xRITFile(AbstractYAMLReader):
                         # we want
                         file_start = filename_info['start_time']
                         file_end = filename_info.get('end_time', file_start)
-                        if start_time and file_start < start_time:
+                        if self._start_time and file_start < self._start_time:
                             continue
-                        if end_time and file_end > end_time:
+                        if self._end_time and file_end > self._end_time:
                             continue
 
                         start_times.append(file_start)

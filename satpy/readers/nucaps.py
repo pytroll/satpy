@@ -258,7 +258,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files.
     """
-    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True,
+                 start_time=None, end_time=None, area=None):
         """Configure reader behavior.
 
         :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
@@ -266,7 +267,10 @@ class NUCAPSReader(FileYAMLReader):
 
         """
         self.pressure_dataset_names = defaultdict(list)
-        super(NUCAPSReader, self).__init__(config_files)
+        super(NUCAPSReader, self).__init__(config_files,
+                                           start_time=start_time,
+                                           end_time=end_time,
+                                           area=area)
         self.mask_surface = self.info.get('mask_surface', mask_surface)
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
@@ -291,7 +295,7 @@ class NUCAPSReader(FileYAMLReader):
                     self.ids[new_ds_id] = new_info
                     self.pressure_dataset_names[ds_id.name].append(new_info['name'])
 
-    def load(self, dataset_keys, area=None, start_time=None, end_time=None, pressure_levels=None):
+    def load(self, dataset_keys, pressure_levels=None):
         """Load data from one or more set of files.
 
         :param pressure_levels: mask out certain pressure levels:
@@ -328,8 +332,7 @@ class NUCAPSReader(FileYAMLReader):
                 dataset_keys.add(plevels_ds_id)
                 remove_plevels = True
 
-        datasets_loaded = super(NUCAPSReader, self).load(dataset_keys, start_time=start_time,
-                                                         end_time=end_time, area=area)
+        datasets_loaded = super(NUCAPSReader, self).load(dataset_keys)
 
         if pressure_levels is not None:
             if remove_plevels:
