@@ -546,7 +546,7 @@ class FileYAMLReader(AbstractYAMLReader):
                         loaded_navs[navid.name] = ds_area
                         proj.info["area"] = ds_area
 
-                    except AttributeError as err:
+                    except NotImplementedError as err:
                         # we don't know how to load navigation
                         LOG.warning(
                             "Can't load navigation for {}: {}".format(dsid, str(err)))
