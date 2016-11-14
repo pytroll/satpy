@@ -24,8 +24,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import numpy as np
 import six
-from pyresample.geometry import SwathDefinition
 
+from pyresample.geometry import SwathDefinition
 from satpy.projectable import combine_info
 
 
@@ -49,7 +49,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_area_def(self, area_id, area_info):
         raise NotImplementedError
 
-    def get_lonlats(self):
+    def get_lonlats(self, nav_id, nav_info, lon_out=None, lat_out=None):
         raise NotImplementedError
 
     def combine_info(self, all_infos):
