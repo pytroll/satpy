@@ -116,6 +116,20 @@ class EPSAVHRRFile(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(EPSAVHRRFile, self).__init__(
             filename, filename_info, filetype_info)
+
+        self.lons, self.lats = None, None
+        self.area = None
+        self.three_a_mask, self.three_b_mask = None, None
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
+        self.records = None
+        self.form = None
+        self.mdrs = None
+        self.scanlines = None
+        self.sections = None
+
+    def _read_all(self, filename):
+        LOG.debug("Reading %s", filename)
         self.records, self.form = read_raw(filename)
         self.mdrs = [record[1]
                      for record in self.records
@@ -129,9 +143,6 @@ class EPSAVHRRFile(BaseFileHandler):
                 raise ValueError("Too many " + str((record[0], record[2])))
             else:
                 self.sections[(record[0], record[2])] = record[1]
-        self.lons, self.lats = None, None
-        self.area = None
-        self.three_a_mask, self.three_b_mask = None, None
 
     def __getitem__(self, key):
         for altkey in self.form.scales.keys():
@@ -206,6 +217,9 @@ class EPSAVHRRFile(BaseFileHandler):
         elif key.calibration not in ['reflectance', 'brightness_temperature', 'radiance']:
             raise ValueError('calibration type' + str(key.calibration) +
                              'is not supported!')
+
+        if self.mdrs is None:
+            self._read_all(self.filename)
 
         if key.name in ['3A', '3a'] and self.three_a_mask is None:
             self.three_a_mask = (
@@ -303,11 +317,13 @@ class EPSAVHRRFile(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
+        # return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
+        return self._start_time
 
     @property
     def end_time(self):
-        return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
+        # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
+        return self._end_time
 
 
 if __name__ == '__main__':
