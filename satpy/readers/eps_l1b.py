@@ -89,12 +89,10 @@ def read_raw(filename):
             sub_class = grh["RECORD_SUBCLASS"][0]
             offset = fdes.tell()
             try:
-                record = np.memmap(fdes,
-                                   form.dtype((rec_class,
-                                               sub_class)),
-                                   mode='r',
-                                   offset=offset,
-                                   shape=(1, ))
+                record = np.fromfile(fdes,
+                                     form.dtype((rec_class,
+                                                 sub_class)),
+                                     count=1)
             except KeyError:
                 fdes.seek(grh["RECORD_SIZE"] - 20, 1)
             else:
