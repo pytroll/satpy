@@ -308,6 +308,51 @@ class SunZenithCorrector(CompositeBase):
         return proj
 
 
+class PSPRayleighReflectance(CompositeBase):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the corrected reflectance when removing Rayleigh scattering. Uses
+        pyspectral.
+        """
+
+        from pyspectral.rayleigh import Rayleigh
+
+        (vis,) = projectables
+        try:
+            (sata, satz, suna, sunz) = optional_datasets
+        except ValueError:
+            from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+            from pyorbital.orbital import get_observer_look
+            sunalt, suna = get_alt_az(
+                vis.info['start_time'], *vis.info['area'].get_lonlats())
+            sunz = sun_zenith_angle(
+                vis.info['start_time'], *vis.info['area'].get_lonlats())
+            lons, lats = vis.info['area'].get_lonlats()
+            sata, satel = get_observer_look(vis.info['satellite_longitude'],
+                                            vis.info['satellite_latitude'],
+                                            vis.info['satellite_altitude'],
+                                            vis.info['start_time'],
+                                            lons, lats, 0)
+            satz = 90 - satel
+
+        LOG.info('Removing Rayleigh scattering')
+
+        ssadiff = np.abs(suna - sata)
+        ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+
+        corrector = Rayleigh(
+            vis.info['platform_name'], vis.info['sensor'], atmosphere='us-standard')
+        refl_cor_band = corrector.get_reflectance(
+            sunz, satz, ssadiff, vis.info['name'], vis)
+
+        proj = Projectable(vis - refl_cor_band,
+                           copy=False,
+                           **vis.info)
+        self.apply_modifier_info(vis, proj)
+
+        return proj
+
+
 class NIRReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
