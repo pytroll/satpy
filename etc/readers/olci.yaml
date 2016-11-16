@@ -9,6 +9,9 @@ file_types:
     esa_l1b:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI1B
         file_patterns: ['{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance.nc']
+    esa_angles:
+        file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIAngles
+        file_patterns: ['{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tie_geometries.nc']
     esa_geo:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIGeo
         file_patterns: ['{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geo_coordinates.nc']
@@ -333,3 +336,31 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
     file_type: esa_l1b
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: olci
+    resolution: 300
+    navigation: esa_geo
+    file_type: esa_angles
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: olci
+    resolution: 300
+    navigation: esa_geo
+    file_type: esa_angles
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: olci
+    resolution: 300
+    navigation: esa_geo
+    file_type: esa_angles
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: olci
+    resolution: 300
+    navigation: esa_geo
+    file_type: esa_angles
