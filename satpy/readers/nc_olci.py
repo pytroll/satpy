@@ -35,6 +35,9 @@ from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
+PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
+                  'S3B': 'Sentinel-3B'}
+
 
 class NCOLCIGeo(BaseFileHandler):
 
@@ -87,6 +90,9 @@ class NCOLCI1B(BaseFileHandler):
         cal_file = os.path.join(os.path.dirname(
             filename), 'instrument_data.nc')
         self.cal = h5netcdf.File(cal_file, 'r')
+        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
+        self.sensor = 'olci'
 
     def get_dataset(self, key, info):
         """Load a dataset
@@ -114,7 +120,9 @@ class NCOLCI1B(BaseFileHandler):
 
         proj = Projectable(radiances,
                            copy=False,
-                           units=units)
+                           units=units,
+                           platform_name=self.platform_name,
+                           sensor=self.sensor)
         return proj
 
     @property
@@ -124,3 +132,73 @@ class NCOLCI1B(BaseFileHandler):
     @property
     def end_time(self):
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+
+class NCOLCIAngles(BaseFileHandler):
+
+    datasets = {'satellite_azimuth_angle': 'OAA',
+                'satellite_zenith_angle': 'OZA',
+                'solar_azimuth_angle': 'SAA',
+                'solar_zenith_angle': 'SZA'}
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCOLCIAngles, self).__init__(filename, filename_info,
+                                           filetype_info)
+        self.nc = None
+        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
+        self.sensor = 'olci'
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
+
+    def get_dataset(self, key, info):
+        """Load a dataset
+        """
+        if key.name not in self.datasets:
+            return
+
+        if self.nc is None:
+            self.nc = h5netcdf.File(self.filename, 'r')
+
+        logger.debug('Reading %s.', key.name)
+        variable = self.nc[self.datasets[key.name]]
+
+        values = (np.ma.masked_equal(variable[:],
+                                     variable.attrs['_FillValue'], copy=False) *
+                  variable.attrs.get('scale_factor', 1) +
+                  variable.attrs.get('add_offset', 0))
+        units = variable.attrs['units']
+
+        l_step = self.nc.attrs['al_subsampling_factor']
+        c_step = self.nc.attrs['ac_subsampling_factor']
+
+        if c_step != 1 or l_step != 1:
+            from geotiepoints.interpolator import Interpolator
+            tie_lines = np.arange(
+                0, (values.shape[0] - 1) * l_step + 1, l_step)
+            tie_cols = np.arange(0, (values.shape[1] - 1) * c_step + 1, c_step)
+            lines = np.arange((values.shape[0] - 1) * l_step + 1)
+            cols = np.arange((values.shape[1] - 1) * c_step + 1)
+            along_track_order = 1
+            cross_track_order = 3
+            satint = Interpolator([values],
+                                  (tie_lines, tie_cols),
+                                  (lines, cols),
+                                  along_track_order,
+                                  cross_track_order)
+            (values, ) = satint.interpolate()
+
+        proj = Projectable(values,
+                           copy=False,
+                           units=units,
+                           platform_name=self.platform_name,
+                           sensor=self.sensor)
+        return proj
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
