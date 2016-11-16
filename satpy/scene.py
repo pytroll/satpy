@@ -30,7 +30,7 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
-from satpy.projectable import InfoObject, Projectable, Dataset
+from satpy.projectable import Dataset, InfoObject, Projectable
 from satpy.readers import DatasetDict, DatasetID, ReaderFinder
 
 try:
@@ -144,10 +144,12 @@ class Scene(InfoObject):
 
     @property
     def start_time(self):
+        """Return the start time of the file."""
         return min(x.start_time for x in self.readers.values())
 
     @property
     def end_time(self):
+        """Return the end time of the file."""
         return max(x.end_time for x in self.readers.values())
 
     def available_dataset_ids(self, reader_name=None, composites=False):
@@ -177,8 +179,10 @@ class Scene(InfoObject):
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
+        """Get the list of the names of the available datasets."""
         return list(set(x.name if isinstance(x, DatasetID) else x
-                        for x in self.available_dataset_ids(reader_name=reader_name, composites=composites)))
+                        for x in self.available_dataset_ids(reader_name=reader_name,
+                                                            composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
         """Get names of all datasets from loaded readers or `reader_name` if
@@ -215,10 +219,12 @@ class Scene(InfoObject):
             available_datasets = self.available_dataset_ids(composites=False)
         else:
             if not all(isinstance(ds_id, DatasetID) for ds_id in available_datasets):
-                raise ValueError("'available_datasets' must all be DatasetID objects")
+                raise ValueError(
+                    "'available_datasets' must all be DatasetID objects")
 
         available_datasets = set(available_datasets)
-        available_dataset_names = set(ds_id.name for ds_id in available_datasets)
+        available_dataset_names = set(
+            ds_id.name for ds_id in available_datasets)
         # composite_objects = self.all_composites_objects()
         composites = []
         for composite_name, composite_obj in self.all_composite_objects(
