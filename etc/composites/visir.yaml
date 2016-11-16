@@ -18,6 +18,15 @@ modifiers:
     - solar_zenith_angle
     - 13.4
 
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+
 composites:
   airmass:
     compositor: !!python/name:satpy.composites.Airmass
