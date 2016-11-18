@@ -342,8 +342,9 @@ class PSPRayleighReflectance(CompositeBase):
 
         corrector = Rayleigh(
             vis.info['platform_name'], vis.info['sensor'], atmosphere='us-standard')
+
         refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.info['name'], vis)
+            sunz, satz, ssadiff, vis.info['id'].wavelength[1], vis)
 
         proj = Projectable(vis - refl_cor_band,
                            copy=False,
