@@ -243,6 +243,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                                   dtype=_NAV_INFO_TYPE,
                                   shape=(1, ),
                                   offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize + _PROJ_INFO_TYPE.itemsize)[0]
+        self.platform_name = self.basic_info['satellite'][0]
+        self.sensor = 'ahi'
 
     def get_shape(self, dsid, ds_info):
         return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
@@ -394,8 +396,9 @@ class AHIHSDFileHandler(BaseFileHandler):
             nlines = int(header["block2"]['number_of_lines'][0])
             ncols = int(header["block2"]['number_of_columns'][0])
 
-            out.data[:] = np.fromfile(fp_, dtype='<u2', count=nlines *
-                                      ncols).reshape((nlines, ncols)).astype(np.float32)
+            out.data[:] = np.fromfile(
+                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)
+
         self._header = header
 
         out.mask[header['block5']["count_value_outside_scan_pixels"]
@@ -413,6 +416,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                         resolution='resolution',
                         id=key,
                         name=key.name,
+                        platform_name=self.platform_name,
+                        sensor=self.sensor,
                         satellite_longitude=float(
                             self.nav_info['SSP_longitude']),
                         satellite_latitude=float(
