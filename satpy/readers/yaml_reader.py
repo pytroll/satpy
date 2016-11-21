@@ -476,10 +476,10 @@ class FileYAMLReader(AbstractYAMLReader):
             else:
                 return final_area
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        lons.mask = np.empty(shape,
-                             dtype=np.bool)  # overwrite single boolean 'False'
+        # overwrite single boolean 'False'
+        #lons.mask = np.empty(shape, dtype=np.bool)
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        lats.mask = np.empty(shape, dtype=np.bool)
+        #lats.mask = np.empty(shape, dtype=np.bool)
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
