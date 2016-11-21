@@ -1,11 +1,21 @@
 Changelog
 =========
 
-%%version%% (unreleased)
-------------------------
+v0.2.0 (2016-11-21)
+-------------------
 
 Fix
 ~~~
+
+- Bugfix: converted MSG products should be saveable. [Martin Raspaud]
+
+- Bugfix: satellite name in msg_hdf now supports missing number. [Martin
+  Raspaud]
+
+- Bugfix: misspelling. [Martin Raspaud]
+
+- Bugfix: mipp_xrit: do not crash on unknown channels, just warn and
+  skip. [Martin Raspaud]
 
 - Bugfix: changed reference from composites.cfg to
   composites/generic.cfg. [Martin Raspaud]
@@ -15,8 +25,1390 @@ Fix
 - Bugfix: get_filename wants a reader_instance and cleanup. [Martin
   Raspaud]
 
+- Bugfix: setup.py includes now eps xml format description. [Martin
+  Raspaud]
+
+- Close all h5files in viirs_sdr, not only the last one.
+  [Martin.Raspaud]
+
+- Bugfix: close h5 files when done. [Martin Raspaud]
+
+  Prior to h5py 3.0, the h5 files open with h5py are not closed upon
+  deletion, so we have to do it ourselves...
+
+- Bugfix: area.id doesn't exist, use area.area_id. [Martin Raspaud]
+
+- Bugfix: return when each file has been loaded independently. [Martin
+  Raspaud]
+
+- Bugfix: Do not crash on multiple non-nwc files. [Martin Raspaud]
+
+- Bugfix: check start and end times from loaded channels only. [Martin
+  Raspaud]
+
+- Bugfix: viirs start and end times not relying on non-existant channels
+  anymore. [Martin Raspaud]
+
+- Bugfix: type() doesn't support unicode, cast to str. [Martin Raspaud]
+
+- Bugfix: allow more than one "-" in section names. [Martin Raspaud]
+
+- Bugfix: read aqua/terra orbit number from file only if not already
+  defined. [Martin Raspaud]
+
+- Bugfix: fixed unittest case for wavelengths as lists. [Martin Raspaud]
+
+- Bugfix: remove deprecated mviri testcases. [Martin Raspaud]
+
+- Bugfix: backward compatibility with netcdf files. [Martin Raspaud]
+
+- Bugfix: removed the old mviri compositer. [Martin Raspaud]
+
+- Bugfix: When assembling, keep track of object, not just lon/lats.
+  [Martin Raspaud]
+
+- Bugfix: assembling scenes would unmask some lon/lats... [Martin
+  Raspaud]
+
+- Bugfix: handling of channels with different resolutions in
+  assemble_segments. [Martin Raspaud]
+
+- Bugfix: Runner crashed if called with an area not in product list.
+  [Martin Raspaud]
+
+- Bugfix: the nwcsaf_pps reader was crashing if no file was found...
+  [Martin Raspaud]
+
+- Bugfix: pynav is not working in some cases, replace with pyorbital.
+  [Martin Raspaud]
+
+- Bugfix: can now add overlay in monochromatic images. [Martin Raspaud]
+
+- Bugfix: swath scene projection takes forever from the second time.
+  [Martin Raspaud]
+
+  The swath scene, when projected more than once would recompute the nearest neighbours for every channel.
+
+
+- Bugfix: importing geotiepoints. [Martin Raspaud]
+
+- Bugfix: hdfeos was not eumetcast compliant :( [Martin Raspaud]
+
+- Bugfix: Do not raise exception on loading failure (nwcsaf_pps) [Martin
+  Raspaud]
+
+- Bugfix: fixed misc bugs. [Martin Raspaud]
+
+- Bugfix: comparing directories with samefile is better than ==. [Martin
+  Raspaud]
+
+- Bugfix: updating old eps_l1b interface. [Martin Raspaud]
+
+- Bugfix: Fixed typo in gatherer. [Martin Raspaud]
+
+- Bugfix: taking satscene.area into consideration for get_lonlat.
+  [Martin Raspaud]
+
+- Bugfix: mipp required version to 0.6.0. [Martin Raspaud]
+
+- Bugfix: updating unittest and setup for new mipp release. [Martin
+  Raspaud]
+
+- Bugfix: for eps l1b, get_lonlat did not return coherent values since
+  the introduction of pyresample. [Martin Raspaud]
+
+- Bugfix: mipp to mipp_xrit namechange. [Martin Raspaud]
+
+- Bugfix: better detection of needed channels in aapp1b. [Martin
+  Raspaud]
+
+- Bugfix: support for other platforms. [Martin Raspaud]
+
+- Bugfix: Support python 2.4 in mipp plugin. [Martin Raspaud]
+
+- Bugfix: masked arrays should be conserved by scene.__setitem__ [Martin
+  Raspaud]
+
+- Bugfix: Don't make area and time_slot static in compositer. [Martin
+  Raspaud]
+
+- Bugfix: reinit channels_to_load and messages for no loading. [Martin
+  Raspaud]
+
+  - When the loading process is interrupted, the channels_to_load attribute was not reinitialized.
+  - Added a message when loading for a given level did not load anything.
+
+
+- Bugfix: Give an informative message when area is missing for msg's hdf
+  reader. [Martin Raspaud]
+
+- Bugfix: update satpos file retrieval for hrpt and eps1a. [Martin
+  Raspaud]
+
+- Bugfix: fixed unittests for new plugin system. [Martin Raspaud]
+
+- Bugfix: Do not load plugins automatically... [Martin Raspaud]
+
+- Bugfix: satellite vs satname again. [Martin Raspaud]
+
+- Bugfix: don't crash if msg hdf can't be loaded. [Martin Raspaud]
+
+- Bugfix: project now chooses mode automatically by default. [Martin
+  Raspaud]
+
+- Bugfix: eps_avhrr adapted to new plugin format. [Martin Raspaud]
+
+- Bugfix: loading in msg_hdf adapted to new plugin system. [Martin
+  Raspaud]
+
+- Bugfix: loading plugins should fail on any exception. [Martin Raspaud]
+
+- Bugfix: stupid syntax error. [Martin Raspaud]
+
+- Bugfix: mistook satname for satellite. [Martin Raspaud]
+
+- Bugfix: move to jenkins. [Martin Raspaud]
+
+- Bugfix: affecting area to channel_image. [Martin Raspaud]
+
+- Bugfix: Better handling of alpha channel. [Martin Raspaud]
+
+- Bugfix: filewatcher would wait a long time if no new file has come.
+  [Martin Raspaud]
+
+- Bugfix: netcdf saving didn't record lat and lon correctly. [Martin
+  Raspaud]
+
+- Bugfix: netcdf saving didn't work if only one value was available.
+  [Martin Raspaud]
+
+- Bugfix: test_mipp had invalid proj parameters. [Martin Raspaud]
+
+- Bugfix: satellite vs satname again. [Martin Raspaud]
+
+- Bugfix: project now chooses mode automatically by default. [Martin
+  Raspaud]
+
+- Bugfix: move to jenkins. [Martin Raspaud]
+
+- Bugfix: fixed unit test for projector reflecting the new mode
+  handling. [Martin Raspaud]
+
+- Bugfix: fixed None mode problem in projector. [Martin Raspaud]
+
+- Bugfix: The default projecting mode now take into account the types of
+  the in and out areas. [Martin Raspaud]
+
+- Bugfix: forgot the argument to wait in filewatcher. [Martin Raspaud]
+
+- Bugfix: tags and gdal_options were class attributes, they should be
+  instance attributes. [Martin Raspaud]
+
+- Bugfix: 0 reflectances were masked in aapp1b loader. [Martin Raspaud]
+
+- Bugfix: corrected parallax values as no_data in msg products reading.
+  [Martin Raspaud]
+
+- Bugfix: tags and gdal_options were class attributes, they should be
+  instance attributes. [Martin Raspaud]
+
+- Bugfix: Compatibility with nordrad was broken. [Martin Raspaud]
+
+- Bugfix: forgot the argument to wait in filewatcher. [Martin Raspaud]
+
+- Bugfix: forgot strptime = datetime.strptime when python > 2.5. [Martin
+  Raspaud]
+
+- Bugfix: corrected parallax values as no_data in msg products reading.
+  [Martin Raspaud]
+
+- Bugfix: individual channel areas are preserved when assembled
+  together. [Martin Raspaud]
+
+- Bugfix: cleanup tmp directory when convertion to lvl 1b is done.
+  [Martin Raspaud]
+
+- Bugfix: remove hardcoded pathes in hrpt and eps lvl 1a. [Martin
+  Raspaud]
+
+- Bugfix: use mpop's main config path. [Martin Raspaud]
+
+- Bugfix: added python 2.4 compatibility. [Martin Raspaud]
+
+- Bugfix: allow all masked array as channel data. [Martin Raspaud]
+
+- Better support for channel-bound areas. [Martin Raspaud]
+
+- Bugfix: 0 reflectances were masked in aapp1b loader. [Martin Raspaud]
+
+- Bugfix: tags and gdal_options were class attributes, they should be
+  instance attributes. [Martin Raspaud]
+
+- Bugfix: error checking on area_extent for loading. [Martin Raspaud]
+
+- Bugfix: non loaded channels should not induce computation of
+  projection. [Martin Raspaud]
+
+- Bugfix: thin modis didn't like area extent and was locked in 2010...
+  [Martin Raspaud]
+
+- Bugfix: Compatibility with nordrad was broken. [Martin Raspaud]
+
+- Bugfix: fixed matching in git command for version numbering. [Martin
+  Raspaud]
+
+- Bugfix: Negative temperatures (in K) should not be valid data when
+  reading aapp1b files. [Martin Raspaud]
+
+- Bugfix: remove hudson from tags when getting version. [Martin Raspaud]
+
+- Bugfix: fixed hdf inconstistencies with the old pyhl reading of msg
+  ctype and ctth files. [Martin Raspaud]
+
+- Bugfix: Updated code and tests to validate unittests. [Martin Raspaud]
+
+- Bugfix: data reloaded even if the load_again flag was False. [Martin
+  Raspaud]
+
+- Bugfix: updated tests for disapearance of avhrr.py. [Martin Raspaud]
+
+- Bugfix: access to CompositerClass would fail if using the old
+  interface. [Martin Raspaud]
+
+- Bugfix: typesize for msg's ctth didn't please pps... [Martin Raspaud]
+
+- Bugfix: fixed data format (uint8) in msg_hdf. [Martin Raspaud]
+
+- Bugfix: wrong and forgotten instanciations. [Martin Raspaud]
+
+- Bugfix: crashing on missing channels in mipp loading. [Martin Raspaud]
+
+- Bugfix: forgot to pass along area_extent in mipp loader. [Martin
+  Raspaud]
+
+- Bugfix: fixing integration test (duck typing). [Martin Raspaud]
+
+- Bugfix: pyresample.geometry is loaded lazily for area building.
+  [Martin Raspaud]
+
+- Bugfix: Updated unit tests. [Martin Raspaud]
+
+- Bugfix: Last change introduced empty channel list for meteosat 09.
+  [Martin Raspaud]
+
+- Bugfix: Last change introduced empty channel list for meteosat 09.
+  [Martin Raspaud]
+
+- Bugfix: update unittests for new internal implementation. [Martin
+  Raspaud]
+
+- Bugfix: compression argument was wrong in
+  satelliteinstrumentscene.save. [Martin Raspaud]
+
+- Bugfix: adapted mpop to new equality operation in pyresample. [Martin
+  Raspaud]
+
+- Bugfix: More robust config reading in projector and test_projector.
+  [Martin Raspaud]
+
+- Bugfix: updated the msg_hrit (nwclib based) reader. [Martin Raspaud]
+
+- Bugfix: swath processing was broken, now fixed. [Martin Raspaud]
+
+- Bugfix: corrected the smaller msg globe area. [Martin Raspaud]
+
+- Bugfix: Erraneous assumption on the position of the 0,0 lon lat in the
+  seviri frame led to many wrong things. [Martin Raspaud]
+
+- Bugfix: introduced bugs in with last changes. [Martin Raspaud]
+
+- Bugfix: new area extent for EuropeCanary. [Martin Raspaud]
+
+- Bugfix: Updated setup.py to new structure. [Martin Raspaud]
+
+- Bugfix: updated integration test to new structure. [Martin Raspaud]
+
+- Bugfix: more verbose crashing when building extensions. [Martin
+  Raspaud]
+
+- Bugfix: corrected EuropeCanary region. [Martin Raspaud]
+
+- Bugfix: made missing areas message in projector more informative
+  (includes missing area name). [Martin Raspaud]
+
+- Bugfix: Added missing import in test_pp_core. [Martin Raspaud]
+
+- Bugfix: fixing missing import in test_scene. [Martin Raspaud]
+
+- Bugfix: geotiff images were all saved with the wgs84 ellipsoid even
+  when another was specified... [Martin Raspaud]
+
+- Bugfix: Corrected the formulas for area_extend computation in geos
+  view. [Martin Raspaud]
+
+- Bugfix: satellite number in cf proxy must be an int. Added also
+  instrument_name. [Martin Raspaud]
+
+- Bugfix: Erraneous on the fly area building. [Martin Raspaud]
+
+- Bugfix: geo_image: gdal_options and tags where [] and {} by default,
+  which is dangerous. [Martin Raspaud]
+
+- Bugfix: Support for new namespace for osr. [Martin Raspaud]
+
+- Bugfix: remove dubble test in test_channel. [Martin Raspaud]
+
+- Bugfix: showing channels couldn't handle masked arrays. [Martin
+  Raspaud]
+
+- Bugfix: Scen tests where wrong in project. [Martin Raspaud]
+
+- Bugfix: when loading only CTTH or CloudType, the region name was not
+  defined. [Martin Raspaud]
+
+- Bugfix: in test_channel, Channel constructor needs an argument.
+  [Martin Raspaud]
+
+- Bugfix: in test_cmp, tested GenericChannel instead of Channel. [Martin
+  Raspaud]
+
+- Bugfix: Test case for channel initialization expected the wrong error
+  when wavelength argument was of the wrong size. [Martin Raspaud]
+
+- Bugfix: Added length check for "wavelength" channel init argument.
+  [Martin Raspaud]
+
+- Bugfix: test case for channel resolution did not follow previous patch
+  allowing real resolutions. [Martin Raspaud]
+
+- Bugfix: thin modis lon/lat are now masked arrays. [Martin Raspaud]
+
+- Bugfix: in channel constructor, wavelength triplet was not correctly
+  checked for type. [Martin Raspaud]
+
+  Just min wavelength was check three times.
+
+
 Other
 ~~~~~
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 0.1.0 → 0.2.0. [Martin Raspaud]
+
+- Fix version number. [Martin Raspaud]
+
+- Do not fill lon and lat masks with random values. [Martin Raspaud]
+
+- Fix AHI reading for new rayleigh correction. [Martin Raspaud]
+
+- Add some modifiers for AHI. [Martin Raspaud]
+
+- Adjust to requesting rayleigh correction by wavelength. [Martin
+  Raspaud]
+
+- Add rayleigh modifier to visir. [Martin Raspaud]
+
+- Add angles reading to nc_olci. [Martin Raspaud]
+
+- Add pyspectral's generic rayleigh correction. [Martin Raspaud]
+
+- Fix cosmetics in scene.py. [Martin Raspaud]
+
+- Remove memmap from eps_l1b, use fromfile instead. [Martin Raspaud]
+
+  This was triggering a `Too many open files` error since the memmap was
+  called for every scanline.
+
+- Fix loading for datasets with no navigation. [Martin Raspaud]
+
+- Read start and end time from filename for eps_l1b. [Martin Raspaud]
+
+  This avoids opening every file just for time checks.
+
+- Rename file handler's get_area to get_lonlats. [davidh-ssec]
+
+  There is now a get_area_def and get_lonlats method on individual file handlers
+
+
+- Fix start/end/area parameters in FileYAMLReader. [davidh-ssec]
+
+- Move start_time, end_time, area parameters to reader init instead of
+  load. [davidh-ssec]
+
+  Scenes do not change start_time, end_time, area after init so neither should readers. Same treatment is probably needed for 'sensors'.
+
+
+- Fix avhrr reading. [Martin Raspaud]
+
+- Add amsr2 composite config file. [Martin Raspaud]
+
+- Adjust OLCI reader for reflectance calibration. [Martin Raspaud]
+
+- Delete old reader .cfg config files that are no longer used. [davidh-
+  ssec]
+
+- Add forgotten OMPS yaml file. [davidh-ssec]
+
+- Convert OMPS reader from .cfg/INI to YAML. [davidh-ssec]
+
+- Provide better warning message when specified reader can't be found.
+  [davidh-ssec]
+
+- Clean up class declarations in viirs l1b yaml. [davidh-ssec]
+
+- Fix VIIRS L1B inplace loading. [davidh-ssec]
+
+- Remove duplicate units definition in nucaps reader. [davidh-ssec]
+
+- Add standard_name and units to nucaps reader. [davidh-ssec]
+
+- Convert nucaps reader to yaml. [davidh-ssec]
+
+- Remove `dskey` from reader dataset ID dictionary. [davidh-ssec]
+
+  The section name for each dataset was not used except to uniquely identify one dataset 'variation' from another similar dataset. For example you could technically have two sections for each calibration of a single dataset. YAML would require a different section name for each of these, but it is not used inside of satpy's readers because the `name` and DatasetID are used for that purpose.
+
+
+- Rename 'navigation' section in reader configs to 'navigations'
+  [davidh-ssec]
+
+  More consistent and grammatically correct with file_types and datasets
+
+
+- Rename 'corrector' and 'correction' modifiers to 'corrected' [davidh-
+  ssec]
+
+  Modifier names are applied to DatasetIDs so it was decided that 'corrected' may sound better in the majority of cases than 'corrector'.
+
+
+- Add .info dictionary to SwathDefinition created by YAML Reader.
+  [davidh-ssec]
+
+- Fix standard_name of natural_color composite for VIIRS. [davidh-ssec]
+
+- Add ratio sharpened natural color for VIIRS. [davidh-ssec]
+
+- Rename VIIRSSharpTrueColor to RatioSharpenedRGB. [davidh-ssec]
+
+  This includes making the ratio sharpened true color the default for VIIRS under the name 'true_color'
+
+
+- Fix tuple expansion in sunz corrector. [davidh-ssec]
+
+- Rename I and DNB angle datasets to reflect M band naming. [davidh-
+  ssec]
+
+- Allow including directories in file patterns. [Martin Raspaud]
+
+- Add navigation to olci reader. [Martin Raspaud]
+
+- Add support for OLCI format reading. [Martin Raspaud]
+
+- Cleanup SunZenithCorrector. [Martin Raspaud]
+
+- Remove some TODOs. [Martin Raspaud]
+
+- Fix some seviri composites. [Martin Raspaud]
+
+- Add mipp config file for MSG3. [Martin Raspaud]
+
+  This is needed by mipp when the mipp_hrit reader is used.
+
+- Remove `if True` from viirs sharp true color. [davidh-ssec]
+
+- Fix small bug in scene when dataset isn't found in a reader. [davidh-
+  ssec]
+
+- Update VIIRS sharpened true color to be more flexible when upsampling.
+  [davidh-ssec]
+
+- Refactor composite config loading to allow interdependent modifiers.
+  [Martin Raspaud]
+
+- Add configuration files for HRIT H8 loading. [Martin Raspaud]
+
+- Pass platform_name to mipp for prologue-less hrit formats. [Martin
+  Raspaud]
+
+- Provide satellite position information on load (HSD) [Martin Raspaud]
+
+- Put AHI HSD reflectances in % [Martin Raspaud]
+
+  They were between 0 and 1 by default
+
+- Fix AHI HSD nav dtype. [Martin Raspaud]
+
+  lon ssp and lat ssp where swaped
+
+- Adjust correct standard names for seviri calibration. [Martin Raspaud]
+
+- Fix Seviri CO2 correction buggy yaml def. [Martin Raspaud]
+
+- Fix sunz corrector with different resolutions. [davidh-ssec]
+
+  Includes fix to make sure composites from user-land will overwrite builtin composites.
+
+
+- Update VIIRS L1B LUT variable path construction to be more flexible.
+  [davidh-ssec]
+
+- Add recursive dict updating to yaml reader configs. [davidh-ssec]
+
+  Before this only the top level values would be updated as a whole which wasn't really the intended function of having multiple config files.
+
+
+- Fix coords2area_def with rounding of x and y sizes. [Martin Raspaud]
+
+- Fix cos zen normalisation (do not use datetime64) [Martin Raspaud]
+
+- Fix start and end time format to use datetime.datetime. [Martin
+  Raspaud]
+
+- Add IMAPP file patterns to HDFEOS L1B reader. [davidh-ssec]
+
+- Fix hdfeos_l1b due to missing get_area_def method. [davidh-ssec]
+
+  The HDFEOS file handlers weren't inheriting the proper base classes
+
+
+- Add sunz_corrector modifier to viirs_sdr reader. [davidh-ssec]
+
+- Fix available_dataset_names when multiple file types are involved.
+  [davidh-ssec]
+
+  Also includes a clean up of the available_dataset_names by not providing duplicates (from multiple calibrations and resolutions)
+
+
+- Allow multiple file types in yaml reader. [davidh-ssec]
+
+- Add VIIRS SDR M-band angles and DNB angles. [davidh-ssec]
+
+- Add VIIRS SDR reader back in [WIP] [davidh-ssec]
+
+  I've added all the M and I bands, but need to add DNB and the various angle measurements that we use a lot. Also need to add the functionality to load/find the geolocation files from the content in the data files.
+
+
+- Add reader_name and composites keywords to all/available_dataset_names
+  methods. [davidh-ssec]
+
+- Fix available_dataset_ids and all_dataset_ids methods. [davidh-ssec]
+
+  There are not `(all/available)_dataset_(ids/names)` methods on the Scene object. Includes a fix for available composites.
+
+
+- Fix multiple load calls in Scene. [davidh-ssec]
+
+  This isn't technically a supported feature, but it was a simple fix to get it to work for my case.
+
+
+- Fix compositor loading when optional_prerequisites are more than a
+  name. [davidh-ssec]
+
+- Update coord2area_def to be in sync with the mpop version. [Martin
+  Raspaud]
+
+- Fix seviri.yaml for new prerequisite syntax. [Martin Raspaud]
+
+- Fix EPSG info in geotiffs. [Martin Raspaud]
+
+- Adjust crefl for python 3 compatibility. [Martin Raspaud]
+
+- Merge branch 'new_prereq_syntax' into feature-yaml. [Martin Raspaud]
+
+  Conflicts:
+  	etc/composites/viirs.yaml
+  	etc/composites/visir.yaml
+  	satpy/composites/__init__.py
+  	satpy/scene.py
+
+- Add support for new prerequisite syntax. [Martin Raspaud]
+
+- Got VIIRS L1B True color working. [davidh-ssec]
+
+  Still need work on sharpened true color when I01 is used for ratio sharpening.
+
+
+- Remove unneeded quotes for python names in yaml files. [Martin
+  Raspaud]
+
+- Merge branch 'feature-ahi-no-navigation' into feature-yaml. [Martin
+  Raspaud]
+
+  Conflicts:
+  	etc/composites/viirs.yaml
+  	satpy/readers/yaml_reader.py
+
+- Add viirs composites. [Martin Raspaud]
+
+- Fix the area_def concatenation. [Martin Raspaud]
+
+- Mask nan in ir calibration for ahi hsd. [Martin Raspaud]
+
+- Fix out of place loading, by not using a shuttle. [Martin Raspaud]
+
+- Make get_area_def a default method of file_handlers. [Martin Raspaud]
+
+- Allow file handler to provide area defs instead of swath. [Martin
+  Raspaud]
+
+  This is enabled by implementing the `get_area_def` method in the file
+  handler.
+
+- Optimize AHI reading using inplace loading. [Martin Raspaud]
+
+  Navigation is switched off for now.
+
+- Allow area loading for the data file handlers. [Martin Raspaud]
+
+- Use a named tuple to pass both data, mask and info dict for inplace
+  loading. [Martin Raspaud]
+
+- Fix AreaID name to AreaID. [Martin Raspaud]
+
+- Fix AreaID name to AreaID. [Martin Raspaud]
+
+- Add moon illumination fraction and DNB enhancements for VIIRS.
+  [davidh-ssec]
+
+  MIF needed some edits to how the reader works since it returns a Dataset (no associated navigation)
+
+
+- Add other basic datasets to VIIRS L1B. [davidh-ssec]
+
+  I only had I01 and I04 for testing, not has all I, M, and DNB datasets.
+
+
+- Add enhancements configuration directory to the setup.py data_files.
+  [davidh-ssec]
+
+- Complete AHI HSD reader. [Martin Raspaud]
+
+- Fix missing dependency and python3 compatibility in ahi_hsd. [Martin
+  Raspaud]
+
+- Add skeleton for Himawari AHI reading. [Martin Raspaud]
+
+- Add a NIR reflectance modifier using pyspectral. [Martin Raspaud]
+
+- Add some metadata to projectables in viirs compact. [Martin Raspaud]
+
+- Fix optional prerequisites loading. [Martin Raspaud]
+
+- Raise an IncompatibleArea exception on RGBCompositor. [Martin Raspaud]
+
+- Look for local files even if base_dir and filenames are missing.
+  [Martin Raspaud]
+
+- Allow empty scene creation when neither filenames nor base_dir is
+  provided. [Martin Raspaud]
+
+- Handle incompatible areas when reading composites. [Martin Raspaud]
+
+- Remove dead code. [Martin Raspaud]
+
+- Add debug information in viirs compact. [Martin Raspaud]
+
+- Get dataset key from calibration in correct order. [Martin Raspaud]
+
+- Raise exception when no files are found. [Martin Raspaud]
+
+- Add DNB to viirs compact. [Martin Raspaud]
+
+- Remove old mpop legacy files. [Martin Raspaud]
+
+- Make viirs_compact python 3 compatible. [Martin Raspaud]
+
+- Move xmlformat.py to the readers directory, and remove a print
+  statement. [Martin Raspaud]
+
+- Fix EPSG projection definition saving to geotiff. [Martin Raspaud]
+
+- Remove python 3 incompatible syntax (Tuple Parameter Unpacking)
+  [Martin Raspaud]
+
+- Fix crefl further to lower memory consumption. [Martin Raspaud]
+
+- Avoid raising an error when no files are found. [Martin Raspaud]
+
+  Instead, a warning is logged.
+
+- Remove unused code from readers/__init__.py. [Martin Raspaud]
+
+- Cleanup style. [Martin Raspaud]
+
+- Fix unittests. [Martin Raspaud]
+
+- Deactivate viirssdr testing while migrating to yaml. [Martin Raspaud]
+
+- Refactor parts of compact viirs reader. [Martin Raspaud]
+
+- Optimize memory for crefl computation. [Martin Raspaud]
+
+- Allow sunz corrector to be provided the sunz angles. [Martin Raspaud]
+
+- Make chained modifiers work. [Martin Raspaud]
+
+- Cleanup style. [Martin Raspaud]
+
+- Add a crefl modifier for viirs. [Martin Raspaud]
+
+- Add loading of sun-satellite/sensor viewing angles to aapp-l1b reader.
+  [Adam.Dybbroe]
+
+- Add sensor/solar angles loading to compact viirs reader. [Martin
+  Raspaud]
+
+- Allow modifier or composites sections to be missing from config.
+  [Martin Raspaud]
+
+- Fix some composites. [Martin Raspaud]
+
+- Port VIIRS Compact M-bands to yaml. [Martin Raspaud]
+
+- Add modifiers feature. [Martin Raspaud]
+
+  Now modifiers can be added to the prerequisites as dictionnaries.
+
+- Add standard_names to channels in mipp_xrit. [Martin Raspaud]
+
+- Add a NC4/CF writer. [Martin Raspaud]
+
+- Use YAML instead of CFG for composites. [Martin Raspaud]
+
+- Rename wavelength_range to wavelength in reader configs. [davidh-ssec]
+
+  Also rewrote other yaml configs to use new dict identifiers
+
+
+- Add YAML based VIIRS L1B reader (I01 and I04 only) [davidh-ssec]
+
+- Allow dict identifiers in reader's datasets config. [davidh-ssec]
+
+  Some metadata (standard_name, units, etc) are dependent on the calibration, resolution, or other identifying piece of info. Now these make it easier to fully identify a dataset and the multiple ways it may exist. This commit also includes small fixes for how `get_shape` is called and fixes for the netcdf4 handler to match past changes.
+
+
+- Fix numpy warnings when assigning to masked arrays. [davidh-ssec]
+
+- Add pyyaml to setup.py requires. [davidh-ssec]
+
+- Make base file handler and abstract base class. [davidh-ssec]
+
+  Also changed start_time and end_time to properties of the file handlers
+
+
+- Make AbstractYAMLReader an actual ABCMeta abstract class. [davidh-
+  ssec]
+
+- Fix ReaderFinder when all provided filenames have been found. [davidh-
+  ssec]
+
+  Also fixed mipp_xrit reader which was providing the set of files that matched rather than the set of files that didn't match. Added start and end time to the xrit reader too.
+
+
+- Rename YAMLBasedReader to FileYAMLReader. [davidh-ssec]
+
+  As in it is a YAML Based Reader that accepts files where a dataset is not separated among multiple files.
+
+
+- Merge remote-tracking branch 'origin/feature-yaml' into feature-yaml.
+  [davidh-ssec]
+
+- Port EPS l1b reader to yaml. [Martin Raspaud]
+
+- Combine areas also in combine_info. [Martin Raspaud]
+
+- Port mipp xrit reader to yaml. [Martin Raspaud]
+
+- Split YAMLBasedReader to accomodate for derivatives. [Martin Raspaud]
+
+  Some file formats split a dataset on multiple files, a situation which is
+  not covered by the YAMLBasedReader. Some parts of the class being still
+  valid in this situation, we split the class to avoid code duplication,
+  using subclassing instead.
+
+- Add hrpt reader. [Martin Raspaud]
+
+- Change AMSR2 L1B reader config to be 2 spaces instead of 4. [davidh-
+  ssec]
+
+- Remove uncommented blank likes from scene header. [Martin Raspaud]
+
+- Allow filenames to be an empty set and still look for files. [Martin
+  Raspaud]
+
+- Reorganize imports in mipp reader. [Martin Raspaud]
+
+- Beautify resample.py. [Martin Raspaud]
+
+- Use uncertainty flags to mask erroneous data. [Martin Raspaud]
+
+- Optimize the loading by caching 3b flag. [Martin Raspaud]
+
+- Stack the projectable keeping the mask. [Martin Raspaud]
+
+- Avoid datasets from being requested multiple times. [Martin Raspaud]
+
+- Fix aapp1b to work again. [Martin Raspaud]
+
+- Use area ids to carry navigation needs. [Martin Raspaud]
+
+- Get the hdfeos_l1b reader to work again. [Martin Raspaud]
+
+- Add yaml files to setup.py included data files. [davidh-ssec]
+
+- Move start/end/area filtering to reader init. [davidh-ssec]
+
+  This includes moving file handler opening to the `select_files` method.
+
+
+- Add combine_info method to base file handlers. [davidh-ssec]
+
+  I needed a way to let file handlers (written by reader developers) to have control over how extra metadata is combined among all of the "joined" datasets of a swath. This should probably be a classmethod, but I worry that may complicate customization and there is always a chance that instance variables may control this behavior.
+
+
+- Add more AMSR2 metadata to loaded datasets. [davidh-ssec]
+
+- Change exception to warning when navigation information can't be
+  loaded. [davidh-ssec]
+
+- Move reader check to earlier in the file selection process. [davidh-
+  ssec]
+
+  The code was looking through each reader config file, instantiating each one, then running the `select_files` method only to return right away when the instantiated reader's name didn't equal the user's requested reader. This was a lot of wasted processing and will get worse with every new reader that's added.
+
+
+- Rename amsr2 reader to amsr2_l1b. [davidh-ssec]
+
+- Add AMSR2 36.5 channel. [davidh-ssec]
+
+- Fix reader finder so it returns when not asked for anything. [davidh-
+  ssec]
+
+  Resampling in the Scene object requires making an empty Scene. There was an exception being raised because the reader finder was trying to search for files in path `None`.
+
+
+- Add initial AMSR2 L1B reader (yaml) [davidh-ssec]
+
+- Make lons/lats for SwathDefinition in to masked arrays. [davidh-ssec]
+
+- Rewrite the yaml based reader loading methods. [davidh-ssec]
+
+  Lightly tested.
+
+
+- Rename utility file handlers and moved base file handlers to new
+  module. [davidh-ssec]
+
+  The base file handlers being in yaml_reader could potentially cause a circular dependency. The YAML Reader loads a file handler which subclasses one of the base handlers which are in the same module as the yaml reader.
+
+
+- Fix filename_info name in file handler. [davidh-ssec]
+
+  Oops
+
+
+- Pass filename info to each file handler. [davidh-ssec]
+
+  There is a lot of information collected while parsing filenames that wasn't being passed to file handlers, now it is. This commit also includes renaming the generic file handler's (hdf5, netcdf) data cache to `file_content` because `metadata` was too generic IMO.
+
+
+- Finish merge of develop to yaml branch. [davidh-ssec]
+
+  Starting merging develop and a few things didn't make it all the way over cleanly
+
+
+- Remove redundant log message. [davidh-ssec]
+
+- Fix reader keyword argument name change. [davidh-ssec]
+
+  Also raise an exception if no readers are created
+
+
+- Merge branch 'develop' into feature-yaml-amsr2. [davidh-ssec]
+
+  # Conflicts:
+  #	etc/readers/aapp_l1b.yaml
+  #	satpy/readers/__init__.py
+  #	satpy/readers/aapp_l1b.py
+  #	satpy/scene.py
+
+
+- Add OMPS so2_trm dataset. [davidh-ssec]
+
+- Rename "scaling_factors" to "factor" in reader configuration. [davidh-
+  ssec]
+
+- Merge branch 'feature-omps-reader' into develop. [davidh-ssec]
+
+- Add simple OMPS EDR Reader. [davidh-ssec]
+
+- Clean up various reader methods. [davidh-ssec]
+
+  In preparation for OMPS reader
+
+
+- Move HDF5 file wrapper to new hdf5_utils.py. [davidh-ssec]
+
+- Add the multiscene module to combine satellite datasets. [Martin
+  Raspaud]
+
+  The multiscene class adds the possibility to blend different datasets
+  together, given a blend function.
+
+- Add a test yaml-based reader for aapp1b. [Martin Raspaud]
+
+- Fix manually added datasets not being resampled. [davidh-ssec]
+
+- Merge pull request #8 from davidh-ssec/feature-ewa-resampling. [David
+  Hoese]
+
+  Feature ewa resampling
+
+- Update EWA resampler to use new wrapper functions from pyresample.
+  [davidh-ssec]
+
+- Move resample import in resample tests. [davidh-ssec]
+
+  The resample module import now happens inside the test so only the resample tests fail instead of halting all unittests.
+
+
+- Fix resample test from moved resample import. [davidh-ssec]
+
+  The 'resample' method imported at the top of projectable.py was moved to inside the resample method to avoid circular imports. The resample tests were still patching the global import. Now they modify the original function. I also imported unittest2 in a few modules to be more consistent.
+
+
+- Fix bug in EWA output array shape. [davidh-ssec]
+
+- Add initial EWA resampler. [davidh-ssec]
+
+- Move resample imports in Projectable to avoid circular imports.
+  [davidh-ssec]
+
+- Rename `reader_name` scene keyword to `reader` [davidh-ssec]
+
+  Also make it possible to pass an instance of a reader or reader-like class. Renaming is similar to how `save_datasets` takes a `writer` keyword.
+
+
+- Fix loading aggregated viirs sdr metadata. [davidh-ssec]
+
+  Aggregated VIIRS SDR files have multiple `Gran_0` groups with certain attributes and data, like G-Ring information. Loading these in a simple way is a little more complex than the normal variable load and required adding a new metadata join method.
+
+
+- Refix reader_info reference in yaml base reader. [davidh-ssec]
+
+  This fix got reverted in the last commit for some reason
+
+
+- Add support for modis l1b data. [Martin Raspaud]
+
+- Edit the wishlist only when needed. [Martin Raspaud]
+
+- Add MODIS l1b reader, no geolocation for now. [Martin Raspaud]
+
+- Assign right files to the reader. [Martin Raspaud]
+
+  No matching of file was done, resulting in assigning all found files to all
+  readers.
+
+- Fix reader_info reference in yaml base reader. [davidh-ssec]
+
+- Keep channels in the wishlist when necessary. [Martin Raspaud]
+
+  Due to the creation of a DatasetID for each dataset key, the wishlist
+  wasn't matching the actual ids of the datasets.
+
+- Adapt reading to yaml reader way. [Martin Raspaud]
+
+  Since there is more delegating of tasks to the reader, the reading has to
+  be adapted.
+
+- Cleanup using pep8. [Martin Raspaud]
+
+- Allow yaml files as config files. [Martin Raspaud]
+
+- Add the dependency tree based reading. [Martin Raspaud]
+
+- Update the yamlbased aapp reader. [Martin Raspaud]
+
+- Move the hdfeos reader to the readers directory. [Martin Raspaud]
+
+- Add the multiscene module to combine satellite datasets. [Martin
+  Raspaud]
+
+  The multiscene class adds the possibility to blend different datasets
+  together, given a blend function.
+
+- Add a test yaml-based reader for aapp1b. [Martin Raspaud]
+
+- Fix netcdf dimension use to work with older versions of netcdf-python
+  library. [davidh-ssec]
+
+- Add 'iter_by_area' method for easier grouping of datasets in special
+  resampling cases. [davidh-ssec]
+
+- Fix bug when resampling is done for specific datasets. [davidh-ssec]
+
+  This fix addresses the case when resampling is done for a specific set of datasets. The compute method will attempt to create datasets that don't exist after resampling. Since we didn't resample all datasets it will always fail. This commit only copies the datasets that were specified in resampling. It is up to the user to care for the wishlist if not using the default (resample all datasets).
+
+
+- Add dimensions to collected metadata for netcdf file wrapper. [davidh-
+  ssec]
+
+  I needed to use VIIRS L1B like I do VIIRS SDR for some GTM work and needed to copy over some of the metadata. One piece was only available as a global dimension of the NC file so I made it possible to ask for dimensions similar to how you can for attributes.
+
+
+- Fix crefl searching for coefficients by dataset name. [davidh-ssec]
+
+- Fix combining info when metadata is a numpy array. [davidh-ssec]
+
+- Fix incorrect NUCAPS quality flag masking data. [davidh-ssec]
+
+- Add .gitignore with python and C patterns. [davidh-ssec]
+
+- Add 'load_tests' for easier test selection. [davidh-ssec]
+
+  PyCharm and possibly other IDEs don't really play well with unittest TestSuites, but work as expected when `load_tests` is used.
+
+
+- Fix resample hashing when area has no mask. [davidh-ssec]
+
+- Add test for scene iter and fix it again. [davidh-ssec]
+
+- Fix itervalues usage in scene for python 3. [davidh-ssec]
+
+- Allow other array parameters to be passed to MaskedArray through
+  Dataset. [davidh-ssec]
+
+- Fix viirs l1b reader to handle newest change in format (no reflectance
+  units) [davidh-ssec]
+
+- Fix bug in crefl compositor not respecting input data type. [davidh-
+  ssec]
+
+- Fix NUCAPS H2O_MR Dataset to get proper field from file. [davidh-ssec]
+
+- Add environment variable SATPY_ANCPATH for crefl composites. [davidh-
+  ssec]
+
+- Fix config files being loaded in the correct (reverse) order. [davidh-
+  ssec]
+
+  INI config files loaded from ConfigParser should be loaded in the correct order so that users' custom configs overwrite the builtin configs. For that to happen the builtin configs must be loaded first. The `config_search_paths` function had this backwards, but the compositor loading function was already reversing them. This commit puts the reverse in the config function.
+
+
+- Update setup.py to always require pillow and not import PIL. [davidh-
+  ssec]
+
+  It seems that in older versions of setuptools (or maybe even easy_install) that importing certain libraries in setup.py causes an infinite loop and eats up memory until it gets killed by the kernel.
+
+
+- Change NUCAPS H2O to H2O_MR to match name in file. [davidh-ssec]
+
+- Add quality flag filtering to nucaps reader. [davidh-ssec]
+
+- Change default units for NUCAPS H2O to g/kg. [davidh-ssec]
+
+- Add filtering by surface pressure to NUCAPS reader. [davidh-ssec]
+
+- Fix composite prereqs not being removed after use. [davidh-ssec]
+
+- Update metadata combining in viirs crefl composite. [davidh-ssec]
+
+- Perform the sharpening on unresampled data if possible. [Martin
+  Raspaud]
+
+- Set the default zero height to the right shape in crefl. [Martin
+  Raspaud]
+
+- Fix bug in viirs composites when combining infos. [davidh-ssec]
+
+- Add the cloudtop composite for viirs. [Martin Raspaud]
+
+- Merge pull request #7 from davidh-ssec/feature-crefl-composites.
+  [David Hoese]
+
+  Feature crefl composites
+
+- Remove ValueError from combine_info for one argument. [davidh-ssec]
+
+- Add info dictionary to Areas created in the base reader. [davidh-ssec]
+
+- Modify `combine_info` to work on multiple datasets. [davidh-ssec]
+
+  Also updated a few VIIRS composites as test usages
+
+
+- Add angle datasets to viirs l1b for crefl true color to work. [davidh-
+  ssec]
+
+- Cleanup crefl code a bit. [davidh-ssec]
+
+- Add sunz correction to CREFL compositor. [davidh-ssec]
+
+  First attempt at adding modifiers to composites, but this method of doing it probably won't be used in the future. For now we'll keep it.
+
+
+- Fix bug in Scene where composite prereqs aren't removed after
+  resampling. [davidh-ssec]
+
+- Rename VIIRS SDR solar and sensor angle datasets. [davidh-ssec]
+
+- Update crefl true color to pan sharpen with I01 if available. [davidh-
+  ssec]
+
+- Fix crefl utils to use resolution and sensor name to find
+  coefficients. [davidh-ssec]
+
+- Fix Dataset `mask` keyword being passed to MaskedArray. [davidh-ssec]
+
+- Remove filling masked values in crefl utils. [davidh-ssec]
+
+- Fix crefl composite when given percentage reflectances. [davidh-ssec]
+
+- Add basic crefl compositor. [davidh-ssec]
+
+- Clean up crefl utils and rename main function to run_crefl. [davidh-
+  ssec]
+
+- Fix crefl utils bug and other code clean up. [davidh-ssec]
+
+- Add M band solar angles and sensor/satellite angles. [davidh-ssec]
+
+- Add `datasets` keyword to save_datasets to more easily filter by name.
+  [davidh-ssec]
+
+- Make crefl utils more pythonic. [davidh-ssec]
+
+- Add original python crefl code from Ralph Kuehn. [davidh-ssec]
+
+- Fix the viirs truecolor composite to keep mask info. [Martin Raspaud]
+
+- Allow composites to depend on other composites. [Martin Raspaud]
+
+  In the case of true color with crefl corrected channels for example, the
+  true color needs to depend on 3 corrected channels, which in turn can now
+  be composites.
+
+- Add Scene import to __init__ for convience. [davidh-ssec]
+
+- Add composites to 'available_datasets' [davidh-ssec]
+
+  Additionally have Scene try to determine what sensors are involved if they weren't specified by the user.
+
+
+- Add proper "available_datasets" checks in config based readers.
+  [davidh-ssec]
+
+- Move config utility functions to separate `config.py` module. [davidh-
+  ssec]
+
+- Fix the 'default' keyword not being used checking config dir
+  environment variable. [davidh-ssec]
+
+- Add H2O dataset to NUCAPS reader. [davidh-ssec]
+
+- Merge pull request #6 from davidh-ssec/feature-nucaps-reader. [David
+  Hoese]
+
+  Add NUCAPS retrieval reader
+
+- Cleanup code according to quantifiedcode. [davidh-ssec]
+
+  Removed instances of checking length for 0, not using .format for strings, and various other code cleanups in the readers.
+
+
+- Add documentation to various reader functions including NUCAPS reader.
+  [davidh-ssec]
+
+- Fix bug when filtering NUCAPS datasets by pressure level. [davidh-
+  ssec]
+
+- Add initial NUCAPS retrieval reader. [davidh-ssec]
+
+- Move netcdf file handler class to separate module from VIIRS L1B
+  reader. [davidh-ssec]
+
+  Also prepare generic reader for handling other dimensions besides 2D.
+
+
+- Document the __init__.py files also. [Martin Raspaud]
+
+- Mock scipy and osgeo to fix doc generation problems. [Martin Raspaud]
+
+- Mock more imports for doc building. [Martin Raspaud]
+
+- Remove deprecated doc files. [Martin Raspaud]
+
+- Mock trollsift.parser for documentation building. [Martin Raspaud]
+
+- Update the doc conf.py file no mock trollsift. [Martin Raspaud]
+
+- Add satpy api documentation. [Martin Raspaud]
+
+- Post travis notifications to #satpy. [Martin Raspaud]
+
+- Fix a few deprecation warnings. [Martin Raspaud]
+
+- Document a few Dataset methods. [Martin Raspaud]
+
+- Fix div test skip in py3. [Martin Raspaud]
+
+- Skip the Dataset __div__ test in python 3. [Martin Raspaud]
+
+- Implement numeric type methods for Dataset. [Martin Raspaud]
+
+  In order to merge or keep metadata for Dataset during arithmetic operations
+  we need to implement the numeric type methods.
+
+- Cleanup unused arguments in base reader. [davidh-ssec]
+
+  Also makes _load_navigation by renaming it to load_navigation to resolve some quantifiedcode code checks.
+
+
+- Add documentation to setup.py data file function. [davidh-ssec]
+
+- Fix call to netcdf4's set_auto_maskandscale in viirs l1b reader.
+  [davidh-ssec]
+
+- Fix setup.py to find all reader, writer, composite configs. [davidh-
+  ssec]
+
+- Merge pull request #5 from davidh-ssec/feature-viirs-l1b. [David
+  Hoese]
+
+  Add beta VIIRS L1B reader
+
+- Add LZA and SZA to VIIRS L1B config for DNB composites. [davidh-ssec]
+
+  To make certain DNB composites available I added DNB solar and lunar zenith angle as well as moon illumination fraction. This also required detecting units in the ERF DNB composite since it assumes a 0-1 range for the input DNB data.
+
+
+- Remove debug_on from scene.py. [davidh-ssec]
+
+- Fix reader not setting units. [davidh-ssec]
+
+  The default for FileKey objects was None for "units". This means that `setdefault` would never work properly.
+
+
+- Fix config parser error in python 3. [davidh-ssec]
+
+  I tried to make typing easier by using interpolation (substitution) in the VIIRS L1B reader config, but changing from RawConfigParser to ConfigParser breaks things in python 3. I changed it back in this commit and did the config the "long way" with some find and replace.
+
+
+- Add DNB and I bands to VIIRS L1B reader. [davidh-ssec]
+
+- Fix brightness temperature M bands for VIIRS L1B. [davidh-ssec]
+
+- Add M bands to VIIRS L1B reader. [davidh-ssec]
+
+- Fix VIIRS L1B masking with valid_max. [davidh-ssec]
+
+- Add initial VIIRS L1B reader. [davidh-ssec]
+
+  Currently only supports M01.
+
+
+- Revert test_viirs_sdr to np 1.7.1 compatibility. [Martin Raspaud]
+
+- Fix gring test in viirs_sdr. [davidh-ssec]
+
+- Add gring_lat and gring_lon as viirs_sdr metadata. [davidh-ssec]
+
+  Also added join_method `append_granule` as a way to keep each granule's data separate.
+
+
+- Fix composite kd3 resampling. [Martin Raspaud]
+
+  3d array masks were not precomputed correctly, so we now make a workaround.
+  A better solution is yet to be found.
+
+- Fix kd3 precomputation for AreaDefinitions. [Martin Raspaud]
+
+  The lons and lats attributes aren't defined by default in AreaDefs, so we
+  now make sure to call the get_lonlats method.
+
+- Set default format for dataset saving to geotiff. [Martin Raspaud]
+
+- Move `save_datasets` logic from Scene to base Writer. [davidh-ssec]
+
+- Fix bug in resample when geolocation is 2D. [davidh-ssec]
+
+  The builtin 'any' function works for 1D numpy arrays, but raises an exception when 2D numpy arrays are provided which is the usual case for sat imagery.
+
+
+- Allow geotiff creation with no 'area' [davidh-ssec]
+
+  Geotiff creation used to depend on projection information from the `img.info['area']` object, but it is perfectly legal to make a TIFF image with GDAL by not providing this projection information. This used to raise an exception, now it just warns.
+
+
+- Merge pull request #1 from pytroll/autofix/wrapped2_to3_fix. [Martin
+  Raspaud]
+
+  Fix "Consider dict comprehensions instead of using 'dict()'" issue
+
+- Use dict comprehension instead of dict([...]) [Cody]
+
+- Merge pull request #2 from pytroll/autofix/wrapped2_to3_fix-0. [Martin
+  Raspaud]
+
+  Fix "Explicitly number replacement fields in a format string" issue
+
+- Explicitely numbered replacement fields. [Cody]
+
+- Merge pull request #3 from pytroll/autofix/wrapped2_to3_fix-1. [Martin
+  Raspaud]
+
+  Fix "Use `is` or `is not` to compare with `None`" issue
+
+- Use `is` operator for comparing with `None` (Pep8) [Cody]
+
+- Merge pull request #4 from pytroll/autofix/wrapped2_to3_fix-2. [Martin
+  Raspaud]
+
+  Fix "Consider an iterator instead of materializing the list" issue
+
+- Use generator expression with any/all. [Cody]
+
+- Fix resample test for python 3. [Martin Raspaud]
+
+  the dict `keys` method return views in py3. We now convert to list for
+  consistency.
+
+- Add a test case for resample caching. [Martin Raspaud]
+
+- Revert resample cache changes. [Martin Raspaud]
+
+  They didn't seem necessary in the way resampling is called.
+
+- Rename to satpy. [Martin Raspaud]
+
+- Remove the world_map.ascii file. [Martin Raspaud]
+
+- Allow compressed files to be checked by hrit reader. [Martin Raspaud]
+
+- Add number of scans metadata to viirs sdr config. [davidh-ssec]
+
+  Also fixed rows_per_scan being a string instead of an integer when loaded from a navigation section.
+
+
+- Fix bug that removed most recent cached kdtree. [davidh-ssec]
+
+  Nearest neighbor resampling cached multiple kdtree results and cleans up the cache when there are more than CACHE_SIZE items stored. It was incorrectly cleaning out the most recent key instead of the oldest key.
+
+
+- Fix bug when nearest neighbor source geo definition needs to be
+  copied. [davidh-ssec]
+
+- Fix bug when specifying what datasets to resample. [davidh-ssec]
+
+- Move geolocation mask blending to resampling step. [davidh-ssec]
+
+  The mask for geolocation (longitude/latitude) was being OR'd with the mask from the first dataset being loaded in the reader. This was ignoring the possibility that other loaded datasets will have different masks since AreaDefinitions are cached. This blending of the masks was moved to nearest neighbor resampling since it ignored other datasets' masks in the reader and is technically a limitation of the nearest neighbor resampling because the geolocation must be masked with the dataset mask for proper output. May still need work to optimize the resampling.
+
+
+- Add spacecraft_position and midtime metadata to viirs_sdr reader.
+  [davidh-ssec]
 
 - Update changelog. [Martin Raspaud]
 
@@ -33,9 +1425,9 @@ Other
 
   This add simple repl and str methods for compositors.
 
-- Restructure the documentation for satpy2. [Martin Raspaud]
+- Restructure the documentation for mpop2. [Martin Raspaud]
 
-  This is an attempt to reorganize the documentation to prepare for satpy2.
+  This is an attempt to reorganize the documentation to prepare for mpop2.
   Old stuff has been take away, and a fresh quickstart and api are now
   provided.
 
@@ -56,7 +1448,7 @@ Other
   When a new dataset is added to a scene, it's name should match the string
   key provided by the user.
 
-- Remove references to deprecated satpy.projector. [Martin Raspaud]
+- Remove references to deprecated mpop.projector. [Martin Raspaud]
 
 - Allow resample to receive strings as area identifiers. [Martin
   Raspaud]
@@ -73,12 +1465,12 @@ Other
   it is likely that the user case about this dataset. As such, it should be
   added to the wishlist in order not to get removed accidently.
 
-- Move composite loading out of Scene to satpy.composites. [Martin
+- Move composite loading out of Scene to mpop.composites. [Martin
   Raspaud]
 
   The loading of compositors was a part of the Scene object. However, it does
   not belong there, so we decided to move it out of Scene. The next logical
-  place to have it is the satpy.composites modules.
+  place to have it is the mpop.composites modules.
   As a conterpart, we now provide the `available_composites` method to the
   Scene to be able to figure out what we have possibility to generate.
 
@@ -125,7 +1517,7 @@ Other
 
 - Fix setup.py to add cfg files. [Martin Raspaud]
 
-  This is in order to make satpy work out of the box after a pip install.
+  This is in order to make mpop work out of the box after a pip install.
 
 - Add a behaviour test to find out the available dataset. [Martin
   Raspaud]
@@ -133,7 +1525,7 @@ Other
 - Prevent crashing when a load requirement is not available. [Martin
   Raspaud]
 
-  When requiring a band which isn't available, satpy would crash. This is now
+  When requiring a band which isn't available, mpop would crash. This is now
   fixed and replaced by a warning in the log.
 
 - Use behave to do higher level tests. [Martin Raspaud]
@@ -310,7 +1702,7 @@ Other
 - Smoother transition in the sun zenith correct imagery. [Martin
   Raspaud]
 
-- Move reader discovery out of the scene and into satpy.readers. [Martin
+- Move reader discovery out of the scene and into mpop.readers. [Martin
   Raspaud]
 
   The class ReaderFinder was created for this purpose.
@@ -496,7 +1888,7 @@ Other
 - Slightly better handling of default writer configs and writer
   arguments. [davidh-ssec]
 
-- Add a writer for png images, and move enhancer to satpy.writers.
+- Add a writer for png images, and move enhancer to mpop.writers.
   [Martin Raspaud]
 
 - Detached the enhancements handling into an Enhancer class. [Martin
@@ -521,15 +1913,72 @@ Other
 - Merge branch 'pre-master' into feature-simplify. [Martin Raspaud]
 
   Conflicts:
-  	satpy/satellites/__init__.py
-  	satpy/satin/helper_functions.py
-  	satpy/satin/mipp_xrit.py
+  	mpop/satellites/__init__.py
+  	mpop/satin/helper_functions.py
+  	mpop/satin/mipp_xrit.py
+
+- Add algorithm version in output cloud products. [Martin Raspaud]
+
+- Minor PEP8 tweaks. [Panu Lahtinen]
+
+- Script to generate external calibration files for AVHRR instruments.
+  [Panu Lahtinen]
+
+- Support for external calibration coefficients for AVHRR. [Panu
+  Lahtinen]
+
+- Removed obsolete "satname" and "number" from satellite configs,
+  updated documentation. [Panu Lahtinen]
+
+- Renamed satellite configs to conform to OSCAR naming scheme. [Panu
+  Lahtinen]
+
+- Add luts to the pps products from msg format. [Martin Raspaud]
+
+- Add metadata to nwcsaf products. [Martin Raspaud]
+
+- Add \0 to palette strings. [Martin Raspaud]
+
+- Fix pps format output for msg products. [Martin Raspaud]
+
+- Remove phase palette from msg products to avoid confusion. [Martin
+  Raspaud]
+
+- Bugfix, np.string -> np.string_ [Martin Raspaud]
+
+- Change variable length strings in h5 products to fixed. [Martin
+  Raspaud]
+
+- Fix some cloud product conversions. [Martin Raspaud]
+
+- Fix MSG format to PPS format conversion. [Martin Raspaud]
+
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+  [Martin Raspaud]
+
+- Merge pull request #16 from pnuu/simplified_platforms. [Martin
+  Raspaud]
+
+  Simplified platform names for reading custom composites
+
+- Simplified platform names for reading custom composites. [Panu
+  Lahtinen]
+
+- Change: accept arbitrary kwargs for saving msg hdf products. [Martin
+  Raspaud]
+
+- Revert concatenation to it's original place, in order to keep the
+  tests working. [Martin Raspaud]
+
+- Fix whole globe area_extent for loading. [Martin Raspaud]
+
+- Fix rpm building. [Martin Raspaud]
 
 - Cleanup. [Martin Raspaud]
 
 - Change printing of projectables and cleanup. [Martin Raspaud]
 
-- Start testing satpy.scene. [Martin Raspaud]
+- Start testing mpop.scene. [Martin Raspaud]
 
 - Fixed assertIn for python 2.6. [davidh-ssec]
 
@@ -574,7 +2023,7 @@ Other
 
 - Renamed newscene to scene. [Martin Raspaud]
 
-- Moved updated readers from satpy.satin to satpy.readers. [Martin
+- Moved updated readers from mpop.satin to mpop.readers. [Martin
   Raspaud]
 
 - Changed 'uid' to 'name' for all new components. [davidh-ssec]
@@ -635,432 +2084,6 @@ Other
 
 - Fix the config eval thing in scene. [Martin Raspaud]
 
-v1.2.1 (2015-12-14)
--------------------
-
-- Update changelog. [Martin Raspaud]
-
-- Bump version: 1.2.0 → 1.2.1. [Martin Raspaud]
-
-- Merge branch 'pre-master' [Martin Raspaud]
-
-- Merge branch 'pre-master' [Martin Raspaud]
-
-  Conflicts:
-  	doc/source/pp.rst
-
-- Update changelog. [Martin Raspaud]
-
-- Bump version: 1.1.0 → 1.2.0. [Martin Raspaud]
-
-- Merge branch 'pre-master' [Martin Raspaud]
-
-  Conflicts:
-  	satpy/version.py
-  	setup.py
-
-
-v1.2.0 (2015-12-14)
--------------------
-
-Fix
-~~~
-
-- Bugfix: converted MSG products should be saveable. [Martin Raspaud]
-
-- Bugfix: satellite name in msg_hdf now supports missing number. [Martin
-  Raspaud]
-
-- Bugfix: misspelling. [Martin Raspaud]
-
-- Bugfix: mipp_xrit: do not crash on unknown channels, just warn and
-  skip. [Martin Raspaud]
-
-- Bugfix: setup.py includes now eps xml format description. [Martin
-  Raspaud]
-
-- Close all h5files in viirs_sdr, not only the last one.
-  [Martin.Raspaud]
-
-- Bugfix: close h5 files when done. [Martin Raspaud]
-
-  Prior to h5py 3.0, the h5 files open with h5py are not closed upon
-  deletion, so we have to do it ourselves...
-
-- Bugfix: area.id doesn't exist, use area.area_id. [Martin Raspaud]
-
-- Bugfix: return when each file has been loaded independently. [Martin
-  Raspaud]
-
-- Bugfix: Do not crash on multiple non-nwc files. [Martin Raspaud]
-
-- Bugfix: check start and end times from loaded channels only. [Martin
-  Raspaud]
-
-- Bugfix: viirs start and end times not relying on non-existant channels
-  anymore. [Martin Raspaud]
-
-- Bugfix: type() doesn't support unicode, cast to str. [Martin Raspaud]
-
-Other
-~~~~~
-
-- Update changelog. [Martin Raspaud]
-
-- Bump version: 1.1.0 → 1.2.0. [Martin Raspaud]
-
-- Add template parameters for NOAA-19 ears-nwc. [Adam.Dybbroe]
-
-  Parameters needed if you want to load only with time_interval and
-  not using the filename argument
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Merged (by hand) sentinel1-feature branch. [Lars Orum Rasmussen]
-
-- Added support for gdal's SetNoDataValue if fill_value is not None.
-  [Lars Orum Rasmussen]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Lars Orum Rasmussen]
-
-- Added a RGB example. [Lars Orum Rasmussen]
-
-- Don't use colormaps for 16b grayscale (Ninjo will fail enhancements)
-  [Lars Orum Rasmussen]
-
-  For 16b IR, if specified, set min-is-white
-
-  For 16b grayscale, it seems that transparent pixel (in Ninjo) are forced to be zero
-
-  Transparent pixel for 16b IR are handled bad
-
-
-- Add template config for ears-nwc Metop-B reading. [Adam.Dybbroe]
-
-- Fix bug when using time_interval argument loading ears-nwc data.
-  [Adam.Dybbroe]
-
-- Add brightness temperature calibration to the IR bands. [Adam.Dybbroe]
-
-- Update EARS config files for new (2014) PPS product format.
-  [Adam.Dybbroe]
-
-- Remove old FY3 mersi reader. [Adam.Dybbroe]
-
-- Apply VIS/NIR calibration including sun-zenith correction.
-  [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Now ninjotiff can list tags. [Lars Orum Rasmussen]
-
-  Ninjo tags are now a dictionary
-
-
-- Add FY-3B template config file. [Adam.Dybbroe]
-
-- Add first draft FY3B VIRR reader. [Adam.Dybbroe]
-
-  No calibration yet, but counts can be projected and displayed
-
-- Added contributions from Christian (DWD) to ninjotiff: now using
-  tifffile.py and support for RGBA. [Lars Orum Rasmussen]
-
-  Changed scaling into a value range (so it works for me)
-
-
-- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
-  master. [Panu Lahtinen]
-
-- Delete world_map.ascii. [Martin Raspaud]
-
-- Read DNB using PyTables, separate read() to read_m() and read_dnb()
-  [Panu Lahtinen]
-
-- Update coords2area_def with preview mode. [Martin Raspaud]
-
-- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
-  master. [Panu Lahtinen]
-
-- Remove debug printout from pps reader. [Adam.Dybbroe]
-
-- Support a list of files which will be concatenated, enables usage of
-  granule data. [Panu Lahtinen]
-
-- Fix for channel names and channel loading. [Panu Lahtinen]
-
-- Added Himawari-8 config template file. [Martin Raspaud]
-
-- Mask out 0-counts areas in aapp_l1b. [Martin Raspaud]
-
-- Support saving GeoImages in IO buffers. [Martin Raspaud]
-
-- Add support for noaa gac and lac data. [Martin Raspaud]
-
-- Take care of fill_value in datasets. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Fix the sun zenith angle correction fix. [Martin Raspaud]
-
-- Do not check time_slot type. [Martin Raspaud]
-
-- Bugfix ctth scaling: Only keep same datatype if data are not scaled.
-  [Adam.Dybbroe]
-
-- Less debug info. [Adam.Dybbroe]
-
-- Bugfix. Sun zenith correction can now take an additional keyword - and
-  data are masked out accordingly. [Adam.Dybbroe]
-
-- Fix overview_sun, avoid redish rgb's when sun is very low (below
-  horizon) [Adam.Dybbroe]
-
-- Read also the palette data etc. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Add orbit number info in the scene metadata upon loading. (hdfeos)
-  [Martin Raspaud]
-
-- Hdfeos: orbit number is now an int. [Martin Raspaud]
-
-- Fix geolocation reading for multiple-file processing (hdfeos) [Martin
-  Raspaud]
-
-- Changed error message to a warning. [Adam.Dybbroe]
-
-- Fix hdf_eos to allow reading several granules. [Martin Raspaud]
-
-- Enhancing the dnb_overview, so that pixels with solar contamination
-  are masked out. [Adam.Dybbroe]
-
-- Bringing back the night_overview (=cloudtop) [Adam.Dybbroe]
-
-- Comment out the night_overview. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Bugfix overview_sun. [Martin Raspaud]
-
-- Use builtin sunzen_corr for overview_sun. [Martin Raspaud]
-
-- Switch to nullterm string in msg_hdf for nr products. [Martin Raspaud]
-
-- Bugfix. [Adam.Dybbroe]
-
-- Improve overview for viirs and overview_sun. [Adam.Dybbroe]
-
-- Re-introduce the fix for VIIRS bowtie deletions. [Adam.Dybbroe]
-
-- Shouting when both a list of file names and a time interval is used.
-  Accepts tine_interval even for local files. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-  Conflicts:
-  	satpy/satin/nc_pps_l2.py
-
-- Fixed incorrect production sources and geolocation file names for
-  'local' products. [Panu Lahtinen]
-
-- Added a unit test to the nc_pps_l2 reader, and adapted the reader a
-  bit. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of https://github.com/pytroll/satpy into pre-
-  master. [Panu Lahtinen]
-
-- Fixme reminder. [Adam.Dybbroe]
-
-- Restructure how the data and geolocation files are listed and read.
-  [Panu Lahtinen]
-
-- Fixed workaround for DIMENSION_LIST attributes. [Panu Lahtinen]
-
-- Minor fixes - thanks Panu! [Adam.Dybbroe]
-
-- Cleaning up a bit and pep8. [Adam.Dybbroe]
-
-- Merge branch 'pre-master' of github.com:pytroll/satpy into pre-master.
-  [Adam.Dybbroe]
-
-- Updated reading to support both M and DNB channel data. [Panu
-  Lahtinen]
-
-- Adapt navigation to compact_viirs dnb. [Martin Raspaud]
-
-- Do not crash when an unknown channel is requested in msg_hdf. [Martin
-  Raspaud]
-
-- Fix template files. [Adam.Dybbroe]
-
-- Fix template files for NOAA satellites and Metop-A/B. [Adam.Dybbroe]
-
-- Bugfix, treating cases when no geolocation is found for product.
-  [Adam.Dybbroe]
-
-- More debug info. [Adam.Dybbroe]
-
-- More debug info. [Adam.Dybbroe]
-
-- Fix save function and bugfix. [Adam.Dybbroe]
-
-- More debug info and better exception handling - pps reader.
-  [Adam.Dybbroe]
-
-- Rewritten the netCDF4 PPS reader. [Adam.Dybbroe]
-
-- Cleaning up for unused code. [Adam.Dybbroe]
-
-- Add the info attribute to NordRadCType. [Martin Raspaud]
-
-- Fix filename search in msg_hdf. [Martin Raspaud]
-
-- Fix extension problem in product search for msg_hdf. [Martin Raspaud]
-
-- Replace pyhl with h5py in msg_hdf reader. [Martin Raspaud]
-
-- Bugfix ascat l2 reader. [Adam.Dybbroe]
-
-- Trying to fix odd behaviour when loading list of products. But it
-  still doesn't work - need a small refactoring. [Adam.Dybbroe]
-
-- Added support option to select granules in time interval.
-  [Adam.Dybbroe]
-
-- More debug info - for custom compositer. [Adam.Dybbroe]
-
-- Merge pull request #17 from spareeth/pre-master. [Martin Raspaud]
-
-  ASCAT SAR soil moisture level 2 netcdf data from EUMETSAT
-
-- Add new reader and config files for ASCAT SAR soil moisture level 2
-  netcdf data from EUMETSAT. [Sajid Pareeth]
-
-- Add new reader and config files for ASCAT SAR soil moisture level 2
-  netcdf data from EUMETSAT. [Sajid Pareeth]
-
-- Added possibility to read granule data from EARS, also some PEP8 work.
-  [Panu Lahtinen]
-
-- Avoid leaking memory. [Martin Raspaud]
-
-- Bugfix. [Adam.Dybbroe]
-
-- Raise an error if projection is attempted when swathdata doesn't have
-  full geolocation. [Adam.Dybbroe]
-
-- Remove one verbose debug printout. [Adam.Dybbroe]
-
-- Adapt for new PPS netCDF format modification (adding a dimension of
-  length 1) [Adam.Dybbroe]
-
-- Check for cloudtype=None. [Adam.Dybbroe]
-
-- Add option to provide MSG filename to load call. [Adam.Dybbroe]
-
-- Check if PPS file is bzipped, and handle it correctly. [Adam.Dybbroe]
-
-- Fix orbit number attribute name in msg_hdf. [Martin Raspaud]
-
-- Possible to pass value range to save. [Lars Orum Rasmussen]
-
-- Chlorophyll-a palette is gone - now it raise an exception if asked
-  for... [Adam.Dybbroe]
-
-- Merge branch 'feature-osisaf-sst-reader' into pre-master.
-  [Adam.Dybbroe]
-
-- Adding a reader and palette support for OSISAF SST netCDF products.
-  [Adam.Dybbroe]
-
-- Fixed external calibration "newer/older than data" message. [Panu
-  Lahtinen]
-
-- Fix ctth writing. [Martin Raspaud]
-
-- Fixed typo. [Martin Raspaud]
-
-- Add orbit number in generated cloud product hdf files. [Martin
-  Raspaud]
-
-- Fix new pyspectral calculator signature. [Martin Raspaud]
-
-- Putting back the mipp information in template config files. [Martin
-  Raspaud]
-
-- Pyspectral now uses standard platform names. [Martin Raspaud]
-
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
-  pre-master. [Panu Lahtinen]
-
-- Add algorithm version in output cloud products. [Martin Raspaud]
-
-- Exception handling for missing external calibration data. [Panu
-  Lahtinen]
-
-- Minor PEP8 tweaks. [Panu Lahtinen]
-
-- Script to generate external calibration files for AVHRR instruments.
-  [Panu Lahtinen]
-
-- Support for external calibration coefficients for AVHRR. [Panu
-  Lahtinen]
-
-- Removed obsolete "satname" and "number" from satellite configs,
-  updated documentation. [Panu Lahtinen]
-
-- Renamed satellite configs to conform to OSCAR naming scheme. [Panu
-  Lahtinen]
-
-- Add luts to the pps products from msg format. [Martin Raspaud]
-
-- Add metadata to nwcsaf products. [Martin Raspaud]
-
-- Add \0 to palette strings. [Martin Raspaud]
-
-- Fix pps format output for msg products. [Martin Raspaud]
-
-- Remove phase palette from msg products to avoid confusion. [Martin
-  Raspaud]
-
-- Bugfix, np.string -> np.string_ [Martin Raspaud]
-
-- Change variable length strings in h5 products to fixed. [Martin
-  Raspaud]
-
-- Fix some cloud product conversions. [Martin Raspaud]
-
-- Fix MSG format to PPS format conversion. [Martin Raspaud]
-
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
-  [Martin Raspaud]
-
-- Merge pull request #16 from pnuu/simplified_platforms. [Martin
-  Raspaud]
-
-  Simplified platform names for reading custom composites
-
-- Simplified platform names for reading custom composites. [Panu
-  Lahtinen]
-
-- Change: accept arbitrary kwargs for saving msg hdf products. [Martin
-  Raspaud]
-
-- Revert concatenation to it's original place, in order to keep the
-  tests working. [Martin Raspaud]
-
-- Fix whole globe area_extent for loading. [Martin Raspaud]
-
-- Fix rpm building. [Martin Raspaud]
-
 - Fix masking of lonlats in viirs_sdr. [Martin Raspaud]
 
 - Fixing pps-nc reader. [Adam Dybbroe]
@@ -1097,7 +2120,7 @@ Other
 
 - Bugfix. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Remove ugly print statements. [Martin Raspaud]
@@ -1124,7 +2147,7 @@ Other
 
 - Remove type testing for orbit number. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Allowing kwargs. [Martin Raspaud]
@@ -1136,7 +2159,7 @@ Other
 
 - Fix multiple file loading for metop l1b data. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Implement save for all cloudproducts. [Martin Raspaud]
@@ -1186,7 +2209,7 @@ Other
 
 - Revert nc_reader back until generalization is ready. [Martin Raspaud]
 
-- Merge branch 'ppsv2014-reader' of github.com:mraspaud/satpy into
+- Merge branch 'ppsv2014-reader' of github.com:mraspaud/mpop into
   ppsv2014-reader. [Martin Raspaud]
 
 - Adding dataset attributes to pps reading. [Adam Dybbroe]
@@ -1200,7 +2223,7 @@ Other
 - Hdf_eos now uses 1 out of 4 available cores to interpolate data.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - Fixed bug, now handling fill_value better. [Lars Orum Rasmussen]
@@ -1210,7 +2233,7 @@ Other
 - Add dnb_overview as a standard product (dnb, dnb, 10.8) [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - Corrected the reader for SAFNWC/PPS v2014. [Sara.Hornquist]
@@ -1226,7 +2249,7 @@ Other
 
 - Enhance nwc-pps reader to support v2014 format. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Put the config object back in Projector. [Martin Raspaud]
@@ -1253,7 +2276,7 @@ Other
 
 - Add delitem, and code cleanup. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - Added a reader for SAFNWC/PPS v2014 PPS v2014 has a different
@@ -1261,11 +2284,11 @@ Other
 
 - Aapp1b reader, be more clever when (re)reading. [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
   Conflicts:
-  	satpy/satout/netcdf4.py
+  	mpop/satout/netcdf4.py
 
 
 - Allow reading several files at once in viirs_compact. [Martin Raspaud]
@@ -1282,7 +2305,7 @@ Other
 
 - Add a name to the area when loading aapp data. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - For PNG files, geo_mage.tags will be saved a PNG metadata. [Lars Orum
@@ -1296,7 +2319,7 @@ Other
 
   Just run global_data.load(..., filename="/path/to/myfile.1b")
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - Viirs_sdr can now load depending on an area. [Martin Raspaud]
@@ -1332,10 +2355,10 @@ Other
 
 - Fix the parallax file sorting problem, again. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Bugfix. [Adam Dybbroe]
@@ -1343,9 +2366,9 @@ Other
 - Merge branch '3.9reflectance' into pre-master. [Adam Dybbroe]
 
   Conflicts:
-  	satpy/channel.py
-  	satpy/instruments/seviri.py
-  	satpy/satin/mipp_xrit.py
+  	mpop/channel.py
+  	mpop/instruments/seviri.py
+  	mpop/satin/mipp_xrit.py
   	setup.py
 
 
@@ -1371,10 +2394,10 @@ Other
 
 - Sort the filenames in get_best_products (msg_hdf) [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Merge pull request #10 from pnuu/pre-master. [Martin Raspaud]
@@ -1384,13 +2407,13 @@ Other
 - Fixed failed merging (removed "<<<<<<< HEAD" and ">>>>>>> upstream
   /pre-master" lines) [Panu Lahtinen]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 
 - Fix terra and aqua templates for the dual gain channels (13 & 14)
@@ -1399,14 +2422,14 @@ Other
 - Read both parallax corrected and usual cloudtype products. [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 
 - Merge pull request #9 from pnuu/pre-master. [Martin Raspaud]
 
   Possibility to get area_extent from area definition(s)
 
-- Tests for satpy.satin.helper_functions.boundaries_to_extent. [Panu
+- Tests for mpop.satin.helper_functions.boundaries_to_extent. [Panu
   Lahtinen]
 
 - Separated area definitions and boundary calculations. [Panu Lahtinen]
@@ -1426,17 +2449,17 @@ Other
 
 - Fixed import. [Panu Lahtinen]
 
-- Added tests for satpy.satin.helper_functions. [Panu Lahtinen]
+- Added tests for mpop.satin.helper_functions. [Panu Lahtinen]
 
-- Moved to satpy/tests/ [Panu Lahtinen]
+- Moved to mpop/tests/ [Panu Lahtinen]
 
-- Moved to satpy/tests/ [Panu Lahtinen]
+- Moved to mpop/tests/ [Panu Lahtinen]
 
 - Merge remote-tracking branch 'upstream/pre-master' into pre-master.
   [Panu Lahtinen]
 
   Conflicts:
-  	satpy/satin/aapp1b.py
+  	mpop/satin/aapp1b.py
 
 
 - Removed unneeded functions. [Panu Lahtinen]
@@ -1458,14 +2481,14 @@ Other
 - Helper functions for area extent and bondary calculations, and data
   reducing for swath data. [Panu Lahtinen]
 
-- Test for satpy.satin.mipp_xrit.lonlat_to_geo_extent() [Panu Lahtinen]
+- Test for mpop.satin.mipp_xrit.lonlat_to_geo_extent() [Panu Lahtinen]
 
 - Support for lon/lat -based area extents. [Panu Lahtinen]
 
 - Add start and end time defaults for the images (runner). [Martin
   Raspaud]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Lars Orum Rasmussen]
 
 - Do not mask out negative reflectances in viirs_sdr reading. [Martin
@@ -1498,14 +2521,14 @@ Other
 
 - Fix testing. [Martin Raspaud]
 
-- Mock pyresample and satpy.projector in geo_image tests. [Martin
+- Mock pyresample and mpop.projector in geo_image tests. [Martin
   Raspaud]
 
 - More testing geo_image. [Martin Raspaud]
 
 - Add tests for geo_image. [Martin Raspaud]
 
-- Merge branch 'unstable' of ssh://safe/data/proj/SAF/GIT/satpy into
+- Merge branch 'unstable' of ssh://safe/data/proj/SAF/GIT/mpop into
   unstable. [Martin Raspaud]
 
 - Mock gdal for geo_image tests. [Martin Raspaud]
@@ -1570,7 +2593,7 @@ Other
 
   Sun zenith angle correction added.
 
-- A section on satpy.tools added to documentation. [Panu Lahtinen]
+- A section on mpop.tools added to documentation. [Panu Lahtinen]
 
 - Extra tests for sun_zen_corr(). [Panu Lahtinen]
 
@@ -1588,12 +2611,12 @@ Other
 
 - Revert to original version. [Panu Lahtinen]
 
-- Initial commit of satpy.tools (with Sun zenith angle correction). [Panu
+- Initial commit of mpop.tools (with Sun zenith angle correction). [Panu
   Lahtinen]
 
 - Sun zenith angle correction added. [Panu Lahtinen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [ras]
 
 - Solve the multiple channel resolution with automatic resampling
@@ -1606,7 +2629,7 @@ Other
 
 - Adding more files to be ignored. [ras]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [ras]
 
 - New reader for hrpt level0 format. [Martin Raspaud]
@@ -1618,7 +2641,7 @@ Other
 - Add some debugging info about missing pixels in viirs_sdr. [Martin
   Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Corrected a comment. [Adam Dybbroe]
@@ -1631,12 +2654,12 @@ Other
 
 - Fix hook to be able to record both filename and uri. [Martin Raspaud]
 
-- Protecting satpy from netcdf4's unicode variables. [ras]
+- Protecting MPOP from netcdf4's unicode variables. [ras]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Adding a new convection RGB with co2 correction for SEVIRI. [Adam
@@ -1663,7 +2686,7 @@ Other
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	satpy/imageo/geo_image.py
+  	mpop/imageo/geo_image.py
 
 - Night_color (should had beed called night_overview) is the same as
   cloudtop. [Lars Orum Rasmussen]
@@ -1689,7 +2712,7 @@ Other
 - Fix backward compatibility in, and deprecate image.py. [Martin
   Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Calling numpy percentile only once when doing left and right cut offs.
@@ -1717,7 +2740,7 @@ Other
   data are heaviliy skeewed. Fixes problem seen by Bocheng in DNB
   imagery. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Don't remove GeolocationFlyweight _instances, but reset it. Allowing
@@ -1732,12 +2755,12 @@ Other
   course created some problem further down. Fixed by setting the not loadable
   channel to None.
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Bugfix in npp.cfg template. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Fixing bug concerning the identification of VIIRS geolocation files.
@@ -1752,12 +2775,12 @@ Other
 
 - Fixing test cases. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Remove dummy test to boost projection performance. [Martin Raspaud]
 
-  satpy was checking in 2 different places if the source and target areas were
+  Mpop was checking in 2 different places if the source and target areas were
   different, leading to pyresample expanding the area definitions to full
   lon/lat arrays when checking against a swath definition, and then running
   an allclose. This was inefficient, and the programming team decided that it
@@ -1766,7 +2789,7 @@ Other
 
 - Remove dummy test to boost projection performance. [Martin Raspaud]
 
-  satpy was checking in 2 different places if the source and target areas were
+  Mpop was checking in 2 different places if the source and target areas were
   different, leading to pyresample expanding the area definitions to full
   lon/lat arrays when checking against a swath definition, and then running
   an allclose. This was inefficient, and the programming team decided that it
@@ -1779,22 +2802,6 @@ Other
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
-  [Martin Raspaud]
-
-- Cleanup. [Martin Raspaud]
-
-v1.0.0 (2013-09-25)
--------------------
-
-- Release v1.0.0. [Martin Raspaud]
-
-- Changing palette name to something more intuitive. Allow to have orbit
-  number equals None. [Adam Dybbroe]
-
-- Fixing aqua/terra template config files for dual gain channels (13&14)
-  [Adam Dybbroe]
-
 - Added Ninjo tiff example areas definitions. [Lars Orum Rasmussen]
 
 - Cosmetic. [Lars Orum Rasmussen]
@@ -1806,40 +2813,47 @@ v1.0.0 (2013-09-25)
 
 - Better documentation. [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+  [Martin Raspaud]
+
+- Changing palette name to something more intuitive. Allow to have orbit
+  number equals None. [Adam Dybbroe]
+
+- Fixing aqua/terra template config files for dual gain channels (13&14)
   [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
+  [Adam Dybbroe]
+
+- Make overview consistent with the standard overview. [Adam Dybbroe]
+
+- Cleanup. [Martin Raspaud]
+
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
   	etc/npp.cfg.template
 
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
-  pre-master. [Adam Dybbroe]
-
-- Changed template to fit new npp reader. [krl]
-
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
-  pre-master. [Adam Dybbroe]
-
-- Updated npp confirg file template with geo_filename example. [Adam
-  Dybbroe]
-
-- Make overview consistent with the standard overview. [Adam Dybbroe]
-
 - Updated npp-template to fit the new viirs reader using the (new)
   plugin-loader system. [Adam Dybbroe]
 
 - Minor clean up. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
   Conflicts:
-  	satpy/satin/viirs_sdr.py
+  	mpop/satin/viirs_sdr.py
 
+
+- Lunar stuff... [Adam Dybbroe]
+
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+  pre-master. [Adam Dybbroe]
+
+- Changed template to fit new npp reader. [krl]
 
 - Fix version stuff. [Martin Raspaud]
 
@@ -1853,15 +2867,13 @@ v1.0.0 (2013-09-25)
 
 - Clarify failure to load hrit data. [Martin Raspaud]
 
-- Lunar stuff... [Adam Dybbroe]
-
 - Fix install requires. [Martin Raspaud]
 
 - Fix projector unit test. [Martin Raspaud]
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
 - Fixed (temporary ?) misuse of Image.SAVE. [Lars Orum Rasmussen]
@@ -1870,7 +2882,7 @@ v1.0.0 (2013-09-25)
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
 - Tmplate -> template. [Lars Orum Rasmussen]
@@ -1879,7 +2891,7 @@ v1.0.0 (2013-09-25)
 
 - Projector cleanup. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - New VIIRS reader. Better, faster, smarter (consumimg less memory)
@@ -1891,7 +2903,7 @@ v1.0.0 (2013-09-25)
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
   Conflicts:
@@ -1899,38 +2911,25 @@ v1.0.0 (2013-09-25)
   	setup.py
 
 
+- Bump up version number for release. [Martin Raspaud]
+
 - Optimize. [Martin Raspaud]
 
 - Remove the optional ahamap requirement. [Martin Raspaud]
 
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
+  pre-master. [Adam Dybbroe]
+
 - Manage version number centrally. [Martin Raspaud]
 
-- Merge branch 'release-v0.13.0' [Martin Raspaud]
-
-  Conflicts:
-  	setup.py
-
-
-- Merge branch 'pre-master' [Martin Raspaud]
-
-  Conflicts:
-  	doc/source/conf.py
-  	setup.py
-
-
-v0.13.0 (2013-05-08)
---------------------
-
-- Bump up version number for release. [Martin Raspaud]
-
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
 - Bump up version number. [Martin Raspaud]
 
 - Make old plugin an info instead of a warning. [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
 - Pep8. [Adam Dybbroe]
@@ -1989,30 +2988,14 @@ v0.13.0 (2013-05-08)
 
 - New plugin implementation, backward compatible. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
-  [Lars Orum Rasmussen]
-
-- Reverted to previous commit. [Lars Orum Rasmussen]
-
-- Correct green-snow. [Martin Raspaud]
-
-  Use 0.6 instead on 0.8
-
-
-- Now, if specified in proj4 object, add EPGS code to tiff metadata.
-  [Lars Orum Rasmussen]
-
-- Added, a poor man's version, of Adam's DNB RGB image. [Lars Orum
-  Rasmussen]
-
-v0.12.1 (2013-03-14)
---------------------
-
 - Cleanup. [Martin Raspaud]
 
 - Add several cores for geoloc in eos. [Martin Raspaud]
 
 - Bugfix hdfeos. [Martin Raspaud]
+
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
+  [Lars Orum Rasmussen]
 
 - Fix loading of terra aqua with multiple cores. [Martin Raspaud]
 
@@ -2020,16 +3003,23 @@ v0.12.1 (2013-03-14)
 
 - Enhance error messages. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
+
+- Make orbit number an 5-character string (padding with '0') [Martin
+  Raspaud]
 
 - New template files for regional EARS (AVHRR and NWC) file support.
   [Adam Dybbroe]
 
 - Minor cosmetics. [Adam Dybbroe]
 
-- Make orbit number an 5-character string (padding with '0') [Martin
-  Raspaud]
+- Reverted to previous commit. [Lars Orum Rasmussen]
+
+- Correct green-snow. [Martin Raspaud]
+
+  Use 0.6 instead on 0.8
+
 
 - Merge branch 'fixrtd' into unstable. [Martin Raspaud]
 
@@ -2039,90 +3029,45 @@ v0.12.1 (2013-03-14)
 
 - Mock some import for the documentation. [Martin Raspaud]
 
-- Introducing clip percentage for SAR average product. [Lars Orum
+- Now, if specified in proj4 object, add EPGS code to tiff metadata.
+  [Lars Orum Rasmussen]
+
+- Added, a poor man's version, of Adam's DNB RGB image. [Lars Orum
   Rasmussen]
 
 - Add symlink from README.rst to README. [Martin Raspaud]
 
 - Update download link and README. [Martin Raspaud]
 
-v0.12.0 (2013-01-10)
---------------------
-
 - Bump up version number. [Martin Raspaud]
 
 - Cosmetics. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Add template file for meteosat 10. [Martin Raspaud]
+
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Support for calibrate option. [Adam Dybbroe]
 
-- Add template file for meteosat 10. [Martin Raspaud]
-
 - Add debug messages to hdf-eos loader. [Martin Raspaud]
 
-v0.11.7 (2012-12-04)
---------------------
-
-Fix
-~~~
-
-- Bugfix: allow more than one "-" in section names. [Martin Raspaud]
-
-- Bugfix: read aqua/terra orbit number from file only if not already
-  defined. [Martin Raspaud]
-
-- Bugfix: fixed unittest case for wavelengths as lists. [Martin Raspaud]
-
-- Bugfix: remove deprecated mviri testcases. [Martin Raspaud]
-
-- Bugfix: backward compatibility with netcdf files. [Martin Raspaud]
-
-- Bugfix: removed the old mviri compositer. [Martin Raspaud]
-
-- Bugfix: When assembling, keep track of object, not just lon/lats.
-  [Martin Raspaud]
-
-- Bugfix: assembling scenes would unmask some lon/lats... [Martin
-  Raspaud]
-
-- Bugfix: handling of channels with different resolutions in
-  assemble_segments. [Martin Raspaud]
-
-- Bugfix: Runner crashed if called with an area not in product list.
-  [Martin Raspaud]
-
-- Bugfix: the nwcsaf_pps reader was crashing if no file was found...
-  [Martin Raspaud]
-
-- Bugfix: pynav is not working in some cases, replace with pyorbital.
-  [Martin Raspaud]
-
-- Bugfix: can now add overlay in monochromatic images. [Martin Raspaud]
-
-- Bugfix: swath scene projection takes forever from the second time.
-  [Martin Raspaud]
-
-  The swath scene, when projected more than once would recompute the nearest neighbours for every channel.
-
-
-Other
-~~~~~
-
 - Support pnm image formats. [Martin Raspaud]
+
+- Introducing clip percentage for SAR average product. [Lars Orum
+  Rasmussen]
 
 - The pps palette broke msg compatibility. Now there are two palettes,
   one for msg and one for pps. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
   Conflicts:
-  	satpy/satin/viirs_sdr.py
+  	mpop/satin/viirs_sdr.py
 
 
 - Adapted viirs reader to handle aggregated granule files. [Adam
@@ -2158,7 +3103,7 @@ Other
 - Introducing stretch argument for average product. [Lars Orum
   Rasmussen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 
 - Clean up. [Martin Raspaud]
@@ -2171,12 +3116,12 @@ Other
 
   Has no scale and offset
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 
 - Refactor the unsigned netcdf packing code. [Martin Raspaud]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 
 - Support packing data as unsigned in netcdf. [Martin Raspaud]
@@ -2185,7 +3130,7 @@ Other
 
   Eats up too much memory.
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 
 - Feature: Added template for electro-l satellite. [Martin Raspaud]
@@ -2198,8 +3143,8 @@ Other
 - Merge branch 'feature-netcdf-upgrade' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	satpy/satout/cfscene.py
-  	satpy/satout/netcdf4.py
+  	mpop/satout/cfscene.py
+  	mpop/satout/netcdf4.py
 
 
 - Merge branch 'unstable' into feature-netcdf-upgrade. [Martin Raspaud]
@@ -2207,7 +3152,7 @@ Other
 - Merge branch 'unstable' into feature-netcdf-upgrade. [Martin Raspaud]
 
   Conflicts:
-  	satpy/satin/mipp_xsar.py
+  	mpop/satin/mipp_xsar.py
 
 
 - Work on new netcdf format nearing completion. [Martin Raspaud]
@@ -2234,7 +3179,7 @@ Other
 
 - WIP: updating the netcdf interface. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Changed handeling of "_FillValue"-attributes. Added
@@ -2244,7 +3189,7 @@ Other
 
 - Cosmetics. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Fixing bug concerning viirs bandlist and the issue of preventing the
@@ -2254,10 +3199,10 @@ Other
   to load a product. Minor fixes in MODIS and AAPP1b readers. [Adam
   Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Bugfix in viirs sdr reader. [Adam Dybbroe]
@@ -2280,11 +3225,11 @@ Other
 - Fixing runner to warn for missing functions (instead of crashing).
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	satpy/satin/viirs_sdr.py
+  	mpop/satin/viirs_sdr.py
 
 
 - Bug fix green-snow RGB. [Adam Dybbroe]
@@ -2295,7 +3240,7 @@ Other
   not tuples of 2 but 6). Taken from old fix in npp-support branch.
   [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Support for bzip2 compressed NWCSAF products (EARS-NWC) [Adam Dybbroe]
@@ -2311,7 +3256,7 @@ Other
 
 - Added stretch option. [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Feature: new function to create an image from a scene. [Martin
@@ -2336,7 +3281,7 @@ Other
 - Support for tiepoint grids and interpolation + masking out no-data
   geolocation (handling VIIRS Bow-tie deletetion) [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Adding viirs composites and pps_odim reader for avhrr and viirs
@@ -2344,16 +3289,16 @@ Other
 
 - Added a Geo Phys Product to modis level2. [Lars Orum Rasmussen]
 
-- Merge branch 'pre-master' of github.com:mraspaud/satpy into pre-master.
+- Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Adding support for ob_tran projection even though it is not cf-
   compatible yet. [Adam Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam Dybbroe]
 
 - Added the reading of geolocation data from the PPS formatet level1
@@ -2379,108 +3324,18 @@ Other
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
-- Merge branch 'pre-master' into unstable. [Martin Raspaud]
-
-v0.11.5 (2012-05-21)
---------------------
-
-Fix
-~~~
-
-- Bugfix: importing geotiepoints. [Martin Raspaud]
-
-- Bugfix: hdfeos was not eumetcast compliant :( [Martin Raspaud]
-
-- Bugfix: Do not raise exception on loading failure (nwcsaf_pps) [Martin
-  Raspaud]
-
-- Bugfix: fixed misc bugs. [Martin Raspaud]
-
-- Bugfix: comparing directories with samefile is better than ==. [Martin
-  Raspaud]
-
-- Bugfix: updating old eps_l1b interface. [Martin Raspaud]
-
-- Bugfix: Fixed typo in gatherer. [Martin Raspaud]
-
-- Bugfix: taking satscene.area into consideration for get_lonlat.
-  [Martin Raspaud]
-
-- Bugfix: mipp required version to 0.6.0. [Martin Raspaud]
-
-- Bugfix: updating unittest and setup for new mipp release. [Martin
-  Raspaud]
-
-- Bugfix: for eps l1b, get_lonlat did not return coherent values since
-  the introduction of pyresample. [Martin Raspaud]
-
-- Bugfix: mipp to mipp_xrit namechange. [Martin Raspaud]
-
-- Bugfix: better detection of needed channels in aapp1b. [Martin
-  Raspaud]
-
-- Bugfix: support for other platforms. [Martin Raspaud]
-
-- Bugfix: Support python 2.4 in mipp plugin. [Martin Raspaud]
-
-- Bugfix: masked arrays should be conserved by scene.__setitem__ [Martin
-  Raspaud]
-
-- Bugfix: Don't make area and time_slot static in compositer. [Martin
-  Raspaud]
-
-- Bugfix: reinit channels_to_load and messages for no loading. [Martin
-  Raspaud]
-
-  - When the loading process is interrupted, the channels_to_load attribute was not reinitialized.
-  - Added a message when loading for a given level did not load anything.
-
-
-- Bugfix: Give an informative message when area is missing for msg's hdf
-  reader. [Martin Raspaud]
-
-- Bugfix: update satpos file retrieval for hrpt and eps1a. [Martin
-  Raspaud]
-
-- Bugfix: fixed unittests for new plugin system. [Martin Raspaud]
-
-- Bugfix: Do not load plugins automatically... [Martin Raspaud]
-
-- Bugfix: satellite vs satname again. [Martin Raspaud]
-
-- Bugfix: don't crash if msg hdf can't be loaded. [Martin Raspaud]
-
-- Bugfix: project now chooses mode automatically by default. [Martin
-  Raspaud]
-
-- Bugfix: eps_avhrr adapted to new plugin format. [Martin Raspaud]
-
-- Bugfix: loading in msg_hdf adapted to new plugin system. [Martin
-  Raspaud]
-
-- Bugfix: loading plugins should fail on any exception. [Martin Raspaud]
-
-- Bugfix: stupid syntax error. [Martin Raspaud]
-
-- Bugfix: mistook satname for satellite. [Martin Raspaud]
-
-- Bugfix: move to jenkins. [Martin Raspaud]
-
-- Bugfix: affecting area to channel_image. [Martin Raspaud]
-
-- Bugfix: Better handling of alpha channel. [Martin Raspaud]
-
-- Bugfix: filewatcher would wait a long time if no new file has come.
-  [Martin Raspaud]
-
-Other
-~~~~~
-
-- Bumped up version number. [Martin Raspaud]
-
 - Modis level-2 reader and netcdf writer can now handle scenes
   containing only geo-physical product (and no channels) [Lars Orum
   Rasmussen]
+
+- Merge branch 'pre-master' into unstable. [Martin Raspaud]
+
+- Merge pull request #2 from cheeseblok/FixViirsRedSnow. [Martin
+  Raspaud]
+
+  Fix typo in red_snow check_channels method
+
+- Fix typo in red_snow check_channels method. [Scott Macfarlane]
 
 - Feature: Pypi ready. [Martin Raspaud]
 
@@ -2490,13 +3345,6 @@ Other
 
 - Doc: updating add_overlay documentation. [Martin Raspaud]
 
-- Merge pull request #2 from cheeseblok/FixViirsRedSnow. [Martin
-  Raspaud]
-
-  Fix typo in red_snow check_channels method
-
-- Fix typo in red_snow check_channels method. [Scott Macfarlane]
-
 - Feature: adding interpolation to modis lon lats. [Martin Raspaud]
 
 - Use pynav to get lon/lats if no file can be read. [Martin Raspaud]
@@ -2505,6 +3353,9 @@ Other
 
 - Added the possibility to provide a filename to eps_l1b loader. [Martin
   Raspaud]
+
+- Updated npp confirg file template with geo_filename example. [Adam
+  Dybbroe]
 
 - Merge branch 'feature_new_eps_reader' into unstable. [Martin Raspaud]
 
@@ -2527,7 +3378,7 @@ Other
 
 - Cloudtype channel now called "CT". [Martin Raspaud]
 
-- Merge branch 'pre-master' of git://github.com/mraspaud/satpy into pre-
+- Merge branch 'pre-master' of git://github.com/mraspaud/mpop into pre-
   master. [Martin Raspaud]
 
 - SetProjCS is now correctly called after ImportFromProj4. [Lars Orum
@@ -2539,7 +3390,7 @@ Other
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	satpy/satin/mipp_xsar.py
+  	mpop/satin/mipp_xsar.py
 
 
 - More correct 'new area' [Lars Orum Rasmussen]
@@ -2571,7 +3422,7 @@ Other
   - do not crash if no PGE is present
 
 
-- Added shapes in satpy.cfg.template for pycoast. [Martin Raspaud]
+- Added shapes in mpop.cfg.template for pycoast. [Martin Raspaud]
 
 - Cleanup. [Martin Raspaud]
 
@@ -2581,7 +3432,7 @@ Other
 
 - Feature: add a global area if possible. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Fixing so thar also other products (than Channel data) can be
@@ -2593,14 +3444,14 @@ Other
 
 - Cleaning up geo_image.py. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	satpy/satin/hdfeos_l1b.py
+  	mpop/satin/hdfeos_l1b.py
 
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam.Dybbroe]
 
 - Minor cosmetic/editorial stuff. [Adam.Dybbroe]
@@ -2623,7 +3474,7 @@ Other
 - WIP: Started working on supporting halv/quarter files for modis.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
 - Changed MODIS HDF-EOS level 1b reader to accomodate both the thinned
@@ -2634,7 +3485,7 @@ Other
 - Fixing indexing bug: missing last line in Metop AVHRR granule.
   [Adam.Dybbroe]
 
-- Revert "Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into
+- Revert "Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into
   unstable" [Martin Raspaud]
 
   This reverts commit 45809273f2f9670c8282c32197ef47071aecaa74, reversing
@@ -2648,19 +3499,19 @@ Other
 
 - Reapplying thin_modis cleaning. [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam.Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam.Dybbroe]
 
 - Merge branch 'pre-master' into unstable. [Adam.Dybbroe]
 
   Conflicts:
-  	satpy/satin/eps_avhrr.py
+  	mpop/satin/eps_avhrr.py
 
 
 - Minor enhancements to nwcsaf pps cloud type reading: Adding support
@@ -2669,26 +3520,26 @@ Other
 - Fixing indexing bug: missing last line in Metop AVHRR granule.
   [Adam.Dybbroe]
 
-- Merge branch 'unstable' of /data/proj/SAF/GIT/satpy into unstable.
+- Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Adam.Dybbroe]
 
   Conflicts:
   	doc/source/conf.py
-  	satpy/instruments/mviri.py
-  	satpy/instruments/seviri.py
-  	satpy/instruments/test_mviri.py
-  	satpy/instruments/test_seviri.py
-  	satpy/instruments/test_visir.py
-  	satpy/instruments/visir.py
-  	satpy/satin/test_mipp.py
-  	satpy/satin/thin_modis.py
-  	satpy/saturn/runner.py
-  	satpy/scene.py
+  	mpop/instruments/mviri.py
+  	mpop/instruments/seviri.py
+  	mpop/instruments/test_mviri.py
+  	mpop/instruments/test_seviri.py
+  	mpop/instruments/test_visir.py
+  	mpop/instruments/visir.py
+  	mpop/satin/test_mipp.py
+  	mpop/satin/thin_modis.py
+  	mpop/saturn/runner.py
+  	mpop/scene.py
   	setup.py
   	version.py
 
 
-- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
+- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
   unstable. [Adam.Dybbroe]
 
 - Thin_modis Cleanup. [Martin Raspaud]
@@ -2720,12 +3571,12 @@ Other
 - Merge branch 'new_plugins' into unstable. [Martin Raspaud]
 
   Conflicts:
-  	satpy/plugin_base.py
+  	mpop/plugin_base.py
 
 
 - Init file for plugins initialization. [Adam.Dybbroe]
 
-- Merge branch 'new_plugins' of https://github.com/mraspaud/satpy into
+- Merge branch 'new_plugins' of https://github.com/mraspaud/mpop into
   new_plugins. [Adam.Dybbroe]
 
 - Removing old deprecated and now buggy part - has been caught by the
@@ -2740,15 +3591,15 @@ Other
 - Removing old deprecated and now buggy part - has been caught by the
   try-exception since long. Adding for plugins directory. [Adam.Dybbroe]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
+- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
   unstable. [Adam.Dybbroe]
 
 - First time in git. [Adam.Dybbroe]
 
-- Merge branch 'unstable' of https://github.com/mraspaud/satpy into
+- Merge branch 'unstable' of https://github.com/mraspaud/mpop into
   unstable. [Adam.Dybbroe]
 
 - Meris level-2 reader - first commit. [Adam.Dybbroe]
@@ -2774,7 +3625,7 @@ Other
   Raspaud]
 
 - Style: finalizing plugin system. Now plugins directories loaded from
-  satpy.cfg. [Martin Raspaud]
+  mpop.cfg. [Martin Raspaud]
 
 - Cleanup: removing old stuff. [Martin Raspaud]
 
@@ -2793,7 +3644,7 @@ Other
 
 - DOC: Added documentation examples to the project. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - Using LOG call instead of print. [Adam.Dybbroe]
@@ -2836,6 +3687,14 @@ Other
 
 - Updated copyright and version number. [Martin Raspaud]
 
+- Merge branch 'release-0.11' [Martin Raspaud]
+
+- Merge branch 'pre-master' into release-0.11. [Martin Raspaud]
+
+- Updated copyright dates in setup.py. [Martin Raspaud]
+
+- Bumped version number to 0.11.0. [Martin Raspaud]
+
 - Updating setup stuff. [Martin Raspaud]
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
@@ -2844,12 +3703,12 @@ Other
 
 - Adding area for mapping sample data i-bands. [Adam.Dybbroe]
 
-- Scaling reflectances to percent (%) as required in satpy.
+- Scaling reflectances to percent (%) as required in mpop.
   [Adam.Dybbroe]
 
 - Adding support for I-bands. [Adam.Dybbroe]
 
-- Merge branch 'pre-master' of https://github.com/mraspaud/satpy into
+- Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam.Dybbroe]
 
 - Merge branch 'npp-support' into pre-master. [Adam.Dybbroe]
@@ -2890,101 +3749,6 @@ Other
   Raspaud]
 
 - NC: now band data is of shape (band, x, y). [Martin Raspaud]
-
-v0.11.0 (2011-09-20)
---------------------
-
-Fix
-~~~
-
-- Bugfix: netcdf saving didn't record lat and lon correctly. [Martin
-  Raspaud]
-
-- Bugfix: netcdf saving didn't work if only one value was available.
-  [Martin Raspaud]
-
-- Bugfix: test_mipp had invalid proj parameters. [Martin Raspaud]
-
-- Bugfix: satellite vs satname again. [Martin Raspaud]
-
-- Bugfix: project now chooses mode automatically by default. [Martin
-  Raspaud]
-
-- Bugfix: move to jenkins. [Martin Raspaud]
-
-- Bugfix: fixed unit test for projector reflecting the new mode
-  handling. [Martin Raspaud]
-
-- Bugfix: fixed None mode problem in projector. [Martin Raspaud]
-
-- Bugfix: The default projecting mode now take into account the types of
-  the in and out areas. [Martin Raspaud]
-
-- Bugfix: forgot the argument to wait in filewatcher. [Martin Raspaud]
-
-- Bugfix: tags and gdal_options were class attributes, they should be
-  instance attributes. [Martin Raspaud]
-
-- Bugfix: 0 reflectances were masked in aapp1b loader. [Martin Raspaud]
-
-- Bugfix: corrected parallax values as no_data in msg products reading.
-  [Martin Raspaud]
-
-- Bugfix: tags and gdal_options were class attributes, they should be
-  instance attributes. [Martin Raspaud]
-
-- Bugfix: Compatibility with nordrad was broken. [Martin Raspaud]
-
-- Bugfix: forgot the argument to wait in filewatcher. [Martin Raspaud]
-
-- Bugfix: forgot strptime = datetime.strptime when python > 2.5. [Martin
-  Raspaud]
-
-- Bugfix: corrected parallax values as no_data in msg products reading.
-  [Martin Raspaud]
-
-- Bugfix: individual channel areas are preserved when assembled
-  together. [Martin Raspaud]
-
-- Bugfix: cleanup tmp directory when convertion to lvl 1b is done.
-  [Martin Raspaud]
-
-- Bugfix: remove hardcoded pathes in hrpt and eps lvl 1a. [Martin
-  Raspaud]
-
-- Bugfix: use satpy's main config path. [Martin Raspaud]
-
-- Bugfix: added python 2.4 compatibility. [Martin Raspaud]
-
-- Bugfix: allow all masked array as channel data. [Martin Raspaud]
-
-- Better support for channel-bound areas. [Martin Raspaud]
-
-- Bugfix: 0 reflectances were masked in aapp1b loader. [Martin Raspaud]
-
-- Bugfix: tags and gdal_options were class attributes, they should be
-  instance attributes. [Martin Raspaud]
-
-- Bugfix: error checking on area_extent for loading. [Martin Raspaud]
-
-- Bugfix: non loaded channels should not induce computation of
-  projection. [Martin Raspaud]
-
-- Bugfix: thin modis didn't like area extent and was locked in 2010...
-  [Martin Raspaud]
-
-- Bugfix: Compatibility with nordrad was broken. [Martin Raspaud]
-
-Other
-~~~~~
-
-- Merge branch 'release-0.11' [Martin Raspaud]
-
-- Merge branch 'pre-master' into release-0.11. [Martin Raspaud]
-
-- Updated copyright dates in setup.py. [Martin Raspaud]
-
-- Bumped version number to 0.11.0. [Martin Raspaud]
 
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
 
@@ -3068,9 +3832,9 @@ Other
 
   Conflicts:
 
-  	satpy/instruments/visir.py
-  	satpy/satin/hrpt.py
-  	satpy/saturn/runner.py
+  	mpop/instruments/visir.py
+  	mpop/satin/hrpt.py
+  	mpop/saturn/runner.py
 
 
 - Cleanup: remove old unit test for assemble_swath. [Martin Raspaud]
@@ -3081,7 +3845,7 @@ Other
 
   Conflicts:
 
-  	satpy/scene.py
+  	mpop/scene.py
 
 
 - Upgrade: assemble_segments now uses scene factory. [Martin Raspaud]
@@ -3094,7 +3858,7 @@ Other
 
   Conflicts:
 
-  	satpy/satin/mipp.py
+  	mpop/satin/mipp.py
 
 
 - Cleanup: removing old stuff. [Martin Raspaud]
@@ -3123,7 +3887,7 @@ Other
 
 - Added license. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - Info needs to be an instance attribute. [Lars Orum Rasmussen]
@@ -3173,7 +3937,7 @@ Other
 
 - Added gatherer and two_line_elements. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - Moved a parenthesis six characters to the left. [Lars Orum Rasmussen]
@@ -3184,7 +3948,7 @@ Other
 - Feature: thin modis reader upgrade, with lonlat estimator and channel
   trimmer for broken sensors. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - Netcdf bandname now only uses integer part of resolution. [Esben S.
@@ -3205,7 +3969,7 @@ Other
 
 - Feature: Added proj4 parameters for meteosat 7. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - Cosmetic. [Esben S. Nielsen]
@@ -3220,101 +3984,6 @@ Other
 
 - Documentation: added needed files in setup.py. [Martin Raspaud]
 
-v0.10.0 (2011-01-18)
---------------------
-
-Fix
-~~~
-
-- Bugfix: fixed matching in git command for version numbering. [Martin
-  Raspaud]
-
-- Bugfix: Negative temperatures (in K) should not be valid data when
-  reading aapp1b files. [Martin Raspaud]
-
-- Bugfix: remove hudson from tags when getting version. [Martin Raspaud]
-
-- Bugfix: fixed hdf inconstistencies with the old pyhl reading of msg
-  ctype and ctth files. [Martin Raspaud]
-
-- Bugfix: Updated code and tests to validate unittests. [Martin Raspaud]
-
-- Bugfix: data reloaded even if the load_again flag was False. [Martin
-  Raspaud]
-
-- Bugfix: updated tests for disapearance of avhrr.py. [Martin Raspaud]
-
-- Bugfix: access to CompositerClass would fail if using the old
-  interface. [Martin Raspaud]
-
-- Bugfix: typesize for msg's ctth didn't please pps... [Martin Raspaud]
-
-- Bugfix: fixed data format (uint8) in msg_hdf. [Martin Raspaud]
-
-- Bugfix: wrong and forgotten instanciations. [Martin Raspaud]
-
-- Bugfix: crashing on missing channels in mipp loading. [Martin Raspaud]
-
-- Bugfix: forgot to pass along area_extent in mipp loader. [Martin
-  Raspaud]
-
-- Bugfix: fixing integration test (duck typing). [Martin Raspaud]
-
-- Bugfix: pyresample.geometry is loaded lazily for area building.
-  [Martin Raspaud]
-
-- Bugfix: Updated unit tests. [Martin Raspaud]
-
-- Bugfix: Last change introduced empty channel list for meteosat 09.
-  [Martin Raspaud]
-
-- Bugfix: Last change introduced empty channel list for meteosat 09.
-  [Martin Raspaud]
-
-- Bugfix: update unittests for new internal implementation. [Martin
-  Raspaud]
-
-- Bugfix: compression argument was wrong in
-  satelliteinstrumentscene.save. [Martin Raspaud]
-
-- Bugfix: adapted satpy to new equality operation in pyresample. [Martin
-  Raspaud]
-
-- Bugfix: More robust config reading in projector and test_projector.
-  [Martin Raspaud]
-
-- Bugfix: updated the msg_hrit (nwclib based) reader. [Martin Raspaud]
-
-- Bugfix: swath processing was broken, now fixed. [Martin Raspaud]
-
-- Bugfix: corrected the smaller msg globe area. [Martin Raspaud]
-
-- Bugfix: Erraneous assumption on the position of the 0,0 lon lat in the
-  seviri frame led to many wrong things. [Martin Raspaud]
-
-- Bugfix: introduced bugs in with last changes. [Martin Raspaud]
-
-- Bugfix: new area extent for EuropeCanary. [Martin Raspaud]
-
-- Bugfix: Updated setup.py to new structure. [Martin Raspaud]
-
-- Bugfix: updated integration test to new structure. [Martin Raspaud]
-
-- Bugfix: more verbose crashing when building extensions. [Martin
-  Raspaud]
-
-- Bugfix: corrected EuropeCanary region. [Martin Raspaud]
-
-- Bugfix: made missing areas message in projector more informative
-  (includes missing area name). [Martin Raspaud]
-
-- Bugfix: Added missing import in test_pp_core. [Martin Raspaud]
-
-- Bugfix: fixing missing import in test_scene. [Martin Raspaud]
-
-Other
-~~~~~
-
 - Style: remove a print statement and an unused import. [Martin Raspaud]
 
 - Feature: Added natural composite to default composite list. [Martin
@@ -3325,15 +3994,15 @@ Other
 
 - Documentation: Upgraded documentation to 0.10.0. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
 - The RELEASE-VERSION file should not be checked into git. [Lars Orum
   Rasmussen]
 
-- Optimized parts of satpy. Fixed projector caching. [Esben S. Nielsen]
+- Optimized parts of mpop. Fixed projector caching. [Esben S. Nielsen]
 
-- Optimized parts of satpy processing. Made projector caching functional.
+- Optimized parts of mpop processing. Made projector caching functional.
   [Esben S. Nielsen]
 
 - Ignore build directory. [Lars Orum Rasmussen]
@@ -3353,11 +4022,11 @@ Other
 
 - Style: cleanup. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	satpy/satin/mipp.py
+  	mpop/satin/mipp.py
 
 
 - Fixed memory problems. Workaround for lazy import of pyresample. Now
@@ -3369,7 +4038,7 @@ Other
 
 - New version. [Martin Raspaud]
 
-- Merge branch 'master' of github.com:mraspaud/satpy. [Lars Orum
+- Merge branch 'master' of github.com:mraspaud/mpop. [Lars Orum
   Rasmussen]
 
 - Feature: direct_readout chain in place. [Martin Raspaud]
@@ -3428,11 +4097,11 @@ Other
 
 - Doc: updated the meteosat 9 template config. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	satpy/satellites/meteosat09.py
+  	mpop/satellites/meteosat09.py
 
 
 - Feature: Introduced compound satscene objects. [Martin Raspaud]
@@ -3442,16 +4111,16 @@ Other
 
 
 - Feature: added the get_custom_composites function and a composites
-  section in satpy.cfg to load custom made composites on the fly. [Martin
+  section in mpop.cfg to load custom made composites on the fly. [Martin
   Raspaud]
 
 - Feature: make use of mipp's area_extent function. [Martin Raspaud]
 
 - Style: cleanup channels_to_load after loading. [Martin Raspaud]
 
-- Doc: introduce satpy.cfg. [Martin Raspaud]
+- Doc: introduce mpop.cfg. [Martin Raspaud]
 
-- Feature: make use of the new satpy.cfg file to find the area file.
+- Feature: make use of the new mpop.cfg file to find the area file.
   Added the get_area_def helper function in projector. [Martin Raspaud]
 
 - Feature: Added the new pge02f product for met09. [Martin Raspaud]
@@ -3461,12 +4130,12 @@ Other
 - Update: new version of mipp, putting the image upright when slicing.
   [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
-  	satpy/satout/netcdf4.py
-  	satpy/scene.py
+  	mpop/satout/netcdf4.py
+  	mpop/scene.py
 
 
 - Corrected mipp slicing in mipp.py. Added keyword for selecting
@@ -3481,7 +4150,7 @@ Other
 
 - Cosmetics: Added log message when slicing in mipp. [Martin Raspaud]
 
-- Move everything to a satpy folder, so that import satpy should be used.
+- Move everything to a mpop folder, so that import mpop should be used.
   [Martin Raspaud]
 
 - WIP: Completing the nc4 reader. [Martin Raspaud]
@@ -3568,64 +4237,6 @@ Other
 - Testing: corrected scene patching for visir tests. [Martin Raspaud]
 
 - Tests: started testing the visir instrument. [Martin Raspaud]
-
-v0.9.0 (2010-10-04)
--------------------
-
-Fix
-~~~
-
-- Bugfix: geotiff images were all saved with the wgs84 ellipsoid even
-  when another was specified... [Martin Raspaud]
-
-- Bugfix: Corrected the formulas for area_extend computation in geos
-  view. [Martin Raspaud]
-
-- Bugfix: satellite number in cf proxy must be an int. Added also
-  instrument_name. [Martin Raspaud]
-
-- Bugfix: Erraneous on the fly area building. [Martin Raspaud]
-
-- Bugfix: geo_image: gdal_options and tags where [] and {} by default,
-  which is dangerous. [Martin Raspaud]
-
-- Bugfix: Support for new namespace for osr. [Martin Raspaud]
-
-- Bugfix: remove dubble test in test_channel. [Martin Raspaud]
-
-- Bugfix: showing channels couldn't handle masked arrays. [Martin
-  Raspaud]
-
-- Bugfix: Scen tests where wrong in project. [Martin Raspaud]
-
-- Bugfix: when loading only CTTH or CloudType, the region name was not
-  defined. [Martin Raspaud]
-
-- Bugfix: in test_channel, Channel constructor needs an argument.
-  [Martin Raspaud]
-
-- Bugfix: in test_cmp, tested GenericChannel instead of Channel. [Martin
-  Raspaud]
-
-- Bugfix: Test case for channel initialization expected the wrong error
-  when wavelength argument was of the wrong size. [Martin Raspaud]
-
-- Bugfix: Added length check for "wavelength" channel init argument.
-  [Martin Raspaud]
-
-- Bugfix: test case for channel resolution did not follow previous patch
-  allowing real resolutions. [Martin Raspaud]
-
-- Bugfix: thin modis lon/lat are now masked arrays. [Martin Raspaud]
-
-- Bugfix: in channel constructor, wavelength triplet was not correctly
-  checked for type. [Martin Raspaud]
-
-  Just min wavelength was check three times.
-
-
-Other
-~~~~~
 
 - Cosmetics and documentation in the scene module. [Martin Raspaud]
 
@@ -3744,7 +4355,7 @@ Other
 
 - Feature: more testing of scene.py. [Martin Raspaud]
 
-- Merge branch 'unstable' of github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
@@ -3811,7 +4422,7 @@ Other
 
 - Added support for FY3 satellite and MERSI instrument. [Adam Dybbroe]
 
-- Merge branch 'unstable' of git@github.com:mraspaud/satpy into unstable.
+- Merge branch 'unstable' of git@github.com:mraspaud/mpop into unstable.
   [Martin Raspaud]
 
   Conflicts:
