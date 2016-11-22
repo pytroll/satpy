@@ -169,6 +169,9 @@ class EPSAVHRRFile(BaseFileHandler):
     def get_full_lonlats(self):
         """Get the interpolated lons/lats.
         """
+        if self.lons is not None and self.lats is not None:
+            return self.lons, self.lats
+
         lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                           self["EARTH_LOCATIONS"][:, :, 0],
                           self["EARTH_LOCATION_LAST"][:, [0]]))
@@ -204,20 +207,25 @@ class EPSAVHRRFile(BaseFileHandler):
         return self.lons[row, col], self.lats[row, col]
 
     def get_dataset(self, key, info):
-        """Get calibrated channel data.
-        *calib_type* = 0: Counts
-        *calib_type* = 1: Reflectances and brightness temperatures
-        *calib_type* = 2: Radiances
-        """
-        if key.calibration == 'counts':
-            raise ValueError('calibrate=0 is not supported! ' +
-                             'This reader cannot return counts')
-        elif key.calibration not in ['reflectance', 'brightness_temperature', 'radiance']:
-            raise ValueError('calibration type' + str(key.calibration) +
-                             'is not supported!')
+        """Get calibrated channel data."""
 
         if self.mdrs is None:
             self._read_all(self.filename)
+
+        if key.name in ['longitude', 'latitude']:
+            lons, lats = self.get_full_lonlats()
+            # todo: make that datasets
+            if key.name == 'longitude':
+                return Projectable(lons, id=key)
+            else:
+                return Projectable(lats, id=key)
+
+        if key.calibration == 'counts':
+            raise ValueError('calibration=counts is not supported! ' +
+                             'This reader cannot return counts')
+        elif key.calibration not in ['reflectance', 'brightness_temperature', 'radiance']:
+            raise ValueError('calibration type ' + str(key.calibration) +
+                             ' is not supported!')
 
         if key.name in ['3A', '3a'] and self.three_a_mask is None:
             self.three_a_mask = (
@@ -293,7 +301,6 @@ class EPSAVHRRFile(BaseFileHandler):
                 array = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
         proj = Projectable(array, mask=array.mask, id=key)
-        proj.info['area'] = self.get_lonlats()
         return proj
 
     def get_lonlats(self):
