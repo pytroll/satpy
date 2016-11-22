@@ -445,62 +445,6 @@ class FileYAMLReader(AbstractYAMLReader):
 
         return all_shapes, proj
 
-    def _load_area(self, navid, file_handlers, nav_info, all_shapes, shape):
-        try:
-            area_defs = [fh.get_area_def(navid, nav_info)
-                         for fh in file_handlers]
-        except NotImplementedError:
-            pass
-        else:
-            final_area = copy.deepcopy(area_defs[0])
-
-            for area_def in area_defs[1:]:
-                different_items = (set(final_area.proj_dict.items()) ^
-                                   set(area_def.proj_dict.items()))
-                if different_items:
-                    break
-                if (final_area.area_extent[0] == area_def.area_extent[0] and
-                        final_area.area_extent[2] == area_def.area_extent[2] and
-                        final_area.area_extent[1] == area_def.area_extent[3]):
-                    current_extent = list(final_area.area_extent)
-                    current_extent[1] = area_def.area_extent[1]
-                    final_area.area_extent = current_extent
-                    final_area.y_size += area_def.y_size
-                    try:
-                        final_area.shape = (
-                            final_area.y_size, final_area.x_size)
-                    except AttributeError:
-                        pass
-                else:
-                    break
-            else:
-                return final_area
-        lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        # overwrite single boolean 'False'
-        #lons.mask = np.empty(shape, dtype=np.bool)
-        lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        #lats.mask = np.empty(shape, dtype=np.bool)
-        offset = 0
-        for idx, fh in enumerate(file_handlers):
-            granule_height = all_shapes[idx][0]
-            fh.get_lonlats(navid,
-                           nav_info,
-                           lon_out=lons[offset:offset + granule_height],
-                           lat_out=lats[offset:offset + granule_height])
-            offset += granule_height
-
-        lons[lons < -180] = np.ma.masked
-        lons[lons > 180] = np.ma.masked
-        lats[lats < -90] = np.ma.masked
-        lats[lats > 90] = np.ma.masked
-
-        area = geometry.SwathDefinition(lons, lats)
-        # FIXME: How do we name areas?
-        area.name = navid.name
-        area.info = getattr(area, 'info', {})
-        area.info.update(nav_info)
-        return area
-
     def _preferred_filetype(self, filetypes):
         if not isinstance(filetypes, list):
             filetypes = [filetypes]
@@ -512,13 +456,30 @@ class FileYAMLReader(AbstractYAMLReader):
         return None
 
     def load(self, dataset_keys):
+        """Load *dataset_keys*."""
         loaded_navs = {}
         datasets = DatasetDict()
 
+        dsids = []
+        cids = []
+        coordinates = {}
         for dataset_key in dataset_keys:
             dsid = self.get_dataset_key(dataset_key)
+            dsids.append(dsid)
             ds_info = self.ids[dsid]
 
+            for cinfo in ds_info.get('coordinates', []):
+                if isinstance(cinfo, dict):
+                    cid = DatasetID(**cinfo)
+                else:
+                    cid = self.get_dataset_key(cinfo)
+                if cid not in cids:
+                    cids.append(cid)
+                coordinates.setdefault(dsid, []).append(cid)
+
+        dsids = cids + dsids
+        for dsid in dsids:
+            ds_info = self.ids[dsid]
             # Get the file handler to load this dataset (list or single string)
             filetype = self._preferred_filetype(ds_info['file_type'])
             if filetype is None:
@@ -530,40 +491,45 @@ class FileYAMLReader(AbstractYAMLReader):
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
             datasets[dsid] = proj
 
-            if isinstance(proj, Projectable) and ('area' not in proj.info or proj.info['area'] is None):
-                # we need to load the area because the file handlers didn't
-                navid = AreaID(ds_info.get('navigation'), dsid.resolution)
-                if navid.name is None or navid.name not in self.config[
-                        'navigations']:
-                    try:
-                        nav_filetype = filetype
-                        navid = dsid
-                        nav_info = ds_info
-                        nav_fhs = self.file_handlers[nav_filetype]
-
-                        ds_area = self._load_area(navid, nav_fhs, nav_info,
-                                                  all_shapes, proj.shape)
-                        loaded_navs[navid.name] = ds_area
-                        proj.info["area"] = ds_area
-
-                    except NotImplementedError as err:
-                        # we don't know how to load navigation
-                        LOG.warning(
-                            "Can't load navigation for {}: {}".format(dsid, str(err)))
-                elif navid.name in loaded_navs:
-                    proj.info["area"] = loaded_navs[navid.name]
+            coords = coordinates.get(dsid, [])
+            if len(coords) == 0:
+                # try loading area definitions
+                try:
+                    area_defs = [fh.get_area_def()
+                                 for fh in file_handlers]
+                except NotImplementedError:
+                    pass
                 else:
-                    nav_info = self.config['navigations'][navid.name]
-                    nav_filetype = self._preferred_filetype(nav_info['file_type'])
-                    if nav_filetype is None:
-                        raise RuntimeError(
-                            "Required file type '{}' not found or loaded".format(
-                                nav_info['file_type']))
-                    nav_fhs = self.file_handlers[nav_filetype]
+                    final_area = copy.deepcopy(area_defs[0])
 
-                    ds_area = self._load_area(navid, nav_fhs, nav_info,
-                                              all_shapes, proj.shape)
-                    loaded_navs[navid.name] = ds_area
-                    proj.info["area"] = ds_area
+                    for area_def in area_defs[1:]:
+                        different_items = (set(final_area.proj_dict.items()) ^
+                                           set(area_def.proj_dict.items()))
+                        if different_items:
+                            break
+                        if (final_area.area_extent[0] == area_def.area_extent[0] and
+                                final_area.area_extent[2] == area_def.area_extent[2] and
+                                final_area.area_extent[1] == area_def.area_extent[3]):
+                            current_extent = list(final_area.area_extent)
+                            current_extent[1] = area_def.area_extent[1]
+                            final_area.area_extent = current_extent
+                            final_area.y_size += area_def.y_size
+                            try:
+                                final_area.shape = (
+                                    final_area.y_size, final_area.x_size)
+                            except AttributeError:
+                                pass
+                        else:
+                            break
+                    else:
+                        proj.info['area'] = final_area
+            elif len(coords) == 2 and coords[0].name == 'longitude' and coords[1].name == 'latitude':
+                # Make a SwathDefinition
+                from pyresample.geometry import SwathDefinition
+                proj.info['area'] = SwathDefinition(
+                    datasets[coords[0]], datasets[coords[1]])
+            else:
+                raise NameError(
+                    "Don't know what to do with coordinates " + str(coords))
 
         return datasets
