@@ -15,6 +15,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_eps
     '2':
         name: '2'
@@ -25,6 +28,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_eps
     '3a':
         name: '3a'
@@ -35,6 +41,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_eps
     '3b':
         name: '3b'
@@ -45,6 +54,9 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_eps
     '4':
         name: '4'
@@ -55,6 +67,9 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_eps
     '5':
         name: '5'
@@ -65,6 +80,19 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: avhrr_eps
+
+    longitude:
+        name: longitude
+        resolution: 1050
         file_type: avhrr_eps
 
 file_types:
