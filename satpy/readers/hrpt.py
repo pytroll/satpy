@@ -37,15 +37,31 @@ import logging
 from datetime import datetime
 
 import numpy as np
-from pyresample.geometry import SwathDefinition
 
 from pygac.gac_calibration import calibrate_solar, calibrate_thermal
+from pyresample.geometry import SwathDefinition
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
+
+dtype = np.dtype([('frame_sync', '>u2', (6, )),
+                  ('id', [('id', '>u2'),
+                          ('spare', '>u2')]),
+                  ('timecode', '>u2', (4, )),
+                  ('telemetry', [("ramp_calibration", '>u2', (5, )),
+                                 ("PRT", '>u2', (3, )),
+                                 ("ch3_patch_temp", '>u2'),
+                                 ("spare", '>u2'), ]),
+                  ('back_scan', '>u2', (10, 3)),
+                  ('space_data', '>u2', (10, 5)),
+                  ('sync', '>u2'),
+                  ('TIP_data', '>u2', (520, )),
+                  ('spare', '>u2', (127, )),
+                  ('image_data', '>u2', (2048, 5)),
+                  ('aux_sync', '>u2', (100, ))])
 
 
 def time_seconds(tc_array, year):
@@ -63,8 +79,8 @@ def time_seconds(tc_array, year):
     msecs += word & 1023
     return (np.datetime64(
         str(year) + '-01-01T00:00:00Z', 's') +
-            msecs[:].astype('timedelta64[ms]') +
-            (day - 1)[:].astype('timedelta64[D]'))
+        msecs[:].astype('timedelta64[ms]') +
+        (day - 1)[:].astype('timedelta64[D]'))
 
 
 def bfield(array, bit):
@@ -108,33 +124,34 @@ class HRPTFile(BaseFileHandler):
         self.lons = None
         self.lats = None
         self.area = None
-        self.read()
-        self.platform_name = spacecrafts[(self._data["id"]["id"][0] >> 3) & 15]
+        self.platform_name = None
         self.year = filename_info.get('start_time', datetime.utcnow()).year
         self.times = None
         self.prt = None
         self.ict = None
         self.space = None
+        self.read()
 
     def read(self):
-        dtype = np.dtype([('frame_sync', '>u2', (6, )), ('id', [(
-            'id', '>u2'), ('spare', '>u2')]), ('timecode', '>u2', (4, )), (
-                'telemetry', [("ramp_calibration", '>u2', (5, )),
-                              ("PRT", '>u2', (3, )),
-                              ("ch3_patch_temp", '>u2'),
-                              ("spare", '>u2'), ]), ('back_scan', '>u2', (
-                                  10, 3)), ('space_data', '>u2', (10, 5)),
-                          ('sync', '>u2'), ('TIP_data', '>u2', (520, )), (
-                              'spare', '>u2', (127, )), ('image_data', '>u2', (
-                                  2048, 5)), ('aux_sync', '>u2', (100, ))])
 
-        # arr = np.fromfile(self.filename, dtype=dtype)
-        # arr = arr.newbyteorder()
-        # return arr
         with open(self.filename, "rb") as fp_:
             self._data = np.memmap(fp_, dtype=dtype, mode="r")
+        if np.all(self._data['frame_sync'][0] > 1024):
+            self._data = self._data.newbyteorder()
+        self.platform_name = spacecrafts[
+            (self._data["id"]["id"][0] >> 3) & 15]
 
     def get_dataset(self, key, info):
+        if self._data is None:
+            self.read()
+
+        if key.name in ['latitude', 'longitude']:
+            lons, lats = self.get_lonlats()
+            if key.name == 'latitude':
+                return Projectable(lats, id=key)
+            else:
+                return Projectable(lons, id=key)
+
         avhrr_channel_index = {'1': 0,
                                '2': 1,
                                '3a': 2,
@@ -183,7 +200,7 @@ class HRPTFile(BaseFileHandler):
                                      chan, pg_spacecraft)
             units = 'K'
         # TODO: check if entirely masked before returning
-        return Projectable(data, mask=mask, area=self.get_lonlats(), units=units)
+        return Projectable(data, mask=mask, units=units)
 
     def get_telemetry(self):
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
@@ -200,8 +217,8 @@ class HRPTFile(BaseFileHandler):
         return prt, ict, space
 
     def get_lonlats(self):
-        if self.area is not None:
-            return self.area
+        if self.lons is not None and self.lats is not None:
+            return self.lons, self.lats
         from pyorbital.orbital import Orbital
         from pyorbital.geoloc import compute_pixels, get_lonlatalt
         from pyorbital.geoloc_instrument_definitions import avhrr
@@ -215,7 +232,8 @@ class HRPTFile(BaseFileHandler):
         sgeom = avhrr(scanline_nb, scan_points, apply_offset=False)
         # no attitude error
         rpy = [0, 0, 0]
-        s_times = sgeom.times(self.times[:, np.newaxis]).ravel()
+        s_times = sgeom.times(
+            self.times[:, np.newaxis]).ravel()
         # s_times = (np.tile(sgeom._times[0, :], (scanline_nb, 1)).astype(
         #    'timedelta64[s]') + self.times[:, np.newaxis]).ravel()
 
@@ -226,10 +244,7 @@ class HRPTFile(BaseFileHandler):
         self.lons, self.lats = geo_interpolate(
             lons.reshape((scanline_nb, -1)), lats.reshape((scanline_nb, -1)))
 
-        self.area = SwathDefinition(self.lons, self.lats)
-        self.area.name = '_'.join([self.platform_name, str(self.start_time()),
-                                   str(self.end_time)])
-        return self.area
+        return self.lons, self.lats
 
     @property
     def start_time(self):
