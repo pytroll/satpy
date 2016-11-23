@@ -20,296 +20,35 @@ datasets:
     name: '1'
     resolution: [250, 500, 1000]
     calibration: reflectance
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.62
     - 0.645
     - 0.67
-  '10':
-    file_type: hdf_eos_data
-    name: '10'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.483
-    - 0.488
-    - 0.493
-  '11':
-    file_type: hdf_eos_data
-    name: '11'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.526
-    - 0.531
-    - 0.536
-  '12':
-    file_type: hdf_eos_data
-    name: '12'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.546
-    - 0.551
-    - 0.556
-  13hi:
-    file_type: hdf_eos_data
-    name: '13hi'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.662
-    - 0.667
-    - 0.672
-  13lo:
-    file_type: hdf_eos_data
-    name: '13lo'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.662
-    - 0.667
-    - 0.672
-  14hi:
-    file_type: hdf_eos_data
-    name: '14hi'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.673
-    - 0.678
-    - 0.683
-  14lo:
-    file_type: hdf_eos_data
-    name: '14lo'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.673
-    - 0.678
-    - 0.683
-  '15':
-    file_type: hdf_eos_data
-    name: '15'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.743
-    - 0.748
-    - 0.753
-  '16':
-    file_type: hdf_eos_data
-    name: '16'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.862
-    - 0.8695
-    - 0.877
-  '17':
-    file_type: hdf_eos_data
-    name: '17'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.89
-    - 0.905
-    - 0.92
-  '18':
-    file_type: hdf_eos_data
-    name: '18'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.931
-    - 0.936
-    - 0.941
-  '19':
-    file_type: hdf_eos_data
-    name: '19'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 0.915
-    - 0.94
-    - 0.965
   '2':
     file_type: hdf_eos_data
     name: '2'
     resolution: [250, 500, 1000]
     calibration: reflectance
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.841
     - 0.8585
     - 0.876
-  '20':
-    file_type: hdf_eos_data
-    name: '20'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 3.66
-    - 3.75
-    - 3.84
-  '21':
-    file_type: hdf_eos_data
-    name: '21'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 3.929
-    - 3.959
-    - 3.989
-  '22':
-    file_type: hdf_eos_data
-    name: '22'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 3.929
-    - 3.959
-    - 3.989
-  '23':
-    file_type: hdf_eos_data
-    name: '23'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 4.02
-    - 4.05
-    - 4.08
-  '24':
-    file_type: hdf_eos_data
-    name: '24'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 4.433
-    - 4.4655
-    - 4.498
-  '25':
-    file_type: hdf_eos_data
-    name: '25'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 4.482
-    - 4.5155
-    - 4.549
-  '26':
-    file_type: hdf_eos_data
-    name: '26'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 1.36
-    - 1.375
-    - 1.39
-  '27':
-    file_type: hdf_eos_data
-    name: '27'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 6.535
-    - 6.715
-    - 6.895
-  '28':
-    file_type: hdf_eos_data
-    name: '28'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 7.175
-    - 7.325
-    - 7.475
-  '29':
-    file_type: hdf_eos_data
-    name: '29'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 8.4
-    - 8.55
-    - 8.7
   '3':
     file_type: hdf_eos_data
     name: '3'
     resolution: [500, 1000]
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.459
     - 0.469
     - 0.479
-  '30':
-    file_type: hdf_eos_data
-    name: '30'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 9.58
-    - 9.73
-    - 9.88
-  '31':
-    file_type: hdf_eos_data
-    name: '31'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 10.78
-    - 11.03
-    - 11.28
-  '32':
-    file_type: hdf_eos_data
-    name: '32'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 11.77
-    - 12.02
-    - 12.27
-  '33':
-    file_type: hdf_eos_data
-    name: '33'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 13.185
-    - 13.335
-    - 13.485
-  '34':
-    file_type: hdf_eos_data
-    name: '34'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 13.485
-    - 13.635
-    - 13.785
-  '35':
-    file_type: hdf_eos_data
-    name: '35'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 13.785
-    - 13.935
-    - 14.085
-  '36':
-    file_type: hdf_eos_data
-    name: '36'
-    resolution: 1000
-    navigation: hdf_eos_geo
-    wavelength:
-    - 14.085
-    - 14.235
-    - 14.385
   '4':
     file_type: hdf_eos_data
     name: '4'
     resolution: [500, 1000]
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.545
     - 0.555
@@ -318,7 +57,7 @@ datasets:
     file_type: hdf_eos_data
     name: '5'
     resolution: [500, 1000]
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 1.23
     - 1.24
@@ -327,7 +66,7 @@ datasets:
     file_type: hdf_eos_data
     name: '6'
     resolution: [500, 1000]
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 1.628
     - 1.64
@@ -336,7 +75,7 @@ datasets:
     file_type: hdf_eos_data
     name: '7'
     resolution: [500, 1000]
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 2.105
     - 2.13
@@ -345,7 +84,7 @@ datasets:
     file_type: hdf_eos_data
     name: '8'
     resolution: 1000
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.405
     - 0.4125
@@ -354,12 +93,292 @@ datasets:
     file_type: hdf_eos_data
     name: '9'
     resolution: 1000
-    navigation: hdf_eos_geo
+    coordinates: [longitude, latitude]
     wavelength:
     - 0.438
     - 0.443
     - 0.448
+  '10':
+    file_type: hdf_eos_data
+    name: '10'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.483
+    - 0.488
+    - 0.493
+  '11':
+    file_type: hdf_eos_data
+    name: '11'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.526
+    - 0.531
+    - 0.536
+  '12':
+    file_type: hdf_eos_data
+    name: '12'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.546
+    - 0.551
+    - 0.556
+  13hi:
+    file_type: hdf_eos_data
+    name: '13hi'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.662
+    - 0.667
+    - 0.672
+  13lo:
+    file_type: hdf_eos_data
+    name: '13lo'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.662
+    - 0.667
+    - 0.672
+  14hi:
+    file_type: hdf_eos_data
+    name: '14hi'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.673
+    - 0.678
+    - 0.683
+  14lo:
+    file_type: hdf_eos_data
+    name: '14lo'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.673
+    - 0.678
+    - 0.683
+  '15':
+    file_type: hdf_eos_data
+    name: '15'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.743
+    - 0.748
+    - 0.753
+  '16':
+    file_type: hdf_eos_data
+    name: '16'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.862
+    - 0.8695
+    - 0.877
+  '17':
+    file_type: hdf_eos_data
+    name: '17'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.89
+    - 0.905
+    - 0.92
+  '18':
+    file_type: hdf_eos_data
+    name: '18'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.931
+    - 0.936
+    - 0.941
+  '19':
+    file_type: hdf_eos_data
+    name: '19'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.915
+    - 0.94
+    - 0.965
+  '20':
+    file_type: hdf_eos_data
+    name: '20'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.66
+    - 3.75
+    - 3.84
+  '21':
+    file_type: hdf_eos_data
+    name: '21'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.929
+    - 3.959
+    - 3.989
+  '22':
+    file_type: hdf_eos_data
+    name: '22'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.929
+    - 3.959
+    - 3.989
+  '23':
+    file_type: hdf_eos_data
+    name: '23'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.02
+    - 4.05
+    - 4.08
+  '24':
+    file_type: hdf_eos_data
+    name: '24'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.433
+    - 4.4655
+    - 4.498
+  '25':
+    file_type: hdf_eos_data
+    name: '25'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.482
+    - 4.5155
+    - 4.549
+  '26':
+    file_type: hdf_eos_data
+    name: '26'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 1.36
+    - 1.375
+    - 1.39
+  '27':
+    file_type: hdf_eos_data
+    name: '27'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 6.535
+    - 6.715
+    - 6.895
+  '28':
+    file_type: hdf_eos_data
+    name: '28'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 7.175
+    - 7.325
+    - 7.475
+  '29':
+    file_type: hdf_eos_data
+    name: '29'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 8.4
+    - 8.55
+    - 8.7
+  '30':
+    file_type: hdf_eos_data
+    name: '30'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 9.58
+    - 9.73
+    - 9.88
+  '31':
+    file_type: hdf_eos_data
+    name: '31'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 10.78
+    - 11.03
+    - 11.28
+  '32':
+    file_type: hdf_eos_data
+    name: '32'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 11.77
+    - 12.02
+    - 12.27
+  '33':
+    file_type: hdf_eos_data
+    name: '33'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.185
+    - 13.335
+    - 13.485
+  '34':
+    file_type: hdf_eos_data
+    name: '34'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.485
+    - 13.635
+    - 13.785
+  '35':
+    file_type: hdf_eos_data
+    name: '35'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.785
+    - 13.935
+    - 14.085
+  '36':
+    file_type: hdf_eos_data
+    name: '36'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 14.085
+    - 14.235
+    - 14.385
 
+  longitude1k:
+    file_type: hdf_eos_geo
+    name: longitude
+    resolution: [1000, 500, 250]
+
+  latitude1k:
+    file_type: hdf_eos_geo
+    name: latitude
+    resolution: [1000, 500, 250]
+
+  longitude5k:
+    file_type: hdf_eos_data
+    name: longitude
+    resolution: 5000
+
+  latitude5k:
+    file_type: hdf_eos_data
+    name: latitude
+    resolution: 5000
 
 
 file_types:

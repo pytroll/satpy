@@ -470,15 +470,19 @@ class FileYAMLReader(AbstractYAMLReader):
 
             for cinfo in ds_info.get('coordinates', []):
                 if isinstance(cinfo, dict):
-                    cid = DatasetID(**cinfo)
+                    cinfo['resolution'] = ds_info['resolution']
                 else:
-                    cid = self.get_dataset_key(cinfo)
+                    #cid = self.get_dataset_key(cinfo)
+                    cinfo = {'name': cinfo,
+                             'resolution': ds_info['resolution']}
+                cid = DatasetID(**cinfo)
                 if cid not in cids:
                     cids.append(cid)
                 coordinates.setdefault(dsid, []).append(cid)
 
         dsids = cids + dsids
         for dsid in dsids:
+            dsid = self.get_dataset_key(dsid)
             ds_info = self.ids[dsid]
             # Get the file handler to load this dataset (list or single string)
             filetype = self._preferred_filetype(ds_info['file_type'])

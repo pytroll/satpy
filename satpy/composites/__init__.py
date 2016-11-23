@@ -275,8 +275,9 @@ class SunZenithCorrector(CompositeBase):
         if vis.info.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
+
         key = (vis.info["start_time"],
-               vis.info["area"].name)
+               getattr(vis.info["area"], 'name', 'swath' + str(vis.info["area"].lons.shape)))
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
