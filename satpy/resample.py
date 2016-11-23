@@ -97,7 +97,8 @@ class BaseResampler(object):
         try:
             return area.kdtree_hash
         except AttributeError:
-            LOG.debug("Computing kd-tree hash for area %s", area.name)
+            LOG.debug("Computing kd-tree hash for area %s",
+                      getattr(area, 'name', 'swath'))
         try:
             area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
                                  hashlib.sha1(json.dumps(area.area_extent).encode("utf-8")).hexdigest(),
