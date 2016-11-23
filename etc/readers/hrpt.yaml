@@ -15,6 +15,7 @@ datasets:
             standard_name: reflectance
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '2':
         name: '2'
@@ -25,6 +26,7 @@ datasets:
             standard_name: reflectance
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '3a':
         name: '3a'
@@ -35,6 +37,7 @@ datasets:
             standard_name: reflectance
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '3b':
         name: '3b'
@@ -45,6 +48,7 @@ datasets:
             standard_name: brightness_temperature
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '4':
         name: '4'
@@ -55,6 +59,7 @@ datasets:
             standard_name: brightness_temperature
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '5':
         name: '5'
@@ -65,9 +70,21 @@ datasets:
             standard_name: brightness_temperature
           counts:
             standard_name: counts
+        coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
+
+    longitude:
+        name: longitude
+        resolution: 1050
+        file_type: avhrr_hrpt
+
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: avhrr_hrpt
+
 
 file_types:
     avhrr_hrpt:
         file_reader: !!python/name:satpy.readers.hrpt.HRPTFile ''
-        file_patterns: ['{start_time:%Y%m%d%H%M%S}_{platform_name}.hmf']
+        file_patterns: ['{start_time:%Y%m%d%H%M%S}_{platform_name}.hmf', 'hrpt16_{platform_name:s}_{start_time:%d-%b-%Y_%H:%M:%S.%f}_{orbit_number:05d}']
