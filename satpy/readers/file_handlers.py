@@ -46,7 +46,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_shape(self, dataset_id, ds_info):
         raise NotImplementedError
 
-    def get_area_def(self, area_id, area_info):
+    def get_area_def(self):
         raise NotImplementedError
 
     def get_lonlats(self, nav_id, nav_info, lon_out=None, lat_out=None):

@@ -272,7 +272,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             from satpy.yaml_reader import Shuttle
             return Shuttle(out.data, out.mask, out.info)
 
-    def get_area_def(self, key, info):
+    def get_area_def(self):
 
         cfac = np.uint32(self.proj_info['CFAC'])
         lfac = np.uint32(self.proj_info['LFAC'])
