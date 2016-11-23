@@ -1,8 +1,7 @@
 reader:
     name: avhrr_aapp_l1b
     description: AAPP l1b Reader for AVHRR
-    # could this be a python hook ?
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3, avhrr-2]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
@@ -16,6 +15,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
     '2':
         name: '2'
@@ -26,6 +28,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
     '3a':
         name: '3a'
@@ -36,6 +41,9 @@ datasets:
             standard_name: reflectance
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
     '3b':
         name: '3b'
@@ -46,6 +54,9 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
     '4':
         name: '4'
@@ -56,6 +67,9 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
     '5':
         name: '5'
@@ -66,23 +80,44 @@ datasets:
             standard_name: brightness_temperature
           radiance:
             standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
 
     solar_zenith_angle:
         name: solar_zenith_angle
         resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
 
     sensor_zenith_angle:
         name: sensor_zenith_angle
         resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
 
     sun_sensor_azimuth_difference_angle:
         name: sun_sensor_azimuth_difference_angle
         resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
         file_type: avhrr_aapp_l1b
 
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+
+    longitude:
+        name: longitude
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
 
 file_types:
     avhrr_aapp_l1b:

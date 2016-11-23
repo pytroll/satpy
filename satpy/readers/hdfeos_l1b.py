@@ -45,9 +45,9 @@ from datetime import datetime
 from fnmatch import fnmatch
 
 import numpy as np
-
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
+
 from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.projectable import Projectable
@@ -133,6 +133,8 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             self.resolution = 5000
         self.cache = {}
+        self.lons = None
+        self.lats = None
 
     def get_area_def(self, *args, **kwargs):
         raise NotImplementedError
@@ -160,17 +162,39 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         if lat_out is not None:
             lat_out[:] = lats[:]
 
-        #navid.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
+        # navid.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
 
         return lons, lats
-        #area = geometry.SwathDefinition(lons=lons, lats=lats)
+        # area = geometry.SwathDefinition(lons=lons, lats=lats)
         #
         # return area
+
+    def get_dataset(self, key, info):
+        if key.name not in ['longitude', 'latitude']:
+            return
+
+        if self.lons is None or self.lats is None:
+
+            lons_id = DatasetID('longitude',
+                                resolution=key.resolution)
+            lats_id = DatasetID('latitude',
+                                resolution=key.resolution)
+
+            lons, lats = self.load(
+                [lons_id, lats_id], interpolate=False, raw=True)
+            from geotiepoints.geointerpolator import GeoInterpolator
+            self.lons, self.lats = self._interpolate(
+                [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
+
+        if key.name == 'latitude':
+            return Projectable(self.lats, id=key)
+        else:
+            return Projectable(self.lons, id=key)
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
         for key in keys:
-            dataset = self.sd.select(key.name)
+            dataset = self.sd.select(key.name.capitalize())
             fill_value = dataset.attributes()["_FillValue"]
             try:
                 scale_factor = dataset.attributes()["scale_factor"]

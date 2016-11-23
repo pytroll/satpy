@@ -39,9 +39,9 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from pyresample.geometry import SwathDefinition
 
-from satpy.projectable import Projectable
+from pyresample.geometry import SwathDefinition
+from satpy.projectable import Dataset, Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,7 @@ ANGLES = {'sensor_zenith_angle': 'satz',
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
+
     def __init__(self, filename, filename_info, filetype_info):
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
@@ -71,11 +72,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         self.sunz, self.satz, self.azidiff = None, None, None
 
+    @property
     def start_time(self):
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][0]) - 1,
             milliseconds=int(self._data['scnlintime'][0]))
 
+    @property
     def end_time(self):
         return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][-1]) - 1,
@@ -90,6 +93,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate([key])[0]
+        elif key.name in ['longitude', 'latitude']:
+            if self.lons is None or self.lats is None:
+                self.navigate()
+            if key.name == 'longitude':
+                return Dataset(self.lons, id=key)
+            else:
+                return Dataset(self.lats, id=key)
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
@@ -104,16 +114,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 raise
 
         # TODO get metadata
-        if self.lons is None or self.lats is None:
-            self.navigate()
-        if self.area is None:
-            self.area = SwathDefinition(self.lons, self.lats)
-            self.area.name = 'wla'
 
         if not self._shape:
             self._shape = dataset.shape
 
-        dataset.info['area'] = self.area
         return dataset
 
     def read(self):
