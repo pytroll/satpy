@@ -447,8 +447,15 @@ class Scene(InfoObject):
                     else:
                         new_opt_prereqs.append(prereq.data[0].info['id'])
 
-                prereqs = [self.datasets[prereq] for prereq in new_prereqs]
-                optional_prereqs = [self.datasets[prereq]
+                try:
+                    prereqs = [self.datasets[prereq] for prereq in new_prereqs]
+                except KeyError as e:
+                    LOG.warning("Missing composite '{}' prerequisite: {}".format(compositor.info['name'], e.message))
+                    self.wishlist.remove(compositor.info['name'])
+                    continue
+
+                # Any missing optional prerequisites are replaced with 'None'
+                optional_prereqs = [self.datasets.get(prereq)
                                     for prereq in new_opt_prereqs]
 
                 try:

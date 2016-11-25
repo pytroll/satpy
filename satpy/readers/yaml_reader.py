@@ -477,9 +477,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 return final_area
         lons = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
         # overwrite single boolean 'False'
-        #lons.mask = np.empty(shape, dtype=np.bool)
+        lons.mask = np.zeros(shape, dtype=np.bool)
         lats = np.ma.empty(shape, dtype=nav_info.get('dtype', np.float32))
-        #lats.mask = np.empty(shape, dtype=np.bool)
+        lats.mask = np.zeros(shape, dtype=np.bool)
         offset = 0
         for idx, fh in enumerate(file_handlers):
             granule_height = all_shapes[idx][0]
@@ -522,9 +522,10 @@ class FileYAMLReader(AbstractYAMLReader):
             # Get the file handler to load this dataset (list or single string)
             filetype = self._preferred_filetype(ds_info['file_type'])
             if filetype is None:
-                raise RuntimeError(
-                    "Required file type '{}' not found or loaded".format(
-                        ds_info['file_type']))
+                LOG.warning(
+                    "Required file type '{}' not found or loaded for '{}'".format(
+                        ds_info['file_type'], dsid.name))
+                continue
             file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
