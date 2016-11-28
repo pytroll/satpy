@@ -31,8 +31,8 @@ from fnmatch import fnmatch
 from mipp import CalibrationError, ReaderError, xrit
 from satpy.projectable import Projectable
 from satpy.readers import DatasetDict
+from satpy.readers.helper_functions import area_defs_to_extent
 from satpy.readers.yaml_reader import AbstractYAMLReader
-from satpy.satin.helper_functions import area_defs_to_extent
 from trollsift.parser import globify, parse
 
 LOGGER = logging.getLogger(__name__)
