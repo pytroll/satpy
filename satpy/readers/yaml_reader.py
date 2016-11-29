@@ -461,7 +461,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     break
                 if (final_area.area_extent[0] == area_def.area_extent[0] and
                         final_area.area_extent[2] == area_def.area_extent[2] and
-                        final_area.area_extent[1] == area_def.area_extent[3]):
+                        np.isclose(final_area.area_extent[1], area_def.area_extent[3])):
                     current_extent = list(final_area.area_extent)
                     current_extent[1] = area_def.area_extent[1]
                     final_area.area_extent = current_extent
