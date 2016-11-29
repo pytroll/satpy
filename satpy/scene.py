@@ -307,7 +307,12 @@ class Scene(InfoObject):
         """Check if the dataset is in the scene."""
         return name in self.datasets
 
-    def _find_dependencies(self, dataset_key, **kwargs):
+    def _find_dependencies(self,
+                           dataset_key,
+                           calibration=None,
+                           polarization=None,
+                           resolution=None,
+                           **kwargs):
         """Find the dependencies for *dataset_key*."""
         sensor_names = set()
 
@@ -320,7 +325,10 @@ class Scene(InfoObject):
         for reader_name, reader_instance in self.readers.items():
             sensor_names |= set(reader_instance.sensor_names)
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key)
+                ds_id = reader_instance.get_dataset_key(dataset_key,
+                                                        calibration=calibration,
+                                                        polarization=polarization,
+                                                        resolution=resolution)
             except KeyError as err:
                 LOG.debug("Can't find dataset %s in reader %s",
                           str(dataset_key), reader_name)
@@ -365,11 +373,18 @@ class Scene(InfoObject):
 
         return root
 
-    def create_deptree(self, dataset_keys):
+    def create_deptree(self,
+                       dataset_keys,
+                       calibration=None,
+                       polarization=None,
+                       resolution=None):
         """Create the dependency tree."""
         tree = Node(None)
         for key in dataset_keys:
-            tree.add_child(self._find_dependencies(key))
+            tree.add_child(self._find_dependencies(key,
+                                                   calibration=calibration,
+                                                   polarization=polarization,
+                                                   resolution=resolution))
         return tree
 
     def read_datasets(self,
@@ -496,7 +511,10 @@ class Scene(InfoObject):
         dataset_keys = set(dataset_keys)
         self.wishlist |= dataset_keys
 
-        tree = self.create_deptree(dataset_keys)
+        tree = self.create_deptree(dataset_keys,
+                                   calibration=kwargs.get('calibration'),
+                                   polarization=kwargs.get('polarization'),
+                                   resolution=kwargs.get('resolution'))
         datasets = self.read_datasets(tree.leaves(), **kwargs)
         composites = self.read_composites(tree.trunk(), **kwargs)
 
