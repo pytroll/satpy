@@ -141,16 +141,20 @@ class Scene(InfoObject):
         # out
         if not self.info.get("sensor"):
             self.info["sensor"] = sensors
+        # overwrite the request start/end times with actual loaded data limits
+        if reader_instances:
+            self.info['start_time'] = min(x.start_time for x in self.readers.values())
+            self.info['end_time'] = max(x.end_time for x in self.readers.values())
 
     @property
     def start_time(self):
         """Return the start time of the file."""
-        return min(x.start_time for x in self.readers.values())
+        return self.info['start_time']
 
     @property
     def end_time(self):
         """Return the end time of the file."""
-        return max(x.end_time for x in self.readers.values())
+        return self.info['end_time']
 
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
