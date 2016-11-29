@@ -139,8 +139,12 @@ class Scene(InfoObject):
                 sensors.extend(reader_instance.sensor_names)
         # if the user didn't tell us what sensors to work with, let's figure it
         # out
-        if not self.info.get("sensor"):
-            self.info["sensor"] = sensors
+        if not self.info.get('sensor'):
+            self.info['sensor'] = set(sensors)
+        elif not isinstance(self.info['sensor'], (set, tuple, list)):
+            self.info['sensor'] = set([self.info['sensor']])
+        else:
+            self.info['sensor'] = set(self.info['sensor'])
         # overwrite the request start/end times with actual loaded data limits
         if reader_instances:
             self.info['start_time'] = min(x.start_time for x in self.readers.values())
