@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014
+# Copyright (c) 2014, 2016
 #
 # Author(s):
-# 
+#
 #   Panu Lahtinen <pnuu+git@iki.fi>
 #
 # This file is part of satpy.
@@ -24,15 +24,16 @@
 
 import numpy as np
 
+
 def sunzen_corr_cos(data, cos_zen, limit=88.):
     '''Perform Sun zenith angle correction to the given *data* using
     cosine of the zenith angle (*cos_zen*).  The correction is limited
-    to *limit* degrees (default: 80.0 degrees).  For larger zenith
+    to *limit* degrees (default: 88.0 degrees).  For larger zenith
     angles, the correction is the same as at the *limit*.  Both *data*
     and *cos_zen* are given as 2-dimensional Numpy arrays or Numpy
     MaskedArrays, and they should have equal shapes.
     '''
-    
+
     # Convert the zenith angle limit to cosine of zenith angle
     limit = np.cos(np.radians(limit))
 
@@ -45,4 +46,3 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     data[lim_y, lim_x] /= limit
 
     return data
-
