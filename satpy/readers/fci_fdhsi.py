@@ -173,3 +173,40 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    def calibrate(self, data, key):
+
+        if key.calibration == 'brightness_temperature':
+            print 'Calibration: BT'
+            self._ir_calibrate(data, key)
+        elif key.calibration == 'reflectance':
+            self._vis_calibrate(data, key)
+        else:
+            print "Passing calibration"
+            pass
+
+
+    def _ir_calibrate(self, data, key):
+        # Not sure if Lv is correct, FCI User Guide is a bit unclear
+
+        Lv = data.data * self.nc['/data/%s/measured/radiance_unit_conversion_coefficient' % key.name][...]
+
+        vc = self.nc['/data/%s/central_wavelength_actual' % key.name][...]
+        a,b,dummy = self.nc['/data/%s/measured/radiance_to_bt_conversion_coefficients' % key.name][...]
+        c1, c2 = self.nc['/data/%s/measured/radiance_to_bt_conversion_constants' % key.name][...]
+
+        nom = c2 * vc
+        denom = a * np.log(1+(c1*vc**3)/Lv)
+
+        data.data[:] = nom/denom-b/a
+
+
+    def _vis_calibrate(self, data, key):
+        # radiance to reflectance taken as in mipp/xrit/MSG.py
+        # again FCI User Guide is not clear on how to do this
+
+        sirr = self.nc['/data/%s/measured/channel_effective_solar_irradiance' % key.name][...]
+
+        # reflectance = radiance / sirr * 100
+        data.data[:] /= sirr
+        data.data[:] *= 100
+
