@@ -528,7 +528,7 @@ class FileYAMLReader(AbstractYAMLReader):
                             break
                     else:
                         proj.info['area'] = final_area
-            elif len(coords) == 2 and coords[0].name == 'longitude' and coords[1].name == 'latitude':
+            elif len(coords) == 2:
                 # Make a SwathDefinition
                 from pyresample.geometry import SwathDefinition
                 proj.info['area'] = SwathDefinition(
