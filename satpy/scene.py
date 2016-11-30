@@ -148,7 +148,7 @@ class Scene(InfoObject):
         else:
             self.info['sensor'] = set(self.info['sensor'])
         # overwrite the request start/end times with actual loaded data limits
-        if reader_instances:
+        if self.readers:
             self.info['start_time'] = min(x.start_time for x in self.readers.values())
             self.info['end_time'] = max(x.end_time for x in self.readers.values())
 
