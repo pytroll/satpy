@@ -395,14 +395,14 @@ datasets:
     navigation: gdnbo
     file_type: vdnbo
   DNB_SZA:
-    name: DNB_SZA
+    name: dnb_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 743
     navigation: gdnbo
     file_type: gdnbo
     file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
   DNB_LZA:
-    name: DNB_LZA
+    name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
     resolution: 743
     navigation: gdnbo
