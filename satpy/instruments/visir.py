@@ -24,7 +24,7 @@
 """This module defines the generic VISIR instrument class.
 """
 from satpy.imageo import geo_image
-from satpy.compositer import Compositer
+from satpy.composites import RGBCompositor
 
 import numpy as np
 
@@ -37,7 +37,7 @@ except ImportError:
 # remove warnings for unused prerequisites
 
 
-class VisirCompositer(Compositer):
+class VisirCompositer(RGBCompositor):
 
     """Compositer for Visual-IR instruments
     """
