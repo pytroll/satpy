@@ -4,41 +4,76 @@ reader:
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader ''
   sensors: [viirs]
   default_channels:
-navigations:
-  gitco:
-    description: Terrain-corrected I-band resolution geolocation
-    file_type: gitco
-    longitude_key: All_Data/{file_group}_All/Longitude
-    latitude_key: All_Data/{file_group}_All/Latitude
-  gimgo:
-    description: Spheroid I-band resolution geolocation
-    file_type: gimgo
-    longitude_key: All_Data/{file_group}_All/Longitude
-    latitude_key: All_Data/{file_group}_All/Latitude
-  gmtco:
-    description: Terrain-corrected M-band resolution geolocation
-    file_type: gmtco
-    longitude_key: All_Data/{file_group}_All/Longitude
-    latitude_key: All_Data/{file_group}_All/Latitude
-  gmodo:
-    description: Spheroid M-band resolution geolocation
-    file_type: gmodo
-    longitude_key: All_Data/{file_group}_All/Longitude
-    latitude_key: All_Data/{file_group}_All/Latitude
-  gdnbo:
-    description: Spheroid or TC DNB resolution geolocation
-    file_type: gdnbo
-    longitude_key: All_Data/{file_group}_All/Longitude
-    latitude_key: All_Data/{file_group}_All/Latitude
+#navigations:
+#  gitco:
+#    description: Terrain-corrected I-band resolution geolocation
+#    file_type: gitco
+#    longitude_key: All_Data/{file_group}_All/Longitude
+#    latitude_key: All_Data/{file_group}_All/Latitude
+#  gimgo:
+#    description: Spheroid I-band resolution geolocation
+#    file_type: gimgo
+#    longitude_key: All_Data/{file_group}_All/Longitude
+#    latitude_key: All_Data/{file_group}_All/Latitude
+#  gmtco:
+#    description: Terrain-corrected M-band resolution geolocation
+#    file_type: gmtco
+#    longitude_key: All_Data/{file_group}_All/Longitude
+#    latitude_key: All_Data/{file_group}_All/Latitude
+#  gmodo:
+#    description: Spheroid M-band resolution geolocation
+#    file_type: gmodo
+#    longitude_key: All_Data/{file_group}_All/Longitude
+#    latitude_key: All_Data/{file_group}_All/Latitude
+#  gdnbo:
+#    description: Spheroid or TC DNB resolution geolocation
+#    file_type: gdnbo
+#    longitude_key: All_Data/{file_group}_All/Longitude
+#    latitude_key: All_Data/{file_group}_All/Latitude
 datasets:
+  i_lon:
+    name: i_longitude
+    resolution: 371
+    file_type: gitco
+    file_key: All_Data/{file_group}_All/Longitude
+    units: "degrees"
+  i_lat:
+    name: i_latitude
+    resolution: 371
+    file_type: gitco
+    file_key: All_Data/{file_group}_All/Latitude
+    units: "degrees"
+  m_lon:
+    name: m_longitude
+    resolution: 742
+    file_type: gmtco
+    file_key: All_Data/{file_group}_All/Longitude
+    units: "degrees"
+  m_lat:
+    name: m_latitude
+    resolution: 742
+    file_type: gmtco
+    file_key: All_Data/{file_group}_All/Latitude
+    units: "degrees"
+  dnb_lon:
+    name: dnb_longitude
+    resolution: 743
+    file_type: gdnbo
+    file_key: All_Data/{file_group}_All/Longitude
+    units: "degrees"
+  dnb_lat:
+    name: i_latitude
+    resolution: 743
+    file_type: gdnbo
+    file_key: All_Data/{file_group}_All/Latitude
+    units: "degrees"
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
     modifiers: [sunz_corrected]
     file_type: svi01
     resolution: 371
-#    navigation: [gitco, gimgo]
-    navigation: gitco
+    coordinates: [i_longitude, i_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -52,8 +87,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svi02
     resolution: 371
-#    navigation: [gitco, gimgo]
-    navigation: gitco
+    coordinates: [i_longitude, i_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -67,8 +101,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svi03
     resolution: 371
-#    navigation: [gitco, gimgo]
-    navigation: gitco
+    coordinates: [i_longitude, i_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -82,8 +115,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svi04
     resolution: 371
-#    navigation: [gitco, gimgo]
-    navigation: gitco
+    coordinates: [i_longitude, i_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -97,8 +129,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svi05
     resolution: 371
-#    navigation: [gitco, gimgo]
-    navigation: gitco
+    coordinates: [i_longitude, i_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
