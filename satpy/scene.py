@@ -42,6 +42,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Node(object):
+
     """A node object."""
 
     def __init__(self, data):
@@ -87,6 +88,7 @@ class Node(object):
 
 
 class Scene(InfoObject):
+
     """The almighty scene class."""
 
     def __init__(self,
