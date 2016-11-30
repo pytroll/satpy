@@ -62,7 +62,7 @@ datasets:
     file_key: All_Data/{file_group}_All/Longitude
     units: "degrees"
   dnb_lat:
-    name: i_latitude
+    name: dnb_latitude
     resolution: 743
     file_type: gdnbo
     file_key: All_Data/{file_group}_All/Latitude
@@ -143,8 +143,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm01
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -158,8 +157,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm02
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -173,8 +171,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm03
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -188,8 +185,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm04
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -203,8 +199,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm05
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -218,8 +213,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm06
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -233,8 +227,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm07
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -248,8 +241,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm08
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -263,8 +255,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm09
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -278,8 +269,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm10
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -293,8 +283,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm11
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -308,8 +297,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm12
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -323,8 +311,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm13
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -338,8 +325,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm14
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -353,8 +339,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm15
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -368,8 +353,7 @@ datasets:
     modifiers: [sunz_corrected]
     file_type: svm16
     resolution: 742
-#    navigation: [gmtco, gmodo]
-    navigation: gmtco
+    coordinates: [m_longitude, m_latitude]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -382,61 +366,57 @@ datasets:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 742
+    coordinates: [m_longitude, m_latitude]
     units: degrees
-    navigation: gmtco
-#    navigation: [gmtco, gmodo]
     file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
   M_SOLA:
     name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     resolution: 742
+    coordinates: [m_longitude, m_latitude]
     units: degrees
-    navigation: gmtco
-#    navigation: [gmtco, gmodo]
     file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
   M_SENZ:
     name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
     resolution: 742
+    coordinates: [m_longitude, m_latitude]
     units: degrees
-    navigation: gmtco
-#    navigation: [gmtco, gmodo]
     file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
   M_SENA:
     name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 742
+    coordinates: [m_longitude, m_latitude]
     units: degrees
-    navigation: gmtco
-#    navigation: [gmtco, gmodo]
     file_type: [gmtco, gmodo]
     file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
   DNB:
     name: DNB
     wavelength: [0.500, 0.700, 0.900]
     resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 sr-1
         file_units: W cm-2 sr-1
-    navigation: gdnbo
     file_type: vdnbo
   DNB_SZA:
     name: DNB_SZA
     standard_name: solar_zenith_angle
     resolution: 743
-    navigation: gdnbo
+    coordinates: [dnb_longitude, dnb_latitude]
     file_type: gdnbo
     file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
   DNB_LZA:
     name: DNB_LZA
     standard_name: lunar_zenith_angle
     resolution: 743
-    navigation: gdnbo
+    coordinates: [dnb_longitude, dnb_latitude]
     file_type: gdnbo
     file_key: 'All_Data/{file_group}_All/LunarZenithAngle'
   dnb_moon_illumination_fraction:
