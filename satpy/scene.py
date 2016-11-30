@@ -139,18 +139,26 @@ class Scene(InfoObject):
                 sensors.extend(reader_instance.sensor_names)
         # if the user didn't tell us what sensors to work with, let's figure it
         # out
-        if not self.info.get("sensor"):
-            self.info["sensor"] = sensors
+        if not self.info.get('sensor'):
+            self.info['sensor'] = set(sensors)
+        elif not isinstance(self.info['sensor'], (set, tuple, list)):
+            self.info['sensor'] = set([self.info['sensor']])
+        else:
+            self.info['sensor'] = set(self.info['sensor'])
+        # overwrite the request start/end times with actual loaded data limits
+        if reader_instances:
+            self.info['start_time'] = min(x.start_time for x in self.readers.values())
+            self.info['end_time'] = max(x.end_time for x in self.readers.values())
 
     @property
     def start_time(self):
         """Return the start time of the file."""
-        return min(x.start_time for x in self.readers.values())
+        return self.info['start_time']
 
     @property
     def end_time(self):
         """Return the end time of the file."""
-        return max(x.end_time for x in self.readers.values())
+        return self.info['end_time']
 
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
@@ -462,8 +470,15 @@ class Scene(InfoObject):
                     else:
                         new_opt_prereqs.append(prereq.data[0].info['id'])
 
-                prereqs = [self.datasets[prereq] for prereq in new_prereqs]
-                optional_prereqs = [self.datasets[prereq]
+                try:
+                    prereqs = [self.datasets[prereq] for prereq in new_prereqs]
+                except KeyError as e:
+                    LOG.warning("Missing composite '{}' prerequisite: {}".format(compositor.info['name'], e.message))
+                    self.wishlist.remove(compositor.info['name'])
+                    continue
+
+                # Any missing optional prerequisites are replaced with 'None'
+                optional_prereqs = [self.datasets.get(prereq)
                                     for prereq in new_opt_prereqs]
 
                 try:

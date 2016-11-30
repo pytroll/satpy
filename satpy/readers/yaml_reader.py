@@ -487,9 +487,10 @@ class FileYAMLReader(AbstractYAMLReader):
             # Get the file handler to load this dataset (list or single string)
             filetype = self._preferred_filetype(ds_info['file_type'])
             if filetype is None:
-                raise RuntimeError(
-                    "Required file type '{}' not found or loaded".format(
-                        ds_info['file_type']))
+                LOG.warning(
+                    "Required file type '{}' not found or loaded for '{}'".format(
+                        ds_info['file_type'], dsid.name))
+                continue
             file_handlers = self.file_handlers[filetype]
 
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
