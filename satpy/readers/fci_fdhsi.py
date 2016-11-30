@@ -5,7 +5,7 @@
 # Author(s):
 
 #
-#   Thomas Leppelt <thomas.leppelt@dwd.de>
+#   Thomas Leppelt <thomas.leppelt@gmail.com>
 #   Sauli Joro <sauli.joro@icloud.com>
 
 # This file is part of satpy.
@@ -51,20 +51,16 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         logger.debug("START: %s" % self.end_time)
         
         self.nc = h5netcdf.File(filename, 'r')
-        print('OPENING')
         self.filename = filename
         self.cache = {}
 
     @property
     def start_time(self):
-        
         return self.filename_info['start_time']
-        #return datetime.strptime(self.nc.attrs['/attr/end_time'], '%Y%m%d%H%M%S')
 
     @property
     def end_time(self):
         return self.filename_info['end_time']
-        #return datetime.strptime(self.nc.attrs['/attr/start_time'], '%Y%m%d%H%M%S')
 
     def get_dataset(self, key, info=None):
         """Load a dataset
@@ -87,6 +83,9 @@ class FCIFDHSIFileHandler(BaseFileHandler):
                                  variable.attrs['_FillValue']) *
               (variable.attrs['scale_factor'] * 1.0) +
               variable.attrs.get('add_offset', 0))
+
+        self.calibrate(ds, key)
+
         out = Projectable(ds, dtype=np.float32)
 
         self.cache[key] = out
@@ -171,17 +170,17 @@ class FCIFDHSIFileHandler(BaseFileHandler):
             area_extent)
 
         self.area = area
+
         return area
 
     def calibrate(self, data, key):
 
+        logger.debug('Calibration: %s' % key.calibration)
         if key.calibration == 'brightness_temperature':
-            print 'Calibration: BT'
             self._ir_calibrate(data, key)
         elif key.calibration == 'reflectance':
             self._vis_calibrate(data, key)
         else:
-            print "Passing calibration"
             pass
 
 
