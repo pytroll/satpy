@@ -174,6 +174,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """
         # TODO This can be made simpler
         # get by wavelength
+
         if isinstance(key, numbers.Number):
             datasets = [ds for ds in self.ids
                         if ds.wavelength and (ds.wavelength[0] <= key <=
@@ -222,7 +223,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                                      "radiance", "counts"] if x in calibration]
 
         new_datasets = []
-        for cal_name in ["brightness_temperature", "reflectance", "radiance", "counts"]:
+        
+        for cal_name in calibration:
             # order calibration from highest level to lowest level
             for ds_id in datasets:
                 if ds_id.calibration == cal_name:
