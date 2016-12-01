@@ -414,7 +414,8 @@ datasets:
     file_key: geolocation_data/lunar_zenith
   dnb_moon_illumination_fraction:
     name: dnb_moon_illumination_fraction
-    container: !!python/name:satpy.projectable.Dataset
+    resolution: 743
     file_type: vgeod
-    file_key: /attr/moon_illumination_fraction
+    file_key: geolocation_data/moon_illumination_fraction
+    navigation: vgeod
 

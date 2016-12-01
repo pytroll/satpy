@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2013, 2014.
+# Copyright (c) 2010, 2011, 2012, 2013, 2014, 2016.
 
 # Author(s):
 
@@ -24,7 +24,7 @@
 """This module defines the generic VISIR instrument class.
 """
 from satpy.imageo import geo_image
-from satpy.compositer import Compositer
+from satpy.composites import RGBCompositor
 
 import numpy as np
 
@@ -33,10 +33,12 @@ try:
 except ImportError:
     sza = None
 
-#pylint: disable=W0612
+# pylint: disable=W0612
 # remove warnings for unused prerequisites
 
-class VisirCompositer(Compositer):
+
+class VisirCompositer(RGBCompositor):
+
     """Compositer for Visual-IR instruments
     """
 
@@ -141,8 +143,6 @@ class VisirCompositer(Compositer):
 
     overview.prerequisites = set([0.635, 0.85, 10.8])
 
-
-
     def overview_sun(self, stretch='crude', gamma=1.6):
         """Make an overview RGB image composite normalising with cosine to the
         sun zenith angle.
@@ -161,7 +161,7 @@ class VisirCompositer(Compositer):
         red = np.ma.masked_where(sunzmask, self[0.635].data / costheta)
         green = np.ma.masked_where(sunzmask, self[0.85].data / costheta)
         blue = -self[10.8].data
-        
+
         img = geo_image.GeoImage((red, green, blue),
                                  self.area,
                                  self.time_slot,
@@ -176,8 +176,6 @@ class VisirCompositer(Compositer):
         return img
 
     overview_sun.prerequisites = set([0.635, 0.85, 10.8])
-
-
 
     def night_overview(self, stretch='histogram', gamma=None):
         """Make an overview RGB image composite using IR channels.
@@ -197,7 +195,6 @@ class VisirCompositer(Compositer):
         return self.cloudtop(stretch=stretch, gamma=gamma)
 
     night_overview.prerequisites = set([3.75, 10.8, 12.0])
-
 
     def natural(self, stretch=None, gamma=1.8):
         """Make a Natural Colors RGB image composite.
@@ -266,7 +263,6 @@ class VisirCompositer(Compositer):
         return img
 
     airmass.prerequisites = set([6.7, 7.3, 9.7, 10.8])
-
 
     def vis06(self):
         """Make a black and white image of the VIS 0.635um channel.
@@ -381,7 +377,7 @@ class VisirCompositer(Compositer):
 
         Linear stretch without clipping.
         """
-        self.check_channels(0.635, 1.63, 10.8)        
+        self.check_channels(0.635, 1.63, 10.8)
 
         ch1 = self[0.635].check_range()
         ch2 = self[1.63].check_range()
@@ -393,7 +389,7 @@ class VisirCompositer(Compositer):
                                  fill_value=(0, 0, 0),
                                  mode="RGB")
 
-        img.enhance(stretch = "crude")
+        img.enhance(stretch="crude")
 
         return img
 
@@ -427,11 +423,9 @@ class VisirCompositer(Compositer):
                                          (0, 55),
                                          (-70, 20)))
 
-
         return img
 
     convection.prerequisites = set([0.635, 1.63, 3.75, 6.7, 7.3, 10.8])
-
 
     def dust(self):
         """Make a Dust RGB image composite.
@@ -466,7 +460,6 @@ class VisirCompositer(Compositer):
 
     dust.prerequisites = set([8.7, 10.8, 12.0])
 
-
     def ash(self):
         """Make a Ash RGB image composite.
 
@@ -497,7 +490,6 @@ class VisirCompositer(Compositer):
         return img
 
     ash.prerequisites = set([8.7, 10.8, 12.0])
-
 
     def fog(self):
         """Make a Fog RGB image composite.
@@ -602,5 +594,4 @@ class VisirCompositer(Compositer):
 
     cloudtop.prerequisites = set([3.75, 10.8, 12.0])
 
-#pylint: enable=W0612
-
+# pylint: enable=W0612

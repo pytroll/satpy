@@ -42,6 +42,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Node(object):
+
     """A node object."""
 
     def __init__(self, data):
@@ -87,6 +88,7 @@ class Node(object):
 
 
 class Scene(InfoObject):
+
     """The almighty scene class."""
 
     def __init__(self,
@@ -146,7 +148,7 @@ class Scene(InfoObject):
         else:
             self.info['sensor'] = set(self.info['sensor'])
         # overwrite the request start/end times with actual loaded data limits
-        if reader_instances:
+        if self.readers:
             self.info['start_time'] = min(x.start_time for x in self.readers.values())
             self.info['end_time'] = max(x.end_time for x in self.readers.values())
 
