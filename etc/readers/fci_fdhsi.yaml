@@ -13,6 +13,9 @@ datasets:
     wavelength: [0.384, 0.444, 0.504]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -27,6 +30,9 @@ datasets:
     wavelength: [0.470, 0.510, 0.550]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -41,6 +47,9 @@ datasets:
     wavelength: [0.590, 0.640, 0.690]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -55,6 +64,9 @@ datasets:
     wavelength: [0.590, 0.640, 0.690]
     resolution: 500
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -69,6 +81,9 @@ datasets:
     wavelength: [0.815, 0.865, 0.915]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -83,6 +98,9 @@ datasets:
     wavelength: [0.894, 0.914, 0.934]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -97,6 +115,9 @@ datasets:
     wavelength: [1.350, 1.380, 1.410]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -111,6 +132,9 @@ datasets:
     wavelength: [1.560, 1.610, 1.660]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -125,6 +149,9 @@ datasets:
     wavelength: [2.200, 2.250, 2.300]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -139,6 +166,9 @@ datasets:
     wavelength: [2.200, 2.250, 2.300]
     resolution: 500
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
@@ -153,6 +183,9 @@ datasets:
     wavelength: [3.400, 3.800, 4.200]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -167,6 +200,9 @@ datasets:
     wavelength: [3.400, 3.800, 4.200]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -182,6 +218,9 @@ datasets:
     wavelength: [5.300, 6.300, 7.300]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -196,6 +235,9 @@ datasets:
     wavelength: [6.850, 7.350, 7.850]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -210,6 +252,9 @@ datasets:
     wavelength: [8.300, 8.700, 9.100]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -224,6 +269,9 @@ datasets:
     wavelength: [9.360, 9.660, 9.960]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -238,6 +286,9 @@ datasets:
     wavelength: [9.800, 10.500, 11.200]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -252,6 +303,9 @@ datasets:
     wavelength: [9.800, 10.500, 11.200]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -267,6 +321,9 @@ datasets:
     wavelength: [11.800, 12.300, 12.800]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
@@ -281,6 +338,9 @@ datasets:
     wavelength: [12.700, 13.300, 13.900]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: "count"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
