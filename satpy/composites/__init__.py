@@ -45,6 +45,7 @@ LOG = logging.getLogger(__name__)
 
 
 class IncompatibleAreas(Exception):
+
     """
     Error raised upon compositing things of different shapes.
     """
@@ -52,6 +53,7 @@ class IncompatibleAreas(Exception):
 
 
 class CompositorLoader(object):
+
     """Read composites using the configuration files on disk.
     """
 
@@ -345,7 +347,7 @@ class PSPRayleighReflectance(CompositeBase):
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
 
         corrector = Rayleigh(
-            vis.info['platform_name'], vis.info['sensor'], atmosphere='us-standard')
+            vis.info['platform_name'], vis.info['sensor'], atmosphere='us-standard', rural_aerosol=False)
 
         refl_cor_band = corrector.get_reflectance(
             sunz, satz, ssadiff, vis.info['id'].wavelength[1], vis)
