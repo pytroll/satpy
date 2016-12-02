@@ -348,6 +348,8 @@ class FileYAMLReader(AbstractYAMLReader):
                 used_filenames = set()
 
                 levels = len(pattern.split('/'))
+                # correct separator if needed
+                pattern = os.path.join(*pattern.split('/'))
 
                 for filename in remaining_filenames:
                     filebase = os.path.join(
