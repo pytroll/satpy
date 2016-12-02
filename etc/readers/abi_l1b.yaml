@@ -1,0 +1,260 @@
+reader:
+  description: NC Reader for ABI data
+  name: abi_l1b
+  sensors: [abi]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    abi_l1b:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}C-{scan_mode:2s}{channel_name:3s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+datasets:
+  C01:
+    name: C01
+    sensor: abi
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C02:
+    name: C02
+    sensor: abi
+    wavelength: [0.590, 0.640, 0.690]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C03:
+    name: C03
+    sensor: abi
+    wavelength: [0.8455, 0.865, 0.8845]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C04:
+    name: C04
+    sensor: abi
+    wavelength: [1.3705, 1.378, 1.3855]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C05:
+    name: C05
+    sensor: abi
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C06:
+    name: C06
+    sensor: abi
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C07:
+    name: C07
+    sensor: abi
+    wavelength: [3.80, 3.90, 4.00]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C08:
+    name: C08
+    sensor: abi
+    wavelength: [5.770, 6.185, 6.600]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C09:
+    name: C09
+    sensor: abi
+    wavelength: [6.75, 6.95, 7.15]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C10:
+    name: C10
+    sensor: abi
+    wavelength: [7.24, 7.34, 7.44]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C11:
+    name: C11
+    sensor: abi
+    wavelength: [8.30, 8.50, 8.70]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C12:
+    name: C12
+    sensor: abi
+    wavelength: [9.42, 9.61, 9.80]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C13:
+    name: C13
+    sensor: abi
+    wavelength: [10.10, 10.35, 10.60]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C14:
+    name: C14
+    sensor: abi
+    wavelength: [10.80, 11.20, 11.60]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C15:
+    name: C15
+    sensor: abi
+    wavelength: [11.80, 12.30, 12.80]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  C16:
+    name: C16
+    sensor: abi
+    wavelength: [13.00, 13.30, 13.60]
+    resolution: 300
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: abi_l1b
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: abi
+    resolution: 300
+    file_type: esa_angles
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: abi
+    resolution: 300
+    file_type: esa_angles
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: abi
+    resolution: 300
+    file_type: esa_angles
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: abi
+    resolution: 300
+    file_type: esa_angles
