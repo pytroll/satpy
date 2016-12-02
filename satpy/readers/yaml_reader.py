@@ -457,6 +457,38 @@ class FileYAMLReader(AbstractYAMLReader):
                 return ft
         return None
 
+    def _load_area_def(self, dsid, file_handlers):
+        # try loading area definitions
+        try:
+            area_defs = [fh.get_area_def(dsid)
+                         for fh in file_handlers]
+        except NotImplementedError:
+            pass
+        else:
+            final_area = copy.deepcopy(area_defs[0])
+
+            for area_def in area_defs[1:]:
+                different_items = (set(final_area.proj_dict.items()) ^
+                                   set(area_def.proj_dict.items()))
+                if different_items:
+                    break
+                if (final_area.area_extent[0] == area_def.area_extent[0] and
+                        final_area.area_extent[2] == area_def.area_extent[2] and
+                        final_area.area_extent[1] == area_def.area_extent[3]):
+                    current_extent = list(final_area.area_extent)
+                    current_extent[1] = area_def.area_extent[1]
+                    final_area.area_extent = current_extent
+                    final_area.y_size += area_def.y_size
+                    try:
+                        final_area.shape = (final_area.y_size,
+                                            final_area.x_size)
+                    except AttributeError:
+                        pass
+                else:
+                    break
+            else:
+                return final_area
+
     def load(self, dataset_keys):
         """Load *dataset_keys*."""
         loaded_navs = {}
@@ -495,41 +527,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 continue
             file_handlers = self.file_handlers[filetype]
 
+            area_def = self._load_area_def(dsid, file_handlers)
+
             all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
             datasets[dsid] = proj
 
             coords = coordinates.get(dsid, [])
-            if len(coords) == 0:
-                # try loading area definitions
-                try:
-                    area_defs = [fh.get_area_def()
-                                 for fh in file_handlers]
-                except NotImplementedError:
-                    pass
-                else:
-                    final_area = copy.deepcopy(area_defs[0])
-
-                    for area_def in area_defs[1:]:
-                        different_items = (set(final_area.proj_dict.items()) ^
-                                           set(area_def.proj_dict.items()))
-                        if different_items:
-                            break
-                        if (final_area.area_extent[0] == area_def.area_extent[0] and
-                                final_area.area_extent[2] == area_def.area_extent[2] and
-                                final_area.area_extent[1] == area_def.area_extent[3]):
-                            current_extent = list(final_area.area_extent)
-                            current_extent[1] = area_def.area_extent[1]
-                            final_area.area_extent = current_extent
-                            final_area.y_size += area_def.y_size
-                            try:
-                                final_area.shape = (
-                                    final_area.y_size, final_area.x_size)
-                            except AttributeError:
-                                pass
-                        else:
-                            break
-                    else:
-                        proj.info['area'] = final_area
+            if len(coords) == 0 and area_def is not None:
+                proj.info['area'] = area_def
             elif len(coords) == 2 and coords[0].name == 'longitude' and coords[1].name == 'latitude':
                 # Make a SwathDefinition
                 from pyresample.geometry import SwathDefinition
