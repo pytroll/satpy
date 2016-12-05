@@ -40,16 +40,17 @@ logger = logging.getLogger(__name__)
 
 
 class FCIFDHSIFileHandler(BaseFileHandler):
+
     """MTG FCI FDHSI File Reader
     """
 
     def __init__(self, filename, filename_info, filetype_info):
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
-                                        filetype_info)
+                                                  filetype_info)
         logger.debug("READING: %s" % filename)
         logger.debug("START: %s" % self.start_time)
         logger.debug("START: %s" % self.end_time)
-        
+
         self.nc = h5netcdf.File(filename, 'r')
         self.filename = filename
         self.cache = {}
@@ -78,7 +79,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         self.endline = int(measured.variables['end_position_row'][...])
         self.startcol = int(measured.variables['start_position_column'][...])
         self.endcol = int(measured.variables['end_position_column'][...])
-        
+
         ds = (np.ma.masked_equal(variable[:],
                                  variable.attrs['_FillValue']) *
               (variable.attrs['scale_factor'] * 1.0) +
@@ -94,32 +95,37 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return out
 
     def calc_area_extent(self, key):
+        """Calculate area extent for a dataset.
+        """
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
-        xyres = {500 : 22272, 1000 : 11136, 2000 : 5568}
+        xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
         logger.debug(chkres)
         logger.debug("ROW/COLS: %d / %d" % (self.nlines, self.ncols))
         logger.debug("START/END ROW: %d / %d" % (self.startline, self.endline))
         logger.debug("START/END COL: %d / %d" % (self.startcol, self.endcol))
-        total_segments = 70 
+        total_segments = 70
 
         # Calculate full globe line extent
         max_y = 5432229.9317116784
         min_y = -5429229.5285458621
         full_y = max_y + abs(min_y)
         # Single swath line extent
-        res_y = full_y / chkres # Extent per pixel resolution
+        res_y = full_y / chkres  # Extent per pixel resolution
         startl = min_y + res_y * self.startline - 0.5 * (res_y)
         endl = min_y + res_y * self.endline + 0.5 * (res_y)
         logger.debug("START / END EXTENT: %d / %d" % (startl, endl))
 
         chk_extent = (-5432229.9317116784, endl,
-                        5429229.5285458621, startl)
+                      5429229.5285458621, startl)
         return(chk_extent)
 
     def get_area_def(self, key, info):
-        #TODO Projection information are hard coded for 0 degree geos projection
+        """Calculate on-fly area definition for 0 degree geos-projection
+        for a dataset
+        """
+        # TODO Projection information are hard coded for 0 degree geos projection
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
         #cfac = np.uint32(self.proj_info['CFAC'])
@@ -129,9 +135,9 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         #a = self.nc['/state/processor/earth_equatorial_radius']
         a = 6378169.
         #h = self.nc['/state/processor/reference_altitude'] * 1000 - a
-        h=35785831.
+        h = 35785831.
         #b = self.nc['/state/processor/earth_polar_radius']
-        b=6356583.8
+        b = 6356583.8
         #lon_0 = self.nc['/state/processor/projection_origin_longitude']
         lon_0 = 0.
         #nlines = self.nc['/state/processor/reference_grid_number_of_columns']
@@ -144,13 +150,13 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
         #c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
         #ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-        #c, l = ncols, (1 + self.total_segments -
+        # c, l = ncols, (1 + self.total_segments -
         #                self.segment_number) * nlines - nlines
         #ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
 
-        #area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
+        # area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
         #               np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
-        #area_extent = (-5432229.9317116784, -5429229.5285458621,
+        # area_extent = (-5432229.9317116784, -5429229.5285458621,
         #                5429229.5285458621, 5432229.9317116784)
 
         proj_dict = {'a': float(a),
@@ -174,38 +180,49 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return area
 
     def calibrate(self, data, key):
+        """Data calibration.
+        """
 
-        logger.debug('Calibration: %s' % key.calibration)
+#        logger.debug('Calibration: %s' % key.calibration)
+        logger.warning('Calibration disabled!')
         if key.calibration == 'brightness_temperature':
-            self._ir_calibrate(data, key)
+            pass
+#            self._ir_calibrate(data, key)
         elif key.calibration == 'reflectance':
-            self._vis_calibrate(data, key)
+            pass
+#            self._vis_calibrate(data, key)
         else:
             pass
 
-
     def _ir_calibrate(self, data, key):
+        """IR channel calibration
+        """
         # Not sure if Lv is correct, FCI User Guide is a bit unclear
 
-        Lv = data.data * self.nc['/data/%s/measured/radiance_unit_conversion_coefficient' % key.name][...]
+        Lv = data.data * \
+            self.nc[
+                '/data/%s/measured/radiance_unit_conversion_coefficient' % key.name][...]
 
         vc = self.nc['/data/%s/central_wavelength_actual' % key.name][...]
-        a,b,dummy = self.nc['/data/%s/measured/radiance_to_bt_conversion_coefficients' % key.name][...]
-        c1, c2 = self.nc['/data/%s/measured/radiance_to_bt_conversion_constants' % key.name][...]
+        a, b, dummy = self.nc[
+            '/data/%s/measured/radiance_to_bt_conversion_coefficients' % key.name][...]
+        c1, c2 = self.nc[
+            '/data/%s/measured/radiance_to_bt_conversion_constants' % key.name][...]
 
         nom = c2 * vc
-        denom = a * np.log(1+(c1*vc**3)/Lv)
+        denom = a * np.log(1 + (c1 * vc**3) / Lv)
 
-        data.data[:] = nom/denom-b/a
-
+        data.data[:] = nom / denom - b / a
 
     def _vis_calibrate(self, data, key):
+        """VIS channel calibration
+        """
         # radiance to reflectance taken as in mipp/xrit/MSG.py
         # again FCI User Guide is not clear on how to do this
 
-        sirr = self.nc['/data/%s/measured/channel_effective_solar_irradiance' % key.name][...]
+        sirr = self.nc[
+            '/data/%s/measured/channel_effective_solar_irradiance' % key.name][...]
 
         # reflectance = radiance / sirr * 100
         data.data[:] /= sirr
         data.data[:] *= 100
-
