@@ -40,6 +40,7 @@ LOG = logging.getLogger(__name__)
 
 
 class NetCDF4FileHandler(BaseFileHandler):
+
     """Small class for inspecting a NetCDF4 file and retrieving its metadata/header data.
 
     File information can be accessed using bracket notation. Variables are
@@ -66,12 +67,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         wrapper["group/subgroup/var_name/shape"]
 
     """
+
     def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=False):
-        super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(NetCDF4FileHandler, self).__init__(
+            filename, filename_info, filetype_info)
         self.file_content = {}
         file_handle = netCDF4.Dataset(self.filename, 'r')
 
-        self.auto_maskandscale= auto_maskandscale
+        self.auto_maskandscale = auto_maskandscale
         if hasattr(file_handle, "set_auto_maskandscale"):
             file_handle.set_auto_maskandscale(auto_maskandscale)
 
@@ -114,9 +117,10 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __getitem__(self, key):
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
-            # these datasets are closed and inaccessible when the file is closed, need to reopen
+            # these datasets are closed and inaccessible when the file is
+            # closed, need to reopen
             v = netCDF4.Dataset(self.filename, 'r')
-            val = v[key]
+            val = v.variables[key]
             val.set_auto_maskandscale(self.auto_maskandscale)
         return val
 
