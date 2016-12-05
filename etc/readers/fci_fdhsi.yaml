@@ -213,7 +213,7 @@ datasets:
 
 
   wv_63:
-    name: ir_63
+    name: wv_63
     sensor: fci
     wavelength: [5.300, 6.300, 7.300]
     resolution: 2000
@@ -227,10 +227,10 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fdhsi
+    file_type: fci_fdhsi
 
   wv_73:
-    name: ir_73
+    name: wv_73
     sensor: fci
     wavelength: [6.850, 7.350, 7.850]
     resolution: 2000
@@ -244,7 +244,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fdhsi
+    file_type: fci_fdhsi
 
   ir_87:
     name: ir_87
