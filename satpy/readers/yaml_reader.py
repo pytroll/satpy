@@ -40,6 +40,7 @@ from pyresample import geometry
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
 from satpy.readers import AreaID, DatasetDict, DatasetID
+from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
@@ -174,6 +175,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """
         # TODO This can be made simpler
         # get by wavelength
+
         if isinstance(key, numbers.Number):
             datasets = [ds for ds in self.ids
                         if ds.wavelength and (ds.wavelength[0] <= key <=
@@ -371,7 +373,22 @@ class FileYAMLReader(AbstractYAMLReader):
                         if self._end_time and file_handler.end_time > self._end_time:
                             continue
 
-                        # TODO: Area filtering
+                        if self._area:
+                            from trollsched.boundary import AreaDefBoundary, Boundary
+                            from satpy.resample import get_area_def
+                            try:
+                                gbb = Boundary(
+                                    *file_handler.get_bounding_box())
+                            except NotImplementedError:
+                                pass
+                            else:
+                                abb = AreaDefBoundary(
+                                    get_area_def(self._area), frequency=1000)
+
+                                intersection = gbb.contour_poly.intersection(
+                                    abb.contour_poly)
+                                if not intersection:
+                                    continue
 
                         file_handlers.append(file_handler)
                 remaining_filenames -= used_filenames
@@ -384,14 +401,24 @@ class FileYAMLReader(AbstractYAMLReader):
 
         return res
 
-    def _load_dataset(self, file_handlers, dsid, ds_info):
+    def _load_dataset(self, file_handlers, dsid, ds_info, xslice=None, yslice=None):
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [fh.get_shape(dsid, ds_info) for fh in file_handlers]
+            all_shapes = [list(fh.get_shape(dsid, ds_info))
+                          for fh in file_handlers]
             # rows accumlate, columns stay the same
-            overall_shape = (
-                sum([x[0] for x in all_shapes]),) + all_shapes[0][1:]
-        except (NotImplementedError, Exception):
+            overall_shape = [
+                sum([x[0] for x in all_shapes]), ] + all_shapes[0][1:]
+            if xslice is not None and yslice is not None:
+                slice_shape = [yslice.stop - yslice.start,
+                               xslice.stop - xslice.start]
+                overall_shape[0] = min(overall_shape[0], slice_shape[0])
+                overall_shape[1] = min(overall_shape[1], slice_shape[1])
+            else:
+                xslice = slice(0, overall_shape[1])
+                yslice = slice(0, overall_shape[0])
+
+        except NotImplementedError:
             # FIXME: Is NotImplementedError included in Exception for all
             # versions of Python?
             all_shapes = None
@@ -427,17 +454,28 @@ class FileYAMLReader(AbstractYAMLReader):
             mask = np.ma.make_mask_none(overall_shape)
 
             offset = 0
+            out_offset = 0
             for idx, fh in enumerate(file_handlers):
                 granule_height = all_shapes[idx][0]
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
-                shuttle = Shuttle(data[offset:offset + granule_height],
-                                  mask[offset:offset + granule_height],
+
+                if yslice.start >= offset + granule_height or yslice.stop <= offset:
+                    offset += granule_height
+                    continue
+                start = max(yslice.start - offset, 0)
+                stop = min(yslice.stop - offset, granule_height)
+
+                shuttle = Shuttle(data[out_offset:out_offset + stop - start, :],
+                                  mask[out_offset:out_offset + stop - start, :],
                                   out_info)
+                out_offset += stop - start
                 fh.get_dataset(dsid,
                                ds_info,
-                               out=shuttle)
+                               out=shuttle,
+                               xslice=xslice,
+                               yslice=slice(start, stop))
                 offset += granule_height
             out_info.pop('area', None)
             proj = cls(data, mask=mask,
@@ -508,7 +546,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 if isinstance(cinfo, dict):
                     cinfo['resolution'] = ds_info['resolution']
                 else:
-                    #cid = self.get_dataset_key(cinfo)
+                    # cid = self.get_dataset_key(cinfo)
                     cinfo = {'name': cinfo,
                              'resolution': ds_info['resolution']}
                 cid = DatasetID(**cinfo)
@@ -530,8 +568,22 @@ class FileYAMLReader(AbstractYAMLReader):
             file_handlers = self.file_handlers[filetype]
 
             area_def = self._load_area_def(dsid, file_handlers)
+            load_kwargs = {}
 
-            all_shapes, proj = self._load_dataset(file_handlers, dsid, ds_info)
+            if area_def is not None and self._area is not None:
+                try:
+                    load_kwargs['xslice'], load_kwargs[
+                        'yslice'] = get_area_slices(area_def, self._area)
+                    area_def = get_sub_area(area_def,
+                                            load_kwargs['xslice'],
+                                            load_kwargs['yslice'])
+                except NotImplementedError:
+                    LOG.info("Cannot load specific slice of data.")
+
+            all_shapes, proj = self._load_dataset(file_handlers,
+                                                  dsid,
+                                                  ds_info,
+                                                  **load_kwargs)
             datasets[dsid] = proj
 
             coords = coordinates.get(dsid, [])
