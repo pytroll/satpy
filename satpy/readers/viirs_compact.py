@@ -142,6 +142,18 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         m_data.info['area'] = m_area_def
         return m_data
 
+    def get_bounding_box(self):
+        for key in self.h5f["Data_Products"].keys():
+            if key.startswith("VIIRS") and key.endswith("GEO"):
+                lats = self.h5f["Data_Products"][key][
+                    key + '_Gran_0'].attrs['G-Ring_Latitude']
+                lons = self.h5f["Data_Products"][key][
+                    key + '_Gran_0'].attrs['G-Ring_Longitude']
+                break
+        else:
+            raise KeyError('Cannot find bounding coordinates!')
+        return lons.ravel(), lats.ravel()
+
     @property
     def start_time(self):
         return self.finfo['start_time']

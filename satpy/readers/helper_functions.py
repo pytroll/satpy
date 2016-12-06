@@ -25,14 +25,20 @@
 '''Helper functions for area extent calculations.
 '''
 
+import ConfigParser
+import glob
+import logging
+
 import numpy as np
-from satpy.resample import get_area_def
-# from pyresample.utils import AreaNotFound
+from pyproj import Proj
 
 import pyresample
+from pyresample.geometry import AreaDefinition
+from satpy.resample import get_area_def
+from trollsift import Parser
 
-import logging
-from pyproj import Proj
+# from pyresample.utils import AreaNotFound
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -60,9 +66,10 @@ def area_def_names_to_extent(area_def_names, proj4_str,
 
     return area_defs_to_extent(areas, proj4_str, default_extent)
 
+
 def area_defs_to_extent(area_defs, proj4_str,
-                             default_extent=(-5567248.07, -5570248.48,
-                                             5570248.48, 5567248.07)):
+                        default_extent=(-5567248.07, -5570248.48,
+                                        5570248.48, 5567248.07)):
     '''Convert a list of *area_def_names* to maximal area extent in
     destination projection defined by *proj4_str*. *default_extent*
     gives the extreme values.  Default value is MSG3 extents at
@@ -71,7 +78,6 @@ def area_defs_to_extent(area_defs, proj4_str,
 
     if not isinstance(area_defs, (list, tuple, set)):
         area_defs = [area_defs]
-
 
     maximum_extent = None
 
@@ -154,9 +160,98 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
 
     return maximum_extent
 
-from trollsift import Parser
-import glob
-import ConfigParser
+
+def get_geostationary_bounding_box(geos_area):
+
+    # TODO: take into account sweep_axis_angle parameter
+
+    # get some projection parameters
+    req = geos_area.proj_dict['a'] / 1000
+    rp = geos_area.proj_dict['b'] / 1000
+    h = geos_area.proj_dict['h'] / 1000 + req
+
+    # compute some constants
+    a = 1 - req**2 / (h / 1.2) ** 2
+    c = (h**2 - req**2)
+    b = req**2 / rp**2
+
+    # generate points around the north hemisphere in satellite projection
+    # make it a bit smaller so that we stay inside the valide area
+    xmax = np.arccos(np.sqrt(a)) - 0.000000001
+    x = np.cos(np.linspace(-np.pi, np.pi, 50)) * xmax
+    y = np.arctan(np.sqrt(1 / b * (np.cos(x) ** 2 / a - 1)))
+
+    # clip the projection coordinates to fit the area extent of geos_area
+    ll_x, ll_y, ur_x, ur_y = geos_area.area_extent
+
+    x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
+    y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
+
+    # compute the latitudes and longitudes
+
+    # sd = np.sqrt((h * np.cos(x) * np.cos(y))**2 -
+    #             (np.cos(y)**2 + b * (np.sin(y)**2)) * c)
+    sd = 0
+    sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b * np.sin(y)**2)
+
+    s1 = h - sn * np.cos(x) * np.cos(y)
+    s2 = sn * np.sin(x) * np.cos(y)
+    s3 = -sn * np.sin(y)
+    sxy = np.sqrt(s1**2 + s2**2)
+
+    lons = np.rad2deg(np.arctan2(s2, s1)) + geos_area.proj_dict.get('lon_0', 0)
+    lats = np.rad2deg(np.arctan2(b * s3, sxy))
+
+    return lons, lats
+
+
+def get_area_slices(data_area, area_to_cover):
+    """This function computes the slice to read from an *area* based on an
+     *area_to_cover*.
+     """
+    from trollsched.boundary import AreaDefBoundary, Boundary
+
+    if data_area.proj_dict['proj'] != 'geos':
+        raise NotImplementedError('Only geos supported')
+
+    data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
+
+    area_boundary = AreaDefBoundary(area_to_cover, 100)
+
+    # from trollsched.satpass import Mapper
+    # import matplotlib.pyplot as plt
+    # with Mapper() as mapper:
+    #     data_boundary.draw(mapper, 'g+-')
+    #     area_boundary.draw(mapper, 'b+-')
+    #     res = area_boundary.contour_poly.intersection(
+    #         data_boundary.contour_poly)
+    #     res.draw(mapper, 'r+-')
+    # plt.show()
+
+    intersection = data_boundary.contour_poly.intersection(
+        area_boundary.contour_poly)
+
+    x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
+                                        np.rad2deg(intersection.lat))
+
+    return slice(min(x), max(x) + 1), slice(min(y), max(y) + 1)
+
+
+def get_sub_area(area, xslice, yslice):
+    new_area_extent = ((area.pixel_upper_left[0] +
+                        (xslice.start - 0.5) * area.pixel_size_x),
+                       (area.pixel_upper_left[1] -
+                        (yslice.stop - 0.5) * area.pixel_size_y),
+                       (area.pixel_upper_left[0] +
+                        (xslice.stop - 0.5) * area.pixel_size_x),
+                       (area.pixel_upper_left[1] -
+                        (yslice.start - 0.5) * area.pixel_size_y))
+
+    return AreaDefinition(area.area_id, area.name,
+                          area.proj_id, area.proj_dict,
+                          xslice.stop - xslice.start,
+                          yslice.stop - yslice.start,
+                          new_area_extent)
 
 
 def get_filenames(filepattern):
