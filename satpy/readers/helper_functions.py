@@ -267,8 +267,9 @@ def get_filenames_from_config(config_file, section):
         yield res
 
 
-def get_filenames_from_interval(config_file, section, (start, end),
+def get_filenames_from_interval(config_file, section, interval,
                                 key="start_time"):
+    (start, end) = interval
     for filename, metadata in get_filenames_from_config(config_file, section):
         if metadata[key] > start and metadata[key] < end:
             yield filename, metadata
