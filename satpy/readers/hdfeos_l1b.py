@@ -139,36 +139,6 @@ class HDFEOSGeoReader(HDFEOSFileReader):
     def get_area_def(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_lonlats(self, navid, nav_info, lon_out=None, lat_out=None):
-        # TODO: read in place when lon_out and lat_out are provided
-        lons_id = DatasetID(nav_info['longitude_key'],
-                            resolution=navid.resolution)
-        lats_id = DatasetID(nav_info['latitude_key'],
-                            resolution=navid.resolution)
-        try:
-            lons = self.cache[lons_id]
-            lats = self.cache[lats_id]
-        except KeyError:
-            lons, lats = self.load(
-                [lons_id, lats_id], interpolate=False, raw=True)
-            from geotiepoints.geointerpolator import GeoInterpolator
-            lons, lats = self._interpolate(
-                [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
-            self.cache[lons_id] = lons
-            self.cache[lats_id] = lats
-
-        if lon_out is not None:
-            lon_out[:] = lons[:]
-        if lat_out is not None:
-            lat_out[:] = lats[:]
-
-        # navid.name = self.mda['ARCHIVEDMETADATA']['LONGNAME']['VALUE']
-
-        return lons, lats
-        # area = geometry.SwathDefinition(lons=lons, lats=lats)
-        #
-        # return area
-
     def get_dataset(self, key, info):
         if key.name not in ['longitude', 'latitude']:
             return
@@ -187,9 +157,9 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
 
         if key.name == 'latitude':
-            return Projectable(self.lats, id=key)
+            return Projectable(self.lats, id=key, **info)
         else:
-            return Projectable(self.lons, id=key)
+            return Projectable(self.lons, id=key, **info)
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []

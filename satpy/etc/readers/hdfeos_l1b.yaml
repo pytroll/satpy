@@ -364,21 +364,29 @@ datasets:
     file_type: hdf_eos_geo
     name: longitude
     resolution: [1000, 500, 250]
+    standard_name: longitude
+    units: degree
 
   latitude1k:
     file_type: hdf_eos_geo
     name: latitude
     resolution: [1000, 500, 250]
+    standard_name: latitude
+    units: degree
 
   longitude5k:
     file_type: hdf_eos_data
     name: longitude
     resolution: 5000
+    standard_name: longitude
+    units: degree
 
   latitude5k:
     file_type: hdf_eos_data
     name: latitude
     resolution: 5000
+    standard_name: latitude
+    units: degree
 
 
 file_types:
