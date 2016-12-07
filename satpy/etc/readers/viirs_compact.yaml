@@ -6,6 +6,34 @@ reader:
   default_datasets:
 
 datasets:
+  longitude_m:
+    name: longitude_m
+    resolution: 742
+    file_type: compact_m
+    standard_name: longitude
+    units: degree
+
+  latitude_m:
+    name: latitude_m
+    resolution: 742
+    file_type: compact_m
+    standard_name: latitude
+    units: degree
+
+  longitude_dnb:
+    name: longitude_dnb
+    resolution: 742
+    file_type: compact_dnb
+    standard_name: longitude
+    units: degree
+
+  latitude_dnb:
+    name: latitude_dnb
+    resolution: 742
+    file_type: compact_dnb
+    standard_name: latitude
+    units: degree
+
   M01:
     name: M01
     sensor: viirs
@@ -18,6 +46,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M02:
@@ -32,6 +61,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M03:
@@ -46,6 +76,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M04:
@@ -60,6 +91,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M05:
@@ -74,6 +106,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M06:
@@ -88,6 +121,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M07:
@@ -102,6 +136,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M08:
@@ -116,6 +151,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M09:
@@ -130,6 +166,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M10:
@@ -144,6 +181,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M11:
@@ -158,6 +196,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M12:
@@ -172,6 +211,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M13:
@@ -186,6 +226,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M14:
@@ -200,6 +241,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M15:
@@ -214,6 +256,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   M16:
@@ -228,6 +271,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_m, latitude_m]
     file_type: compact_m
 
   DNB:
@@ -239,6 +283,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+    coordinates: [longitude_dnb, latitude_dnb]
     file_type: compact_dnb
 
   satellite_azimuth_angle:
@@ -247,6 +292,7 @@ datasets:
     resolution: 742
     file_type: compact_m
     units: degree
+    coordinates: [longitude_m, latitude_m]
     standard_name: platform_azimuth_angle
 
   solar_azimuth_angle:
@@ -255,6 +301,7 @@ datasets:
     resolution: 742
     file_type: compact_m
     units: degree
+    coordinates: [longitude_m, latitude_m]
     standard_name: solar_azimuth_angle
 
   satellite_zenith_angle:
@@ -263,6 +310,7 @@ datasets:
     resolution: 742
     file_type: compact_m
     units: degree
+    coordinates: [longitude_m, latitude_m]
     standard_name: platform_zenith_angle
 
   solar_zenith_angle:
@@ -271,6 +319,7 @@ datasets:
     resolution: 742
     file_type: compact_m
     units: degree
+    coordinates: [longitude_m, latitude_m]
     standard_name: solar_zenith_angle
 
   satellite_azimuth_angle_dnb:
@@ -279,6 +328,7 @@ datasets:
     resolution: 742
     file_type: compact_dnb
     units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
     standard_name: platform_azimuth_angle
 
   solar_azimuth_angle_dnb:
@@ -287,6 +337,7 @@ datasets:
     resolution: 742
     file_type: compact_dnb
     units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
     standard_name: solar_azimuth_angle
 
   satellite_zenith_angle_dnb:
@@ -295,6 +346,7 @@ datasets:
     resolution: 742
     file_type: compact_dnb
     units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
     standard_name: platform_zenith_angle
 
   solar_zenith_angle_dnb:
@@ -303,6 +355,7 @@ datasets:
     resolution: 742
     file_type: compact_dnb
     units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
     standard_name: solar_zenith_angle
 
 
