@@ -89,11 +89,15 @@ datasets:
         name: latitude
         resolution: 1050
         file_type: avhrr_eps
+        standard_name: latitude
+        units: degree
 
     longitude:
         name: longitude
         resolution: 1050
         file_type: avhrr_eps
+        standard_name: longitude
+        units: degree
 
 file_types:
     avhrr_eps:
