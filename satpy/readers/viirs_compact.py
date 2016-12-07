@@ -125,21 +125,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         """
 
         logger.debug('Reading %s.', key.name)
-
         if key.name in chans_dict:
             m_data = self.read_dataset(key, info)
         else:
             m_data = self.read_geo(key, info)
         m_data.info.update(info)
-        if self.lons is None or self.lats is None:
-            self.lons, self.lats = self.navigate(key)
-        m_area_def = SwathDefinition(
-            np.ma.masked_where(m_data.mask, self.lons,
-                               copy=False),
-            np.ma.masked_where(m_data.mask, self.lats,
-                               copy=False))
-        m_area_def.name = 'yo'
-        m_data.info['area'] = m_area_def
         return m_data
 
     def get_bounding_box(self):
@@ -186,6 +176,16 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 return Projectable(self.solzen, copy=False, name=key.name, **self.mda)
             else:
                 return Projectable(self.solazi, copy=False, name=key.name, **self.mda)
+
+        if info.get('standard_name') in ['latitude', 'longitude']:
+            if self.lons is None or self.lats is None:
+                self.lons, self.lats = self.navigate()
+            mda = self.mda.copy()
+            mda.update(info)
+            if info['standard_name'] == 'longitude':
+                return Projectable(self.lons, copy=False, id=key, **mda)
+            else:
+                return Projectable(self.lats, copy=False, id=key, **mda)
 
     def read_dataset(self, dataset_key, info):
         h5f = self.h5f
@@ -260,7 +260,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         return Projectable(arr, units=unit, copy=False, name=dataset_key.name, **self.mda)
 
-    def navigate(self, key):
+    def navigate(self):
 
         all_lon = self.geostuff["Longitude"].value
         all_lat = self.geostuff["Latitude"].value
