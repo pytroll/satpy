@@ -216,9 +216,9 @@ class EPSAVHRRFile(BaseFileHandler):
             lons, lats = self.get_full_lonlats()
             # todo: make that datasets
             if key.name == 'longitude':
-                return Projectable(lons, id=key)
+                return Projectable(lons, id=key, **info)
             else:
-                return Projectable(lats, id=key)
+                return Projectable(lats, id=key, **info)
 
         if key.calibration == 'counts':
             raise ValueError('calibration=counts is not supported! ' +
