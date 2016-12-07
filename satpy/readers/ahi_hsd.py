@@ -229,23 +229,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.segment_number = filename_info['segment_number']
         self.total_segments = filename_info['total_segments']
 
-        self.basic_info = np.memmap(self.filename,
-                                    dtype=_BASIC_INFO_TYPE,
-                                    shape=(1, ))
-        self.data_info = np.memmap(self.filename,
-                                   dtype=_DATA_INFO_TYPE,
-                                   shape=(1, ),
-                                   offset=_BASIC_INFO_TYPE.itemsize)
-        self.proj_info = np.memmap(self.filename,
-                                   dtype=_PROJ_INFO_TYPE,
-                                   shape=(1, ),
-                                   offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize)[0]
-        self.nav_info = np.memmap(self.filename,
-                                  dtype=_NAV_INFO_TYPE,
-                                  shape=(1, ),
-                                  offset=(_BASIC_INFO_TYPE.itemsize +
-                                          _DATA_INFO_TYPE.itemsize +
-                                          _PROJ_INFO_TYPE.itemsize))[0]
+        with open(self.filename) as fd:
+            self.basic_info = np.fromfile(fd,
+                                          dtype=_BASIC_INFO_TYPE,
+                                          count=1)
+            self.data_info = np.fromfile(fd,
+                                         dtype=_DATA_INFO_TYPE,
+                                         count=1)
+            self.proj_info = np.fromfile(fd,
+                                         dtype=_PROJ_INFO_TYPE,
+                                         count=1)[0]
+            self.nav_info = np.fromfile(fd,
+                                        dtype=_NAV_INFO_TYPE,
+                                        count=1)[0]
         self.platform_name = self.basic_info['satellite'][0]
         self.sensor = 'ahi'
 

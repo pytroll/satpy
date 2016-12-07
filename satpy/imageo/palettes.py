@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2013, 2015.
+# Copyright (c) 2009, 2013, 2015, 2016.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -189,6 +189,71 @@ def ctth_height_pps():
         legend.append((255, 255, 255))  # 10,000 meters
 
     for idx in range(150, 256):
+        legend.append((0, 0, 0))
+
+    return convert_palette(legend)
+
+
+def sstlut_osisaf_metno():
+
+    legend = []
+    legend.append((0, 0, 0))  # /*  Black (out of image)  */
+    legend.append((82, 82, 82))  # /*  Dark grey (land)  */
+    legend.append((187, 187, 187))  # /* Light grey (cloud contaminated)  */
+    legend.append((255, 255, 255))  # /* White (sea ice and snow)  */
+
+    legend.append((255, 0, 255))  # /* Starting at 4 = pink */
+    legend.append((195, 0, 129))  # /* Dark pink */
+    legend.append((129, 0, 47))  # /* Dark red */
+    legend.append((195, 0, 0))  # /* Medium dark red */
+
+    r = 255  # /* Red */
+    g = 0
+    b = 0
+    for i in range(8, 11, 1):
+        legend.append((r, g, b))
+        r = r - 19
+        g = g + 43
+
+    r = 200  # /* Brown */
+    g = 128
+    b = 0
+    for i in range(11, 16, 1):
+        legend.append((r, g, b))
+        r = r + 11
+        g = g + 26
+        b = b + 13
+
+    r = 65535 / 256  # /* Yellow */
+    g = 65535 / 256
+    b = 16185 / 256
+    legend.append((r, g, b))
+    legend.append((52000 / 256, 65535 / 256, 13500 / 256))
+    legend.append((35000 / 256, 65535 / 256, 7000 / 256))
+
+    r = 0  # /* Green */
+    g = 65535 / 256
+    b = 0
+    for i in range(19, 22, 1):
+        legend.append((r, g, b))
+        g = g - 12422 / 256
+
+    r = 0  # /* Dark Green */
+    g = 28269 / 256
+    b = 0
+    for i in range(22, 26, 1):
+        legend.append((r, g, b))
+        g = g - 7067 / 256
+        b = b + 16383 / 256
+
+    r = 0
+    g = 0
+    b = 65535 / 256
+    legend.append((r, g, b))  # Blue
+    legend.append((25700 / 256, 25700 / 256, 65535 / 256))  # Dark purple
+    legend.append((38550 / 256, 38550 / 256, 65535 / 256))  # Light purple
+
+    for i in range(29, 256):
         legend.append((0, 0, 0))
 
     return convert_palette(legend)
