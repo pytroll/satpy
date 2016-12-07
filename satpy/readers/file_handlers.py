@@ -46,7 +46,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_shape(self, dataset_id, ds_info):
         raise NotImplementedError
 
-    def get_area_def(self):
+    def get_area_def(self, dsid):
         raise NotImplementedError
 
     def get_bounding_box(self):
