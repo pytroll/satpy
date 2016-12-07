@@ -19,24 +19,6 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
     def end_time(self):
         return self.filename_info["start_time"]
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_key = nav_info["longitude_key"]
-        lat_key = nav_info["latitude_key"]
-
-        # FIXME: Lower frequency channels need CoRegistration parameters applied
-        if self[lon_key].shape[1] > lon_out.shape[1]:
-            lon_out.data[:] = self[lon_key][:, ::2]
-            lat_out.data[:] = self[lat_key][:, ::2]
-        else:
-            lon_out.data[:] = self[lon_key]
-            lat_out.data[:] = self[lat_key]
-
-        fill_value = nav_info.get("fill_value", -9999.)
-        lon_out.mask[:] = lon_out == fill_value
-        lat_out.mask[:] = lat_out == fill_value
-
-        return {}
-
     def get_metadata(self, m_key):
         raise NotImplementedError()
 
@@ -48,6 +30,15 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         dtype = ds_info.get("dtype", np.float32)
         mask = data == fill_value
         data = data.astype(dtype) * self[var_path + "/attr/SCALE FACTOR"]
+
+        if ((ds_info.get('standard_name') == "longitude" or
+             ds_info.get('standard_name') == "latitude") and
+                ds_key.resolution == 10000):
+            # FIXME: Lower frequency channels need CoRegistration parameters
+            # applied
+            data = data[:, ::2]
+            mask = mask[:, ::2]
+
         ds_info.update({
             "name": ds_key.name,
             "id": ds_key,
