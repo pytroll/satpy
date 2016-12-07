@@ -587,9 +587,14 @@ class FileYAMLReader(AbstractYAMLReader):
             datasets[dsid] = proj
 
             coords = coordinates.get(dsid, [])
-            if len(coords) == 0 and area_def is not None:
-                proj.info['area'] = area_def
-            elif len(coords) == 2 and coords[0].name == 'longitude' and coords[1].name == 'latitude':
+            if len(coords) == 0:
+                if area_def is not None:
+                    proj.info['area'] = area_def
+                else:
+                    LOG.debug("No coordinates found for %s", str(dsid))
+            elif (len(coords) == 2 and
+                  datasets[coords[0]].info.get('standard_name') == 'longitude' and
+                  datasets[coords[1]].info.get('standard_name') == 'latitude'):
                 # Make a SwathDefinition
                 from pyresample.geometry import SwathDefinition
                 proj.info['area'] = SwathDefinition(
