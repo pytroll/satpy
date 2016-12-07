@@ -16,18 +16,26 @@ file_types:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIGeo
         file_patterns: ['{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geo_coordinates.nc']
 
-navigations:
-  esa_geo:
-    description: Geolocation
-    file_type: esa_geo
-
 datasets:
+  longitude:
+    name: longitude
+    resolution: 300
+    file_type: esa_geo
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 300
+    file_type: esa_geo
+    standard_name: latitude
+    units: degree
+
   Oa01:
     name: Oa01
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -35,6 +43,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+    coordinates: [longitude, latitude]
     file_type: esa_l1b
 
   Oa02:
@@ -42,7 +51,6 @@ datasets:
     sensor: olci
     wavelength: [0.4075, 0.4125, 0.4175]
     resolution: 300
-    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -50,6 +58,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+    coordinates: [longitude, latitude]
     file_type: esa_l1b
 
   Oa03:
@@ -57,7 +66,6 @@ datasets:
     sensor: olci
     wavelength: [0.4375,0.4425,0.4475]
     resolution: 300
-    navigation: esa_geo
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -65,6 +73,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+    coordinates: [longitude, latitude]
     file_type: esa_l1b
 
   Oa04:
@@ -72,7 +81,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -87,7 +96,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -102,7 +111,7 @@ datasets:
     sensor: olci
     wavelength: [0.555,0.56,0.565]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -117,7 +126,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -132,7 +141,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -147,7 +156,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -162,7 +171,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -177,7 +186,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -192,7 +201,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -207,7 +216,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -222,7 +231,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -237,7 +246,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -252,7 +261,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -267,7 +276,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -282,7 +291,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -297,7 +306,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -312,7 +321,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -327,7 +336,7 @@ datasets:
     sensor: olci
     wavelength: [0.3925,0.4,0.4075]
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -341,26 +350,26 @@ datasets:
     name: solar_zenith_angle
     sensor: olci
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     file_type: esa_angles
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: olci
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     file_type: esa_angles
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: olci
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     file_type: esa_angles
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: olci
     resolution: 300
-    navigation: esa_geo
+    coordinates: [longitude, latitude]
     file_type: esa_angles

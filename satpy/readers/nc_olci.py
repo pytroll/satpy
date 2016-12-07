@@ -26,9 +26,9 @@ import logging
 import os
 from datetime import datetime
 
+import h5netcdf
 import numpy as np
 
-import h5netcdf
 from satpy.projectable import Projectable
 from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
@@ -48,12 +48,9 @@ class NCOLCIGeo(BaseFileHandler):
 
         self.cache = {}
 
-    def get_dataset(self, key, info=None):
+    def get_dataset(self, key, info):
         """Load a dataset
         """
-
-        if key in self.cache:
-            return self.cache[key]
 
         logger.debug('Reading %s.', key.name)
         variable = self.nc[key.name]
@@ -62,14 +59,11 @@ class NCOLCIGeo(BaseFileHandler):
                                  variable.attrs['_FillValue']) *
               (variable.attrs['scale_factor'] * 1.0) +
               variable.attrs.get('add_offset', 0))
-        self.cache[key] = ds
-        return ds
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        """Load an area.
-        """
-        lon_out[:] = self.get_dataset(DatasetID('longitude'))
-        lat_out[:] = self.get_dataset(DatasetID('latitude'))
+        proj = Projectable(ds,
+                           copy=False,
+                           **info)
+        return proj
 
     @property
     def start_time(self):
