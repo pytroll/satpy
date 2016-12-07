@@ -215,6 +215,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
@@ -242,7 +243,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.nav_info = np.memmap(self.filename,
                                   dtype=_NAV_INFO_TYPE,
                                   shape=(1, ),
-                                  offset=_BASIC_INFO_TYPE.itemsize + _DATA_INFO_TYPE.itemsize + _PROJ_INFO_TYPE.itemsize)[0]
+                                  offset=(_BASIC_INFO_TYPE.itemsize +
+                                          _DATA_INFO_TYPE.itemsize +
+                                          _PROJ_INFO_TYPE.itemsize))[0]
         self.platform_name = self.basic_info['satellite'][0]
         self.sensor = 'ahi'
 
@@ -259,21 +262,21 @@ class AHIHSDFileHandler(BaseFileHandler):
         return (datetime(1858, 11, 17) +
                 timedelta(days=float(self.basic_info['observation_end_time'])))
 
-    def get_dataset(self, key, info, out=None):
+    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
         to_return = out is None
         if out is None:
             nlines = int(self.data_info['number_of_lines'])
             ncols = int(self.data_info['number_of_columns'])
             out = Projectable(np.ma.empty((nlines, ncols), dtype=np.float32))
 
-        self.read_band(key, info, out)
+        self.read_band(key, info, out, xslice, yslice)
 
         if to_return:
             from satpy.yaml_reader import Shuttle
             return Shuttle(out.data, out.mask, out.info)
 
-    def get_area_def(self):
-
+    def get_area_def(self, dsid):
+        del dsid
         cfac = np.uint32(self.proj_info['CFAC'])
         lfac = np.uint32(self.proj_info['LFAC'])
         coff = np.float32(self.proj_info['COFF'])
@@ -322,7 +325,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug('Computing area for %s', str(key))
         lon_out[:], lat_out[:] = self.area.get_lonlats()
 
-    def read_band(self, key, info, out=None):
+    def read_band(self, key, info, out=None, xslice=None, yslice=None):
         """Read the data"""
         tic = datetime.now()
         header = {}
@@ -402,7 +405,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             ncols = int(header["block2"]['number_of_columns'][0])
 
             out.data[:] = np.fromfile(
-                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)
+                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)[yslice.start:yslice.stop, xslice.start:xslice.stop]
 
         self._header = header
 
