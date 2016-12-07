@@ -25,17 +25,16 @@
 
 """SatPy Configuration directory and file handling
 """
-import os
 import glob
 import logging
+import os
 from collections import Mapping
 
 from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
 
-BASE_PATH = os.path.sep.join(os.path.dirname(
-    os.path.realpath(__file__)).split(os.path.sep)[:-1])
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
@@ -68,7 +67,8 @@ def config_search_paths(filename, *search_dirs, **kwargs):
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
     # FUTURE: Remove CONFIG_PATH because it should be included as a search_dir
-    paths += [os.path.join(CONFIG_PATH, filename), os.path.join(PACKAGE_CONFIG_PATH, filename)]
+    paths += [os.path.join(CONFIG_PATH, filename),
+              os.path.join(PACKAGE_CONFIG_PATH, filename)]
 
     if kwargs.get("check_exists", True):
         paths = [x for x in paths if os.path.isfile(x)]
