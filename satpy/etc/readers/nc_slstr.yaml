@@ -1,0 +1,199 @@
+reader:
+  description: NC Reader for SLSTR data
+  name: nc_slstr
+  sensors: [slstr]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    esa_l1b:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_an.nc']
+    esa_l1b_tir:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_in.nc']
+    esa_angles:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRAngles
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_tn.nc']
+    esa_geo_an:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRGeo
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_an.nc']
+    esa_geo_in:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRGeo
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_in.nc']
+
+datasets:
+  longitude_an:
+    name: longitude
+    resolution: 500
+    file_type: esa_geo_an
+    file_key: longitude_an
+    standard_name: longitude
+    units: degree
+
+  latitude_an:
+    name: latitude
+    resolution: 500
+    file_type: esa_geo_an
+    file_key: latitude_an
+    standard_name: latitude
+    units: degree
+
+  longitude_in:
+    name: longitude
+    resolution: 1000
+    file_type: esa_geo_in
+    file_key: longitude_in
+    standard_name: longitude
+    units: degree
+
+  latitude_in:
+    name: latitude
+    resolution: 1000
+    file_type: esa_geo_in
+    standard_name: latitude
+    file_key: latitude_in
+    units: degree
+
+  S1:
+    name: S1
+    sensor: slstr
+    wavelength: [0.545,0.555,0.565]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    #   reflectance:
+    #     standard_name: toa_bidirectional_reflectance
+    #     units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S2:
+    name: S2
+    sensor: slstr
+    wavelength: [0.649, 0.659, 0.669]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    #   reflectance:
+    #     standard_name: toa_bidirectional_reflectance
+    #     units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S3:
+    name: S3
+    sensor: slstr
+    wavelength: [0.855, 0.865, 0.875]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S4:
+    name: S4
+    sensor: slstr
+    wavelength: [1.3675, 1.375, 1.36825]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S5:
+    name: S5
+    sensor: slstr
+    wavelength: [1.58, 1.61, 1.64]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S6:
+    name: S6
+    sensor: slstr
+    wavelength: [2.225, 2.25, 2.275]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b
+
+  S7:
+    name: S7
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_tir
+
+  S8:
+    name: S8
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_tir
+
+  S9:
+    name: S9
+    sensor: slstr
+    wavelength: [11.0, 12.0, 13.0]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_tir
+
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: slstr
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_angles
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: slstr
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_angles
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: slstr
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_angles
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: slstr
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_angles
