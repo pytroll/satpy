@@ -93,13 +93,14 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate([key])[0]
+            # dataset.info.update(info)
         elif key.name in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
             if key.name == 'longitude':
-                return Dataset(self.lons, id=key)
+                return Dataset(self.lons, id=key, **info)
             else:
-                return Dataset(self.lats, id=key)
+                return Dataset(self.lats, id=key, **info)
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):

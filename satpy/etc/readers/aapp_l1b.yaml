@@ -113,13 +113,15 @@ datasets:
         name: latitude
         resolution: 1050
         file_type: avhrr_aapp_l1b
+        standard_name: latitude
 
     longitude:
         name: longitude
         resolution: 1050
         file_type: avhrr_aapp_l1b
+        standard_name: longitude
 
 file_types:
     avhrr_aapp_l1b:
-        file_reader: !!python/name:satpy.readers.aapp_l1b.AVHRRAAPPL1BFile ''
+        file_reader: !!python/name:satpy.readers.aapp_l1b.AVHRRAAPPL1BFile
         file_patterns: ['hrpt_{platform_name}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b']
