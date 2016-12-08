@@ -88,69 +88,85 @@ class Node(object):
 
 
 class Scene(InfoObject):
-
     """The almighty scene class."""
 
     def __init__(self,
                  filenames=None,
-                 ppp_config_dir=None,
+                 ppp_config_dir=get_environ_config_dir(),
                  reader=None,
                  base_dir=None,
-                 **info):
+                 **metadata):
         """The Scene object constructor.
+
+        Args:
+            filenames: A sequence of files that will be used to load data from.
+            ppp_config_dir: The directory containing the configuration files for
+                satpy.
+            reader: The name of the reader to use for loading the data.
+            base_dir: The directory to search for files containing the data to
+                load.
+            metadata: Free metadata information.
         """
-        # Get PPP_CONFIG_DIR
-        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
+        InfoObject.__init__(self, **metadata)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
         # in pytroll
-        LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", self.ppp_config_dir)
-        os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir
+        LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
+        os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir = ppp_config_dir
 
-        InfoObject.__init__(self, **info)
-        self.readers = {}
+        self.readers = self.create_reader_instances(filenames=filenames,
+                                                    base_dir=base_dir,
+                                                    reader=reader)
+        self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
         self.compositors = {}
         self.wishlist = set()
 
-        if filenames is not None and not filenames:
-            raise ValueError("Filenames are specified but empty")
+    def _compute_metadata_from_readers(self):
+        mda = {}
+        mda['sensor'] = self._get_sensor_names()
 
+        # overwrite the request start/end times with actual loaded data limits
+        if self.readers:
+            mda['start_time'] = min(x.start_time
+                                    for x in self.readers.values())
+            mda['end_time'] = max(x.end_time
+                                  for x in self.readers.values())
+        return mda
+
+    def _get_sensor_names(self):
+        # if the user didn't tell us what sensors to work with, let's figure it
+        # out
+        if not self.info.get('sensor'):
+            # reader finder could return multiple readers
+            return set([sensor for reader_instance in self.readers.values()
+                        for sensor in reader_instance.sensor_names])
+        elif not isinstance(self.info['sensor'], (set, tuple, list)):
+            return set([self.info['sensor']])
+        else:
+            return set(self.info['sensor'])
+
+    def create_reader_instances(self,
+                                filenames=None,
+                                base_dir=None,
+                                reader=None):
+        """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
                               start_time=self.info.get('start_time'),
                               end_time=self.info.get('end_time'),
                               area=self.info.get('area'), )
         try:
-            reader_instances = finder(reader=reader,
-                                      sensor=self.info.get("sensor"),
-                                      filenames=filenames)
+            return finder(reader=reader,
+                          sensor=self.info.get("sensor"),
+                          filenames=filenames)
         except ValueError as err:
             if filenames is None and base_dir is None:
                 LOG.info('Neither filenames nor base_dir provided, '
                          'creating an empty scene (error was %s)', str(err))
-                reader_instances = []
+                return {}
             else:
                 raise
-
-        # reader finder could return multiple readers
-        sensors = []
-        for reader_instance in reader_instances:
-            if reader_instance:
-                self.readers[reader_instance.name] = reader_instance
-                sensors.extend(reader_instance.sensor_names)
-        # if the user didn't tell us what sensors to work with, let's figure it
-        # out
-        if not self.info.get('sensor'):
-            self.info['sensor'] = set(sensors)
-        elif not isinstance(self.info['sensor'], (set, tuple, list)):
-            self.info['sensor'] = set([self.info['sensor']])
-        else:
-            self.info['sensor'] = set(self.info['sensor'])
-        # overwrite the request start/end times with actual loaded data limits
-        if self.readers:
-            self.info['start_time'] = min(x.start_time for x in self.readers.values())
-            self.info['end_time'] = max(x.end_time for x in self.readers.values())
 
     @property
     def start_time(self):
@@ -475,7 +491,8 @@ class Scene(InfoObject):
                 try:
                     prereqs = [self.datasets[prereq] for prereq in new_prereqs]
                 except KeyError as e:
-                    LOG.warning("Missing composite '{}' prerequisite: {}".format(compositor.info['name'], e.message))
+                    LOG.warning("Missing composite '{}' prerequisite: {}".format(
+                        compositor.info['name'], e.message))
                     self.wishlist.remove(compositor.info['name'])
                     continue
 

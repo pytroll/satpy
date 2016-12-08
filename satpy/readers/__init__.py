@@ -257,10 +257,11 @@ class ReaderFinder(object):
         self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None):
-        reader_instances = []
+        reader_instances = {}
 
         if not filenames and sensor is None and reader is None:
             # we weren't given anything to search through
+            LOG.info("Not enough information provided to find readers.")
             return reader_instances
 
         if reader is not None:
@@ -303,8 +304,8 @@ class ReaderFinder(object):
                 self.base_dir,
                 remaining_filenames,
                 sensor)
-            if loadable_files:
-                reader_instances.append(reader_instance)
+            if loadable_files and reader_instance:
+                reader_instances[reader_instance.name] = reader_instance
             if filenames is not None and not remaining_filenames:
                 # we were given filenames to look through and found a reader
                 # for all of them
