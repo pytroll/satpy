@@ -4,22 +4,6 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [omps]
 
-navigations:
-  omps_tc_to3_edr:
-      description:
-      file_type: omps_tc_to3_edr
-      longitude_key: GEOLOCATION_DATA/Longitude
-      latitude_key: GEOLOCATION_DATA/Latitude
-      nadir_resolution: [50000]
-      rows_per_scan: 0
-  omps_tc_so2_edr:
-    description: OMPS EOS Geolocation
-    file_type: omps_tc_so2_edr
-    longitude_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Longitude
-    latitude_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Latitude
-    nadir_resolution: [50000]
-    rows_per_scan: 0
-
 file_types:
   omps_tc_so2_edr:
     file_reader: !!python/name:satpy.readers.omps_edr.EDREOSFileHandler
@@ -32,22 +16,49 @@ datasets:
   reflectivity_331:
     name: reflectivity_331
     resolution: 50000
-    navigation: omps_tc_to3_edr
+    coordinates: [longitude_to3, latitude_to3]
     file_type: omps_tc_to3_edr
     file_key: SCIENCE_DATA/Reflectivity331
   uvaerosol_index:
     name: uvaerosol_index
     resolution: 50000
-    navigation: omps_tc_to3_edr
+    coordinates: [longitude_to3, latitude_to3]
     file_type: omps_tc_to3_edr
     file_key: SCIENCE_DATA/UVAerosolIndex
   so2_trm:
     name: so2_trm
     resolution: 50000
-    navigation: omps_tc_so2_edr
+    coordinates: [longitude_so2, latitude_so2]
     file_type: omps_tc_so2_edr
     file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Data Fields/ColumnAmountSO2_TRM
-
+  longitude_to3:
+    name: longitude_to3
+    resolution: 50000
+    file_type: omps_tc_to3_edr
+    file_key: GEOLOCATION_DATA/Longitude
+    units: degrees
+    standard_name: longitude
+  latitude_to3:
+    name: latitude_to3
+    resolution: 50000
+    file_type: omps_tc_to3_edr
+    file_key: GEOLOCATION_DATA/Latitude
+    units: degrees
+    standard_name: latitude
+  longitude_so2:
+    name: longitude_so2
+    resolution: 50000
+    file_type: omps_tc_so2_edr
+    file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Longitude
+    units: degrees
+    standard_name: longitude
+  latitude_so2:
+    name: latitude_so2
+    resolution: 50000
+    file_type: omps_tc_so2_edr
+    file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Latitude
+    units: degrees
+    standard_name: latitude
 #[file_key:so2_trm_eos]
 #variable_name=HDFEOS/SWATHS/{file_group}/Data Fields/ColumnAmountSO2_TRM
 #units_attr=Units
