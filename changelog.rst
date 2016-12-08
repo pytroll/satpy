@@ -1,6 +1,118 @@
 Changelog
 =========
 
+v0.2.1 (2016-12-08)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 0.2.0 → 0.2.1. [Martin Raspaud]
+
+- Move ghrsst_osisaf.yaml to new location. [Martin Raspaud]
+
+- Remove old mpop legacy files. [Martin Raspaud]
+
+- Move etc to satpy, use package_data for default config files. [Martin
+  Raspaud]
+
+- Merge pull request #19 from adybbroe/osisaf_sst_reader. [Martin
+  Raspaud]
+
+  Add OSISAF SST GHRSST reader
+
+- Add OSISAF SST GHRSST reader. [Adam.Dybbroe]
+
+- Replace memmap with fromfile in ahi hsd reading. [Martin Raspaud]
+
+- Merge branch 'develop' of github.com:pytroll/satpy into develop.
+  [Adam.Dybbroe]
+
+- Merge pull request #18 from northaholic/develop. [Martin Raspaud]
+
+  improve FCI reader readability. fix FCI reader config for WV channels.
+
+- Improve FCI reader readability. fix FCI reader config for WV channels.
+  [Sauli Joro]
+
+- Merge pull request #17 from m4sth0/develop. [Martin Raspaud]
+
+  Add MTG LI reader
+
+- Add MTG-LI L2 reader for preliminary test data. [m4sth0]
+
+- Merge branch 'develop' of https://github.com/pytroll/satpy into
+  develop. [m4sth0]
+
+- Merge branch 'develop' of https://github.com/pytroll/satpy into
+  develop. [m4sth0]
+
+- Solve compatibility problem with older netCDF4 versions.
+  [Adam.Dybbroe]
+
+- Fix style in abi reader. [Martin Raspaud]
+
+- Add ABI reader + YAML. [Guido Della Bruna]
+
+- Merge pull request #15 from m4sth0/develop. [Martin Raspaud]
+
+  Develop
+
+- Merge branch 'develop' of https://github.com/pytroll/satpy into
+  develop. [m4sth0]
+
+- Fixed FCI channel calibration method. [m4sth0]
+
+- Fix VIIRS L1B moon illumination fraction for L1B v2.0. [davidh-ssec]
+
+  In NASA Level 1 software version <2.0 the fraction was a global attribute, now in v2.0 it is a per-pixel swath variable
+
+
+- Fix DNB SZA and LZA naming to match viirs composite configs. [davidh-
+  ssec]
+
+- Fix start_time/end_time creation in Scene when no readers found.
+  [davidh-ssec]
+
+- Merge pull request #14 from m4sth0/develop. [Martin Raspaud]
+
+  Add calibration functions for FCI
+
+- Add calibration functions for FCI. [m4sth0]
+
+- Bugfix. [Adam.Dybbroe]
+
+- Bugfix. [Adam.Dybbroe]
+
+- Editorial pep8/pylint. [Adam.Dybbroe]
+
+- Merge pull request #13 from m4sth0/develop. [Martin Raspaud]
+
+  Add MTG-FCI Level 1C netCDF reader
+
+- Add MTG-FCI Level 1C netCDF reader The test dataset from EUMETSAT for
+  the FCI Level 1C Format Familiarisation is used to implement the
+  reader in satpy. Limitations due to missing meta data for satellite
+  georeferencing and calibration. [m4sth0]
+
+- Pass down the calibration, polarization and resolution from main load.
+  [Martin Raspaud]
+
+- Fix typo in sunzenith correction description. Default is 88 deg, not
+  80. [Adam.Dybbroe]
+
+- Move helper functions to readers directory. [Martin Raspaud]
+
+- Fix Scene sensor metadata when it is a string instead of a list.
+  [davidh-ssec]
+
+- Fix start_time/end_time properties on Scene object after resampling.
+  [davidh-ssec]
+
+  These properties were dependent on scn.readers which doesn't exist after resampling creates a new "copy" of the original Scene. Now these values are part of the metadata in .info and set on init.
+
+
+- Replace errors with warnings when loading dependencies. [davidh-ssec]
+
 v0.2.0 (2016-11-21)
 -------------------
 
