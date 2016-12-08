@@ -49,6 +49,48 @@ file_types:
     file_patterns: ['VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc']
 
 datasets:
+  i_lon:
+    name: i_longitude
+    resolution: 371
+    file_type: vgeoi
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  i_lat:
+    name: i_latitude
+    resolution: 371
+    file_type: vgeoi
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  m_lon:
+    name: m_longitude
+    resolution: 742
+    file_type: vgeom
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  m_lat:
+    name: m_latitude
+    resolution: 742
+    file_type: vgeom
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  dnb_lon:
+    name: dnb_longitude
+    resolution: 743
+    file_type: vgeod
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  dnb_lat:
+    name: dnb_latitude
+    resolution: 743
+    file_type: vgeod
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
@@ -60,7 +102,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I02:
     name: I02
@@ -73,7 +115,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I03:
     name: I03
@@ -86,7 +128,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I04:
     name: I04
@@ -99,7 +141,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I05:
     name: I05
@@ -112,14 +154,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vl1bi
   I_SOLZ:
     name: i_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 371
     units: degrees
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vgeoi
     file_key: geolocation_data/solar_zenith
   I_SOLA:
@@ -127,7 +169,7 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution: 371
     units: degrees
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vgeoi
     file_key: geolocation_data/solar_azimuth
   I_SENZ:
@@ -135,7 +177,7 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 371
     units: degrees
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vgeoi
     file_key: geolocation_data/sensor_zenith
   I_SENA:
@@ -143,7 +185,7 @@ datasets:
     standard_name: sensor_azimuth_angle
     resolution: 371
     units: degrees
-    navigation: vgeoi
+    coordinates: [i_lon, i_lat]
     file_type: vgeoi
     file_key: geolocation_data/sensor_azimuth
   M01:
@@ -157,7 +199,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M02:
     name: M02
@@ -170,7 +212,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M03:
     name: M03
@@ -183,7 +225,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M04:
     name: M04
@@ -196,7 +238,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M05:
     name: M05
@@ -209,7 +251,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M06:
     name: M06
@@ -222,7 +264,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M07:
     name: M07
@@ -235,7 +277,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M08:
     name: M08
@@ -248,7 +290,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M09:
     name: M09
@@ -261,7 +303,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M10:
     name: M10
@@ -274,7 +316,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M11:
     name: M11
@@ -287,7 +329,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M12:
     name: M12
@@ -300,7 +342,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M13:
     name: M13
@@ -313,7 +355,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M14:
     name: M14
@@ -326,7 +368,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M15:
     name: M15
@@ -339,7 +381,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M16:
     name: M16
@@ -352,14 +394,14 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vl1bm
   M_SOLZ:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 742
     units: degrees
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vgeom
     file_key: geolocation_data/solar_zenith
   M_SOLA:
@@ -367,7 +409,7 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution: 742
     units: degrees
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vgeom
     file_key: geolocation_data/solar_azimuth
   M_SENZ:
@@ -375,7 +417,7 @@ datasets:
     standard_name: sensor_zenith_angle
     resolution: 742
     units: degrees
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vgeom
     file_key: geolocation_data/sensor_zenith
   M_SENA:
@@ -383,7 +425,7 @@ datasets:
     standard_name: sensor_azimuth_angle
     resolution: 742
     units: degrees
-    navigation: vgeom
+    coordinates: [m_lon, m_lat]
     file_type: vgeom
     file_key: geolocation_data/sensor_azimuth
   DNB:
@@ -395,21 +437,21 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 sr-1
         file_units: W cm-2 sr-1
-    navigation: vgeod
+    coordinates: [dnb_lon, dnb_lat]
     file_type: vl1bd
     file_key: observation_data/DNB_observations
   DNB_SZA:
     name: dnb_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 743
-    navigation: vgeod
+    coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
     file_key: geolocation_data/solar_zenith
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
     resolution: 743
-    navigation: vgeod
+    coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
     file_key: geolocation_data/lunar_zenith
   dnb_moon_illumination_fraction:
@@ -417,5 +459,4 @@ datasets:
     resolution: 743
     file_type: vgeod
     file_key: geolocation_data/moon_illumination_fraction
-    navigation: vgeod
-
+    coordinates: [dnb_lon, dnb_lat]
