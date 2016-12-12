@@ -258,7 +258,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return (datetime(1858, 11, 17) +
                 timedelta(days=float(self.basic_info['observation_end_time'])))
 
-    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
+    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
         to_return = out is None
         if out is None:
             nlines = int(self.data_info['number_of_lines'])
