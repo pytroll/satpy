@@ -40,7 +40,8 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         self.filename_info = filename_info
         self.filetype_info = filetype_info
 
-    def get_dataset(self, dataset_id, ds_info, out=None):
+    def get_dataset(self, dataset_id, ds_info, out=None,
+                    xslice=slice(None), yslice=slice(None)):
         raise NotImplementedError
 
     def get_shape(self, dataset_id, ds_info):

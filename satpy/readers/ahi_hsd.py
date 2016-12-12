@@ -321,7 +321,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug('Computing area for %s', str(key))
         lon_out[:], lat_out[:] = self.area.get_lonlats()
 
-    def read_band(self, key, info, out=None, xslice=None, yslice=None):
+    def read_band(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
         """Read the data"""
         tic = datetime.now()
         header = {}
@@ -399,9 +399,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
             nlines = int(header["block2"]['number_of_lines'][0])
             ncols = int(header["block2"]['number_of_columns'][0])
-
             out.data[:] = np.fromfile(
-                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)[yslice.start:yslice.stop, xslice.start:xslice.stop]
+                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)[yslice, xslice]
 
         self._header = header
 
