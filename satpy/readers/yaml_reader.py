@@ -456,27 +456,32 @@ class FileYAMLReader(AbstractYAMLReader):
             offset = 0
             out_offset = 0
             for idx, fh in enumerate(file_handlers):
-                granule_height = all_shapes[idx][0]
+                segment_height, segment_width = all_shapes[idx]
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
 
-                if yslice.start >= offset + granule_height or yslice.stop <= offset:
-                    offset += granule_height
+                if yslice.start >= offset + segment_height or yslice.stop <= offset:
+                    offset += segment_height
                     continue
                 start = max(yslice.start - offset, 0)
-                stop = min(yslice.stop - offset, granule_height)
+                stop = min(yslice.stop - offset, segment_height)
 
                 shuttle = Shuttle(data[out_offset:out_offset + stop - start, :],
                                   mask[out_offset:out_offset + stop - start, :],
                                   out_info)
                 out_offset += stop - start
+
+                kwargs = {}
+                if yslice.stop - yslice.start != segment_height:
+                    kwargs['yslice'] = slice(start, stop)
+                if xslice.stop - xslice.start != segment_width:
+                    kwargs['xslice'] = xslice
                 fh.get_dataset(dsid,
                                ds_info,
                                out=shuttle,
-                               xslice=xslice,
-                               yslice=slice(start, stop))
-                offset += granule_height
+                               **kwargs)
+                offset += segment_height
             out_info.pop('area', None)
             proj = cls(data, mask=mask,
                        copy=False, **out_info)
