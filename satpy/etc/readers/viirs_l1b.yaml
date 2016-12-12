@@ -50,42 +50,42 @@ file_types:
 
 datasets:
   i_lon:
-    name: i_longitude
+    name: i_lon
     resolution: 371
     file_type: vgeoi
     file_key: geolocation_data/longitude
     units: degrees
     standard_name: longitude
   i_lat:
-    name: i_latitude
+    name: i_lat
     resolution: 371
     file_type: vgeoi
     file_key: geolocation_data/latitude
     units: degrees
     standard_name: latitude
   m_lon:
-    name: m_longitude
+    name: m_lon
     resolution: 742
     file_type: vgeom
     file_key: geolocation_data/longitude
     units: degrees
     standard_name: longitude
   m_lat:
-    name: m_latitude
+    name: m_lat
     resolution: 742
     file_type: vgeom
     file_key: geolocation_data/latitude
     units: degrees
     standard_name: latitude
   dnb_lon:
-    name: dnb_longitude
+    name: dnb_lon
     resolution: 743
     file_type: vgeod
     file_key: geolocation_data/longitude
     units: degrees
     standard_name: longitude
   dnb_lat:
-    name: dnb_latitude
+    name: dnb_lat
     resolution: 743
     file_type: vgeod
     file_key: geolocation_data/latitude

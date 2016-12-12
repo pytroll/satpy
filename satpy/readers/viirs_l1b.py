@@ -107,22 +107,15 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_key = nav_info["longitude_key"]
-        valid_min = self[lon_key + '/attr/valid_min']
-        valid_max = self[lon_key + '/attr/valid_max']
-        lon_out.data[:] = self[lon_key][:]
-        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
+    def _load_and_slice(self, dtype, var_path, shape, xslice, yslice):
+        if isinstance(shape, tuple) and len(shape) == 2:
+            return np.require(self[var_path][yslice, xslice], dtype=dtype)
+        elif isinstance(shape, tuple) and len(shape) == 1:
+            return np.require(self[var_path][yslice], dtype=dtype)
+        else:
+            return np.require(self[var_path][:], dtype=dtype)
 
-        lat_key = nav_info["latitude_key"]
-        valid_min = self[lat_key + '/attr/valid_min']
-        valid_max = self[lat_key + '/attr/valid_max']
-        lat_out.data[:] = self[lat_key][:]
-        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-
-        return {}
-
-    def get_dataset(self, dataset_id, ds_info, out=None):
+    def get_dataset(self, dataset_id, ds_info, out=None, xslice=slice(None), yslice=slice(None)):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
@@ -130,6 +123,16 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             shape = 1
         else:
             shape = self[var_path + '/shape']
+
+        if isinstance(shape, tuple) and len(shape) == 2:
+            # 2D array
+            if xslice.start is not None:
+                shape = (shape[0], xslice.stop - xslice.start)
+            if yslice.start is not None:
+                shape = (yslice.stop - yslice.start, shape[1])
+        elif isinstance(shape, tuple) and len(shape) == 1 and yslice.start is not None:
+            shape = ((yslice.stop - yslice.start) / yslice.step,)
+
         file_units = ds_info.get('file_units')
         if file_units is None:
             try:
@@ -161,12 +164,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
                 # these are stored directly in the primary variable
                 scale_factor = self[var_path + '/attr/scale_factor']
                 scale_offset = self[var_path + '/attr/add_offset']
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
+            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
         elif ds_info.get('units') == '%':
             # normal reflectance
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
+            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
             scale_factor = self[var_path + '/attr/scale_factor']
@@ -176,7 +179,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             # we get the BT values from a look up table using the scaled radiance integers
-            out.data[:] = np.require(self[lut_var_path][:][self[var_path][:].ravel()], dtype=dtype).reshape(shape)
+            out.data[:] = np.require(self[lut_var_path][:][self[var_path][yslice, xslice].ravel()], dtype=dtype).reshape(shape)
             valid_min = self[lut_var_path + '/attr/valid_min']
             valid_max = self[lut_var_path + '/attr/valid_max']
             scale_factor = scale_offset = None
@@ -187,7 +190,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             valid_min = None
             valid_max = None
         else:
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
+            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
             try:
