@@ -473,7 +473,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 out_offset += stop - start
 
                 kwargs = {}
-                if yslice.stop - yslice.start != segment_height:
+                if stop - start != segment_height:
                     kwargs['yslice'] = slice(start, stop)
                 if xslice.stop - xslice.start != segment_width:
                     kwargs['xslice'] = xslice
