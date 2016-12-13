@@ -412,11 +412,13 @@ class FileYAMLReader(AbstractYAMLReader):
             # rows accumlate, columns stay the same
             overall_shape = [
                 sum([x[0] for x in all_shapes]), ] + all_shapes[0][1:]
-            if xslice is not None and yslice is not None:
+            if xslice.start is not None and yslice.start is not None:
                 slice_shape = [yslice.stop - yslice.start,
                                xslice.stop - xslice.start]
                 overall_shape[0] = min(overall_shape[0], slice_shape[0])
                 overall_shape[1] = min(overall_shape[1], slice_shape[1])
+            elif len(overall_shape) == 1:
+                yslice = slice(0, overall_shape[0])
             else:
                 xslice = slice(0, overall_shape[1])
                 yslice = slice(0, overall_shape[0])
@@ -459,7 +461,7 @@ class FileYAMLReader(AbstractYAMLReader):
             offset = 0
             out_offset = 0
             for idx, fh in enumerate(file_handlers):
-                segment_height, segment_width = all_shapes[idx]
+                segment_height = all_shapes[idx][0]
                 # XXX: Does this work with masked arrays and subclasses of them?
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
@@ -470,15 +472,15 @@ class FileYAMLReader(AbstractYAMLReader):
                 start = max(yslice.start - offset, 0)
                 stop = min(yslice.stop - offset, segment_height)
 
-                shuttle = Shuttle(data[out_offset:out_offset + stop - start, :],
-                                  mask[out_offset:out_offset + stop - start, :],
+                shuttle = Shuttle(data[out_offset:out_offset + stop - start],
+                                  mask[out_offset:out_offset + stop - start],
                                   out_info)
                 out_offset += stop - start
 
                 kwargs = {}
                 if stop - start != segment_height:
                     kwargs['yslice'] = slice(start, stop)
-                if xslice.stop - xslice.start != segment_width:
+                if xslice.start is not None and xslice.stop - xslice.start != all_shapes[idx][1]:
                     kwargs['xslice'] = xslice
                 fh.get_dataset(dsid,
                                ds_info,

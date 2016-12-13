@@ -148,27 +148,6 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         info['Quality_Flag'] = np.concatenate(tuple(nfo['Quality_Flag'] for nfo in all_infos))
         return info
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_key = nav_info["longitude_key"]
-        try:
-            valid_min, valid_max = self[lon_key + '/attr/valid_range']
-        except KeyError:
-            valid_min = self[lon_key + '/attr/valid_min']
-            valid_max = self[lon_key + '/attr/valid_max']
-        lon_out.data[:] = self[lon_key][:]
-        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
-
-        lat_key = nav_info["latitude_key"]
-        try:
-            valid_min, valid_max = self[lat_key + '/attr/valid_range']
-        except KeyError:
-            valid_min = self[lat_key + '/attr/valid_min']
-            valid_max = self[lat_key + '/attr/valid_max']
-        lat_out.data[:] = self[lat_key][:]
-        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-
-        return {}
-
     def get_dataset(self, dataset_id, ds_info, out=None):
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
