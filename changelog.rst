@@ -1,6 +1,128 @@
 Changelog
 =========
 
+v0.3.0 (2016-12-13)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 0.2.1 → 0.3.0. [Martin Raspaud]
+
+- Fix NUCAPS reader to work with latlon datasets. [davidh-ssec]
+
+  This required changing yaml_reader to work with 1D arrays since NUCAPS is all 1D (both swath data and metadata).
+
+
+- Refactor yaml_reader's load method. [Martin Raspaud]
+
+- Merge branch 'develop' into feature-lonlat-datasets. [Martin Raspaud]
+
+- Fix VIIRS L1B reader to work with xslice/yslice and fix geolocation
+  dataset names. [davidh-ssec]
+
+- Fix netcdf wrapper to work better with older and newer versions of
+  netcdf4-python. [davidh-ssec]
+
+- Make ahi reader use correct default slicing. [Martin Raspaud]
+
+- Bugfix sliced reading. [Martin Raspaud]
+
+- Put slice(None) as default for reading. [Martin Raspaud]
+
+- Allow readers not supporting slices. [Martin Raspaud]
+
+- Refactor scene's init. [Martin Raspaud]
+
+- Convert nucaps to coordinates. [Martin Raspaud]
+
+- Adapt viirs_l1b to coordinates. [Martin Raspaud]
+
+- Convert omps reader to coordinates. [Martin Raspaud]
+
+- Reinstate viirs_sdr.yaml for coordinates, add standard_names. [Martin
+  Raspaud]
+
+- Adapt compact viirs reader to coordinates. [Martin Raspaud]
+
+- Add first version of S1 Sar-c reader. [Martin Raspaud]
+
+- Adapt olci reader to coordinates. [Martin Raspaud]
+
+- Add S3 slstr reader. [Martin Raspaud]
+
+- Add standard_names to hdfeos navigation. [Martin Raspaud]
+
+- Fix epsl1b reader for lon/lat standard_name. [Martin Raspaud]
+
+- Adapt amsr2 reader for coordinates. [Martin Raspaud]
+
+- Fix aapp1b reader. [Martin Raspaud]
+
+- Use standard name for lon and lat identification. [Martin Raspaud]
+
+- Merge branch 'develop' into feature-lonlat-datasets. [Martin Raspaud]
+
+  Conflicts:
+  	satpy/readers/ahi_hsd.py
+
+
+- Area loading for ahi_hsd. [Martin Raspaud]
+
+- Fix python3 syntax incompatibility. [Martin Raspaud]
+
+- Implement area-based loading. [Martin Raspaud]
+
+- Add get_bounding_box for area-based file selection. [Martin Raspaud]
+
+- Fix ahi area extent. [Martin Raspaud]
+
+- Merge remote-tracking branch 'origin/feature-lonlat-datasets' into
+  feature-lonlat-datasets. [Martin Raspaud]
+
+- Convert VIIRS SDR reader to coordinates. [davidh-ssec]
+
+- Fix viirs_sdr i bands to work with coordinates. [davidh-ssec]
+
+- Support different path separators in patterns. [Martin Raspaud]
+
+- Move area def loading to its own function. [Martin Raspaud]
+
+- Merge branch 'develop' into feature-lonlat-datasets. [Martin Raspaud]
+
+  Conflicts:
+  	satpy/readers/yaml_reader.py
+
+- Merge branch 'develop' into feature-lonlat-datasets. [Martin Raspaud]
+
+  Conflicts:
+  	satpy/readers/yaml_reader.py
+
+- Pass down the calibration, polarization and resolution from main load.
+  [Martin Raspaud]
+
+- Fix typo in sunzenith correction description. Default is 88 deg, not
+  80. [Adam.Dybbroe]
+
+- Fix sun zenith key for caching. [Martin Raspaud]
+
+- Move helper functions to readers directory. [Martin Raspaud]
+
+- Adapt hrpt reader to coordinates. [Martin Raspaud]
+
+- Fix resample to work when the area has no name. [Martin Raspaud]
+
+- Adapt aapp_l1b and hdfeos to coordinates. [Martin Raspaud]
+
+- Change remove arguments from get_area_def signature. [Martin Raspaud]
+
+- Adapt eps_l1b to 'coordinates' [Martin Raspaud]
+
+- Navigation is now handled thru 'coordinates' [Martin Raspaud]
+
+  Here we make longitude and latitudes usual datasets, and the keyword
+  called 'coordinates' in the config specifies the coordinates to use for
+  the dataset at hand.
+
 v0.2.1 (2016-12-08)
 -------------------
 
