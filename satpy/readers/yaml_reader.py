@@ -37,6 +37,7 @@ import six
 import yaml
 
 from pyresample import geometry
+from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
 from satpy.readers import AreaID, DatasetDict, DatasetID
@@ -401,7 +402,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
         return res
 
-    def _load_dataset(self, file_handlers, dsid, ds_info, xslice=None, yslice=None):
+    def _load_dataset_data(self, file_handlers, dsid,
+                           xslice=slice(None), yslice=slice(None)):
+        ds_info = self.ids[dsid]
         try:
             # Can we allow the file handlers to do inplace data writes?
             all_shapes = [list(fh.get_shape(dsid, ds_info))
@@ -490,7 +493,7 @@ class FileYAMLReader(AbstractYAMLReader):
         proj.info['start_time'] = file_handlers[0].start_time
         proj.info['end_time'] = file_handlers[-1].end_time
 
-        return all_shapes, proj
+        return proj
 
     def _preferred_filetype(self, filetypes):
         if not isinstance(filetypes, list):
@@ -502,110 +505,161 @@ class FileYAMLReader(AbstractYAMLReader):
                 return ft
         return None
 
-    def _load_area_def(self, dsid, file_handlers):
-        # try loading area definitions
-        try:
-            area_defs = [fh.get_area_def(dsid)
-                         for fh in file_handlers]
-        except NotImplementedError:
-            pass
+    # TODO: move this out of here.
+    def _combine_area_extents(self, area1, area2):
+        """Combine the area extents of areas 1 and 2."""
+        if (area1.area_extent[0] == area2.area_extent[0] and
+                area1.area_extent[2] == area2.area_extent[2] and
+                np.isclose(area1.area_extent[1], area2.area_extent[3])):
+            current_extent = list(area1.area_extent)
+            current_extent[1] = area2.area_extent[1]
+            return current_extent
         else:
-            final_area = copy.deepcopy(area_defs[0])
+            raise IncompatibleAreas("Can't concatenate area definitions with "
+                                    "incompatible area extents: "
+                                    "{} and {}".format(area1, area2))
 
-            for area_def in area_defs[1:]:
-                different_items = (set(final_area.proj_dict.items()) ^
-                                   set(area_def.proj_dict.items()))
-                if different_items:
-                    break
-                if (final_area.area_extent[0] == area_def.area_extent[0] and
-                        final_area.area_extent[2] == area_def.area_extent[2] and
-                        final_area.area_extent[1] == area_def.area_extent[3]):
-                    current_extent = list(final_area.area_extent)
-                    current_extent[1] = area_def.area_extent[1]
-                    final_area.area_extent = current_extent
-                    final_area.y_size += area_def.y_size
-                    try:
-                        final_area.shape = (final_area.y_size,
-                                            final_area.x_size)
-                    except AttributeError:
-                        pass
-                else:
-                    break
+    # TODO: move this out of here.
+    def _append_area_defs(self, area1, area2):
+        r"""Append *area2* to *area1*.
+
+        /!\ Warning: This function modifies *area1* /!\
+        """
+        different_items = (set(area1.proj_dict.items()) ^
+                           set(area2.proj_dict.items()))
+        if different_items:
+            raise IncompatibleAreas("Can't concatenate area definitions with "
+                                    "different projections: "
+                                    "{} and {}".format(area1, area2))
+
+        area1.area_extent = self._combine_area_extents(area1, area2)
+        area1.y_size += area2.y_size
+        # workaround for pyresample
+        try:
+            area1.shape = (area1.y_size, area1.x_size)
+        except AttributeError:
+            pass
+
+    def _load_area_def(self, dsid, file_handlers):
+        """Load the area definition of *dsid*."""
+        area_defs = [fh.get_area_def(dsid)
+                     for fh in file_handlers]
+
+        final_area = copy.deepcopy(area_defs[0])
+        for area_def in area_defs[1:]:
+            self._append_area_defs(final_area, area_def)
+
+        return final_area
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for *dsid*."""
+        ds_info = self.ids[dsid]
+        cids = []
+
+        for cinfo in ds_info.get('coordinates', []):
+            if isinstance(cinfo, dict):
+                cinfo['resolution'] = ds_info['resolution']
             else:
-                return final_area
+                # cid = self.get_dataset_key(cinfo)
+                cinfo = {'name': cinfo,
+                         'resolution': ds_info['resolution']}
+            cid = DatasetID(**cinfo)
+            cids.append(self.get_dataset_key(cid))
+
+        return cids
+
+    def _get_coordinates_for_dataset_keys(self, dsids):
+        """Get all coordinates."""
+        coordinates = {}
+        for dsid in dsids:
+            cids = self._get_coordinates_for_dataset_key(dsid)
+            coordinates.setdefault(dsid, []).extend(cids)
+        return coordinates
+
+    def _get_file_handlers(self, dsid):
+        ds_info = self.ids[dsid]
+        # Get the file handler to load this dataset (list or single string)
+        filetype = self._preferred_filetype(ds_info['file_type'])
+        if filetype is None:
+            LOG.warning(
+                "Required file type '{}' not found or loaded for '{}'".format(
+                    ds_info['file_type'], dsid.name))
+        else:
+            return self.file_handlers[filetype]
+
+    def _make_area_from_coords(self, coords):
+        """Create an apropriate area with the given *coords*."""
+        if (len(coords) == 2 and
+                coords[0].info.get('standard_name') == 'longitude' and
+                coords[1].info.get('standard_name') == 'latitude'):
+            from pyresample.geometry import SwathDefinition
+            return SwathDefinition(*coords)
+        elif len(coords) != 0:
+            raise NameError(
+                "Don't know what to do with coordinates " + str(coords))
+
+    def _load_dataset_area(self, dsid, file_handlers, coords):
+        """Get the area for *dsid*."""
+        try:
+            return self._load_area_def(dsid, file_handlers)
+        except NotImplementedError:
+            area = self._make_area_from_coords(coords)
+            if area is None:
+                LOG.debug("No coordinates found for %s", str(dsid))
+            return area
+
+    # TODO: move this out of here.
+    def _get_slices(self, area):
+        """Get the slices of raw data covering area.
+
+        Args:
+            area: the area to slice.
+
+        Returns:
+            slice_kwargs: kwargs to pass on to loading giving the span of the
+                data to load.
+            area: the trimmed area corresponding to the slices.
+        """
+        slice_kwargs = {}
+
+        if area is not None and self._area is not None:
+            try:
+                slices = get_area_slices(area, self._area)
+                area = get_sub_area(area, *slices)
+                slice_kwargs['xslice'], slice_kwargs['yslice'] = slices
+            except (NotImplementedError, AttributeError):
+                LOG.info("Cannot compute specific slice of data to load.")
+
+        return slice_kwargs, area
+
+    def _load_dataset_with_area(self, dsid, coords):
+        """Loads *dsid* and it's area if available."""
+        file_handlers = self._get_file_handlers(dsid)
+        if not file_handlers:
+            return
+
+        area = self._load_dataset_area(dsid, file_handlers, coords)
+        slice_kwargs, area = self._get_slices(area)
+
+        ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
+
+        if area is not None:
+            ds.info['area'] = area
+        return ds
 
     def load(self, dataset_keys):
         """Load *dataset_keys*."""
-        loaded_navs = {}
         datasets = DatasetDict()
 
-        dsids = []
-        cids = []
-        coordinates = {}
-        for dataset_key in dataset_keys:
-            dsid = self.get_dataset_key(dataset_key)
-            dsids.append(dsid)
-            ds_info = self.ids[dsid]
+        # Include coordinates in the list of datasets to load
+        dsids = [self.get_dataset_key(ds_key) for ds_key in dataset_keys]
+        coordinates = self._get_coordinates_for_dataset_keys(dsids)
+        dsids = list(set().union(*coordinates.values())) + dsids
 
-            for cinfo in ds_info.get('coordinates', []):
-                if isinstance(cinfo, dict):
-                    cinfo['resolution'] = ds_info['resolution']
-                else:
-                    # cid = self.get_dataset_key(cinfo)
-                    cinfo = {'name': cinfo,
-                             'resolution': ds_info['resolution']}
-                cid = DatasetID(**cinfo)
-                if cid not in cids:
-                    cids.append(cid)
-                coordinates.setdefault(dsid, []).append(cid)
-
-        dsids = cids + dsids
         for dsid in dsids:
-            dsid = self.get_dataset_key(dsid)
-            ds_info = self.ids[dsid]
-            # Get the file handler to load this dataset (list or single string)
-            filetype = self._preferred_filetype(ds_info['file_type'])
-            if filetype is None:
-                LOG.warning(
-                    "Required file type '{}' not found or loaded for '{}'".format(
-                        ds_info['file_type'], dsid.name))
-                continue
-            file_handlers = self.file_handlers[filetype]
-
-            area_def = self._load_area_def(dsid, file_handlers)
-            load_kwargs = {}
-
-            if area_def is not None and self._area is not None:
-                try:
-                    load_kwargs['xslice'], load_kwargs[
-                        'yslice'] = get_area_slices(area_def, self._area)
-                    area_def = get_sub_area(area_def,
-                                            load_kwargs['xslice'],
-                                            load_kwargs['yslice'])
-                except NotImplementedError:
-                    LOG.info("Cannot load specific slice of data.")
-
-            all_shapes, proj = self._load_dataset(file_handlers,
-                                                  dsid,
-                                                  ds_info,
-                                                  **load_kwargs)
-            datasets[dsid] = proj
-
-            coords = coordinates.get(dsid, [])
-            if len(coords) == 0:
-                if area_def is not None:
-                    proj.info['area'] = area_def
-                else:
-                    LOG.debug("No coordinates found for %s", str(dsid))
-            elif (len(coords) == 2 and
-                  datasets[coords[0]].info.get('standard_name') == 'longitude' and
-                  datasets[coords[1]].info.get('standard_name') == 'latitude'):
-                # Make a SwathDefinition
-                from pyresample.geometry import SwathDefinition
-                proj.info['area'] = SwathDefinition(
-                    datasets[coords[0]], datasets[coords[1]])
-            else:
-                raise NameError(
-                    "Don't know what to do with coordinates " + str(coords))
+            coords = [datasets[cid] for cid in coordinates.get(dsid, [])]
+            ds = self._load_dataset_with_area(dsid, coords)
+            if ds is not None:
+                datasets[dsid] = ds
 
         return datasets
