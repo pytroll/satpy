@@ -30,6 +30,7 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
+from satpy.node import Node
 from satpy.projectable import Dataset, InfoObject, Projectable
 from satpy.readers import DatasetDict, DatasetID, ReaderFinder
 
@@ -39,52 +40,6 @@ except ImportError:
     from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
-
-
-class Node(object):
-
-    """A node object."""
-
-    def __init__(self, data):
-        """Init the node object."""
-        self.data = data
-        self.children = []
-        self.parents = []
-
-    def add_child(self, obj):
-        """Add a child to the node."""
-        self.children.append(obj)
-        obj.parents.append(self)
-
-    def __str__(self):
-        """Display the node."""
-        return self.display()
-
-    def display(self, previous=0):
-        """Display the node."""
-        return (
-            (" +" * previous) + str(self.data) + '\n' +
-            ''.join([child.display(previous + 1) for child in self.children]))
-
-    def leaves(self):
-        """Get the leaves of the tree starting at this root."""
-        if not self.children:
-            return [self]
-        else:
-            res = list()
-            for child in self.children:
-                res.extend(child.leaves())
-            return res
-
-    def trunk(self):
-        """Get the trunk of the tree starting at this root."""
-        res = []
-        if self.children:
-            if self.data is not None:
-                res.append(self)
-            for child in self.children:
-                res.extend(child.trunk())
-        return res
 
 
 class Scene(InfoObject):
