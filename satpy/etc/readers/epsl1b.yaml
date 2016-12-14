@@ -99,6 +99,34 @@ datasets:
         standard_name: longitude
         units: degree
 
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    satellite_zenith_angle:
+        name: satellite_zenith_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    satellite_azimuth_angle:
+        name: satellite_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
 file_types:
     avhrr_eps:
         file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''

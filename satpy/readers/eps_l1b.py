@@ -192,6 +192,44 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(earth_views_per_scanline))
         return self.lons, self.lats
 
+    def get_full_angles(self):
+        """Get the interpolated lons/lats.
+        """
+        if (self.sun_azi is not None and self.sun_zen is not None and
+                self.sat_azi is not None and self.sat_zen is not None):
+            return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
+
+        solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
+                                  self["ANGULAR_RELATIONS"][:, :, 0],
+                                  self["ANGULAR_RELATIONS_LAST"][:, [0]]))
+
+        sat_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [1]],
+                                self["ANGULAR_RELATIONS"][:, :, 1],
+                                self["ANGULAR_RELATIONS_LAST"][:, [1]]))
+
+        solar_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [2]],
+                                   self["ANGULAR_RELATIONS"][:, :, 2],
+                                   self["ANGULAR_RELATIONS_LAST"][:, [2]]))
+
+        sat_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [3]],
+                                 self["ANGULAR_RELATIONS"][:, :, 3],
+                                 self["ANGULAR_RELATIONS_LAST"][:, [3]]))
+
+        nav_sample_rate = self["NAV_SAMPLE_RATE"]
+        earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
+        if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
+            from geotiepoints import metop20kmto1km
+            self.sun_azi, self.sun_zen = metop20kmto1km(
+                solar_azimuth, solar_zenith)
+            self.sat_azi, self.sat_zen = metop20kmto1km(
+                sat_azimuth, sat_zenith)
+        else:
+            raise NotImplementedError("Angles expansion not implemented for " +
+                                      "sample rate = " + str(nav_sample_rate) +
+                                      " and earth views = " +
+                                      str(earth_views_per_scanline))
+        return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
+
     def get_lonlat(self, row, col):
         """Get lons/lats for given indices. WARNING: if the lon/lats were not
         expanded, this will refer to the tiepoint data.
@@ -219,6 +257,18 @@ class EPSAVHRRFile(BaseFileHandler):
                 return Projectable(lons, id=key, **info)
             else:
                 return Projectable(lats, id=key, **info)
+
+        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
+                        'satellite_zenith_angle', 'satellite_azimuth_angle']:
+            sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
+            if key.name == 'solar_zenith_angle':
+                return Projectable(sun_zen, id=key, **info)
+            elif key.name == 'solar_azimuth_angle':
+                return Projectable(sun_azi, id=key, **info)
+            if key.name == 'satellite_zenith_angle':
+                return Projectable(sat_zen, id=key, **info)
+            elif key.name == 'satellite_azimuth_angle':
+                return Projectable(sat_azi, id=key, **info)
 
         if key.calibration == 'counts':
             raise ValueError('calibration=counts is not supported! ' +
