@@ -649,12 +649,12 @@ class Scene(InfoObject):
 
         return new_scn
 
-    def show(self, dataset_id):
+    def show(self, dataset_id, overlay=None):
         """Show the *dataset* on screen as an image.
         """
 
         from satpy.writers import get_enhanced_image
-        get_enhanced_image(self[dataset_id]).show()
+        get_enhanced_image(self[dataset_id], overlay=overlay).show()
 
     def images(self):
         """Generate images for all the datasets from the scene.
@@ -680,7 +680,7 @@ class Scene(InfoObject):
                                       **kwargs)
                 return writer
 
-    def save_dataset(self, dataset_id, filename=None, writer=None, **kwargs):
+    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, **kwargs):
         """Save the *dataset_id* to file using *writer* (geotiff by default).
         """
         if writer is None:
@@ -691,7 +691,9 @@ class Scene(InfoObject):
                     os.path.splitext(filename)[1], **kwargs)
         else:
             writer = self.get_writer(writer, **kwargs)
-        writer.save_dataset(self[dataset_id], filename=filename)
+        writer.save_dataset(self[dataset_id],
+                            filename=filename,
+                            overlay=overlay)
 
     def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*.

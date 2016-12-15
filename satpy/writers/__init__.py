@@ -30,6 +30,8 @@ import json
 import logging
 import os
 
+import numpy as np
+
 from satpy.config import config_search_paths, get_environ_config_dir
 from satpy.plugin_base import Plugin
 from trollimage.image import Image
@@ -60,11 +62,75 @@ def _determine_mode(dataset):
                            (dataset.info.get("name", None), ))
 
 
+def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None):
+    """Add coastline and political borders to image, using *color* (tuple
+    of integers between 0 and 255).
+    Warning: Loses the masks !
+    *resolution* is chosen automatically if None (default), otherwise it should be one of:
+    +-----+-------------------------+---------+
+    | 'f' | Full resolution         | 0.04 km |
+    | 'h' | High resolution         | 0.2 km  |
+    | 'i' | Intermediate resolution | 1.0 km  |
+    | 'l' | Low resolution          | 5.0 km  |
+    | 'c' | Crude resolution        | 25  km  |
+    +-----+-------------------------+---------+
+    """
+
+    img = orig.pil_image()
+
+    if area is None:
+        raise ValueError("Area of image is None, can't add overlay.")
+
+    from satpy.resample import get_area_def
+    if isinstance(area, str):
+        area = get_area_def(area)
+    LOG.info("Add coastlines and political borders to image.")
+
+    if resolution is None:
+
+        x_resolution = ((area.area_extent[2] -
+                         area.area_extent[0]) /
+                        area.x_size)
+        y_resolution = ((area.area_extent[3] -
+                         area.area_extent[1]) /
+                        area.y_size)
+        res = min(x_resolution, y_resolution)
+
+        if res > 25000:
+            resolution = "c"
+        elif res > 5000:
+            resolution = "l"
+        elif res > 1000:
+            resolution = "i"
+        elif res > 200:
+            resolution = "h"
+        else:
+            resolution = "f"
+
+        LOG.debug("Automagically choose resolution " + resolution)
+
+    from pycoast import ContourWriterAGG
+    cw_ = ContourWriterAGG(coast_dir)
+    cw_.add_coastlines(img, area, outline=color,
+                       resolution=resolution, width=width)
+    cw_.add_borders(img, area, outline=color,
+                    resolution=resolution, width=width)
+
+    arr = np.array(img)
+
+    if len(orig.channels) == 1:
+        orgi.channels[0] = np.ma.array(arr[:, :] / 255.0)
+    else:
+        for idx in range(len(orig.channels)):
+            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+
+
 def get_enhanced_image(dataset,
                        enhancer=None,
                        fill_value=None,
                        ppp_config_dir=None,
-                       enhancement_config_file=None):
+                       enhancement_config_file=None,
+                       overlay=None):
     mode = _determine_mode(dataset)
 
     if ppp_config_dir is None:
@@ -87,6 +153,8 @@ def get_enhanced_image(dataset,
 
     img.info.update(dataset.info)
 
+    if overlay is not None:
+        add_overlay(img, dataset.info['area'], **overlay)
     return img
 
 
@@ -182,6 +250,7 @@ class Writer(Plugin):
 
 
 class ImageWriter(Writer):
+
     def __init__(self,
                  name=None,
                  fill_value=None,
@@ -198,11 +267,12 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
-        img = get_enhanced_image(dataset, self.enhancer, fill_value)
+        img = get_enhanced_image(
+            dataset, self.enhancer, fill_value, overlay=overlay)
         self.save_image(img, filename=filename, **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
