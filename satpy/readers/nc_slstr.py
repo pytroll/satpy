@@ -53,7 +53,6 @@ class NCSLSTRGeo(BaseFileHandler):
 
         logger.debug('Reading %s.', key.name)
 
-        print self.filename, info['file_key']
         try:
             variable = self.nc[info['file_key']]
         except KeyError:
