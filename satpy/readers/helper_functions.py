@@ -25,7 +25,6 @@
 '''Helper functions for area extent calculations.
 '''
 
-import ConfigParser
 import glob
 import logging
 
@@ -258,18 +257,3 @@ def get_filenames(filepattern):
     parser = Parser(filepattern)
     for filename in glob.iglob(parser.globify()):
         yield filename, parser.parse(filename)
-
-
-def get_filenames_from_config(config_file, section):
-    conf = ConfigParser.ConfigParser()
-    conf.read(config_file)
-    for res in get_filenames(conf.get(section, "pattern", raw=True)):
-        yield res
-
-
-def get_filenames_from_interval(config_file, section, interval,
-                                key="start_time"):
-    (start, end) = interval
-    for filename, metadata in get_filenames_from_config(config_file, section):
-        if metadata[key] > start and metadata[key] < end:
-            yield filename, metadata
