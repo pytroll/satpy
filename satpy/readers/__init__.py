@@ -165,6 +165,7 @@ class DatasetDict(dict):
                     keys = [k for k in keys
                             if getattr(k, key) is not None and self._wl_match(
                                 getattr(k, key), getattr(did, key))]
+
                 else:
                     keys = [k for k in keys
                             if getattr(k, key) is not None and getattr(k, key)
@@ -241,7 +242,7 @@ class DatasetDict(dict):
 
 
 class ReaderFinder(object):
-    """Finds readers given a scene, filenames, sensors, and/or a reader_name
+    """Find readers given a scene, filenames, sensors, and/or a reader_name
     """
 
     def __init__(self,
@@ -250,6 +251,11 @@ class ReaderFinder(object):
                  start_time=None,
                  end_time=None,
                  area=None):
+        """Find readers.
+
+        If both *filenames* and *base_dir* are provided, only *filenames* is
+        used.
+        """
         self.ppp_config_dir = ppp_config_dir
         self.base_dir = base_dir
         self.start_time = start_time
@@ -266,14 +272,15 @@ class ReaderFinder(object):
 
         if reader is not None:
             # given a config filename or reader name
-            if not reader.endswith(".yaml") and not reader.endswith(".cfg"):
+            if not reader.endswith(".yaml"):
                 reader += ".yaml"
             config_files = [reader]
         else:
             config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
-        remaining_filenames = set(filenames) if filenames is not None else None
+        remaining_filenames = set(
+            filenames) if filenames is not None else set()
         for config_file in config_files:
             config_basename = os.path.basename(config_file)
             reader_configs = config_search_paths(
@@ -300,12 +307,19 @@ class ReaderFinder(object):
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
-            remaining_filenames, loadable_files = reader_instance.select_files(
-                self.base_dir,
-                remaining_filenames,
-                sensor)
-            if loadable_files and reader_instance:
+
+            if not reader_instance.supports_sensor(sensor):
+                continue
+            if remaining_filenames:
+                loadables = reader_instance.select_files_from_list(
+                    remaining_filenames)
+            else:
+                loadables = reader_instance.select_files_from_directory(
+                    self.base_dir)
+            if loadables:
+                reader_instance.create_filehandlers(loadables)
                 reader_instances[reader_instance.name] = reader_instance
+                remaining_filenames -= set(loadables)
             if filenames is not None and not remaining_filenames:
                 # we were given filenames to look through and found a reader
                 # for all of them
