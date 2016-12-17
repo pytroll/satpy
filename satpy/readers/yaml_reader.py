@@ -36,17 +36,50 @@ import numpy as np
 import six
 import yaml
 
-from pyresample import geometry
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
-from satpy.readers import AreaID, DatasetDict, DatasetID
+from satpy.readers import DatasetDict, DatasetID
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
 LOG = logging.getLogger(__name__)
 
 Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
+
+
+def listify_string(something):
+    """Takes *something* and make it a list.
+
+    *something* is either a list of strings or a string, in which case the
+    function returns a list containing the string.
+    If *something* is None, an empty list is returned.
+    """
+    if isinstance(something, (str, six.text_type)):
+        return [something]
+    elif something is not None:
+        return list(something)
+    else:
+        return list()
+
+
+def get_filebase(path, pattern):
+    """Get the end of *path* of same length as *pattern*."""
+    # A pattern can include directories
+    tail_len = len(pattern.split(os.path.sep))
+    return os.path.join(*path.split(os.path.sep)[-tail_len:])
+
+
+def match_filenames(filenames, pattern):
+    """Get the filenames matching *pattern*."""
+    matching = []
+
+    for filename in filenames:
+        if fnmatch(get_filebase(filename, pattern),
+                   globify(pattern)):
+            matching.append(filename)
+
+    return matching
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
@@ -69,7 +102,10 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.name = self.info['name']
         self.file_patterns = []
         for file_type in self.config['file_types'].values():
-            self.file_patterns.extend(file_type['file_patterns'])
+            # correct separator if needed
+            file_patterns = [os.path.join(*pattern.split('/'))
+                             for pattern in file_type['file_patterns']]
+            self.file_patterns.extend(file_patterns)
 
         self.sensor_names = self.info['sensors']
         self.datasets = self.config['datasets']
@@ -107,61 +143,41 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def load(self):
         raise NotImplementedError()
 
-    def select_files(self, base_dir=None, filenames=None, sensor=None):
-        if isinstance(sensor, (str, six.text_type)):
-            sensor_set = set([sensor])
-        elif sensor is not None:
-            sensor_set = set(sensor)
-        else:
-            sensor_set = set()
+    def supports_sensor(self, sensor):
+        """Check if *sensor* is supported.
 
+        Returns True is *sensor* is None.
+        """
         if sensor is not None and not (set(self.info.get("sensors")) &
-                                       sensor_set):
-            return filenames, []
-
-        file_set = set()
-        if filenames:
-            file_set |= set(filenames)
-
-        if not filenames:
-            self.info["filenames"] = self.find_filenames(base_dir)
+                                       set(listify_string(sensor))):
+            return False
         else:
-            self.info["filenames"] = self.match_filenames(filenames, base_dir)
-        if not self.info["filenames"]:
-            LOG.warning("No filenames found for reader: %s", self.name)
-        file_set -= set(self.info['filenames'])
-        LOG.debug("Assigned to %s: %s", self.info[
-            'name'], self.info['filenames'])
+            return True
 
-        return file_set, self.info['filenames']
+    def select_files_from_directory(self, directory=None):
+        """Find files for this reader in *directory*.
 
-    def match_filenames(self, filenames, base_dir=None):
-        result = []
-        for file_pattern in self.file_patterns:
-            if base_dir is not None:
-                file_pattern = os.path.join(base_dir, file_pattern)
-            pattern = globify(file_pattern)
-            if not filenames:
-                return result
-            for filename in list(filenames):
-                if fnmatch(
-                        os.path.basename(filename), os.path.basename(pattern)):
-                    result.append(filename)
-                    filenames.remove(filename)
-        return result
-
-    def find_filenames(self, directory, file_patterns=None):
-        if file_patterns is None:
-            file_patterns = self.file_patterns
-            # file_patterns.extend(item['file_patterns'] for item in
-            # self.config['file_types'])
-        filelist = []
+        If directory is None or '', look in the current directory.
+        """
+        filenames = []
         if directory is None:
             directory = ''
-        for pattern in file_patterns:
-            filelist.extend(glob.iglob(os.path.join(directory, globify(
-                pattern))))
-        return filelist
+        for pattern in self.file_patterns:
+            matching = glob.iglob(os.path.join(directory, globify(pattern)))
+            filenames.extend(matching)
+        return filenames
+
+    def select_files_from_list(self, filenames):
+        """Select the files from *filenames* this reader can handle."""
+        filenames = []
+
+        for pattern in self.file_patterns:
+            matching = match_filenames(filenames, pattern)
+            filenames.extend(matching)
+        if len(filenames) == 0:
+            LOG.warning("No filenames found for reader: %s", self.name)
+
+        return filenames
 
     def get_dataset_key(self,
                         key,
@@ -334,73 +350,71 @@ class FileYAMLReader(AbstractYAMLReader):
             raise RuntimeError("End time unknown until files are selected")
         return max(x.end_time for x in self.file_handlers.values()[0])
 
-    def select_files(self,
-                     base_dir=None,
-                     filenames=None,
-                     sensor=None):
-        res = super(FileYAMLReader, self).select_files(base_dir, filenames,
-                                                       sensor)
+    def check_file_covers_area(self, file_handler):
+        """Checks if the file covers the current area.
 
-        # Organize filenames in to file types and create file handlers
+        If the file doesn't provide any bounding box information or self._area
+        is None, the check returns True.
+        """
+        if self._area:
+            from trollsched.boundary import AreaDefBoundary, Boundary
+            from satpy.resample import get_area_def
+            try:
+                gbb = Boundary(
+                    *file_handler.get_bounding_box())
+            except NotImplementedError:
+                pass
+            else:
+                abb = AreaDefBoundary(
+                    get_area_def(self._area), frequency=1000)
+
+                intersection = gbb.contour_poly.intersection(
+                    abb.contour_poly)
+                if not intersection:
+                    return False
+        return True
+
+    def create_filehandlers(self, filenames):
+        """Organize the filenames into file types and create file handlers."""
+        LOG.debug("Assigned to %s: %s",
+                  self.info['name'],
+                  filenames)
+
+        self.info.setdefault('filenames', []).extend(filenames)
+
         remaining_filenames = set(self.info['filenames'])
         for filetype, filetype_info in self.config['file_types'].items():
             filetype_cls = filetype_info['file_reader']
             patterns = filetype_info['file_patterns']
             file_handlers = []
             for pattern in patterns:
-                used_filenames = set()
+                matching = match_filenames(remaining_filenames, pattern)
 
-                levels = len(pattern.split('/'))
-                # correct separator if needed
-                pattern = os.path.join(*pattern.split('/'))
+                for filename in matching:
+                    filename_info = parse(pattern,
+                                          get_filebase(filename, pattern))
+                    file_handler = filetype_cls(filename, filename_info,
+                                                filetype_info)
 
-                for filename in remaining_filenames:
-                    filebase = os.path.join(
-                        *filename.split(os.path.sep)[-levels:])
+                    # Only add this file handler if it is within the time
+                    # we want...
+                    if self._start_time and file_handler.start_time < self._start_time:
+                        continue
+                    if self._end_time and file_handler.end_time > self._end_time:
+                        continue
+                    # ...or area we want
+                    if not self.check_file_covers_area(file_handler):
+                        continue
 
-                    if fnmatch(filebase, globify(pattern)):
-                        # we know how to use this file (even if we may not use
-                        # it later)
-                        used_filenames.add(filename)
-                        filename_info = parse(pattern,
-                                              filebase)
-                        file_handler = filetype_cls(filename, filename_info,
-                                                    filetype_info)
+                    file_handlers.append(file_handler)
 
-                        # Only add this file handler if it is within the time
-                        # we want
-                        if self._start_time and file_handler.start_time < self._start_time:
-                            continue
-                        if self._end_time and file_handler.end_time > self._end_time:
-                            continue
-
-                        if self._area:
-                            from trollsched.boundary import AreaDefBoundary, Boundary
-                            from satpy.resample import get_area_def
-                            try:
-                                gbb = Boundary(
-                                    *file_handler.get_bounding_box())
-                            except NotImplementedError:
-                                pass
-                            else:
-                                abb = AreaDefBoundary(
-                                    get_area_def(self._area), frequency=1000)
-
-                                intersection = gbb.contour_poly.intersection(
-                                    abb.contour_poly)
-                                if not intersection:
-                                    continue
-
-                        file_handlers.append(file_handler)
-                remaining_filenames -= used_filenames
+                remaining_filenames -= set(matching)
             # Only create an entry in the file handlers dictionary if
             # we have those files
             if file_handlers:
                 # Sort the file handlers by start time
                 file_handlers.sort(key=lambda fh: fh.start_time)
                 self.file_handlers[filetype] = file_handlers
-
-        return res
 
     def _load_dataset_data(self, file_handlers, dsid,
                            xslice=slice(None), yslice=slice(None)):
