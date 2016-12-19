@@ -36,6 +36,7 @@ import numpy as np
 import six
 import yaml
 
+from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
@@ -592,10 +593,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     # TODO: move this out of here.
     def _append_area_defs(self, area1, area2):
-        r"""Append *area2* to *area1*.
-
-        /!\ Warning: This function modifies *area1* /!\
-        """
+        """Append *area2* to *area1* and return the results"""
         different_items = (set(area1.proj_dict.items()) ^
                            set(area2.proj_dict.items()))
         if different_items:
@@ -603,13 +601,11 @@ class FileYAMLReader(AbstractYAMLReader):
                                     "different projections: "
                                     "{} and {}".format(area1, area2))
 
-        area1.area_extent = self._combine_area_extents(area1, area2)
-        area1.y_size += area2.y_size
-        # workaround for pyresample
-        try:
-            area1.shape = (area1.y_size, area1.x_size)
-        except AttributeError:
-            pass
+        area_extent = self._combine_area_extents(area1, area2)
+        y_size = area1.y_size + area2.y_size
+        return AreaDefinition(area1.area_id, area1.name, area1.proj_id,
+                              area1.proj_dict, area1.x_size, y_size,
+                              area_extent)
 
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
@@ -618,7 +614,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         final_area = copy.deepcopy(area_defs[0])
         for area_def in area_defs[1:]:
-            self._append_area_defs(final_area, area_def)
+            final_area = self._append_area_defs(final_area, area_def)
 
         return final_area
 
