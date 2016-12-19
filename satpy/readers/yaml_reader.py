@@ -578,15 +578,17 @@ class FileYAMLReader(AbstractYAMLReader):
     def _combine_area_extents(self, area1, area2):
         """Combine the area extents of areas 1 and 2."""
         if (area1.area_extent[0] == area2.area_extent[0] and
-                area1.area_extent[2] == area2.area_extent[2] and
-                np.isclose(area1.area_extent[1], area2.area_extent[3])):
+                area1.area_extent[2] == area2.area_extent[2]):
             current_extent = list(area1.area_extent)
-            current_extent[1] = area2.area_extent[1]
+            if(np.isclose(area1.area_extent[1], area2.area_extent[3])):
+                current_extent[1] = area2.area_extent[1]
+            elif(np.isclose(area1.area_extent[3], area2.area_extent[1])):
+                current_extent[3] = area2.area_extent[3]
+            else:
+                raise IncompatibleAreas("Can't concatenate area definitions with "
+                                        "incompatible area extents: "
+                                        "{} and {}".format(area1, area2))
             return current_extent
-        else:
-            raise IncompatibleAreas("Can't concatenate area definitions with "
-                                    "incompatible area extents: "
-                                    "{} and {}".format(area1, area2))
 
     # TODO: move this out of here.
     def _append_area_defs(self, area1, area2):
