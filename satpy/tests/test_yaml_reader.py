@@ -3,7 +3,7 @@
 #
 # Author(s):
 #
-#   Panu Lahtinen <panu.lahtinen@fmi.fi
+#   Martin Raspaud <martin.raspaud@smhi.se>
 #
 # This file is part of satpy.
 #
@@ -21,18 +21,9 @@
 
 import os
 import sys
+import unittest
 
 import satpy.readers.yaml_reader as yr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 
 class TestUtils(unittest.TestCase):
