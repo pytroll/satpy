@@ -1,0 +1,10 @@
+sensor_name: visir/slstr
+
+composites:
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 0.65
+    - 0.86
+    - 10.8
+    standard_name: overview
