@@ -29,7 +29,7 @@ import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import namedtuple
+from collections import deque, namedtuple
 from fnmatch import fnmatch
 
 import numpy as np
@@ -43,7 +43,7 @@ from satpy.readers import DatasetDict, DatasetID
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
@@ -124,7 +124,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def available_dataset_ids(self):
-        LOG.warning("Available datasets are unknown, returning all datasets...")
+        logger.warning(
+            "Available datasets are unknown, returning all datasets...")
         return self.all_dataset_ids
 
     @property
@@ -175,7 +176,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             matching = match_filenames(filenames, pattern)
             filenames.extend(matching)
         if len(filenames) == 0:
-            LOG.warning("No filenames found for reader: %s", self.name)
+            logger.warning("No filenames found for reader: %s", self.name)
 
         return filenames
 
@@ -374,47 +375,99 @@ class FileYAMLReader(AbstractYAMLReader):
                     return False
         return True
 
+    def find_required_filehandlers(self, requirements, filename_info):
+        # case 3 : requirements are available -> find the right
+        # filename/filehandler to pass the current filehandler.
+        # find requirement filehandlers to pass to the current
+        # filehandler constructor
+        req_fh = []
+        if requirements:
+            for requirement in requirements:
+                for fh in self.file_handlers[requirement]:
+                    if (all(item in filename_info.items()
+                            for item in fh.filename_info.items())):
+                        req_fh.append(fh)
+                        break
+                else:
+                    raise RuntimeError('No matching file in ' + requirement)
+                    # break everything and continue to next
+                    # filetype!
+        return req_fh
+
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
-        LOG.debug("Assigned to %s: %s",
-                  self.info['name'],
-                  filenames)
+        logger.debug("Assigning to %s: %s", self.info['name'], filenames)
 
         self.info.setdefault('filenames', []).extend(filenames)
 
         remaining_filenames = set(self.info['filenames'])
-        for filetype, filetype_info in self.config['file_types'].items():
+
+        # for filetype, filetype_info in self.config['file_types'].items():
+        processed_types = []
+        file_type_items = deque(self.config['file_types'].items())
+        while len(file_type_items):
+            filetype, filetype_info = file_type_items.popleft()
             filetype_cls = filetype_info['file_reader']
             patterns = filetype_info['file_patterns']
-            file_handlers = []
-            for pattern in patterns:
-                matching = match_filenames(remaining_filenames, pattern)
+            requirements = filetype_info.get('requires')
+            if requirements is not None:
+                # case 1 : requirements have not been processed yet -> wait
+                missing = [req for req in requirements
+                           if req not in processed_types]
+                if missing:
+                    file_type_items.append((filetype, filetype_info))
+                    continue
+                # case 2 : (some) requirements are not available: do not
+                # proceed
+                missing = [req for req in requirements
+                           if req not in self.file_handlers]
+                if missing:
+                    logger.warning("Missing requirements %s for filetype %s",
+                                   str(missing), filetype)
+                    continue
 
-                for filename in matching:
+            file_handlers = []
+            filenames = []
+            for pattern in patterns:
+                for filename in match_filenames(remaining_filenames, pattern):
                     filename_info = parse(pattern,
                                           get_filebase(filename, pattern))
-                    file_handler = filetype_cls(filename, filename_info,
-                                                filetype_info)
 
-                    # Only add this file handler if it is within the time
-                    # we want...
-                    if self._start_time and file_handler.start_time < self._start_time:
-                        continue
-                    if self._end_time and file_handler.end_time > self._end_time:
-                        continue
-                    # ...or area we want
-                    if not self.check_file_covers_area(file_handler):
-                        continue
+                    filenames.append((filename, filename_info))
 
-                    file_handlers.append(file_handler)
+            for filename, filename_info in filenames:
+                try:
+                    # FIXME: this works only when there is only one filepattern per
+                    # filetype
+                    req_fh = self.find_required_filehandlers(requirements,
+                                                             filename_info)
+                except RuntimeError:
+                    logger.warning("Can't find requirements for %s", filename)
+                    continue
 
-                remaining_filenames -= set(matching)
+                file_handler = filetype_cls(filename, filename_info,
+                                            filetype_info, *req_fh)
+
+                # Only add this file handler if it is within the time
+                # we want...
+                if self._start_time and file_handler.start_time < self._start_time:
+                    continue
+                if self._end_time and file_handler.end_time > self._end_time:
+                    continue
+                # ...or area we want
+                if not self.check_file_covers_area(file_handler):
+                    continue
+
+                file_handlers.append(file_handler)
+
+            remaining_filenames -= set(zip(*filenames)[0])
             # Only create an entry in the file handlers dictionary if
             # we have those files
             if file_handlers:
-                # Sort the file handlers by start time
-                file_handlers.sort(key=lambda fh: fh.start_time)
+                # Sort the file handlers by start time and filename
+                file_handlers.sort(key=lambda fh: (fh.start_time, fh.filename))
                 self.file_handlers[filetype] = file_handlers
+            processed_types.append(filetype)
 
     def _load_dataset_data(self, file_handlers, dsid,
                            xslice=slice(None), yslice=slice(None)):
@@ -597,7 +650,7 @@ class FileYAMLReader(AbstractYAMLReader):
         # Get the file handler to load this dataset (list or single string)
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
-            LOG.warning(
+            logger.warning(
                 "Required file type '{}' not found or loaded for '{}'".format(
                     ds_info['file_type'], dsid.name))
         else:
@@ -621,7 +674,7 @@ class FileYAMLReader(AbstractYAMLReader):
         except NotImplementedError:
             area = self._make_area_from_coords(coords)
             if area is None:
-                LOG.debug("No coordinates found for %s", str(dsid))
+                logger.debug("No coordinates found for %s", str(dsid))
             return area
 
     # TODO: move this out of here.
@@ -644,7 +697,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 area = get_sub_area(area, *slices)
                 slice_kwargs['xslice'], slice_kwargs['yslice'] = slices
             except (NotImplementedError, AttributeError):
-                LOG.info("Cannot compute specific slice of data to load.")
+                logger.info("Cannot compute specific slice of data to load.")
 
         return slice_kwargs, area
 
