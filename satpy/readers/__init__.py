@@ -311,7 +311,7 @@ class ReaderFinder(object):
             if not reader_instance.supports_sensor(sensor):
                 continue
             if remaining_filenames:
-                loadables = reader_instance.select_files_from_list(
+                loadables = reader_instance.select_files_from_pathnames(
                     remaining_filenames)
             else:
                 loadables = reader_instance.select_files_from_directory(

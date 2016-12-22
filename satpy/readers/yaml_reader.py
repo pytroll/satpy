@@ -169,7 +169,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             filenames.extend(matching)
         return filenames
 
-    def select_files_from_list(self, filenames):
+    def select_files_from_pathnames(self, filenames):
         """Select the files from *filenames* this reader can handle."""
         filenames = []
 
