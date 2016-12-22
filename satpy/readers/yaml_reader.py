@@ -395,80 +395,94 @@ class FileYAMLReader(AbstractYAMLReader):
                     # filetype!
         return req_fh
 
-    def create_filehandlers(self, filenames):
-        """Organize the filenames into file types and create file handlers."""
-        logger.debug("Assigning to %s: %s", self.info['name'], filenames)
-
-        self.info.setdefault('filenames', []).extend(filenames)
-
-        remaining_filenames = set(self.info['filenames'])
-
-        # for filetype, filetype_info in self.config['file_types'].items():
+    def sorted_filetype_items(self):
+        """Sort the instance's filetypes in using order."""
         processed_types = []
         file_type_items = deque(self.config['file_types'].items())
         while len(file_type_items):
             filetype, filetype_info = file_type_items.popleft()
-            filetype_cls = filetype_info['file_reader']
-            patterns = filetype_info['file_patterns']
+
             requirements = filetype_info.get('requires')
             if requirements is not None:
-                # case 1 : requirements have not been processed yet -> wait
+                # requirements have not been processed yet -> wait
                 missing = [req for req in requirements
                            if req not in processed_types]
                 if missing:
                     file_type_items.append((filetype, filetype_info))
                     continue
-                # case 2 : (some) requirements are not available: do not
-                # proceed
-                missing = [req for req in requirements
-                           if req not in self.file_handlers]
-                if missing:
-                    logger.warning("Missing requirements %s for filetype %s",
-                                   str(missing), filetype)
-                    continue
 
-            file_handlers = []
-            filenames = []
-            for pattern in patterns:
-                for filename in match_filenames(remaining_filenames, pattern):
-                    filename_info = parse(pattern,
-                                          get_filebase(filename, pattern))
-
-                    filenames.append((filename, filename_info))
-
-            for filename, filename_info in filenames:
-                try:
-                    # FIXME: this works only when there is only one filepattern per
-                    # filetype
-                    req_fh = self.find_required_filehandlers(requirements,
-                                                             filename_info)
-                except RuntimeError:
-                    logger.warning("Can't find requirements for %s", filename)
-                    continue
-
-                file_handler = filetype_cls(filename, filename_info,
-                                            filetype_info, *req_fh)
-
-                # Only add this file handler if it is within the time
-                # we want...
-                if self._start_time and file_handler.start_time < self._start_time:
-                    continue
-                if self._end_time and file_handler.end_time > self._end_time:
-                    continue
-                # ...or area we want
-                if not self.check_file_covers_area(file_handler):
-                    continue
-
-                file_handlers.append(file_handler)
-
-            remaining_filenames -= set(zip(*filenames)[0])
-            # Only create an entry in the file handlers dictionary if
-            # we have those files
-            if file_handlers:
-                # Sort the file handlers by start time and filename
-                file_handlers.sort(key=lambda fh: (fh.start_time, fh.filename))
-                self.file_handlers[filetype] = file_handlers
             processed_types.append(filetype)
+            yield filetype, filetype_info
+
+    def filename_items_for_filetype(self, filenames, filetype_info):
+        """Iterator over the filenames matching *filetype_info*."""
+        for pattern in filetype_info['file_patterns']:
+            for filename in match_filenames(filenames, pattern):
+                filename_info = parse(pattern,
+                                      get_filebase(filename, pattern))
+
+                yield filename, filename_info
+
+    def new_filehandler_instances(self, filetype_info, filename_items):
+        """Generate new filehandler instances."""
+        requirements = filetype_info.get('requires')
+        filetype_cls = filetype_info['file_reader']
+        for filename, filename_info in filename_items:
+            try:
+                req_fh = self.find_required_filehandlers(requirements,
+                                                         filename_info)
+            except RuntimeError:
+                logger.warning("Can't find requirements for %s", filename)
+                continue
+            except KeyError:
+                logger.warning("Missing requirements for %s", filename)
+                continue
+
+            yield filetype_cls(filename, filename_info,
+                               filetype_info, *req_fh)
+
+    def filter_fh_by_time(self, filehandlers):
+        """Filter out filehandlers outside the desired time_range."""
+        for filehandler in filehandlers:
+            if self._start_time and filehandler.start_time < self._start_time:
+                continue
+            if self._end_time and filehandler.end_time > self._end_time:
+                continue
+            yield filehandler
+
+    def filter_fh_by_area(self, filehandlers):
+        """Filter out filehandlers outside the desired area."""
+        for filehandler in filehandlers:
+            if self.check_file_covers_area(filehandler):
+                yield filehandler
+
+    def create_filehandlers_for_filetype(self, filetype_info, filenames):
+        """Create filehandlers for a given filetype."""
+        filename_iter = self.filename_items_for_filetype(filenames,
+                                                         filetype_info)
+        filehandler_iter = self.new_filehandler_instances(filetype_info,
+                                                          filename_iter)
+        return [fh for fh in
+                self.filter_fh_by_area(
+                    self.filter_fh_by_time(filehandler_iter))]
+
+    def create_filehandlers(self, filenames):
+        """Organize the filenames into file types and create file handlers."""
+        logger.debug("Assigning to %s: %s", self.info['name'], filenames)
+
+        self.info.setdefault('filenames', []).extend(filenames)
+        filename_set = set(filenames)
+
+        for filetype, filetype_info in self.sorted_filetype_items():
+            filehandlers = self.create_filehandlers_for_filetype(filetype_info,
+                                                                 filename_set)
+
+            filename_set -= set([fh.filename for fh in filehandlers])
+            if filehandlers:
+                self.file_handlers[filetype] = sorted(filehandlers,
+                                                      key=lambda fh:
+                                                      (fh.start_time,
+                                                       fh.filename))
 
     def _load_dataset_data(self, file_handlers, dsid,
                            xslice=slice(None), yslice=slice(None)):
