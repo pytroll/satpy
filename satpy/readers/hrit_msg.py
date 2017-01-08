@@ -22,7 +22,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader
+"""HRIT format reader.
+
+References:
+    MSG Level 1.5 Image Data FormatDescription
+
+TODO:
+- HRV navigation
 
 """
 
@@ -453,7 +459,6 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
     def read_prologue(self):
         """Read the prologue metadata."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=prologue, count=1)[0]
@@ -467,6 +472,10 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
             else:
                 self.prologue.update(recarray2dict(impf))
 
+        self.process_prologue()
+
+    def process_prologue(self):
+        """Reprocess prologue to correct types."""
         pacqtime = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']
 
         start = pacqtime['TrueRepeatCycleStart']
@@ -480,8 +489,6 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         pacqtime['TrueRepeatCycleStart'] = start
         pacqtime['PlannedForwardScanEnd'] = psend
         pacqtime['TrueRepeatCycleStart'] = prend
-
-        logger.debug("Reading time " + str(datetime.now() - tic))
 
 image_production_stats = np.dtype([('SatelliteId', '>u2'),
                                    ('ActualScanningSummary',
@@ -571,6 +578,179 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         pacqtime['ForwardScanStart'] = start
 
 
+# Reflectance factor for visible bands
+HRV_F = 25.15
+VIS006_F = 20.76
+VIS008_F = 23.30
+IR_016_F = 19.73
+
+SATNUM = {321: "08",
+          322: "09",
+          323: "10",
+          324: "11"}
+
+# Calibration coefficients from
+# 'A Planned Change to the MSG Level 1.5 Image Product Radiance Definition',
+# "Conversion from radiances to reflectances for SEVIRI warm channels"
+# EUM/MET/TEN/12/0332 , and "The Conversion from Effective Radiances to
+# Equivalent Brightness Temperatures" EUM/MET/TEN/11/0569
+
+CALIB = {}
+
+
+# Meteosat 8
+
+CALIB[321] = {'HRV': {'F': 78.7599 / np.pi},
+              'VIS006': {'F': 65.2296 / np.pi},
+              'VIS008': {'F': 73.0127 / np.pi},
+              'IR_016': {'F': 62.3715 / np.pi},
+              'IR_039': {'VC': 2567.33,
+                         'ALPHA': 0.9956,
+                         'BETA': 3.41},
+              'WV_062': {'VC': 1598.103,
+                         'ALPHA': 0.9962,
+                         'BETA': 2.218},
+              'WV_073': {'VC': 1362.081,
+                         'ALPHA': 0.9991,
+                         'BETA': 0.478},
+              'IR_087': {'VC': 1149.069,
+                         'ALPHA': 0.9996,
+                         'BETA': 0.179},
+              'IR_097': {'VC': 1034.343,
+                         'ALPHA': 0.9999,
+                         'BETA': 0.06},
+              'IR_108': {'VC': 930.647,
+                         'ALPHA': 0.9983,
+                         'BETA': 0.625},
+              'IR_120': {'VC': 839.66,
+                         'ALPHA': 0.9988,
+                         'BETA': 0.397},
+              'IR_134': {'VC': 752.387,
+                         'ALPHA': 0.9981,
+                         'BETA': 0.578}}
+
+# Meteosat 9
+
+CALIB[322] = {'HRV': {'F': 79.0113 / np.pi},
+              'VIS006': {'F': 65.2065 / np.pi},
+              'VIS008': {'F': 73.1869 / np.pi},
+              'IR_016': {'F': 61.9923 / np.pi},
+              'IR_039': {'VC': 2568.832,
+                         'ALPHA': 0.9954,
+                         'BETA': 3.438},
+              'WV_062': {'VC': 1600.548,
+                         'ALPHA': 0.9963,
+                         'BETA': 2.185},
+              'WV_073': {'VC': 1360.330,
+                         'ALPHA': 0.9991,
+                         'BETA': 0.47},
+              'IR_087': {'VC': 1148.620,
+                         'ALPHA': 0.9996,
+                         'BETA': 0.179},
+              'IR_097': {'VC': 1035.289,
+                         'ALPHA': 0.9999,
+                         'BETA': 0.056},
+              'IR_108': {'VC': 931.7,
+                         'ALPHA': 0.9983,
+                         'BETA': 0.64},
+              'IR_120': {'VC': 836.445,
+                         'ALPHA': 0.9988,
+                         'BETA': 0.408},
+              'IR_134': {'VC': 751.792,
+                         'ALPHA': 0.9981,
+                         'BETA': 0.561}}
+
+# Meteosat 10
+
+CALIB[323] = {'HRV': {'F': 78.9416 / np.pi},
+              'VIS006': {'F': 65.5148 / np.pi},
+              'VIS008': {'F': 73.1807 / np.pi},
+              'IR_016': {'F': 62.0208 / np.pi},
+              'IR_039': {'VC': 2547.771,
+                         'ALPHA': 0.9915,
+                         'BETA': 2.9002},
+              'WV_062': {'VC': 1595.621,
+                         'ALPHA': 0.9960,
+                         'BETA': 2.0337},
+              'WV_073': {'VC': 1360.337,
+                         'ALPHA': 0.9991,
+                         'BETA': 0.4340},
+              'IR_087': {'VC': 1148.130,
+                         'ALPHA': 0.9996,
+                         'BETA': 0.1714},
+              'IR_097': {'VC': 1034.715,
+                         'ALPHA': 0.9999,
+                         'BETA': 0.0527},
+              'IR_108': {'VC': 929.842,
+                         'ALPHA': 0.9983,
+                         'BETA': 0.6084},
+              'IR_120': {'VC': 838.659,
+                         'ALPHA': 0.9988,
+                         'BETA': 0.3882},
+              'IR_134': {'VC': 750.653,
+                         'ALPHA': 0.9982,
+                         'BETA': 0.5390}}
+
+# Meteosat 11
+
+CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
+              'VIS006': {'F': 65.2656 / np.pi},
+              'VIS008': {'F': 73.1692 / np.pi},
+              'IR_016': {'F': 61.9416 / np.pi},
+              'IR_039': {'VC': 2555.280,
+                         'ALPHA': 0.9916,
+                         'BETA': 2.9438},
+              'WV_062': {'VC': 1596.080,
+                         'ALPHA': 0.9959,
+                         'BETA': 2.0780},
+              'WV_073': {'VC': 1361.748,
+                         'ALPHA': 0.9990,
+                         'BETA': 0.4929},
+              'IR_087': {'VC': 1147.433,
+                         'ALPHA': 0.9996,
+                         'BETA': 0.1731},
+              'IR_097': {'VC': 1034.851,
+                         'ALPHA': 0.9998,
+                         'BETA': 0.0597},
+              'IR_108': {'VC': 931.122,
+                         'ALPHA': 0.9983,
+                         'BETA': 0.6256},
+              'IR_120': {'VC': 839.113,
+                         'ALPHA': 0.9988,
+                         'BETA': 0.4002},
+              'IR_134': {'VC': 748.585,
+                         'ALPHA': 0.9981,
+                         'BETA': 0.5635}}
+
+# Polynomial coefficients for spectral-effective BT fits
+BTFIT = {}
+# [A, B, C]
+BTFIT['IR_039'] = [0.0, 1.011751900, -3.550400]
+BTFIT['WV_062'] = [0.00001805700, 1.000255533, -1.790930]
+BTFIT['WV_073'] = [0.00000231818, 1.000668281, -0.456166]
+BTFIT['IR_087'] = [-0.00002332000, 1.011803400, -1.507390]
+BTFIT['IR_097'] = [-0.00002055330, 1.009370670, -1.030600]
+BTFIT['IR_108'] = [-0.00007392770, 1.032889800, -3.296740]
+BTFIT['IR_120'] = [-0.00007009840, 1.031314600, -3.181090]
+BTFIT['IR_134'] = [-0.00007293450, 1.030424800, -2.645950]
+
+C1 = 1.19104273e-5
+C2 = 1.43877523
+
+CHANNEL_NAMES = {1: "VIS006",
+                 2: "VIS008",
+                 3: "IR_016",
+                 4: "IR_039",
+                 5: "WV_062",
+                 6: "WV_073",
+                 7: "IR_087",
+                 8: "IR_097",
+                 9: "IR_108",
+                 10: "IR_120",
+                 11: "IR_134",
+                 12: "HRV"}
+
+
 class HRITMSGFileHandler(HRITFileHandler):
 
     """MSG HRIT format reader
@@ -586,6 +766,7 @@ class HRITMSGFileHandler(HRITFileHandler):
                                                   msg_text_headers))
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
+
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
@@ -595,6 +776,9 @@ class HRITMSGFileHandler(HRITFileHandler):
         ssp = self.prologue['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
         self.mda['projection_parameters']['SSP_longitude'] = ssp
+        self.platform_id = self.prologue["SatelliteStatus"][
+            "SatelliteDefinition"]["SatelliteID"]
+        self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
     def start_time(self):
@@ -609,6 +793,15 @@ class HRITMSGFileHandler(HRITFileHandler):
             'ActualScanningSummary']
 
         return pacqtime['ForwardScanEnd']
+
+    def get_dataset(self, key, info, out=None,
+                    xslice=slice(None), yslice=slice(None)):
+        res = super(HRITMSGFileHandler, self).get_dataset(key, info, out,
+                                                          xslice, yslice)
+        if res is not None:
+            out = res
+
+        self.calibrate(out, key.calibration)
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -627,53 +820,68 @@ class HRITMSGFileHandler(HRITFileHandler):
         logger.debug("Calibration time " + str(datetime.now() - tic))
 
     def convert_to_radiance(self, data):
-        """Calibrate to radiance.
-        """
-
-        gain = self._header["block5"]["gain_count2rad_conversion"][0]
-        offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        """Calibrate to radiance."""
+        coeffs = self.prologue["RadiometricProcessing"]
+        coeffs = coeffs["Level1_5ImageCalibration"]
+        gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
+        offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
 
         data.data[:] *= gain
         data.data[:] += offset
+        data.data[data.data < 0] = 0
 
     def _vis_calibrate(self, data):
-        """Visible channel calibration only.
-        """
-        coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
-        data.data[:] *= coeff * 100
-        data.mask[data.data < 0] = True
+        """Visible channel calibration only."""
+        solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
+        data.data[:] *= 100 / solar_irradiance
+        data.info['units'] = '%'
+
+    def _tl15(self, data):
+        """Compute the L15 temperature."""
+        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
+        data.data[:] **= -1
+        data.data[:] *= C1 * wavenumber ** 3
+        data.data[:] += 1
+        np.log(data.data, out=data.data)
+        data.data[:] **= -1
+        data.data[:] *= C2 * wavenumber
+
+    def _erads2bt(self, data):
+        """computation based on effective radiance."""
+        cal_info = CALIB[self.platform_id][self.channel_name]
+        alpha = cal_info["ALPHA"]
+        beta = cal_info["BETA"]
+
+        self._tl15(data)
+
+        data.data[:] -= beta
+        data.data[:] /= alpha
+
+    def _srads2bt(self, data):
+        """computation based on spectral radiance."""
+        coef_a, coef_b, coef_c = BTFIT[self.channel_name]
+
+        self._tl15(data)
+
+        data.data[:] = (coef_a * data.data[:] ** 2 +
+                        coef_b * data.data[:] +
+                        coef_c)
 
     def _ir_calibrate(self, data):
-        """IR calibration
-        """
+        """IR calibration."""
+        cal_type = self.prologue['ImageDescription'][
+            'Level1_5ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
 
-        cwl = self._header['block5']["central_wave_length"][0] * 1e-6
-        c__ = self._header['calibration']["speed_of_light"][0]
-        h__ = self._header['calibration']["planck_constant"][0]
-        k__ = self._header['calibration']["boltzmann_constant"][0]
-        a__ = (h__ * c__) / (k__ * cwl)
+        if cal_type == 1:
+            # spectral radiances
+            self._srads2bt(data)
+        elif cal_type == 2:
+            # effective radiances
+            self._erads2bt(data)
+        else:
+            raise NotImplemented('Unknown calibration type')
 
-        # b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * data.data)) + 1
-
-        data.data[:] *= 1.0e6 * cwl ** 5
-        data.data[:] **= -1
-        data.data[:] *= (2 * h__ * c__ ** 2)
-        data.data[:] += 1
-
-        # Te_ = a__ / np.log(b__)
-
-        data.data[:] = a__ / np.log(data.data)
-
-        c0_ = self._header['calibration']["c0_rad2tb_conversion"][0]
-        c1_ = self._header['calibration']["c1_rad2tb_conversion"][0]
-        c2_ = self._header['calibration']["c2_rad2tb_conversion"][0]
-
-        # data.data[:] = c0_ + c1_ * Te_ + c2_ * Te_ ** 2
-
-        data.data[:] = np.polyval([c2_, c1_, c0_], data.data)
-
-        data.mask[data.data < 0] = True
-        data.mask[np.isnan(data.data)] = True
+        pass
 
 
 def show(data, negate=False):

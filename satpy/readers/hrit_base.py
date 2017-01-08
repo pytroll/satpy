@@ -270,13 +270,14 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
         """Read the data"""
+        # TODO slicing !
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
                 self.mda['data_field_length'] / 8.)))
             out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
-                                                  self.mda['number_of_columns']))
+                                                  self.mda['number_of_columns'])) * 1.0
             out.mask[:] = out.data == 0
         logger.debug("Reading time " + str(datetime.now() - tic))
 
