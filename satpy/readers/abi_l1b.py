@@ -5,7 +5,8 @@
 
 # Author(s):
 
-#   Martin Raspaud <martin.raspaud@smhi.se>
+#   Guido della Bruna <Guido.DellaBruna@meteoswiss.ch>
+#   Marco Sassi       <Marco.Sassi@meteoswiss.ch>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
