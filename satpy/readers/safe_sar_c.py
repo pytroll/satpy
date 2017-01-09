@@ -31,42 +31,88 @@ import numpy as np
 from osgeo import gdal
 
 from satpy.projectable import Projectable
-from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 
-def bilinear_interpolate(im, x, y):
-    x = np.asarray(x)
-    y = np.asarray(y)
+class SAFEXML(BaseFileHandler):
 
-    x0 = np.floor(x).astype(int)
-    x1 = x0 + 1
-    y0 = np.floor(y).astype(int)
-    y1 = y0 + 1
+    def __init__(self, filename, filename_info, filetype_info):
+        super(SAFEXML, self).__init__(filename, filename_info,
+                                      filetype_info)
 
-    x0 = np.clip(x0, 0, im.shape[1] - 1)
-    x1 = np.clip(x1, 0, im.shape[1] - 1)
-    y0 = np.clip(y0, 0, im.shape[0] - 1)
-    y1 = np.clip(y1, 0, im.shape[0] - 1)
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
+        self._polarization = filename_info['polarization']
+        self.root = ET.parse(self.filename)
 
-    Ia = im[y0, x0]
-    Ib = im[y1, x0]
-    Ic = im[y0, x1]
-    Id = im[y1, x1]
+    @staticmethod
+    def read_xml_array(elts, variable_name):
+        """Read an array from an xml elements *elts*."""
+        y = []
+        x = []
+        data = []
+        for elt in elts:
+            newx = elt.find('pixel').text.split()
+            y += [int(elt.find('line').text)] * len(newx)
+            x += [int(val) for val in newx]
+            data += [float(val)
+                     for val in elt.find(variable_name).text.split()]
 
-    wa = (x1 - x) * (y1 - y)
-    wb = (x1 - x) * (y - y0)
-    wc = (x - x0) * (y1 - y)
-    wd = (x - x0) * (y - y0)
+        return np.asarray(data), (x, y)
 
-    return wa * Ia + wb * Ib + wc * Ic + wd * Id
+    @staticmethod
+    def interpolate_xml_array(data, low_res_coords, full_res_size):
+        """Interpolate arbitrary size dataset to a full sized grid."""
+        from scipy.interpolate import griddata
+        grid_x, grid_y = np.mgrid[0:full_res_size[0], 0:full_res_size[1]]
+        x, y = low_res_coords
+
+        return griddata(np.vstack((np.asarray(y), np.asarray(x))).T,
+                        data,
+                        (grid_x, grid_y),
+                        method='linear')
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if self._polarization != key.polarization:
+            return
+
+        data_items = self.root.findall(".//" + info['xml_item'])
+        data, low_res_coords = self.read_xml_array(data_items,
+                                                   info['xml_tag'])
+        if key.name.endswith('squared'):
+            data **= 2
+
+        data = self.interpolate_xml_array(data, low_res_coords, d)
+
+    def get_noise_correction(self, shape):
+        data_items = self.root.findall(".//noiseVector")
+        data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
+        return self.interpolate_xml_array(data, low_res_coords, shape)
+
+    def get_calibration(self, name, shape):
+        data_items = self.root.findall(".//calibrationVector")
+        data, low_res_coords = self.read_xml_array(data_items, name)
+        return self.interpolate_xml_array(data ** 2, low_res_coords, shape)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
 
 class SAFEGRD(BaseFileHandler):
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
         super(SAFEGRD, self).__init__(filename, filename_info,
                                       filetype_info)
 
@@ -75,81 +121,42 @@ class SAFEGRD(BaseFileHandler):
 
         self.band = None
 
-        self.channel = filename_info['polarization']
+        self._polarization = filename_info['polarization']
 
-        dirname, basename = os.path.split(filename)
-        basedir, measurements = os.path.split(dirname)
-        basename, ext = os.path.splitext(basename)
-        self.cal_file = os.path.join(
-            basedir, 'annotation', 'calibration', 'calibration-' + basename + '.xml')
-        self.noise_file = os.path.join(
-            basedir, 'annotation', 'calibration', 'noise-' + basename + '.xml')
-        self.cal = None
+        self.calibration = calfh
+        self.noise = noisefh
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
-        if self.channel != key.name:
+        """Load a dataset."""
+        if self._polarization != key.polarization:
             return
         logger.debug('Reading %s.', key.name)
 
-        from scipy.interpolate import griddata
+        band = gdal.Open(self.filename)
 
-        self.band = gdal.Open(self.filename)
-
-        data = self.band.GetRasterBand(1).ReadAsArray()
+        data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
+        del band
 
         logger.debug('Reading noise data.')
 
-        root = ET.parse(self.noise_file)
-
-        noise_data = root.findall(
-            ".//noiseVector")
-        y = []
-        x = []
-        noise = []
-        for elt in noise_data:
-            newx = map(int, elt.find('pixel').text.split())
-            y += [int(elt.find('line').text)] * len(newx)
-            x += newx
-            noise += map(float, elt.find('noiseLut').text.split())
-
-        grid_x, grid_y = np.mgrid[0:data.shape[0], 0:data.shape[1]]
-
-        noise = griddata(np.vstack((np.asarray(y), np.asarray(
-            x))).T, noise, (grid_x, grid_y), method='linear')
+        noise = self.noise.get_noise_correction(data.shape)
 
         logger.debug('Reading calibration data.')
-        root = ET.parse(self.cal_file)
 
-        cal_constant = float(root.find('.//absoluteCalibrationConstant').text)
-
-        cal_data = root.findall(
-            ".//calibrationVector")
-
-        y = []
-        x = []
-        sigma = []
-        for elt in cal_data:
-            newx = map(int, elt.find('pixel').text.split())
-            y += [int(elt.find('line').text)] * len(newx)
-            x += newx
-            sigma += map(float, elt.find('gamma').text.split())
-
-        grid_x, grid_y = np.mgrid[0:data.shape[0], 0:data.shape[1]]
-
-        sigma = griddata(np.vstack((np.asarray(y), np.asarray(
-            x))).T, sigma, (grid_x, grid_y), method='linear')
+        cal = self.calibration.get_calibration('gamma', data.shape)
+        cal_constant = self.calibration.get_calibration_constant()
 
         logger.debug('Calibrating.')
 
-        #val = np.sqrt((data ** 2. + cal_constant - noise) / sigma ** 2)
-        #val = np.sqrt((data ** 2. - noise))
-        val = (data ** 2. + cal_constant - noise) / sigma ** 2
-        val[val < 0] = 0
-        val = np.sqrt(val)
-
-        proj = Projectable(val,
+        # val = np.sqrt((data ** 2. + cal_constant - noise) / sigma ** 2)
+        # val = np.sqrt((data ** 2. - noise))
+        # data = (data ** 2. + cal_constant - noise) / sigma_sqr
+        data **= 2
+        data += cal_constant - noise
+        data /= cal
+        data[data < 0] = 0
+        del noise, cal
+        proj = Projectable(np.sqrt(data),
                            copy=False,
                            units='sigma')
         return proj
