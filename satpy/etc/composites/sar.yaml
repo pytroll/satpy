@@ -1,0 +1,11 @@
+sensor_name: sar
+
+composites:
+  sar-ice:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-ice
