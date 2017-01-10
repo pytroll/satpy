@@ -24,10 +24,8 @@
 
 import logging
 
-from pyresample.geometry import AreaDefinition
-from satpy.composites import IncompatibleAreas, RGBCompositor
-from satpy.projectable import Projectable, combine_info
-from satpy.readers import DatasetID
+from satpy.composites import RGBCompositor
+from satpy.projectable import combine_info
 
 LOG = logging.getLogger(__name__)
 
@@ -37,27 +35,26 @@ def overlay(top, bottom):
 
     from: https://docs.gimp.org/en/gimp-concepts-layer-modes.html
     """
-    mx = max(top.max(), bottom.max())
+    maxval = max(top.max(), bottom.max())
 
     res = 2 * top
-    res /= mx
+    res /= maxval
     res -= 1
     res *= bottom
     res += 2 * top
     res *= bottom
-    res /= mx
+    res /= maxval
 
     return res
 
 
 class SARIce(RGBCompositor):
-    """Corrector of the AHI green band to compensate for the deficit of
-    chlorophyl signal.
-    """
+    """The SAR Ice composite."""
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR Ice composite."""
-        (hh, hv) = projectables
-        green = overlay(hh, hv)
+        (mhh, mhv) = projectables
+        green = overlay(mhh, mhv)
+        green.info = combine_info(mhh, mhv)
 
-        return super(SARIce, self).__call__((hv, green, hh), *args, **kwargs)
+        return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
