@@ -39,7 +39,7 @@ class Mock(object):
             return Mock()
 
 MOCK_MODULES = ['Image', 'pyhdf.SD', 'pyhdf.error', 'numpy', 'numpy.core',
-                'numpy.core.multiarray', 'pyresample', 'pyresample.utils',
+                'numpy.core.multiarray', 'pyresample', 'pyresample.utils', 'pyresample.ewa',
                 'pyresample.geometry', 'pyresample.kd_tree', 'h5py',
                 'trollsift', 'trollsift.parser', 'trollimage', 'trollimage.image', 'netCDF4',
                 'pyproj', 'scipy', 'scipy.special', 'mipp', 'osgeo']
