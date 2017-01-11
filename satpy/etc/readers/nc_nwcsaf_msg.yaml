@@ -1,0 +1,33 @@
+reader:
+  description: NetCDF4 reader for the NWCSAF MSG 2016 format
+  name: nc_nwcsaf_msg
+  sensors: [seviri]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    nc_nwcsaf:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_patterns: ['S_NWC_{product_name}_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+datasets:
+  ct:
+    name: ct
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf
+  ct_pal:
+    name: ct_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf
+  ctth_alti:
+    name: ctth_alti
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf
+  ctth_alti_pal:
+    name: ctth_alti_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf

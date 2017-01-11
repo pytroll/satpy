@@ -36,3 +36,17 @@ composites:
     - 10.8
     - 12.0
     standard_name: night_fog
+
+  cloudtype:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ct
+    - ct_pal
+    standard_name: cloudtype
+
+  cloudheight:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_alti
+    - ctth_alti_pal
+    standard_name: cloudheight

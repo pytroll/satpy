@@ -470,6 +470,33 @@ class RGBCompositor(CompositeBase):
         return Projectable(data=the_data, **info)
 
 
+class PaletteCompositor(RGBCompositor):
+
+    def __call__(self, projectables, **info):
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+
+        ct, ct_pal = projectables
+        ct_pal = ct_pal / 255.0
+
+        from trollimage.colormap import Colormap
+        if 'valid_range' in ct.info:
+            tups = [(val, tuple(tup)) for (val, tup) in enumerate(ct_pal[:-1])]
+            colormap = Colormap(*tups)
+            colormap.set_range(*ct.info['valid_range'])
+        else:
+            tups = [(val, tuple(tup)) for (val, tup) in enumerate(ct_pal)]
+            colormap = Colormap(*tups)
+
+        r, g, b = colormap.colorize(ct)
+        r = Projectable(r, copy=False, **ct.info)
+        g = Projectable(g, copy=False, **ct.info)
+        b = Projectable(b, copy=False, **ct.info)
+
+        return super(PaletteCompositor, self).__call__((r, g, b), **ct.info)
+
+
 class Airmass(RGBCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
