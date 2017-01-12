@@ -477,24 +477,31 @@ class PaletteCompositor(RGBCompositor):
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
 
-        ct, ct_pal = projectables
-        ct_pal = ct_pal / 255.0
+        # TODO: support datasets with palette to delegate this to the image
+        # writer.
+
+        data, palette = projectables
+        palette = palette / 255.0
 
         from trollimage.colormap import Colormap
-        if 'valid_range' in ct.info:
-            tups = [(val, tuple(tup)) for (val, tup) in enumerate(ct_pal[:-1])]
+        if data.dtype == np.dtype('uint8'):
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
-            colormap.set_range(*ct.info['valid_range'])
-        else:
-            tups = [(val, tuple(tup)) for (val, tup) in enumerate(ct_pal)]
+        elif 'valid_range' in data.info:
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
+            colormap.set_range(*data.info['valid_range'])
+        r, g, b = colormap.colorize(data)
+        r[data.mask] = palette[-1][0]
+        g[data.mask] = palette[-1][1]
+        b[data.mask] = palette[-1][2]
+        r = Projectable(r, copy=False, mask=data.mask, **data.info)
+        g = Projectable(g, copy=False, mask=data.mask, **data.info)
+        b = Projectable(b, copy=False, mask=data.mask, **data.info)
 
-        r, g, b = colormap.colorize(ct)
-        r = Projectable(r, copy=False, **ct.info)
-        g = Projectable(g, copy=False, **ct.info)
-        b = Projectable(b, copy=False, **ct.info)
-
-        return super(PaletteCompositor, self).__call__((r, g, b), **ct.info)
+        return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
 
 
 class Airmass(RGBCompositor):

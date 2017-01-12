@@ -29,6 +29,7 @@ from datetime import datetime
 import h5netcdf
 import numpy as np
 
+from pyresample.utils import get_area_def
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -54,8 +55,6 @@ class NcNWCSAFMSG(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name not in self.nc.variables.keys():
-            return
         logger.debug('Reading %s.', key.name)
         variable = self.nc[key.name]
 
@@ -81,6 +80,30 @@ class NcNWCSAFMSG(BaseFileHandler):
                            copy=False,
                            **info)
         return proj
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the datasets in the file."""
+        if dsid.name.endswith('_pal'):
+            raise NotImplementedError
+
+        proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+
+        nlines, ncols = self.nc[dsid.name].shape
+
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000,
+                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000,
+                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000,
+                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000)
+
+        area = get_area_def('some_area_name',
+                            "On-the-fly area",
+                            'geosmsg',
+                            proj_str,
+                            ncols,
+                            nlines,
+                            area_extent)
+
+        return area
 
     @property
     def start_time(self):
