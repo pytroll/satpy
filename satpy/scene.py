@@ -59,7 +59,7 @@ class Scene(InfoObject):
                 satpy.
             reader: The name of the reader to use for loading the data.
             base_dir: The directory to search for files containing the data to
-                load.
+                load. If *filenames* is also provided, this is ignored.
             metadata: Free metadata information.
         """
         InfoObject.__init__(self, **metadata)
