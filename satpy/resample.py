@@ -35,10 +35,10 @@ from logging import getLogger
 
 import numpy as np
 import six
+
 from pyresample.ewa import fornav, ll2cr
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
-
 from satpy.config import get_config, get_config_path
 from satpy.projectable import Projectable
 
@@ -55,7 +55,8 @@ CACHE_SIZE = 10
 def get_area_file():
     conf, successes = get_config("satpy.cfg")
     if conf is None or not successes:
-        LOG.warning("Couldn't find the satpy.cfg file. Do you have one ? is it in $PPP_CONFIG_DIR ?")
+        LOG.warning(
+            "Couldn't find the satpy.cfg file. Do you have one ? is it in $PPP_CONFIG_DIR ?")
         return None
 
     try:
@@ -101,7 +102,8 @@ class BaseResampler(object):
                       getattr(area, 'name', 'swath'))
         try:
             area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.area_extent).encode("utf-8")).hexdigest(),
+                                 hashlib.sha1(json.dumps(area.area_extent).encode(
+                                     "utf-8")).hexdigest(),
                                  hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
         except AttributeError:
             if not hasattr(area, "lons") or area.lons is None:
@@ -206,7 +208,8 @@ class KDTreeResampler(BaseResampler):
                 #lats = np.tile(lats, (1, 1, mask.shape[2]))
 
             # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            # the ma.array function combines the undelying mask with the new one (OR)
+            # the ma.array function combines the undelying mask with the new
+            # one (OR)
             source_geo_def.lons = np.ma.array(lons, mask=mask)
             source_geo_def.lats = np.ma.array(lats, mask=mask)
 
@@ -214,9 +217,11 @@ class KDTreeResampler(BaseResampler):
                                 radius_of_influence=radius_of_influence,
                                 epsilon=epsilon)
         if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
+            filename = os.path.join(
+                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
         else:
-            filename = os.path.join('.', hashlib.sha1(kd_hash.encode("utf-8")).hexdigest() + ".npz")
+            filename = os.path.join('.', hashlib.sha1(
+                kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
         try:
             self.cache = self.caches[kd_hash]
@@ -276,7 +281,8 @@ class KDTreeResampler(BaseResampler):
                                               self.cache["valid_input_index"],
                                               self.cache["valid_output_index"],
                                               self.cache["index_array"],
-                                              distance_array=self.cache["distance_array"],
+                                              distance_array=self.cache[
+                                                  "distance_array"],
                                               weight_funcs=weight_funcs,
                                               fill_value=fill_value,
                                               with_uncert=with_uncert)
@@ -295,7 +301,8 @@ class EWAResampler(BaseResampler):
         """
         self.swath_usage = swath_usage
         self.grid_coverage = grid_coverage
-        super(EWAResampler, self).__init__(source_geo_def, target_geo_def, **kwargs)
+        super(EWAResampler, self).__init__(
+            source_geo_def, target_geo_def, **kwargs)
 
     def precompute(self, mask=None,
                    # nprocs=1,
@@ -313,9 +320,11 @@ class EWAResampler(BaseResampler):
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def)
         if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
+            filename = os.path.join(
+                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
         else:
-            filename = os.path.join('.', hashlib.sha1(kd_hash.encode("utf-8")).hexdigest() + ".npz")
+            filename = os.path.join('.', hashlib.sha1(
+                kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
         try:
             self.cache = self.caches[kd_hash]
@@ -357,12 +366,14 @@ class EWAResampler(BaseResampler):
             # inplace operation so lon_arr and lat_arr are written to
             swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
         else:
-            raise NotImplementedError("Dynamic ll2cr is not supported by satpy yet")
+            raise NotImplementedError(
+                "Dynamic ll2cr is not supported by satpy yet")
             swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
             swath_points_in_grid, lon_orig, lat_orig, origin_x, origin_y, width, height = results
 
             # edit the grid information because now we know what it is
-            # FIXME: This should be less magical to the user, maybe a separate step for this operation
+            # FIXME: This should be less magical to the user, maybe a separate
+            # step for this operation
             self.target_geo_def.origin_x = origin_x
             self.target_geo_def.origin_y = origin_y
             self.target_geo_def.width = width
@@ -376,7 +387,8 @@ class EWAResampler(BaseResampler):
                      (grid_name, fraction_in * 100))
             raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
         else:
-            LOG.debug("Data fits in grid %s and uses %f%% of the swath", grid_name, fraction_in * 100)
+            LOG.debug("Data fits in grid %s and uses %f%% of the swath",
+                      grid_name, fraction_in * 100)
 
         # it's important here not to modify the existing cache dictionary.
         self.cache = {
@@ -390,7 +402,8 @@ class EWAResampler(BaseResampler):
             self.caches.popitem(False)
 
         if cache_dir:
-            # XXX: Look in to doing memmap-able files instead `arr.tofile(filename)`
+            # XXX: Look in to doing memmap-able files instead
+            # `arr.tofile(filename)`
             self.dump(filename)
         return self.cache
 
@@ -402,7 +415,8 @@ class EWAResampler(BaseResampler):
         cols = self.cache["cols"]
         # if the data is scan based then check its metadata or the passed kwargs
         # otherwise assume the entire input swath is one large "scanline"
-        rows_per_scan = getattr(data, "info", kwargs).get("rows_per_scan", data.shape[0])
+        rows_per_scan = getattr(data, "info", kwargs).get(
+            "rows_per_scan", data.shape[0])
         num_valid_points, out_arrs = fornav(cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
                                             weight_count=weight_count, weight_min=weight_min,
                                             weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
@@ -416,9 +430,11 @@ class EWAResampler(BaseResampler):
             msg = "EWA resampling only found %f%% of the grid covered (need %f%%)" % (grid_covered_ratio * 100,
                                                                                       self.grid_coverage * 100)
             raise RuntimeError(msg)
-        LOG.debug("EWA resampling found %f%% of the grid covered" % (grid_covered_ratio * 100))
+        LOG.debug("EWA resampling found %f%% of the grid covered" %
+                  (grid_covered_ratio * 100))
         info = getattr(data, "info", {})
-        info["mask"] = np.isnan(out_arr) if np.issubdtype(data.dtype, np.floating) else out_arr == fill
+        info["mask"] = np.isnan(out_arr) if np.issubdtype(
+            data.dtype, np.floating) else out_arr == fill
         return Projectable(out_arr, **info)
 
 

@@ -27,7 +27,9 @@
 import numpy as np
 import six
 
+
 class InfoObject(object):
+
     def __init__(self, **attributes):
         self.info = attributes
 
@@ -43,7 +45,8 @@ def combine_info(*info_objects):
     """
     shared_keys = None
     info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared keys
+    # grab all of the dictionary objects provided and make a set of the shared
+    # keys
     for info_object in info_objects:
         if isinstance(info_object, dict):
             info_dict = info_object
@@ -81,6 +84,7 @@ def copy_info(func):
     Returns:
         the decorated function
     """
+
     def wrapper(self, other, *args, **kwargs):
         res = func(self, other, *args, **kwargs)
         res.info = combine_info(self, other)
@@ -97,6 +101,7 @@ def copy_info1(func):
     Returns:
         the decorated function
     """
+
     def wrapper(self, *args, **kwargs):
         res = func(self, *args, **kwargs)
         res.info = self.info.copy()
@@ -105,7 +110,8 @@ def copy_info1(func):
 
 
 class Dataset(np.ma.MaskedArray):
-    _array_kwargs = ["mask", "dtype", "copy", "subok", "ndmin", "keep_mask", "hard_mask", "shrink"]
+    _array_kwargs = ["mask", "dtype", "copy", "subok",
+                     "ndmin", "keep_mask", "hard_mask", "shrink"]
     _shared_kwargs = ["fill_value"]
 
     def __new__(cls, data, **info):
@@ -113,7 +119,8 @@ class Dataset(np.ma.MaskedArray):
         # We first cast to be our class type
         # pull out kwargs that are meant for the masked array
         array_kwargs = {k: info.pop(k) for k in cls._array_kwargs if k in info}
-        array_kwargs.update({k: info[k] for k in cls._shared_kwargs if k in info})
+        array_kwargs.update({k: info[k]
+                             for k in cls._shared_kwargs if k in info})
         obj = np.ma.MaskedArray(data, **array_kwargs).view(cls)
         # add the new attribute to the created instance
         obj.info = getattr(data, "info", {})
@@ -385,7 +392,6 @@ class Dataset(np.ma.MaskedArray):
         return "\n\t".join(res)
 
 
-
 # the generic projectable dataset class
 
 
@@ -428,4 +434,3 @@ class Projectable(Dataset):
         res = Projectable(new_data, **self.info)
         res.info["area"] = destination_area
         return res
-

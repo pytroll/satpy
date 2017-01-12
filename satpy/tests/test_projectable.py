@@ -23,11 +23,14 @@
 """test projectable objects.
 """
 
-import unittest
-from satpy import projectable
-import numpy as np
 import sys
+import unittest
+
 import mock
+import numpy as np
+
+from satpy import projectable
+
 
 class TestDataset(unittest.TestCase):
     """
@@ -41,7 +44,7 @@ class TestDataset(unittest.TestCase):
         ds = projectable.Dataset(np.arange(8), foo="bar")
         ds_copy = ds.copy()
         self.assertTrue(ds_copy.data is not ds.data
-                     and all(ds.data == ds_copy.data))
+                        and all(ds.data == ds_copy.data))
         if sys.version >= "2.7":
             self.assertDictEqual(ds.info, ds_copy.info)
 
@@ -316,11 +319,46 @@ class TestDataset(unittest.TestCase):
         c = ~a
         self.assertDictEqual(c.info, a.info)
 
+    # def test_concatenate(self):
+    #     """Check dataset concatenation.
+    #     """
+    #     a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+    #     b = projectable.Dataset([2., 1., 1.], bla=2, bli='hoj')
+    #     c = np.ma.concatenate((a, b))
+    #     self.assertDictEqual(c.info, dict(bla=2, blu='hej', bli='hoj'))
+    #
+    # def test_log(self):
+    #     """Check applying log to dataset.
+    #     """
+    #     a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+    #     c = np.ma.log(a)
+    #     self.assertDictEqual(c.info, dict(bla=2, blu='hej'))
+    #
+    # def test_view(self):
+    #     """Check working on dataset slices.
+    #     """
+    #
+    #     a = projectable.Dataset(np.arange(8), bla=2, blu='hej')
+    #     c = a[3:5]
+    #     c[:] = 9
+    #     c.mask = (False, True)
+    #
+    #     self.assertDictEqual(a.info, c.info)
+    #
+    #     c.info['bli'] = 'hoj'
+    #
+    #     d = projectable.Dataset([0, 1, 2, 9, 9, 5, 6, 7], bla=2, blu='hej', bli='hoj',
+    #                             mask=[False, False, False, False, True, False, False, False])
+    #     self.assertTrue(np.all(c == d))
+    #     self.assertTrue(np.all(c.mask == d.mask))
+    #     self.assertDictEqual(c.info, d.info)
+
 
 class TestProjectable(unittest.TestCase):
     """
     Test the projectable class
     """
+
     def test_init(self):
         """
         Test initialization
@@ -365,6 +403,7 @@ class TestProjectable(unittest.TestCase):
         p = projectable.Projectable(data)
 
         class FakeAreaDef:
+
             def __init__(self, name):
                 self.name = name
 
@@ -386,6 +425,7 @@ class TestProjectable(unittest.TestCase):
         p = projectable.Projectable(data)
 
         class FakeAreaDef:
+
             def __init__(self, name):
                 self.name = name
 
@@ -395,7 +435,8 @@ class TestProjectable(unittest.TestCase):
         res = p.resample(destination_area)
         self.assertTrue(mock_resampler.called)
         self.assertEqual(mock_resampler.call_args[0][0], source_area)
-        np.testing.assert_array_equal(np.rollaxis(data, 0, 3), mock_resampler.call_args[0][1])
+        np.testing.assert_array_equal(np.rollaxis(
+            data, 0, 3), mock_resampler.call_args[0][1])
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
         self.assertTrue(isinstance(res, projectable.Projectable))
         np.testing.assert_array_equal(res.data, data)

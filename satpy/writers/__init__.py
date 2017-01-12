@@ -75,7 +75,6 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
-
     img = orig.pil_image()
 
     if area is None:

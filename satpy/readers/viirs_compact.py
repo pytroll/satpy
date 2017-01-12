@@ -28,10 +28,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import h5py
 import numpy as np
-from pyresample.geometry import SwathDefinition
 
+import h5py
+from pyresample.geometry import SwathDefinition
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
