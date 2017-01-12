@@ -11,6 +11,11 @@ modifiers:
     compositor: !!python/name:satpy.composites.ahi.GreenCorrector
     prerequisites:
     - wavelength: 0.85
+
+  vegetation_corrected_reduced:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    prerequisites:
+    - wavelength: 0.85
       modifiers: [reducer2,]
 
 
@@ -27,9 +32,31 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
+      modifiers: [reducer2, sunz_corrected, rayleigh_corrected]
+    - wavelength: 0.51
+      modifiers: [vegetation_corrected, sunz_corrected, rayleigh_corrected]
+    - wavelength: 0.46
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_ahi
+
+  true_color_reducedsize:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
       modifiers: [reducer4, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.51
-      modifiers: [reducer2, vegetation_corrected, sunz_corrected, rayleigh_corrected]
+      modifiers: [reducer2, vegetation_corrected_reduced, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.46
       modifiers: [reducer2, sunz_corrected, rayleigh_corrected]
-    standard_name: true_color
+    standard_name: true_color_reducedsize
+
+  true_color_norayleigh:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer2, sunz_corrected]
+    - wavelength: 0.51
+      modifiers: [vegetation_corrected, sunz_corrected]
+    - wavelength: 0.46
+      modifiers: [sunz_corrected]
+    standard_name: true_color_norayleigh
