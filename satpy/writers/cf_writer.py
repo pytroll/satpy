@@ -34,6 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CFWriter(Writer):
+
     def save_datasets(self, datasets, filename, **kwargs):
         """Save all datasets to one or more files)
         """
@@ -53,7 +54,8 @@ class CFWriter(Writer):
                                         'pixels': pixel_coord}, )
                 shapes[dataset.shape] = domain
             data = cf.Data(dataset, dataset.info['units'])
-            properties = {'standard_name': dataset.info['standard_name']}
+            properties = {'standard_name': dataset.info['standard_name'],
+                          'name': dataset.info['name']}
             fields.append(cf.Field(properties=properties,
                                    data=data,
                                    axes=['lines', 'pixels'],
