@@ -209,6 +209,35 @@ class HRITFileHandler(BaseFileHandler):
             from satpy.yaml_reader import Shuttle
             return Shuttle(out.data, out.mask, out.info)
 
+    def get_xy_from_linecol(self, line, col, offsets, factors):
+        """Get the intermediate coordinates from line & col.
+
+        Intermediate coordinates are actually the instruments scanning angles.
+        """
+        loff, coff = offsets
+        lfac, cfac = factors
+        x__ = (col - coff) / cfac * 2**16
+        y__ = (line - loff) / lfac * 2**16
+
+        return x__, y__
+
+    def get_area_extent(self, size, offsets, factors, platform_height):
+        """Get the area extent of the file."""
+        nlines, ncols = size
+        h = platform_height
+
+        # count starts at 1
+        cols = 1 - 0.5
+        lines = 1 - 0.5
+        ll_x, ll_y = self.get_xy_from_linecol(lines, cols, offsets, factors)
+
+        cols += ncols
+        lines += nlines
+        ur_x, ur_y = self.get_xy_from_linecol(lines, cols, offsets, factors)
+
+        return (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
+                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+
     def get_area_def(self, dsid):
 
         cfac = np.int32(self.mda['cfac'])
@@ -228,26 +257,10 @@ class HRITFileHandler(BaseFileHandler):
         total_segments = self.mda[
             'planned_end_segment_number'] - self.mda['planned_start_segment_number'] + 1
 
-        # count starts at 1
-        cols = 1 - 0.5
-        lines = 1 - 0.5
-        ll_x = (cols - coff) / cfac * 2**16
-        ll_y = (lines - loff) / lfac * 2**16
-
-        cols += ncols
-        lines += nlines
-        ur_x = (cols - coff) / cfac * 2**16
-        ur_y = (lines - loff) / lfac * 2**16
-
-        # if ((self.start_time < datetime(2017, 1, 24)
-        #      and im.platform in ['MSG2', 'MSG3'])
-        #     or (self.start_time < datetime(2017, 1, 17)
-        #         and im.platform in ['MSG1'])):
-        #     md.coff += 1.5
-        #     md.loff += 1.5
-
-        area_extent = (np.deg2rad(ll_x) * h + 1500, np.deg2rad(ll_y) * h + 1500,
-                       np.deg2rad(ur_x) * h + 1500, np.deg2rad(ur_y) * h + 1500)
+        area_extent = self.get_area_extent((nlines, ncols),
+                                           (loff, coff),
+                                           (lfac, cfac),
+                                           h)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -268,7 +281,8 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def read_band(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
+    def read_band(self, key, info,
+                  out=None, xslice=slice(None), yslice=slice(None)):
         """Read the data"""
         # TODO slicing !
         tic = datetime.now()
