@@ -19,6 +19,38 @@ file_types:
 
 
 datasets:
+  latitude_hh:
+    name: latitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: latitude
+    polarization: hh
+    units: degree
+
+  longitude_hh:
+    name: longitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: longitude
+    polarization: hh
+    units: degree
+
+  latitude_hv:
+    name: latitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: latitude
+    polarization: hv
+    units: degree
+
+  longitude_hv:
+    name: longitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: longitude
+    polarization: hv
+    units: degree
+
   measurement_hh:
     name: measurement
     sensor: sar-c
@@ -34,8 +66,8 @@ datasets:
     #     standard_name: toa_bidirectional_reflectance
     #     units: "%"
     file_type: safe_measurement
-
   measurement_hv:
+
     name: measurement
     sensor: sar-c
     wavelength: [5.400, 5.405, 5.410]
@@ -49,6 +81,7 @@ datasets:
     #   reflectance:
     #     standard_name: toa_bidirectional_reflectance
     #     units: "%"
+    coordinates: [longitude, latitude]
     file_type: safe_measurement
 
   noise_hv:
