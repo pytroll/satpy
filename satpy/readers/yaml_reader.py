@@ -444,9 +444,9 @@ class FileYAMLReader(AbstractYAMLReader):
     def filter_fh_by_time(self, filehandlers):
         """Filter out filehandlers outside the desired time_range."""
         for filehandler in filehandlers:
-            if self._start_time and filehandler.start_time < self._start_time:
+            if self._start_time and filehandler.end_time < self._start_time:
                 continue
-            if self._end_time and filehandler.end_time > self._end_time:
+            if self._end_time and filehandler.start_time > self._end_time:
                 continue
             yield filehandler
 
@@ -456,7 +456,7 @@ class FileYAMLReader(AbstractYAMLReader):
             if self.check_file_covers_area(filehandler):
                 yield filehandler
 
-    def create_filehandlers_for_filetype(self, filetype_info, filenames):
+    def new_filehandlers_for_filetype(self, filetype_info, filenames):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
@@ -474,8 +474,8 @@ class FileYAMLReader(AbstractYAMLReader):
         filename_set = set(filenames)
 
         for filetype, filetype_info in self.sorted_filetype_items():
-            filehandlers = self.create_filehandlers_for_filetype(filetype_info,
-                                                                 filename_set)
+            filehandlers = self.new_filehandlers_for_filetype(filetype_info,
+                                                              filename_set)
 
             filename_set -= set([fh.filename for fh in filehandlers])
             if filehandlers:
@@ -584,9 +584,9 @@ class FileYAMLReader(AbstractYAMLReader):
             filetypes = [filetypes]
 
         # look through the file types and use the first one that we have loaded
-        for ft in filetypes:
-            if ft in self.file_handlers:
-                return ft
+        for filetype in filetypes:
+            if filetype in self.file_handlers:
+                return filetype
         return None
 
     # TODO: move this out of here.
@@ -595,9 +595,9 @@ class FileYAMLReader(AbstractYAMLReader):
         if (area1.area_extent[0] == area2.area_extent[0] and
                 area1.area_extent[2] == area2.area_extent[2]):
             current_extent = list(area1.area_extent)
-            if(np.isclose(area1.area_extent[1], area2.area_extent[3])):
+            if np.isclose(area1.area_extent[1], area2.area_extent[3]):
                 current_extent[1] = area2.area_extent[1]
-            elif(np.isclose(area1.area_extent[3], area2.area_extent[1])):
+            elif np.isclose(area1.area_extent[3], area2.area_extent[1]):
                 current_extent[3] = area2.area_extent[3]
             else:
                 raise IncompatibleAreas("Can't concatenate area definitions with "
