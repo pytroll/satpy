@@ -6,28 +6,35 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    nc_nwcsaf:
+    nc_nwcsaf_ct:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
-        file_patterns: ['S_NWC_{product_name}_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_CT_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+    nc_nwcsaf_ctth:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_patterns: ['S_NWC_CTTH_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
 datasets:
+
   ct:
     name: ct
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf
+    file_type: nc_nwcsaf_ct
+
   ct_pal:
     name: ct_pal
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf
+    file_type: nc_nwcsaf_ct
+
   ctth_alti:
     name: ctth_alti
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf
+    file_type: nc_nwcsaf_ctth
+
   ctth_alti_pal:
     name: ctth_alti_pal
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf
+    file_type: nc_nwcsaf_ctth
