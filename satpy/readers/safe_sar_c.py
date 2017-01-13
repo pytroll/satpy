@@ -33,6 +33,8 @@ from osgeo import gdal
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
 
+from geotiepoints.geointerpolator import GeoInterpolator
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +87,7 @@ class SAFEXML(BaseFileHandler):
         if key.name.endswith('squared'):
             data **= 2
 
-        data = self.interpolate_xml_array(data, low_res_coords, d)
+        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
     def get_noise_correction(self, shape):
         data_items = self.root.findall(".//noiseVector")
@@ -118,48 +120,129 @@ class SAFEGRD(BaseFileHandler):
 
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
-
-        self.band = None
-
+       
         self._polarization = filename_info['polarization']
+
+        self.lats = None
+        self.lons = None
 
         self.calibration = calfh
         self.noise = noisefh
+
+        self.filename = filename
+        self.get_gdal_filehandle()
+
+    def get_gdal_filehandle(self):
+        if os.path.exists(self.filename):
+            self.filehandle = gdal.Open(self.filename)
+            logger.debug("Loading dataset {}".format(self.filename))
+        else:
+            raise IOError("Path {} does not exist.".format(self.filename))
 
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self._polarization != key.polarization:
             return
+
         logger.debug('Reading %s.', key.name)
 
-        band = gdal.Open(self.filename)
+        band = self.filehandle
 
-        data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
+        if key.name in ['longitude', 'latitude']:
+            logger.debug('Constructing coordinate arrays.')
+
+            if self.lons is None or self.lats is None:
+                self.lons, self.lats = self.get_lonlats()
+
+            if key.name == 'latitude':
+                proj = Projectable(self.lats, id=key, **info)
+            else:
+                proj = Projectable(self.lons, id=key, **info)
+
+        else:
+            data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
+            logger.debug('Reading noise data.')
+
+            noise = self.noise.get_noise_correction(data.shape)
+
+            logger.debug('Reading calibration data.')
+
+            cal = self.calibration.get_calibration('gamma', data.shape)
+            cal_constant = self.calibration.get_calibration_constant()
+
+            logger.debug('Calibrating.')
+
+            data **= 2
+            data += cal_constant - noise
+            data /= cal
+            data[data < 0] = 0
+            del noise, cal
+
+            proj = Projectable(np.sqrt(data),
+                               copy=False,
+                               units='sigma')
         del band
-
-        logger.debug('Reading noise data.')
-
-        noise = self.noise.get_noise_correction(data.shape)
-
-        logger.debug('Reading calibration data.')
-
-        cal = self.calibration.get_calibration('gamma', data.shape)
-        cal_constant = self.calibration.get_calibration_constant()
-
-        logger.debug('Calibrating.')
-
-        # val = np.sqrt((data ** 2. + cal_constant - noise) / sigma ** 2)
-        # val = np.sqrt((data ** 2. - noise))
-        # data = (data ** 2. + cal_constant - noise) / sigma_sqr
-        data **= 2
-        data += cal_constant - noise
-        data /= cal
-        data[data < 0] = 0
-        del noise, cal
-        proj = Projectable(np.sqrt(data),
-                           copy=False,
-                           units='sigma')
         return proj
+
+    def get_lonlats(self):
+        """
+        Obtain GCPs and construct latitude and longitude arrays
+ 	    Args:
+           band (gdal band): Measurement band which comes with GCP's
+           array_shape (tuple) : The size of the data array
+        Returns:
+           coordinates (tuple): A tuple with longitude and latitude arrays
+        """
+
+        band = self.filehandle
+
+        band_x_size = band.RasterXSize
+        band_y_size = band.RasterYSize
+
+        (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps(band,
+                                                                (band_y_size,
+                                                                 band_x_size))
+        fine_cols = np.arange(band_x_size)
+        fine_rows = np.arange(band_y_size)
+
+        satint = GeoInterpolator((gcp_lons, gcp_lats),
+		                         (ypoints, xpoints),
+		                         (fine_rows, fine_cols), 2,2)
+
+        longitudes, latitudes = satint.interpolate()
+
+        # FIXME: check if the array is C-contigious, and make it such if it isn't
+        if longitudes.flags['CONTIGUOUS'] is False:
+            longitudes = np.ascontiguousarray(longitudes)
+        if latitudes.flags['CONTIGUOUS'] is False:
+            latitudes = np.ascontiguousarray(latitudes)
+
+        return longitudes, latitudes
+
+    def get_gcps(self, band, array_shape):
+        """
+        Read GCP from the GDAL band
+
+        Args:
+           band (gdal band): Measurement band which comes with GCP's
+           coordinates (tuple): A tuple with longitude and latitude arrays
+
+        Returns:
+           points (tuple): Pixel and Line indices 1d arrays
+           gcp_coords (tuple): longitude and latitude 1d arrays
+        """
+
+        gcps = band.GetGCPs()
+
+        gcp_array = np.array([(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
+
+        ypoints = np.unique(gcp_array[:,0])
+        xpoints = np.unique(gcp_array[:,1])
+
+        gcp_lats = gcp_array[:,2].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lons = gcp_array[:,3].reshape(ypoints.shape[0], xpoints.shape[0])
+
+        return (xpoints, ypoints), (gcp_lons, gcp_lats)
 
     @property
     def start_time(self):
