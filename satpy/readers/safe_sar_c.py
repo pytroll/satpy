@@ -120,38 +120,45 @@ class SAFEGRD(BaseFileHandler):
 
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+       
+        self._polarization = filename_info['polarization']
 
-        self.band = None
         self.lats = None
         self.lons = None
 
-        self._polarization = filename_info['polarization']
-
         self.calibration = calfh
         self.noise = noisefh
-        self.filehandle = gdal.Open(self.filename)
+
+        self.filename = filename
+        self.get_gdal_filehandle()
+
+    def get_gdal_filehandle(self):
+        if os.path.exists(self.filename):
+            self.filehandle = gdal.Open(self.filename)
+            logger.debug("Loading dataset {}".format(self.filename))
+        else:
+            raise IOError("Path {} does not exist.".format(self.filename))
 
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self._polarization != key.polarization:
             return
+
         logger.debug('Reading %s.', key.name)
 
         band = self.filehandle
-
-        band_x_size = band.RasterXSize
-        band_y_size = band.RasterYSize
 
         if key.name in ['longitude', 'latitude']:
             logger.debug('Constructing coordinate arrays.')
 
             if self.lons is None or self.lats is None:
-                self.lons, self.lats = self.get_lonlats(band, (band_y_size, band_x_size))
+                self.lons, self.lats = self.get_lonlats()
 
             if key.name == 'latitude':
                 proj = Projectable(self.lats, id=key, **info)
             else:
                 proj = Projectable(self.lons, id=key, **info)
+
         else:
             data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
             logger.debug('Reading noise data.')
@@ -165,9 +172,6 @@ class SAFEGRD(BaseFileHandler):
 
             logger.debug('Calibrating.')
 
-            # val = np.sqrt((data ** 2. + cal_constant - noise) / sigma ** 2)
-            # val = np.sqrt((data ** 2. - noise))
-            # data = (data ** 2. + cal_constant - noise) / sigma_sqr
             data **= 2
             data += cal_constant - noise
             data /= cal
@@ -180,7 +184,7 @@ class SAFEGRD(BaseFileHandler):
         del band
         return proj
 
-    def get_lonlats(self, band, array_shape):
+    def get_lonlats(self):
         """
         Obtain GCPs and construct latitude and longitude arrays
  	    Args:
@@ -189,7 +193,18 @@ class SAFEGRD(BaseFileHandler):
         Returns:
            coordinates (tuple): A tuple with longitude and latitude arrays
         """
-        (xpoints, ypoints), (gcp_lons, gcp_lats), (fine_cols, fine_rows) = self.get_gcps(band, array_shape)
+
+        band = self.filehandle
+
+        band_x_size = band.RasterXSize
+        band_y_size = band.RasterYSize
+
+        (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps(band,
+                                                                (band_y_size,
+                                                                 band_x_size))
+        fine_cols = np.arange(band_x_size)
+        fine_rows = np.arange(band_y_size)
+
         satint = GeoInterpolator((gcp_lons, gcp_lats),
 		                         (ypoints, xpoints),
 		                         (fine_rows, fine_cols), 2,2)
@@ -215,24 +230,19 @@ class SAFEGRD(BaseFileHandler):
         Returns:
            points (tuple): Pixel and Line indices 1d arrays
            gcp_coords (tuple): longitude and latitude 1d arrays
-           fine_grid_points (tuple): pixel and line indices 1d arrays for the new coordinate grid
         """
 
         gcps = band.GetGCPs()
 
-        points_array = np.array([(point.GCPLine, point.GCPPixel) for point in gcps])
-        ypoints = np.unique(points_array[:,0])
-        xpoints = np.unique(points_array[:,1])
-        xpoints.sort(); ypoints.sort()
+        gcp_array = np.array([(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
 
-        gcp_coords = np.array([(points.GCPY, points.GCPX) for points in gcps])
-        lats = gcp_coords[:,0].reshape(ypoints.shape[0], xpoints.shape[0])
-        lons = gcp_coords[:,1].reshape(ypoints.shape[0], xpoints.shape[0])
+        ypoints = np.unique(gcp_array[:,0])
+        xpoints = np.unique(gcp_array[:,1])
 
-        fine_cols = np.arange(array_shape[1])
-        fine_rows = np.arange(array_shape[0])
+        gcp_lats = gcp_array[:,2].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lons = gcp_array[:,3].reshape(ypoints.shape[0], xpoints.shape[0])
 
-        return (xpoints, ypoints), (lons, lats), (fine_cols, fine_rows)
+        return (xpoints, ypoints), (gcp_lons, gcp_lats)
 
     @property
     def start_time(self):
