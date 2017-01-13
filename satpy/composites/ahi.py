@@ -58,7 +58,7 @@ class Reducer2(CompositeBase):
     def __call__(self, projectables, optional_datasets=None, **info):
         (band,) = projectables
 
-        factor = 4
+        factor = 2
 
         # proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
@@ -92,7 +92,7 @@ class Reducer4(CompositeBase):
     def __call__(self, projectables, optional_datasets=None, **info):
         (band,) = projectables
 
-        factor = 8
+        factor = 4
 
         #proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
