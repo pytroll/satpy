@@ -24,6 +24,9 @@
 
 import logging
 
+import numpy as np
+import six
+
 from pyresample.geometry import AreaDefinition
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.projectable import Projectable, combine_info
@@ -58,7 +61,7 @@ class Reducer2(CompositeBase):
     def __call__(self, projectables, optional_datasets=None, **info):
         (band,) = projectables
 
-        factor = 2
+        factor = 4
 
         # proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
@@ -92,7 +95,7 @@ class Reducer4(CompositeBase):
     def __call__(self, projectables, optional_datasets=None, **info):
         (band,) = projectables
 
-        factor = 4
+        factor = 8
 
         #proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
@@ -118,3 +121,63 @@ class Reducer4(CompositeBase):
                                     modifiers=proj.info['id'].modifiers)
 
         return proj
+
+class RGBCompositor(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables), ))
+        try:
+            the_data = np.rollaxis(
+                np.ma.dstack([projectable for projectable in projectables]),
+                axis=2)
+        except ValueError:
+            raise IncompatibleAreas
+        # info = projectables[0].info.copy()
+        # info.update(projectables[1].info)
+        # info.update(projectables[2].info)
+        info = combine_info(*projectables)
+        info.update(self.info)
+        info['id'] = DatasetID(self.info['name'])
+        # FIXME: should this be done here ?
+        info["wavelength_range"] = None
+        info.pop("units", None)
+        sensor = set()
+        for projectable in projectables:
+            current_sensor = projectable.info.get("sensor", None)
+            if current_sensor:
+                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                    sensor.add(current_sensor)
+                else:
+                    sensor |= current_sensor
+        if len(sensor) == 0:
+            sensor = None
+        elif len(sensor) == 1:
+            sensor = list(sensor)[0]
+        info["sensor"] = sensor
+        info["mode"] = "RGB"
+        return Projectable(data=the_data, **info)
+
+class Airmass(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make an airmass RGB image composite (Himawari 8 version MSC JMA)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | WV6.2 - WV7.3      |     -25 to 0 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR9.6 - IR10.4     |     -40 to 5 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | WV6.2              |   243 to 208 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
+                                                projectables[2] - projectables[3],
+                                                projectables[0]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
