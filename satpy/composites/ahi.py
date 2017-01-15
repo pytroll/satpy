@@ -300,3 +300,26 @@ class Cloudtop(RGBCompositor):
         except ValueError:
             raise IncompatibleAreas
         return res
+
+class PWV(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a cloudtop RGB image composite (Himawari 8)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        |       WV6.2        |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |       WV6.9        |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |       WV7.3        |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[0],
+                                                projectables[1],
+                                                projectables[2]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res

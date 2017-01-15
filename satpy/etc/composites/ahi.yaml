@@ -64,6 +64,14 @@ composites:
     - 12.4
     standard_name: cloudtop_ahi
 
+  pwv:
+    compositor: !!python/name:satpy.composites.ahi.PWV
+    prerequisites:
+    - 6.2
+    - 6.9
+    - 7.3
+    standard_name: pwv
+
   ash_ahi:
     compositor: !!python/name:satpy.composites.ahi.Ash
     prerequisites:
