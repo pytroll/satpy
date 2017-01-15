@@ -22,9 +22,11 @@ composites:
   overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 0.65
-    - 0.85
-    - 10.4
+    - wavelength: 0.65
+      modifiers: [ reducer4 ]
+    - wavelength: 0.85
+      modifiers: [ reducer2 ]
+    - wavelength: 10.4
     standard_name: overview
 
   airmass:
