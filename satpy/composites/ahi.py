@@ -6,6 +6,9 @@
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#
+#   AHI specific composites:
+#   Balthasar Indermühle <balt@inside.net>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -178,6 +181,122 @@ class Airmass(RGBCompositor):
             res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
                                                 projectables[2] - projectables[3],
                                                 projectables[0]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+class Dayconvective(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a day convective RGB image composite (Himawari 8 version MSC JMA)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | WV6.2 - WV7.3      |     -35 to 5 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR3.9 - IR10.4     |     -5 to 60 K     | gamma 0.5          |
+        +--------------------+--------------------+--------------------+
+        | NIR1.6 - VIS0.6    |    -75 to 25 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
+                                                projectables[2] - projectables[5],
+                                                projectables[1] - projectables[0]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+class Ash(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a day convective RGB image composite (Himawari 8 version MSC JMA)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.3 - IR10.4    |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.4 - IR8.6     |     -4 to 5 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |       IR10.4       |    243 to 208 K    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
+                                                projectables[1] - projectables[0],
+                                                projectables[1]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+class MicrophysicsDay(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a day Microphysics/Nephanalysis RGB image composite (Himawari 8 version MSC JMA)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        |     NIR0.86        |     0 - 100 %      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |      IR3.9         |  Summer: 0 - 60 %  | gamma 2.5          |
+        |                    |  Winter: 0 - 25 %  | gamma 1.5          |
+        +--------------------+--------------------+--------------------+
+        |      IR10.4        |    203 to 323 K    | gamma 1, reverse   |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[0],
+                                                projectables[1],
+                                                projectables[2]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+class MicrophysicsNight(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a night microphysics/nephanalysis RGB image composite (Himawari 8 version MSC JMA)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        |  IR12.4 - IR10.4   |    -4 to 2 K       | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |   IR10.4 - IR3.9   |     0 to 10 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |      IR10.4        |    243 to 293 K    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
+                                                projectables[1] - projectables[0],
+                                                projectables[2]), *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+class Cloudtop(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a cloudtop RGB image composite (Himawari 8)
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        |       IR3.9        |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |       IR10.4       |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        |       IR12.4       |                    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        try:
+            res = RGBCompositor.__call__(self, (projectables[0],
+                                                projectables[1],
+                                                projectables[2]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res

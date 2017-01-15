@@ -36,13 +36,67 @@ composites:
     - 10.4
     standard_name: airmass
 
+  dayconvective:
+    compositor: !!python/name:satpy.composites.ahi.Dayconvective
+    prerequisites:
+    - wavelength: 0.64
+      modifiers: [reducer4]
+    - wavelength: 1.6
+    - wavelength: 3.9
+    - wavelength: 6.2
+    - wavelength: 7.3
+    - wavelength: 10.4
+    standard_name: dayconvective
+
+  microphysics_night:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsNight
+    prerequisites:
+    - 3.9
+    - 10.4
+    - 12.4
+    standard_name: microphysics_night
+
+  cloudtop_ahi:
+    compositor: !!python/name:satpy.composites.ahi.Cloudtop
+    prerequisites:
+    - 3.9
+    - 10.4
+    - 12.4
+    standard_name: cloudtop_ahi
+
+  ash_ahi:
+    compositor: !!python/name:satpy.composites.ahi.Ash
+    prerequisites:
+    - 8.6
+    - 10.4
+    - 12.4
+    standard_name: ash_ahi
+
+  microphysics_day_summer:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsDay
+    prerequisites:
+    - wavelength: 0.86
+      modifiers: [reducer2]
+    - wavelength: 3.9
+    - wavelength: 10.4
+    standard_name: microphysics_day_summer
+
+  microphysics_day_winter:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsDay
+    prerequisites:
+    - wavelength: 0.86
+      modifiers: [reducer2]
+    - wavelength: 3.9
+    - wavelength: 10.4
+    standard_name: microphysics_day_winter
+
   true_color:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [ reducer2, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.51
-      modifiers: [ vegetation_corrected_norayleigh, sunz_corrected, rayleigh_corrected]
+      modifiers: [ vegetation_corrected, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.46
       modifiers: [ sunz_corrected, rayleigh_corrected]
     standard_name: true_color
