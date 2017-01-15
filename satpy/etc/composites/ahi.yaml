@@ -36,7 +36,7 @@ composites:
     - 10.4
     standard_name: airmass
 
-  dayconvective:
+  dayconvective_ahi:
     compositor: !!python/name:satpy.composites.ahi.Dayconvective
     prerequisites:
     - wavelength: 0.64
@@ -46,7 +46,7 @@ composites:
     - wavelength: 6.2
     - wavelength: 7.3
     - wavelength: 10.4
-    standard_name: dayconvective
+    standard_name: dayconvective_ahi
 
   microphysics_night:
     compositor: !!python/name:satpy.composites.ahi.MicrophysicsNight
@@ -57,7 +57,7 @@ composites:
     standard_name: microphysics_night
 
   cloudtop_ahi:
-    compositor: !!python/name:satpy.composites.ahi.Cloudtop
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 3.9
     - 10.4
@@ -65,7 +65,7 @@ composites:
     standard_name: cloudtop_ahi
 
   pwv:
-    compositor: !!python/name:satpy.composites.ahi.PWV
+    compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - 6.2
     - 6.9
