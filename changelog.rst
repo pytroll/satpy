@@ -1,6 +1,121 @@
 Changelog
 =========
 
+v0.3.1 (2017-01-16)
+-------------------
+
+- Update changelog. [Martin Raspaud]
+
+- Bump version: 0.3.0 → 0.3.1. [Martin Raspaud]
+
+- Cleanup SAR-C. [Martin Raspaud]
+
+- Add annotations loading for sar-c. [Martin Raspaud]
+
+- Merge pull request #22 from mitkin/feature-sar-geolocation. [Martin
+  Raspaud]
+
+  Feature SAFE (Sentinel 1) SAR geolocation
+
+- Refactor coordinates computation. [Mikhail Itkin]
+
+  Refactor changes for pull request #22
+
+
+- Merge branch 'develop' of https://github.com/mitkin/satpy into
+  feature-sar-geolocation. [Mikhail Itkin]
+
+- Make Sentinel 1 (SAFE) reader able to read coordinates. [Mikhail
+  Itkin]
+
+  Add latitude and longitude dictionaries to the `sar_c.yaml` reader
+  and make the `safe_sar_c.py` reader compute coordinate arrays from
+  a collection of GCPs provided in the measurement files.
+
+  NB: each polarization has it's set of longitudes and latitudes.
+
+
+- Restore reducers to their original values. [Martin Raspaud]
+
+- Add alternatives for true color on ahi. [Martin Raspaud]
+
+  Thanks balt
+
+- Add name to the dataset attributes when writing nc files. [Martin
+  Raspaud]
+
+- Improve documentation. [Martin Raspaud]
+
+- Add proper enhancements for nwcsaf images. [Martin Raspaud]
+
+- Refactor hrit msg area def computation. [Martin Raspaud]
+
+- Perform som PEP8 cleanup. [Martin Raspaud]
+
+- Fix nwcsaf reader and its area definition. [Martin Raspaud]
+
+- Merge pull request #21 from mitkin/develop. [David Hoese]
+
+  Mock pyresample.ewa
+
+- Mock pyresample.ewa. [Mikhail Itkin]
+
+  Mock pyresample.ewa to prevent sphinx from importing the module.
+
+- Add NWCSAF MSG nc reader and composites. [Martin Raspaud]
+
+- Add gamma to the sarice composite. [Martin Raspaud]
+
+- Cleanup the sar composite. [Martin Raspaud]
+
+- Add the sar-ice composite. [Martin Raspaud]
+
+- Clean up the safe sar-c reader. [Martin Raspaud]
+
+- Finalize MSG HRIT calibration. [Martin Raspaud]
+
+- Fix abi reader copyright. [Martin Raspaud]
+
+- Refactor yaml_reader's create_filehandlers. [Martin Raspaud]
+
+- Rename function. [Martin Raspaud]
+
+- Add a composite file for slstr. [Martin Raspaud]
+
+- Add a noaa GAC/LAC reader using PyGAC. [Martin Raspaud]
+
+- Implement a mipp-free HRIT reader. [Martin Raspaud]
+
+  WIP, supports only MSG, no calibration yet.
+
+- Concatenate area_def through making new AreaDefinition. [Martin
+  Raspaud]
+
+  This makes the concatenation independent of the AreaDefinition
+  implementation.
+
+- Allow stacking area_def from bottom-up. [Martin Raspaud]
+
+- Fix yaml_reader testing. [Martin Raspaud]
+
+- Add support for filetype requirements. [Martin Raspaud]
+
+- Remove print statement in slstr reader. [Martin Raspaud]
+
+- Remove deprecated helper functions. [Martin Raspaud]
+
+- Refactor select_files, yaml_reader. [Martin Raspaud]
+
+- Editorials. [Adam.Dybbroe]
+
+- Add coastline overlay capability. [Martin Raspaud]
+
+- Move the Node class to its own module. [Martin Raspaud]
+
+- Initialize angles in epsl1b reader. [Martin Raspaud]
+
+- Add angles reading to eps reader. [Martin Raspaud]
+
 v0.3.0 (2016-12-13)
 -------------------
 
