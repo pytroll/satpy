@@ -13,9 +13,14 @@ file_types:
     safe_calibration:
         file_reader: !!python/name:satpy.readers.safe_sar_c.SAFEXML
         file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/calibration/calibration-{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
+        requires: [safe_gcps]
     safe_noise:
         file_reader: !!python/name:satpy.readers.safe_sar_c.SAFEXML
         file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/calibration/noise-{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
+        requires: [safe_gcps]
+    safe_gcps:
+        file_reader: !!python/name:satpy.readers.safe_sar_c.SAFEXML
+        file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
 
 
 datasets:

@@ -38,9 +38,31 @@ from geotiepoints.geointerpolator import GeoInterpolator
 logger = logging.getLogger(__name__)
 
 
+def dictify(r, root=True):
+    """Convert an ElementTree into a dict."""
+    if root:
+        return {r.tag: dictify(r, False)}
+    d = {}
+    if r.text and r.text.strip():
+        try:
+            return int(r.text)
+        except ValueError:
+            try:
+                return float(r.text)
+            except ValueError:
+                return r.text
+    for x in r.findall("./*"):
+        if x.tag in d and not isinstance(d[x.tag], list):
+            d[x.tag] = [d[x.tag]]
+            d[x.tag].append(dictify(x, False))
+        else:
+            d[x.tag] = dictify(x, False)
+    return d
+
+
 class SAFEXML(BaseFileHandler):
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, header_file=None):
         super(SAFEXML, self).__init__(filename, filename_info,
                                       filetype_info)
 
@@ -48,6 +70,13 @@ class SAFEXML(BaseFileHandler):
         self._end_time = filename_info['end_time']
         self._polarization = filename_info['polarization']
         self.root = ET.parse(self.filename)
+        self.hdr = {}
+        if header_file is not None:
+            self.hdr = header_file.get_metadata()
+
+    def get_metadata(self):
+        """Convert the xml metadata to dict."""
+        return dictify(self.root.getroot())
 
     @staticmethod
     def read_xml_array(elts, variable_name):
