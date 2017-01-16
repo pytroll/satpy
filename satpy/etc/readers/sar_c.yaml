@@ -24,44 +24,28 @@ file_types:
 
 
 datasets:
-  latitude_hh:
+  latitude:
     name: latitude
     resolution: 80
     file_type: safe_measurement
     standard_name: latitude
-    polarization: hh
+    polarization: [hh, hv]
     units: degree
 
-  longitude_hh:
+  longitude:
     name: longitude
     resolution: 80
     file_type: safe_measurement
     standard_name: longitude
-    polarization: hh
+    polarization: [hh, hv]
     units: degree
 
-  latitude_hv:
-    name: latitude
-    resolution: 80
-    file_type: safe_measurement
-    standard_name: latitude
-    polarization: hv
-    units: degree
-
-  longitude_hv:
-    name: longitude
-    resolution: 80
-    file_type: safe_measurement
-    standard_name: longitude
-    polarization: hv
-    units: degree
-
-  measurement_hh:
+  measurement:
     name: measurement
     sensor: sar-c
     wavelength: [5.400, 5.405, 5.410]
     resolution: 80
-    polarization: hh
+    polarization: [hh, hv]
     # navigation: esa_geo
     # calibration:
     #   radiance:
@@ -71,85 +55,39 @@ datasets:
     #     standard_name: toa_bidirectional_reflectance
     #     units: "%"
     file_type: safe_measurement
-  measurement_hv:
 
-    name: measurement
-    sensor: sar-c
-    wavelength: [5.400, 5.405, 5.410]
-    resolution: 80
-    polarization: hv
-    # navigation: esa_geo
-    # calibration:
-    #   radiance:
-    #     standard_name: toa_outgoing_radiance_per_unit_wavelength
-    #     units: W m-2 um-1 sr-1
-    #   reflectance:
-    #     standard_name: toa_bidirectional_reflectance
-    #     units: "%"
-    coordinates: [longitude, latitude]
-    file_type: safe_measurement
-
-  noise_hv:
+  noise:
     name: noise
     sensor: sar-c
     resolution: 80
-    polarization: hv
+    polarization: [hh, hv]
     file_type: safe_noise
     xml_item: noiseVector
     xml_tag: noiseLut
-  noise_hh:
-    name: noise
-    sensor: sar-c
-    resolution: 80
-    polarization: hh
-    file_type: safe_noise
-    xml_item: noiseVector
-    xml_tag: noiseLut
-  sigma_hv:
+
+  sigma:
     name: sigma_squared
     sensor: sar-c
     resolution: 80
-    polarization: hv
+    polarization: [hh, hv]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: sigma
-  sigma_hh:
-    name: sigma_squared
-    sensor: sar-c
-    resolution: 80
-    polarization: hh
-    file_type: safe_calibration
-    xml_item: calibrationVector
-    xml_tag: sigma
-  beta_hv:
+
+  beta:
     name: beta_squared
     sensor: sar-c
     resolution: 80
-    polarization: hv
+    polarization: [hh, hv]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: beta
-  beta_hh:
-    name: beta_squared
-    sensor: sar-c
-    resolution: 80
-    polarization: hh
-    file_type: safe_calibration
-    xml_item: calibrationVector
-    xml_tag: beta
-  gamma_hv:
+
+  gamma:
     name: gamma_squared
     sensor: sar-c
     resolution: 80
-    polarization: hv
-    file_type: safe_calibration
-    xml_item: calibrationVector
-    xml_tag: gamma
-  gamma_hh:
-    name: gamma_squared
-    sensor: sar-c
-    resolution: 80
-    polarization: hh
+    polarization: [hh, hv]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: gamma
