@@ -24,16 +24,14 @@
 
 import logging
 import os
-from datetime import datetime
-from xml.etree import ElementTree as ET
+import xml.etree.ElementTree as ET
 
 import numpy as np
 from osgeo import gdal
 
+from geotiepoints.geointerpolator import GeoInterpolator
 from satpy.projectable import Projectable
 from satpy.readers.file_handlers import BaseFileHandler
-
-from geotiepoints.geointerpolator import GeoInterpolator
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +147,7 @@ class SAFEGRD(BaseFileHandler):
 
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
-       
+
         self._polarization = filename_info['polarization']
 
         self.lats = None
@@ -216,7 +214,7 @@ class SAFEGRD(BaseFileHandler):
     def get_lonlats(self):
         """
         Obtain GCPs and construct latitude and longitude arrays
- 	    Args:
+            Args:
            band (gdal band): Measurement band which comes with GCP's
            array_shape (tuple) : The size of the data array
         Returns:
@@ -229,18 +227,19 @@ class SAFEGRD(BaseFileHandler):
         band_y_size = band.RasterYSize
 
         (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps(band,
-                                                                (band_y_size,
-                                                                 band_x_size))
+                                                                 (band_y_size,
+                                                                  band_x_size))
         fine_cols = np.arange(band_x_size)
         fine_rows = np.arange(band_y_size)
 
         satint = GeoInterpolator((gcp_lons, gcp_lats),
-		                         (ypoints, xpoints),
-		                         (fine_rows, fine_cols), 2,2)
+                                 (ypoints, xpoints),
+                                 (fine_rows, fine_cols), 2, 2)
 
         longitudes, latitudes = satint.interpolate()
 
-        # FIXME: check if the array is C-contigious, and make it such if it isn't
+        # FIXME: check if the array is C-contigious, and make it such if it
+        # isn't
         if longitudes.flags['CONTIGUOUS'] is False:
             longitudes = np.ascontiguousarray(longitudes)
         if latitudes.flags['CONTIGUOUS'] is False:
@@ -263,13 +262,14 @@ class SAFEGRD(BaseFileHandler):
 
         gcps = band.GetGCPs()
 
-        gcp_array = np.array([(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
+        gcp_array = np.array(
+            [(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
 
-        ypoints = np.unique(gcp_array[:,0])
-        xpoints = np.unique(gcp_array[:,1])
+        ypoints = np.unique(gcp_array[:, 0])
+        xpoints = np.unique(gcp_array[:, 1])
 
-        gcp_lats = gcp_array[:,2].reshape(ypoints.shape[0], xpoints.shape[0])
-        gcp_lons = gcp_array[:,3].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lats = gcp_array[:, 2].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lons = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
 
         return (xpoints, ypoints), (gcp_lons, gcp_lats)
 
