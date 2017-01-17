@@ -19,7 +19,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Compact viirs format.
+"""SAFE SAR-C format.
 """
 
 import logging
@@ -212,23 +212,20 @@ class SAFEGRD(BaseFileHandler):
         return proj
 
     def get_lonlats(self):
-        """
-        Obtain GCPs and construct latitude and longitude arrays
-            Args:
+        """Obtain GCPs and construct latitude and longitude arrays.
+
+        Args:
            band (gdal band): Measurement band which comes with GCP's
            array_shape (tuple) : The size of the data array
         Returns:
            coordinates (tuple): A tuple with longitude and latitude arrays
         """
-
         band = self.filehandle
 
         band_x_size = band.RasterXSize
         band_y_size = band.RasterYSize
 
-        (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps(band,
-                                                                 (band_y_size,
-                                                                  band_x_size))
+        (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps()
         fine_cols = np.arange(band_x_size)
         fine_rows = np.arange(band_y_size)
 
@@ -247,9 +244,8 @@ class SAFEGRD(BaseFileHandler):
 
         return longitudes, latitudes
 
-    def get_gcps(self, band, array_shape):
-        """
-        Read GCP from the GDAL band
+    def get_gcps(self):
+        """Read GCP from the GDAL band.
 
         Args:
            band (gdal band): Measurement band which comes with GCP's
@@ -259,8 +255,7 @@ class SAFEGRD(BaseFileHandler):
            points (tuple): Pixel and Line indices 1d arrays
            gcp_coords (tuple): longitude and latitude 1d arrays
         """
-
-        gcps = band.GetGCPs()
+        gcps = self.filehandle.GetGCPs()
 
         gcp_array = np.array(
             [(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
