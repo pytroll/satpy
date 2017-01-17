@@ -1,0 +1,20 @@
+reader:
+  description: SAFE Reader for MSI data (Sentinel-2)
+  name: safe_msi
+  sensors: [msi]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    safe_granule:
+        file_reader: !!python/name:satpy.readers.safe_msi.SAFEMSIL1C
+        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
+
+datasets:
+
+  B01:
+    name: B01
+    sensor: MSI
+    wavelength: [1, 2, 3]
+    resolution: 50
+    file_type: safe_granule
