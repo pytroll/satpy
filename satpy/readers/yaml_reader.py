@@ -171,15 +171,15 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     def select_files_from_pathnames(self, filenames):
         """Select the files from *filenames* this reader can handle."""
-        filenames = []
+        selected_filenames = []
 
         for pattern in self.file_patterns:
             matching = match_filenames(filenames, pattern)
-            filenames.extend(matching)
-        if len(filenames) == 0:
+            selected_filenames.extend(matching)
+        if len(selected_filenames) == 0:
             logger.warning("No filenames found for reader: %s", self.name)
 
-        return filenames
+        return selected_filenames
 
     def get_dataset_key(self,
                         key,
