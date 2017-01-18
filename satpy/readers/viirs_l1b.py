@@ -174,6 +174,10 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             valid_max = self[var_path + '/attr/valid_max']
             scale_factor = self[var_path + '/attr/scale_factor']
             scale_offset= self[var_path + '/attr/add_offset']
+            # v1.1 and above of level 1 processing removed 'units' attribute
+            # for all reflectance channels
+            if file_units is None:
+                file_units = "1"
         elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
