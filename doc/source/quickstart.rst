@@ -191,6 +191,15 @@ is defined as a special dataset which may have several bands (like R, G, B bands
 or clipped or gamma filtered until an image is generated.
 
 
+To save the custom composite, the following procedure can be used:
+
+1. Create a custom directory for your custom configs.
+2. Set it in the environment variable called PPP_CONFIG_DIR.
+3. Write config files with your changes only (look at eg satpy/etc/composites/seviri.yaml for inspiration), pointing to the custom module containing your composites. Don't forget to add changes to the enhancement/generic.cfg file too.
+4. Put your composites module on the python path.
+
+With that, you should be able to load your new composite directly.
+
 .. todo::
    How to save custom-made composites
 
