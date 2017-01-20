@@ -22,6 +22,9 @@
 import os
 import sys
 import unittest
+from tempfile import mkdtemp
+
+from mock import patch
 
 import satpy.readers.yaml_reader as yr
 
@@ -35,12 +38,59 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
 
 
+class TestFileSelection(unittest.TestCase):
+
+    @patch('satpy.readers.yaml_reader.recursive_dict_update')
+    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
+    def setUp(self, _, rec_up):
+        """Setup a reader instance with a fake config."""
+        patterns = ['a{something:3s}.bla']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_patterns': patterns}},
+                    'datasets': {}}
+
+        rec_up.return_value = res_dict
+        self.reader = yr.FileYAMLReader([__file__])
+
+    def test_select_from_pathnames(self):
+        """Check select_files_from_pathnames."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+
+        res = self.reader.select_files_from_pathnames(filelist)
+        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
+            self.assertIn(expected, res)
+
+        self.assertEqual(0, len(self.reader.select_files_from_pathnames([])))
+
+    def test_select_from_directory(self):
+        """Check select_files_from_directory."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        dpath = mkdtemp()
+
+        for fname in filelist:
+            with open(os.path.join(dpath, fname), 'w'):
+                pass
+
+        res = self.reader.select_files_from_directory(dpath)
+        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
+            self.assertIn(os.path.join(dpath, expected), res)
+
+        for fname in filelist:
+            os.remove(os.path.join(dpath, fname))
+        self.assertEqual(0,
+                         len(self.reader.select_files_from_directory(dpath)))
+        os.rmdir(dpath)
+
+
 def suite():
     """The test suite for test_scene.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFileSelection))
 
     return mysuite
 
