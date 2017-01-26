@@ -9,6 +9,7 @@ os:
 - linux
 - osx
 matrix:
+  fast_finish: true
   allow_failures:
     - os: osx
     - python: '2.6'
