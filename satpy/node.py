@@ -25,8 +25,9 @@
 class Node(object):
     """A node object."""
 
-    def __init__(self, data):
+    def __init__(self, name, data=None):
         """Init the node object."""
+        self.name = name
         self.data = data
         self.children = []
         self.parents = []
@@ -40,10 +41,11 @@ class Node(object):
         """Display the node."""
         return self.display()
 
-    def display(self, previous=0):
+    def display(self, previous=0, include_data=False):
         """Display the node."""
+        no_data = " (No Data)" if self.data is None else ""
         return (
-            (" +" * previous) + str(self.data) + '\n' +
+            (" +" * previous) + str(self.name) + no_data + '\n' +
             ''.join([child.display(previous + 1) for child in self.children]))
 
     def leaves(self):
@@ -60,7 +62,7 @@ class Node(object):
         """Get the trunk of the tree starting at this root."""
         res = []
         if self.children:
-            if self.data is not None:
+            if self.name is not None:
                 res.append(self)
             for child in self.children:
                 res.extend(child.trunk())
