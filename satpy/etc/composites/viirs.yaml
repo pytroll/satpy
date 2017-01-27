@@ -64,6 +64,14 @@ composites:
     - DNB
     - DNB
     - M15
+    standard_name: night_overview
+
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - M05
+    - M07
+    - M15
     standard_name: overview
 
   night_microphysics:
@@ -75,6 +83,22 @@ composites:
     standard_name: night_microphysics
 
   fog:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: fog
+
+  night_fog:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M12
+    - M15
+    - M16
+    standard_name: night_fog
+
+  ssec_fog:
     compositor: !!python/name:satpy.composites.viirs.VIIRSFog
     prerequisites:
     - I05
