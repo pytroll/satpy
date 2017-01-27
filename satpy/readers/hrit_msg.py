@@ -38,7 +38,6 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample import geometry
-from satpy.projectable import Projectable
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function, make_time_cds_short,
@@ -778,6 +777,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteID"]
+        self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
@@ -817,6 +817,10 @@ class HRITMSGFileHandler(HRITFileHandler):
             out = res
 
         self.calibrate(out, key.calibration)
+        out.info['units'] = info['units']
+        out.info['standard_name'] = info['standard_name']
+        out.info['platform_name'] = self.platform_name
+        out.info['sensor'] = 'seviri'
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -849,7 +853,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         """Visible channel calibration only."""
         solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
         data.data[:] *= 100 / solar_irradiance
-        data.info['units'] = '%'
 
     def _tl15(self, data):
         """Compute the L15 temperature."""
@@ -895,8 +898,6 @@ class HRITMSGFileHandler(HRITFileHandler):
             self._erads2bt(data)
         else:
             raise NotImplemented('Unknown calibration type')
-
-        pass
 
 
 def show(data, negate=False):
