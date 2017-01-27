@@ -379,12 +379,12 @@ class NIRReflectance(CompositeBase):
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if dataset.info["standard_name"] == "solar_zenith_angle":
-                sun_zenith = dataset
-            elif (dataset.info['units'] == 'K' and
-                  "wavelengh" in dataset.info and
-                  dataset.info["wavelength"][0] <= 13.4 <= dataset.info["wavelength"][2]):
+            if (dataset.info['units'] == 'K' and
+                    "wavelengh" in dataset.info and
+                    dataset.info["wavelength"][0] <= 13.4 <= dataset.info["wavelength"][2]):
                 tb13_4 = dataset
+            elif dataset.info["standard_name"] == "solar_zenith_angle":
+                sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
@@ -396,8 +396,9 @@ class NIRReflectance(CompositeBase):
                             nir.info['sensor'], nir.info['name'])
 
         proj = Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
-                                                       tb11, tb13_4),
+                                                       tb11, tb13_4) * 100,
                            **nir.info)
+        proj.info['units'] = '%'
         self.apply_modifier_info(nir, proj)
 
         return proj
