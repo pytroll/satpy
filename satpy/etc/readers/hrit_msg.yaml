@@ -97,6 +97,7 @@ datasets:
     calibration:
       reflectance:
         standard_name: reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
