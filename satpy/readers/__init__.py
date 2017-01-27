@@ -63,6 +63,21 @@ class MalformedConfigError(Exception):
     pass
 
 
+def dataset_name_match(a, b):
+    return a == b
+
+
+def dataset_wavelength_match(a, b):
+    if type(a) == type(b):
+        return a == b
+    elif isinstance(a, (list, tuple)) and len(a) == 3:
+        return a[0] <= b <= a[2]
+    elif isinstance(b, (list, tuple)) and len(b) == 3:
+        return b[0] <= a <= b[2]
+    else:
+        raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+
 class DatasetDict(dict):
     """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID
 
@@ -81,19 +96,6 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def _name_match(self, a, b):
-        return a == b
-
-    def _wl_match(self, a, b):
-        if type(a) == type(b):
-            return a == b
-        elif isinstance(a, (list, tuple)) and len(a) == 3:
-            return a[0] <= b <= a[2]
-        elif isinstance(b, (list, tuple)) and len(b) == 3:
-            return b[0] <= a <= b[2]
-        else:
-            raise ValueError("Can only compare wavelengths of length 1 or 3")
-
     def get_key(self, key):
         if isinstance(key, DatasetID):
             res = self.get_keys_by_datasetid(key)
@@ -106,13 +108,13 @@ class DatasetDict(dict):
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
-                if k.wavelength is not None and self._wl_match(k.wavelength,
-                                                               key):
+                if k.wavelength is not None and \
+                        dataset_wavelength_match(k.wavelength, key):
                     return k
         # get by name
         else:
             for k in self.keys():
-                if self._name_match(k.name, key):
+                if dataset_name_match(k.name, key):
                     return k
 
     def get_keys(self,
@@ -124,10 +126,10 @@ class DatasetDict(dict):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
             keys = [k for k in self.keys()
-                    if self._wl_match(k.wavelength, name_or_wl)]
+                    if dataset_wavelength_match(k.wavelength, name_or_wl)]
         elif isinstance(name_or_wl, (str, six.text_type)):
             keys = [k for k in self.keys()
-                    if self._name_match(k.name, name_or_wl)]
+                    if dataset_name_match(k.name, name_or_wl)]
         else:
             raise TypeError("First argument must be a wavelength or name")
 
@@ -163,7 +165,7 @@ class DatasetDict(dict):
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and self._wl_match(
+                            if getattr(k, key) is not None and dataset_wavelength_match(
                                 getattr(k, key), getattr(did, key))]
 
                 else:
