@@ -41,6 +41,12 @@ class Node(object):
         """Display the node."""
         return self.display()
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def display(self, previous=0, include_data=False):
         """Display the node."""
         no_data = " (No Data)" if self.data is None else ""
@@ -48,22 +54,26 @@ class Node(object):
             (" +" * previous) + str(self.name) + no_data + '\n' +
             ''.join([child.display(previous + 1) for child in self.children]))
 
-    def leaves(self):
+    def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
         if not self.children:
             return [self]
         else:
             res = list()
             for child in self.children:
-                res.extend(child.leaves())
+                for sub_child in child.leaves(unique=unique):
+                    if not unique or sub_child not in res:
+                        res.append(sub_child)
             return res
 
-    def trunk(self):
+    def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
         res = []
         if self.children:
             if self.name is not None:
                 res.append(self)
             for child in self.children:
-                res.extend(child.trunk())
+                for sub_child in child.trunk(unique=unique):
+                    if not unique or sub_child not in res:
+                        res.append(sub_child)
         return res

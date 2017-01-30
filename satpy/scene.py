@@ -35,9 +35,7 @@ from satpy.projectable import Dataset, InfoObject, Projectable
 from satpy.readers import (DatasetDict,
                            DatasetID,
                            ReaderFinder,
-                           DATASET_KEYS,
-                           dataset_name_match,
-                           dataset_wavelength_match)
+                           DATASET_KEYS)
 
 try:
     import configparser
@@ -227,7 +225,7 @@ class Scene(InfoObject):
                 raise ValueError(
                     "'available_datasets' must all be DatasetID objects")
 
-        tree = self.create_deptree(available_datasets + self.all_composites(), error_on_missing=False)
+        tree, unknowns = self.create_deptree(available_datasets + self.all_composites())
         return self._compositor_list(tree, modified=modified)
 
     def all_composites(self):
@@ -301,8 +299,9 @@ class Scene(InfoObject):
                                                         polarization=polarization,
                                                         resolution=resolution)
             except KeyError as err:
-                LOG.debug("Can't find dataset %s in reader %s",
-                          str(dataset_key), reader_name)
+                # LOG.debug("Can't find dataset %s in reader %s",
+                #           str(dataset_key), reader_name)
+                pass
             else:
                 try:
                     self.wishlist.remove(dataset_key)
@@ -310,53 +309,72 @@ class Scene(InfoObject):
                     pass
                 else:
                     self.wishlist.add(ds_id)
+                # LOG.debug("Found {} in reader {}".format(str(ds_id), reader_name))
                 return Node(ds_id)
 
-    def _find_compositor(self, dataset_key, **kwargs):
-        try:
-            self.compositors[dataset_key] = self.cpl.load_compositor(
-                dataset_key, self.info['sensor'])
-            compositor = self.compositors[dataset_key]
-
-        except KeyError as err:
-            raise KeyError("Can't find anything called %s" %
-                           (str(dataset_key),))
-
-        # 2.1 get the prerequisites
-        prereqs = [self._find_dependencies(prereq, **kwargs)
-                   for prereq in compositor.info["prerequisites"]]
+    def _merge_modified_id(self, parent_id, child_id):
         # resolve modifier-based IDs
-        if isinstance(prereqs[0].name, DatasetID) and \
-                isinstance(dataset_key, DatasetID) and \
-                (dataset_name_match(prereqs[0].name.name, dataset_key.name) or
-                 dataset_wavelength_match(prereqs[0].name.wavelength, dataset_key.wavelength)):
+        if isinstance(child_id, DatasetID) and \
+                isinstance(parent_id, DatasetID) and \
+                (DatasetID.name_match(child_id, parent_id.name) or
+                     DatasetID.wavelength_match(child_id.wavelength, parent_id.wavelength)):
             new_id = []
-            for elem_name, comp_elem, req_elem in zip(DATASET_KEYS, prereqs[0].name, dataset_key):
+            for elem_name, comp_elem, req_elem in zip(DATASET_KEYS, child_id, parent_id):
                 if elem_name == 'modifiers':
                     comp_elem = comp_elem or tuple()
                     req_elem = req_elem or tuple()
                     new_id.append(comp_elem + tuple(m for m in req_elem if m not in comp_elem))
                 else:
                     new_id.append(comp_elem or req_elem)
-            dataset_key = DatasetID(*new_id)
+            parent_id = DatasetID(*new_id)
+        return parent_id
 
-        optional_prereqs = []
-        for prereq in compositor.info["optional_prerequisites"]:
-            try:
-                optional_prereqs.append(
-                    self._find_dependencies(prereq, **kwargs))
-            except KeyError as err:
-                LOG.debug('Skipping optional %s: %s',
-                          str(prereq), str(err))
+    def _get_compositor_prereqs(self, prereq_names, skip=False, **kwargs):
+        prereq_ids = []
+        unknowns = set()
+        for prereq in prereq_names:
+            n, u = self._find_dependencies(prereq, **kwargs)
+            if u:
+                unknowns.update(u)
+                if skip:
+                    u_str = ", ".join([str(x) for x in u])
+                    LOG.debug('Skipping optional %s: Unknown dataset %s',
+                              str(prereq), u_str)
+            else:
+                prereq_ids.append(n)
+        return prereq_ids, unknowns
+
+    def _find_compositor(self, dataset_key, **kwargs):
+        try:
+            self.compositors[dataset_key] = self.cpl.load_compositor(
+                dataset_key, self.info['sensor'])
+            compositor = self.compositors[dataset_key]
+        except KeyError:
+            raise KeyError("Can't find anything called %s" %
+                           (str(dataset_key),))
+
+        # 2.1 get the prerequisites
+        prereqs, unknowns = self._get_compositor_prereqs(
+            compositor.info['prerequisites'],
+            **kwargs)
+        if unknowns:
+            return None, unknowns
+
+        dataset_key = self._merge_modified_id(dataset_key, prereqs[0].name)
+
+        optional_prereqs, _ = self._get_compositor_prereqs(
+            compositor.info['optional_prerequisites'],
+            skip=True,
+            **kwargs)
 
         # Is this the right place for that?
         root = Node(dataset_key, data=(compositor, prereqs, optional_prereqs))
-
+        # LOG.debug("Found composite {}".format(str(dataset_key)))
         for prereq in prereqs + optional_prereqs:
             if prereq is not None:
                 root.add_child(prereq)
 
-        return root
+        return root, set()
 
     def _find_dependencies(self,
                            dataset_key,
@@ -375,42 +393,53 @@ class Scene(InfoObject):
                                          polarization=polarization,
                                          resolution=resolution)
         if node is not None:
-            return node
+            return node, set()
 
         # 2 try to find a composite that matches
-        node = self._find_compositor(dataset_key, **kwargs)
+        try:
+            node, unknowns = self._find_compositor(dataset_key, **kwargs)
+        except KeyError:
+            node = None
+            unknowns = set([dataset_key])
 
-        return node
+        return node, unknowns
 
     def create_deptree(self,
                        dataset_keys,
                        calibration=None,
                        polarization=None,
-                       resolution=None,
-                       error_on_missing=True):
-        """Create the dependency tree."""
+                       resolution=None):
+        """Create the dependency tree.
+
+        Args:
+            dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
+            calibration (iterable or None):
+
+        Returns:
+            (Node, set): Root node of the dependency tree and a set of unknown datasets
+
+        """
+        unknown_datasets = set()
         tree = Node(None)
         for key in dataset_keys:
-            try:
-                tree.add_child(self._find_dependencies(key,
-                                                       calibration=calibration,
-                                                       polarization=polarization,
-                                                       resolution=resolution))
-            except KeyError:
-                if error_on_missing:
-                    raise
+            n, unknowns = self._find_dependencies(key,
+                                                  calibration=calibration,
+                                                  polarization=polarization,
+                                                  resolution=resolution)
+            if unknowns:
+                unknown_datasets.update(unknowns)
+                continue
+            tree.add_child(n)
 
-        return tree
+        return tree, unknown_datasets
 
     def read_datasets(self,
                       dataset_nodes,
                       calibration=None,
                       polarization=None,
                       resolution=None,
-                      metadata=None,
                       **kwargs):
         """Read the given datasets from file."""
-        sensor_names = set()
         loaded_datasets = {}
         # get datasets from readers
 
@@ -425,8 +454,6 @@ class Scene(InfoObject):
             polarization = [polarization]
 
         for reader_name, reader_instance in self.readers.items():
-
-            sensor_names |= set(reader_instance.sensor_names)
             ds_ids = set()
             for node in dataset_nodes:
                 dataset_key = node.name
@@ -444,7 +471,7 @@ class Scene(InfoObject):
                     LOG.debug("Can't find dataset %s in reader %s",
                               str(dataset_key), reader_name)
                     ds_id = dataset_key
-                try:
+                try:  # FIXME: Does this need to exist now that Nodes are fully resolved? Yes? In case the loading better resolved the ID?
                     self.wishlist.remove(dataset_key)
                 except KeyError:
                     pass
@@ -467,30 +494,23 @@ class Scene(InfoObject):
         """Read (generate) composites.
         """
         composites = []
+        # We need to do comparison with __eq__ which doesn't happen in a 'set'
+        # but it does happen in a list. Now we can do `wishlist.remove('M05')`
+        # and remove datasets
+        wishlist = list(self.wishlist)
+
         for item in reversed(compositor_nodes):
             compositor, prereqs, optional_prereqs = item.data
-            if compositor.info['id'] not in self.datasets:
-                new_prereqs = []
-                for prereq in prereqs:
-                    if isinstance(prereq.data, DatasetID):
-                        new_prereqs.append(prereq.data)
-                    elif isinstance(prereq.data, Dataset):
-                        new_prereqs.append(prereq.data.info['id'])
-                    else:
-                        new_prereqs.append(prereq.data[0].info['id'])
-                new_opt_prereqs = []
-                for prereq in optional_prereqs:
-                    if isinstance(prereq.data, DatasetID):
-                        new_opt_prereqs.append(prereq.data)
-                    else:
-                        new_opt_prereqs.append(prereq.data[0].info['id'])
+            if item.name not in self.datasets:
+                new_prereqs = [prereq.name for prereq in prereqs]
+                new_opt_prereqs = [prereq.name for prereq in optional_prereqs]
 
                 try:
                     prereqs = [self.datasets[prereq] for prereq in new_prereqs]
                 except KeyError as e:
                     LOG.warning("Missing composite '{}' prerequisite: {}".format(
                         compositor.info['name'], e.message))
-                    self.wishlist.remove(compositor.info['name'])
+                    wishlist.remove(compositor.info['name'])
                     continue
 
                 # Any missing optional prerequisites are replaced with 'None'
@@ -507,18 +527,27 @@ class Scene(InfoObject):
                                 "because of incompatible areas",
                                 compositor.info['name'])
                     continue
-                composite.info['name'] = compositor.info['id']
 
+                # could be requesting by compositor name or DatasetID
+                if composite.info.get('id') is None:
+                    raise ValueError("Compositor '%s' did not assign an 'id'" % (compositor.info['name']))
+                elif isinstance(composite.info['id'], DatasetID):
+                    for idx, id_field in enumerate(DATASET_KEYS):
+                        # don't check for existence, force them
+                        composite.info[id_field] = composite.info['id'][idx]
                 self.datasets[composite.info['id']] = composite
+                # overwrite the node in case the ID was changed during creation
+                item.name = composite.info['id']
 
                 try:
-                    self.wishlist.remove(composite.info['name'])
-                except KeyError:
+                    wishlist.remove(composite.info['name'])
+                except ValueError:
                     pass
                 else:
-                    self.wishlist.add(composite.info['id'])
+                    wishlist.append(composite.info['id'])
 
-            composites.append(self.datasets[compositor.info['id']])
+            composites.append(self.datasets[composite.info['id']])
+        self.wishlist = set(wishlist)
         return composites
 
     def read_from_deptree(self, dataset_keys, **kwargs):
@@ -527,11 +556,14 @@ class Scene(InfoObject):
         dataset_keys = set(dataset_keys)
         self.wishlist |= dataset_keys
 
-        tree = self.create_deptree(dataset_keys,
-                                   calibration=kwargs.get('calibration'),
-                                   polarization=kwargs.get('polarization'),
-                                   resolution=kwargs.get('resolution'))
-        # FUTURE: Make tree Node's comparable so `set` could reduce the number passed
+        tree, unknown = self.create_deptree(dataset_keys,
+                                            calibration=kwargs.get('calibration'),
+                                            polarization=kwargs.get('polarization'),
+                                            resolution=kwargs.get('resolution'))
+        if unknown:
+            unknown_str = ", ".join([str(x) for x in unknown])
+            raise KeyError("Unknown datasets: {}".format(unknown_str))
+
         datasets = self.read_datasets(tree.leaves(), **kwargs)
         composites = self.read_composites(tree.trunk(), **kwargs)
 
@@ -640,7 +672,6 @@ class Scene(InfoObject):
              calibration=None,
              resolution=None,
              polarization=None,
-             metadata=None,
              compute=True,
              unload=True,
              **kwargs):
@@ -650,7 +681,6 @@ class Scene(InfoObject):
                   calibration=calibration,
                   resolution=resolution,
                   polarization=polarization,
-                  metadata=metadata,
                   **kwargs)
         keepables = None
         if compute:
