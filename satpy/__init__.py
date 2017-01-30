@@ -32,3 +32,4 @@
 from satpy.version import __version__
 from satpy.scene import Scene
 from satpy.projectable import Dataset, Projectable
+from satpy.readers import DatasetID, DatasetDict

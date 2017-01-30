@@ -53,6 +53,43 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+class DatasetID(DatasetID):
+    @staticmethod
+    def name_match(a, b):
+        """Return if two string names are equal
+
+        Args:
+            a (str): DatasetID.name or other string
+            b (str): DatasetID.name or other string
+        """
+        return a == b
+
+    @staticmethod
+    def wavelength_match(a, b):
+        """Return if two wavelengths are equal
+
+        Args:
+            a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+            b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+        """
+        if type(a) == type(b):
+            return a == b
+        elif isinstance(a, (list, tuple)) and len(a) == 3:
+            return a[0] <= b <= a[2]
+        elif isinstance(b, (list, tuple)) and len(b) == 3:
+            return b[0] <= a <= b[2]
+        else:
+            raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name_match(self.name, other)
+        elif isinstance(other, numbers.Number) or \
+                        isinstance(other, (tuple, list)) and len(other) == 3:
+            return self.wavelength_match(self.wavelength, other)
+        else:
+            return super(DatasetID, self).__eq__(other)
+
 
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
@@ -63,19 +100,6 @@ class MalformedConfigError(Exception):
     pass
 
 
-def dataset_name_match(a, b):
-    return a == b
-
-
-def dataset_wavelength_match(a, b):
-    if type(a) == type(b):
-        return a == b
-    elif isinstance(a, (list, tuple)) and len(a) == 3:
-        return a[0] <= b <= a[2]
-    elif isinstance(b, (list, tuple)) and len(b) == 3:
-        return b[0] <= a <= b[2]
-    else:
-        raise ValueError("Can only compare wavelengths of length 1 or 3")
 
 
 class DatasetDict(dict):
@@ -109,12 +133,12 @@ class DatasetDict(dict):
         elif isinstance(key, numbers.Number):
             for k in self.keys():
                 if k.wavelength is not None and \
-                        dataset_wavelength_match(k.wavelength, key):
+                        DatasetID.wavelength_match(k.wavelength, key):
                     return k
         # get by name
         else:
             for k in self.keys():
-                if dataset_name_match(k.name, key):
+                if DatasetID.name_match(k.name, key):
                     return k
 
     def get_keys(self,
@@ -126,10 +150,10 @@ class DatasetDict(dict):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
             keys = [k for k in self.keys()
-                    if dataset_wavelength_match(k.wavelength, name_or_wl)]
+                    if DatasetID.wavelength_match(k.wavelength, name_or_wl)]
         elif isinstance(name_or_wl, (str, six.text_type)):
             keys = [k for k in self.keys()
-                    if dataset_name_match(k.name, name_or_wl)]
+                    if DatasetID.name_match(k.name, name_or_wl)]
         else:
             raise TypeError("First argument must be a wavelength or name")
 
@@ -165,7 +189,7 @@ class DatasetDict(dict):
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and dataset_wavelength_match(
+                            if getattr(k, key) is not None and DatasetID.wavelength_match(
                                 getattr(k, key), getattr(did, key))]
 
                 else:
