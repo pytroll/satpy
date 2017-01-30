@@ -90,6 +90,9 @@ class DatasetID(DatasetID):
         else:
             return super(DatasetID, self).__eq__(other)
 
+    def __hash__(self):
+        return tuple.__hash__(self)
+
 
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
