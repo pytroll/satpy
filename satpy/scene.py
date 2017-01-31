@@ -310,7 +310,7 @@ class Scene(InfoObject):
                 else:
                     self.wishlist.add(ds_id)
                 # LOG.debug("Found {} in reader {}".format(str(ds_id), reader_name))
-                return Node(ds_id)
+                return Node(ds_id, {'reader_name': reader_name})
 
     def _merge_modified_id(self, parent_id, child_id):
         # resolve modifier-based IDs
@@ -345,14 +345,24 @@ class Scene(InfoObject):
         return prereq_ids, unknowns
 
     def _find_compositor(self, dataset_key, **kwargs):
+        # NOTE: This function can not find a modifier that performs one or more modifications
+        # if it has modifiers see if we can find the unmodified version first
+        src_node = None
+        if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
+            new_prereq = DatasetID(*dataset_key[:-1] + (dataset_key.modifiers[:-1],))
+            src_node, u = self._find_dependencies(new_prereq, **kwargs)
+            if u:
+                return None, u
+            dataset_key = DatasetID(*src_node.name[:-1] + (dataset_key.modifiers,))
+
         try:
             self.compositors[dataset_key] = self.cpl.load_compositor(
                 dataset_key, self.info['sensor'])
-            compositor = self.compositors[dataset_key]
         except KeyError:
             raise KeyError("Can't find anything called %s" %
                            (str(dataset_key),))
 
+        compositor = self.compositors[dataset_key]
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
             compositor.info['prerequisites'],
@@ -360,14 +370,14 @@ class Scene(InfoObject):
         if unknowns:
             return None, unknowns
 
-        dataset_key = self._merge_modified_id(dataset_key, prereqs[0].name)
-
         optional_prereqs, _ = self._get_compositor_prereqs(
             compositor.info['optional_prerequisites'],
             skip=True,
             **kwargs)
 
         # Is this the right place for that?
+        if src_node is not None:
+            prereqs = [src_node] + prereqs
         root = Node(dataset_key, data=(compositor, prereqs, optional_prereqs))
         # LOG.debug("Found composite {}".format(str(dataset_key)))
         for prereq in prereqs + optional_prereqs:
@@ -385,7 +395,7 @@ class Scene(InfoObject):
         """Find the dependencies for *dataset_key*."""
         # 0 check if the dataset is already loaded
         if dataset_key in self.datasets:
-            return Node(dataset_key, self.datasets[dataset_key])
+            return Node(dataset_key, None), set()
 
         # 1 try to get dataset from reader
         node = self._find_reader_dataset(dataset_key,
@@ -422,67 +432,35 @@ class Scene(InfoObject):
         unknown_datasets = set()
         tree = Node(None)
         for key in dataset_keys:
-            n, unknowns = self._find_dependencies(key,
-                                                  calibration=calibration,
-                                                  polarization=polarization,
-                                                  resolution=resolution)
-            if unknowns:
-                unknown_datasets.update(unknowns)
-                continue
+            if key in self.datasets:
+                n = Node(self.datasets[key].info['id'])
+            else:
+                n, unknowns = self._find_dependencies(key,
+                                                      calibration=calibration,
+                                                      polarization=polarization,
+                                                      resolution=resolution)
+                if unknowns:
+                    unknown_datasets.update(unknowns)
+                    continue
             tree.add_child(n)
 
         return tree, unknown_datasets
 
-    def read_datasets(self,
-                      dataset_nodes,
-                      calibration=None,
-                      polarization=None,
-                      resolution=None,
-                      **kwargs):
+    def read_datasets(self, dataset_nodes, **kwargs):
         """Read the given datasets from file."""
+        # Sort requested datasets by reader
+        reader_datasets = {}
+        for node in dataset_nodes:
+            ds_id = node.name
+            if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
+                continue
+            reader_name = node.data['reader_name']
+            reader_datasets.setdefault(reader_name, set()).add(ds_id)
+
+        # load all datasets for one reader at a time
         loaded_datasets = {}
-        # get datasets from readers
-
-        if calibration is not None and not isinstance(calibration,
-                                                      (list, tuple)):
-            calibration = [calibration]
-        if resolution is not None and not isinstance(resolution,
-                                                     (list, tuple)):
-            resolution = [resolution]
-        if polarization is not None and not isinstance(polarization,
-                                                       (list, tuple)):
-            polarization = [polarization]
-
-        for reader_name, reader_instance in self.readers.items():
-            ds_ids = set()
-            for node in dataset_nodes:
-                dataset_key = node.name
-                if node.data is not None:
-                    # we already loaded this in a previous call to `.load`
-                    continue
-
-                try:
-                    ds_id = reader_instance.get_dataset_key(
-                        dataset_key,
-                        calibration=calibration,
-                        resolution=resolution,
-                        polarization=polarization)
-                except KeyError:
-                    LOG.debug("Can't find dataset %s in reader %s",
-                              str(dataset_key), reader_name)
-                    ds_id = dataset_key
-                try:  # FIXME: Does this need to exist now that Nodes are fully resolved? Yes? In case the loading better resolved the ID?
-                    self.wishlist.remove(dataset_key)
-                except KeyError:
-                    pass
-                else:
-                    self.wishlist.add(ds_id)
-
-                # if we haven't loaded this projectable then add it to the list
-                # to be loaded
-                if (ds_id not in self.datasets or
-                        not self.datasets[ds_id].is_loaded()):
-                    ds_ids.add(ds_id)
+        for reader_name, ds_ids in reader_datasets.items():
+            reader_instance = self.readers[reader_name]
             new_datasets = reader_instance.load(ds_ids, **kwargs)
             loaded_datasets.update(new_datasets)
         self.datasets.update(loaded_datasets)
@@ -557,9 +535,9 @@ class Scene(InfoObject):
         self.wishlist |= dataset_keys
 
         tree, unknown = self.create_deptree(dataset_keys,
-                                            calibration=kwargs.get('calibration'),
-                                            polarization=kwargs.get('polarization'),
-                                            resolution=kwargs.get('resolution'))
+                                            calibration=kwargs.pop('calibration'),
+                                            polarization=kwargs.pop('polarization'),
+                                            resolution=kwargs.pop('resolution'))
         if unknown:
             unknown_str = ", ".join([str(x) for x in unknown])
             raise KeyError("Unknown datasets: {}".format(unknown_str))
@@ -623,20 +601,14 @@ class Scene(InfoObject):
                 # validate the composite projectable
                 assert ("name" in comp_projectable.info)
                 comp_projectable.info.setdefault("resolution", None)
-                comp_projectable.info.setdefault("wavelength_range", None)
+                comp_projectable.info.setdefault("wavelength", None)
                 comp_projectable.info.setdefault("polarization", None)
                 comp_projectable.info.setdefault("calibration", None)
                 comp_projectable.info.setdefault("modifiers", None)
 
                 # FIXME: Should this be a requirement of anything creating a
                 # Dataset? Special handling by .info?
-                band_id = DatasetID(
-                    name=comp_projectable.info["name"],
-                    resolution=comp_projectable.info["resolution"],
-                    wavelength=comp_projectable.info["wavelength_range"],
-                    polarization=comp_projectable.info["polarization"],
-                    calibration=comp_projectable.info["calibration"],
-                    modifiers=comp_projectable.info["modifiers"])
+                band_id = DatasetID.from_dict(comp_projectable.info)
                 comp_projectable.info["id"] = band_id
                 self.datasets[band_id] = comp_projectable
 

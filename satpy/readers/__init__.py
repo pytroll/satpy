@@ -93,6 +93,17 @@ class DatasetID(DatasetID):
     def __hash__(self):
         return tuple.__hash__(self)
 
+    @classmethod
+    def from_dict(cls, d, **kwargs):
+        args = []
+        for k in DATASET_KEYS:
+            val = kwargs.get(k, d.get(k))
+            # force modifiers to tuple
+            if k == 'modifiers' and val is not None:
+                val = tuple(val)
+            args.append(val)
+
+        return cls(*args)
 
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
@@ -101,8 +112,6 @@ AreaID.__new__.__defaults__ = (None, None, None, None, None)
 
 class MalformedConfigError(Exception):
     pass
-
-
 
 
 class DatasetDict(dict):
@@ -227,7 +236,7 @@ class DatasetDict(dict):
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.info if isinstance(value, Dataset) else value
+        d = value.info if hasattr(value, 'info') else value
         if not isinstance(key, DatasetID):
             old_key = key
             key = self.get_key(key)
@@ -239,13 +248,13 @@ class DatasetDict(dict):
                 # this is a new key and it's not a full DatasetID tuple
                 key = DatasetID(name=new_name,
                                 resolution=d.get("resolution"),
-                                wavelength=d.get("wavelength_range"),
+                                wavelength=d.get("wavelength"),
                                 polarization=d.get("polarization"),
                                 calibration=d.get("calibration"),
                                 modifiers=d.get("modifiers"))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
-                        "One of 'name' or 'wavelength_range' info values should be set.")
+                        "One of 'name' or 'wavelength' info values should be set.")
 
         # update the 'value' with the information contained in the key
         d["name"] = key.name
@@ -256,7 +265,7 @@ class DatasetDict(dict):
         d["modifiers"] = key.modifiers
         d['id'] = key
         # you can't change the wavelength of a dataset, that doesn't make sense
-        if "wavelength_range" in d and d["wavelength_range"] != key.wavelength:
+        if "wavelength" in d and d["wavelength"] != key.wavelength:
             raise TypeError("Can't change the wavelength of a dataset")
 
         return super(DatasetDict, self).__setitem__(key, value)
