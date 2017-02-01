@@ -77,11 +77,15 @@ datasets:
         name: longitude
         resolution: 1050
         file_type: avhrr_hrpt
+        standard_name: longitude
+        units: degree
 
     latitude:
         name: latitude
         resolution: 1050
         file_type: avhrr_hrpt
+        standard_name: latitude
+        units: degree
 
 
 file_types:
