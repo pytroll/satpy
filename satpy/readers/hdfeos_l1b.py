@@ -66,7 +66,6 @@ class HDFEOSFileReader(BaseFileHandler):
         except HDF4Error as err:
             raise ValueError("Could not load data from " + str(self.filename)
                              + ": " + str(err))
-        self.sd = SD(self.filename)
         self.mda = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
         self.mda.update(self.read_mda(
             self.sd.attributes()['StructMetadata.0']))
