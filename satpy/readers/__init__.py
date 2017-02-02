@@ -105,6 +105,9 @@ class DatasetID(DatasetID):
 
         return cls(*args)
 
+    def to_dict(self):
+        return dict(zip(DATASET_KEYS, self))
+
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
 AreaID.__new__.__defaults__ = (None, None, None, None, None)
