@@ -32,6 +32,15 @@ class Node(object):
         self.children = []
         self.parents = []
 
+    def flatten(self, d=None):
+        if d is None:
+            d = {}
+        if self.name is not None:
+            d[self.name] = self
+        for child in self.children:
+            child.flatten(d=d)
+        return d
+
     def add_child(self, obj):
         """Add a child to the node."""
         self.children.append(obj)
@@ -68,6 +77,8 @@ class Node(object):
 
     def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
+        # uniqueness is not correct in `trunk` yet
+        unique = False
         res = []
         if self.children:
             if self.name is not None:
@@ -77,3 +88,32 @@ class Node(object):
                     if not unique or sub_child not in res:
                         res.append(sub_child)
         return res
+
+
+class DependencyTree(Node):
+    def __init__(self):  #, readers, compositors, modifiers):
+        # self.readers = readers
+        # self.compositors = compositors
+        # self.modifiers = modifiers
+        # we act as the root node of the tree
+        super(DependencyTree, self).__init__(None)
+        # keep a flat dictionary of nodes contained in the tree for better
+        # __contains__
+        self._flattened = {}
+
+    def add_child(self, obj):
+        ret = super(DependencyTree, self).add_child(obj)
+        # only works if children are added bottom to top (leaves first)
+        obj.flatten(d=self._flattened)
+        return ret
+
+    def flatten(self, d=None):
+        return super(DependencyTree, self).flatten(d=self._flattened)
+
+    def __contains__(self, item):
+        return item in self._flattened
+
+    def update(self, other):
+        self.flatten()
+        for child in other.children:
+            self.children.append(child)

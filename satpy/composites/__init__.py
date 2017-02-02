@@ -33,7 +33,7 @@ import yaml
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.projectable import InfoObject, Projectable, combine_info
-from satpy.readers import DatasetID, DatasetDict
+from satpy.readers import DatasetID, DatasetDict, DATASET_KEYS
 from satpy.tools import sunzen_corr_cos
 
 try:
@@ -88,7 +88,7 @@ class CompositorLoader(object):
             except KeyError:
                 continue
 
-        if key.modifiers:
+        if isinstance(key, DatasetID) and key.modifiers:
             # we must be generating a modifier composite
             return self.load_modifier(key, sensor_names)
 
@@ -109,7 +109,7 @@ class CompositorLoader(object):
 
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
-            moptions.update(comp_id.__dict__)
+            moptions.update(comp_id.to_dict())
             moptions['id'] = comp_id
             # moptions['prerequisites'] = (
             #     [source_id] + moptions['prerequisites'])
@@ -228,8 +228,9 @@ class CompositeBase(InfoObject):
         return pformat(self.info)
 
     def apply_modifier_info(self, origin, destination):
-        # deprecated since dependency tree handles this
-        return None
+        for k in DATASET_KEYS:
+            destination.info[k] = self.info[k]
+        destination.info['id'] = self.info['id']
 
 
 class SunZenithCorrector(CompositeBase):
