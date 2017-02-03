@@ -557,21 +557,23 @@ class FileYAMLReader(AbstractYAMLReader):
                 shuttle = Shuttle(data[out_offset:out_offset + stop - start],
                                   mask[out_offset:out_offset + stop - start],
                                   out_info)
-                out_offset += stop - start
 
                 kwargs = {}
                 if stop - start != segment_height:
                     kwargs['yslice'] = slice(start, stop)
-                if xslice.start is not None and xslice.stop - xslice.start != all_shapes[idx][1]:
+                if (xslice.start is not None and
+                        xslice.stop - xslice.start != all_shapes[idx][1]):
                     kwargs['xslice'] = xslice
-                fh.get_dataset(dsid,
-                               ds_info,
-                               out=shuttle,
-                               **kwargs)
+
+                try:
+                    fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
+                except KeyError:
+                    continue
+
+                out_offset += stop - start
                 offset += segment_height
             out_info.pop('area', None)
-            proj = cls(data, mask=mask,
-                       copy=False, **out_info)
+            proj = cls(data, mask=mask, copy=False, **out_info)
         # FIXME: areas could be concatenated here
         # Update the metadata
         proj.info['start_time'] = file_handlers[0].start_time
@@ -623,8 +625,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
-        area_defs = [fh.get_area_def(dsid)
-                     for fh in file_handlers]
+        area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+        area_defs = [area_def for area_def in area_defs
+                     if area_def is not None]
 
         final_area = copy.deepcopy(area_defs[0])
         for area_def in area_defs[1:]:
