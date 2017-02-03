@@ -20,6 +20,9 @@ modifiers:
 
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    prerequisites:
+    - wavelength: 0.44
+      modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
