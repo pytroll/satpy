@@ -76,8 +76,7 @@ def match_filenames(filenames, pattern):
     matching = []
 
     for filename in filenames:
-        if fnmatch(get_filebase(filename, pattern),
-                   globify(pattern)):
+        if fnmatch(get_filebase(filename, pattern), globify(pattern)):
             matching.append(filename)
 
     return matching
@@ -86,7 +85,8 @@ def match_filenames(filenames, pattern):
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     __metaclass__ = ABCMeta
 
-    def __init__(self, config_files,
+    def __init__(self,
+                 config_files,
                  start_time=None,
                  end_time=None,
                  area=None):
@@ -235,8 +235,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         # default calibration choices
         if calibration is None:
-            calibration = ["brightness_temperature",
-                           "reflectance", 'radiance', 'counts']
+            calibration = ["brightness_temperature", "reflectance", 'radiance',
+                           'counts']
         else:
             calibration = [x
                            for x in ["brightness_temperature", "reflectance",
@@ -262,8 +262,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         if modifiers is not None:
             datasets = [
-                ds_id for ds_id in datasets
-                if ds_id.modifiers == modifiers
+                ds_id for ds_id in datasets if ds_id.modifiers == modifiers
             ]
 
         if not datasets:
@@ -282,7 +281,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             id_kwargs = []
             for key in DatasetID._fields:
                 val = dataset.get(key)
-                if key in ["wavelength", "modifiers"] and isinstance(val, list):
+                if key in ["wavelength", "modifiers"] and isinstance(val,
+                                                                     list):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
                     # it also needs to be a tuple so it can be used in
@@ -320,7 +320,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 class FileYAMLReader(AbstractYAMLReader):
 
-    def __init__(self, config_files,
+    def __init__(self,
+                 config_files,
                  start_time=None,
                  end_time=None,
                  area=None):
@@ -362,16 +363,13 @@ class FileYAMLReader(AbstractYAMLReader):
             from trollsched.boundary import AreaDefBoundary, Boundary
             from satpy.resample import get_area_def
             try:
-                gbb = Boundary(
-                    *file_handler.get_bounding_box())
+                gbb = Boundary(*file_handler.get_bounding_box())
             except NotImplementedError:
                 pass
             else:
-                abb = AreaDefBoundary(
-                    get_area_def(self._area), frequency=1000)
+                abb = AreaDefBoundary(get_area_def(self._area), frequency=1000)
 
-                intersection = gbb.contour_poly.intersection(
-                    abb.contour_poly)
+                intersection = gbb.contour_poly.intersection(abb.contour_poly)
                 if not intersection:
                     return False
         return True
@@ -418,8 +416,7 @@ class FileYAMLReader(AbstractYAMLReader):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
-                filename_info = parse(pattern,
-                                      get_filebase(filename, pattern))
+                filename_info = parse(pattern, get_filebase(filename, pattern))
 
                 yield filename, filename_info
 
@@ -438,8 +435,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.warning("Missing requirements for %s", filename)
                 continue
 
-            yield filetype_cls(filename, filename_info,
-                               filetype_info, *req_fh)
+            yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
 
     def filter_fh_by_time(self, filehandlers):
         """Filter out filehandlers outside the desired time_range."""
@@ -462,9 +458,9 @@ class FileYAMLReader(AbstractYAMLReader):
                                                          filetype_info)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fh for fh in
-                self.filter_fh_by_area(
-                    self.filter_fh_by_time(filehandler_iter))]
+        return [fh
+                for fh in self.filter_fh_by_area(self.filter_fh_by_time(
+                    filehandler_iter))]
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
@@ -479,13 +475,15 @@ class FileYAMLReader(AbstractYAMLReader):
 
             filename_set -= set([fh.filename for fh in filehandlers])
             if filehandlers:
-                self.file_handlers[filetype] = sorted(filehandlers,
-                                                      key=lambda fh:
-                                                      (fh.start_time,
-                                                       fh.filename))
+                self.file_handlers[filetype] = sorted(
+                    filehandlers,
+                    key=lambda fh: (fh.start_time, fh.filename))
 
-    def _load_dataset_data(self, file_handlers, dsid,
-                           xslice=slice(None), yslice=slice(None)):
+    def _load_dataset_data(self,
+                           file_handlers,
+                           dsid,
+                           xslice=slice(None),
+                           yslice=slice(None)):
         ds_info = self.ids[dsid]
         try:
             # Can we allow the file handlers to do inplace data writes?
@@ -493,7 +491,8 @@ class FileYAMLReader(AbstractYAMLReader):
                           for fh in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = [
-                sum([x[0] for x in all_shapes]), ] + all_shapes[0][1:]
+                sum([x[0] for x in all_shapes]),
+            ] + all_shapes[0][1:]
             if xslice.start is not None and yslice.start is not None:
                 slice_shape = [yslice.stop - yslice.start,
                                xslice.stop - xslice.start]
@@ -536,8 +535,7 @@ class FileYAMLReader(AbstractYAMLReader):
             # proj.mask = np.ma.make_mask_none(overall_shape)
             out_info = {}
             data = np.empty(overall_shape,
-                            dtype=ds_info.get('dtype',
-                                              np.float32))
+                            dtype=ds_info.get('dtype', np.float32))
             mask = np.ma.make_mask_none(overall_shape)
 
             offset = 0
@@ -548,7 +546,8 @@ class FileYAMLReader(AbstractYAMLReader):
                 # Otherwise, have to send in separate data, mask, and info parameters to be filled in
                 # TODO: Combine info in a sane way
 
-                if yslice.start >= offset + segment_height or yslice.stop <= offset:
+                if (yslice.start >= offset + segment_height or
+                        yslice.stop <= offset):
                     offset += segment_height
                     continue
                 start = max(yslice.start - offset, 0)
@@ -602,9 +601,10 @@ class FileYAMLReader(AbstractYAMLReader):
             elif np.isclose(area1.area_extent[3], area2.area_extent[1]):
                 current_extent[3] = area2.area_extent[3]
             else:
-                raise IncompatibleAreas("Can't concatenate area definitions with "
-                                        "incompatible area extents: "
-                                        "{} and {}".format(area1, area2))
+                raise IncompatibleAreas(
+                    "Can't concatenate area definitions with "
+                    "incompatible area extents: "
+                    "{} and {}".format(area1, area2))
             return current_extent
 
     # TODO: move this out of here.
@@ -645,8 +645,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 cinfo['resolution'] = ds_info['resolution']
             else:
                 # cid = self.get_dataset_key(cinfo)
-                cinfo = {'name': cinfo,
-                         'resolution': ds_info['resolution']}
+                cinfo = {'name': cinfo, 'resolution': ds_info['resolution']}
             cid = DatasetID(**cinfo)
             cids.append(self.get_dataset_key(cid))
 
@@ -679,8 +678,8 @@ class FileYAMLReader(AbstractYAMLReader):
             from pyresample.geometry import SwathDefinition
             return SwathDefinition(*coords)
         elif len(coords) != 0:
-            raise NameError(
-                "Don't know what to do with coordinates " + str(coords))
+            raise NameError("Don't know what to do with coordinates " + str(
+                coords))
 
     def _load_dataset_area(self, dsid, file_handlers, coords):
         """Get the area for *dsid*."""
