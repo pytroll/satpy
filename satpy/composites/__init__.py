@@ -320,10 +320,9 @@ class PSPRayleighReflectance(CompositeBase):
         """Get the corrected reflectance when removing Rayleigh scattering. Uses
         pyspectral.
         """
-
         from pyspectral.rayleigh import Rayleigh
 
-        (vis,) = projectables
+        (vis, blue) = projectables
         try:
             (sata, satz, suna, sunz) = optional_datasets
         except ValueError:
@@ -346,11 +345,11 @@ class PSPRayleighReflectance(CompositeBase):
         ssadiff = np.abs(suna - sata)
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
 
-        corrector = Rayleigh(
-            vis.info['platform_name'], vis.info['sensor'], atmosphere='us-standard', rural_aerosol=False)
+        corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
+                             atmosphere='us-standard', rural_aerosol=False)
 
         refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.info['id'].wavelength[1], vis)
+            sunz, satz, ssadiff, vis.info['id'].wavelength[1], blue)
 
         proj = Projectable(vis - refl_cor_band,
                            copy=False,
