@@ -291,7 +291,7 @@ class HRITFileHandler(BaseFileHandler):
             data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
                 self.mda['data_field_length'] / 8.)))
             out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
-                                                  self.mda['number_of_columns'])) * 1.0
+                                                  self.mda['number_of_columns']))[yslice, xslice] * 1.0
             out.mask[:] = out.data == 0
         logger.debug("Reading time " + str(datetime.now() - tic))
 
