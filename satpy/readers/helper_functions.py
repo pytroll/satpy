@@ -170,15 +170,18 @@ def get_geostationary_bounding_box(geos_area):
     h = geos_area.proj_dict['h'] / 1000 + req
 
     # compute some constants
-    a = 1 - req**2 / (h / 1.2) ** 2
-    c = (h**2 - req**2)
-    b = req**2 / rp**2
+    aeq = 1 - req**2 / (h / 1.2) ** 2
+    ap_ = 1 - rp**2 / (h / 1.2) ** 2
+    c__ = (h**2 - req**2)
+    b__ = req**2 / rp**2
 
     # generate points around the north hemisphere in satellite projection
-    # make it a bit smaller so that we stay inside the valide area
-    xmax = np.arccos(np.sqrt(a)) - 0.000000001
-    x = np.cos(np.linspace(-np.pi, np.pi, 50)) * xmax
-    y = np.arctan(np.sqrt(1 / b * (np.cos(x) ** 2 / a - 1)))
+    # make it a bit smaller so that we stay inside the valid area
+    xmax = np.arccos(np.sqrt(aeq)) - 0.000000001
+    x = np.cos(np.linspace(-np.pi, 0, 50)) * xmax
+    ymax = np.arccos(np.sqrt(ap_)) - 0.000000001
+    #y = np.arctan(np.sqrt(1 / b__ * (np.cos(x) ** 2 / aeq - 1)))
+    y = np.sin(np.linspace(-np.pi, 0, 50)) * ymax
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = geos_area.area_extent
@@ -191,7 +194,7 @@ def get_geostationary_bounding_box(geos_area):
     # sd = np.sqrt((h * np.cos(x) * np.cos(y))**2 -
     #             (np.cos(y)**2 + b * (np.sin(y)**2)) * c)
     sd = 0
-    sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b * np.sin(y)**2)
+    sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
 
     s1 = h - sn * np.cos(x) * np.cos(y)
     s2 = sn * np.sin(x) * np.cos(y)
@@ -199,7 +202,7 @@ def get_geostationary_bounding_box(geos_area):
     sxy = np.sqrt(s1**2 + s2**2)
 
     lons = np.rad2deg(np.arctan2(s2, s1)) + geos_area.proj_dict.get('lon_0', 0)
-    lats = np.rad2deg(np.arctan2(b * s3, sxy))
+    lats = np.rad2deg(np.arctan2(b__ * s3, sxy))
 
     return lons, lats
 
