@@ -27,7 +27,6 @@ import logging
 import os
 
 import numpy as np
-from scipy.special import erf
 
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.config import get_environ_ancpath
@@ -181,9 +180,8 @@ class ReflectanceCorrector(CompositeBase):
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 
-    def __call__(self, (refl_data, sensor_aa, sensor_za, solar_aa, solar_za),
-                 **info):
-
+    def __call__(self, datasets, **info):
+        refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
         if refl_data.info.get("rayleigh_corrected"):
             return refl_data
 
@@ -191,6 +189,7 @@ class ReflectanceCorrector(CompositeBase):
             LOG.debug("Loading CREFL averaged elevation information from: %s",
                       self.dem_file)
             from netCDF4 import Dataset
+            # HDF4 file, NetCDF library needs to be compiled with HDF4 support
             nc = Dataset(self.dem_file, "r")
             avg_elevation = nc.variables[self.dem_sds][:]
         else:
@@ -444,6 +443,7 @@ class ERFDNB(CompositeBase):
         if len(datasets) != 4:
             raise ValueError("Expected 4 datasets, got %d" % (len(datasets), ))
 
+        from scipy.special import erf
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
