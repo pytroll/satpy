@@ -58,75 +58,48 @@ class CompositorLoader(object):
     """
 
     def __init__(self, ppp_config_dir=CONFIG_PATH):
-        from satpy.config import glob_config
-
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
 
-    def load_sensor_composites(self, sensor_names):
-        config_filenames = [sensor_name + ".yaml"
-                            for sensor_name in sensor_names]
-        for config_filename in config_filenames:
-            LOG.debug("Looking for composites config file %s", config_filename)
-            composite_configs = config_search_paths(
-                os.path.join("composites", config_filename),
-                self.ppp_config_dir)
-            if not composite_configs:
-                LOG.debug("No composite config found called %s",
-                          config_filename)
-                continue
-            self._load_config(composite_configs)
+    def load_sensor_composites(self, sensor_name):
+        config_filename = sensor_name + ".yaml"
+        LOG.debug("Looking for composites config file %s", config_filename)
+        composite_configs = config_search_paths(
+            os.path.join("composites", config_filename),
+            self.ppp_config_dir, check_exists=True)
+        if not composite_configs:
+            LOG.debug("No composite config found called %s",
+                      config_filename)
+            return
+        self._load_config(composite_configs)
 
-    def load_compositor(self, key, sensor_names):
+    def get_compositor(self, key, sensor_names):
         for sensor_name in sensor_names:
-            if sensor_name not in self.compositors:
-                self.load_sensor_composites([sensor_name])
             try:
-                # FIXME: If key is a DatasetID we probably have to do something different
                 return self.compositors[sensor_name][key]
             except KeyError:
                 continue
-
-        if isinstance(key, DatasetID) and key.modifiers:
-            # we must be generating a modifier composite
-            return self.load_modifier(key, sensor_names)
-
         raise KeyError("Could not find compositor '%s'" % (key,))
 
-    def load_modifier(self, comp_id, sensor_names):
-        # create a DatasetID for the compositor we are generating
-        modifier = comp_id.modifiers[-1]
-        # source_id = DatasetID(*comp_id[:-1] + (comp_id.modifiers[:-1]))
+    def get_modifier(self, key, sensor_names):
         for sensor_name in sensor_names:
-            if sensor_name not in self.modifiers:
-                self.load_sensor_composites([sensor_name])
-
-            modifiers = self.modifiers[sensor_name]
-            compositors = self.compositors[sensor_name]
-            if modifier not in modifiers:
+            try:
+                return self.modifiers[sensor_name][key]
+            except KeyError:
                 continue
-
-            mloader, moptions = modifiers[modifier]
-            moptions = moptions.copy()
-            moptions.update(comp_id.to_dict())
-            moptions['id'] = comp_id
-            # moptions['prerequisites'] = (
-            #     [source_id] + moptions['prerequisites'])
-            moptions['sensor'] = sensor_name
-            compositors[comp_id] = mloader(**moptions)
-            return compositors[comp_id]
-
-        return KeyError("Could not find modifier '%s'" % (modifier,))
+        raise KeyError("Could not find modifier '%s'" % (key,))
 
     def load_compositors(self, sensor_names):
-        res = {}
+        comps = {}
+        mods = {}
         for sensor_name in sensor_names:
             if sensor_name not in self.compositors:
-                self.load_sensor_composites([sensor_name])
-
-            res.update(self.compositors[sensor_name])
-        return res
+                self.load_sensor_composites(sensor_name)
+            if sensor_name in self.compositors:
+                comps[sensor_name] = DatasetDict(self.compositors[sensor_name].copy())
+                mods[sensor_name] = self.modifiers[sensor_name].copy()
+        return comps, mods
 
     def _process_composite_config(self, composite_name, conf,
                                   composite_type, sensor_id, composite_config, **kwargs):
@@ -185,7 +158,7 @@ class CompositorLoader(object):
 
         for sensor_dep in reversed(sensor_deps):
             if sensor_dep not in self.compositors or sensor_dep not in self.modifiers:
-                self.load_sensor_composites([sensor_dep])
+                self.load_sensor_composites(sensor_dep)
 
         if sensor_deps:
             compositors.update(self.compositors[sensor_deps[-1]])
@@ -197,8 +170,6 @@ class CompositorLoader(object):
             for composite_name in conf[composite_type]:
                 self._process_composite_config(composite_name, conf,
                                                composite_type, sensor_id, composite_config, **kwargs)
-
-        return conf
 
 
 class CompositeBase(InfoObject):
