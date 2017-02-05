@@ -260,16 +260,17 @@ class DatasetDict(dict):
                         "One of 'name' or 'wavelength' info values should be set.")
 
         # update the 'value' with the information contained in the key
-        d["name"] = key.name
-        # XXX: What should users be allowed to modify?
-        d["resolution"] = key.resolution
-        d["calibration"] = key.calibration
-        d["polarization"] = key.polarization
-        d["modifiers"] = key.modifiers
-        d['id'] = key
-        # you can't change the wavelength of a dataset, that doesn't make sense
-        if "wavelength" in d and d["wavelength"] != key.wavelength:
-            raise TypeError("Can't change the wavelength of a dataset")
+        if hasattr(d, '__setitem__'):
+            d["name"] = key.name
+            # XXX: What should users be allowed to modify?
+            d["resolution"] = key.resolution
+            d["calibration"] = key.calibration
+            d["polarization"] = key.polarization
+            d["modifiers"] = key.modifiers
+            d['id'] = key
+            # you can't change the wavelength of a dataset, that doesn't make sense
+            if "wavelength" in d and d["wavelength"] != key.wavelength:
+                raise TypeError("Can't change the wavelength of a dataset")
 
         return super(DatasetDict, self).__setitem__(key, value)
 
