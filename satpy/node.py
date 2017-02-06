@@ -306,18 +306,19 @@ class DependencyTree(Node):
         for key in dataset_keys.copy():
             if key in self:
                 n = self[key]
+                unknowns = None
             else:
                 n, unknowns = self._find_dependencies(key,
                                                       calibration=calibration,
                                                       polarization=polarization,
                                                       resolution=resolution)
 
-                dataset_keys.discard(key)  # remove old non-DatasetID
-                if n is not None:
-                    dataset_keys.add(n.name)  # add equivalent DatasetID
-                if unknowns:
-                    unknown_datasets.update(unknowns)
-                    continue
+            dataset_keys.discard(key)  # remove old non-DatasetID
+            if n is not None:
+                dataset_keys.add(n.name)  # add equivalent DatasetID
+            if unknowns:
+                unknown_datasets.update(unknowns)
+                continue
 
             self.add_child(self, n)
 
