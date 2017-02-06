@@ -376,15 +376,15 @@ class TestSceneLoading(unittest.TestCase):
         scene = satpy.scene.Scene(filenames='bla',
                                   base_dir='bli',
                                   reader='fake_reader')
-        scene.load(['comp1'])
-        scene.load(['comp2'])
-        scene.load(['comp3'])
-        scene.load(['comp4'])
-        scene.load(['comp5'])
-        scene.load(['comp6'])
-        scene.load(['comp7'])
-        scene.load(['comp9'])
         scene.load(['comp10'])
+        scene.load(['comp9'])
+        scene.load(['comp7'])
+        scene.load(['comp6'])
+        scene.load(['comp5'])
+        scene.load(['comp4'])
+        scene.load(['comp3'])
+        scene.load(['comp2'])
+        scene.load(['comp1'])
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 9)
 
