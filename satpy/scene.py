@@ -352,7 +352,7 @@ class Scene(InfoObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.info)
-
+            self.datasets[composite.info['id']] = composite
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
@@ -363,8 +363,6 @@ class Scene(InfoObject):
             # might be needed in other compositors
             keepables.add(comp_node.name)
             return
-
-        self.datasets[composite.info['id']] = composite
 
     def read_composites(self, compositor_nodes):
         """Read (generate) composites.

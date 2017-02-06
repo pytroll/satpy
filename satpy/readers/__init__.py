@@ -74,6 +74,8 @@ class DatasetID(DatasetID):
         """
         if type(a) == type(b):
             return a == b
+        elif a is None or b is None:
+            return False
         elif isinstance(a, (list, tuple)) and len(a) == 3:
             return a[0] <= b <= a[2]
         elif isinstance(b, (list, tuple)) and len(b) == 3:
@@ -140,10 +142,14 @@ class DatasetDict(dict):
             res = self.get_keys_by_datasetid(key)
             if not res:
                 return None
-            elif len(res) > 1:
-                raise KeyError("No unique dataset matching " + str(key))
-            else:
+            elif len(res) == 1:
                 return res[0]
+
+            # more than one dataset matched
+            res = self.get_best_choice(key, res)
+            if len(res) != 1:
+                raise KeyError("No unique dataset matching " + str(key))
+            return res[0]
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
@@ -197,6 +203,17 @@ class DatasetDict(dict):
             ]
 
         return keys
+
+    def get_best_choice(self, key, choices):
+        if key.modifiers is None and choices:
+            num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
+            choices = [c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
+        if key.resolution is None and choices:
+            low_res = [x.resolution for x in choices if x.resolution]
+            if low_res:
+                low_res = min(low_res)
+                choices = [c for c in choices if c.resolution == low_res]
+        return choices
 
     def get_keys_by_datasetid(self, did):
         keys = self.keys()
