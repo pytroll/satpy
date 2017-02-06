@@ -32,8 +32,8 @@ def test_datasets():
         DatasetID(name='ds1'),
         DatasetID(name='ds2'),
         DatasetID(name='ds3'),
-        DatasetID(name='ds4', calibration='radiance'),
         DatasetID(name='ds4', calibration='reflectance'),
+        DatasetID(name='ds4', calibration='radiance'),
         DatasetID(name='ds5', resolution=250),
         DatasetID(name='ds5', resolution=500),
         DatasetID(name='ds5', resolution=1000),
@@ -63,15 +63,26 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
     from satpy import Projectable
-    m = mock.MagicMock()
-    m.info = {}
-    def call_func(self, datasets, optional_datasets, **info):
-        info = datasets[0].info.copy()
-        info['id'] = self.info['id']
-        info.update(**self.info['id'].to_dict())
-        return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
-    m.__call__ = call_func
-    return m
+
+    def _mod_loader(*args, **kwargs):
+        class FakeMod(object):
+            def __init__(self, *args, **kwargs):
+                self.info = {}
+
+            def __call__(self, datasets, optional_datasets, **info):
+                info = datasets[0].info.copy()
+                info['id'] = self.info['id']
+                info.update(**self.info['id'].to_dict())
+                return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
+
+        m = FakeMod()
+        m.info = {
+            'prerequisites': tuple(prereqs),
+            'optional_prerequisites': tuple(opt_prereqs)
+        }
+        return m
+
+    return _mod_loader, {}
 
 
 def test_composites(sensor_name):
@@ -88,6 +99,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp7'): (['ds1', 'comp2'], ['ds2']),
         DatasetID(name='comp8'): (['ds_NOPE', 'comp2'], []),
         DatasetID(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
+        DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -107,6 +119,12 @@ def _get_dataset_key(key,
                      modifiers=None,
                      aslist=False):
     from satpy import DatasetID
+    if isinstance(key, DatasetID) and not key.modifiers:
+        try:
+            return _get_dataset_key(key.name or key.wavelength)
+        except KeyError:
+            pass
+
     dataset_ids = test_datasets()
     for ds in dataset_ids:
         # should do wavelength and string matching for equality
