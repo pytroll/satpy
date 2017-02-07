@@ -48,6 +48,33 @@ class TestUtils(unittest.TestCase):
                     'nc')
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
 
+    def test_match_filenames(self):
+        """Check that matching filenames works."""
+        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
+                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
+                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
+                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
+                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        filenames = ['/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
+                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
+                     '78_2340_SVL_O_NR_002.SEN3/Oa05_radiance.nc',
+                     '/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
+                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
+                     '78_2340_SVL_O_NR_002.SEN3/geo_coordinates.nc']
+        expected = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_20161020T'
+                    '102406_0179_010_078_2340_SVL_O_NR_002.SEN3/geo_coordinates'
+                    '.nc')
+        self.assertEqual(yr.match_filenames(filenames, pattern),
+                         ["/home/a001673/data/satellite/Sentinel-3/" +
+                          expected])
+
+    def test_listify_string(self):
+        """Check listify_string."""
+        self.assertEqual(yr.listify_string(None), [])
+        self.assertEqual(yr.listify_string('some string'), ['some string'])
+        self.assertEqual(yr.listify_string(['some', 'string']),
+                         ['some', 'string'])
+
 
 class TestFileSelection(unittest.TestCase):
     """Test the file selection methods from FileYAMLReader."""
