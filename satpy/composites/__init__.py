@@ -63,14 +63,15 @@ class CompositorLoader(object):
         self.ppp_config_dir = ppp_config_dir
 
     def load_sensor_composites(self, sensor_name):
+        """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         LOG.debug("Looking for composites config file %s", config_filename)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
             self.ppp_config_dir, check_exists=True)
         if not composite_configs:
-            LOG.debug("No composite config found called %s",
-                      config_filename)
+            LOG.debug("No composite config found called {}".format(
+                config_filename))
             return
         self._load_config(composite_configs)
 
@@ -80,7 +81,7 @@ class CompositorLoader(object):
                 return self.compositors[sensor_name][key]
             except KeyError:
                 continue
-        raise KeyError("Could not find compositor '%s'" % (key,))
+        raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, key, sensor_names):
         for sensor_name in sensor_names:
@@ -88,9 +89,28 @@ class CompositorLoader(object):
                 return self.modifiers[sensor_name][key]
             except KeyError:
                 continue
-        raise KeyError("Could not find modifier '%s'" % (key,))
+        raise KeyError("Could not find modifier '{}'".format(key))
 
     def load_compositors(self, sensor_names):
+        """Load all compositor configs for the provided sensors.
+
+        Args:
+            sensor_names (list of strings): Sensor names that have matching
+                                            ``sensor_name.yaml`` config files.
+
+        Returns:
+            (comps, mods): Where `comps` is a dictionary:
+
+                    sensor_name -> composite ID -> compositor object
+
+                And `mods` is a dictionary:
+
+                    sensor_name -> modifier name -> (modifier class,
+                    modifiers options)
+
+                Note that these dictionaries are copies of those cached in
+                this object.
+        """
         comps = {}
         mods = {}
         for sensor_name in sensor_names:

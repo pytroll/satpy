@@ -189,8 +189,8 @@ class Scene(InfoObject):
         return all_datasets
 
     def all_dataset_names(self, reader_name=None, composites=False):
-        return sorted(set([x.name for x in self.all_dataset_ids(
-            reader_name=reader_name, composites=composites)]))
+        return sorted(set(x.name for x in self.all_dataset_ids(
+            reader_name=reader_name, composites=composites)))
 
     def available_composite_ids(self, available_datasets=None):
         """Get names of compositors that can be generated from the available
@@ -210,12 +210,12 @@ class Scene(InfoObject):
         comps, mods = self.cpl.load_compositors(self.info['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
         unknowns = dep_tree.find_dependencies(set(available_datasets + all_comps))
-        available_comps = set([x.name for x in dep_tree.trunk()])
+        available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
 
     def available_composite_names(self):
-        return sorted(set([x.name for x in self.available_composite_ids()]))
+        return sorted(set(x.name for x in self.available_composite_ids()))
 
     def all_composite_ids(self, sensor_names=None):
         """Get all composite IDs that are configured.
@@ -232,7 +232,7 @@ class Scene(InfoObject):
         return sorted(set(compositors))
 
     def all_composite_names(self):
-        return sorted(set([x.name for x in self.all_composite_ids()]))
+        return sorted(set(x.name for x in self.all_composite_ids()))
 
     def all_modifier_names(self):
         return sorted(self.dep_tree.modifiers.keys())
@@ -303,6 +303,25 @@ class Scene(InfoObject):
         return loaded_datasets
 
     def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
+        """Get a composite's prerequisites, generating them if needed.
+
+        Args:
+            comp_id (DatasetID): DatasetID for the composite whose
+                                 prerequisites are being collected.
+            prereq_nodes (sequence of Nodes): Prerequisites to collect
+            keepables (set): `set` to update if any prerequisites can't
+                             be loaded at this time (see
+                             `_generate_composite`).
+            skip (bool): If True, consider prerequisites as optional and
+                         only log when they are missing. If False,
+                         prerequisites are considered required and will
+                         raise an exception and log a warning if they can't
+                         be collected. Defaults to False.
+
+        Raises:
+            KeyError: If required (skip=False) prerequisite can't be collected.
+
+        """
         prereq_datasets = []
         for prereq_node in prereq_nodes:
             prereq_id = prereq_node.name
@@ -327,6 +346,16 @@ class Scene(InfoObject):
         return prereq_datasets
 
     def _generate_composite(self, comp_node, keepables):
+        """Collect all composite prereqs and create the specified composite.
+
+        Args:
+            comp_node (Node): Composite Node to generate a Dataset for
+            keepables (set): `set` to update if any datasets are needed
+                             when generation is continued later. This can
+                             happen if generation is delayed to incompatible
+                             areas which would require resampling first.
+
+        """
         if comp_node.name in self.datasets:
             # already loaded
             return
