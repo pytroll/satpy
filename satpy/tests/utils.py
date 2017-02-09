@@ -130,7 +130,7 @@ def _get_dataset_key(key,
         # should do wavelength and string matching for equality
         if key == ds:
             return ds
-    raise KeyError("No fake test key '%s'" % (key,))
+    raise KeyError("No fake test key '{}'".format(key))
 
 
 def _reader_load(dataset_keys):

@@ -53,7 +53,48 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+
+
 class DatasetID(DatasetID):
+    """Identifier for all `Dataset` objects.
+
+    DatasetID is a namedtuple that holds identifying and classifying
+    information about a Dataset. There are two identifying elements,
+    ``name`` and ``wavelength``. These can be used to generically refer to a
+    Dataset. The other elements of a DatasetID are meant to further
+    distinguish a Dataset from the possible variations it may have. For
+    example multiple Datasets may be called by one ``name`` but may exist
+    in multiple resolutions or with different calibrations such as "radiance"
+    and "reflectance". If an element is `None` then it is considered not
+    applicable.
+
+    A DatasetID can also be used in SatPy to query for a Dataset. This way
+    a fully qualified DatasetID can be found even if some of the DatasetID
+    elements are unknown. In this case a `None` signifies something that is
+    unknown or not applicable to the requested Dataset.
+
+    Args:
+        name (str): String identifier for the Dataset
+        wavelength (float, tuple): Single float wavelength when querying for
+                                   a Dataset. Otherwise 3-element tuple of
+                                   floats specifying the minimum, nominal,
+                                   and maximum wavelength for a Dataset.
+                                   `None` if not applicable.
+        resolution (int, float): Per data pixel/area resolution. If resolution
+                                 varies across the Dataset then nadir view
+                                 resolution is preferred. Usually this is in
+                                 meters, but for lon/lat gridded data angle
+                                 degrees may be used.
+        polarization (str): 'V' or 'H' polarizations of a microwave channel.
+                            `None` if not applicable.
+        calibration (str): String identifying the calibration level of the
+                           Dataset (ex. 'radiance', 'reflectance', etc).
+                           `None` if not applicable.
+        modifiers (tuple): Tuple of strings identifying what corrections or
+                           other modifications have been performed on this
+                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
+                           etc). `None` or empty tuple if not applicable.
+    """
     @staticmethod
     def name_match(a, b):
         """Return if two string names are equal
