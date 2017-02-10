@@ -23,23 +23,27 @@
 """
 
 import os
-
+import sys
 from behave import *
+
+if sys.version_info < (3, 0):
+    from urllib2 import urlopen
+else:
+    from urllib.request import urlopen
 
 use_step_matcher("re")
 
 
 @given(u'data is available')
 def step_impl(context):
-    import urllib2
     if not os.path.exists('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5'):
-        response = urllib2.urlopen(
+        response = urlopen(
             'https://zenodo.org/record/16355/files/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5')
         with open('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5',
                   mode="w") as fp:
             fp.write(response.read())
     if not os.path.exists('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5'):
-        response = urllib2.urlopen(
+        response = urlopen(
             'https://zenodo.org/record/16355/files/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5')
         with open('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5',
                   mode="w") as fp:
@@ -81,7 +85,7 @@ def step_impl(context):
     scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
-    context.available_dataset_ids = scn.available_datasets()
+    context.available_dataset_ids = scn.available_dataset_ids()
 
 
 @then(u'available datasets is returned')

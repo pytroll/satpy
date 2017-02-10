@@ -30,9 +30,11 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
-from satpy.node import Node
-from satpy.projectable import Dataset, InfoObject, Projectable
-from satpy.readers import DatasetDict, DatasetID, ReaderFinder
+from satpy.node import DependencyTree
+from satpy.projectable import InfoObject, Projectable
+from satpy.readers import (DatasetDict,
+                           DatasetID,
+                           ReaderFinder)
 
 try:
     import configparser
@@ -74,8 +76,9 @@ class Scene(InfoObject):
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
-        self.compositors = {}
+        comps, mods = self.cpl.load_compositors(self.info.get('sensor', []))
         self.wishlist = set()
+        self.dep_tree = DependencyTree(self.readers, comps, mods)
 
     def _compute_metadata_from_readers(self):
         mda = {}
@@ -155,15 +158,14 @@ class Scene(InfoObject):
                               for reader in readers
                               for dataset_id in reader.available_dataset_ids]
         if composites:
-            available_datasets += list(self.available_composites(
+            available_datasets += list(self.available_composite_ids(
                 available_datasets))
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
         """Get the list of the names of the available datasets."""
-        return list(set(x.name if isinstance(x, DatasetID) else x
-                        for x in self.available_dataset_ids(reader_name=reader_name,
-                                                            composites=composites)))
+        return sorted(set(x.name for x in self.available_dataset_ids(
+            reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
         """Get names of all datasets from loaded readers or `reader_name` if
@@ -187,10 +189,10 @@ class Scene(InfoObject):
         return all_datasets
 
     def all_dataset_names(self, reader_name=None, composites=False):
-        return [x.name if isinstance(x, DatasetID) else x
-                for x in self.all_dataset_ids(reader_name=reader_name, composites=composites)]
+        return sorted(set(x.name for x in self.all_dataset_ids(
+            reader_name=reader_name, composites=composites)))
 
-    def available_composites(self, available_datasets=None):
+    def available_composite_ids(self, available_datasets=None):
         """Get names of compositors that can be generated from the available
         datasets.
 
@@ -203,37 +205,37 @@ class Scene(InfoObject):
                 raise ValueError(
                     "'available_datasets' must all be DatasetID objects")
 
-        available_datasets = set(available_datasets)
-        available_dataset_names = set(
-            ds_id.name for ds_id in available_datasets)
-        # composite_objects = self.all_composites_objects()
-        composites = []
-        for composite_name, composite_obj in self.all_composite_objects(
-        ).items():
-            ###
-            for prereq in composite_obj.info['prerequisites']:
-                if isinstance(prereq, DatasetID) and prereq not in available_datasets:
-                    break
-                elif prereq not in available_dataset_names:
-                    break
-            else:
-                # we made it through all the prereqs, must have them all
-                composites.append(composite_name)
-        return composites
+        all_comps = self.all_composite_ids()
+        # recreate the dependency tree so it doesn't interfere with the user's wishlist
+        comps, mods = self.cpl.load_compositors(self.info['sensor'])
+        dep_tree = DependencyTree(self.readers, comps, mods)
+        unknowns = dep_tree.find_dependencies(set(available_datasets + all_comps))
+        available_comps = set(x.name for x in dep_tree.trunk())
+        # get rid of modified composites that are in the trunk
+        return sorted(available_comps & set(all_comps))
 
-    def all_composites(self):
-        """Get all composite names that are configured.
+    def available_composite_names(self):
+        return sorted(set(x.name for x in self.available_composite_ids()))
+
+    def all_composite_ids(self, sensor_names=None):
+        """Get all composite IDs that are configured.
 
         :return: generator of configured composite names
         """
-        return (c.info["name"] for c in self.all_composite_objects().values())
+        if sensor_names is None:
+            sensor_names = self.info['sensor']
+        compositors = []
+        # Note if we get compositors from the dep tree then it will include
+        # modified composites which we don't want
+        for sensor_name in sensor_names:
+            compositors.extend(self.cpl.compositors[sensor_name].keys())
+        return sorted(set(compositors))
 
-    def all_composite_objects(self):
-        """Get all compositors that are configured.
+    def all_composite_names(self):
+        return sorted(set(x.name for x in self.all_composite_ids()))
 
-        :return: dictionary of composite name to compositor object
-        """
-        return self.cpl.load_compositors(sensor_names=self.info["sensor"])
+    def all_modifier_names(self):
+        return sorted(self.dep_tree.modifiers.keys())
 
     def __str__(self):
         """Generate a nice print out for the scene."""
@@ -280,308 +282,136 @@ class Scene(InfoObject):
         """Check if the dataset is in the scene."""
         return name in self.datasets
 
-    def _find_dependencies(self,
-                           dataset_key,
-                           calibration=None,
-                           polarization=None,
-                           resolution=None,
-                           **kwargs):
-        """Find the dependencies for *dataset_key*."""
-        sensor_names = set()
-
-        # 0 check if the dataset is already loaded
-
-        if dataset_key in self.datasets:
-            return Node(self.datasets[dataset_key])
-
-        # 1 try to get dataset from reader
-        for reader_name, reader_instance in self.readers.items():
-            sensor_names |= set(reader_instance.sensor_names)
-            try:
-                ds_id = reader_instance.get_dataset_key(dataset_key,
-                                                        calibration=calibration,
-                                                        polarization=polarization,
-                                                        resolution=resolution)
-            except KeyError as err:
-                LOG.debug("Can't find dataset %s in reader %s",
-                          str(dataset_key), reader_name)
-            else:
-                try:
-                    self.wishlist.remove(dataset_key)
-                except KeyError:
-                    pass
-                else:
-                    self.wishlist.add(ds_id)
-                return Node(ds_id)
-
-        # 2 try to find a composite that matches
-        try:
-            self.compositors[dataset_key] = self.cpl.load_compositor(
-                dataset_key, sensor_names)
-            compositor = self.compositors[dataset_key]
-
-        except KeyError as err:
-            raise KeyError("Can't find anything called %s: %s" %
-                           (str(dataset_key), str(err)))
-
-        # 2.1 get the prerequisites
-        prereqs = [self._find_dependencies(prereq, **kwargs)
-                   for prereq in compositor.info["prerequisites"]]
-        optional_prereqs = []
-
-        for prereq in compositor.info["optional_prerequisites"]:
-            try:
-                optional_prereqs.append(
-                    self._find_dependencies(prereq, **kwargs))
-            except KeyError as err:
-                LOG.debug('Skipping optional %s: %s',
-                          str(prereq), str(err))
-
-        root = Node((compositor, prereqs, optional_prereqs))
-        #root = Node(compositor.info['name'])
-
-        for prereq in prereqs + optional_prereqs:
-            if prereq is not None:
-                root.add_child(prereq)
-
-        return root
-
-    def create_deptree(self,
-                       dataset_keys,
-                       calibration=None,
-                       polarization=None,
-                       resolution=None):
-        """Create the dependency tree."""
-        tree = Node(None)
-        for key in dataset_keys:
-            tree.add_child(self._find_dependencies(key,
-                                                   calibration=calibration,
-                                                   polarization=polarization,
-                                                   resolution=resolution))
-        return tree
-
-    def read_datasets(self,
-                      dataset_nodes,
-                      calibration=None,
-                      polarization=None,
-                      resolution=None,
-                      metadata=None,
-                      **kwargs):
+    def read_datasets(self, dataset_nodes, **kwargs):
         """Read the given datasets from file."""
-        sensor_names = set()
+        # Sort requested datasets by reader
+        reader_datasets = {}
+        for node in dataset_nodes:
+            ds_id = node.name
+            if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
+                continue
+            reader_name = node.data['reader_name']
+            reader_datasets.setdefault(reader_name, set()).add(ds_id)
+
+        # load all datasets for one reader at a time
         loaded_datasets = {}
-        # get datasets from readers
-
-        if calibration is not None and not isinstance(calibration,
-                                                      (list, tuple)):
-            calibration = [calibration]
-        if resolution is not None and not isinstance(resolution,
-                                                     (list, tuple)):
-            resolution = [resolution]
-        if polarization is not None and not isinstance(polarization,
-                                                       (list, tuple)):
-            polarization = [polarization]
-
-        for reader_name, reader_instance in self.readers.items():
-
-            sensor_names |= set(reader_instance.sensor_names)
-            ds_ids = set()
-            for node in dataset_nodes:
-                dataset_key = node.data
-                if isinstance(dataset_key, Dataset):
-                    # we already loaded this in a previous call to `.load`
-                    continue
-
-                try:
-                    ds_id = reader_instance.get_dataset_key(
-                        dataset_key,
-                        calibration=calibration,
-                        resolution=resolution,
-                        polarization=polarization)
-                except KeyError:
-                    LOG.debug("Can't find dataset %s in reader %s",
-                              str(dataset_key), reader_name)
-                    ds_id = dataset_key
-                try:
-                    self.wishlist.remove(dataset_key)
-                except KeyError:
-                    pass
-                else:
-                    self.wishlist.add(ds_id)
-
-                # if we haven't loaded this projectable then add it to the list
-                # to be loaded
-                if (ds_id not in self.datasets or
-                        not self.datasets[ds_id].is_loaded()):
-                    ds_ids.add(ds_id)
+        for reader_name, ds_ids in reader_datasets.items():
+            reader_instance = self.readers[reader_name]
             new_datasets = reader_instance.load(ds_ids, **kwargs)
             loaded_datasets.update(new_datasets)
         self.datasets.update(loaded_datasets)
-        return new_datasets
+        return loaded_datasets
 
-# TODO: unload unneeded stuff
+    def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
+        """Get a composite's prerequisites, generating them if needed.
 
-    def read_composites(self, compositor_nodes, **kwargs):
+        Args:
+            comp_id (DatasetID): DatasetID for the composite whose
+                                 prerequisites are being collected.
+            prereq_nodes (sequence of Nodes): Prerequisites to collect
+            keepables (set): `set` to update if any prerequisites can't
+                             be loaded at this time (see
+                             `_generate_composite`).
+            skip (bool): If True, consider prerequisites as optional and
+                         only log when they are missing. If False,
+                         prerequisites are considered required and will
+                         raise an exception and log a warning if they can't
+                         be collected. Defaults to False.
+
+        Raises:
+            KeyError: If required (skip=False) prerequisite can't be collected.
+
+        """
+        prereq_datasets = []
+        for prereq_node in prereq_nodes:
+            prereq_id = prereq_node.name
+            if prereq_id not in self.datasets and prereq_id not in keepables:
+                self._generate_composite(prereq_node, keepables)
+
+            if prereq_id in self.datasets:
+                prereq_datasets.append(self.datasets[prereq_id])
+            elif prereq_id in keepables:
+                keepables.add(comp_id)
+                LOG.warning("Delaying generation of %s "
+                            "because of dependency's delayed generation: %s",
+                            comp_id, prereq_id)
+            elif not skip:
+                LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite")
+            else:
+                LOG.debug("Missing optional prerequisite for {}: {}".format(
+                    comp_id, prereq_id))
+
+        return prereq_datasets
+
+    def _generate_composite(self, comp_node, keepables):
+        """Collect all composite prereqs and create the specified composite.
+
+        Args:
+            comp_node (Node): Composite Node to generate a Dataset for
+            keepables (set): `set` to update if any datasets are needed
+                             when generation is continued later. This can
+                             happen if generation is delayed to incompatible
+                             areas which would require resampling first.
+
+        """
+        if comp_node.name in self.datasets:
+            # already loaded
+            return
+        compositor, prereqs, optional_prereqs = comp_node.data
+
+        try:
+            prereq_datasets = self._get_prereq_datasets(
+                comp_node.name,
+                prereqs,
+                keepables,
+            )
+        except KeyError:
+            return
+
+        optional_datasets = self._get_prereq_datasets(
+            comp_node.name,
+            optional_prereqs,
+            keepables,
+            skip=True
+        )
+
+        try:
+            composite = compositor(prereq_datasets,
+                                   optional_datasets=optional_datasets,
+                                   **self.info)
+            self.datasets[composite.info['id']] = composite
+        except IncompatibleAreas:
+            LOG.warning("Delaying generation of %s "
+                        "because of incompatible areas",
+                        compositor.info['name'])
+            preservable_datasets = set(self.datasets.keys())
+            keepables |= preservable_datasets & set(prereqs + optional_prereqs)
+            # even though it wasn't generated keep a list of what
+            # might be needed in other compositors
+            keepables.add(comp_node.name)
+            return
+
+    def read_composites(self, compositor_nodes):
         """Read (generate) composites.
         """
-        composites = []
-        for item in reversed(compositor_nodes):
-            compositor, prereqs, optional_prereqs = item.data
-            if compositor.info['id'] not in self.datasets:
-                new_prereqs = []
-                for prereq in prereqs:
-                    if isinstance(prereq.data, DatasetID):
-                        new_prereqs.append(prereq.data)
-                    elif isinstance(prereq.data, Dataset):
-                        new_prereqs.append(prereq.data.info['id'])
-                    else:
-                        new_prereqs.append(prereq.data[0].info['id'])
-                new_opt_prereqs = []
-                for prereq in optional_prereqs:
-                    if isinstance(prereq.data, DatasetID):
-                        new_opt_prereqs.append(prereq.data)
-                    else:
-                        new_opt_prereqs.append(prereq.data[0].info['id'])
+        keepables = set()
+        for item in compositor_nodes:
+            self._generate_composite(item, keepables)
+        return keepables
 
-                try:
-                    prereqs = [self.datasets[prereq] for prereq in new_prereqs]
-                except KeyError as e:
-                    LOG.warning("Missing composite '{}' prerequisite: {}".format(
-                        compositor.info['name'], e.message))
-                    self.wishlist.remove(compositor.info['name'])
-                    continue
+    def read(self, nodes=None, **kwargs):
+        if nodes is None:
+            nodes = self.dep_tree.leaves()
+        return self.read_datasets(nodes, **kwargs)
 
-                # Any missing optional prerequisites are replaced with 'None'
-                optional_prereqs = [self.datasets.get(prereq)
-                                    for prereq in new_opt_prereqs]
-
-                try:
-                    composite = compositor(prereqs,
-                                           optional_datasets=optional_prereqs,
-                                           **self.info)
-
-                except IncompatibleAreas:
-                    LOG.warning("Delaying generation of %s "
-                                "because of incompatible areas",
-                                compositor.info['name'])
-                    continue
-                composite.info['name'] = compositor.info['id']
-
-                self.datasets[composite.info['id']] = composite
-
-                try:
-                    self.wishlist.remove(composite.info['name'])
-                except KeyError:
-                    pass
-                else:
-                    self.wishlist.add(composite.info['id'])
-
-            composites.append(self.datasets[compositor.info['id']])
-        return composites
-
-    def read_from_deptree(self, dataset_keys, **kwargs):
-        """Read the data by generating a dependency tree."""
-        # TODO: handle wishlist (keepables)
-        dataset_keys = set(dataset_keys)
-        self.wishlist |= dataset_keys
-
-        tree = self.create_deptree(dataset_keys,
-                                   calibration=kwargs.get('calibration'),
-                                   polarization=kwargs.get('polarization'),
-                                   resolution=kwargs.get('resolution'))
-        datasets = self.read_datasets(tree.leaves(), **kwargs)
-        composites = self.read_composites(tree.trunk(), **kwargs)
-
-    def read(self, dataset_keys, **kwargs):
-        return self.read_from_deptree(dataset_keys, **kwargs)
-
-    def compute(self, *requirements):
+    def compute(self, nodes=None):
         """Compute all the composites contained in `requirements`.
         """
-        if not requirements:
-            requirements = self.wishlist.copy()
-        keepables = set()
-        for requirement in requirements:
-            if isinstance(
-                    requirement,
-                    DatasetID) and requirement.name not in self.compositors:
-                continue
-            elif not isinstance(
-                    requirement,
-                    DatasetID) and requirement not in self.compositors:
-                continue
-            if requirement in self.datasets:
-                continue
-            if isinstance(requirement, DatasetID):
-                requirement_name = requirement.name
-            else:
-                requirement_name = requirement
-
-            compositor = self.compositors[requirement_name]
-            # Compute any composites that this one depends on
-            keepables |= self.compute(*compositor.info["prerequisites"])
-            # Compute any composites that this composite might optionally
-            # depend on
-            if compositor.info["optional_prerequisites"]:
-                keepables |= self.compute(
-                    *compositor.info["optional_prerequisites"])
-
-            # Resolve the simple name of a prereq to the fully qualified
-            prereq_datasets = [self[prereq]
-                               for prereq in compositor.info["prerequisites"]]
-            optional_datasets = [
-                self[prereq]
-                for prereq in compositor.info["optional_prerequisites"]
-                if prereq in self
-            ]
-            compositor.info["prerequisites"] = [ds.info["id"]
-                                                for ds in prereq_datasets]
-            compositor.info["optional_prerequisites"] = [
-                ds.info["id"] for ds in optional_datasets
-            ]
-            try:
-                comp_projectable = compositor(
-                    prereq_datasets,
-                    optional_datasets=optional_datasets,
-                    **self.info)
-
-                # validate the composite projectable
-                assert ("name" in comp_projectable.info)
-                comp_projectable.info.setdefault("resolution", None)
-                comp_projectable.info.setdefault("wavelength_range", None)
-                comp_projectable.info.setdefault("polarization", None)
-                comp_projectable.info.setdefault("calibration", None)
-                comp_projectable.info.setdefault("modifiers", None)
-
-                # FIXME: Should this be a requirement of anything creating a
-                # Dataset? Special handling by .info?
-                band_id = DatasetID(
-                    name=comp_projectable.info["name"],
-                    resolution=comp_projectable.info["resolution"],
-                    wavelength=comp_projectable.info["wavelength_range"],
-                    polarization=comp_projectable.info["polarization"],
-                    calibration=comp_projectable.info["calibration"],
-                    modifiers=comp_projectable.info["modifiers"])
-                comp_projectable.info["id"] = band_id
-                self.datasets[band_id] = comp_projectable
-
-                # update the wishlist with this new dataset id
-                if requirement_name in self.wishlist:
-                    self.wishlist.remove(requirement_name)
-                    self.wishlist.add(band_id)
-            except IncompatibleAreas:
-                LOG.debug("Composite '%s' could not be created because of"
-                          " incompatible areas", requirement_name)
-                # FIXME: If a composite depends on this composite we need to
-                # notify the previous call
-                preservable_datasets = set(compositor.info["prerequisites"] +
-                                           compositor.info[
-                                               "optional_prerequisites"])
-                for ds_id, projectable in self.datasets.items():
-                    # FIXME: Can compositors use wavelengths or only names?
-                    if ds_id in preservable_datasets:
-                        keepables.add(ds_id)
-        return keepables
+        if nodes is None:
+            nodes = self.dep_tree.trunk()
+        return self.read_composites(nodes)
 
     def unload(self, keepables=None):
         """Unload all loaded composites.
@@ -597,18 +427,23 @@ class Scene(InfoObject):
              calibration=None,
              resolution=None,
              polarization=None,
-             metadata=None,
              compute=True,
              unload=True,
              **kwargs):
         """Read, compute and unload.
         """
-        self.read(wishlist,
-                  calibration=calibration,
-                  resolution=resolution,
-                  polarization=polarization,
-                  metadata=metadata,
-                  **kwargs)
+        dataset_keys = set(wishlist)
+        self.wishlist |= dataset_keys
+
+        unknown = self.dep_tree.find_dependencies(self.wishlist,
+                                                  calibration=calibration,
+                                                  polarization=polarization,
+                                                  resolution=resolution)
+        if unknown:
+            unknown_str = ", ".join([str(x) for x in unknown])
+            raise KeyError("Unknown datasets: {}".format(unknown_str))
+
+        self.read(**kwargs)
         keepables = None
         if compute:
             keepables = self.compute()
@@ -625,7 +460,8 @@ class Scene(InfoObject):
         """
         new_scn = Scene()
         new_scn.info = self.info.copy()
-        new_scn.compositors = self.compositors.copy()
+        # new_scn.cpl = self.cpl
+        new_scn.dep_tree = self.dep_tree.copy()
         for ds_id, projectable in self.datasets.items():
             LOG.debug("Resampling %s", ds_id)
             if datasets and ds_id not in datasets:
@@ -643,7 +479,8 @@ class Scene(InfoObject):
         # resolutions, etc.)
         keepables = None
         if compute:
-            keepables = new_scn.compute()
+            nodes = [self.dep_tree[i] for i in new_scn.wishlist]
+            keepables = new_scn.compute(nodes=nodes)
         if unload:
             new_scn.unload(keepables)
 
