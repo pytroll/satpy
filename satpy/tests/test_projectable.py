@@ -380,7 +380,7 @@ class TestProjectable(unittest.TestCase):
         # Normal situation
         p = projectable.Projectable(np.arange(25),
                                     sensor="fake_sensor",
-                                    wavelength_range=500,
+                                    wavelength=500,
                                     resolution=250,
                                     fake_attr="fakeattr",
                                     area=FakeArea(),

@@ -54,6 +54,103 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
 DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
 
+
+class DatasetID(DatasetID):
+    """Identifier for all `Dataset` objects.
+
+    DatasetID is a namedtuple that holds identifying and classifying
+    information about a Dataset. There are two identifying elements,
+    ``name`` and ``wavelength``. These can be used to generically refer to a
+    Dataset. The other elements of a DatasetID are meant to further
+    distinguish a Dataset from the possible variations it may have. For
+    example multiple Datasets may be called by one ``name`` but may exist
+    in multiple resolutions or with different calibrations such as "radiance"
+    and "reflectance". If an element is `None` then it is considered not
+    applicable.
+
+    A DatasetID can also be used in SatPy to query for a Dataset. This way
+    a fully qualified DatasetID can be found even if some of the DatasetID
+    elements are unknown. In this case a `None` signifies something that is
+    unknown or not applicable to the requested Dataset.
+
+    Args:
+        name (str): String identifier for the Dataset
+        wavelength (float, tuple): Single float wavelength when querying for
+                                   a Dataset. Otherwise 3-element tuple of
+                                   floats specifying the minimum, nominal,
+                                   and maximum wavelength for a Dataset.
+                                   `None` if not applicable.
+        resolution (int, float): Per data pixel/area resolution. If resolution
+                                 varies across the Dataset then nadir view
+                                 resolution is preferred. Usually this is in
+                                 meters, but for lon/lat gridded data angle
+                                 degrees may be used.
+        polarization (str): 'V' or 'H' polarizations of a microwave channel.
+                            `None` if not applicable.
+        calibration (str): String identifying the calibration level of the
+                           Dataset (ex. 'radiance', 'reflectance', etc).
+                           `None` if not applicable.
+        modifiers (tuple): Tuple of strings identifying what corrections or
+                           other modifications have been performed on this
+                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
+                           etc). `None` or empty tuple if not applicable.
+    """
+    @staticmethod
+    def name_match(a, b):
+        """Return if two string names are equal
+
+        Args:
+            a (str): DatasetID.name or other string
+            b (str): DatasetID.name or other string
+        """
+        return a == b
+
+    @staticmethod
+    def wavelength_match(a, b):
+        """Return if two wavelengths are equal
+
+        Args:
+            a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+            b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+        """
+        if type(a) == type(b):
+            return a == b
+        elif a is None or b is None:
+            return False
+        elif isinstance(a, (list, tuple)) and len(a) == 3:
+            return a[0] <= b <= a[2]
+        elif isinstance(b, (list, tuple)) and len(b) == 3:
+            return b[0] <= a <= b[2]
+        else:
+            raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name_match(self.name, other)
+        elif isinstance(other, numbers.Number) or \
+                        isinstance(other, (tuple, list)) and len(other) == 3:
+            return self.wavelength_match(self.wavelength, other)
+        else:
+            return super(DatasetID, self).__eq__(other)
+
+    def __hash__(self):
+        return tuple.__hash__(self)
+
+    @classmethod
+    def from_dict(cls, d, **kwargs):
+        args = []
+        for k in DATASET_KEYS:
+            val = kwargs.get(k, d.get(k))
+            # force modifiers to tuple
+            if k == 'modifiers' and val is not None:
+                val = tuple(val)
+            args.append(val)
+
+        return cls(*args)
+
+    def to_dict(self):
+        return dict(zip(DATASET_KEYS, self))
+
 AREA_KEYS = ("name", "resolution", "terrain_correction")
 AreaID = namedtuple("AreaID", " ".join(AREA_KEYS))
 AreaID.__new__.__defaults__ = (None, None, None, None, None)
@@ -81,38 +178,29 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def _name_match(self, a, b):
-        return a == b
-
-    def _wl_match(self, a, b):
-        if type(a) == type(b):
-            return a == b
-        elif isinstance(a, (list, tuple)) and len(a) == 3:
-            return a[0] <= b <= a[2]
-        elif isinstance(b, (list, tuple)) and len(b) == 3:
-            return b[0] <= a <= b[2]
-        else:
-            raise ValueError("Can only compare wavelengths of length 1 or 3")
-
     def get_key(self, key):
         if isinstance(key, DatasetID):
             res = self.get_keys_by_datasetid(key)
             if not res:
                 return None
-            elif len(res) > 1:
-                raise KeyError("No unique dataset matching " + str(key))
-            else:
+            elif len(res) == 1:
                 return res[0]
+
+            # more than one dataset matched
+            res = self.get_best_choice(key, res)
+            if len(res) != 1:
+                raise KeyError("No unique dataset matching " + str(key))
+            return res[0]
         # get by wavelength
         elif isinstance(key, numbers.Number):
             for k in self.keys():
-                if k.wavelength is not None and self._wl_match(k.wavelength,
-                                                               key):
+                if k.wavelength is not None and \
+                        DatasetID.wavelength_match(k.wavelength, key):
                     return k
         # get by name
         else:
             for k in self.keys():
-                if self._name_match(k.name, key):
+                if DatasetID.name_match(k.name, key):
                     return k
 
     def get_keys(self,
@@ -124,10 +212,10 @@ class DatasetDict(dict):
         # Get things that match at least the name_or_wl
         if isinstance(name_or_wl, numbers.Number):
             keys = [k for k in self.keys()
-                    if self._wl_match(k.wavelength, name_or_wl)]
+                    if DatasetID.wavelength_match(k.wavelength, name_or_wl)]
         elif isinstance(name_or_wl, (str, six.text_type)):
             keys = [k for k in self.keys()
-                    if self._name_match(k.name, name_or_wl)]
+                    if DatasetID.name_match(k.name, name_or_wl)]
         else:
             raise TypeError("First argument must be a wavelength or name")
 
@@ -157,13 +245,24 @@ class DatasetDict(dict):
 
         return keys
 
+    def get_best_choice(self, key, choices):
+        if key.modifiers is None and choices:
+            num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
+            choices = [c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
+        if key.resolution is None and choices:
+            low_res = [x.resolution for x in choices if x.resolution]
+            if low_res:
+                low_res = min(low_res)
+                choices = [c for c in choices if c.resolution == low_res]
+        return choices
+
     def get_keys_by_datasetid(self, did):
         keys = self.keys()
         for key in DATASET_KEYS:
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and self._wl_match(
+                            if getattr(k, key) is not None and DatasetID.wavelength_match(
                                 getattr(k, key), getattr(did, key))]
 
                 else:
@@ -198,7 +297,7 @@ class DatasetDict(dict):
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.info if isinstance(value, Dataset) else value
+        d = value.info if hasattr(value, 'info') else value
         if not isinstance(key, DatasetID):
             old_key = key
             key = self.get_key(key)
@@ -210,25 +309,26 @@ class DatasetDict(dict):
                 # this is a new key and it's not a full DatasetID tuple
                 key = DatasetID(name=new_name,
                                 resolution=d.get("resolution"),
-                                wavelength=d.get("wavelength_range"),
+                                wavelength=d.get("wavelength"),
                                 polarization=d.get("polarization"),
                                 calibration=d.get("calibration"),
                                 modifiers=d.get("modifiers"))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
-                        "One of 'name' or 'wavelength_range' info values should be set.")
+                        "One of 'name' or 'wavelength' info values should be set.")
 
         # update the 'value' with the information contained in the key
-        d["name"] = key.name
-        # XXX: What should users be allowed to modify?
-        d["resolution"] = key.resolution
-        d["calibration"] = key.calibration
-        d["polarization"] = key.polarization
-        d["modifiers"] = key.modifiers
-        d['id'] = key
-        # you can't change the wavelength of a dataset, that doesn't make sense
-        if "wavelength_range" in d and d["wavelength_range"] != key.wavelength:
-            raise TypeError("Can't change the wavelength of a dataset")
+        if hasattr(d, '__setitem__'):
+            d["name"] = key.name
+            # XXX: What should users be allowed to modify?
+            d["resolution"] = key.resolution
+            d["calibration"] = key.calibration
+            d["polarization"] = key.polarization
+            d["modifiers"] = key.modifiers
+            d['id'] = key
+            # you can't change the wavelength of a dataset, that doesn't make sense
+            if "wavelength" in d and d["wavelength"] != key.wavelength:
+                raise TypeError("Can't change the wavelength of a dataset")
 
         return super(DatasetDict, self).__setitem__(key, value)
 

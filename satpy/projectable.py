@@ -370,7 +370,7 @@ class Dataset(np.ma.MaskedArray):
             pass
 
         for key in sorted(self.info.keys()):
-            if key == "wavelength_range":
+            if key == "wavelength":
                 res.append("{0}: {1} μm".format(key, self.info[key]))
             elif key == "resolution":
                 res.append("{0}: {1} m".format(key, self.info[key]))
