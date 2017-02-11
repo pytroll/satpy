@@ -40,7 +40,7 @@ from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
-from satpy.readers import DatasetDict, DatasetID
+from satpy.readers import DATASET_KEYS, DatasetDict, DatasetID
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
@@ -203,8 +203,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get the dataset matching a given a dataset id."""
         if ids is None:
             ids = self.ids.keys()
-        keys = dsid._asdict().keys()
-        for key in keys:
+        for key in DATASET_KEYS:
             value = getattr(dsid, key)
             if value is None:
                 continue
