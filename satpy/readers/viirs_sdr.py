@@ -149,14 +149,17 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     @property
     def platform_name(self):
         default = '/attr/Platform_Short_Name'
-        platform_path = self.filetype_info.get('platform_name', default).format(**self.filetype_info)
-        return self[platform_path]
+        platform_path = self.filetype_info.get(
+            'platform_name', default).format(**self.filetype_info)
+        platform_dict = {'NPP': 'Suomi-NPP'}
+        return platform_dict.get(self[platform_path], self[platform_path])
 
     @property
     def sensor_name(self):
         default = 'Data_Products/{file_group}/attr/Instrument_Short_Name'
-        sensor_path = self.filetype_info.get('sensor_name', default).format(**self.filetype_info)
-        return self[sensor_path]
+        sensor_path = self.filetype_info.get(
+            'sensor_name', default).format(**self.filetype_info)
+        return self[sensor_path].lower()
 
     def get_file_units(self, dataset_id, ds_info):
         file_units = ds_info.get("file_units")
@@ -295,7 +298,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "name": dataset_id.name,
             "id": dataset_id,
             "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
