@@ -76,8 +76,8 @@ class TestUtils(unittest.TestCase):
                          ['some', 'string'])
 
 
-class TestFileSelection(unittest.TestCase):
-    """Test the file selection methods from FileYAMLReader."""
+class TestFileFileYAMLReader(unittest.TestCase):
+    """Test units from FileYAMLReader."""
 
     @patch('satpy.readers.yaml_reader.recursive_dict_update')
     @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
@@ -88,9 +88,13 @@ class TestFileSelection(unittest.TestCase):
                                'sensors': ['canon']},
                     'file_types': {'ftype1': {'name': 'ft1',
                                               'file_patterns': patterns}},
-                    'datasets': {}}
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7]},
+                                 'ch2': {'name': 'ch02',
+                                         'wavelength': [0.7, 0.75, 0.8]}}}
 
         rec_up.return_value = res_dict
+        self.config = res_dict
         self.reader = yr.FileYAMLReader([__file__])
 
     def test_select_from_pathnames(self):
@@ -121,13 +125,75 @@ class TestFileSelection(unittest.TestCase):
                          len(self.reader.select_files_from_directory(dpath)))
         os.rmdir(dpath)
 
+    def test_supports_sensor(self):
+        """Check supports_sensor."""
+        self.assertTrue(self.reader.supports_sensor('canon'))
+        self.assertFalse(self.reader.supports_sensor('nikon'))
+
+    def test_get_datasets_by_name(self):
+        """Check getting datasets by name."""
+        self.assertEqual(len(self.reader.get_datasets_by_name('ch01')), 1)
+
+        res = self.reader.get_datasets_by_name('ch01')[0]
+        for key, val in self.config['datasets']['ch1'].items():
+            if isinstance(val, list):
+                val = tuple(val)
+            self.assertEqual(getattr(res, key), val)
+
+        self.assertRaises(KeyError, self.reader.get_datasets_by_name, 'bla')
+
+    def test_get_datasets_by_wl(self):
+        """Check getting datasets by wavelength."""
+        res = self.reader.get_datasets_by_wavelength(.6)
+        self.assertEqual(len(res), 1)
+        res = res[0]
+        for key, val in self.config['datasets']['ch1'].items():
+            if isinstance(val, list):
+                val = tuple(val)
+            self.assertEqual(getattr(res, key), val)
+
+        res = self.reader.get_datasets_by_wavelength(.7)
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].name, 'ch02')
+
+        res = self.reader.get_datasets_by_wavelength((.7, .75, .8))
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].name, 'ch02')
+
+        res = self.reader.get_datasets_by_wavelength([.7, .75, .8])
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].name, 'ch02')
+
+        self.assertRaises(KeyError, self.reader.get_datasets_by_wavelength, 12)
+
+    def test_get_datasets_by_id(self):
+        """Check getting datasets by id."""
+        from satpy.readers import DatasetID
+        dsid = DatasetID('ch01')
+        res = self.reader.get_datasets_by_id(dsid)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].name, 'ch01')
+
+        dsid = DatasetID(wavelength=.6)
+        res = self.reader.get_datasets_by_id(dsid)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].name, 'ch01')
+
+        dsid = DatasetID('ch01', .6)
+        res = self.reader.get_datasets_by_id(dsid)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].name, 'ch01')
+
+        dsid = DatasetID('ch01', .1)
+        self.assertRaises(KeyError, self.reader.get_datasets_by_id, dsid)
+
 
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFileSelection))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
 
     return mysuite
 

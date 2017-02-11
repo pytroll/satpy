@@ -181,6 +181,53 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return selected_filenames
 
+    def get_datasets_by_wavelength(self, wavelength, ids=None):
+        """Get the dataset matching a given a *wavelength*."""
+        if ids is None:
+            ids = self.ids
+        if isinstance(wavelength, (tuple, list)):
+            datasets = [ds for ds in ids
+                        if ds.wavelength == tuple(wavelength)]
+        else:
+            datasets = [ds for ds in ids if ds.wavelength
+                        and ds.wavelength[0] <= wavelength <= ds.wavelength[2]]
+            datasets = sorted(datasets,
+                              key=lambda ch: abs(ch.wavelength[1] - wavelength))
+        if not datasets:
+            raise KeyError("Can't find any projectable at %sum" %
+                           str(wavelength))
+
+        return datasets
+
+    def get_datasets_by_id(self, dsid, ids=None):
+        """Get the dataset matching a given a dataset id."""
+        if ids is None:
+            ids = self.ids.keys()
+        keys = dsid._asdict().keys()
+        for key in keys:
+            value = getattr(dsid, key)
+            if value is None:
+                continue
+            if key == "wavelength":
+                ids = self.get_datasets_by_wavelength(dsid.wavelength, ids)
+            else:
+                ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
+        if len(ids) == 0:
+            raise KeyError(
+                "Can't find any projectable matching'{}'".format(dsid))
+        return ids
+
+    def get_datasets_by_name(self, name, ids=None):
+        """Get the datasets by *name*."""
+        if ids is None:
+            ids = self.ids
+        datasets = [ds_id for ds_id in ids if ds_id.name == name]
+        if not datasets:
+            raise KeyError("Can't find any projectable called '{}'".format(
+                name))
+
+        return datasets
+
     def get_dataset_key(self,
                         key,
                         calibration=None,
@@ -193,24 +240,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
         """
         # TODO This can be made simpler
-        # get by wavelength
 
         if isinstance(key, numbers.Number):
-            datasets = [ds for ds in self.ids
-                        if ds.wavelength and (ds.wavelength[0] <= key <=
-                                              ds.wavelength[2])]
-            datasets = sorted(datasets,
-                              key=lambda ch: abs(ch.wavelength[1] - key))
-            if not datasets:
-                raise KeyError("Can't find any projectable at %gum" % key)
+            datasets = self.get_datasets_by_wavelength(key)
         elif isinstance(key, DatasetID):
-            if key.name is not None:
-                datasets = self.get_dataset_key(key.name, aslist=True)
-            elif key.wavelength is not None:
-                datasets = self.get_dataset_key(key.wavelength, aslist=True)
-            else:
-                raise KeyError("Can't find any projectable '{}'".format(key))
-
+            datasets = self.get_datasets_by_id(key)
             if calibration is None and key.calibration is not None:
                 calibration = [key.calibration]
             if resolution is None and key.resolution is not None:
@@ -219,19 +253,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 polarization = [key.polarization]
             if modifiers is None and key.modifiers is not None:
                 modifiers = key.modifiers
-        # get by name
         else:
-            datasets = [ds_id for ds_id in self.ids if ds_id.name == key]
-            if not datasets:
-                raise KeyError("Can't find any projectable called '{}'".format(
-                    key))
+            datasets = self.get_datasets_by_name(key)
 
         if resolution is not None:
             if not isinstance(resolution, (tuple, list, set)):
                 resolution = [resolution]
-            datasets = [
-                ds_id for ds_id in datasets if ds_id.resolution in resolution
-            ]
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.resolution in resolution]
 
         # default calibration choices
         if calibration is None:
