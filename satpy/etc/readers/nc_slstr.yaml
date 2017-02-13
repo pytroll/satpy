@@ -173,27 +173,27 @@ datasets:
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: slstr
-    resolution: 300
+    resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: slstr
-    resolution: 300
+    resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: slstr
-    resolution: 300
+    resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: slstr
-    resolution: 300
+    resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles

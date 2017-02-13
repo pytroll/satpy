@@ -138,10 +138,10 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
-    datasets = {'satellite_azimuth_angle': 'OAA',
-                'satellite_zenith_angle': 'OZA',
-                'solar_azimuth_angle': 'SAA',
-                'solar_zenith_angle': 'SZA'}
+    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_tn',
+                'satellite_zenith_angle': 'satellite_zenith_tn',
+                'solar_azimuth_angle': 'solar_azimuth_tn',
+                'solar_zenith_angle': 'solar_zenith_tn'}
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
@@ -171,8 +171,8 @@ class NCSLSTRAngles(BaseFileHandler):
                   variable.attrs.get('add_offset', 0))
         units = variable.attrs['units']
 
-        l_step = self.nc.attrs['al_subsampling_factor']
-        c_step = self.nc.attrs['ac_subsampling_factor']
+        l_step = self.nc.attrs.get('al_subsampling_factor', 1)
+        c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
         if c_step != 1 or l_step != 1:
             from geotiepoints.interpolator import Interpolator
@@ -194,6 +194,7 @@ class NCSLSTRAngles(BaseFileHandler):
                            copy=False,
                            units=units,
                            platform_name=self.platform_name,
+                           standard_name=variable.attrs['standard_name'],
                            sensor=self.sensor)
         return proj
 
