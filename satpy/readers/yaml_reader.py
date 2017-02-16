@@ -213,7 +213,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
         if len(ids) == 0:
             raise KeyError(
-                "Can't find any projectable matching'{}'".format(dsid))
+                "Can't find any projectable matching '{}'".format(dsid))
         return ids
 
     def get_datasets_by_name(self, name, ids=None):
@@ -227,40 +227,21 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return datasets
 
-    def get_dataset_key(self,
-                        key,
-                        calibration=None,
-                        resolution=None,
-                        polarization=None,
-                        modifiers=None,
-                        aslist=False):
-        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
+    @staticmethod
+    def _fill_in_dfilter(dfilter, key):
+        if dfilter is None:
+            dfilter = {}
+        for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
+            dfilter[attr] = dfilter.get(attr) or getattr(key, attr)
 
-        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
-        """
-        # TODO This can be made simpler
+        for attr in ['calibration', 'polarization', 'resolution']:
+            if (dfilter[attr] is not None
+                    and not isinstance(dfilter[attr], (list, tuple, set))):
+                dfilter[attr] = [dfilter[attr]]
+        return dfilter
 
-        if isinstance(key, numbers.Number):
-            datasets = self.get_datasets_by_wavelength(key)
-        elif isinstance(key, DatasetID):
-            datasets = self.get_datasets_by_id(key)
-            if calibration is None and key.calibration is not None:
-                calibration = [key.calibration]
-            if resolution is None and key.resolution is not None:
-                resolution = [key.resolution]
-            if polarization is None and key.polarization is not None:
-                polarization = [key.polarization]
-            if modifiers is None and key.modifiers is not None:
-                modifiers = key.modifiers
-        else:
-            datasets = self.get_datasets_by_name(key)
-
-        if resolution is not None:
-            if not isinstance(resolution, (tuple, list, set)):
-                resolution = [resolution]
-            datasets = [ds_id for ds_id in datasets
-                        if ds_id.resolution in resolution]
-
+    @staticmethod
+    def _get_best_calibration(datasets, calibration):
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance", 'radiance',
@@ -280,18 +261,34 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         for ds_id in datasets:
             if ds_id.calibration is None:
                 new_datasets.append(ds_id)
-        datasets = new_datasets
+        return new_datasets
 
-        if polarization is not None:
-            datasets = [
-                ds_id for ds_id in datasets
-                if ds_id.polarization in polarization
-            ]
+    def get_dataset_key(self, key, dfilter=None, aslist=False):
+        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
 
-        if modifiers is not None:
-            datasets = [
-                ds_id for ds_id in datasets if ds_id.modifiers == modifiers
-            ]
+        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
+        """
+        # TODO This can be made simpler
+
+        if isinstance(key, numbers.Number):
+            datasets = self.get_datasets_by_wavelength(key)
+        elif isinstance(key, DatasetID):
+            datasets = self.get_datasets_by_id(key)
+            dfilter = self._fill_in_dfilter(dfilter, key)
+        else:
+            datasets = self.get_datasets_by_name(key)
+
+        for attr in ['resolution', 'polarization']:
+            if dfilter.get(attr) is not None:
+                datasets = [ds_id for ds_id in datasets
+                            if getattr(ds_id, attr) in dfilter[attr]]
+
+        datasets = self._get_best_calibration(datasets,
+                                              dfilter.get('calibration'))
+
+        if dfilter.get('modifiers') is not None:
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.modifiers == dfilter['modifiers']]
 
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(
