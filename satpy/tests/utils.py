@@ -63,7 +63,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Projectable
+    from satpy import Projectable, DatasetID
 
     def _mod_loader(*args, **kwargs):
         class FakeMod(object):
@@ -72,8 +72,18 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 
             def __call__(self, datasets, optional_datasets, **info):
                 info = datasets[0].info.copy()
-                info['id'] = self.info['id']
-                info.update(**self.info['id'].to_dict())
+                if name == 'res_change' and datasets[0].info['id'] is not None:
+                    i = datasets[0].info['id']._replace(resolution=datasets[0].info['id'].resolution * 5)
+                else:
+                    i = datasets[0].info['id']
+                # update our modified DatasetID with any information we can
+                # gather from the source Dataset
+                i_dict = self.info['id'].to_dict()
+                for k, v in i.to_dict().items():
+                    if i_dict[k] is None:
+                        i_dict[k] = v
+                info['id'] = DatasetID.from_dict(i_dict)
+                info.update(**i_dict)
                 return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
 
         m = FakeMod()
@@ -106,11 +116,13 @@ def test_composites(sensor_name):
                                     DatasetID(wavelength=0.48, modifiers=('mod1',)),
                                     DatasetID(wavelength=0.85, modifiers=('mod1',))],
                                     []),
+        DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
         'mod1': (['ds2'], []),
         'mod2': (['comp3'], []),
+        'res_change': ([], []),
     }
 
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
