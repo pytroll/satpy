@@ -64,26 +64,22 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
     from satpy import Projectable, DatasetID
+    from satpy.composites import CompositeBase
 
     def _mod_loader(*args, **kwargs):
-        class FakeMod(object):
+        class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
-                info = datasets[0].info.copy()
-                if name == 'res_change' and datasets[0].info['id'] is not None:
-                    i = datasets[0].info['id']._replace(resolution=datasets[0].info['id'].resolution * 5)
+                if name == 'res_change' and datasets[0].info['id'].resolution is not None:
+                    i = datasets[0].info.copy()
+                    i['resolution'] = i['resolution'] * 5
+                    i['id'] = DatasetID.from_dict(i)
                 else:
-                    i = datasets[0].info['id']
-                # update our modified DatasetID with any information we can
-                # gather from the source Dataset
-                i_dict = self.info['id'].to_dict()
-                for k, v in i.to_dict().items():
-                    if i_dict[k] is None:
-                        i_dict[k] = v
-                info['id'] = DatasetID.from_dict(i_dict)
-                info.update(**i_dict)
+                    i = datasets[0].info
+                info = datasets[0].info.copy()
+                self.apply_modifier_info(i, info)
                 return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
 
         m = FakeMod()

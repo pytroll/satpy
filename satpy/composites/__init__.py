@@ -219,9 +219,17 @@ class CompositeBase(InfoObject):
         return pformat(self.info)
 
     def apply_modifier_info(self, origin, destination):
+        o = origin.info if hasattr(origin, 'info') else origin
+        d = destination.info if hasattr(destination, 'info') else destination
         for k in DATASET_KEYS:
-            destination.info[k] = self.info[k]
-        destination.info['id'] = self.info['id']
+            if k == 'modifiers':
+                d[k] = self.info[k]
+            elif d.get(k) is None:
+                if self.info.get(k) is not None:
+                    d[k] = self.info[k]
+                elif o.get(k) is not None:
+                    d[k] = o[k]
+        d['id'] = DatasetID.from_dict(d)
 
 
 class SunZenithCorrector(CompositeBase):
