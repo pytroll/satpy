@@ -85,8 +85,7 @@ class RatioSharpenedRGB(CompositeBase):
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
 
         area = None
-
-        # raise IncompatibleAreas
+        n = {}
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
@@ -109,6 +108,9 @@ class RatioSharpenedRGB(CompositeBase):
                         p3 = np.ma.repeat(np.ma.repeat(p3, f0, axis=0), f1, axis=1)
                         p3.info["area"] = high_res.info["area"]
                     area = high_res.info["area"]
+            if 'rows_per_scan' in high_res.info:
+                n.setdefault('rows_per_scan', high_res.info['rows_per_scan'])
+            n.setdefault('resolution', high_res.info['resolution'])
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
                 ratio = high_res.data / p1.data
@@ -139,6 +141,7 @@ class RatioSharpenedRGB(CompositeBase):
 
         # Collect information that is the same between the projectables
         info = combine_info(*datasets)
+        info.update(n)
         # Update that information with configured information (including name)
         info.update(self.info)
         # Force certain pieces of metadata that we *know* to be true
