@@ -117,7 +117,8 @@ class CompositorLoader(object):
             if sensor_name not in self.compositors:
                 self.load_sensor_composites(sensor_name)
             if sensor_name in self.compositors:
-                comps[sensor_name] = DatasetDict(self.compositors[sensor_name].copy())
+                comps[sensor_name] = DatasetDict(
+                    self.compositors[sensor_name].copy())
                 mods[sensor_name] = self.modifiers[sensor_name].copy()
         return comps, mods
 
@@ -278,6 +279,18 @@ class SunZenithCorrector(CompositeBase):
         return proj
 
 
+def show(data, filename=None):
+    """Show the stretched data.
+    """
+    from PIL import Image as pil
+    img = pil.fromarray(((data - data.min()) * 255.0 /
+                         (data.max() - data.min())).astype(np.uint8))
+    if filename is None:
+        img.show()
+    else:
+        img.save(filename)
+
+
 class PSPRayleighReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -356,7 +369,7 @@ class NIRReflectance(CompositeBase):
             sun_zenith = sza(nir.info['start_time'], lons, lats)
 
         refl39 = Calculator(nir.info['platform_name'],
-                            nir.info['sensor'], nir.info['name'])
+                            nir.info['sensor'], nir.info['id'].wavelength[1])
 
         proj = Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
                                                        tb11, tb13_4) * 100,
