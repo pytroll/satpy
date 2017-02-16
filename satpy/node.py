@@ -37,6 +37,10 @@ class Node(object):
         self.children = []
         self.parents = []
 
+    @property
+    def is_leaf(self):
+        return not self.children
+
     def flatten(self, d=None):
         """Flatten tree structure to a one level dictionary.
 

@@ -325,7 +325,8 @@ class Scene(InfoObject):
         prereq_datasets = []
         for prereq_node in prereq_nodes:
             prereq_id = prereq_node.name
-            if prereq_id not in self.datasets and prereq_id not in keepables:
+            if prereq_id not in self.datasets and prereq_id not in keepables \
+                    and not prereq_node.is_leaf:
                 self._generate_composite(prereq_node, keepables)
 
             if prereq_id in self.datasets:

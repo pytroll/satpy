@@ -752,7 +752,11 @@ class FileYAMLReader(AbstractYAMLReader):
         area = self._load_dataset_area(dsid, file_handlers, coords)
         slice_kwargs, area = self._get_slices(area)
 
-        ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
+        try:
+            ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
+        except (KeyError, ValueError) as err:
+            logger.error("Could not load dataset '{}': {}".format(dsid, str(err)))
+            return None
 
         if area is not None:
             ds.info['area'] = area
@@ -768,7 +772,7 @@ class FileYAMLReader(AbstractYAMLReader):
         dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in dsids:
-            coords = [datasets[cid] for cid in coordinates.get(dsid, [])]
+            coords = [datasets.get(cid, None) for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
             if ds is not None:
                 datasets[dsid] = ds
