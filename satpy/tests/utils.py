@@ -39,6 +39,7 @@ def test_datasets():
         DatasetID(name='ds5', resolution=1000),
         DatasetID(name='ds6', wavelength=(0.1, 0.2, 0.3)),
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
+        DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
     ]
     return d
 
@@ -100,6 +101,11 @@ def test_composites(sensor_name):
         DatasetID(name='comp8'): (['ds_NOPE', 'comp2'], []),
         DatasetID(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
         DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
+        DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
+        DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.48, modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.85, modifiers=('mod1',))],
+                                    []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
