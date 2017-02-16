@@ -270,7 +270,6 @@ class DependencyTree(Node):
             src_node, u = self._find_dependencies(new_prereq)
             if u:
                 return None, u
-            dataset_key = DatasetID(*src_node.name[:-1] + (dataset_key.modifiers,))
 
         try:
             compositor = self.get_compositor(dataset_key)
