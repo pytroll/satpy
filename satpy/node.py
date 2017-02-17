@@ -204,7 +204,6 @@ class DependencyTree(Node):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            moptions['id'] = comp_id
             # moptions['prerequisites'] = (
             #     [source_id] + moptions['prerequisites'])
             moptions['sensor'] = sensor_name
@@ -277,7 +276,7 @@ class DependencyTree(Node):
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
 
-        dataset_key = compositor.info['id']
+        dataset_key = compositor.id
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
             compositor.info['prerequisites'])

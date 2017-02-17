@@ -70,10 +70,10 @@ class MultiScene(object):
         for layer in self.layers:
             if common_datasets is None:
                 common_datasets = set(
-                    [dataset.info['id'].name for dataset in layer])
+                    [dataset.id.name for dataset in layer])
             else:
                 common_datasets &= set(
-                    [dataset.info['id'].name for dataset in layer])
+                    [dataset.id.name for dataset in layer])
         for dataset_id in common_datasets:
             datasets = [layer[dataset_id] for layer in self.layers]
             scn[dataset_id] = blend_function(datasets)

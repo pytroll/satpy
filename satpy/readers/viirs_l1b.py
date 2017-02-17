@@ -218,13 +218,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             ds_info.setdefault('rows_per_scan', rows_per_scan)
 
         ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
             "units": ds_info.get("units", file_units),
             "platform": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
+        ds_info.update(dataset_id.to_trimmed_dict())
         cls = ds_info.pop("container", Projectable)
         return cls(out, **ds_info)
