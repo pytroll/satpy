@@ -46,5 +46,5 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             "start_orbit": int(self["/attr/StartOrbitNumber"].item()),
             "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
         })
-        ds_info.update(ds_key.to_trimmed_dict())
+        ds_info.update(ds_key.to_dict())
         return Projectable(data, mask=mask, **ds_info)

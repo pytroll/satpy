@@ -52,10 +52,10 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
-    c.info.update(ds_id.to_trimmed_dict())
+    c.info.update(ds_id.to_dict())
     c.id = ds_id
     c.return_value = Projectable(data=np.arange(5),
-                                 **ds_id.to_trimmed_dict())
+                                 **ds_id.to_dict())
     # c.prerequisites = tuple(prereqs)
     # c.optional_prerequisites = tuple(opt_prereqs)
     return c
@@ -156,7 +156,7 @@ def _reader_load(dataset_keys):
         for ds in dataset_ids:
             if ds == k:
                 loaded_datasets[ds] = Projectable(data=np.arange(5),
-                                                  **ds.to_trimmed_dict())
+                                                  **ds.to_dict())
     return loaded_datasets
 
 

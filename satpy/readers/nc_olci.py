@@ -118,6 +118,7 @@ class NCOLCI1B(BaseFileHandler):
                            units=units,
                            platform_name=self.platform_name,
                            sensor=self.sensor)
+        proj.info.update(key.to_dict())
         return proj
 
     @property
@@ -188,6 +189,7 @@ class NCOLCIAngles(BaseFileHandler):
                            units=units,
                            platform_name=self.platform_name,
                            sensor=self.sensor)
+        proj.info.update(key.to_dict())
         return proj
 
     @property

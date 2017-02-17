@@ -224,7 +224,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_trimmed_dict())
+        ds_info.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
             ds_info['standard_name'] = self[var_path + '/attr/standard_name']
         ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
