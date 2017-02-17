@@ -52,7 +52,8 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
-    c.update(ds_id.to_trimmed_dict())
+    c.info.update(ds_id.to_trimmed_dict())
+    c.id = ds_id
     c.return_value = Projectable(data=np.arange(5),
                                  **ds_id.to_trimmed_dict())
     # c.prerequisites = tuple(prereqs)
