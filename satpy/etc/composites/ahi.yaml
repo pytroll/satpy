@@ -7,56 +7,165 @@ modifiers:
   reducer4:
     compositor: !!python/name:satpy.composites.ahi.Reducer4
 
-  vegetation_corrected:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
-    prerequisites:
-    - wavelength: 0.85
-
-  vegetation_corrected_reduced:
+  vegetation_corrected_reducedsize:
     compositor: !!python/name:satpy.composites.ahi.GreenCorrector
     prerequisites:
     - wavelength: 0.85
       modifiers: [reducer2,]
 
+  vegetation_corrected:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    prerequisites:
+    - wavelength: 0.85
 
 composites:
   overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 0.65
-    - 0.85
-    - 10.4
+    - wavelength: 0.65
+      modifiers: [ reducer4 ]
+    - wavelength: 0.85
+      modifiers: [ reducer2 ]
+    - wavelength: 10.4
     standard_name: overview
 
+  airmass:
+    compositor: !!python/name:satpy.composites.ahi.Airmass
+    prerequisites:
+    - 6.2
+    - 7.3
+    - 9.6
+    - 10.4
+    standard_name: airmass
+
+  dayconvective_ahi:
+    compositor: !!python/name:satpy.composites.ahi.Dayconvective
+    prerequisites:
+    - wavelength: 0.64
+      modifiers: [reducer4]
+    - wavelength: 1.6
+    - wavelength: 3.9
+    - wavelength: 6.2
+    - wavelength: 7.3
+    - wavelength: 10.4
+    standard_name: dayconvective_ahi
+
+  microphysics_night:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsNight
+    prerequisites:
+    - 3.9
+    - 10.4
+    - 12.4
+    standard_name: microphysics_night
+
+  cloudtop_ahi:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 3.9
+    - 10.4
+    - 12.4
+    standard_name: cloudtop_ahi
+
+  PWV:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 6.2
+    - 6.9
+    - 7.3
+    standard_name: PWV
+
+  NIR-VIS:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 1.6
+    - wavelength: 0.86
+      modifiers: [ reducer2 ]
+    - wavelength: 0.65
+      modifiers: [ reducer4 ]
+    standard_name: NIR-VIS
+
+  night_cloud:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 12.4
+    - wavelength: 10.4
+    - wavelength: 3.9
+    standard_name: night_cloud
+
+  ash_ahi:
+    compositor: !!python/name:satpy.composites.ahi.Ash
+    prerequisites:
+    - 8.6
+    - 10.4
+    - 12.4
+    standard_name: ash_ahi
+
+  microphysics_day_summer:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsDay
+    prerequisites:
+    - wavelength: 0.86
+      modifiers: [ reducer2 ]
+    - wavelength: 3.9
+    - wavelength: 10.4
+    standard_name: microphysics_day_summer
+
+  microphysics_day_winter:
+    compositor: !!python/name:satpy.composites.ahi.MicrophysicsDay
+    prerequisites:
+    - wavelength: 0.86
+      modifiers: [ reducer2 ]
+    - wavelength: 3.9
+    - wavelength: 10.4
+    standard_name: microphysics_day_winter
+
   true_color:
+    # Performance on 8-core Intel Xeon E312xx 2.6 GHz /  64 GB of RAM
+    #
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
-      modifiers: [reducer2, sunz_corrected, rayleigh_corrected]
+      modifiers: [ reducer2, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.51
-      modifiers: [vegetation_corrected, sunz_corrected, rayleigh_corrected]
+      modifiers: [ vegetation_corrected_reducedsize, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.46
-      modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: true_color_ahi
+      modifiers: [ sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
 
   true_color_reducedsize:
+    # Performance on 8-core Intel Xeon E312xx 2.6 GHz /  64 GB of RAM
+    # 20m52s max resident size RAM: 20.8 GB
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
-      modifiers: [reducer4, sunz_corrected, rayleigh_corrected]
+      modifiers: [ reducer4, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.51
-      modifiers: [reducer2, vegetation_corrected_reduced, sunz_corrected, rayleigh_corrected]
+      modifiers: [ reducer2, vegetation_corrected_reducedsize, sunz_corrected, rayleigh_corrected]
     - wavelength: 0.46
-      modifiers: [reducer2, sunz_corrected, rayleigh_corrected]
+      modifiers: [ reducer2, sunz_corrected, rayleigh_corrected]
     standard_name: true_color_reducedsize
 
   true_color_norayleigh:
+    # Performance on 8-core Intel Xeon E312xx 2.6 GHz /  64 GB of RAM
+    # 9m54s max resident size: 16.9 GB
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
-      modifiers: [reducer2, sunz_corrected]
+      modifiers: [ reducer2, sunz_corrected ]
     - wavelength: 0.51
-      modifiers: [vegetation_corrected, sunz_corrected]
+      modifiers: [ vegetation_corrected, sunz_corrected ]
     - wavelength: 0.46
-      modifiers: [sunz_corrected]
+      modifiers: [ sunz_corrected ]
     standard_name: true_color_norayleigh
+
+  true_color_nosunz_norayleigh:
+    # Performance on 8-core Intel Xeon E312xx 2.6 GHz /  64 GB of RAM
+    # 2m29s max resident size RAM: 13.6 GB
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [ reducer2 ]
+    - wavelength: 0.51
+      modifiers: [ vegetation_corrected ]
+    - wavelength: 0.46
+      modifiers: [ ]
+    standard_name: true_color_nosunz_norayleigh
