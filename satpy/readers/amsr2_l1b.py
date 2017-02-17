@@ -40,12 +40,11 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             mask = mask[:, ::2]
 
         ds_info.update({
-            "name": ds_key.name,
-            "id": ds_key,
             "units": self[var_path + "/attr/UNIT"],
             "platform": self["/attr/PlatformShortName"].item(),
             "sensor": self["/attr/SensorShortName"].item(),
             "start_orbit": int(self["/attr/StartOrbitNumber"].item()),
             "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
         })
+        ds_info.update(ds_key.to_trimmed_dict())
         return Projectable(data, mask=mask, **ds_info)

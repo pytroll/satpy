@@ -256,7 +256,7 @@ class Scene(InfoObject):
         for ds in self:
             datasets_by_area.setdefault(
                 str(ds.info["area"]), (ds.info["area"], []))
-            datasets_by_area[str(ds.info["area"])][1].append(ds.info["id"])
+            datasets_by_area[str(ds.info["area"])][1].append(ds.id)
 
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
@@ -382,7 +382,7 @@ class Scene(InfoObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.info)
-            self.datasets[composite.info['id']] = composite
+            self.datasets[composite.id] = composite
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
@@ -474,7 +474,7 @@ class Scene(InfoObject):
         if datasets is None:
             new_scn.wishlist = self.wishlist
         else:
-            new_scn.wishlist = set([ds.info["id"] for ds in new_scn])
+            new_scn.wishlist = set([ds.id for ds in new_scn])
 
         # recompute anything from the wishlist that needs it (combining multiple
         # resolutions, etc.)

@@ -83,8 +83,8 @@ class NC_ABI_L1B(BaseFileHandler):
         out.mask[:] = np.ma.getmask(radiances)
         out.info.update({'units': units,
                          'platform_name': self.platform_name,
-                         'sensor': self.sensor,
-                         'id': key})
+                         'sensor': self.sensor})
+        out.info.update(key.to_trimmed_dict())
 
         return out
 

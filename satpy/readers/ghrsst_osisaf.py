@@ -100,14 +100,13 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
             out.data[:] += factors[1]
 
         ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
             "units": ds_info.get("units", file_units),
             "platform": PLATFORM_NAME.get(self['/attr/platform'],
                                           self['/attr/platform']),
             "sensor": SENSOR_NAME.get(self['/attr/sensor'],
                                       self['/attr/sensor']),
         })
+        ds_info.update(dataset_id.to_trimmed_dict())
         cls = ds_info.pop("container", Projectable)
         return cls(out, **ds_info)
 

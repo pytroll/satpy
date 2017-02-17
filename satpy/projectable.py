@@ -26,12 +26,18 @@
 
 import numpy as np
 import six
+from collections import namedtuple
+import numbers
 
 
 class InfoObject(object):
 
     def __init__(self, **attributes):
         self.info = attributes
+
+    @property
+    def id(self):
+        return DatasetID.from_dict(self.info)
 
 
 def combine_info(*info_objects):
@@ -107,6 +113,112 @@ def copy_info1(func):
         res.info = self.info.copy()
         return res
     return wrapper
+
+DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
+                "calibration", "modifiers")
+DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+
+
+class DatasetID(DatasetID):
+    """Identifier for all `Dataset` objects.
+
+    DatasetID is a namedtuple that holds identifying and classifying
+    information about a Dataset. There are two identifying elements,
+    ``name`` and ``wavelength``. These can be used to generically refer to a
+    Dataset. The other elements of a DatasetID are meant to further
+    distinguish a Dataset from the possible variations it may have. For
+    example multiple Datasets may be called by one ``name`` but may exist
+    in multiple resolutions or with different calibrations such as "radiance"
+    and "reflectance". If an element is `None` then it is considered not
+    applicable.
+
+    A DatasetID can also be used in SatPy to query for a Dataset. This way
+    a fully qualified DatasetID can be found even if some of the DatasetID
+    elements are unknown. In this case a `None` signifies something that is
+    unknown or not applicable to the requested Dataset.
+
+    Args:
+        name (str): String identifier for the Dataset
+        wavelength (float, tuple): Single float wavelength when querying for
+                                   a Dataset. Otherwise 3-element tuple of
+                                   floats specifying the minimum, nominal,
+                                   and maximum wavelength for a Dataset.
+                                   `None` if not applicable.
+        resolution (int, float): Per data pixel/area resolution. If resolution
+                                 varies across the Dataset then nadir view
+                                 resolution is preferred. Usually this is in
+                                 meters, but for lon/lat gridded data angle
+                                 degrees may be used.
+        polarization (str): 'V' or 'H' polarizations of a microwave channel.
+                            `None` if not applicable.
+        calibration (str): String identifying the calibration level of the
+                           Dataset (ex. 'radiance', 'reflectance', etc).
+                           `None` if not applicable.
+        modifiers (tuple): Tuple of strings identifying what corrections or
+                           other modifications have been performed on this
+                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
+                           etc). `None` or empty tuple if not applicable.
+    """
+    @staticmethod
+    def name_match(a, b):
+        """Return if two string names are equal
+
+        Args:
+            a (str): DatasetID.name or other string
+            b (str): DatasetID.name or other string
+        """
+        return a == b
+
+    @staticmethod
+    def wavelength_match(a, b):
+        """Return if two wavelengths are equal
+
+        Args:
+            a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+            b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+        """
+        if type(a) == type(b):
+            return a == b
+        elif a is None or b is None:
+            return False
+        elif isinstance(a, (list, tuple)) and len(a) == 3:
+            return a[0] <= b <= a[2]
+        elif isinstance(b, (list, tuple)) and len(b) == 3:
+            return b[0] <= a <= b[2]
+        else:
+            raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.name_match(self.name, other)
+        elif isinstance(other, numbers.Number) or \
+                isinstance(other, (tuple, list)) and len(other) == 3:
+            return self.wavelength_match(self.wavelength, other)
+        else:
+            return super(DatasetID, self).__eq__(other)
+
+    def __hash__(self):
+        return tuple.__hash__(self)
+
+    @classmethod
+    def from_dict(cls, d, **kwargs):
+        args = []
+        for k in DATASET_KEYS:
+            val = kwargs.get(k, d.get(k))
+            # force modifiers to tuple
+            if k == 'modifiers' and val is not None:
+                val = tuple(val)
+            args.append(val)
+
+        return cls(*args)
+
+    def to_dict(self):
+        return dict(zip(DATASET_KEYS, self))
+
+    def to_trimmed_dict(self):
+        return {key: getattr(self, key) for key in DATASET_KEYS
+                if getattr(self, key) is not None}
 
 
 class Dataset(np.ma.MaskedArray):
@@ -404,8 +516,9 @@ class Projectable(Dataset):
         """Resample the current projectable and return the resampled one.
 
         Args:
-            destination_area: The destination onto which to project the data, either a full blown area definition or
-            a string corresponding to the name of the area as defined in the area file.
+            destination_area: The destination onto which to project the data,
+              either a full blown area definition or a string corresponding to
+              the name of the area as defined in the area file.
             **kwargs: The extra parameters to pass to the resampling functions.
 
         Returns:
