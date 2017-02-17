@@ -50,8 +50,7 @@ from pyhdf.SD import SD
 
 from pyresample import geometry
 from satpy.config import CONFIG_PATH
-from satpy.dataset import Dataset
-from satpy.readers import DatasetID
+from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)

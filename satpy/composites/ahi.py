@@ -25,9 +25,8 @@
 import logging
 
 from pyresample.geometry import AreaDefinition
-from satpy.composites import CompositeBase, IncompatibleAreas
-from satpy.dataset import Dataset, combine_info
-from satpy.readers import DatasetID
+from satpy.composites import CompositeBase
+from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 

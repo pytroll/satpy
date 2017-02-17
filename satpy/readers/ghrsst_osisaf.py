@@ -27,8 +27,7 @@ import logging
 from datetime import datetime
 import numpy as np
 
-from satpy.dataset import Dataset
-from satpy.readers import DatasetID
+from satpy.dataset import Dataset, DatasetID
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)

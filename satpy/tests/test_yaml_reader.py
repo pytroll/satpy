@@ -168,7 +168,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_datasets_by_id(self):
         """Check getting datasets by id."""
-        from satpy.readers import DatasetID
+        from satpy.dataset import DatasetID
         dsid = DatasetID('ch01')
         res = self.reader.get_datasets_by_id(dsid)
         self.assertEqual(len(res), 1)

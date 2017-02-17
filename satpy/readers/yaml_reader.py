@@ -39,8 +39,8 @@ import yaml
 from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
-from satpy.dataset import Dataset
-from satpy.readers import DATASET_KEYS, DatasetDict, DatasetID
+from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
+from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
