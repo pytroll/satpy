@@ -5,9 +5,9 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: 'Oa08'
-      modifiers: ['sunz_corrected', 'rayleigh_corrected']
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: 'Oa06'
-      modifiers: ['sunz_corrected', 'rayleigh_corrected']
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: 'Oa03'
-      modifiers: ['sunz_corrected', 'rayleigh_corrected']
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
