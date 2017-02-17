@@ -33,8 +33,6 @@ import h5netcdf
 import numpy as np
 
 from pyresample import geometry
-from satpy.dataset import Dataset
-from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)

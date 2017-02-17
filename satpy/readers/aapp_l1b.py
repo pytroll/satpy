@@ -41,7 +41,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample.geometry import SwathDefinition
-from satpy.dataset import Dataset, Dataset
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)

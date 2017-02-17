@@ -32,8 +32,8 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import InfoObject, Dataset, combine_info
-from satpy.readers import DatasetID, DatasetDict, DATASET_KEYS
+from satpy.dataset import InfoObject, Dataset, DatasetID, DATASET_KEYS, combine_info
+from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
 
 try:

@@ -31,8 +31,8 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
 from satpy.node import DependencyTree
-from satpy.dataset import InfoObject, Dataset
-from satpy.readers import DatasetDict, DatasetID, ReaderFinder
+from satpy.dataset import InfoObject, Dataset, DatasetID
+from satpy.readers import DatasetDict, ReaderFinder
 
 try:
     import configparser

@@ -41,13 +41,15 @@ class TestDatasetDict(unittest.TestCase):
         d = DatasetDict()
 
     def test_init_dict(self):
-        from satpy.readers import DatasetDict, DatasetID
+        from satpy.dataset import DatasetID
+        from satpy.readers import DatasetDict
         regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
     def test_get_keys_by_datasetid(self):
-        from satpy.readers import DatasetDict, DatasetID
+        from satpy.readers import DatasetDict
+        from satpy.dataset import DatasetID
         did_list = [DatasetID(
             name="test", wavelength=(0, 0.5, 1),
             resolution=1000), DatasetID(name="testh",
@@ -70,7 +72,8 @@ class TestDatasetDict(unittest.TestCase):
                       d.get_keys_by_datasetid(DatasetID(resolution=1000)))
 
     def test_get_item(self):
-        from satpy.readers import DatasetDict, DatasetID
+        from satpy.dataset import DatasetID
+        from satpy.readers import DatasetDict
         regular_dict = {
             DatasetID(name="test",
                       wavelength=(0, 0.5, 1),
