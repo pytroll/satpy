@@ -150,9 +150,9 @@ class CompositorLoader(object):
 
         if composite_type == 'composites':
             options.update(**kwargs)
-            options['id'] = DatasetID.from_dict(options)
+            key = DatasetID.from_dict(options)
             comp = loader(**options)
-            compositors[options['id']] = comp
+            compositors[key] = comp
         elif composite_type == 'modifiers':
             modifiers[composite_name] = loader, options
 
@@ -230,7 +230,6 @@ class CompositeBase(InfoObject):
                     d[k] = self.info[k]
                 elif o.get(k) is not None:
                     d[k] = o[k]
-        d['id'] = DatasetID.from_dict(d)
 
 
 class SunZenithCorrector(CompositeBase):
@@ -326,7 +325,7 @@ class PSPRayleighReflectance(CompositeBase):
                              atmosphere='us-standard', rural_aerosol=False)
 
         refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.info['id'].wavelength[1], blue)
+            sunz, satz, ssadiff, vis.id.wavelength[1], blue)
 
         proj = Projectable(vis - refl_cor_band,
                            copy=False,
@@ -369,7 +368,7 @@ class NIRReflectance(CompositeBase):
             sun_zenith = sza(nir.info['start_time'], lons, lats)
 
         refl39 = Calculator(nir.info['platform_name'],
-                            nir.info['sensor'], nir.info['id'].wavelength[1])
+                            nir.info['sensor'], nir.id.wavelength[1])
 
         proj = Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
                                                        tb11, tb13_4) * 100,
@@ -426,7 +425,6 @@ class RGBCompositor(CompositeBase):
         # info.update(projectables[2].info)
         info = combine_info(*projectables)
         info.update(self.info)
-        info['id'] = DatasetID(self.info['name'])
         # FIXME: should this be done here ?
         info["wavelength"] = None
         info.pop("units", None)
