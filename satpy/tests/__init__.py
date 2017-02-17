@@ -25,7 +25,7 @@
 import sys
 
 from satpy.tests import test_readers  # test_viirs_sdr,
-from satpy.tests import (test_projectable, test_resample, test_scene,
+from satpy.tests import (test_dataset, test_resample, test_scene,
                          test_writers, test_yaml_reader)
 
 if sys.version_info < (2, 7):
@@ -41,7 +41,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_scene.suite())
     # mysuite.addTests(test_viirs_sdr.suite())
-    mysuite.addTests(test_projectable.suite())
+    mysuite.addTests(test_dataset.suite())
     mysuite.addTests(test_writers.suite())
     mysuite.addTests(test_readers.suite())
     mysuite.addTests(test_resample.suite())

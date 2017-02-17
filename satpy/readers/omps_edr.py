@@ -37,7 +37,7 @@ import numpy as np
 import logging
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -207,7 +207,7 @@ class EDRFileHandler(HDF5FileHandler):
         if 'standard_name' not in ds_info:
             ds_info['standard_name'] = self[var_path + '/attr/Title']
 
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
 

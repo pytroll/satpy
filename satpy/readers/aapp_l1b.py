@@ -41,7 +41,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample.geometry import SwathDefinition
-from satpy.projectable import Dataset, Projectable
+from satpy.dataset import Dataset, Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = Projectable(
+                    dataset = Dataset(
                         getattr(self, ANGLES[key.name]),
                         copy=False)
                 else:
@@ -167,7 +167,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             logger.debug("Interpolate sun-sat angles: time %s",
                          str(datetime.now() - tic))
 
-        return Projectable(getattr(self, ANGLES[angle_id]), copy=False)
+        return Dataset(getattr(self, ANGLES[angle_id]), copy=False)
 
     def navigate(self):
         """Return the longitudes and latitudes of the scene.
@@ -231,7 +231,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             if name in chns:
                 coeffs = calib_coeffs.get('ch' + name)
                 # FIXME data should be masked before calibration
-                ds = Projectable(
+                ds = Dataset(
                     _vis_calibrate(self._data,
                                    idx,
                                    chns[name].calibration,
@@ -245,7 +245,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         for idx, name in enumerate(['3b', '4', '5']):
             if name in chns:
-                ds = Projectable(
+                ds = Dataset(
                     _ir_calibrate(self._header,
                                   self._data,
                                   idx,

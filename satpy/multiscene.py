@@ -25,14 +25,14 @@
 
 import numpy as np
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.scene import Scene
 
 
 def stack(datasets):
     """First dataset at the bottom."""
 
-    base = Projectable(datasets[0], copy=True)
+    base = Dataset(datasets[0], copy=True)
     for dataset in datasets[1:]:
         base_mask = np.ma.getmaskarray(base)
         other_mask = np.ma.getmaskarray(dataset)

@@ -11,11 +11,11 @@ def step_impl(context):
     """
     from satpy.scene import Scene
     from datetime import datetime
-    from satpy.projectable import Projectable
+    from satpy.dataset import Dataset
     scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
-    scn["MyDataset"] = Projectable([[1, 2], [3, 4]])
+    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
     context.scene = scn
 
 
@@ -63,12 +63,12 @@ def step_impl(context):
     """
     from satpy.scene import Scene
     from datetime import datetime
-    from satpy.projectable import Projectable
+    from satpy.dataset import Dataset
     scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
-    scn["MyDataset"] = Projectable([[1, 2], [3, 4]])
-    scn["MyDataset2"] = Projectable([[5, 6], [7, 8]])
+    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
+    scn["MyDataset2"] = Dataset([[5, 6], [7, 8]])
     context.scene = scn
 
 

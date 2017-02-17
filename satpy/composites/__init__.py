@@ -32,7 +32,7 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.projectable import InfoObject, Projectable, combine_info
+from satpy.dataset import InfoObject, Dataset, combine_info
 from satpy.readers import DatasetID, DatasetDict, DATASET_KEYS
 from satpy.tools import sunzen_corr_cos
 
@@ -327,9 +327,9 @@ class PSPRayleighReflectance(CompositeBase):
         refl_cor_band = corrector.get_reflectance(
             sunz, satz, ssadiff, vis.id.wavelength[1], blue)
 
-        proj = Projectable(vis - refl_cor_band,
-                           copy=False,
-                           **vis.info)
+        proj = Dataset(vis - refl_cor_band,
+                       copy=False,
+                       **vis.info)
         self.apply_modifier_info(vis, proj)
 
         return proj
@@ -370,9 +370,9 @@ class NIRReflectance(CompositeBase):
         refl39 = Calculator(nir.info['platform_name'],
                             nir.info['sensor'], nir.id.wavelength[1])
 
-        proj = Projectable(refl39.reflectance_from_tbs(sun_zenith, nir,
-                                                       tb11, tb13_4) * 100,
-                           **nir.info)
+        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir,
+                                                   tb11, tb13_4) * 100,
+                       **nir.info)
         proj.info['units'] = '%'
         self.apply_modifier_info(nir, proj)
 
@@ -401,7 +401,7 @@ class CO2Corrector(CompositeBase):
 
         info = ir_039.info.copy()
 
-        proj = Projectable(t4_co2corr, mask=t4_co2corr.mask, **info)
+        proj = Dataset(t4_co2corr, mask=t4_co2corr.mask, **info)
 
         self.apply_modifier_info(ir_039, proj)
 
@@ -442,7 +442,7 @@ class RGBCompositor(CompositeBase):
             sensor = list(sensor)[0]
         info["sensor"] = sensor
         info["mode"] = "RGB"
-        return Projectable(data=the_data, **info)
+        return Dataset(data=the_data, **info)
 
 
 class PaletteCompositor(RGBCompositor):
@@ -472,9 +472,9 @@ class PaletteCompositor(RGBCompositor):
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Projectable(r, copy=False, mask=data.mask, **data.info)
-        g = Projectable(g, copy=False, mask=data.mask, **data.info)
-        b = Projectable(b, copy=False, mask=data.mask, **data.info)
+        r = Dataset(r, copy=False, mask=data.mask, **data.info)
+        g = Dataset(g, copy=False, mask=data.mask, **data.info)
+        b = Dataset(b, copy=False, mask=data.mask, **data.info)
 
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
 

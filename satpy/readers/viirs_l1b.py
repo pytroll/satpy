@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -225,5 +225,5 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "end_orbit": self.end_orbit_number,
         })
         ds_info.update(dataset_id.to_dict())
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)

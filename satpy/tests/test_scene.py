@@ -147,14 +147,14 @@ class TestScene(unittest.TestCase):
         self.assertEqual(scn.ppp_config_dir, 'foo')
 
     def test_iter(self):
-        from satpy import Scene, Projectable
+        from satpy import Scene, Dataset
         import numpy as np
         scene = Scene()
-        scene["1"] = Projectable(np.arange(5))
-        scene["2"] = Projectable(np.arange(5))
-        scene["3"] = Projectable(np.arange(5))
+        scene["1"] = Dataset(np.arange(5))
+        scene["2"] = Dataset(np.arange(5))
+        scene["3"] = Dataset(np.arange(5))
         for x in scene:
-            self.assertIsInstance(x, Projectable)
+            self.assertIsInstance(x, Dataset)
 
 
 class TestSceneLoading(unittest.TestCase):
@@ -503,7 +503,7 @@ class TestSceneResample(unittest.TestCase):
         """Test loading and resampling a single dataset"""
         import satpy.scene
         from satpy.tests.utils import create_fake_reader, test_composites
-        from satpy import DatasetID, Projectable
+        from satpy import DatasetID, Dataset
         cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -511,7 +511,7 @@ class TestSceneResample(unittest.TestCase):
                                   base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds1'])
-        with mock.patch.object(Projectable, 'resample', autospec=True) as r:
+        with mock.patch.object(Dataset, 'resample', autospec=True) as r:
             r.side_effect = lambda self, x, **kwargs: self
             new_scene = scene.resample(None)  # None is our fake Area destination
         loaded_ids = list(new_scene.datasets.keys())

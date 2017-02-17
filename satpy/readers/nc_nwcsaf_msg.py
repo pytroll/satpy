@@ -30,7 +30,7 @@ import h5netcdf
 import numpy as np
 
 from pyresample.utils import get_area_def
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -76,9 +76,9 @@ class NcNWCSAFMSG(BaseFileHandler):
         if 'units' in variable.attrs:
             info['units'] = variable.attrs['units']
 
-        proj = Projectable(values,
-                           copy=False,
-                           **info)
+        proj = Dataset(values,
+                       copy=False,
+                       **info)
         return proj
 
     def get_area_def(self, dsid):

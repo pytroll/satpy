@@ -32,7 +32,7 @@ import numpy as np
 from osgeo import gdal
 
 from geotiepoints.geointerpolator import GeoInterpolator
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -58,10 +58,10 @@ class SAFEMSIL1C(BaseFileHandler):
         jp2 = glymur.Jp2k(self.filename)
         data = jp2[:] / (QUANTIFICATION_VALUE + 0.0)
 
-        proj = Projectable(data,
-                           copy=False,
-                           units='%',
-                           standard_name='reflectance')
+        proj = Dataset(data,
+                       copy=False,
+                       units='%',
+                       standard_name='reflectance')
         return proj
 
     @property

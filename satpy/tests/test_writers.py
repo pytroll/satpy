@@ -24,7 +24,7 @@
 
 import unittest
 import numpy as np
-from satpy import projectable
+from satpy import dataset
 import mock
 from satpy.writers import to_image, show
 
@@ -35,7 +35,7 @@ class TestWritersModule(unittest.TestCase):
         Conversion to image
         """
         # 1D
-        p = projectable.Projectable(np.arange(25))
+        p = dataset.Dataset(np.arange(25))
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.Image')
@@ -45,7 +45,7 @@ class TestWritersModule(unittest.TestCase):
         """
         # 2D
         data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
+        p = dataset.Dataset(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
         to_image(p)
         np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
         mock_geoimage.reset_mock()
@@ -57,7 +57,7 @@ class TestWritersModule(unittest.TestCase):
         """
         # 3D
         data = np.arange(75).reshape((3, 5, 5))
-        p = projectable.Projectable(data)
+        p = dataset.Dataset(data)
         to_image(p)
         np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
@@ -66,12 +66,12 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         data = np.arange(25).reshape((5, 5))
-        p = projectable.Projectable(data)
+        p = dataset.Dataset(data)
         show(p)
         self.assertTrue(mock_get_image.return_value.show.called)
 
     def test_show_unloaded(self):
-        p = projectable.Projectable([])
+        p = dataset.Dataset([])
         self.assertRaises(ValueError, show, p)
 
 

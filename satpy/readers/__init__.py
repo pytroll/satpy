@@ -35,7 +35,7 @@ import six
 import yaml
 
 from satpy.config import config_search_paths, glob_config, runtime_import
-from satpy.projectable import DatasetID, DATASET_KEYS
+from satpy.dataset import DatasetID, DATASET_KEYS
 
 try:
     import configparser

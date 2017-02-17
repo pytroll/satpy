@@ -29,7 +29,7 @@ import os
 from fnmatch import fnmatch
 
 from mipp import CalibrationError, ReaderError, xrit
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import area_defs_to_extent
 from satpy.readers.yaml_reader import AbstractYAMLReader
@@ -171,7 +171,7 @@ class xRITFile(AbstractYAMLReader):
 
             unit = units.get(metadata.calibration_unit,
                              metadata.calibration_unit)
-            projectable = Projectable(
+            projectable = Dataset(
                 data,
                 name=ds.name,
                 units=unit,

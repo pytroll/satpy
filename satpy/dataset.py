@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Projectable objects.
+"""Dataset objects.
 """
 
 import numpy as np
@@ -510,15 +510,6 @@ class Dataset(np.ma.MaskedArray):
 
         return "\n\t".join(res)
 
-
-# the generic projectable dataset class
-
-
-class Projectable(Dataset):
-
-    def __new__(self, data=None, name="undefined", **info):
-        return Dataset.__new__(self, data, name=name, **info)
-
     def resample(self, destination_area, **kwargs):
         """Resample the current projectable and return the resampled one.
 
@@ -551,6 +542,6 @@ class Projectable(Dataset):
             new_data = np.rollaxis(new_data, 2)
 
         # FIXME: is this necessary with the ndarray subclass ?
-        res = Projectable(new_data, **self.info)
+        res = Dataset(new_data, **self.info)
         res.info["area"] = destination_area
         return res

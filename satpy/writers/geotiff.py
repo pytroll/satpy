@@ -19,7 +19,7 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""GeoTIFF writer objects for creating GeoTIFF files from `Projectable` objects.
+"""GeoTIFF writer objects for creating GeoTIFF files from `Dataset` objects.
 
 """
 

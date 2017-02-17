@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
@@ -47,4 +47,4 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
             "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
         })
         ds_info.update(ds_key.to_dict())
-        return Projectable(data, mask=mask, **ds_info)
+        return Dataset(data, mask=mask, **ds_info)

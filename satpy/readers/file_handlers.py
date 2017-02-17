@@ -26,7 +26,7 @@ import numpy as np
 import six
 
 from pyresample.geometry import SwathDefinition
-from satpy.projectable import combine_info
+from satpy.dataset import combine_info
 
 
 # what about file pattern and config ?
