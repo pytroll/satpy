@@ -49,12 +49,12 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     from satpy import Projectable
     c = mock.MagicMock()
     c.info = {
-        'id': ds_id,
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
+    c.info.update(ds_id.to_dict())
+    c.id = ds_id
     c.return_value = Projectable(data=np.arange(5),
-                                 id=ds_id,
                                  **ds_id.to_dict())
     # c.prerequisites = tuple(prereqs)
     # c.optional_prerequisites = tuple(opt_prereqs)
@@ -68,14 +68,14 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
+
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
-                if name == 'res_change' and datasets[0].info['id'].resolution is not None:
+                if name == 'res_change' and datasets[0].id.resolution is not None:
                     i = datasets[0].info.copy()
                     i['resolution'] = i['resolution'] * 5
-                    i['id'] = DatasetID.from_dict(i)
                 else:
                     i = datasets[0].info
                 info = datasets[0].info.copy()
@@ -156,7 +156,6 @@ def _reader_load(dataset_keys):
         for ds in dataset_ids:
             if ds == k:
                 loaded_datasets[ds] = Projectable(data=np.arange(5),
-                                                  id=ds,
                                                   **ds.to_dict())
     return loaded_datasets
 
