@@ -264,6 +264,10 @@ class Dataset(np.ma.MaskedArray):
         super(Dataset, self).__array_finalize__(obj)
         self._update_info(obj)
 
+    @property
+    def id(self):
+        return DatasetID.from_dict(self.info)
+
     @copy_info
     def __add__(self, other):
         return super(Dataset, self).__add__(other)
