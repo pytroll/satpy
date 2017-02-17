@@ -32,9 +32,7 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
 from satpy.node import DependencyTree
 from satpy.projectable import InfoObject, Projectable
-from satpy.readers import (DatasetDict,
-                           DatasetID,
-                           ReaderFinder)
+from satpy.readers import DatasetDict, DatasetID, ReaderFinder
 
 try:
     import configparser
