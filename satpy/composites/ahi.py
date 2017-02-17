@@ -26,7 +26,7 @@ import logging
 
 from pyresample.geometry import AreaDefinition
 from satpy.composites import CompositeBase, IncompatibleAreas
-from satpy.projectable import Projectable, combine_info
+from satpy.dataset import Dataset, combine_info
 from satpy.readers import DatasetID
 
 LOG = logging.getLogger(__name__)
@@ -44,9 +44,9 @@ class GreenCorrector(CompositeBase):
 
         LOG.info('Boosting vegetation on green band')
 
-        proj = Projectable(green * 0.85 + nir * 0.15,
-                           copy=False,
-                           **green.info)
+        proj = Dataset(green * 0.85 + nir * 0.15,
+                       copy=False,
+                       **green.info)
         self.apply_modifier_info(green, proj)
 
         return proj
@@ -60,11 +60,11 @@ class Reducer2(CompositeBase):
 
         factor = 2
 
-        # proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
+        # proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
                     band.shape[1] / factor, factor)
-        proj = Projectable(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                           copy=False, **band.info)
+        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+                       copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,
@@ -87,11 +87,11 @@ class Reducer4(CompositeBase):
 
         factor = 4
 
-        #proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
+        #proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
                     band.shape[1] / factor, factor)
-        proj = Projectable(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                           copy=False, **band.info)
+        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+                       copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,

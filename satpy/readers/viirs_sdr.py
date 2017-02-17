@@ -39,7 +39,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import six
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
@@ -307,7 +307,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "end_orbit": self.end_orbit_number,
         })
         ds_info.update(dataset_id.to_dict())
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
 

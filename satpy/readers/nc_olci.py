@@ -30,7 +30,7 @@ from datetime import datetime
 import h5netcdf
 import numpy as np
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -61,9 +61,9 @@ class NCOLCIGeo(BaseFileHandler):
               (variable.attrs['scale_factor'] * 1.0) +
               variable.attrs.get('add_offset', 0))
 
-        proj = Projectable(ds,
-                           copy=False,
-                           **info)
+        proj = Dataset(ds,
+                       copy=False,
+                       **info)
         return proj
 
     @property
@@ -113,11 +113,11 @@ class NCOLCI1B(BaseFileHandler):
             radiances *= np.pi * 100
             units = '%'
 
-        proj = Projectable(radiances,
-                           copy=False,
-                           units=units,
-                           platform_name=self.platform_name,
-                           sensor=self.sensor)
+        proj = Dataset(radiances,
+                       copy=False,
+                       units=units,
+                       platform_name=self.platform_name,
+                       sensor=self.sensor)
         proj.info.update(key.to_dict())
         return proj
 
@@ -184,11 +184,11 @@ class NCOLCIAngles(BaseFileHandler):
                                   cross_track_order)
             (values, ) = satint.interpolate()
 
-        proj = Projectable(values,
-                           copy=False,
-                           units=units,
-                           platform_name=self.platform_name,
-                           sensor=self.sensor)
+        proj = Dataset(values,
+                       copy=False,
+                       units=units,
+                       platform_name=self.platform_name,
+                       sensor=self.sensor)
         proj.info.update(key.to_dict())
         return proj
 

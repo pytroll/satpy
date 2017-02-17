@@ -31,7 +31,7 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
 from satpy.node import DependencyTree
-from satpy.projectable import InfoObject, Projectable
+from satpy.dataset import InfoObject, Dataset
 from satpy.readers import DatasetDict, DatasetID, ReaderFinder
 
 try:
@@ -265,8 +265,8 @@ class Scene(InfoObject):
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
-        if not isinstance(value, Projectable):
-            raise ValueError("Only 'Projectable' objects can be assigned")
+        if not isinstance(value, Dataset):
+            raise ValueError("Only 'Dataset' objects can be assigned")
         self.datasets[key] = value
         self.wishlist.add(self.datasets.get_key(key))
 

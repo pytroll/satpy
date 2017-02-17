@@ -25,7 +25,7 @@
 import logging
 
 from satpy.composites import RGBCompositor
-from satpy.projectable import combine_info
+from satpy.dataset import combine_info
 
 LOG = logging.getLogger(__name__)
 

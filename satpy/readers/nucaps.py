@@ -32,7 +32,7 @@ import h5py
 import logging
 from collections import defaultdict
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -229,7 +229,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             ds_info['standard_name'] = self[var_path + '/attr/standard_name']
         ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
 
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
 

@@ -50,7 +50,7 @@ from pyhdf.SD import SD
 
 from pyresample import geometry
 from satpy.config import CONFIG_PATH
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -156,9 +156,9 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
 
         if key.name == 'latitude':
-            return Projectable(self.lats, id=key, **info)
+            return Dataset(self.lats, id=key, **info)
         else:
-            return Projectable(self.lons, id=key, **info)
+            return Dataset(self.lons, id=key, **info)
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
@@ -177,7 +177,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             if raw:
                 projectables.append(data)
             else:
-                projectables.append(Projectable(data, id=key))
+                projectables.append(Dataset(data, id=key))
 
         return projectables
 
@@ -326,7 +326,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
 
-            projectable = Projectable(array[0], id=key, mask=array[0].mask)
+            projectable = Dataset(array[0], id=key, mask=array[0].mask)
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape
@@ -375,7 +375,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
                     dsid = [key for key in keys if key.name ==
                             band_names[idx]][0]
                     area = self.navigation_reader.get_lonlats(self.resolution)
-                    projectable = Projectable(array[i], id=dsid, area=area)
+                    projectable = Dataset(array[i], id=dsid, area=area)
                     if ((platform_name == 'Aqua' and dsid.name in ["6", "27", "36"]) or
                             (platform_name == 'Terra' and dsid.name in ["29"])):
                         height, width = projectable.shape

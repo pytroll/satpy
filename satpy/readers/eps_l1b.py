@@ -31,7 +31,7 @@ import numpy as np
 
 from pyresample.geometry import SwathDefinition
 from satpy.config import CONFIG_PATH
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 
@@ -255,21 +255,21 @@ class EPSAVHRRFile(BaseFileHandler):
             lons, lats = self.get_full_lonlats()
             # todo: make that datasets
             if key.name == 'longitude':
-                return Projectable(lons, id=key, **info)
+                return Dataset(lons, id=key, **info)
             else:
-                return Projectable(lats, id=key, **info)
+                return Dataset(lats, id=key, **info)
 
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
                         'satellite_zenith_angle', 'satellite_azimuth_angle']:
             sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
             if key.name == 'solar_zenith_angle':
-                return Projectable(sun_zen, id=key, **info)
+                return Dataset(sun_zen, id=key, **info)
             elif key.name == 'solar_azimuth_angle':
-                return Projectable(sun_azi, id=key, **info)
+                return Dataset(sun_azi, id=key, **info)
             if key.name == 'satellite_zenith_angle':
-                return Projectable(sat_zen, id=key, **info)
+                return Dataset(sat_zen, id=key, **info)
             elif key.name == 'satellite_azimuth_angle':
-                return Projectable(sat_azi, id=key, **info)
+                return Dataset(sat_azi, id=key, **info)
 
         if key.calibration == 'counts':
             raise ValueError('calibration=counts is not supported! ' +
@@ -351,7 +351,7 @@ class EPSAVHRRFile(BaseFileHandler):
             else:
                 array = np.ma.array(self["SCENE_RADIANCES"][:, 4, :])
 
-        proj = Projectable(array, mask=array.mask, id=key)
+        proj = Dataset(array, mask=array.mask, id=key)
         return proj
 
     def get_lonlats(self):

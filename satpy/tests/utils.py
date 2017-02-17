@@ -46,7 +46,7 @@ def test_datasets():
 
 def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Projectable
+    from satpy import Dataset
     c = mock.MagicMock()
     c.info = {
         'prerequisites': tuple(prereqs),
@@ -54,8 +54,8 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     }
     c.info.update(ds_id.to_dict())
     c.id = ds_id
-    c.return_value = Projectable(data=np.arange(5),
-                                 **ds_id.to_dict())
+    c.return_value = Dataset(data=np.arange(5),
+                             **ds_id.to_dict())
     # c.prerequisites = tuple(prereqs)
     # c.optional_prerequisites = tuple(opt_prereqs)
     return c
@@ -63,7 +63,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Projectable, DatasetID
+    from satpy import Dataset, DatasetID
     from satpy.composites import CompositeBase
 
     def _mod_loader(*args, **kwargs):
@@ -80,7 +80,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                     i = datasets[0].info
                 info = datasets[0].info.copy()
                 self.apply_modifier_info(i, info)
-                return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
+                return Dataset(data=np.ma.MaskedArray(datasets[0]), **info)
 
         m = FakeMod()
         m.info = {
@@ -148,15 +148,15 @@ def _get_dataset_key(key,
 
 
 def _reader_load(dataset_keys):
-    from satpy import DatasetDict, Projectable
+    from satpy import DatasetDict, Dataset
     import numpy as np
     dataset_ids = test_datasets()
     loaded_datasets = DatasetDict()
     for k in dataset_keys:
         for ds in dataset_ids:
             if ds == k:
-                loaded_datasets[ds] = Projectable(data=np.arange(5),
-                                                  **ds.to_dict())
+                loaded_datasets[ds] = Dataset(data=np.arange(5),
+                                              **ds.to_dict())
     return loaded_datasets
 
 

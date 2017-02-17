@@ -30,6 +30,6 @@
 """
 
 from satpy.version import __version__
-from satpy.projectable import Dataset, Projectable
+from satpy.dataset import Dataset, Dataset
 from satpy.readers import DatasetID, DatasetDict, DATASET_KEYS
 from satpy.scene import Scene

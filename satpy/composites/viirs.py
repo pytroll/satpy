@@ -30,7 +30,7 @@ import numpy as np
 
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.config import get_environ_ancpath
-from satpy.projectable import Projectable, combine_info
+from satpy.dataset import Dataset, combine_info
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class VIIRSTrueColor(CompositeBase):
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
         info["mode"] = self.info.get("mode", "RGB")
-        return Projectable(data=np.rollaxis(
+        return Dataset(data=np.rollaxis(
             np.ma.dstack([projectable for projectable in projectables]),
             axis=2),
             **info)
@@ -150,7 +150,7 @@ class RatioSharpenedRGB(CompositeBase):
         info["mode"] = self.info.get("mode", "RGB")
         if area is not None:
             info['area'] = area
-        return Projectable(data=np.concatenate(
+        return Dataset(data=np.concatenate(
             ([r], [g], [b]), axis=0),
             mask=np.array([[mask, mask, mask]]),
             **info)
@@ -223,10 +223,10 @@ class ReflectanceCorrector(CompositeBase):
         #info.setdefault("standard_name", "corrected_reflectance")
         #info["mode"] = self.info.get("mode", "L")
         factor = 100. if percent else 1.
-        proj = Projectable(data=results.data * factor,
-                           mask=results.mask,
-                           dtype=results.dtype,
-                           **info)
+        proj = Dataset(data=results.data * factor,
+                       mask=results.mask,
+                       dtype=results.dtype,
+                       **info)
 
         self.apply_modifier_info(refl_data, proj)
 

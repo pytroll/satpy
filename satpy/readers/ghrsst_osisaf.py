@@ -27,7 +27,7 @@ import logging
 from datetime import datetime
 import numpy as np
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers import DatasetID
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -107,7 +107,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
                                       self['/attr/sensor']),
         })
         ds_info.update(dataset_id.to_dict())
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
     def get_lonlats(self, navid, nav_info, lon_out=None, lat_out=None):
