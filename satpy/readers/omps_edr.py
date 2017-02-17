@@ -203,7 +203,7 @@ class EDRFileHandler(HDF5FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_trimmed_dict())
+        ds_info.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
             ds_info['standard_name'] = self[var_path + '/attr/Title']
 

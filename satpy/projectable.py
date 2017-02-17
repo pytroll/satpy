@@ -213,10 +213,13 @@ class DatasetID(DatasetID):
 
         return cls(*args)
 
-    def to_dict(self):
-        return dict(zip(DATASET_KEYS, self))
+    def to_dict(self, trim=True):
+        if trim:
+            return self._to_trimmed_dict()
+        else:
+            return dict(zip(DATASET_KEYS, self))
 
-    def to_trimmed_dict(self):
+    def _to_trimmed_dict(self):
         return {key: getattr(self, key) for key in DATASET_KEYS
                 if getattr(self, key) is not None}
 

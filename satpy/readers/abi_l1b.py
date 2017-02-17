@@ -84,7 +84,7 @@ class NC_ABI_L1B(BaseFileHandler):
         out.info.update({'units': units,
                          'platform_name': self.platform_name,
                          'sensor': self.sensor})
-        out.info.update(key.to_trimmed_dict())
+        out.info.update(key.to_dict())
 
         return out
 

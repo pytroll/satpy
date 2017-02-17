@@ -106,7 +106,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
             "sensor": SENSOR_NAME.get(self['/attr/sensor'],
                                       self['/attr/sensor']),
         })
-        ds_info.update(dataset_id.to_trimmed_dict())
+        ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Projectable)
         return cls(out, **ds_info)
 

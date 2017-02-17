@@ -224,6 +224,6 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_trimmed_dict())
+        ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Projectable)
         return cls(out, **ds_info)

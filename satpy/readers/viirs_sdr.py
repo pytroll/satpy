@@ -301,12 +301,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_trimmed_dict())
+        ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Projectable)
         return cls(out, **ds_info)
 
 
 class VIIRSSDRReader(FileYAMLReader):
+
     def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 
