@@ -220,8 +220,8 @@ class CompositeBase(InfoObject):
         return pformat(self.info)
 
     def apply_modifier_info(self, origin, destination):
-        o = origin.info if hasattr(origin, 'info') else origin
-        d = destination.info if hasattr(destination, 'info') else destination
+        o = getattr(origin, 'info', origin)
+        d = getattr(destination, 'info', destination)
         for k in DATASET_KEYS:
             if k == 'modifiers':
                 d[k] = self.info[k]
