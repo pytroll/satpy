@@ -191,9 +191,9 @@ class ReflectanceCorrector(CompositeBase):
         if os.path.isfile(self.dem_file):
             LOG.debug("Loading CREFL averaged elevation information from: %s",
                       self.dem_file)
-            from netCDF4 import Dataset
+            from netCDF4 import Dataset as NCDataset
             # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = Dataset(self.dem_file, "r")
+            nc = NCDataset(self.dem_file, "r")
             avg_elevation = nc.variables[self.dem_sds][:]
         else:
             avg_elevation = None
@@ -217,11 +217,8 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent, )
 
-        #info = combine_info(*refl_datasets)
         info.update(refl_data.info)
         info["rayleigh_corrected"] = True
-        #info.setdefault("standard_name", "corrected_reflectance")
-        #info["mode"] = self.info.get("mode", "L")
         factor = 100. if percent else 1.
         proj = Dataset(data=results.data * factor,
                        mask=results.mask,
