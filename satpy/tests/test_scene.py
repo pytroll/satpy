@@ -225,6 +225,22 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds9_fail_load(self, cri, cl):
+        """Test loading a dataset that will fail during load"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds9_fail_load'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 0)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_comp1(self, cri, cl):
         """Test loading a composite with one required prereq"""
         import satpy.scene
@@ -410,7 +426,6 @@ class TestSceneLoading(unittest.TestCase):
         """Test loading a composite that updates the DatasetID during generation"""
         import satpy.scene
         from satpy.tests.utils import create_fake_reader, test_composites
-        from satpy import DatasetID
         cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -422,6 +437,65 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 1)
         self.assertEqual(loaded_ids[0].name, 'comp14')
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp15(self, cri, cl):
+        """Test loading a composite whose prerequisites can't be loaded
+
+        Note that the prereq exists in the reader, but fails in loading.
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp15'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 0)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp16(self, cri, cl):
+        """Test loading a composite whose opt prereq can't be loaded
+
+        Note that the prereq exists in the reader, but fails in loading
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp16'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertEqual(loaded_ids[0].name, 'comp16')
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp17(self, cri, cl):
+        """Test loading a composite that depends on a composite that won't load
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader('fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp17'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 0)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')

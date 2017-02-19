@@ -40,6 +40,7 @@ def test_datasets():
         DatasetID(name='ds6', wavelength=(0.1, 0.2, 0.3)),
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
+        DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
     ]
     return d
 
@@ -119,6 +120,9 @@ def test_composites(sensor_name):
                                     []),
         DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
         DatasetID(name='comp14'): (['ds1'], []),
+        DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
+        DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
+        DatasetID(name='comp17'): (['ds1', 'comp15'], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -159,6 +163,8 @@ def _reader_load(dataset_keys):
     dataset_ids = test_datasets()
     loaded_datasets = DatasetDict()
     for k in dataset_keys:
+        if k == 'ds9_fail_load':
+            continue
         for ds in dataset_ids:
             if ds == k:
                 loaded_datasets[ds] = Dataset(data=np.arange(5),
