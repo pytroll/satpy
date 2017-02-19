@@ -381,6 +381,11 @@ class Scene(InfoObject):
                                    optional_datasets=optional_datasets,
                                    **self.info)
             self.datasets[composite.id] = composite
+            # update the node with the computed DatasetID
+            comp_node.name = composite.id
+            if comp_node.name in self.wishlist:
+                self.wishlist.remove(comp_node.name)
+                self.wishlist.add(composite.id)
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",

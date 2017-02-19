@@ -52,6 +52,11 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
+    # special case
+    if ds_id.name == 'comp14':
+        # used as a test when composites update the dataset id with
+        # information from prereqs
+        ds_id = ds_id._replace(resolution=555)
     c.info.update(ds_id.to_dict())
     c.id = ds_id
     c.return_value = Dataset(data=np.arange(5),
@@ -63,7 +68,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Dataset, DatasetID
+    from satpy.dataset import Dataset
     from satpy.composites import CompositeBase
 
     def _mod_loader(*args, **kwargs):
@@ -75,7 +80,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
             def __call__(self, datasets, optional_datasets, **info):
                 if name == 'res_change' and datasets[0].id.resolution is not None:
                     i = datasets[0].info.copy()
-                    i['resolution'] = i['resolution'] * 5
+                    i['resolution'] *= 5
                 else:
                     i = datasets[0].info
                 info = datasets[0].info.copy()
@@ -113,6 +118,7 @@ def test_composites(sensor_name):
                                     DatasetID(wavelength=0.85, modifiers=('mod1',))],
                                     []),
         DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
+        DatasetID(name='comp14'): (['ds1'], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
