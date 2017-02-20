@@ -230,7 +230,6 @@ class TestHelpers(unittest.TestCase):
         """Get lonlats from geos."""
         geos_area = mock.MagicMock()
         lon_0 = random.random() * 360 - 180
-        lon_0 = 0
         h = 35785831.00
         geos_area.proj_dict = {'a': 6378169.00,
                                'b': 6356583.80,
@@ -271,7 +270,6 @@ class TestHelpers(unittest.TestCase):
 
         geos_area = mock.MagicMock()
         lon_0 = random.random() * 360 - 180
-        lon_0 = 0
         geos_area.proj_dict = {'a': 6378169.00,
                                'b': 6356583.80,
                                'h': 35785831.00,
