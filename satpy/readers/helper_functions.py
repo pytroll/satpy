@@ -111,14 +111,6 @@ def get_area_slices(data_area, area_to_cover):
     intersection = data_boundary.contour_poly.intersection(
         area_boundary.contour_poly)
 
-    from trollsched.satpass import Mapper
-    import matplotlib.pyplot as plt
-    with Mapper() as mapper:
-        data_boundary.draw(mapper, 'g+-')
-        area_boundary.draw(mapper, 'b+-')
-        intersection.draw(mapper, 'r+-')
-    plt.show()
-
     x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
                                         np.rad2deg(intersection.lat))
 
