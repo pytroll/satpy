@@ -299,6 +299,8 @@ class PSPRayleighReflectance(CompositeBase):
         from pyspectral.rayleigh import Rayleigh
 
         (vis, blue) = projectables
+        if vis.shape != blue.shape:
+            raise IncompatibleAreas
         try:
             (sata, satz, suna, sunz) = optional_datasets
         except ValueError:
