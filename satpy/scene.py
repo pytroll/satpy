@@ -389,7 +389,7 @@ class Scene(InfoObject):
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
-                        compositor.info['name'])
+                        str(compositor.id))
             preservable_datasets = set(self.datasets.keys())
             keepables |= preservable_datasets & set(prereqs + optional_prereqs)
             # even though it wasn't generated keep a list of what
