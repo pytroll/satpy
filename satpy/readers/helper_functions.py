@@ -160,6 +160,26 @@ def boundaries_to_extent(proj4_str, maximum_extent, default_extent,
     return maximum_extent
 
 
+def get_geostationary_angle_extent(geos_area):
+
+    # TODO: take into account sweep_axis_angle parameter
+
+    # get some projection parameters
+    req = geos_area.proj_dict['a'] / 1000
+    rp = geos_area.proj_dict['b'] / 1000
+    h = geos_area.proj_dict['h'] / 1000 + req
+
+    # compute some constants
+    aeq = 1 - req**2 / (h ** 2)
+    ap_ = 1 - rp**2 / (h ** 2)
+
+    # generate points around the north hemisphere in satellite projection
+    # make it a bit smaller so that we stay inside the valid area
+    xmax = np.arccos(np.sqrt(aeq))
+    ymax = np.arccos(np.sqrt(ap_))
+    return xmax, ymax
+
+
 def get_geostationary_bounding_box(geos_area):
 
     # TODO: take into account sweep_axis_angle parameter
@@ -170,18 +190,16 @@ def get_geostationary_bounding_box(geos_area):
     h = geos_area.proj_dict['h'] / 1000 + req
 
     # compute some constants
-    aeq = 1 - req**2 / (h / 1.2) ** 2
-    ap_ = 1 - rp**2 / (h / 1.2) ** 2
-    c__ = (h**2 - req**2)
+
     b__ = req**2 / rp**2
+
+    xmax, ymax = get_geostationary_angle_extent(geos_area)
 
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
-    xmax = np.arccos(np.sqrt(aeq)) - 0.000000001
-    x = np.cos(np.linspace(-np.pi, 0, 50)) * xmax
-    ymax = np.arccos(np.sqrt(ap_)) - 0.000000001
+    x = np.cos(np.linspace(-np.pi, 0, 50)) * (xmax - 0.1)
     #y = np.arctan(np.sqrt(1 / b__ * (np.cos(x) ** 2 / aeq - 1)))
-    y = np.sin(np.linspace(-np.pi, 0, 50)) * ymax
+    y = np.sin(np.linspace(-np.pi, 0, 50)) * (ymax - 0.1)
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = geos_area.area_extent
