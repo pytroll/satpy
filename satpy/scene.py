@@ -329,18 +329,19 @@ class Scene(InfoObject):
 
             if prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
-            elif prereq_id in keepables:
-                keepables.add(comp_id)
-                LOG.warning("Delaying generation of %s "
-                            "because of dependency's delayed generation: %s",
-                            comp_id, prereq_id)
-            elif not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                if not prereq_node.is_leaf and prereq_id in keepables:
+                    keepables.add(comp_id)
+                    LOG.warning("Delaying generation of %s "
+                                "because of dependency's delayed generation: %s",
+                                comp_id, prereq_id)
+                if not skip:
+                    LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                        comp_id, prereq_id))
+                    raise KeyError("Missing composite prerequisite")
+                else:
+                    LOG.debug("Missing optional prerequisite for {}: {}".format(
+                        comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -391,7 +392,9 @@ class Scene(InfoObject):
                         "because of incompatible areas",
                         str(compositor.id))
             preservable_datasets = set(self.datasets.keys())
-            keepables |= preservable_datasets & set(prereqs + optional_prereqs)
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
             # even though it wasn't generated keep a list of what
             # might be needed in other compositors
             keepables.add(comp_node.name)

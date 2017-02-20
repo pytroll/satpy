@@ -60,21 +60,22 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         ds_id = ds_id._replace(resolution=555)
     c.info.update(ds_id.to_dict())
     c.id = ds_id
-    c.return_value = Dataset(data=np.arange(5),
-                             **ds_id.to_dict())
-    # c.prerequisites = tuple(prereqs)
-    # c.optional_prerequisites = tuple(opt_prereqs)
+
+    def se(datasets, optional_datasets=None, **kwargs):
+        if len(datasets) != len(prereqs):
+            raise ValueError("Not enough prerequisite datasets passed")
+        return Dataset(data=np.arange(5), **ds_id.to_dict())
+    c.side_effect = se
     return c
 
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
     from satpy.dataset import Dataset
-    from satpy.composites import CompositeBase
+    from satpy.composites import CompositeBase, IncompatibleAreas
 
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
-
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
@@ -82,12 +83,15 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 if name == 'res_change' and datasets[0].id.resolution is not None:
                     i = datasets[0].info.copy()
                     i['resolution'] *= 5
+                elif name == 'incomp_areas':
+                    raise IncompatibleAreas("Test modifier 'incomp_areas' always raises IncompatibleAreas")
                 else:
                     i = datasets[0].info
                 info = datasets[0].info.copy()
                 self.apply_modifier_info(i, info)
                 return Dataset(data=np.ma.MaskedArray(datasets[0]), **info)
 
+        print("Fake mod: ", args, kwargs)
         m = FakeMod()
         m.info = {
             'prerequisites': tuple(prereqs),
@@ -123,12 +127,14 @@ def test_composites(sensor_name):
         DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
+        DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
         'mod1': (['ds2'], []),
         'mod2': (['comp3'], []),
         'res_change': ([], []),
+        'incomp_areas': (['ds1'], []),
     }
 
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
