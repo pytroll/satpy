@@ -229,7 +229,7 @@ class TestHelpers(unittest.TestCase):
     def test_lonlat_from_geos(self):
         """Get lonlats from geos."""
         geos_area = mock.MagicMock()
-        lon_0 = random.random() * 360 - 180
+        lon_0 = random.random() * 90 - 45
         h = 35785831.00
         geos_area.proj_dict = {'a': 6378169.00,
                                'b': 6356583.80,
@@ -269,7 +269,7 @@ class TestHelpers(unittest.TestCase):
         """Get the geostationary bbox."""
 
         geos_area = mock.MagicMock()
-        lon_0 = random.random() * 360 - 180
+        lon_0 = random.random() * 90 - 45
         geos_area.proj_dict = {'a': 6378169.00,
                                'b': 6356583.80,
                                'h': 35785831.00,
