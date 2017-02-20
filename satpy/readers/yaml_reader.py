@@ -35,8 +35,8 @@ from fnmatch import fnmatch
 import numpy as np
 import six
 import yaml
-
 from pyresample.geometry import AreaDefinition
+
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.projectable import Projectable
@@ -232,6 +232,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Create a dataset filter from a *key*."""
         if dfilter is None:
             dfilter = {}
+        else:
+            dfilter = dfilter.copy()
         for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
             dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
 
@@ -242,7 +244,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         return dfilter
 
     @staticmethod
-    def _get_best_calibration(datasets, calibration):
+    def _get_best_calibration(calibration):
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance", 'radiance',
@@ -251,6 +253,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             calibration = [x
                            for x in ["brightness_temperature", "reflectance",
                                      "radiance", "counts"] if x in calibration]
+        return calibration
+
+    def _datasets_with_best_calibration(self, datasets, calibration):
+        """Get the datasets with the best available calibration."""
+
+        calibration = self._get_best_calibration(calibration)
 
         new_datasets = []
 
@@ -282,8 +290,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 datasets = [ds_id for ds_id in datasets
                             if getattr(ds_id, attr) in dfilter[attr]]
 
-        datasets = self._get_best_calibration(datasets,
-                                              dfilter.get('calibration'))
+        datasets = self._datasets_with_best_calibration(datasets,
+                                                        dfilter.get('calibration'))
 
         if dfilter.get('modifiers') is not None:
             datasets = [ds_id for ds_id in datasets
@@ -766,7 +774,8 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
         except (KeyError, ValueError) as err:
-            logger.error("Could not load dataset '{}': {}".format(dsid, str(err)))
+            logger.error(
+                "Could not load dataset '{}': {}".format(dsid, str(err)))
             return None
 
         if area is not None:
@@ -783,7 +792,8 @@ class FileYAMLReader(AbstractYAMLReader):
         dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in dsids:
-            coords = [datasets.get(cid, None) for cid in coordinates.get(dsid, [])]
+            coords = [datasets.get(cid, None)
+                      for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
             if ds is not None:
                 datasets[dsid] = ds
