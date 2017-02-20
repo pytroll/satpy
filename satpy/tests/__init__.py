@@ -23,6 +23,7 @@
 """
 
 import sys
+import logging
 
 from satpy.tests import test_readers  # test_viirs_sdr,
 from satpy.tests import (test_dataset, test_helper_functions, test_resample,
@@ -37,6 +38,7 @@ else:
 def suite():
     """The global test suite.
     """
+    logging.basicConfig(level=logging.DEBUG)
 
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_scene.suite())
