@@ -328,10 +328,10 @@ class TestHelpers(unittest.TestCase):
         area.proj_dict = {'fake': 'dict'}
 
         hf.get_sub_area(area, slice(1, 4), slice(0, 3))
-        print adef.assert_called_once_with('fakeid', 'fake name', 'fakeproj',
-                                           {'fake': 'dict'},
-                                           3, 3,
-                                           (0.75, -3.75, 5.25, 0.75))
+        adef.assert_called_once_with('fakeid', 'fake name', 'fakeproj',
+                                     {'fake': 'dict'},
+                                     3, 3,
+                                     (0.75, -3.75, 5.25, 0.75))
 
 
 def suite():
