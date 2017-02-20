@@ -228,11 +228,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         return datasets
 
     @staticmethod
-    def _fill_in_dfilter(dfilter, key):
+    def dfilter_from_key(dfilter, key):
+        """Create a dataset filter from a *key*."""
         if dfilter is None:
             dfilter = {}
         for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
-            dfilter[attr] = dfilter.get(attr) or getattr(key, attr)
+            dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
 
         for attr in ['calibration', 'polarization', 'resolution']:
             if (dfilter[attr] is not None
@@ -263,21 +264,19 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 new_datasets.append(ds_id)
         return new_datasets
 
-    def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
-
-        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
-        """
-        # TODO This can be made simpler
-
+    def _datasets_from_any_key(self, key):
+        """Return a datasets from any type of key."""
         if isinstance(key, numbers.Number):
             datasets = self.get_datasets_by_wavelength(key)
         elif isinstance(key, DatasetID):
             datasets = self.get_datasets_by_id(key)
-            dfilter = self._fill_in_dfilter(dfilter, key)
         else:
             datasets = self.get_datasets_by_name(key)
 
+        return datasets
+
+    def filter_datasets(self, datasets, dfilter):
+        """Filter *datasets* based on *dfilter*."""
         for attr in ['resolution', 'polarization']:
             if dfilter.get(attr) is not None:
                 datasets = [ds_id for ds_id in datasets
@@ -289,6 +288,21 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         if dfilter.get('modifiers') is not None:
             datasets = [ds_id for ds_id in datasets
                         if ds_id.modifiers == dfilter['modifiers']]
+
+        return datasets
+
+    def get_dataset_key(self, key, dfilter=None, aslist=False):
+        """Get the fully qualified dataset corresponding to *key*.
+
+        Can be either by name or centerwavelength. If `key` is a `DatasetID`
+        object its name is searched if it exists, otherwise its wavelength is
+        used.
+        """
+        datasets = self._datasets_from_any_key(key)
+
+        dfilter = self.dfilter_from_key(dfilter, key)
+
+        datasets = self.filter_datasets(datasets, dfilter)
 
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(

@@ -187,6 +187,21 @@ class TestFileFileYAMLReader(unittest.TestCase):
         dsid = DatasetID('ch01', .1)
         self.assertRaises(KeyError, self.reader.get_datasets_by_id, dsid)
 
+    def test_get_best_calibration(self):
+        pass
+
+    def test_dfilter_from_key(self):
+        pass
+
+    def test_filter_datasets(self):
+        pass
+
+    def test_datasets_from_any_key(self):
+        pass
+
+    def test_get_dataset_key(self):
+        pass
+
 
 def suite():
     """The test suite for test_scene."""
