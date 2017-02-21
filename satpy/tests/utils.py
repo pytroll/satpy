@@ -91,7 +91,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 self.apply_modifier_info(i, info)
                 return Dataset(data=np.ma.MaskedArray(datasets[0]), **info)
 
-        print("Fake mod: ", args, kwargs)
         m = FakeMod()
         m.info = {
             'prerequisites': tuple(prereqs),
