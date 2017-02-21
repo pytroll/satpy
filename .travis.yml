@@ -1,6 +1,5 @@
 language: python
 python:
-- '2.6'
 - '2.7'
 - '3.3'
 - '3.4'
@@ -10,14 +9,10 @@ os:
 - linux
 - osx
 matrix:
-  fast_finish: true
   allow_failures:
     - os: osx
-    - python: '2.6'
 install:
 - pip install .
-- if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
-- if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install importlib; fi
 - pip install h5py
 - pip install coveralls
 - pip install pyorbital

@@ -23,10 +23,11 @@
 """
 
 import sys
+import logging
 
 from satpy.tests import test_readers  # test_viirs_sdr,
-from satpy.tests import (test_projectable, test_resample, test_scene,
-                         test_writers, test_yaml_reader)
+from satpy.tests import (test_dataset, test_helper_functions, test_resample,
+                         test_scene, test_writers, test_yaml_reader)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,15 +38,17 @@ else:
 def suite():
     """The global test suite.
     """
+    logging.basicConfig(level=logging.DEBUG)
 
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_scene.suite())
     # mysuite.addTests(test_viirs_sdr.suite())
-    mysuite.addTests(test_projectable.suite())
+    mysuite.addTests(test_dataset.suite())
     mysuite.addTests(test_writers.suite())
     mysuite.addTests(test_readers.suite())
     mysuite.addTests(test_resample.suite())
     mysuite.addTests(test_yaml_reader.suite())
+    mysuite.addTests(test_helper_functions.suite())
 
     return mysuite
 

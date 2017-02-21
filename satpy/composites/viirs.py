@@ -30,7 +30,7 @@ import numpy as np
 
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.config import get_environ_ancpath
-from satpy.projectable import Projectable, combine_info
+from satpy.dataset import Dataset, combine_info
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class VIIRSTrueColor(CompositeBase):
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
         info["mode"] = self.info.get("mode", "RGB")
-        return Projectable(data=np.rollaxis(
+        return Dataset(data=np.rollaxis(
             np.ma.dstack([projectable for projectable in projectables]),
             axis=2),
             **info)
@@ -85,8 +85,7 @@ class RatioSharpenedRGB(CompositeBase):
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
 
         area = None
-
-        # raise IncompatibleAreas
+        n = {}
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
@@ -109,6 +108,9 @@ class RatioSharpenedRGB(CompositeBase):
                         p3 = np.ma.repeat(np.ma.repeat(p3, f0, axis=0), f1, axis=1)
                         p3.info["area"] = high_res.info["area"]
                     area = high_res.info["area"]
+            if 'rows_per_scan' in high_res.info:
+                n.setdefault('rows_per_scan', high_res.info['rows_per_scan'])
+            n.setdefault('resolution', high_res.info['resolution'])
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
                 ratio = high_res.data / p1.data
@@ -139,6 +141,7 @@ class RatioSharpenedRGB(CompositeBase):
 
         # Collect information that is the same between the projectables
         info = combine_info(*datasets)
+        info.update(n)
         # Update that information with configured information (including name)
         info.update(self.info)
         # Force certain pieces of metadata that we *know* to be true
@@ -147,7 +150,7 @@ class RatioSharpenedRGB(CompositeBase):
         info["mode"] = self.info.get("mode", "RGB")
         if area is not None:
             info['area'] = area
-        return Projectable(data=np.concatenate(
+        return Dataset(data=np.concatenate(
             ([r], [g], [b]), axis=0),
             mask=np.array([[mask, mask, mask]]),
             **info)
@@ -188,9 +191,9 @@ class ReflectanceCorrector(CompositeBase):
         if os.path.isfile(self.dem_file):
             LOG.debug("Loading CREFL averaged elevation information from: %s",
                       self.dem_file)
-            from netCDF4 import Dataset
+            from netCDF4 import Dataset as NCDataset
             # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = Dataset(self.dem_file, "r")
+            nc = NCDataset(self.dem_file, "r")
             avg_elevation = nc.variables[self.dem_sds][:]
         else:
             avg_elevation = None
@@ -214,16 +217,13 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent, )
 
-        #info = combine_info(*refl_datasets)
         info.update(refl_data.info)
         info["rayleigh_corrected"] = True
-        #info.setdefault("standard_name", "corrected_reflectance")
-        #info["mode"] = self.info.get("mode", "L")
         factor = 100. if percent else 1.
-        proj = Projectable(data=results.data * factor,
-                           mask=results.mask,
-                           dtype=results.dtype,
-                           **info)
+        proj = Dataset(data=results.data * factor,
+                       mask=results.mask,
+                       dtype=results.dtype,
+                       **info)
 
         self.apply_modifier_info(refl_data, proj)
 

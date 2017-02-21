@@ -402,7 +402,6 @@ datasets:
     file_key: 'All_Data/{file_group}_All/LunarZenithAngle'
   dnb_moon_illumination_fraction:
     name: dnb_moon_illumination_fraction
-    container: !!python/name:satpy.projectable.Dataset
     file_type: gdnbo
     file_key: All_Data/{file_group}_All/MoonIllumFraction
 

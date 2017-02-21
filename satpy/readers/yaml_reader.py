@@ -39,8 +39,8 @@ from pyresample.geometry import AreaDefinition
 
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
-from satpy.projectable import Projectable
-from satpy.readers import DATASET_KEYS, DatasetDict, DatasetID
+from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
+from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 
@@ -557,7 +557,7 @@ class FileYAMLReader(AbstractYAMLReader):
             all_shapes = None
             overall_shape = None
 
-        cls = ds_info.get("container", Projectable)
+        cls = ds_info.get("container", Dataset)
         if overall_shape is None:
             # can't optimize by using inplace loading
             projectables = []

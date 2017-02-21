@@ -39,42 +39,59 @@ def test_datasets():
         DatasetID(name='ds5', resolution=1000),
         DatasetID(name='ds6', wavelength=(0.1, 0.2, 0.3)),
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
+        DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
+        DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
     ]
     return d
 
 
 def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Projectable
+    from satpy import Dataset
     c = mock.MagicMock()
     c.info = {
-        'id': ds_id,
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
-    c.return_value = Projectable(data=np.arange(5),
-                                 id=ds_id,
-                                 **ds_id.to_dict())
-    # c.prerequisites = tuple(prereqs)
-    # c.optional_prerequisites = tuple(opt_prereqs)
+    # special case
+    if ds_id.name == 'comp14':
+        # used as a test when composites update the dataset id with
+        # information from prereqs
+        ds_id = ds_id._replace(resolution=555)
+    c.info.update(ds_id.to_dict())
+    c.id = ds_id
+
+    def se(datasets, optional_datasets=None, **kwargs):
+        if len(datasets) != len(prereqs):
+            raise ValueError("Not enough prerequisite datasets passed")
+        return Dataset(data=np.arange(5), **ds_id.to_dict())
+    c.side_effect = se
     return c
 
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Projectable
+    from satpy.dataset import Dataset
+    from satpy.composites import CompositeBase, IncompatibleAreas
 
     def _mod_loader(*args, **kwargs):
-        class FakeMod(object):
+        class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
+                if name == 'res_change' and datasets[0].id.resolution is not None:
+                    i = datasets[0].info.copy()
+                    i['resolution'] *= 5
+                elif name == 'incomp_areas':
+                    raise IncompatibleAreas("Test modifier 'incomp_areas' always raises IncompatibleAreas")
+                else:
+                    i = datasets[0].info
                 info = datasets[0].info.copy()
-                info['id'] = self.info['id']
-                info.update(**self.info['id'].to_dict())
-                return Projectable(data=np.ma.MaskedArray(datasets[0]), **info)
+                self.apply_modifier_info(i, info)
+                return Dataset(data=np.ma.MaskedArray(datasets[0]), **info)
 
+        print("Fake mod: ", args, kwargs)
         m = FakeMod()
         m.info = {
             'prerequisites': tuple(prereqs),
@@ -100,11 +117,24 @@ def test_composites(sensor_name):
         DatasetID(name='comp8'): (['ds_NOPE', 'comp2'], []),
         DatasetID(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
         DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
+        DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
+        DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.48, modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.85, modifiers=('mod1',))],
+                                    []),
+        DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
+        DatasetID(name='comp14'): (['ds1'], []),
+        DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
+        DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
+        DatasetID(name='comp17'): (['ds1', 'comp15'], []),
+        DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
         'mod1': (['ds2'], []),
         'mod2': (['comp3'], []),
+        'res_change': ([], []),
+        'incomp_areas': (['ds1'], []),
     }
 
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
@@ -134,16 +164,17 @@ def _get_dataset_key(key,
 
 
 def _reader_load(dataset_keys):
-    from satpy import DatasetDict, Projectable
+    from satpy import DatasetDict, Dataset
     import numpy as np
     dataset_ids = test_datasets()
     loaded_datasets = DatasetDict()
     for k in dataset_keys:
+        if k == 'ds9_fail_load':
+            continue
         for ds in dataset_ids:
             if ds == k:
-                loaded_datasets[ds] = Projectable(data=np.arange(5),
-                                                  id=ds,
-                                                  **ds.to_dict())
+                loaded_datasets[ds] = Dataset(data=np.arange(5),
+                                              **ds.to_dict())
     return loaded_datasets
 
 

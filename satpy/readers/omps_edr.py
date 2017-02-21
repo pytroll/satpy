@@ -37,7 +37,7 @@ import numpy as np
 import logging
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -197,18 +197,17 @@ class EDRFileHandler(HDF5FileHandler):
             out.data[:] += factors[1]
 
         ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
             "units": ds_info.get("units", file_units),
             "platform": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
+        ds_info.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
             ds_info['standard_name'] = self[var_path + '/attr/Title']
 
-        cls = ds_info.pop("container", Projectable)
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
 

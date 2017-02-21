@@ -37,8 +37,9 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample import geometry
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.helper_functions import get_geostationary_angle_extent
 
 
 class CalibrationError(Exception):
@@ -263,7 +264,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         if out is None:
             nlines = int(self.data_info['number_of_lines'])
             ncols = int(self.data_info['number_of_columns'])
-            out = Projectable(np.ma.empty((nlines, ncols), dtype=np.float32))
+            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
 
         self.read_band(key, info, out, xslice, yslice)
 
@@ -320,6 +321,41 @@ class AHIHSDFileHandler(BaseFileHandler):
     def get_lonlats(self, key, info, lon_out, lat_out):
         logger.debug('Computing area for %s', str(key))
         lon_out[:], lat_out[:] = self.area.get_lonlats()
+
+    def geo_mask(self, lineslice=None, colslice=None):
+        """Masking the space pixels from geometry info."""
+        cfac = np.uint32(self.proj_info['CFAC'])
+        lfac = np.uint32(self.proj_info['LFAC'])
+        coff = np.float32(self.proj_info['COFF'])
+        loff = np.float32(self.proj_info['LOFF'])
+        nlines = int(self.data_info['number_of_lines'])
+        ncols = int(self.data_info['number_of_columns'])
+
+        # count starts at 1
+        local_coff = 1
+        local_loff = (self.total_segments - self.segment_number) * nlines + 1
+
+        xmax, ymax = get_geostationary_angle_extent(self.area)
+
+        pixel_cmax = np.rad2deg(xmax) * cfac * 1.0 / 2**16
+        pixel_lmax = np.rad2deg(ymax) * lfac * 1.0 / 2**16
+
+        def ellipse(line, col):
+            line /= pixel_lmax
+            line *= line
+            col /= pixel_cmax
+            col *= col
+            return (line + col) > 1
+
+        cols_idx = np.arange(-(coff - local_coff),
+                             ncols - (coff - local_coff),
+                             dtype=np.float)[colslice]
+        lines_idx = np.arange(nlines - (loff - local_loff),
+                              -(loff - local_loff),
+                              -1,
+                              dtype=np.float)[lineslice]
+
+        return ellipse(lines_idx[:, None], cols_idx[None, :])
 
     def read_band(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
         """Read the data"""
@@ -408,6 +444,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                  [0] == out.data] = True
         out.mask[header['block5']["count_value_error_pixels"]
                  [0] == out.data] = True
+
+        out.mask[self.geo_mask(yslice, xslice)] = True
 
         logger.debug("Reading time " + str(datetime.now() - tic))
 

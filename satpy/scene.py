@@ -31,10 +31,8 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
 from satpy.node import DependencyTree
-from satpy.projectable import InfoObject, Projectable
-from satpy.readers import (DatasetDict,
-                           DatasetID,
-                           ReaderFinder)
+from satpy.dataset import InfoObject, Dataset, DatasetID
+from satpy.readers import DatasetDict, ReaderFinder
 
 try:
     import configparser
@@ -256,7 +254,7 @@ class Scene(InfoObject):
         for ds in self:
             datasets_by_area.setdefault(
                 str(ds.info["area"]), (ds.info["area"], []))
-            datasets_by_area[str(ds.info["area"])][1].append(ds.info["id"])
+            datasets_by_area[str(ds.info["area"])][1].append(ds.id)
 
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
@@ -267,8 +265,8 @@ class Scene(InfoObject):
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
-        if not isinstance(value, Projectable):
-            raise ValueError("Only 'Projectable' objects can be assigned")
+        if not isinstance(value, Dataset):
+            raise ValueError("Only 'Dataset' objects can be assigned")
         self.datasets[key] = value
         self.wishlist.add(self.datasets.get_key(key))
 
@@ -331,18 +329,19 @@ class Scene(InfoObject):
 
             if prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
-            elif prereq_id in keepables:
-                keepables.add(comp_id)
-                LOG.warning("Delaying generation of %s "
-                            "because of dependency's delayed generation: %s",
-                            comp_id, prereq_id)
-            elif not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                if not prereq_node.is_leaf and prereq_id in keepables:
+                    keepables.add(comp_id)
+                    LOG.warning("Delaying generation of %s "
+                                "because of dependency's delayed generation: %s",
+                                comp_id, prereq_id)
+                if not skip:
+                    LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                        comp_id, prereq_id))
+                    raise KeyError("Missing composite prerequisite")
+                else:
+                    LOG.debug("Missing optional prerequisite for {}: {}".format(
+                        comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -382,13 +381,20 @@ class Scene(InfoObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.info)
-            self.datasets[composite.info['id']] = composite
+            self.datasets[composite.id] = composite
+            # update the node with the computed DatasetID
+            comp_node.name = composite.id
+            if comp_node.name in self.wishlist:
+                self.wishlist.remove(comp_node.name)
+                self.wishlist.add(composite.id)
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
-                        compositor.info['name'])
+                        str(compositor.id))
             preservable_datasets = set(self.datasets.keys())
-            keepables |= preservable_datasets & set(prereqs + optional_prereqs)
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
             # even though it wasn't generated keep a list of what
             # might be needed in other compositors
             keepables.add(comp_node.name)
@@ -474,7 +480,7 @@ class Scene(InfoObject):
         if datasets is None:
             new_scn.wishlist = self.wishlist
         else:
-            new_scn.wishlist = set([ds.info["id"] for ds in new_scn])
+            new_scn.wishlist = set([ds.id for ds in new_scn])
 
         # recompute anything from the wishlist that needs it (combining multiple
         # resolutions, etc.)

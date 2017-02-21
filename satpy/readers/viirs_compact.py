@@ -32,7 +32,7 @@ import numpy as np
 
 import h5py
 from pyresample.geometry import SwathDefinition
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 try:
@@ -164,18 +164,18 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
                                                        "SatelliteZenithAngle")
             if key.name == 'satellite_zenith_angle':
-                return Projectable(self.senzen, copy=False, name=key.name, **self.mda)
+                return Dataset(self.senzen, copy=False, name=key.name, **self.mda)
             else:
-                return Projectable(self.senazi, copy=False, name=key.name, **self.mda)
+                return Dataset(self.senazi, copy=False, name=key.name, **self.mda)
 
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
             if self.solazi is None or self.solzen is None:
                 self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
                                                        "SolarZenithAngle")
             if key.name == 'solar_zenith_angle':
-                return Projectable(self.solzen, copy=False, name=key.name, **self.mda)
+                return Dataset(self.solzen, copy=False, name=key.name, **self.mda)
             else:
-                return Projectable(self.solazi, copy=False, name=key.name, **self.mda)
+                return Dataset(self.solazi, copy=False, name=key.name, **self.mda)
 
         if info.get('standard_name') in ['latitude', 'longitude']:
             if self.lons is None or self.lats is None:
@@ -183,9 +183,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             mda = self.mda.copy()
             mda.update(info)
             if info['standard_name'] == 'longitude':
-                return Projectable(self.lons, copy=False, id=key, **mda)
+                return Dataset(self.lons, copy=False, id=key, **mda)
             else:
-                return Projectable(self.lats, copy=False, id=key, **mda)
+                return Dataset(self.lats, copy=False, id=key, **mda)
 
     def read_dataset(self, dataset_key, info):
         h5f = self.h5f
@@ -258,7 +258,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                              "reflectance or brightness_temperature")
         arr[arr < 0] = 0
 
-        return Projectable(arr, units=unit, copy=False, name=dataset_key.name, **self.mda)
+        return Dataset(arr, units=unit, copy=False, name=dataset_key.name, **self.mda)
 
     def navigate(self):
 

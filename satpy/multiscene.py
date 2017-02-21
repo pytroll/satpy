@@ -25,14 +25,14 @@
 
 import numpy as np
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.scene import Scene
 
 
 def stack(datasets):
     """First dataset at the bottom."""
 
-    base = Projectable(datasets[0], copy=True)
+    base = Dataset(datasets[0], copy=True)
     for dataset in datasets[1:]:
         base_mask = np.ma.getmaskarray(base)
         other_mask = np.ma.getmaskarray(dataset)
@@ -70,10 +70,10 @@ class MultiScene(object):
         for layer in self.layers:
             if common_datasets is None:
                 common_datasets = set(
-                    [dataset.info['id'].name for dataset in layer])
+                    [dataset.id.name for dataset in layer])
             else:
                 common_datasets &= set(
-                    [dataset.info['id'].name for dataset in layer])
+                    [dataset.id.name for dataset in layer])
         for dataset_id in common_datasets:
             datasets = [layer[dataset_id] for layer in self.layers]
             scn[dataset_id] = blend_function(datasets)

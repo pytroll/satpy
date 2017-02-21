@@ -40,7 +40,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
 from satpy.config import get_config, get_config_path
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 
 try:
     import configparser
@@ -435,7 +435,7 @@ class EWAResampler(BaseResampler):
         info = getattr(data, "info", {})
         info["mask"] = np.isnan(out_arr) if np.issubdtype(
             data.dtype, np.floating) else out_arr == fill
-        return Projectable(out_arr, **info)
+        return Dataset(out_arr, **info)
 
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
