@@ -2,6 +2,29 @@ Changelog
 =========
 
 
+v0.4.1 (2017-02-21)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.4.0 → 0.4.1. [davidh-ssec]
+- Remove forgotten print statement in tests. [davidh-ssec]
+- Fix wavelength comparison when there are mixed types. [davidh-ssec]
+- Remove old files. [Martin Raspaud]
+- Merge pull request #30 from pytroll/feature-get-dataset-key-refactor.
+  [David Hoese]
+
+  Refactor get_dataset_key
+- Merge branch 'develop' into feature-get-dataset-key-refactor. [Martin
+  Raspaud]
+- Rename ds id search function. [Martin Raspaud]
+- Added some test to get_dataset_key refactor. [Martin Raspaud]
+- Refactor get_dataset_key. [Martin Raspaud]
+- Use dfilter in node. [Martin Raspaud]
+- Refactor get_dataset_key wip. [Martin Raspaud]
+- Use wavelength instead of channel name for NIR refl computation.
+  [Martin Raspaud]
+- Update contact info. [Martin Raspaud]
+
+
 v0.4.0 (2017-02-21)
 -------------------
 - Update changelog. [davidh-ssec]
