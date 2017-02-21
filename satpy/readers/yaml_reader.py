@@ -112,7 +112,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.datasets = self.config['datasets']
         self.info['filenames'] = []
         self.ids = {}
-        self.get_dataset_ids()
+        self.load_ds_ids_from_config()
 
     @property
     def all_dataset_ids(self):
@@ -181,8 +181,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return selected_filenames
 
-    def get_datasets_by_wavelength(self, wavelength, ids=None):
-        """Get the dataset matching a given a *wavelength*."""
+    def get_ds_ids_by_wavelength(self, wavelength, ids=None):
+        """Get the dataset ids matching a given a *wavelength*."""
         if ids is None:
             ids = self.ids
         if isinstance(wavelength, (tuple, list)):
@@ -199,8 +199,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return datasets
 
-    def get_datasets_by_id(self, dsid, ids=None):
-        """Get the dataset matching a given a dataset id."""
+    def get_ds_ids_by_id(self, dsid, ids=None):
+        """Get the dataset ids matching a given a dataset id."""
         if ids is None:
             ids = self.ids.keys()
         for key in DATASET_KEYS:
@@ -208,7 +208,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if value is None:
                 continue
             if key == "wavelength":
-                ids = self.get_datasets_by_wavelength(dsid.wavelength, ids)
+                ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
             else:
                 ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
         if len(ids) == 0:
@@ -216,8 +216,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 "Can't find any projectable matching '{}'".format(dsid))
         return ids
 
-    def get_datasets_by_name(self, name, ids=None):
-        """Get the datasets by *name*."""
+    def get_ds_ids_by_name(self, name, ids=None):
+        """Get the datasets ids by *name*."""
         if ids is None:
             ids = self.ids
         datasets = [ds_id for ds_id in ids if ds_id.name == name]
@@ -255,7 +255,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                                      "radiance", "counts"] if x in calibration]
         return calibration
 
-    def _datasets_with_best_calibration(self, datasets, calibration):
+    def _ds_ids_with_best_calibration(self, datasets, calibration):
         """Get the datasets with the best available calibration."""
 
         calibration = self._get_best_calibration(calibration)
@@ -272,26 +272,26 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 new_datasets.append(ds_id)
         return new_datasets
 
-    def _datasets_from_any_key(self, key):
-        """Return a datasets from any type of key."""
+    def _ds_ids_from_any_key(self, key):
+        """Return a dataset ids from any type of key."""
         if isinstance(key, numbers.Number):
-            datasets = self.get_datasets_by_wavelength(key)
+            datasets = self.get_ds_ids_by_wavelength(key)
         elif isinstance(key, DatasetID):
-            datasets = self.get_datasets_by_id(key)
+            datasets = self.get_ds_ids_by_id(key)
         else:
-            datasets = self.get_datasets_by_name(key)
+            datasets = self.get_ds_ids_by_name(key)
 
         return datasets
 
-    def filter_datasets(self, datasets, dfilter):
+    def filter_ds_ids(self, datasets, dfilter):
         """Filter *datasets* based on *dfilter*."""
         for attr in ['resolution', 'polarization']:
             if dfilter.get(attr) is not None:
                 datasets = [ds_id for ds_id in datasets
                             if getattr(ds_id, attr) in dfilter[attr]]
 
-        datasets = self._datasets_with_best_calibration(datasets,
-                                                        dfilter.get('calibration'))
+        datasets = self._ds_ids_with_best_calibration(datasets,
+                                                      dfilter.get('calibration'))
 
         if dfilter.get('modifiers') is not None:
             datasets = [ds_id for ds_id in datasets
@@ -306,11 +306,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         object its name is searched if it exists, otherwise its wavelength is
         used.
         """
-        datasets = self._datasets_from_any_key(key)
+        datasets = self._ds_ids_from_any_key(key)
 
         dfilter = self.dfilter_from_key(dfilter, key)
 
-        datasets = self.filter_datasets(datasets, dfilter)
+        datasets = self.filter_ds_ids(datasets, dfilter)
 
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(
@@ -320,7 +320,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         else:
             return datasets[0]
 
-    def get_dataset_ids(self):
+    def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
         ids = []
         for dskey, dataset in self.datasets.items():
