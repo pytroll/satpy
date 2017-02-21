@@ -252,8 +252,8 @@ class NUCAPSReader(FileYAMLReader):
         self.mask_surface = self.info.get('mask_surface', mask_surface)
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
-    def get_dataset_ids(self):
-        super(NUCAPSReader, self).get_dataset_ids()
+    def load_ds_ids_from_config(self):
+        super(NUCAPSReader, self).load_ds_ids_from_config()
         for ds_id in list(self.ids.keys()):
             ds_info = self.ids[ds_id]
             if ds_info.get('pressure_based', False):
