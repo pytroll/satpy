@@ -49,4 +49,3 @@ datasets:
     file_type: nucaps
     file_key: Pressure
     index: 0
-    container: !!python/name:satpy.projectable.Dataset

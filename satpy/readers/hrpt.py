@@ -40,7 +40,7 @@ import numpy as np
 
 from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 from pyresample.geometry import SwathDefinition
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -148,9 +148,9 @@ class HRPTFile(BaseFileHandler):
         if key.name in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
             if key.name == 'latitude':
-                return Projectable(lats, id=key)
+                return Dataset(lats, id=key)
             else:
-                return Projectable(lons, id=key)
+                return Dataset(lons, id=key)
 
         avhrr_channel_index = {'1': 0,
                                '2': 1,
@@ -171,10 +171,10 @@ class HRPTFile(BaseFileHandler):
 
         data = self._data["image_data"][:, :, index]
         if key.calibration == 'counts':
-            return Projectable(data,
-                               mask=mask,
-                               area=self.get_lonlats(),
-                               units='1')
+            return Dataset(data,
+                           mask=mask,
+                           area=self.get_lonlats(),
+                           units='1')
 
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
 
@@ -200,7 +200,7 @@ class HRPTFile(BaseFileHandler):
                                      chan, pg_spacecraft)
             units = 'K'
         # TODO: check if entirely masked before returning
-        return Projectable(data, mask=mask, units=units)
+        return Dataset(data, mask=mask, units=units)
 
     def get_telemetry(self):
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)

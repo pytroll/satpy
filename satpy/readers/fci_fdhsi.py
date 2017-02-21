@@ -33,7 +33,7 @@ import h5netcdf
 import logging
 from collections import defaultdict
 
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
         self.calibrate(ds, key)
 
-        out = Projectable(ds, dtype=np.float32)
+        out = Dataset(ds, dtype=np.float32)
 
         self.cache[key] = out
         self.nlines, self.ncols = ds.shape

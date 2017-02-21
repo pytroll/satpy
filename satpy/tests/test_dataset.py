@@ -29,7 +29,7 @@ import unittest
 import mock
 import numpy as np
 
-from satpy import projectable
+from satpy import dataset
 
 
 class TestDataset(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestDataset(unittest.TestCase):
         """
         Test copying a dataset
         """
-        ds = projectable.Dataset(np.arange(8), foo="bar")
+        ds = dataset.Dataset(np.arange(8), foo="bar")
         ds_copy = ds.copy()
         self.assertTrue(ds_copy.data is not ds.data
                         and all(ds.data == ds_copy.data))
@@ -49,15 +49,15 @@ class TestDataset(unittest.TestCase):
             self.assertDictEqual(ds.info, ds_copy.info)
 
     def test_str_repr(self):
-        ds = projectable.Dataset(np.arange(1, 25), foo="bar")
+        ds = dataset.Dataset(np.arange(1, 25), foo="bar")
         ds_str = str(ds)
         ds_repr = repr(ds)
 
     def test_add(self):
         """Checks the __add__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 0, 0], bla=2, bli='hoj')
         c = a + b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a + 1
@@ -73,8 +73,8 @@ class TestDataset(unittest.TestCase):
     def test_sub(self):
         """Checks the __sub__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 0, 0], bla=2, bli='hoj')
         c = a - b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a - 1
@@ -90,8 +90,8 @@ class TestDataset(unittest.TestCase):
     def test_mul(self):
         """Checks the __mul__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 0, 0], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 0, 0], bla=2, bli='hoj')
         c = a * b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a * 1
@@ -107,8 +107,8 @@ class TestDataset(unittest.TestCase):
     def test_floordiv(self):
         """Checks the __floordiv__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a // b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a // 1
@@ -124,8 +124,8 @@ class TestDataset(unittest.TestCase):
     def test_mod(self):
         """Checks the __mod__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a % b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a % 1
@@ -141,8 +141,8 @@ class TestDataset(unittest.TestCase):
     def test_divmod(self):
         """Checks the __divmod__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = divmod(a, b)
         self.assertDictEqual(c[0].info, {'bla': 2})
         self.assertDictEqual(c[1].info, {'bla': 2})
@@ -156,8 +156,8 @@ class TestDataset(unittest.TestCase):
     def test_pow(self):
         """Checks the __pow__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a ** b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a ** 1
@@ -173,8 +173,8 @@ class TestDataset(unittest.TestCase):
     def test_lshift(self):
         """Checks the __lshift__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a << b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a << 1
@@ -190,8 +190,8 @@ class TestDataset(unittest.TestCase):
     def test_rshift(self):
         """Checks the __rshift__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a >> b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a >> 1
@@ -207,8 +207,8 @@ class TestDataset(unittest.TestCase):
     def test_and(self):
         """Checks the __and__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a & b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a & 1
@@ -224,8 +224,8 @@ class TestDataset(unittest.TestCase):
     def test_xor(self):
         """Checks the __xor__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a ^ b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a ^ 1
@@ -241,8 +241,8 @@ class TestDataset(unittest.TestCase):
     def test_or(self):
         """Checks the __or__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a | b
         self.assertDictEqual(c.info, {'bla': 2})
         c = a | 1
@@ -260,8 +260,8 @@ class TestDataset(unittest.TestCase):
     def test_div(self):
         """Checks the __div__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
-        b = projectable.Dataset([2, 1, 1], bla=2, bli='hoj')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
+        b = dataset.Dataset([2, 1, 1], bla=2, bli='hoj')
         c = a.__div__(b)
         self.assertDictEqual(c.info, {'bla': 2})
         c = a.__div__(1)
@@ -277,8 +277,8 @@ class TestDataset(unittest.TestCase):
     def test_truediv(self):
         """Checks the __truediv__ function.
         """
-        a = projectable.Dataset([7., 3., 1.], bla=2, blu='hej')
-        b = projectable.Dataset([2., 1., 1.], bla=2, bli='hoj')
+        a = dataset.Dataset([7., 3., 1.], bla=2, blu='hej')
+        b = dataset.Dataset([2., 1., 1.], bla=2, bli='hoj')
         c = a.__truediv__(b)
         self.assertDictEqual(c.info, {'bla': 2})
         c = a.__truediv__(1)
@@ -294,28 +294,28 @@ class TestDataset(unittest.TestCase):
     def test_neg(self):
         """Checks the __neg__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
         c = -a
         self.assertDictEqual(c.info, a.info)
 
     def test_pos(self):
         """Checks the __pos__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
         c = +a
         self.assertDictEqual(c.info, a.info)
 
     def test_abs(self):
         """Checks the __abs__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
         c = abs(a)
         self.assertDictEqual(c.info, a.info)
 
     def test_invert(self):
         """Checks the __invert__ function.
         """
-        a = projectable.Dataset([7, 3, 1], bla=2, blu='hej')
+        a = dataset.Dataset([7, 3, 1], bla=2, blu='hej')
         c = ~a
         self.assertDictEqual(c.info, a.info)
 
@@ -353,24 +353,21 @@ class TestDataset(unittest.TestCase):
     #     self.assertTrue(np.all(c.mask == d.mask))
     #     self.assertDictEqual(c.info, d.info)
 
-
-class TestProjectable(unittest.TestCase):
-    """
-    Test the projectable class
-    """
-
     def test_init(self):
         """
         Test initialization
         """
-        self.assertTrue('name' in projectable.Projectable([]).info)
+        d = dataset.Dataset([])
+        self.assertTrue(hasattr(d, 'info'))
+        self.assertTrue(hasattr(d, 'shape'))
+        self.assertTrue(d.shape == (0,))
 
     def test_isloaded(self):
         """
         Test isloaded method
         """
-        self.assertFalse(projectable.Projectable([]).is_loaded())
-        self.assertTrue(projectable.Projectable(data=1).is_loaded())
+        self.assertFalse(dataset.Dataset([]).is_loaded())
+        self.assertTrue(dataset.Dataset(data=1).is_loaded())
 
     def test_str(self):
         # FIXME: Is there a better way to fake the area?
@@ -378,29 +375,29 @@ class TestProjectable(unittest.TestCase):
             name = "fake_area"
 
         # Normal situation
-        p = projectable.Projectable(np.arange(25),
-                                    sensor="fake_sensor",
-                                    wavelength=500,
-                                    resolution=250,
-                                    fake_attr="fakeattr",
-                                    area=FakeArea(),
-                                    )
+        p = dataset.Dataset(np.arange(25),
+                            sensor="fake_sensor",
+                            wavelength=500,
+                            resolution=250,
+                            fake_attr="fakeattr",
+                            area=FakeArea(),
+                            )
         p_str = str(p)
 
         # Not loaded data
-        p = projectable.Projectable([])
+        p = dataset.Dataset([])
         p_str = str(p)
         self.assertTrue("not loaded" in p_str)
 
         # Data that doesn't have a shape
-        p = projectable.Projectable(data=tuple())
+        p = dataset.Dataset(data=tuple())
         p_str = str(p)
 
     @mock.patch('satpy.resample.resample')
     def test_resample_2D(self, mock_resampler):
         data = np.arange(25).reshape((5, 5))
         mock_resampler.return_value = data
-        p = projectable.Projectable(data)
+        p = dataset.Dataset(data)
 
         class FakeAreaDef:
 
@@ -415,14 +412,14 @@ class TestProjectable(unittest.TestCase):
         self.assertEqual(mock_resampler.call_args[0][0], source_area)
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
         np.testing.assert_array_equal(data, mock_resampler.call_args[0][1])
-        self.assertTrue(isinstance(res, projectable.Projectable))
+        self.assertTrue(isinstance(res, dataset.Dataset))
         np.testing.assert_array_equal(res.data, mock_resampler.return_value)
 
     @mock.patch('satpy.resample.resample')
     def test_resample_3D(self, mock_resampler):
         data = np.arange(75).reshape((3, 5, 5))
         mock_resampler.return_value = np.rollaxis(data, 0, 3)
-        p = projectable.Projectable(data)
+        p = dataset.Dataset(data)
 
         class FakeAreaDef:
 
@@ -438,7 +435,7 @@ class TestProjectable(unittest.TestCase):
         np.testing.assert_array_equal(np.rollaxis(
             data, 0, 3), mock_resampler.call_args[0][1])
         self.assertEqual(mock_resampler.call_args[0][2], destination_area)
-        self.assertTrue(isinstance(res, projectable.Projectable))
+        self.assertTrue(isinstance(res, dataset.Dataset))
         np.testing.assert_array_equal(res.data, data)
 
 
@@ -448,6 +445,5 @@ def suite():
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestDataset))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestProjectable))
 
     return my_suite

@@ -35,7 +35,7 @@ import os.path
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pyresample import geometry
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class LIFileHandler(BaseFileHandler):
         logger.debug("END: %s" % self.end_time)
         ds = (np.ma.masked_invalid(rotgrid[:]))
         # Create projectable object
-        out = Projectable(ds, dtype=np.float32)
+        out = Dataset(ds, dtype=np.float32)
         self.cache[key] = out
 
         return(out)

@@ -32,15 +32,16 @@ Format documentation:
 http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
 
 """
+import logging
 import os.path
 from datetime import datetime, timedelta
-import numpy as np
-import logging
 
+import numpy as np
+import six
+
+from satpy.dataset import Dataset
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
-from satpy.projectable import Projectable
-import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -85,9 +86,11 @@ def _get_invalid_info(granule_data):
 class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader
     """
+
     def __getitem__(self, item):
         if '*' in item:
-            # this is an aggregated field that can't easily be loaded, need to join things together
+            # this is an aggregated field that can't easily be loaded, need to
+            # join things together
             idx = 0
             base_item = item
             item = base_item.replace('*', str(idx))
@@ -164,7 +167,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     def get_file_units(self, dataset_id, ds_info):
         file_units = ds_info.get("file_units")
 
-        # Guess the file units if we need to (normally we would get this from the file)
+        # Guess the file units if we need to (normally we would get this from
+        # the file)
         if file_units is None:
             if dataset_id.calibration == 'radiance':
                 if "dnb" in dataset_id.name.lower():
@@ -189,13 +193,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        num_grans = len(scaling_factors)//2
-        gran_size = data.shape[0]//num_grans
+        num_grans = len(scaling_factors) // 2
+        gran_size = data.shape[0] // num_grans
         for i in range(num_grans):
             start_idx = i * gran_size
             end_idx = start_idx + gran_size
-            m = scaling_factors[i*2]
-            b = scaling_factors[i*2 + 1]
+            m = scaling_factors[i * 2]
+            b = scaling_factors[i * 2 + 1]
             # in rare cases the scaling factors are actually fill values
             if m <= -999 or b <= -999:
                 mask[start_idx:end_idx] = 1
@@ -263,7 +267,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         is_floating = np.issubdtype(data.dtype, np.floating)
         if out is not None:
             # This assumes that we are promoting the dtypes (ex. float file data -> int array)
-            # and that it happens automatically when assigning to the existing out array
+            # and that it happens automatically when assigning to the existing
+            # out array
             out.data[:] = data
         else:
             shape = self.get_shape(dataset_id, ds_info)
@@ -295,19 +300,19 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             self.scale_swath_data(out.data, out.mask, factors)
 
         ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        cls = ds_info.pop("container", Projectable)
+        ds_info.update(dataset_id.to_dict())
+        cls = ds_info.pop("container", Dataset)
         return cls(out, **ds_info)
 
 
 class VIIRSSDRReader(FileYAMLReader):
+
     def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
         """Load the `nav_name` navigation.
 

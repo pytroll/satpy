@@ -33,8 +33,6 @@ import h5netcdf
 import numpy as np
 
 from pyresample import geometry
-from satpy.projectable import Projectable
-from satpy.readers import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -83,8 +81,8 @@ class NC_ABI_L1B(BaseFileHandler):
         out.mask[:] = np.ma.getmask(radiances)
         out.info.update({'units': units,
                          'platform_name': self.platform_name,
-                         'sensor': self.sensor,
-                         'id': key})
+                         'sensor': self.sensor})
+        out.info.update(key.to_dict())
 
         return out
 

@@ -32,7 +32,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample import geometry
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 
@@ -201,7 +201,7 @@ class HRITFileHandler(BaseFileHandler):
         if out is None:
             nlines = int(self.mda['number_of_lines'])
             ncols = int(self.mda['number_of_columns'])
-            out = Projectable(np.ma.empty((nlines, ncols), dtype=np.float32))
+            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
 
         self.read_band(key, info, out, xslice, yslice)
 

@@ -29,8 +29,7 @@ from datetime import datetime
 import h5netcdf
 import numpy as np
 
-from satpy.projectable import Projectable
-from satpy.readers import DatasetID
+from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -64,9 +63,9 @@ class NCSLSTRGeo(BaseFileHandler):
               variable.attrs.get('add_offset', 0))
         ds.mask = np.ma.getmaskarray(ds)
 
-        proj = Projectable(ds,
-                           copy=False,
-                           **info)
+        proj = Dataset(ds,
+                       copy=False,
+                       **info)
         return proj
 
     @property
@@ -119,12 +118,12 @@ class NCSLSTR1B(BaseFileHandler):
             radiances *= np.pi * 100
             units = '%'
 
-        proj = Projectable(radiances,
-                           name=key.name,
-                           copy=False,
-                           units=units,
-                           platform_name=self.platform_name,
-                           sensor=self.sensor)
+        proj = Dataset(radiances,
+                       name=key.name,
+                       copy=False,
+                       units=units,
+                       platform_name=self.platform_name,
+                       sensor=self.sensor)
         return proj
 
     @property
@@ -190,12 +189,12 @@ class NCSLSTRAngles(BaseFileHandler):
                                   cross_track_order)
             (values, ) = satint.interpolate()
 
-        proj = Projectable(values,
-                           copy=False,
-                           units=units,
-                           platform_name=self.platform_name,
-                           standard_name=variable.attrs['standard_name'],
-                           sensor=self.sensor)
+        proj = Dataset(values,
+                       copy=False,
+                       units=units,
+                       platform_name=self.platform_name,
+                       standard_name=variable.attrs['standard_name'],
+                       sensor=self.sensor)
         return proj
 
     @property

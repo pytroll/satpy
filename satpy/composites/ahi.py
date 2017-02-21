@@ -25,9 +25,8 @@
 import logging
 
 from pyresample.geometry import AreaDefinition
-from satpy.composites import CompositeBase, IncompatibleAreas
-from satpy.projectable import Projectable, combine_info
-from satpy.readers import DatasetID
+from satpy.composites import CompositeBase
+from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -44,9 +43,9 @@ class GreenCorrector(CompositeBase):
 
         LOG.info('Boosting vegetation on green band')
 
-        proj = Projectable(green * 0.85 + nir * 0.15,
-                           copy=False,
-                           **green.info)
+        proj = Dataset(green * 0.85 + nir * 0.15,
+                       copy=False,
+                       **green.info)
         self.apply_modifier_info(green, proj)
 
         return proj
@@ -60,12 +59,11 @@ class Reducer2(CompositeBase):
 
         factor = 2
 
-        # proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
+        # proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
                     band.shape[1] / factor, factor)
-        proj = Projectable(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                           copy=False, **band.info)
-        self.apply_modifier_info(band, proj)
+        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+                       copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,
@@ -76,13 +74,7 @@ class Reducer2(CompositeBase):
                                            old_area.y_size / factor,
                                            old_area.area_extent)
         proj.info['resolution'] *= factor
-        proj.info['id'] = DatasetID(name=proj.info['id'].name,
-                                    resolution=proj.info['resolution'],
-                                    wavelength=proj.info['id'].wavelength,
-                                    polarization=proj.info['id'].polarization,
-                                    calibration=proj.info['id'].calibration,
-                                    modifiers=proj.info['id'].modifiers)
-
+        self.apply_modifier_info(band, proj)
         return proj
 
 
@@ -94,12 +86,11 @@ class Reducer4(CompositeBase):
 
         factor = 4
 
-        #proj = Projectable(band[::factor, ::factor], copy=False, **band.info)
+        #proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
         newshape = (band.shape[0] / factor, factor,
                     band.shape[1] / factor, factor)
-        proj = Projectable(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                           copy=False, **band.info)
-        self.apply_modifier_info(band, proj)
+        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+                       copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,
@@ -110,11 +101,5 @@ class Reducer4(CompositeBase):
                                            old_area.y_size / factor,
                                            old_area.area_extent)
         proj.info['resolution'] *= factor
-        proj.info['id'] = DatasetID(name=proj.info['id'].name,
-                                    resolution=proj.info['resolution'],
-                                    wavelength=proj.info['id'].wavelength,
-                                    polarization=proj.info['id'].polarization,
-                                    calibration=proj.info['id'].calibration,
-                                    modifiers=proj.info['id'].modifiers)
-
+        self.apply_modifier_info(band, proj)
         return proj

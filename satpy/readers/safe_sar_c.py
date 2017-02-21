@@ -30,7 +30,7 @@ import numpy as np
 from osgeo import gdal
 
 from geotiepoints.geointerpolator import GeoInterpolator
-from satpy.projectable import Projectable
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -182,9 +182,9 @@ class SAFEGRD(BaseFileHandler):
                 self.lons, self.lats = self.get_lonlats()
 
             if key.name == 'latitude':
-                proj = Projectable(self.lats, id=key, **info)
+                proj = Dataset(self.lats, id=key, **info)
             else:
-                proj = Projectable(self.lons, id=key, **info)
+                proj = Dataset(self.lons, id=key, **info)
 
         else:
             data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
@@ -205,9 +205,9 @@ class SAFEGRD(BaseFileHandler):
             data[data < 0] = 0
             del noise, cal
 
-            proj = Projectable(np.sqrt(data),
-                               copy=False,
-                               units='sigma')
+            proj = Dataset(np.sqrt(data),
+                           copy=False,
+                           units='sigma')
         del band
         return proj
 
