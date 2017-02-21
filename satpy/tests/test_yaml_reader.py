@@ -134,19 +134,19 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_datasets_by_name(self):
         """Check getting datasets by name."""
-        self.assertEqual(len(self.reader.get_datasets_by_name('ch01')), 1)
+        self.assertEqual(len(self.reader.get_ds_ids_by_name('ch01')), 1)
 
-        res = self.reader.get_datasets_by_name('ch01')[0]
+        res = self.reader.get_ds_ids_by_name('ch01')[0]
         for key, val in self.config['datasets']['ch1'].items():
             if isinstance(val, list):
                 val = tuple(val)
             self.assertEqual(getattr(res, key), val)
 
-        self.assertRaises(KeyError, self.reader.get_datasets_by_name, 'bla')
+        self.assertRaises(KeyError, self.reader.get_ds_ids_by_name, 'bla')
 
     def test_get_datasets_by_wl(self):
         """Check getting datasets by wavelength."""
-        res = self.reader.get_datasets_by_wavelength(.6)
+        res = self.reader.get_ds_ids_by_wavelength(.6)
         self.assertEqual(len(res), 1)
         res = res[0]
         for key, val in self.config['datasets']['ch1'].items():
@@ -154,40 +154,40 @@ class TestFileFileYAMLReader(unittest.TestCase):
                 val = tuple(val)
             self.assertEqual(getattr(res, key), val)
 
-        res = self.reader.get_datasets_by_wavelength(.7)
+        res = self.reader.get_ds_ids_by_wavelength(.7)
         self.assertEqual(len(res), 2)
         self.assertEqual(res[0].name, 'ch02')
 
-        res = self.reader.get_datasets_by_wavelength((.7, .75, .8))
+        res = self.reader.get_ds_ids_by_wavelength((.7, .75, .8))
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0].name, 'ch02')
 
-        res = self.reader.get_datasets_by_wavelength([.7, .75, .8])
+        res = self.reader.get_ds_ids_by_wavelength([.7, .75, .8])
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0].name, 'ch02')
 
-        self.assertRaises(KeyError, self.reader.get_datasets_by_wavelength, 12)
+        self.assertRaises(KeyError, self.reader.get_ds_ids_by_wavelength, 12)
 
     def test_get_datasets_by_id(self):
         """Check getting datasets by id."""
         from satpy.readers import DatasetID
         dsid = DatasetID('ch01')
-        res = self.reader.get_datasets_by_id(dsid)
+        res = self.reader.get_ds_ids_by_id(dsid)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0].name, 'ch01')
 
         dsid = DatasetID(wavelength=.6)
-        res = self.reader.get_datasets_by_id(dsid)
+        res = self.reader.get_ds_ids_by_id(dsid)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0].name, 'ch01')
 
         dsid = DatasetID('ch01', .6)
-        res = self.reader.get_datasets_by_id(dsid)
+        res = self.reader.get_ds_ids_by_id(dsid)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0].name, 'ch01')
 
         dsid = DatasetID('ch01', .1)
-        self.assertRaises(KeyError, self.reader.get_datasets_by_id, dsid)
+        self.assertRaises(KeyError, self.reader.get_ds_ids_by_id, dsid)
 
     def test_get_best_calibration(self):
         """Test finding best calibration for datasets."""
@@ -211,7 +211,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         datasets = [yr.DatasetID(name=ds['name'], wavelength=ds["wavelength"],
                                  calibration=ds["calibration"])
                     for ds in self.reader.datasets.values()]
-        ds = self.reader._datasets_with_best_calibration(datasets, calibration)
+        ds = self.reader._ds_ids_with_best_calibration(datasets, calibration)
         self.assertListEqual(ds,
                              [yr.DatasetID(name='ch01',
                                            wavelength=[0.5, 0.6, 0.7],
@@ -293,7 +293,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                    'resolution': None,
                    'calibration': ['reflectance']}
 
-        ds = self.reader.filter_datasets(datasets, dfilter)
+        ds = self.reader.filter_ds_ids(datasets, dfilter)
         self.assertListEqual(ds,
                              [yr.DatasetID(name='ch01',
                                            wavelength=[0.5, 0.6, 0.7],
@@ -304,7 +304,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_datasets_from_any_key(self):
         """Test getting dataset from any key."""
-        ds = self.reader._datasets_from_any_key('ch01')
+        ds = self.reader._ds_ids_from_any_key('ch01')
         self.assertListEqual(ds,
                              [yr.DatasetID(name='ch01',
                                            wavelength=(0.5, 0.6, 0.7),
@@ -313,7 +313,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                            calibration='reflectance',
                                            modifiers=())])
 
-        ds = self.reader._datasets_from_any_key(0.51)
+        ds = self.reader._ds_ids_from_any_key(0.51)
         self.assertListEqual(ds,
                              [yr.DatasetID(name='ch01',
                                            wavelength=(0.5, 0.6, 0.7),
@@ -322,8 +322,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                            calibration='reflectance',
                                            modifiers=())])
 
-        ds = self.reader._datasets_from_any_key(yr.DatasetID(name='ch01',
-                                                             wavelength=0.51))
+        ds = self.reader._ds_ids_from_any_key(yr.DatasetID(name='ch01',
+                                                           wavelength=0.51))
         self.assertListEqual(ds,
                              [yr.DatasetID(name='ch01',
                                            wavelength=(0.5, 0.6, 0.7),
@@ -333,7 +333,63 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                            modifiers=())])
 
     def test_get_dataset_key(self):
-        pass
+        """Test get_dataset_key."""
+        ds = self.reader.get_dataset_key('ch01', aslist=True)
+        self.assertListEqual(ds,
+                             [yr.DatasetID(name='ch01',
+                                           wavelength=(0.5, 0.6, 0.7),
+                                           resolution=None,
+                                           polarization=None,
+                                           calibration='reflectance',
+                                           modifiers=())])
+
+        ds = self.reader.get_dataset_key(0.51, aslist=True)
+        self.assertListEqual(ds,
+                             [yr.DatasetID(name='ch01',
+                                           wavelength=(0.5, 0.6, 0.7),
+                                           resolution=None,
+                                           polarization=None,
+                                           calibration='reflectance',
+                                           modifiers=())])
+
+        ds = self.reader.get_dataset_key(yr.DatasetID(name='ch01',
+                                                      wavelength=0.51),
+                                         aslist=True)
+        self.assertListEqual(ds,
+                             [yr.DatasetID(name='ch01',
+                                           wavelength=(0.5, 0.6, 0.7),
+                                           resolution=None,
+                                           polarization=None,
+                                           calibration='reflectance',
+                                           modifiers=())])
+
+        ds = self.reader.get_dataset_key('ch01')
+        self.assertEqual(ds,
+                         yr.DatasetID(name='ch01',
+                                      wavelength=(0.5, 0.6, 0.7),
+                                      resolution=None,
+                                      polarization=None,
+                                      calibration='reflectance',
+                                      modifiers=()))
+
+        ds = self.reader.get_dataset_key(0.51)
+        self.assertEqual(ds,
+                         yr.DatasetID(name='ch01',
+                                      wavelength=(0.5, 0.6, 0.7),
+                                      resolution=None,
+                                      polarization=None,
+                                      calibration='reflectance',
+                                      modifiers=()))
+
+        ds = self.reader.get_dataset_key(yr.DatasetID(name='ch01',
+                                                      wavelength=0.51))
+        self.assertEqual(ds,
+                         yr.DatasetID(name='ch01',
+                                      wavelength=(0.5, 0.6, 0.7),
+                                      resolution=None,
+                                      polarization=None,
+                                      calibration='reflectance',
+                                      modifiers=()))
 
 
 def suite():
