@@ -175,8 +175,8 @@ datasets:
     file_key: "Brightness Temperature (89.0GHz-A,V)"
     fill_value: 65535
     coordinates:
-        - longitude
-        - latitude
+        - longitude_a
+        - latitude_a
 
   btemp_89.0ah:
     name: 'btemp_89.0ah'
@@ -189,8 +189,8 @@ datasets:
     file_key: "Brightness Temperature (89.0GHz-A,H)"
     fill_value: 65535
     coordinates:
-        - longitude
-        - latitude
+        - longitude_a
+        - latitude_a
 
   btemp_89.0bv:
     name: 'btemp_89.0bv'
@@ -221,7 +221,7 @@ datasets:
         - latitude_b
 
   latitude_5km_a:
-    name: latitude
+    name: latitude_a
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: latitude
@@ -239,7 +239,7 @@ datasets:
     fill_value: -9999.0
 
   longitude_5km_a:
-    name: longitude
+    name: longitude_a
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: longitude
