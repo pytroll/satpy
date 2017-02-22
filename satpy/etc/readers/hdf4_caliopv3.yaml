@@ -1,0 +1,33 @@
+reader:
+  default_datasets: []
+  description: CALIOP v3 HDF4 reader 
+  name: hdf4_caliop
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [caliop]
+
+datasets:
+  elevation:
+    file_type: hdf4_caliop
+    name: 'elevation'
+    resolution: 1000
+    coordinates: [longitude, latitude]
+
+  longitude:
+    file_type: hdf4_caliop
+    name: longitude
+    resolution: 1000
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    file_type: hdf4_caliop
+    name: latitude
+    resolution: 1000
+    standard_name: latitude
+    units: degree
+
+file_types:
+  hdf4_caliop:
+    file_patterns:
+        - 'CAL_LID_L2_0{resolution:1s}kmCLay_ValStage1-V3-30.{start_time:%y-%m-%dT%H%M}.hdf'
+    file_reader: !!python/name:satpy.readers.hdf4_caliopv3.HDF4BandReader''
