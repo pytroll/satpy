@@ -720,14 +720,15 @@ class FileYAMLReader(AbstractYAMLReader):
         else:
             return self.file_handlers[filetype]
 
-    @staticmethod
-    def _make_area_from_coords(coords):
+    def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
         if (len(coords) == 2 and
                 coords[0].info.get('standard_name') == 'longitude' and
                 coords[1].info.get('standard_name') == 'latitude'):
             from pyresample.geometry import SwathDefinition
-            return SwathDefinition(*coords)
+            sdef = SwathDefinition(*coords)
+            sdef.name = str(self.info['sensors']) + str(coords[0].shape)
+            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
