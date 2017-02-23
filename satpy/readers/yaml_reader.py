@@ -39,7 +39,7 @@ import yaml
 from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
-from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
+from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
@@ -112,7 +112,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.datasets = self.config['datasets']
         self.info['filenames'] = []
         self.ids = {}
-        self.get_dataset_ids()
+        self.load_ds_ids_from_config()
 
     @property
     def all_dataset_ids(self):
@@ -142,7 +142,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError()
 
     @abstractmethod
-    def load(self):
+    def load(self, dataset_keys):
+        del dataset_keys
         raise NotImplementedError()
 
     def supports_sensor(self, sensor):
@@ -181,8 +182,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return selected_filenames
 
-    def get_datasets_by_wavelength(self, wavelength, ids=None):
-        """Get the dataset matching a given a *wavelength*."""
+    def get_ds_ids_by_wavelength(self, wavelength, ids=None):
+        """Get the dataset ids matching a given a *wavelength*."""
         if ids is None:
             ids = self.ids
         if isinstance(wavelength, (tuple, list)):
@@ -199,8 +200,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return datasets
 
-    def get_datasets_by_id(self, dsid, ids=None):
-        """Get the dataset matching a given a dataset id."""
+    def get_ds_ids_by_id(self, dsid, ids=None):
+        """Get the dataset ids matching a given a dataset id."""
         if ids is None:
             ids = self.ids.keys()
         for key in DATASET_KEYS:
@@ -208,16 +209,16 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if value is None:
                 continue
             if key == "wavelength":
-                ids = self.get_datasets_by_wavelength(dsid.wavelength, ids)
+                ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
             else:
                 ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
         if len(ids) == 0:
             raise KeyError(
-                "Can't find any projectable matching'{}'".format(dsid))
+                "Can't find any projectable matching '{}'".format(dsid))
         return ids
 
-    def get_datasets_by_name(self, name, ids=None):
-        """Get the datasets by *name*."""
+    def get_ds_ids_by_name(self, name, ids=None):
+        """Get the datasets ids by *name*."""
         if ids is None:
             ids = self.ids
         datasets = [ds_id for ds_id in ids if ds_id.name == name]
@@ -227,40 +228,24 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return datasets
 
-    def get_dataset_key(self,
-                        key,
-                        calibration=None,
-                        resolution=None,
-                        polarization=None,
-                        modifiers=None,
-                        aslist=False):
-        """Get the fully qualified dataset corresponding to *key*, either by name or centerwavelength.
-
-        If `key` is a `DatasetID` object its name is searched if it exists, otherwise its wavelength is used.
-        """
-        # TODO This can be made simpler
-
-        if isinstance(key, numbers.Number):
-            datasets = self.get_datasets_by_wavelength(key)
-        elif isinstance(key, DatasetID):
-            datasets = self.get_datasets_by_id(key)
-            if calibration is None and key.calibration is not None:
-                calibration = [key.calibration]
-            if resolution is None and key.resolution is not None:
-                resolution = [key.resolution]
-            if polarization is None and key.polarization is not None:
-                polarization = [key.polarization]
-            if modifiers is None and key.modifiers is not None:
-                modifiers = key.modifiers
+    @staticmethod
+    def dfilter_from_key(dfilter, key):
+        """Create a dataset filter from a *key*."""
+        if dfilter is None:
+            dfilter = {}
         else:
-            datasets = self.get_datasets_by_name(key)
+            dfilter = dfilter.copy()
+        for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
+            dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
 
-        if resolution is not None:
-            if not isinstance(resolution, (tuple, list, set)):
-                resolution = [resolution]
-            datasets = [ds_id for ds_id in datasets
-                        if ds_id.resolution in resolution]
+        for attr in ['calibration', 'polarization', 'resolution']:
+            if (dfilter[attr] is not None
+                    and not isinstance(dfilter[attr], (list, tuple, set))):
+                dfilter[attr] = [dfilter[attr]]
+        return dfilter
 
+    @staticmethod
+    def _get_best_calibration(calibration):
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance", 'radiance',
@@ -269,6 +254,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             calibration = [x
                            for x in ["brightness_temperature", "reflectance",
                                      "radiance", "counts"] if x in calibration]
+        return calibration
+
+    def _ds_ids_with_best_calibration(self, datasets, calibration):
+        """Get the datasets with the best available calibration."""
+
+        calibration = self._get_best_calibration(calibration)
 
         new_datasets = []
 
@@ -280,18 +271,47 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         for ds_id in datasets:
             if ds_id.calibration is None:
                 new_datasets.append(ds_id)
-        datasets = new_datasets
+        return new_datasets
 
-        if polarization is not None:
-            datasets = [
-                ds_id for ds_id in datasets
-                if ds_id.polarization in polarization
-            ]
+    def _ds_ids_from_any_key(self, key):
+        """Return a dataset ids from any type of key."""
+        if isinstance(key, numbers.Number):
+            datasets = self.get_ds_ids_by_wavelength(key)
+        elif isinstance(key, DatasetID):
+            datasets = self.get_ds_ids_by_id(key)
+        else:
+            datasets = self.get_ds_ids_by_name(key)
 
-        if modifiers is not None:
-            datasets = [
-                ds_id for ds_id in datasets if ds_id.modifiers == modifiers
-            ]
+        return datasets
+
+    def filter_ds_ids(self, datasets, dfilter):
+        """Filter *datasets* based on *dfilter*."""
+        for attr in ['resolution', 'polarization']:
+            if dfilter.get(attr) is not None:
+                datasets = [ds_id for ds_id in datasets
+                            if getattr(ds_id, attr) in dfilter[attr]]
+
+        calibration = dfilter.get('calibration')
+        datasets = self._ds_ids_with_best_calibration(datasets, calibration)
+
+        if dfilter.get('modifiers') is not None:
+            datasets = [ds_id for ds_id in datasets
+                        if ds_id.modifiers == dfilter['modifiers']]
+
+        return datasets
+
+    def get_dataset_key(self, key, dfilter=None, aslist=False):
+        """Get the fully qualified dataset corresponding to *key*.
+
+        Can be either by name or centerwavelength. If `key` is a `DatasetID`
+        object its name is searched if it exists, otherwise its wavelength is
+        used.
+        """
+        datasets = self._ds_ids_from_any_key(key)
+
+        dfilter = self.dfilter_from_key(dfilter, key)
+
+        datasets = self.filter_ds_ids(datasets, dfilter)
 
         if not datasets:
             raise KeyError("Can't find any projectable matching '{}'".format(
@@ -301,13 +321,13 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         else:
             return datasets[0]
 
-    def get_dataset_ids(self):
+    def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
         ids = []
-        for dskey, dataset in self.datasets.items():
+        for dataset in self.datasets.values():
             # Build each permutation/product of the dataset
             id_kwargs = []
-            for key in DatasetID._fields:
+            for key in DATASET_KEYS:
                 val = dataset.get(key)
                 if key in ["wavelength", "modifiers"] and isinstance(val,
                                                                      list):
@@ -335,7 +355,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in dsid._fields:
+                for key in DATASET_KEYS:
                     if isinstance(ds_info.get(key), dict):
                         ds_info.update(ds_info[key][getattr(dsid, key)])
                     # this is important for wavelength which was converted
@@ -347,6 +367,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
+    """Implementation of the YAML reader."""
 
     def __init__(self,
                  config_files,
@@ -403,17 +424,17 @@ class FileYAMLReader(AbstractYAMLReader):
         return True
 
     def find_required_filehandlers(self, requirements, filename_info):
-        # case 3 : requirements are available -> find the right
-        # filename/filehandler to pass the current filehandler.
-        # find requirement filehandlers to pass to the current
-        # filehandler constructor
+        """Find the necessary fhs for the current filehandler.
+
+        We assume here requirements are available.
+        """
         req_fh = []
         if requirements:
             for requirement in requirements:
-                for fh in self.file_handlers[requirement]:
+                for fhd in self.file_handlers[requirement]:
                     if (all(item in filename_info.items()
-                            for item in fh.filename_info.items())):
-                        req_fh.append(fh)
+                            for item in fhd.filename_info.items())):
+                        req_fh.append(fhd)
                         break
                 else:
                     raise RuntimeError('No matching file in ' + requirement)
@@ -440,7 +461,8 @@ class FileYAMLReader(AbstractYAMLReader):
             processed_types.append(filetype)
             yield filetype, filetype_info
 
-    def filename_items_for_filetype(self, filenames, filetype_info):
+    @staticmethod
+    def filename_items_for_filetype(filenames, filetype_info):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
@@ -486,8 +508,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                                          filetype_info)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fh
-                for fh in self.filter_fh_by_area(self.filter_fh_by_time(
+        return [fhd
+                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
                     filehandler_iter))]
 
     def create_filehandlers(self, filenames):
@@ -501,11 +523,11 @@ class FileYAMLReader(AbstractYAMLReader):
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
 
-            filename_set -= set([fh.filename for fh in filehandlers])
+            filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
-                    key=lambda fh: (fh.start_time, fh.filename))
+                    key=lambda fhd: (fhd.start_time, fhd.filename))
 
     def _load_dataset_data(self,
                            file_handlers,
@@ -515,8 +537,8 @@ class FileYAMLReader(AbstractYAMLReader):
         ds_info = self.ids[dsid]
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [list(fh.get_shape(dsid, ds_info))
-                          for fh in file_handlers]
+            all_shapes = [list(fhd.get_shape(dsid, ds_info))
+                          for fhd in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = [
                 sum([x[0] for x in all_shapes]),
@@ -548,7 +570,6 @@ class FileYAMLReader(AbstractYAMLReader):
                     projectables.append(projectable)
 
             # Join them all together
-            all_shapes = [x.shape for x in projectables]
             combined_info = file_handlers[0].combine_info(
                 [p.info for p in projectables])
             proj = cls(np.ma.vstack(projectables), **combined_info)
@@ -619,7 +640,8 @@ class FileYAMLReader(AbstractYAMLReader):
         return None
 
     # TODO: move this out of here.
-    def _combine_area_extents(self, area1, area2):
+    @staticmethod
+    def _combine_area_extents(area1, area2):
         """Combine the area extents of areas 1 and 2."""
         if (area1.area_extent[0] == area2.area_extent[0] and
                 area1.area_extent[2] == area2.area_extent[2]):
@@ -692,9 +714,8 @@ class FileYAMLReader(AbstractYAMLReader):
         # Get the file handler to load this dataset (list or single string)
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
-            logger.warning(
-                "Required file type '{}' not found or loaded for '{}'".format(
-                    ds_info['file_type'], dsid.name))
+            logger.warning("Required file type '%s' not found or loaded for "
+                           "'%s'", ds_info['file_type'], dsid.name)
         else:
             return self.file_handlers[filetype]
 
@@ -704,7 +725,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 coords[0].info.get('standard_name') == 'longitude' and
                 coords[1].info.get('standard_name') == 'latitude'):
             from pyresample.geometry import SwathDefinition
-            return SwathDefinition(*coords)
+            sdef = SwathDefinition(*coords)
+            sdef.name = str(self.info['sensors']) + str(coords[0].shape)
+            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
@@ -755,7 +778,7 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
         except (KeyError, ValueError) as err:
-            logger.error("Could not load dataset '{}': {}".format(dsid, str(err)))
+            logger.error("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
         if area is not None:
@@ -772,7 +795,8 @@ class FileYAMLReader(AbstractYAMLReader):
         dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in dsids:
-            coords = [datasets.get(cid, None) for cid in coordinates.get(dsid, [])]
+            coords = [datasets.get(cid, None)
+                      for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
             if ds is not None:
                 datasets[dsid] = ds

@@ -124,6 +124,7 @@ class DependencyTree(Node):
     class is a subclass of.
 
     """
+
     def __init__(self, readers, compositors, modifiers):
         """Collect Dataset generating information.
 
@@ -219,10 +220,10 @@ class DependencyTree(Node):
                              resolution=None):
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key,
-                                                        calibration=calibration,
-                                                        polarization=polarization,
-                                                        resolution=resolution)
+                dfilter = {'calibration': calibration,
+                           'polarization': polarization,
+                           'resolution': resolution}
+                ds_id = reader_instance.get_dataset_key(dataset_key, dfilter)
             except KeyError as err:
                 # LOG.debug("Can't find dataset %s in reader %s",
                 #           str(dataset_key), reader_name)
@@ -265,7 +266,8 @@ class DependencyTree(Node):
         # if it has modifiers see if we can find the unmodified version first
         src_node = None
         if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
-            new_prereq = DatasetID(*dataset_key[:-1] + (dataset_key.modifiers[:-1],))
+            new_prereq = DatasetID(
+                *dataset_key[:-1] + (dataset_key.modifiers[:-1],))
             src_node, u = self._find_dependencies(new_prereq)
             if u:
                 return None, u
@@ -384,4 +386,3 @@ class DependencyTree(Node):
             self.add_child(self, n)
 
         return unknown_datasets
-

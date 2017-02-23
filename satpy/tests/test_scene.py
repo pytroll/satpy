@@ -156,6 +156,101 @@ class TestScene(unittest.TestCase):
         for x in scene:
             self.assertIsInstance(x, Dataset)
 
+    def test_iter_by_area_swath(self):
+        from satpy import Scene, Dataset
+        from pyresample.geometry import SwathDefinition
+        import numpy as np
+        scene = Scene()
+        sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
+        scene["1"] = Dataset(np.arange(5), area=sd)
+        scene["2"] = Dataset(np.arange(5), area=sd)
+        scene["3"] = Dataset(np.arange(5))
+        for area_obj, ds_list in scene.iter_by_area():
+            ds_list_names = set(ds.name for ds in ds_list)
+            if area_obj is sd:
+                self.assertSetEqual(ds_list_names, {'1', '2'})
+            else:
+                self.assertIsNone(area_obj)
+                self.assertSetEqual(ds_list_names, {'3'})
+
+    def test_bad_setitem(self):
+        from satpy import Scene, Dataset
+        import numpy as np
+        scene = Scene()
+        self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
+
+    def test_setitem(self):
+        from satpy import Scene, Dataset
+        import numpy as np
+        scene = Scene()
+        scene["1"] = ds1 = Dataset(np.arange(5))
+        self.assertSetEqual(set(scene.datasets.keys()), {ds1.id})
+        self.assertSetEqual(set(scene.wishlist), {ds1.id})
+
+    def test_getitem(self):
+        from satpy import Scene, Dataset
+        import numpy as np
+        scene = Scene()
+        scene["1"] = ds1 = Dataset(np.arange(5))
+        scene["2"] = ds2 = Dataset(np.arange(5))
+        scene["3"] = ds3 = Dataset(np.arange(5))
+        self.assertIs(scene['1'], ds1)
+        self.assertIs(scene['2'], ds2)
+        self.assertIs(scene['3'], ds3)
+        self.assertRaises(KeyError, scene.__getitem__, '4')
+
+    def test_contains(self):
+        from satpy import Scene, Dataset
+        import numpy as np
+        scene = Scene()
+        scene["1"] = ds1 = Dataset(np.arange(5), wavelength=(0.1, 0.2, 0.3))
+        self.assertTrue('1' in scene)
+        self.assertTrue(0.15 in scene)
+        self.assertFalse('2' in scene)
+        self.assertFalse(0.31 in scene)
+
+    def test_delitem(self):
+        from satpy import Scene, Dataset
+        import numpy as np
+        scene = Scene()
+        scene["1"] = ds1 = Dataset(np.arange(5), wavelength=(0.1, 0.2, 0.3))
+        scene["2"] = ds2 = Dataset(np.arange(5), wavelength=(0.4, 0.5, 0.6))
+        scene["3"] = ds3 = Dataset(np.arange(5), wavelength=(0.7, 0.8, 0.9))
+        del scene['1']
+        del scene['3']
+        del scene[0.45]
+        self.assertEquals(len(scene.wishlist), 0)
+        self.assertEquals(len(scene.datasets.keys()), 0)
+        self.assertRaises(KeyError, scene.__delitem__, 0.2)
+
+    def test_all_datasets_no_readers(self):
+        from satpy import Scene
+        scene = Scene()
+        self.assertRaises(KeyError, scene.all_dataset_ids, reader_name='fake')
+        id_list = scene.all_dataset_ids()
+        self.assertListEqual(id_list, [])
+        # no sensors are loaded so we shouldn't get any comps either
+        id_list = scene.all_dataset_ids(composites=True)
+        self.assertListEqual(id_list, [])
+
+    def test_all_dataset_names_no_readers(self):
+        from satpy import Scene
+        scene = Scene()
+        self.assertRaises(KeyError, scene.all_dataset_names, reader_name='fake')
+        name_list = scene.all_dataset_names()
+        self.assertListEqual(name_list, [])
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.all_dataset_names(composites=True)
+        self.assertListEqual(name_list, [])
+
+    def test_available_composites_no_datasets(self):
+        from satpy import Scene
+        scene = Scene()
+        id_list = scene.available_composite_ids(available_datasets=[])
+        self.assertListEqual(id_list, [])
+        # no sensors are loaded so we shouldn't get any comps either
+        id_list = scene.available_composite_names(available_datasets=[])
+        self.assertListEqual(id_list, [])
 
 class TestSceneLoading(unittest.TestCase):
     """Test the Scene objects `.load` method
