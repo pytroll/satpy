@@ -4,23 +4,12 @@
 CALIOP v3 HDF4 reader
 """
 
-import glob
-import hashlib
 import logging
-import math
-import multiprocessing
 import os.path
-from ConfigParser import ConfigParser
-from datetime import datetime, timedelta
-from fnmatch import fnmatch
 
-import numpy as np
-from pyhdf.error import HDF4Error
 from pyhdf.SD import SD, SDC
 
-from pyresample import geometry
-from satpy.config import CONFIG_PATH
-from satpy.dataset import Dataset, DatasetID
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -30,14 +19,14 @@ class HDF4BandReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(HDF4BandReader, self).__init__(filename,
-                                    filename_info, filetype_info)
+                                             filename_info,
+                                             filetype_info)
         self.lons = None
         self.lats = None
         self._start_time = None
         self._end_time = None
 
         self._start_time = filename_info['start_time']
-        self._end_time = self._start_time + timedelta(minutes=10)
 
         self.filename = filename
         self.get_filehandle()
@@ -76,7 +65,6 @@ class HDF4BandReader(BaseFileHandler):
         sds_obj = self.filehandle.select(name)
         data = sds_obj.get()
         return data
-        
 
     def get_lonlats(self):
         longitudes = self.get_sds_variable('Longitude')
@@ -89,4 +77,4 @@ class HDF4BandReader(BaseFileHandler):
 
     @property
     def end_time(self):
-        return self._end_time
+        return self._start_time

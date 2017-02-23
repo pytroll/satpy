@@ -10,18 +10,25 @@ datasets:
     file_type: hdf4_caliop
     name: Lidar_Surface_Elevation
     resolution: 1000
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
+
+  layer_top_altitude:
+    file_type: hdf4_caliop
+    name: Layer_Top_Altitude
+    resolution: 1000
+    coordinates: [Longitude, Latitude]
+    units: km
 
   longitude:
     file_type: hdf4_caliop
-    name: longitude
+    name: Longitude
     resolution: 1000
     standard_name: longitude
     units: degree
 
   latitude:
     file_type: hdf4_caliop
-    name: latitude
+    name: Latitude
     resolution: 1000
     standard_name: latitude
     units: degree
