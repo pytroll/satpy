@@ -508,8 +508,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                                          filetype_info)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fh
-                for fh in self.filter_fh_by_area(self.filter_fh_by_time(
+        return [fhd
+                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
                     filehandler_iter))]
 
     def create_filehandlers(self, filenames):
@@ -523,7 +523,7 @@ class FileYAMLReader(AbstractYAMLReader):
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
 
-            filename_set -= set([fh.filename for fh in filehandlers])
+            filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
@@ -537,8 +537,8 @@ class FileYAMLReader(AbstractYAMLReader):
         ds_info = self.ids[dsid]
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [list(fh.get_shape(dsid, ds_info))
-                          for fh in file_handlers]
+            all_shapes = [list(fhd.get_shape(dsid, ds_info))
+                          for fhd in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = [
                 sum([x[0] for x in all_shapes]),
@@ -714,9 +714,8 @@ class FileYAMLReader(AbstractYAMLReader):
         # Get the file handler to load this dataset (list or single string)
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
-            logger.warning(
-                "Required file type '{}' not found or loaded for '{}'".format(
-                    ds_info['file_type'], dsid.name))
+            logger.warning("Required file type '%s' not found or loaded for "
+                           "'%s'", ds_info['file_type'], dsid.name)
         else:
             return self.file_handlers[filetype]
 
@@ -779,8 +778,7 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
         except (KeyError, ValueError) as err:
-            logger.error(
-                "Could not load dataset '{}': {}".format(dsid, str(err)))
+            logger.error("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
         if area is not None:
