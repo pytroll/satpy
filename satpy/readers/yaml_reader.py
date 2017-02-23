@@ -108,6 +108,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                              for pattern in file_type['file_patterns']]
             self.file_patterns.extend(file_patterns)
 
+        if not isinstance(self.info['sensors'], (list, tuple)):
+            self.info['sensors'] = [self.info['sensors']]
         self.sensor_names = self.info['sensors']
         self.datasets = self.config['datasets']
         self.info['filenames'] = []
@@ -726,7 +728,11 @@ class FileYAMLReader(AbstractYAMLReader):
                 coords[1].info.get('standard_name') == 'latitude'):
             from pyresample.geometry import SwathDefinition
             sdef = SwathDefinition(*coords)
-            sdef.name = str(self.info['sensors']) + str(coords[0].shape)
+            sensor_str = sdef.name = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, coords[0].shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             coords[0].info['name'],
+                                             coords[1].info['name'])
             return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
