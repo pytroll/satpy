@@ -29,10 +29,11 @@ logger = logging.getLogger(__name__)
 class HDF4BandReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(HDF4BandReader.self).__init__(self, filename,
+        super(HDF4BandReader, self).__init__(self, filename,
                                     filename_info, filetype_info)
 
         self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
 
         self.filename = filename
         self.get_filehandle()
@@ -53,3 +54,11 @@ class HDF4BandReader(BaseFileHandler):
         longitudes = None
         latitudes = None
         return longitudes, latitudes
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time

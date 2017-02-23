@@ -8,7 +8,7 @@ reader:
 datasets:
   elevation:
     file_type: hdf4_caliop
-    name: 'elevation'
+    name: elevation
     resolution: 1000
     coordinates: [longitude, latitude]
 
@@ -29,5 +29,5 @@ datasets:
 file_types:
   hdf4_caliop:
     file_patterns:
-        - 'CAL_LID_L2_0{resolution:1s}kmCLay_ValStage1-V3-30.{start_time:%y-%m-%dT%H%M}.hdf'
-    file_reader: !!python/name:satpy.readers.hdf4_caliopv3.HDF4BandReader''
+            - 'CAL_LID_L2_0{resolution:1s}kmCLay-ValStage1-V3-30.{start_time:%Y-%m-%dT%H-%M-%S}ZN.hdf'
+    file_reader: !!python/name:satpy.readers.hdf4_caliopv3.HDF4BandReader ''
