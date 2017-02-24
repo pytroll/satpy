@@ -6,7 +6,9 @@ CALIOP v3 HDF4 reader
 
 import logging
 import os.path
+import re
 
+from datetime import datetime
 from pyhdf.SD import SD, SDC
 
 from satpy.dataset import Dataset
@@ -26,10 +28,30 @@ class HDF4BandReader(BaseFileHandler):
         self._start_time = None
         self._end_time = None
 
-        self._start_time = filename_info['start_time']
-
         self.filename = filename
         self.get_filehandle()
+
+        self._start_time = filename_info['start_time']
+
+        logger.debug('Retrieving end time from metadata array')
+        self.get_end_time()
+
+    def get_end_time(self):
+        """ Get observation end time from file metadata
+        """
+        mda_dict = self.filehandle.attributes()
+        core_mda = mda_dict['coremetadata']
+        end_time_str = self.parse_metadata_string(core_mda)
+        self._end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%SZ")
+
+    @staticmethod
+    def parse_metadata_string(metadata_string):
+        """Grab end time with regular expression
+        """
+        regex = r"STOP_DATE.+?VALUE\s*=\s*\"(.+?)\""
+        match = re.search(regex, metadata_string, re.DOTALL)
+        end_time_str = match.group(1)
+        return end_time_str
 
     def get_filehandle(self):
         if os.path.exists(self.filename):
@@ -77,4 +99,4 @@ class HDF4BandReader(BaseFileHandler):
 
     @property
     def end_time(self):
-        return self._start_time
+        return self._end_time
