@@ -174,26 +174,62 @@ class NCSLSTRAngles(BaseFileHandler):
                                      variable.attrs['_FillValue'], copy=False) *
                   variable.attrs.get('scale_factor', 1) +
                   variable.attrs.get('add_offset', 0))
+        values = np.ma.masked_invalid(values, copy=False)
         units = variable.attrs['units']
 
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
         if c_step != 1 or l_step != 1:
-            from geotiepoints.interpolator import Interpolator
-            tie_lines = np.arange(
-                0, (values.shape[0] - 1) * l_step + 1, l_step)
-            tie_cols = np.arange(0, (values.shape[1] - 1) * c_step + 1, c_step)
-            lines = np.arange((values.shape[0] - 1) * l_step + 1)
-            cols = np.arange((values.shape[1] - 1) * c_step + 1)
-            along_track_order = 1
-            cross_track_order = 3
-            satint = Interpolator([values],
-                                  (tie_lines, tie_cols),
-                                  (lines, cols),
-                                  along_track_order,
-                                  cross_track_order)
-            (values, ) = satint.interpolate()
+            logger.debug('Interpolating %s.', key.name)
+            cart_file = os.path.join(
+                os.path.dirname(self.filename), 'cartesian_in.nc')
+            self.cart = h5netcdf.File(cart_file, 'r')
+            cartx_file = os.path.join(
+                os.path.dirname(self.filename), 'cartesian_tx.nc')
+            self.cartx = h5netcdf.File(cartx_file, 'r')
+
+            # TODO: do it in cartesian coordinates ! pbs at date line and
+            # possible
+            tie_x_var = self.cartx['x_tx']
+            tie_x = (np.ma.masked_equal(tie_x_var[0, :],
+                                        tie_x_var.attrs['_FillValue'],
+                                        copy=False) *
+                     tie_x_var.attrs.get('scale_factor', 1) +
+                     tie_x_var.attrs.get('add_offset', 0))
+
+            tie_y_var = self.cartx['y_tx']
+            tie_y = (np.ma.masked_equal(tie_y_var[:, 0],
+                                        tie_y_var.attrs['_FillValue'],
+                                        copy=False) *
+                     tie_y_var.attrs.get('scale_factor', 1) +
+                     tie_y_var.attrs.get('add_offset', 0))
+
+            full_x_var = self.cart['x_in']
+            full_x = (np.ma.masked_equal(full_x_var[:],
+                                         full_x_var.attrs['_FillValue'],
+                                         copy=False) *
+                      full_x_var.attrs.get('scale_factor', 1) +
+                      full_x_var.attrs.get('add_offset', 0))
+
+            full_y_var = self.cart['y_in']
+            full_y = (np.ma.masked_equal(full_y_var[:],
+                                         full_y_var.attrs['_FillValue'],
+                                         copy=False) *
+                      full_y_var.attrs.get('scale_factor', 1) +
+                      full_y_var.attrs.get('add_offset', 0))
+
+            from scipy.interpolate import RectBivariateSpline
+            spl = RectBivariateSpline(
+                tie_y, tie_x[::-1], values[:, ::-1].filled(0))
+
+            interpolated = spl.ev(full_y.compressed(),
+                                  full_x.compressed())
+            interpolated = np.ma.masked_invalid(interpolated, copy=False)
+            values = np.ma.empty(full_y.shape,
+                                 dtype=values.dtype)
+            values[np.logical_not(np.ma.getmaskarray(full_y))] = interpolated
+            values.mask = full_y.mask
 
         proj = Dataset(values,
                        copy=False,
