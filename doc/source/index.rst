@@ -21,7 +21,7 @@ mipp_, and NOAA-15, -16, -17, -18, -19, Metop-A and -B through the use of AAPP.
 
 Reprojection of data is also available through the use of pyresample_.
 
-.. _project: http://github.com/mraspaud/satpy
+.. _project: http://github.com/pytroll/satpy
 .. _mipp: http://github.com/loerum/mipp
 .. _pyresample: http://pyresample.googlecode.com
 
