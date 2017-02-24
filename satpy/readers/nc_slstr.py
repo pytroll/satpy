@@ -87,6 +87,9 @@ class NCSLSTR1B(BaseFileHandler):
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
         self.cal = h5netcdf.File(cal_file, 'r')
+        indices_file = os.path.join(os.path.dirname(
+            filename), 'indices_an.nc')
+        self.indices = h5netcdf.File(indices_file, 'r')
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
@@ -108,13 +111,15 @@ class NCSLSTR1B(BaseFileHandler):
                      variable.attrs.get('add_offset', 0))
         units = variable.attrs['units']
         if key.calibration == 'reflectance':
-            solar_flux = self.cal['solar_flux'][:]
-            d_index = np.ma.masked_equal(self.cal['detector_index'][:],
-                                         self.cal['detector_index'].attrs[
+            # TODO take into account sun-earth distance
+            solar_flux = self.cal[key.name + '_solar_irradiances'][:]
+            d_index = np.ma.masked_equal(self.indices['detector_an'][:],
+                                         self.indices['detector_an'].attrs[
                                              '_FillValue'],
                                          copy=False)
-            idx = int(key.name[2:]) - 1
-            radiances /= solar_flux[idx, d_index]
+            idx = 0  # Nadir view
+            radiances[np.logical_not(np.ma.getmaskarray(
+                d_index))] /= solar_flux[d_index.compressed(), idx]
             radiances *= np.pi * 100
             units = '%'
 
@@ -124,6 +129,7 @@ class NCSLSTR1B(BaseFileHandler):
                        units=units,
                        platform_name=self.platform_name,
                        sensor=self.sensor)
+        proj.info.update(key.to_dict())
         return proj
 
     @property

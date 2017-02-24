@@ -61,12 +61,12 @@ datasets:
     wavelength: [0.545,0.555,0.565]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    #   reflectance:
-    #     standard_name: toa_bidirectional_reflectance
-    #     units: "%"
     coordinates: [longitude, latitude]
     file_type: esa_l1b
 
@@ -76,12 +76,12 @@ datasets:
     wavelength: [0.649, 0.659, 0.669]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    #   reflectance:
-    #     standard_name: toa_bidirectional_reflectance
-    #     units: "%"
     coordinates: [longitude, latitude]
     file_type: esa_l1b
 
@@ -91,6 +91,9 @@ datasets:
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -103,6 +106,9 @@ datasets:
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -115,6 +121,9 @@ datasets:
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -127,6 +136,9 @@ datasets:
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
     calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
