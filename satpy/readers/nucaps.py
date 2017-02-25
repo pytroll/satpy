@@ -226,7 +226,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         })
         ds_info.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
-            ds_info['standard_name'] = self[var_path + '/attr/standard_name']
+            sname_path = var_path + '/attr/standard_name'
+            ds_info['standard_name'] = self.get(sname_path)
         ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
 
         cls = ds_info.pop("container", Dataset)

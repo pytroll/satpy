@@ -34,7 +34,6 @@ datasets:
   H2O_MR:
     name: H2O_MR
     resolution: 0
-    standard_name:
     coordinates: [longitude, latitude]
     file_type: nucaps
     pressure_based: True

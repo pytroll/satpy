@@ -79,3 +79,9 @@ class HDF5FileHandler(BaseFileHandler):
 
     def __contains__(self, item):
         return item in self.file_content
+
+    def get(self, item, default=None):
+        if item in self:
+            return self[item]
+        else:
+            return default
