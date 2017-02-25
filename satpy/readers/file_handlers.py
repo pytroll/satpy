@@ -98,10 +98,10 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
         return combined_info
 
-    @abstractproperty
+    @property
     def start_time(self):
-        raise NotImplementedError
+        return self.filename_info['start_time']
 
-    @abstractproperty
+    @property
     def end_time(self):
-        raise NotImplementedError
+        return self.filename_info.get('end_time', self.start_time)
