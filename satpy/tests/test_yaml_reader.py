@@ -99,6 +99,28 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.config = res_dict
         self.reader = yr.FileYAMLReader([__file__])
 
+    def test_all_dataset_ids(self):
+        """Check that all datasets ids are returned."""
+        from satpy.dataset import DatasetID
+        self.assertListEqual(self.reader.all_dataset_ids,
+                             [DatasetID(name='ch02',
+                                        wavelength=(0.7, 0.75, 0.8),
+                                        resolution=None,
+                                        polarization=None,
+                                        calibration='counts',
+                                        modifiers=()),
+                              DatasetID(name='ch01',
+                                        wavelength=(0.5, 0.6, 0.7),
+                                        resolution=None,
+                                        polarization=None,
+                                        calibration='reflectance',
+                                        modifiers=())])
+
+    def test_all_dataset_names(self):
+        """Get all dataset names."""
+        self.assertSetEqual(self.reader.all_dataset_names,
+                            set(['ch01', 'ch02']))
+
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
         filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
