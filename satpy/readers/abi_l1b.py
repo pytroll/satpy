@@ -69,12 +69,11 @@ class NC_ABI_L1B(BaseFileHandler):
                                         variable.attrs['_FillValue'], copy=False) *
                      variable.attrs['scale_factor'] +
                      variable.attrs['add_offset'])
-        units = variable.attrs['units']
-
-        self.calibrate(radiances, key)
+        # units = variable.attrs['units']
+        units = self.calibrate(radiances, key)
 
         # convert to satpy standard units
-        if units == 'W m-2 sr-1 um-1':
+        if units == '1':
             radiances[:] *= 100.
             units = '%'
 
@@ -161,6 +160,7 @@ class NC_ABI_L1B(BaseFileHandler):
         rf = data * np.pi * d * d / esun
 
         data.data[:] = rf
+        return '1'
 
     def _ir_calibrate(self, data, key):
 
@@ -172,15 +172,16 @@ class NC_ABI_L1B(BaseFileHandler):
         bt = (fk2 / (np.log((fk1 / data) + 1)) - bc1) / bc2
 
         data.data[:] = bt
+        return 'K'
 
     def calibrate(self, data, key):
         logger.debug("CALIBRATE")
 
         ch = self.nc["band_id"][...]
         if ch < 7:
-            self._vis_calibrate(data, key)
+            return self._vis_calibrate(data, key)
         else:
-            self._ir_calibrate(data, key)
+            return self._ir_calibrate(data, key)
 
     @property
     def start_time(self):
