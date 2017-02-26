@@ -73,6 +73,11 @@ class NC_ABI_L1B(BaseFileHandler):
 
         self.calibrate(radiances, key)
 
+        # convert to satpy standard units
+        if units == 'W m-2 sr-1 um-1':
+            radiances[:] *= 100.
+            units = '%'
+
         out.data[:] = radiances
         out.mask[:] = np.ma.getmask(radiances)
         out.info.update({'units': units,
