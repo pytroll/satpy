@@ -23,6 +23,7 @@
 
 import os
 import unittest
+from datetime import datetime
 from tempfile import mkdtemp
 
 from mock import patch
@@ -97,7 +98,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         rec_up.return_value = res_dict
         self.config = res_dict
-        self.reader = yr.FileYAMLReader([__file__])
+        self.reader = yr.FileYAMLReader([__file__],
+                                        start_time=datetime(2000, 1, 1),
+                                        end_time=datetime(2000, 1, 2))
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
@@ -120,6 +123,29 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Get all dataset names."""
         self.assertSetEqual(self.reader.all_dataset_names,
                             set(['ch01', 'ch02']))
+
+    def test_filter_fh_by_time(self):
+        """Check filtering filehandlers by time."""
+        class FakeFH(object):
+
+            def __init__(self, start_time, end_time):
+                self.start_time = start_time
+                self.end_time = end_time
+
+        fh0 = FakeFH(datetime(1999, 12, 30), datetime(1999, 12, 31))
+        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
+                     datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
+                     datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 3, 12, 30))
+
+        res = self.reader.filter_fh_by_time([fh0, fh1, fh2, fh3, fh4, fh5])
+        self.assertSetEqual(set(res), set([fh1, fh2, fh3, fh5]))
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
