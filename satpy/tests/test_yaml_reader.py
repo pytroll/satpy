@@ -29,6 +29,7 @@ from tempfile import mkdtemp
 from mock import patch
 
 import satpy.readers.yaml_reader as yr
+from satpy.dataset import DATASET_KEYS, DatasetID
 
 
 class TestUtils(unittest.TestCase):
@@ -91,10 +92,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                               'file_patterns': patterns}},
                     'datasets': {'ch1': {'name': 'ch01',
                                          'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance'},
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1'},
                                  'ch2': {'name': 'ch02',
                                          'wavelength': [0.7, 0.75, 0.8],
-                                         'calibration': 'counts'}}}
+                                         'calibration': 'counts',
+                                         'file_type': 'ftype1'}}}
 
         rec_up.return_value = res_dict
         self.config = res_dict
@@ -104,7 +107,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
-        from satpy.dataset import DatasetID
         self.assertSetEqual(set(self.reader.all_dataset_ids),
                             {DatasetID(name='ch02',
                                        wavelength=(0.7, 0.75, 0.8),
@@ -123,6 +125,29 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Get all dataset names."""
         self.assertSetEqual(self.reader.all_dataset_names,
                             set(['ch01', 'ch02']))
+
+    def test_available_dataset_ids(self):
+        """Get ids of the available datasets."""
+        self.reader.file_handlers = ['ftype1']
+        self.assertSetEqual(set(self.reader.available_dataset_ids),
+                            {DatasetID(name='ch02',
+                                       wavelength=(0.7, 0.75, 0.8),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='counts',
+                                       modifiers=()),
+                             DatasetID(name='ch01',
+                                       wavelength=(0.5, 0.6, 0.7),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='reflectance',
+                                       modifiers=())})
+
+    def test_available_dataset_names(self):
+        """Get ids of the available datasets."""
+        self.reader.file_handlers = ['ftype1']
+        self.assertSetEqual(set(self.reader.available_dataset_names),
+                            set(["ch01", "ch02"]))
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
@@ -195,6 +220,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for key, val in self.config['datasets']['ch1'].items():
             if isinstance(val, list):
                 val = tuple(val)
+            if key not in DATASET_KEYS:
+                continue
             self.assertEqual(getattr(res, key), val)
 
         self.assertRaises(KeyError, self.reader.get_ds_ids_by_name, 'bla')
@@ -207,6 +234,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for key, val in self.config['datasets']['ch1'].items():
             if isinstance(val, list):
                 val = tuple(val)
+            if key not in DATASET_KEYS:
+                continue
             self.assertEqual(getattr(res, key), val)
 
         res = self.reader.get_ds_ids_by_wavelength(.7)
