@@ -137,16 +137,15 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @abstractproperty
     def start_time(self):
-        raise NotImplementedError()
+        """Start time of the reader."""
 
     @abstractproperty
     def end_time(self):
-        raise NotImplementedError()
+        """End time of the reader."""
 
     @abstractmethod
     def load(self, dataset_keys):
-        del dataset_keys
-        raise NotImplementedError()
+        """Load *dataset_keys*."""
 
     def supports_sensor(self, sensor):
         """Check if *sensor* is supported.
