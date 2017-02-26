@@ -147,6 +147,13 @@ class TestFileFileYAMLReader(unittest.TestCase):
         res = self.reader.filter_fh_by_time([fh0, fh1, fh2, fh3, fh4, fh5])
         self.assertSetEqual(set(res), set([fh1, fh2, fh3, fh5]))
 
+    def test_filter_fh_by_area(self):
+        """Check filtering filehandlers by area."""
+        with patch.object(self.reader, 'check_file_covers_area',
+                          side_effect=[True, False, True]):
+            res = self.reader.filter_fh_by_area([1, 2, 3])
+            self.assertSetEqual(set(res), set([1, 3]))
+
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
         filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
