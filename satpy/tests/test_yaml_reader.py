@@ -102,19 +102,19 @@ class TestFileFileYAMLReader(unittest.TestCase):
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
         from satpy.dataset import DatasetID
-        self.assertListEqual(list(self.reader.all_dataset_ids),
-                             [DatasetID(name='ch02',
-                                        wavelength=(0.7, 0.75, 0.8),
-                                        resolution=None,
-                                        polarization=None,
-                                        calibration='counts',
-                                        modifiers=()),
-                              DatasetID(name='ch01',
-                                        wavelength=(0.5, 0.6, 0.7),
-                                        resolution=None,
-                                        polarization=None,
-                                        calibration='reflectance',
-                                        modifiers=())])
+        self.assertSetEqual(set(self.reader.all_dataset_ids),
+                            {DatasetID(name='ch02',
+                                       wavelength=(0.7, 0.75, 0.8),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='counts',
+                                       modifiers=()),
+                             DatasetID(name='ch01',
+                                       wavelength=(0.5, 0.6, 0.7),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='reflectance',
+                                       modifiers=())})
 
     def test_all_dataset_names(self):
         """Get all dataset names."""
