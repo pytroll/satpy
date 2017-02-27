@@ -339,7 +339,7 @@ class NUCAPSReader(FileYAMLReader):
                     for idx, ds_level in enumerate(plevels_ds):
                         levels_mask[idx] = np.isclose(pressure_levels, ds_level).any()
 
-                datasets_loaded[ds_id] = ds_obj[:, levels_mask]
+                datasets_loaded[ds_id] = ds_obj[..., levels_mask]
                 datasets_loaded[ds_id].info["pressure_levels"] = plevels_ds[levels_mask]
 
         if self.mask_surface:
