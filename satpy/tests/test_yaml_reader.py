@@ -23,11 +23,21 @@
 
 import os
 import unittest
+from datetime import datetime
 from tempfile import mkdtemp
 
-from mock import patch
+from mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
+from satpy.dataset import DATASET_KEYS, DatasetID
+
+
+class FakeFH(object):
+
+    def __init__(self, start_time, end_time):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.get_bounding_box = MagicMock()
 
 
 class TestUtils(unittest.TestCase):
@@ -90,14 +100,151 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                               'file_patterns': patterns}},
                     'datasets': {'ch1': {'name': 'ch01',
                                          'wavelength': [0.5, 0.6, 0.7],
-                                         'calibration': 'reflectance'},
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1'},
                                  'ch2': {'name': 'ch02',
                                          'wavelength': [0.7, 0.75, 0.8],
-                                         'calibration': 'counts'}}}
+                                         'calibration': 'counts',
+                                         'file_type': 'ftype1'}}}
 
         rec_up.return_value = res_dict
         self.config = res_dict
-        self.reader = yr.FileYAMLReader([__file__])
+        self.reader = yr.FileYAMLReader([__file__],
+                                        start_time=datetime(2000, 1, 1),
+                                        end_time=datetime(2000, 1, 2))
+
+    def test_all_dataset_ids(self):
+        """Check that all datasets ids are returned."""
+        self.assertSetEqual(set(self.reader.all_dataset_ids),
+                            {DatasetID(name='ch02',
+                                       wavelength=(0.7, 0.75, 0.8),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='counts',
+                                       modifiers=()),
+                             DatasetID(name='ch01',
+                                       wavelength=(0.5, 0.6, 0.7),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='reflectance',
+                                       modifiers=())})
+
+    def test_all_dataset_names(self):
+        """Get all dataset names."""
+        self.assertSetEqual(self.reader.all_dataset_names,
+                            set(['ch01', 'ch02']))
+
+    def test_available_dataset_ids(self):
+        """Get ids of the available datasets."""
+        self.reader.file_handlers = ['ftype1']
+        self.assertSetEqual(set(self.reader.available_dataset_ids),
+                            {DatasetID(name='ch02',
+                                       wavelength=(0.7, 0.75, 0.8),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='counts',
+                                       modifiers=()),
+                             DatasetID(name='ch01',
+                                       wavelength=(0.5, 0.6, 0.7),
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration='reflectance',
+                                       modifiers=())})
+
+    def test_available_dataset_names(self):
+        """Get ids of the available datasets."""
+        self.reader.file_handlers = ['ftype1']
+        self.assertSetEqual(set(self.reader.available_dataset_names),
+                            set(["ch01", "ch02"]))
+
+    def test_filter_fh_by_time(self):
+        """Check filtering filehandlers by time."""
+        fh0 = FakeFH(datetime(1999, 12, 30), datetime(1999, 12, 31))
+        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
+                     datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
+                     datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 3, 12, 30))
+
+        res = self.reader.filter_fh_by_time([fh0, fh1, fh2, fh3, fh4, fh5])
+        self.assertSetEqual(set(res), set([fh1, fh2, fh3, fh5]))
+
+    def test_filter_fh_by_area(self):
+        """Check filtering filehandlers by area."""
+        with patch.object(self.reader, 'check_file_covers_area',
+                          side_effect=[True, False, True]):
+            res = self.reader.filter_fh_by_area([1, 2, 3])
+            self.assertSetEqual(set(res), set([1, 3]))
+
+    @patch('satpy.resample.get_area_def')
+    def test_file_covers_area(self, gad):
+        """Test that area coverage is checked properly."""
+        file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
+                              datetime(2000, 1, 3, 12, 30))
+
+        trollsched = MagicMock()
+        adb = trollsched.boundary.AreaDefBoundary
+        bnd = trollsched.boundary.Boundary
+
+        modules = {'trollsched': trollsched,
+                   'trollsched.boundary': trollsched.boundary}
+
+        with patch.dict('sys.modules', modules):
+
+            self.reader._area = True
+            bnd.return_value.contour_poly.intersection.return_value = True
+            adb.return_value.contour_poly.intersection.return_value = True
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
+
+            bnd.return_value.contour_poly.intersection.return_value = False
+            adb.return_value.contour_poly.intersection.return_value = False
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertFalse(res)
+
+            self.reader._area = False
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
+
+            file_handler.get_bounding_box.side_effect = NotImplementedError()
+            self.reader._area = True
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
+
+    def test_start_end_time(self):
+        """Check start and end time behaviours."""
+        self.reader.file_handlers = {}
+
+        def get_start_time():
+            return self.reader.start_time
+        self.assertRaises(RuntimeError, get_start_time)
+
+        def get_end_time():
+            return self.reader.end_time
+        self.assertRaises(RuntimeError, get_end_time)
+
+        fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
+                     datetime(1999, 12, 31, 0, 0))
+        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
+                     datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
+                     datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 3, 12, 30))
+
+        self.reader.file_handlers = {'0': [fh0, fh1, fh2, fh3, fh4, fh5]}
+
+        self.assertEqual(self.reader.start_time, datetime(1999, 12, 30, 0, 0))
+        self.assertEqual(self.reader.end_time, datetime(2000, 1, 3, 12, 30))
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
@@ -140,6 +287,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for key, val in self.config['datasets']['ch1'].items():
             if isinstance(val, list):
                 val = tuple(val)
+            if key not in DATASET_KEYS:
+                continue
             self.assertEqual(getattr(res, key), val)
 
         self.assertRaises(KeyError, self.reader.get_ds_ids_by_name, 'bla')
@@ -152,6 +301,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for key, val in self.config['datasets']['ch1'].items():
             if isinstance(val, list):
                 val = tuple(val)
+            if key not in DATASET_KEYS:
+                continue
             self.assertEqual(getattr(res, key), val)
 
         res = self.reader.get_ds_ids_by_wavelength(.7)
