@@ -181,32 +181,40 @@ class TestFileFileYAMLReader(unittest.TestCase):
             res = self.reader.filter_fh_by_area([1, 2, 3])
             self.assertSetEqual(set(res), set([1, 3]))
 
-    @patch('trollsched.boundary.AreaDefBoundary')
-    @patch('trollsched.boundary.Boundary')
     @patch('satpy.resample.get_area_def')
-    def test_file_covers_area(self, adb, bnd, gad):
+    def test_file_covers_area(self, gad):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
                               datetime(2000, 1, 3, 12, 30))
-        self.reader._area = True
-        bnd.return_value.contour_poly.intersection.return_value = True
-        adb.return_value.contour_poly.intersection.return_value = True
-        res = self.reader.check_file_covers_area(file_handler)
-        self.assertTrue(res)
 
-        bnd.return_value.contour_poly.intersection.return_value = False
-        adb.return_value.contour_poly.intersection.return_value = False
-        res = self.reader.check_file_covers_area(file_handler)
-        self.assertFalse(res)
+        trollsched = MagicMock()
+        adb = trollsched.boundary.AreaDefBoundary
+        bnd = trollsched.boundary.Boundary
 
-        self.reader._area = False
-        res = self.reader.check_file_covers_area(file_handler)
-        self.assertTrue(res)
+        modules = {'trollsched': trollsched,
+                   'trollsched.boundary': trollsched.boundary}
 
-        file_handler.get_bounding_box.side_effect = NotImplementedError('Boom')
-        self.reader._area = True
-        res = self.reader.check_file_covers_area(file_handler)
-        self.assertTrue(res)
+        with patch.dict('sys.modules', modules):
+
+            self.reader._area = True
+            bnd.return_value.contour_poly.intersection.return_value = True
+            adb.return_value.contour_poly.intersection.return_value = True
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
+
+            bnd.return_value.contour_poly.intersection.return_value = False
+            adb.return_value.contour_poly.intersection.return_value = False
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertFalse(res)
+
+            self.reader._area = False
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
+
+            file_handler.get_bounding_box.side_effect = NotImplementedError()
+            self.reader._area = True
+            res = self.reader.check_file_covers_area(file_handler)
+            self.assertTrue(res)
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
