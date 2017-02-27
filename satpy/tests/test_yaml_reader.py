@@ -26,10 +26,18 @@ import unittest
 from datetime import datetime
 from tempfile import mkdtemp
 
-from mock import patch
+from mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DATASET_KEYS, DatasetID
+
+
+class FakeFH(object):
+
+    def __init__(self, start_time, end_time):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.get_bounding_box = MagicMock()
 
 
 class TestUtils(unittest.TestCase):
@@ -151,12 +159,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_filter_fh_by_time(self):
         """Check filtering filehandlers by time."""
-        class FakeFH(object):
-
-            def __init__(self, start_time, end_time):
-                self.start_time = start_time
-                self.end_time = end_time
-
         fh0 = FakeFH(datetime(1999, 12, 30), datetime(1999, 12, 31))
         fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
                      datetime(2000, 1, 1, 12, 30))
@@ -178,6 +180,63 @@ class TestFileFileYAMLReader(unittest.TestCase):
                           side_effect=[True, False, True]):
             res = self.reader.filter_fh_by_area([1, 2, 3])
             self.assertSetEqual(set(res), set([1, 3]))
+
+    @patch('trollsched.boundary.AreaDefBoundary')
+    @patch('trollsched.boundary.Boundary')
+    @patch('satpy.resample.get_area_def')
+    def test_file_covers_area(self, adb, bnd, gad):
+        """Test that area coverage is checked properly."""
+        file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
+                              datetime(2000, 1, 3, 12, 30))
+        self.reader._area = True
+        bnd.return_value.contour_poly.intersection.return_value = True
+        adb.return_value.contour_poly.intersection.return_value = True
+        res = self.reader.check_file_covers_area(file_handler)
+        self.assertTrue(res)
+
+        bnd.return_value.contour_poly.intersection.return_value = False
+        adb.return_value.contour_poly.intersection.return_value = False
+        res = self.reader.check_file_covers_area(file_handler)
+        self.assertFalse(res)
+
+        self.reader._area = False
+        res = self.reader.check_file_covers_area(file_handler)
+        self.assertTrue(res)
+
+        file_handler.get_bounding_box.side_effect = NotImplementedError('Boom')
+        self.reader._area = True
+        res = self.reader.check_file_covers_area(file_handler)
+        self.assertTrue(res)
+
+    def test_start_end_time(self):
+        """Check start and end time behaviours."""
+        self.reader.file_handlers = {}
+
+        def get_start_time():
+            return self.reader.start_time
+        self.assertRaises(RuntimeError, get_start_time)
+
+        def get_end_time():
+            return self.reader.end_time
+        self.assertRaises(RuntimeError, get_end_time)
+
+        fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
+                     datetime(1999, 12, 31, 0, 0))
+        fh1 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh2 = FakeFH(datetime(2000, 1, 1, 10, 0),
+                     datetime(2000, 1, 1, 12, 30))
+        fh3 = FakeFH(datetime(2000, 1, 1, 12, 30),
+                     datetime(2000, 1, 2, 12, 30))
+        fh4 = FakeFH(datetime(2000, 1, 2, 12, 30),
+                     datetime(2000, 1, 3, 12, 30))
+        fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
+                     datetime(2000, 1, 3, 12, 30))
+
+        self.reader.file_handlers = {'0': [fh0, fh1, fh2, fh3, fh4, fh5]}
+
+        self.assertEqual(self.reader.start_time, datetime(1999, 12, 30, 0, 0))
+        self.assertEqual(self.reader.end_time, datetime(2000, 1, 3, 12, 30))
 
     def test_select_from_pathnames(self):
         """Check select_files_from_pathnames."""
