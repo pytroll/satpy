@@ -134,6 +134,10 @@ class Scene(InfoObject):
         """Return the end time of the file."""
         return self.info['end_time']
 
+    @property
+    def missing_datasets(self):
+        return set(self.wishlist) - set(self.datasets.keys())
+
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
         if specified, that can be loaded.
@@ -450,13 +454,15 @@ class Scene(InfoObject):
                                                   polarization=polarization,
                                                   resolution=resolution)
         if unknown:
-            unknown_str = ", ".join([str(x) for x in unknown])
+            unknown_str = ", ".join(map(str, unknown))
             raise KeyError("Unknown datasets: {}".format(unknown_str))
 
         self.read(**kwargs)
         keepables = None
         if compute:
             keepables = self.compute()
+        missing_str = ", ".join(map(str, self.missing_datasets))
+        LOG.warning("The following datasets were not created: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -489,8 +495,10 @@ class Scene(InfoObject):
         # resolutions, etc.)
         keepables = None
         if compute:
-            nodes = [self.dep_tree[i] for i in new_scn.wishlist]
+            nodes = [self.dep_tree[i] for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
+        missing_str = ", ".join(map(str, new_scn.missing_datasets))
+        LOG.warning("The following datasets were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 
