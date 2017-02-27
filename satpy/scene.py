@@ -231,7 +231,7 @@ class Scene(InfoObject):
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
         for sensor_name in sensor_names:
-            compositors.extend(self.cpl.compositors[sensor_name].keys())
+            compositors.extend(self.cpl.compositors.get(sensor_name, {}).keys())
         return sorted(set(compositors))
 
     def all_composite_names(self):
