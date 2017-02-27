@@ -84,23 +84,26 @@ class NCSLSTR1B(BaseFileHandler):
                                         filetype_info)
         self.nc = h5netcdf.File(filename, 'r')
         self.channel = filename_info['dataset_name']
+        self.view = 'n'  # n for nadir, o for oblique
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
         self.cal = h5netcdf.File(cal_file, 'r')
+        indices_file = os.path.join(os.path.dirname(filename),
+                                    'indices_a{}.nc'.format(self.view))
+        self.indices = h5netcdf.File(indices_file, 'r')
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
         if key.calibration == 'brightness_temperature':
-            variable = self.nc[self.channel + '_BT_in']
+            variable = self.nc[self.channel + '_BT_i' + self.view]
         else:
-            variable = self.nc[self.channel + '_radiance_an']
+            variable = self.nc[self.channel + '_radiance_a' + self.view]
 
         radiances = (np.ma.masked_equal(variable[:],
                                         variable.attrs['_FillValue'], copy=False) *
@@ -108,13 +111,17 @@ class NCSLSTR1B(BaseFileHandler):
                      variable.attrs.get('add_offset', 0))
         units = variable.attrs['units']
         if key.calibration == 'reflectance':
-            solar_flux = self.cal['solar_flux'][:]
-            d_index = np.ma.masked_equal(self.cal['detector_index'][:],
-                                         self.cal['detector_index'].attrs[
+            # TODO take into account sun-earth distance
+            solar_flux = self.cal[key.name + '_solar_irradiances'][:]
+            d_index = np.ma.masked_equal(self.indices['detector_a'
+                                                      + self.view][:],
+                                         self.indices['detector_a'
+                                                      + self.view].attrs[
                                              '_FillValue'],
                                          copy=False)
-            idx = int(key.name[2:]) - 1
-            radiances /= solar_flux[idx, d_index]
+            idx = 0  # Nadir view
+            radiances[np.logical_not(np.ma.getmaskarray(
+                d_index))] /= solar_flux[d_index.compressed(), idx]
             radiances *= np.pi * 100
             units = '%'
 
@@ -124,6 +131,7 @@ class NCSLSTR1B(BaseFileHandler):
                        units=units,
                        platform_name=self.platform_name,
                        sensor=self.sensor)
+        proj.info.update(key.to_dict())
         return proj
 
     @property
@@ -137,10 +145,12 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
-    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_tn',
-                'satellite_zenith_angle': 'satellite_zenith_tn',
-                'solar_azimuth_angle': 'solar_azimuth_tn',
-                'solar_zenith_angle': 'solar_zenith_tn'}
+    view = 'n'
+
+    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_t' + view,
+                'satellite_zenith_angle': 'satellite_zenith_t' + view,
+                'solar_azimuth_angle': 'solar_azimuth_t' + view,
+                'solar_zenith_angle': 'solar_zenith_t' + view}
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
@@ -151,6 +161,12 @@ class NCSLSTRAngles(BaseFileHandler):
         self.sensor = 'slstr'
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+        cart_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
+        self.cart = h5netcdf.File(cart_file, 'r')
+        cartx_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_tx.nc')
+        self.cartx = h5netcdf.File(cartx_file, 'r')
 
     def get_dataset(self, key, info):
         """Load a dataset
@@ -168,26 +184,56 @@ class NCSLSTRAngles(BaseFileHandler):
                                      variable.attrs['_FillValue'], copy=False) *
                   variable.attrs.get('scale_factor', 1) +
                   variable.attrs.get('add_offset', 0))
+        values = np.ma.masked_invalid(values, copy=False)
         units = variable.attrs['units']
 
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
         if c_step != 1 or l_step != 1:
-            from geotiepoints.interpolator import Interpolator
-            tie_lines = np.arange(
-                0, (values.shape[0] - 1) * l_step + 1, l_step)
-            tie_cols = np.arange(0, (values.shape[1] - 1) * c_step + 1, c_step)
-            lines = np.arange((values.shape[0] - 1) * l_step + 1)
-            cols = np.arange((values.shape[1] - 1) * c_step + 1)
-            along_track_order = 1
-            cross_track_order = 3
-            satint = Interpolator([values],
-                                  (tie_lines, tie_cols),
-                                  (lines, cols),
-                                  along_track_order,
-                                  cross_track_order)
-            (values, ) = satint.interpolate()
+            logger.debug('Interpolating %s.', key.name)
+
+            # TODO: do it in cartesian coordinates ! pbs at date line and
+            # possible
+            tie_x_var = self.cartx['x_tx']
+            tie_x = (np.ma.masked_equal(tie_x_var[0, :],
+                                        tie_x_var.attrs['_FillValue'],
+                                        copy=False) *
+                     tie_x_var.attrs.get('scale_factor', 1) +
+                     tie_x_var.attrs.get('add_offset', 0))
+
+            tie_y_var = self.cartx['y_tx']
+            tie_y = (np.ma.masked_equal(tie_y_var[:, 0],
+                                        tie_y_var.attrs['_FillValue'],
+                                        copy=False) *
+                     tie_y_var.attrs.get('scale_factor', 1) +
+                     tie_y_var.attrs.get('add_offset', 0))
+
+            full_x_var = self.cart['x_i' + self.view]
+            full_x = (np.ma.masked_equal(full_x_var[:],
+                                         full_x_var.attrs['_FillValue'],
+                                         copy=False) *
+                      full_x_var.attrs.get('scale_factor', 1) +
+                      full_x_var.attrs.get('add_offset', 0))
+
+            full_y_var = self.cart['y_i' + self.view]
+            full_y = (np.ma.masked_equal(full_y_var[:],
+                                         full_y_var.attrs['_FillValue'],
+                                         copy=False) *
+                      full_y_var.attrs.get('scale_factor', 1) +
+                      full_y_var.attrs.get('add_offset', 0))
+
+            from scipy.interpolate import RectBivariateSpline
+            spl = RectBivariateSpline(
+                tie_y, tie_x[::-1], values[:, ::-1].filled(0))
+
+            interpolated = spl.ev(full_y.compressed(),
+                                  full_x.compressed())
+            interpolated = np.ma.masked_invalid(interpolated, copy=False)
+            values = np.ma.empty(full_y.shape,
+                                 dtype=values.dtype)
+            values[np.logical_not(np.ma.getmaskarray(full_y))] = interpolated
+            values.mask = full_y.mask
 
         proj = Dataset(values,
                        copy=False,

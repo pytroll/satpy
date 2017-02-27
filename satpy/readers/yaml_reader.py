@@ -35,11 +35,11 @@ from fnmatch import fnmatch
 import numpy as np
 import six
 import yaml
-from pyresample.geometry import AreaDefinition
 
+from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
-from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
+from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
@@ -108,6 +108,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                              for pattern in file_type['file_patterns']]
             self.file_patterns.extend(file_patterns)
 
+        if not isinstance(self.info['sensors'], (list, tuple)):
+            self.info['sensors'] = [self.info['sensors']]
         self.sensor_names = self.info['sensors']
         self.datasets = self.config['datasets']
         self.info['filenames'] = []
@@ -135,15 +137,15 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @abstractproperty
     def start_time(self):
-        raise NotImplementedError()
+        """Start time of the reader."""
 
     @abstractproperty
     def end_time(self):
-        raise NotImplementedError()
+        """End time of the reader."""
 
     @abstractmethod
-    def load(self):
-        raise NotImplementedError()
+    def load(self, dataset_keys):
+        """Load *dataset_keys*."""
 
     def supports_sensor(self, sensor):
         """Check if *sensor* is supported.
@@ -290,8 +292,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                 datasets = [ds_id for ds_id in datasets
                             if getattr(ds_id, attr) in dfilter[attr]]
 
-        datasets = self._ds_ids_with_best_calibration(datasets,
-                                                      dfilter.get('calibration'))
+        calibration = dfilter.get('calibration')
+        datasets = self._ds_ids_with_best_calibration(datasets, calibration)
 
         if dfilter.get('modifiers') is not None:
             datasets = [ds_id for ds_id in datasets
@@ -323,10 +325,10 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
         ids = []
-        for dskey, dataset in self.datasets.items():
+        for dataset in self.datasets.values():
             # Build each permutation/product of the dataset
             id_kwargs = []
-            for key in DatasetID._fields:
+            for key in DATASET_KEYS:
                 val = dataset.get(key)
                 if key in ["wavelength", "modifiers"] and isinstance(val,
                                                                      list):
@@ -354,7 +356,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in dsid._fields:
+                for key in DATASET_KEYS:
                     if isinstance(ds_info.get(key), dict):
                         ds_info.update(ds_info[key][getattr(dsid, key)])
                     # this is important for wavelength which was converted
@@ -366,6 +368,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
+    """Implementation of the YAML reader."""
 
     def __init__(self,
                  config_files,
@@ -422,17 +425,17 @@ class FileYAMLReader(AbstractYAMLReader):
         return True
 
     def find_required_filehandlers(self, requirements, filename_info):
-        # case 3 : requirements are available -> find the right
-        # filename/filehandler to pass the current filehandler.
-        # find requirement filehandlers to pass to the current
-        # filehandler constructor
+        """Find the necessary fhs for the current filehandler.
+
+        We assume here requirements are available.
+        """
         req_fh = []
         if requirements:
             for requirement in requirements:
-                for fh in self.file_handlers[requirement]:
+                for fhd in self.file_handlers[requirement]:
                     if (all(item in filename_info.items()
-                            for item in fh.filename_info.items())):
-                        req_fh.append(fh)
+                            for item in fhd.filename_info.items())):
+                        req_fh.append(fhd)
                         break
                 else:
                     raise RuntimeError('No matching file in ' + requirement)
@@ -459,7 +462,8 @@ class FileYAMLReader(AbstractYAMLReader):
             processed_types.append(filetype)
             yield filetype, filetype_info
 
-    def filename_items_for_filetype(self, filenames, filetype_info):
+    @staticmethod
+    def filename_items_for_filetype(filenames, filetype_info):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
@@ -505,8 +509,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                                          filetype_info)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fh
-                for fh in self.filter_fh_by_area(self.filter_fh_by_time(
+        return [fhd
+                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
                     filehandler_iter))]
 
     def create_filehandlers(self, filenames):
@@ -520,11 +524,11 @@ class FileYAMLReader(AbstractYAMLReader):
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
 
-            filename_set -= set([fh.filename for fh in filehandlers])
+            filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
-                    key=lambda fh: (fh.start_time, fh.filename))
+                    key=lambda fhd: (fhd.start_time, fhd.filename))
 
     def _load_dataset_data(self,
                            file_handlers,
@@ -534,8 +538,8 @@ class FileYAMLReader(AbstractYAMLReader):
         ds_info = self.ids[dsid]
         try:
             # Can we allow the file handlers to do inplace data writes?
-            all_shapes = [list(fh.get_shape(dsid, ds_info))
-                          for fh in file_handlers]
+            all_shapes = [list(fhd.get_shape(dsid, ds_info))
+                          for fhd in file_handlers]
             # rows accumlate, columns stay the same
             overall_shape = [
                 sum([x[0] for x in all_shapes]),
@@ -567,7 +571,6 @@ class FileYAMLReader(AbstractYAMLReader):
                     projectables.append(projectable)
 
             # Join them all together
-            all_shapes = [x.shape for x in projectables]
             combined_info = file_handlers[0].combine_info(
                 [p.info for p in projectables])
             proj = cls(np.ma.vstack(projectables), **combined_info)
@@ -638,7 +641,8 @@ class FileYAMLReader(AbstractYAMLReader):
         return None
 
     # TODO: move this out of here.
-    def _combine_area_extents(self, area1, area2):
+    @staticmethod
+    def _combine_area_extents(area1, area2):
         """Combine the area extents of areas 1 and 2."""
         if (area1.area_extent[0] == area2.area_extent[0] and
                 area1.area_extent[2] == area2.area_extent[2]):
@@ -711,9 +715,8 @@ class FileYAMLReader(AbstractYAMLReader):
         # Get the file handler to load this dataset (list or single string)
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
-            logger.warning(
-                "Required file type '{}' not found or loaded for '{}'".format(
-                    ds_info['file_type'], dsid.name))
+            logger.warning("Required file type '%s' not found or loaded for "
+                           "'%s'", ds_info['file_type'], dsid.name)
         else:
             return self.file_handlers[filetype]
 
@@ -723,7 +726,13 @@ class FileYAMLReader(AbstractYAMLReader):
                 coords[0].info.get('standard_name') == 'longitude' and
                 coords[1].info.get('standard_name') == 'latitude'):
             from pyresample.geometry import SwathDefinition
-            return SwathDefinition(*coords)
+            sdef = SwathDefinition(*coords)
+            sensor_str = sdef.name = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, coords[0].shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             coords[0].info['name'],
+                                             coords[1].info['name'])
+            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
@@ -774,8 +783,7 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
         except (KeyError, ValueError) as err:
-            logger.error(
-                "Could not load dataset '{}': {}".format(dsid, str(err)))
+            logger.error("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
         if area is not None:

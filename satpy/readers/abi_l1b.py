@@ -46,7 +46,6 @@ class NC_ABI_L1B(BaseFileHandler):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
         self.nc = h5netcdf.File(filename, 'r')
-        self.channel = filename_info['channel_name']
 
 #        cal_file = os.path.join(os.path.dirname(
 #            filename), 'instrument_data.nc')
@@ -62,9 +61,6 @@ class NC_ABI_L1B(BaseFileHandler):
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
         """Load a dataset."""
-        if key.name != self.channel:
-            raise KeyError("Cannot file %s in %s.",
-                           str(key.name), str(self.filename))
         logger.debug('Reading in get_dataset %s.', key.name)
 
         variable = self.nc["Rad"]
@@ -73,9 +69,13 @@ class NC_ABI_L1B(BaseFileHandler):
                                         variable.attrs['_FillValue'], copy=False) *
                      variable.attrs['scale_factor'] +
                      variable.attrs['add_offset'])
-        units = variable.attrs['units']
+        # units = variable.attrs['units']
+        units = self.calibrate(radiances, key)
 
-        self.calibrate(radiances, key)
+        # convert to satpy standard units
+        if units == '1':
+            radiances[:] *= 100.
+            units = '%'
 
         out.data[:] = radiances
         out.mask[:] = np.ma.getmask(radiances)
@@ -112,9 +112,6 @@ class NC_ABI_L1B(BaseFileHandler):
         return(chk_extent)
 
     def get_area_def(self, key):
-        if key.name != self.channel:
-            return
-
         a = self.nc["goes_imager_projection"].attrs['semi_major_axis'][...]
         h = self.nc["goes_imager_projection"].attrs[
             'perspective_point_height'][...]
@@ -122,21 +119,25 @@ class NC_ABI_L1B(BaseFileHandler):
         lon_0 = self.nc["goes_imager_projection"].attrs[
             'longitude_of_projection_origin'][...]
 
-        scale_x = self.nc['x'].attrs["scale_factor"]
-        scale_y = self.nc['y'].attrs["scale_factor"]
-        offset_x = self.nc['x'].attrs["add_offset"]
-        offset_y = self.nc['x'].attrs["add_offset"]
+        scale_x = self.nc['x'].attrs["scale_factor"][0]
+        scale_y = self.nc['y'].attrs["scale_factor"][0]
+        offset_x = self.nc['x'].attrs["add_offset"][0]
+        offset_y = self.nc['y'].attrs["add_offset"][0]
 
         # x and y extents in m
-        x_ext = abs(h * scale_x * (self.nc['x'][0] - self.nc['x'][-1]))[0]
-        y_ext = abs(h * scale_y * (self.nc['y'][0] - self.nc['y'][-1]))[0]
-
-        area_extent = (-x_ext / 2, -y_ext / 2, x_ext / 2, y_ext / 2)
+        h = float(h)
+        x_l = h * (self.nc['x'][0] * scale_x + offset_x)
+        x_r = h * (self.nc['x'][-1] * scale_x + offset_x)
+        y_l = h * (self.nc['y'][-1] * scale_y + offset_y)
+        y_u = h * (self.nc['y'][0] * scale_y + offset_y)
+        x_half = (x_r - x_l) / self.ncols / 2.
+        y_half = (y_u - y_l) / self.nlines / 2.
+        area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
                      'lon_0': float(lon_0),
-                     'h': float(h),
+                     'h': h,
                      'proj': 'geos',
                      'units': 'm'}
 
@@ -149,8 +150,6 @@ class NC_ABI_L1B(BaseFileHandler):
             self.nlines,
             area_extent)
 
-        self.area = area
-
         return area
 
     def _vis_calibrate(self, data, key):
@@ -161,6 +160,7 @@ class NC_ABI_L1B(BaseFileHandler):
         rf = data * np.pi * d * d / esun
 
         data.data[:] = rf
+        return '1'
 
     def _ir_calibrate(self, data, key):
 
@@ -172,15 +172,16 @@ class NC_ABI_L1B(BaseFileHandler):
         bt = (fk2 / (np.log((fk1 / data) + 1)) - bc1) / bc2
 
         data.data[:] = bt
+        return 'K'
 
     def calibrate(self, data, key):
         logger.debug("CALIBRATE")
 
         ch = self.nc["band_id"][...]
         if ch < 7:
-            self._vis_calibrate(data, key)
+            return self._vis_calibrate(data, key)
         else:
-            self._ir_calibrate(data, key)
+            return self._ir_calibrate(data, key)
 
     @property
     def start_time(self):

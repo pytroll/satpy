@@ -134,6 +134,10 @@ class Scene(InfoObject):
         """Return the end time of the file."""
         return self.info['end_time']
 
+    @property
+    def missing_datasets(self):
+        return set(self.wishlist) - set(self.datasets.keys())
+
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
         if specified, that can be loaded.
@@ -183,7 +187,7 @@ class Scene(InfoObject):
                         for reader in readers
                         for dataset_id in reader.all_dataset_ids]
         if composites:
-            all_datasets += self.all_composites()
+            all_datasets += self.all_composite_ids()
         return all_datasets
 
     def all_dataset_names(self, reader_name=None, composites=False):
@@ -212,8 +216,9 @@ class Scene(InfoObject):
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
 
-    def available_composite_names(self):
-        return sorted(set(x.name for x in self.available_composite_ids()))
+    def available_composite_names(self, available_datasets=None):
+        return sorted(set(x.name for x in self.available_composite_ids(
+            available_datasets=available_datasets)))
 
     def all_composite_ids(self, sensor_names=None):
         """Get all composite IDs that are configured.
@@ -252,9 +257,11 @@ class Scene(InfoObject):
         """
         datasets_by_area = {}
         for ds in self:
+            a = ds.info.get('area')
+            a_str = str(a) if a is not None else None
             datasets_by_area.setdefault(
-                str(ds.info["area"]), (ds.info["area"], []))
-            datasets_by_area[str(ds.info["area"])][1].append(ds.id)
+                a_str, (a, []))
+            datasets_by_area[a_str][1].append(ds.id)
 
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
@@ -447,13 +454,15 @@ class Scene(InfoObject):
                                                   polarization=polarization,
                                                   resolution=resolution)
         if unknown:
-            unknown_str = ", ".join([str(x) for x in unknown])
+            unknown_str = ", ".join(map(str, unknown))
             raise KeyError("Unknown datasets: {}".format(unknown_str))
 
         self.read(**kwargs)
         keepables = None
         if compute:
             keepables = self.compute()
+        missing_str = ", ".join(map(str, self.missing_datasets))
+        LOG.warning("The following datasets were not created: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -486,8 +495,10 @@ class Scene(InfoObject):
         # resolutions, etc.)
         keepables = None
         if compute:
-            nodes = [self.dep_tree[i] for i in new_scn.wishlist]
+            nodes = [self.dep_tree[i] for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
+        missing_str = ", ".join(map(str, new_scn.missing_datasets))
+        LOG.warning("The following datasets were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 

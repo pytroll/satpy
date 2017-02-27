@@ -6,9 +6,54 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    abi_l1b:
+    c01:
         file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}C-{scan_mode:2s}{channel_name:3s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c02:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c03:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c04:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c05:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c06:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c07:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c08:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c09:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c10:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c11:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c12:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c13:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c14:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c15:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c16:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:1s}-{scan_mode:2s}C16_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
 datasets:
   C01:
@@ -23,7 +68,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c01
 
   C02:
     name: C02
@@ -37,7 +82,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c02
 
   C03:
     name: C03
@@ -51,7 +96,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c03
 
   C04:
     name: C04
@@ -65,7 +110,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c04
 
   C05:
     name: C05
@@ -79,7 +124,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c05
 
   C06:
     name: C06
@@ -93,7 +138,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c06
 
   C07:
     name: C07
@@ -107,7 +152,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c07
 
   C08:
     name: C08
@@ -121,7 +166,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c08
 
   C09:
     name: C09
@@ -135,7 +180,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c09
 
   C10:
     name: C10
@@ -149,7 +194,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c10
 
   C11:
     name: C11
@@ -163,7 +208,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c11
 
   C12:
     name: C12
@@ -177,7 +222,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c12
 
   C13:
     name: C13
@@ -191,7 +236,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c13
 
   C14:
     name: C14
@@ -205,7 +250,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c14
 
   C15:
     name: C15
@@ -219,7 +264,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c15
 
   C16:
     name: C16
@@ -233,7 +278,7 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-    file_type: abi_l1b
+    file_type: c16
 
   solar_zenith_angle:
     name: solar_zenith_angle
