@@ -84,26 +84,26 @@ class NCSLSTR1B(BaseFileHandler):
                                         filetype_info)
         self.nc = h5netcdf.File(filename, 'r')
         self.channel = filename_info['dataset_name']
+        self.view = 'n'  # n for nadir, o for oblique
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
         self.cal = h5netcdf.File(cal_file, 'r')
-        indices_file = os.path.join(os.path.dirname(
-            filename), 'indices_an.nc')
+        indices_file = os.path.join(os.path.dirname(filename),
+                                    'indices_a{}.nc'.format(self.view))
         self.indices = h5netcdf.File(indices_file, 'r')
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
         if key.calibration == 'brightness_temperature':
-            variable = self.nc[self.channel + '_BT_in']
+            variable = self.nc[self.channel + '_BT_i' + self.view]
         else:
-            variable = self.nc[self.channel + '_radiance_an']
+            variable = self.nc[self.channel + '_radiance_a' + self.view]
 
         radiances = (np.ma.masked_equal(variable[:],
                                         variable.attrs['_FillValue'], copy=False) *
@@ -113,8 +113,10 @@ class NCSLSTR1B(BaseFileHandler):
         if key.calibration == 'reflectance':
             # TODO take into account sun-earth distance
             solar_flux = self.cal[key.name + '_solar_irradiances'][:]
-            d_index = np.ma.masked_equal(self.indices['detector_an'][:],
-                                         self.indices['detector_an'].attrs[
+            d_index = np.ma.masked_equal(self.indices['detector_a'
+                                                      + self.view][:],
+                                         self.indices['detector_a'
+                                                      + self.view].attrs[
                                              '_FillValue'],
                                          copy=False)
             idx = 0  # Nadir view
@@ -143,10 +145,12 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
-    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_tn',
-                'satellite_zenith_angle': 'satellite_zenith_tn',
-                'solar_azimuth_angle': 'solar_azimuth_tn',
-                'solar_zenith_angle': 'solar_zenith_tn'}
+    view = 'n'
+
+    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_t' + view,
+                'satellite_zenith_angle': 'satellite_zenith_t' + view,
+                'solar_azimuth_angle': 'solar_azimuth_t' + view,
+                'solar_zenith_angle': 'solar_zenith_t' + view}
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
@@ -157,6 +161,12 @@ class NCSLSTRAngles(BaseFileHandler):
         self.sensor = 'slstr'
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+        cart_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
+        self.cart = h5netcdf.File(cart_file, 'r')
+        cartx_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_tx.nc')
+        self.cartx = h5netcdf.File(cartx_file, 'r')
 
     def get_dataset(self, key, info):
         """Load a dataset
@@ -182,12 +192,6 @@ class NCSLSTRAngles(BaseFileHandler):
 
         if c_step != 1 or l_step != 1:
             logger.debug('Interpolating %s.', key.name)
-            cart_file = os.path.join(
-                os.path.dirname(self.filename), 'cartesian_in.nc')
-            self.cart = h5netcdf.File(cart_file, 'r')
-            cartx_file = os.path.join(
-                os.path.dirname(self.filename), 'cartesian_tx.nc')
-            self.cartx = h5netcdf.File(cartx_file, 'r')
 
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
@@ -205,14 +209,14 @@ class NCSLSTRAngles(BaseFileHandler):
                      tie_y_var.attrs.get('scale_factor', 1) +
                      tie_y_var.attrs.get('add_offset', 0))
 
-            full_x_var = self.cart['x_in']
+            full_x_var = self.cart['x_i' + self.view]
             full_x = (np.ma.masked_equal(full_x_var[:],
                                          full_x_var.attrs['_FillValue'],
                                          copy=False) *
                       full_x_var.attrs.get('scale_factor', 1) +
                       full_x_var.attrs.get('add_offset', 0))
 
-            full_y_var = self.cart['y_in']
+            full_y_var = self.cart['y_i' + self.view]
             full_y = (np.ma.masked_equal(full_y_var[:],
                                          full_y_var.attrs['_FillValue'],
                                          copy=False) *
