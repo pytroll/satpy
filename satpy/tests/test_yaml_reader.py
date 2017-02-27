@@ -241,7 +241,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
                      datetime(2000, 1, 3, 12, 30))
 
-        self.reader.file_handlers = {'0': [fh0, fh1, fh2, fh3, fh4, fh5]}
+        self.reader.file_handlers = {
+            '0': [fh1, fh2, fh3, fh4, fh5],
+            '1': [fh0, fh1, fh2, fh3, fh4, fh5],
+            '2': [fh2, fh3],
+        }
 
         self.assertEqual(self.reader.start_time, datetime(1999, 12, 30, 0, 0))
         self.assertEqual(self.reader.end_time, datetime(2000, 1, 3, 12, 30))

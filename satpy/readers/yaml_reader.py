@@ -395,13 +395,13 @@ class FileYAMLReader(AbstractYAMLReader):
     def start_time(self):
         if not self.file_handlers:
             raise RuntimeError("Start time unknown until files are selected")
-        return min(x.start_time for x in list(self.file_handlers.values())[0])
+        return min(x[0].start_time for x in self.file_handlers.values())
 
     @property
     def end_time(self):
         if not self.file_handlers:
             raise RuntimeError("End time unknown until files are selected")
-        return max(x.end_time for x in list(self.file_handlers.values())[0])
+        return max(x[-1].end_time for x in self.file_handlers.values())
 
     def check_file_covers_area(self, file_handler):
         """Checks if the file covers the current area.
