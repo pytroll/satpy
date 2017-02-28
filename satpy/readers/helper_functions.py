@@ -85,7 +85,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
     x = np.cos(np.linspace(-np.pi, 0, nb_points / 2)) * (xmax - 0.001)
-    y = np.sin(np.linspace(-np.pi, 0, nb_points / 2)) * (ymax - 0.001)
+    y = -np.sin(np.linspace(-np.pi, 0, nb_points / 2)) * (ymax - 0.001)
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
