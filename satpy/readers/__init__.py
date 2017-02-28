@@ -252,8 +252,10 @@ class ReaderFinder(object):
         self.end_time = end_time
         self.area = area
 
-    def __call__(self, filenames=None, sensor=None, reader=None):
+    def __call__(self, filenames=None, sensor=None, reader=None,
+                 reader_kwargs=None):
         reader_instances = {}
+        reader_kwargs = reader_kwargs or {}
 
         if not filenames and sensor is None and reader is None:
             # we weren't given anything to search through
@@ -292,6 +294,7 @@ class ReaderFinder(object):
                     start_time=self.start_time,
                     end_time=self.end_time,
                     area=self.area,
+                    **reader_kwargs
                 )
             except KeyError as err:
                 LOG.info('Cannot use %s', str(reader_configs))
