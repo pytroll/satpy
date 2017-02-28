@@ -152,8 +152,8 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         Returns True is *sensor* is None.
         """
-        if sensor is not None and not (set(self.info.get("sensors")) &
-                                       set(listify_string(sensor))):
+        if sensor and not (set(self.info.get("sensors")) &
+                           set(listify_string(sensor))):
             return False
         else:
             return True

@@ -54,7 +54,8 @@ class TestScene(unittest.TestCase):
                                           **test_mda_2)
                 cri.assert_called_once_with(filenames='bla',
                                             base_dir='bli',
-                                            reader='blo')
+                                            reader='blo',
+                                            reader_kwargs=None)
                 self.assertDictContainsSubset(test_mda, scene.info)
                 self.assertDictContainsSubset(test_mda_2, scene.info)
 
@@ -73,8 +74,10 @@ class TestScene(unittest.TestCase):
                                                    start_time=None)
                 findermock.return_value.assert_called_once_with(
                     reader=reader_name,
-                    sensor=sensors,
-                    filenames=filenames)
+                    sensor=set(),
+                    filenames=filenames,
+                    reader_kwargs=None,
+                )
 
     def test_init_with_empty_filenames(self):
         from satpy.scene import Scene
@@ -97,7 +100,9 @@ class TestScene(unittest.TestCase):
                 findermock.return_value.assert_called_once_with(
                     reader=reader_name,
                     sensor=sensors,
-                    filenames=filenames)
+                    filenames=filenames,
+                    reader_kwargs=None
+                )
 
     def test_create_reader_instances_with_sensor_and_filenames(self):
         import satpy.scene
@@ -115,13 +120,15 @@ class TestScene(unittest.TestCase):
                 findermock.return_value.assert_called_once_with(
                     reader=reader_name,
                     sensor=sensors,
-                    filenames=filenames)
+                    filenames=filenames,
+                    reader_kwargs=None,
+                )
 
     def test_create_reader_instances_with_reader(self):
         from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
-        sensors = None
+        sensors = set()
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
             with mock.patch('satpy.scene.ReaderFinder') as findermock:
                 scene = Scene(reader=reader, filenames=filenames)
@@ -133,7 +140,9 @@ class TestScene(unittest.TestCase):
                 findermock.return_value.assert_called_once_with(
                     reader=reader,
                     sensor=sensors,
-                    filenames=filenames)
+                    filenames=filenames,
+                    reader_kwargs=None,
+                )
 
     def test_init_alone(self):
         from satpy.scene import Scene
