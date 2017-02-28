@@ -79,7 +79,7 @@ class Scene(InfoObject):
                                   instances.
             metadata: Other metadata to assign to the Scene's ``.info``.
         """
-        InfoObject.__init__(self, sensor=sensor, area=area,
+        InfoObject.__init__(self, sensor=sensor or set(), area=area,
                             start_time=start_time, end_time=end_time,
                             **metadata)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
@@ -94,7 +94,7 @@ class Scene(InfoObject):
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
-        comps, mods = self.cpl.load_compositors(self.info.get('sensor', []))
+        comps, mods = self.cpl.load_compositors(self.info['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
 
