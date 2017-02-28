@@ -59,7 +59,7 @@ def _determine_mode(dataset):
         return "RGBA"
     else:
         raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           (dataset.info.get("name", None), ))
+                           (dataset.id,))
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None):

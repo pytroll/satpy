@@ -50,19 +50,38 @@ class Scene(InfoObject):
                  ppp_config_dir=get_environ_config_dir(),
                  reader=None,
                  base_dir=None,
+                 sensor=None,
+                 start_time=None,
+                 end_time=None,
+                 area=None,
+                 reader_kwargs=None,
                  **metadata):
         """The Scene object constructor.
 
+        Note to load data either `filenames`, `sensor`, or `reader` must be
+        specified. If filenames is not specified then `base_dir` will be
+        searched for recognized file patterns.
+
         Args:
-            filenames: A sequence of files that will be used to load data from.
-            ppp_config_dir: The directory containing the configuration files for
-                satpy.
+            filenames (iterable): A sequence of files that will be used to load
+                                  data from.
+            ppp_config_dir (str): The directory containing the configuration
+                                  files for satpy.
             reader: The name of the reader to use for loading the data.
-            base_dir: The directory to search for files containing the data to
-                load. If *filenames* is also provided, this is ignored.
-            metadata: Free metadata information.
+            base_dir (str): The directory to search for files containing the
+                            data to load. If *filenames* is also provided,
+                            this is ignored.
+            sensor (list or str): Limit used files by provided sensors.
+            area (AreaDefinition): Limit used files by geographic area.
+            start_time (datetime): Limit used files by starting time.
+            end_time (datetime): Limit used files by ending time.
+            reader_kwargs (dict): Keyword arguments to pass to specific reader
+                                  instances.
+            metadata: Other metadata to assign to the Scene's ``.info``.
         """
-        InfoObject.__init__(self, **metadata)
+        InfoObject.__init__(self, sensor=sensor, area=area,
+                            start_time=start_time, end_time=end_time,
+                            **metadata)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
         # in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
@@ -70,7 +89,8 @@ class Scene(InfoObject):
 
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     base_dir=base_dir,
-                                                    reader=reader)
+                                                    reader=reader,
+                                                    reader_kwargs=reader_kwargs)
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
@@ -105,7 +125,8 @@ class Scene(InfoObject):
     def create_reader_instances(self,
                                 filenames=None,
                                 base_dir=None,
-                                reader=None):
+                                reader=None,
+                                reader_kwargs=None):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
@@ -115,7 +136,8 @@ class Scene(InfoObject):
         try:
             return finder(reader=reader,
                           sensor=self.info.get("sensor"),
-                          filenames=filenames)
+                          filenames=filenames,
+                          reader_kwargs=reader_kwargs)
         except ValueError as err:
             if filenames is None and base_dir is None:
                 LOG.info('Neither filenames nor base_dir provided, '

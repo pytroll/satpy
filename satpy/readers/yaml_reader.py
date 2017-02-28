@@ -374,7 +374,7 @@ class FileYAMLReader(AbstractYAMLReader):
                  config_files,
                  start_time=None,
                  end_time=None,
-                 area=None):
+                 area=None, **kwargs):
         super(FileYAMLReader, self).__init__(config_files,
                                              start_time=start_time,
                                              end_time=end_time,
