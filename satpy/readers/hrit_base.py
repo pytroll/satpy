@@ -5,8 +5,6 @@
 
 # Author(s):
 
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
@@ -30,8 +28,8 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-
 from pyresample import geometry
+
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -174,10 +172,14 @@ class HRITFileHandler(BaseFileHandler):
 
                 total_header_length = self.mda['total_header_length']
 
-            self.mda['timestamp'] = make_time_cds_short(self.mda['timestamp'])
-
-            self._end_time = self.mda['timestamp']
             self._start_time = filename_info['start_time']
+            try:
+                self.mda['timestamp'] = make_time_cds_short(
+                    self.mda['timestamp'])
+
+                self._end_time = self.mda['timestamp']
+            except KeyError:
+                self._end_time = self._start_time + timedelta(minutes=15)
 
             self.mda['projection_parameters'] = {'a': 6378169.00,
                                                  'b': 6356583.80,
