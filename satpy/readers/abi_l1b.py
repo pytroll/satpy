@@ -132,8 +132,8 @@ class NC_ABI_L1B(BaseFileHandler):
         x_r = h * (self.nc['x'][-1] * scale_x + offset_x)
         y_l = h * (self.nc['y'][-1] * scale_y + offset_y)
         y_u = h * (self.nc['y'][0] * scale_y + offset_y)
-        x_half = (x_r - x_l) / self.ncols / 2.
-        y_half = (y_u - y_l) / self.nlines / 2.
+        x_half = h * scale_x * abs(self.nc['x'][1] - self.nc['x'][0]) / 2.
+        y_half = h * scale_y * abs(self.nc['y'][1] - self.nc['y'][0]) / 2.
         area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
 
         proj_dict = {'a': float(a),
