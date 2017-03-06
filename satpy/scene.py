@@ -58,9 +58,16 @@ class Scene(InfoObject):
                  **metadata):
         """The Scene object constructor.
 
-        Note to load data either `filenames`, `sensor`, or `reader` must be
-        specified. If filenames is not specified then `base_dir` will be
-        searched for recognized file patterns.
+        Note to load data either `filenames`, `reader`, or a 'base_dir' must
+        be specified. If `filenames` is not specified then `reader` must be
+        specified to search the current directory or `base_dir` if specified.
+        If neither `filenames` nor `reader` is specified then `base_dir` will
+        be used to find any files matching the file patterns for any
+        configured readers. Otherwise the Scene is created with no Readers
+        available meaning Datasets must be added manually:
+
+            scn = Scene(sensor='viirs', start_time=start_time)
+            scn['my_dataset'] = Dataset(my_data_array, **my_info)
 
         Args:
             filenames (iterable): A sequence of files that will be used to load
