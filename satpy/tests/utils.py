@@ -141,7 +141,9 @@ def test_composites(sensor_name):
 
     return comps, mods
 
-def _get_dataset_key(key,
+
+def _get_dataset_key(self,
+                     key,
                      calibration=None,
                      resolution=None,
                      polarization=None,
@@ -150,11 +152,11 @@ def _get_dataset_key(key,
     from satpy import DatasetID
     if isinstance(key, DatasetID) and not key.modifiers:
         try:
-            return _get_dataset_key(key.name or key.wavelength)
+            return _get_dataset_key(self, key.name or key.wavelength)
         except KeyError:
             pass
 
-    dataset_ids = test_datasets()
+    dataset_ids = self.datasets
     for ds in dataset_ids:
         # should do wavelength and string matching for equality
         if key == ds:
@@ -162,10 +164,10 @@ def _get_dataset_key(key,
     raise KeyError("No fake test key '{}'".format(key))
 
 
-def _reader_load(dataset_keys):
+def _reader_load(self, dataset_keys):
     from satpy import DatasetDict, Dataset
     import numpy as np
-    dataset_ids = test_datasets()
+    dataset_ids = self.datasets
     loaded_datasets = DatasetDict()
     for k in dataset_keys:
         if k == 'ds9_fail_load':
@@ -177,10 +179,24 @@ def _reader_load(dataset_keys):
     return loaded_datasets
 
 
-def create_fake_reader(reader_name, sensor_name='fake_sensor'):
+def create_fake_reader(reader_name, sensor_name='fake_sensor', datasets=None,
+                       start_time=None, end_time=None):
+    from functools import partial
+    if start_time is None:
+        start_time = datetime.utcnow()
+    if end_time is None:
+        end_time = start_time
     r = mock.MagicMock()
-    r.start_time = r.end_time = datetime.utcnow()
+    ds = test_datasets()
+    if datasets is not None:
+        ds = [d for d in ds if d.name in datasets]
+
+    r.datasets = ds
+    r.start_time = start_time
+    r.end_time = end_time
     r.sensor_names = set([sensor_name])
-    r.get_dataset_key = _get_dataset_key
-    r.load = _reader_load
+    r.get_dataset_key = partial(_get_dataset_key, r)
+    r.all_dataset_ids = r.datasets
+    r.available_dataset_ids = r.datasets
+    r.load = partial(_reader_load, r)
     return r

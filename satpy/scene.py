@@ -133,18 +133,10 @@ class Scene(InfoObject):
                               start_time=self.info.get('start_time'),
                               end_time=self.info.get('end_time'),
                               area=self.info.get('area'), )
-        try:
-            return finder(reader=reader,
-                          sensor=self.info.get("sensor"),
-                          filenames=filenames,
-                          reader_kwargs=reader_kwargs)
-        except ValueError as err:
-            if filenames is None and base_dir is None:
-                LOG.info('Neither filenames nor base_dir provided, '
-                         'creating an empty scene (error was %s)', str(err))
-                return {}
-            else:
-                raise
+        return finder(reader=reader,
+                      sensor=self.info.get("sensor"),
+                      filenames=filenames,
+                      reader_kwargs=reader_kwargs)
 
     @property
     def start_time(self):
@@ -178,11 +170,11 @@ class Scene(InfoObject):
         except (AttributeError, KeyError):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
-        available_datasets = [dataset_id
+        available_datasets = sorted([dataset_id
                               for reader in readers
-                              for dataset_id in reader.available_dataset_ids]
+                              for dataset_id in reader.available_dataset_ids])
         if composites:
-            available_datasets += list(self.available_composite_ids(
+            available_datasets += sorted(self.available_composite_ids(
                 available_datasets))
         return available_datasets
 
@@ -256,8 +248,8 @@ class Scene(InfoObject):
             compositors.extend(self.cpl.compositors.get(sensor_name, {}).keys())
         return sorted(set(compositors))
 
-    def all_composite_names(self):
-        return sorted(set(x.name for x in self.all_composite_ids()))
+    def all_composite_names(self, sensor_names=None):
+        return sorted(set(x.name for x in self.all_composite_ids(sensor_names=sensor_names)))
 
     def all_modifier_names(self):
         return sorted(self.dep_tree.modifiers.keys())

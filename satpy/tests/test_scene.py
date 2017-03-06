@@ -59,6 +59,50 @@ class TestScene(unittest.TestCase):
                 self.assertDictContainsSubset(test_mda, scene.info)
                 self.assertDictContainsSubset(test_mda_2, scene.info)
 
+    def test_init_with_sensor(self):
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader
+        with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
+            cri.return_value = {
+                'fake_reader': create_fake_reader('fake_reader', sensor_name='fake_sensor'),
+            }
+            scene = satpy.scene.Scene(filenames='bla',
+                                      base_dir='bli',
+                                      sensor='fake_sensor')
+            self.assertIsInstance(scene.info['sensor'], set)
+            scene = satpy.scene.Scene(filenames='bla',
+                                      base_dir='bli',
+                                      sensor=['fake_sensor'])
+            self.assertIsInstance(scene.info['sensor'], set)
+
+    def test_start_end_times(self):
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader
+        from datetime import datetime
+        with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
+            r = create_fake_reader('fake_reader',
+                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
+                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
+                                   )
+            cri.return_value = {'fake_reader': r}
+            scene = satpy.scene.Scene(filenames='bla',
+                                      base_dir='bli',
+                                      sensor='fake_sensor')
+            self.assertEqual(scene.start_time, r.start_time)
+            self.assertEqual(scene.end_time, r.end_time)
+
+    def test_init_alone(self):
+        from satpy.scene import Scene
+        from satpy.config import PACKAGE_CONFIG_PATH
+        scn = Scene()
+        self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
+        self.assertFalse(scn.readers, 'Empty scene should not load any readers')
+
+    def test_init_with_ppp_config_dir(self):
+        from satpy.scene import Scene
+        scn = Scene(ppp_config_dir="foo")
+        self.assertEqual(scn.ppp_config_dir, 'foo')
+
     def test_create_reader_instances_with_filenames(self):
         import satpy.scene
         filenames = ["bla", "foo", "bar"]
@@ -143,17 +187,6 @@ class TestScene(unittest.TestCase):
                     filenames=filenames,
                     reader_kwargs=None,
                 )
-
-    def test_init_alone(self):
-        from satpy.scene import Scene
-        from satpy.config import PACKAGE_CONFIG_PATH
-        scn = Scene()
-        self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
-
-    def test_init_with_ppp_config_dir(self):
-        from satpy.scene import Scene
-        scn = Scene(ppp_config_dir="foo")
-        self.assertEqual(scn.ppp_config_dir, 'foo')
 
     def test_iter(self):
         from satpy import Scene, Dataset
@@ -252,6 +285,26 @@ class TestScene(unittest.TestCase):
         name_list = scene.all_dataset_names(composites=True)
         self.assertListEqual(name_list, [])
 
+    def test_available_dataset_no_readers(self):
+        from satpy import Scene
+        scene = Scene()
+        self.assertRaises(KeyError, scene.available_dataset_ids, reader_name='fake')
+        name_list = scene.available_dataset_ids()
+        self.assertListEqual(name_list, [])
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.available_dataset_ids(composites=True)
+        self.assertListEqual(name_list, [])
+
+    def test_available_dataset_names_no_readers(self):
+        from satpy import Scene
+        scene = Scene()
+        self.assertRaises(KeyError, scene.available_dataset_names, reader_name='fake')
+        name_list = scene.available_dataset_names()
+        self.assertListEqual(name_list, [])
+        # no sensors are loaded so we shouldn't get any comps either
+        name_list = scene.available_dataset_names(composites=True)
+        self.assertListEqual(name_list, [])
+
     def test_available_composites_no_datasets(self):
         from satpy import Scene
         scene = Scene()
@@ -260,6 +313,80 @@ class TestScene(unittest.TestCase):
         # no sensors are loaded so we shouldn't get any comps either
         id_list = scene.available_composite_names(available_datasets=[])
         self.assertListEqual(id_list, [])
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_all_datasets_one_reader(self, cri, cl):
+        from satpy import Scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        r = create_fake_reader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': r}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = Scene(filenames='bla',
+                      base_dir='bli',
+                      reader='fake_reader')
+        # patch the cpl
+        scene.cpl.compositors = comps
+        scene.cpl.modifiers = mods
+        id_list = scene.all_dataset_ids()
+        self.assertEqual(len(id_list), len(r.datasets))
+        id_list = scene.all_dataset_ids(composites=True)
+        self.assertEqual(len(id_list),
+                         len(r.datasets) + len(scene.cpl.compositors['fake_sensor'].keys()))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_all_datasets_multiple_reader(self, cri, cl):
+        from satpy import Scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        r = create_fake_reader('fake_reader', 'fake_sensor', datasets=['ds1'])
+        r2 = create_fake_reader('fake_reader2', 'fake_sensor2', datasets=['ds2'])
+        cri.return_value = {'fake_reader': r, 'fake_reader2': r2}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = Scene(filenames='bla',
+                      base_dir='bli',
+                      reader='fake_reader')
+        # patch the cpl
+        scene.cpl.compositors = comps
+        scene.cpl.modifiers = mods
+        id_list = scene.all_dataset_ids()
+        self.assertEqual(len(id_list), 2)
+        id_list = scene.all_dataset_ids(composites=True)
+        self.assertEqual(len(id_list),
+                         2 + len(scene.cpl.compositors['fake_sensor'].keys()))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_available_datasets_one_reader(self, cri, cl):
+        from satpy import Scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        r = create_fake_reader('fake_reader', 'fake_sensor', datasets=['ds1'])
+        cri.return_value = {'fake_reader': r}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = Scene(filenames='bla',
+                      base_dir='bli',
+                      reader='fake_reader')
+        # patch the cpl
+        scene.cpl.compositors = comps
+        scene.cpl.modifiers = mods
+        id_list = scene.available_dataset_ids()
+        self.assertEqual(len(id_list), 1)
+        id_list = scene.available_dataset_ids(composites=True)
+        self.assertEqual(len(id_list), 4)
+
+    def test_available_composite_ids_bad_available(self):
+        from satpy import Scene
+        scn = Scene()
+        self.assertRaises(ValueError, scn.available_composite_ids, available_datasets=['bad'])
+
+    def test_available_composite_names_bad_available(self):
+        from satpy import Scene
+        scn = Scene()
+        self.assertRaises(ValueError, scn.available_composite_names, available_datasets=['bad'])
+
 
 class TestSceneLoading(unittest.TestCase):
     """Test the Scene objects `.load` method
@@ -292,6 +419,29 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 1)
         self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='ds1')))
+
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds1_load_twice(self, cri):
+        """Test loading one dataset with no loaded compositors"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader
+        from satpy import DatasetID
+        r = create_fake_reader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': r}
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds1'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='ds1')))
+
+        with mock.patch.object(r, 'load') as m:
+            scene.load(['ds1'])
+            loaded_ids = list(scene.datasets.keys())
+            self.assertEquals(len(loaded_ids), 1)
+            self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='ds1')))
+            self.assertFalse(m.called, "Reader.load was called again when loading something that's already loaded")
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
