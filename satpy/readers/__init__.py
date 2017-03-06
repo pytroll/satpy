@@ -257,7 +257,7 @@ class ReaderFinder(object):
         reader_instances = {}
         reader_kwargs = reader_kwargs or {}
 
-        if not filenames and not sensor and reader is None:
+        if not filenames and reader is None and not self.base_dir:
             # we weren't given anything to search through
             LOG.info("Not enough information provided to find readers.")
             return reader_instances
