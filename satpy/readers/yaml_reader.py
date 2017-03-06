@@ -35,8 +35,8 @@ from fnmatch import fnmatch
 import numpy as np
 import six
 import yaml
-
 from pyresample.geometry import AreaDefinition
+
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
@@ -260,17 +260,13 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def _ds_ids_with_best_calibration(self, datasets, calibration):
         """Get the datasets with the best available calibration."""
 
-        calibration = self._get_best_calibration(calibration)
+        calibrations = self._get_best_calibration(calibration)
 
         new_datasets = []
 
-        for cal_name in calibration:
-            # order calibration from highest level to lowest level
-            for ds_id in datasets:
-                if ds_id.calibration == cal_name:
-                    new_datasets.append(ds_id)
         for ds_id in datasets:
-            if ds_id.calibration is None:
+            if (ds_id.calibration in calibrations or
+                    (ds_id.calibration is None and calibration is None)):
                 new_datasets.append(ds_id)
         return new_datasets
 
@@ -285,24 +281,25 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         return datasets
 
-    def filter_ds_ids(self, datasets, dfilter):
-        """Filter *datasets* based on *dfilter*."""
+    def filter_ds_ids(self, dataset_ids, dfilter):
+        """Filter *dataset_ids* based on *dfilter*."""
         for attr in ['resolution', 'polarization']:
             if dfilter.get(attr) is not None:
-                datasets = [ds_id for ds_id in datasets
-                            if getattr(ds_id, attr) in dfilter[attr]]
+                dataset_ids = [ds_id for ds_id in dataset_ids
+                               if getattr(ds_id, attr) in dfilter[attr]]
 
         calibration = dfilter.get('calibration')
-        datasets = self._ds_ids_with_best_calibration(datasets, calibration)
+        dataset_ids = self._ds_ids_with_best_calibration(dataset_ids,
+                                                         calibration)
 
         if dfilter.get('modifiers') is not None:
-            datasets = [ds_id for ds_id in datasets
-                        if ds_id.modifiers == dfilter['modifiers']]
+            dataset_ids = [ds_id for ds_id in dataset_ids
+                           if ds_id.modifiers == dfilter['modifiers']]
 
-        return datasets
+        return dataset_ids
 
     def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset corresponding to *key*.
+        """Get the fully qualified dataset id corresponding to *key*.
 
         Can be either by name or centerwavelength. If `key` is a `DatasetID`
         object its name is searched if it exists, otherwise its wavelength is
@@ -631,6 +628,11 @@ class FileYAMLReader(AbstractYAMLReader):
         return proj
 
     def _preferred_filetype(self, filetypes):
+        """Get the preferred filetype out of the *filetypes* list.
+
+        At the moment, it just returns the first filetype that has been loaded.
+        """
+
         if not isinstance(filetypes, list):
             filetypes = [filetypes]
 
@@ -711,8 +713,9 @@ class FileYAMLReader(AbstractYAMLReader):
         return coordinates
 
     def _get_file_handlers(self, dsid):
+        """Get the file handler to load this dataset."""
         ds_info = self.ids[dsid]
-        # Get the file handler to load this dataset (list or single string)
+
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
             logger.warning("Required file type '%s' not found or loaded for "

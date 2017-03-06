@@ -22,6 +22,7 @@
 """Testing the yaml_reader module."""
 
 import os
+import random
 import unittest
 from datetime import datetime
 from tempfile import mkdtemp
@@ -101,11 +102,17 @@ class TestFileFileYAMLReader(unittest.TestCase):
                     'datasets': {'ch1': {'name': 'ch01',
                                          'wavelength': [0.5, 0.6, 0.7],
                                          'calibration': 'reflectance',
-                                         'file_type': 'ftype1'},
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
                                  'ch2': {'name': 'ch02',
                                          'wavelength': [0.7, 0.75, 0.8],
                                          'calibration': 'counts',
-                                         'file_type': 'ftype1'}}}
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'lons': {'name': 'lons',
+                                          'file_type': 'ftype2'},
+                                 'lats': {'name': 'lats',
+                                          'file_type': 'ftype2'}}}
 
         rec_up.return_value = res_dict
         self.config = res_dict
@@ -127,12 +134,24 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                        resolution=None,
                                        polarization=None,
                                        calibration='reflectance',
+                                       modifiers=()),
+                             DatasetID(name='lons',
+                                       wavelength=None,
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration=None,
+                                       modifiers=()),
+                             DatasetID(name='lats',
+                                       wavelength=None,
+                                       resolution=None,
+                                       polarization=None,
+                                       calibration=None,
                                        modifiers=())})
 
     def test_all_dataset_names(self):
         """Get all dataset names."""
         self.assertSetEqual(self.reader.all_dataset_names,
-                            set(['ch01', 'ch02']))
+                            set(['ch01', 'ch02', 'lons', 'lats']))
 
     def test_available_dataset_ids(self):
         """Get ids of the available datasets."""
@@ -363,8 +382,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Test getting datasets with calibration."""
         calibration = ["radiance", "reflectance"]
 
-        datasets = [yr.DatasetID(name=ds['name'], wavelength=ds["wavelength"],
-                                 calibration=ds["calibration"])
+        datasets = [yr.DatasetID(name=ds['name'],
+                                 wavelength=ds.get("wavelength"),
+                                 calibration=ds.get("calibration"))
                     for ds in self.reader.datasets.values()]
         ds = self.reader._ds_ids_with_best_calibration(datasets, calibration)
         self.assertListEqual(ds,
@@ -439,8 +459,9 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_filter_datasets(self):
         """Test filtering datasets."""
-        datasets = [yr.DatasetID(name=ds['name'], wavelength=ds["wavelength"],
-                                 calibration=ds["calibration"])
+        datasets = [yr.DatasetID(name=ds['name'],
+                                 wavelength=ds.get("wavelength"),
+                                 calibration=ds.get("calibration"))
                     for ds in self.reader.datasets.values()]
 
         dfilter = {'polarization': None,
@@ -545,6 +566,144 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                       polarization=None,
                                       calibration='reflectance',
                                       modifiers=()))
+
+    def test_combine_area_extents(self):
+        """Test combination of area extents."""
+        area1 = MagicMock()
+        area1.area_extent = (1, 2, 3, 4)
+        area2 = MagicMock()
+        area2.area_extent = (1, 6, 3, 2)
+        res = self.reader._combine_area_extents(area1, area2)
+        self.assertListEqual(res, [1, 6, 3, 4])
+
+        area1 = MagicMock()
+        area1.area_extent = (1, 2, 3, 4)
+        area2 = MagicMock()
+        area2.area_extent = (1, 4, 3, 6)
+        res = self.reader._combine_area_extents(area1, area2)
+        self.assertListEqual(res, [1, 2, 3, 6])
+
+    def test_append_area_defs_fail(self):
+        """Fail appending areas."""
+        from satpy.composites import IncompatibleAreas
+        area1 = MagicMock()
+        area1.proj_dict = {"proj": 'A'}
+        area2 = MagicMock()
+        area2.proj_dict = {'proj': 'B'}
+        res = self.reader._combine_area_extents(area1, area2)
+        self.assertRaises(IncompatibleAreas,
+                          self.reader._append_area_defs, area1, area2)
+
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_append_area_defs(self, adef):
+        """Test appending area definitions."""
+        area1 = MagicMock()
+        area1.area_extent = (1, 2, 3, 4)
+        area1.proj_dict = {"proj": 'A'}
+        area1.y_size = random.randrange(6425)
+
+        area2 = MagicMock()
+        area2.area_extent = (1, 4, 3, 6)
+        area2.proj_dict = {"proj": 'A'}
+        area2.y_size = random.randrange(6425)
+
+        res = self.reader._append_area_defs(area1, area2)
+        area_extent = [1, 2, 3, 6]
+        y_size = area1.y_size + area2.y_size
+        adef.assert_called_once_with(area1.area_id, area1.name, area1.proj_id,
+                                     area1.proj_dict, area1.x_size, y_size,
+                                     area_extent)
+
+    def test_load_area_def(self):
+        """Test loading the area def for the reader."""
+        dsid = MagicMock()
+        file_handlers = []
+        items = random.randrange(2, 10)
+        for i in range(items):
+            file_handlers.append(MagicMock())
+        with patch.object(self.reader, '_append_area_defs') as aad:
+            final_area = self.reader._load_area_def(dsid, file_handlers)
+            self.assertEqual(final_area, aad.return_value)
+            self.assertEqual(len(aad.mock_calls), items)
+            fh1 = file_handlers[0]
+            aad.reset_mock()
+            final_area = self.reader._load_area_def(dsid, file_handlers[:1])
+            self.assertEqual(final_area, fh1.get_area_def.return_value)
+            self.assertEqual(len(aad.mock_calls), 0)
+
+    def test_preferred_filetype(self):
+        """Test finding the preferred filetype."""
+
+        self.reader.file_handlers = {'a': 'a', 'b': 'b', 'c': 'c'}
+        self.assertEqual(self.reader._preferred_filetype(['c', 'a']), 'c')
+        self.assertEqual(self.reader._preferred_filetype(['a', 'c']), 'a')
+        self.assertEqual(self.reader._preferred_filetype(['d', 'e']), None)
+
+    def test_get_coordinates_for_dataset_key(self):
+        """Test getting coordinates for a key."""
+        ds_id = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
+                          resolution=None, polarization=None,
+                          calibration='reflectance', modifiers=())
+        res = self.reader._get_coordinates_for_dataset_key(ds_id)
+        self.assertListEqual(res,
+                             [DatasetID(name='lons',
+                                        wavelength=None,
+                                        resolution=None,
+                                        polarization=None,
+                                        calibration=None,
+                                        modifiers=()),
+                              DatasetID(name='lats',
+                                        wavelength=None,
+                                        resolution=None,
+                                        polarization=None,
+                                        calibration=None,
+                                        modifiers=())])
+
+    def test_get_coordinates_for_dataset_key_without(self):
+        """Test getting coordinates for a key without coordinates."""
+        ds_id = DatasetID(name='lons',
+                          wavelength=None,
+                          resolution=None,
+                          polarization=None,
+                          calibration=None,
+                          modifiers=())
+        res = self.reader._get_coordinates_for_dataset_key(ds_id)
+        self.assertListEqual(res, [])
+
+    def test_get_coordinates_for_dataset_keys(self):
+        """Test getting coordinates for keys."""
+        ds_id1 = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
+                           resolution=None, polarization=None,
+                           calibration='reflectance', modifiers=())
+        ds_id2 = DatasetID(name='ch02', wavelength=(0.7, 0.75, 0.8),
+                           resolution=None, polarization=None,
+                           calibration='counts', modifiers=())
+        lons = DatasetID(name='lons',  wavelength=None,
+                         resolution=None, polarization=None,
+                         calibration=None, modifiers=())
+        lats = DatasetID(name='lats', wavelength=None,
+                         resolution=None, polarization=None,
+                         calibration=None, modifiers=())
+
+        res = self.reader._get_coordinates_for_dataset_keys([ds_id1, ds_id2,
+                                                             lons])
+        expected = {ds_id1: [lons, lats], ds_id2: [lons, lats], lons: []}
+
+        self.assertDictEqual(res, expected)
+
+    def test_get_file_handlers(self):
+        """Test getting filehandler to load a dataset."""
+        ds_id1 = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
+                           resolution=None, polarization=None,
+                           calibration='reflectance', modifiers=())
+        self.reader.file_handlers = {'ftype1': 'bla'}
+
+        self.assertEqual(self.reader._get_file_handlers(ds_id1), 'bla')
+
+        lons = DatasetID(name='lons',  wavelength=None,
+                         resolution=None, polarization=None,
+                         calibration=None, modifiers=())
+        self.assertEqual(self.reader._get_file_handlers(lons), None)
 
 
 def suite():
