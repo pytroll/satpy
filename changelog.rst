@@ -2,6 +2,29 @@ Changelog
 =========
 
 
+v0.4.3 (2017-03-07)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.4.2 → 0.4.3. [Martin Raspaud]
+- Add more tests to yaml_reader. [Martin Raspaud]
+- Document what the Scene accepts better. [davidh-ssec]
+- Remove unused FileKey class. [davidh-ssec]
+- Add more tests for Scene object. [davidh-ssec]
+- Fix ABI L1B area again. [davidh-ssec]
+- Add Electro-L N2 HRIT reader. [Martin Raspaud]
+- Fix off by one error on calculating ABI L1B pixel resolution. [davidh-
+  ssec]
+- Add sweep PROJ.4 parameter to ABI L1B reader. [davidh-ssec]
+- Fix geos bbox to rotate in the right direction. [Martin Raspaud]
+- Fix ABI L1B file patterns not working for mesos. [davidh-ssec]
+- Fix tests to handle reader_kwargs and explicit sensor keyword
+  argument. [davidh-ssec]
+- Add reader_kwargs to Scene to pass to readers. [davidh-ssec]
+- Fix yaml reader start/end time with multiple file types. [davidh-ssec]
+- Allow `Scene.all_composite_ids` to return even if no sensor composite
+  config. [davidh-ssec]
+
+
 v0.4.2 (2017-02-27)
 -------------------
 - Update changelog. [Martin Raspaud]
