@@ -387,14 +387,14 @@ datasets:
         file_units: W cm-2 sr-1
     file_type: vdnbo
   DNB_SZA:
-    name: DNB_SZA
+    name: dnb_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
     file_type: gdnbo
     file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
   DNB_LZA:
-    name: DNB_LZA
+    name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
