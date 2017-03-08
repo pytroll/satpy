@@ -28,10 +28,10 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import numpy as np
-
 import h5py
+import numpy as np
 from pyresample.geometry import SwathDefinition
+
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -112,8 +112,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                                   channel].attrs["TiePointZoneSizeScan"]
         self.nb_tpzs = self.geostuff["NumberOfTiePointZonesScan"].value
 
-        self.senazi, self.senzen = None, None
-        self.solazi, self.solzen = None, None
+        self.cache = {}
 
         self.mda = {}
         short_name = self.h5f.attrs['Platform_Short_Name'][0][0]
@@ -159,23 +158,46 @@ class VIIRSCompactFileHandler(BaseFileHandler):
     def read_geo(self, key, info):
         """Read angles.
         """
-        if key.name in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
-            if self.senazi is None or self.senzen is None:
-                self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
-                                                       "SatelliteZenithAngle")
-            if key.name == 'satellite_zenith_angle':
-                return Dataset(self.senzen, copy=False, name=key.name, **self.mda)
-            else:
-                return Dataset(self.senazi, copy=False, name=key.name, **self.mda)
+        pairs = {('satellite_azimuth_angle', 'satellite_zenith_angle'):
+                 ("SatelliteAzimuthAngle", "SatelliteZenithAngle"),
+                 ('solar_azimuth_angle', 'solar_zenith_angle'):
+                 ("SolarAzimuthAngle", "SolarZenithAngle"),
+                 ('dnb_solar_azimuth_angle', 'dnb_solar_zenith_angle'):
+                 ("SolarAzimuthAngle", "SolarZenithAngle"),
+                 ('dnb_lunar_azimuth_angle', 'dnb_lunar_zenith_angle'):
+                 ("LunarAzimuthAngle", "LunarZenithAngle"),
+                 }
 
-        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
-            if self.solazi is None or self.solzen is None:
-                self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
-                                                       "SolarZenithAngle")
-            if key.name == 'solar_zenith_angle':
-                return Dataset(self.solzen, copy=False, name=key.name, **self.mda)
-            else:
-                return Dataset(self.solazi, copy=False, name=key.name, **self.mda)
+        for pair, fkeys in pairs.items():
+            if key.name in pair:
+                if (self.cache.get(pair[0]) is None or
+                        self.cache.get(pair[1]) is None):
+                    angles = self.angles(*fkeys)
+                    self.cache[pair[0]], self.cache[pair[1]] = angles
+                if key.name == pair[0]:
+                    return Dataset(self.cache[pair[0]],
+                                   copy=False, name=key.name, **self.mda)
+                else:
+                    return Dataset(self.cache[pair[1]],
+                                   copy=False, name=key.name, **self.mda)
+
+        # if key.name in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+        #     if self.senazi is None or self.senzen is None:
+        #         self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
+        #                                                "SatelliteZenithAngle")
+        #     if key.name == 'satellite_zenith_angle':
+        #         return Dataset(self.senzen, copy=False, name=key.name, **self.mda)
+        #     else:
+        #         return Dataset(self.senazi, copy=False, name=key.name, **self.mda)
+        #
+        # if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
+        #     if self.solazi is None or self.solzen is None:
+        #         self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
+        #                                                "SolarZenithAngle")
+        #     if key.name == 'solar_zenith_angle':
+        #         return Dataset(self.solzen, copy=False, name=key.name, **self.mda)
+        #     else:
+        # return Dataset(self.solazi, copy=False, name=key.name, **self.mda)
 
         if info.get('standard_name') in ['latitude', 'longitude']:
             if self.lons is None or self.lats is None:
@@ -186,6 +208,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 return Dataset(self.lons, copy=False, id=key, **mda)
             else:
                 return Dataset(self.lats, copy=False, id=key, **mda)
+
+        if key.name == 'dnb_moon_illumination_fraction':
+            mda = self.mda.copy()
+            mda.update(info)
+            return Dataset(self.geostuff["MoonIllumFraction"].value, **info)
 
     def read_dataset(self, dataset_key, info):
         h5f = self.h5f
@@ -318,17 +345,16 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
             param_start += nb_tpz
 
-            if (np.max(azi) - np.min(azi) > 5) or (np.min(azi) < 10) or (
+            if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
                     np.max(abs(lat)) > 80):
                 expanded = []
-                for data in lonlat2xyz(azi, 90 - zen):
+                for data in angle2xyz(azi, zen):
                     expanded.append(expand_array(
                         data, self.scans, c_align, c_exp, self.scan_size,
                         tpz_size, nb_tpz, self.track_offset, self.scan_offset))
 
-                azi, zen = xyz2lonlat(*expanded)
-
-                res.append((azi, 90 - zen))
+                azi, zen = xyz2angle(*expanded)
+                res.append((azi, zen))
             else:
                 expanded = []
                 for data in (azi, zen):
@@ -400,6 +426,21 @@ def xyz2lonlat(x, y, z):
     lon = np.rad2deg(np.arctan2(y, x))
     lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
     return lon, lat
+
+
+def angle2xyz(azi, zen):
+    azi = np.deg2rad(azi)
+    zen = np.deg2rad(zen)
+    x = np.sin(zen) * np.sin(azi)
+    y = np.sin(zen) * np.cos(azi)
+    z = np.cos(zen)
+    return x, y, z
+
+
+def xyz2angle(x, y, z):
+    azi = np.rad2deg(np.arctan2(x, y))
+    zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    return azi, zen
 
 
 def navigate_dnb(h5f):

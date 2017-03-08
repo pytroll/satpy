@@ -22,14 +22,14 @@ datasets:
 
   longitude_dnb:
     name: longitude_dnb
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     standard_name: longitude
     units: degree
 
   latitude_dnb:
     name: latitude_dnb
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     standard_name: latitude
     units: degree
@@ -278,11 +278,11 @@ datasets:
     name: DNB
     sensor: viirs
     wavelength: [0.500,0.700,0.900]
-    resolution: 742
+    resolution: 743
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W cm-2 sr-1
     coordinates: [longitude_dnb, latitude_dnb]
     file_type: compact_dnb
 
@@ -323,41 +323,63 @@ datasets:
     standard_name: solar_zenith_angle
 
   satellite_azimuth_angle_dnb:
-    name: satellite_azimuth_angle_dnb
+    name: dnb_satellite_azimuth_angle
     sensor: viirs
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     units: degree
     coordinates: [longitude_dnb, latitude_dnb]
     standard_name: platform_azimuth_angle
 
   solar_azimuth_angle_dnb:
-    name: solar_azimuth_angle_dnb
+    name: dnb_solar_azimuth_angle
     sensor: viirs
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     units: degree
     coordinates: [longitude_dnb, latitude_dnb]
     standard_name: solar_azimuth_angle
 
   satellite_zenith_angle_dnb:
-    name: satellite_zenith_angle_dnb
+    name: dnb_satellite_zenith_angle
     sensor: viirs
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     units: degree
     coordinates: [longitude_dnb, latitude_dnb]
     standard_name: platform_zenith_angle
 
   solar_zenith_angle_dnb:
-    name: solar_zenith_angle_dnb
+    name: dnb_solar_zenith_angle
     sensor: viirs
-    resolution: 742
+    resolution: 743
     file_type: compact_dnb
     units: degree
     coordinates: [longitude_dnb, latitude_dnb]
     standard_name: solar_zenith_angle
 
+  lunar_zenith_angle_dnb:
+    name: dnb_lunar_zenith_angle
+    sensor: viirs
+    resolution: 743
+    file_type: compact_dnb
+    units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
+    standard_name: lunar_zenith_angle
+
+  lunar_azimuth_angle_dnb:
+    name: dnb_lunar_azimuth_angle
+    sensor: viirs
+    resolution: 743
+    file_type: compact_dnb
+    units: degree
+    coordinates: [longitude_dnb, latitude_dnb]
+    standard_name: lunar_azimuth_angle
+
+  moon_illumination_fraction_dnb:
+    name: dnb_moon_illumination_fraction
+    resolution: 743
+    file_type: compact_dnb
 
 file_types:
   compact_m:
