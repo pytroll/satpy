@@ -1037,3 +1037,77 @@ def _linear_normalization_from_0to1(
         data[mask] = data[mask] - theoretical_min
         theoretical_max = theoretical_max - theoretical_min
     data[mask] = data[mask] / theoretical_max
+
+
+class NCCZinke(CompositeBase):
+    """Equalized DNB composite using the Zinke algorithm."""
+
+    def __call__(self, datasets, **info):
+        if len(datasets) != 4:
+            raise ValueError("Expected 4 datasets, got %d" % (len(datasets), ))
+
+        dnb_data = datasets[0]
+        sza_data = datasets[1]
+        lza_data = datasets[2]
+        #good_mask = ~(dnb_data.mask | sza_data.mask)
+        #output_dataset = dnb_data.copy()
+        #output_dataset.mask = ~good_mask
+        # this algorithm assumes units of "W cm-2 sr-1" so if there are other
+        # units we need to adjust for that
+        if dnb_data.info.get("units", "W m-2 sr-1") == "W m-2 sr-1":
+            unit_factor = 10000.
+        else:
+            unit_factor = 1.
+
+        mda = dnb_data.info.copy()
+
+        dnb_data = dnb_data / unit_factor
+
+        # convert to decimal instead of %
+        moon_illum_fraction = np.mean(datasets[3]) * 0.01
+
+        phi = np.rad2deg(np.arccos(2 * moon_illum_fraction - 1))
+
+        vfl = 0.026 * phi + 4e-9 * (phi ** 4)
+
+        m_fullmoon = -12.74
+        m_sun = -26.74
+        m_moon = vfl + m_fullmoon
+
+        gs_ = self.gain_factor(sza_data)
+
+        r_sun_moon = 10**((m_sun - m_moon) / -2.5)
+        gl_ = r_sun_moon * self.gain_factor(lza_data)
+        gtot = 1 / (1 / gs_ + 1 / gl_)
+
+        dnb_data += 2.6e-10
+        dnb_data *= gtot
+
+        mda['name'] = 'ncc_zinke'
+        mda.pop('calibration')
+        mda.pop('wavelength')
+        mda['standard_name'] = 'ncc_radiance'
+
+        return Dataset(dnb_data, copy=False, **mda)
+
+    @staticmethod
+    def gain_factor(theta):
+        gain = np.empty_like(theta)
+
+        mask = theta <= 87.541
+        gain[mask] = (58 + 4 / np.cos(np.deg2rad(theta[mask]))) / 5
+
+        mask = np.logical_and(theta <= 96, 87.541 < theta)
+        gain[mask] = (123 * np.exp(1.06 * (theta[mask] - 89.589)) *
+                      ((theta[mask] - 93)**2 / 18 + 0.5))
+
+        mask = np.logical_and(96 < theta, theta <= 101)
+        gain[mask] = 123 * np.exp(1.06 * (theta[mask] - 89.589))
+
+        mask = np.logical_and(101 < theta, theta <= 103.49)
+        gain[mask] = (123 * np.exp(1.06 * (101 - 89.589)) *
+                      np.log(theta[mask] - (101 - np.e)) ** 2)
+
+        gain[theta > 103.49] = 6e7
+
+        return gain
