@@ -141,3 +141,12 @@ composites:
     - dnb_moon_illumination_fraction
     standard_name: equalized_radiance
     units: "1"
+  ncc_zinke:
+    compositor: !!python/name:satpy.composites.viirs.NCCZinke
+    prerequisites:
+    - DNB
+    - dnb_solar_zenith_angle
+    - dnb_lunar_zenith_angle
+    - dnb_moon_illumination_fraction
+    standard_name: ncc_radiance
+    units: "1"
