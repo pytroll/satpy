@@ -31,13 +31,13 @@ from datetime import datetime
 
 import h5netcdf
 import numpy as np
-
 from pyresample import geometry
+
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
-PLATFORM_NAMES = {'ABI': 'GOES-R'}
+PLATFORM_NAMES = {'G16': 'GOES-16'}
 
 
 class NC_ABI_L1B(BaseFileHandler):
@@ -47,10 +47,8 @@ class NC_ABI_L1B(BaseFileHandler):
                                          filetype_info)
         self.nc = h5netcdf.File(filename, 'r')
 
-#        cal_file = os.path.join(os.path.dirname(
-#            filename), 'instrument_data.nc')
-#        self.cal = h5netcdf.File(cal_file, 'r')
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
+        platform_shortname = filename_info['platform_shortname']
+        self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
         self.nlines, self.ncols = self.nc["Rad"].shape
 
@@ -70,7 +68,7 @@ class NC_ABI_L1B(BaseFileHandler):
                      variable.attrs['scale_factor'] +
                      variable.attrs['add_offset'])
         # units = variable.attrs['units']
-        units = self.calibrate(radiances, key)
+        units = self.calibrate(radiances)
 
         # convert to satpy standard units
         if units == '1':
@@ -81,7 +79,10 @@ class NC_ABI_L1B(BaseFileHandler):
         out.mask[:] = np.ma.getmask(radiances)
         out.info.update({'units': units,
                          'platform_name': self.platform_name,
-                         'sensor': self.sensor})
+                         'sensor': self.sensor,
+                         'satellite_latitude': self.nc['nominal_satellite_subpoint_lat'][()],
+                         'satellite_longitude': self.nc['nominal_satellite_subpoint_lon'][()],
+                         'satellite_altitude': self.nc['nominal_satellite_height'][()]})
         out.info.update(key.to_dict())
 
         return out
@@ -112,14 +113,12 @@ class NC_ABI_L1B(BaseFileHandler):
         return(chk_extent)
 
     def get_area_def(self, key):
-        a = self.nc["goes_imager_projection"].attrs['semi_major_axis'][...]
-        h = self.nc["goes_imager_projection"].attrs[
-            'perspective_point_height'][...]
-        b = self.nc["goes_imager_projection"].attrs['semi_minor_axis'][...]
-        lon_0 = self.nc["goes_imager_projection"].attrs[
-            'longitude_of_projection_origin'][...]
-        sweep_axis = self.nc["goes_imager_projection"].attrs[
-            'sweep_angle_axis'][0]
+        projection = self.nc["goes_imager_projection"]
+        a = projection.attrs['semi_major_axis'][...]
+        h = projection.attrs['perspective_point_height'][...]
+        b = projection.attrs['semi_minor_axis'][...]
+        lon_0 = projection.attrs['longitude_of_projection_origin'][...]
+        sweep_axis = projection.attrs['sweep_angle_axis'][0]
 
         scale_x = self.nc['x'].attrs["scale_factor"][0]
         scale_y = self.nc['y'].attrs["scale_factor"][0]
@@ -155,36 +154,40 @@ class NC_ABI_L1B(BaseFileHandler):
 
         return area
 
-    def _vis_calibrate(self, data, key):
+    def _vis_calibrate(self, data):
+        """Calibrate visible channels to reflectance."""
+        solar_irradiance = self.nc['esun'][()]
+        esd = self.nc["earth_sun_distance_anomaly_in_AU"][()]
 
-        esun = self.nc['esun'][...]
-        d = self.nc["earth_sun_distance_anomaly_in_AU"]
+        factor = np.pi * esd * esd / solar_irradiance
+        data.data[:] *= factor
 
-        rf = data * np.pi * d * d / esun
-
-        data.data[:] = rf
         return '1'
 
-    def _ir_calibrate(self, data, key):
+    def _ir_calibrate(self, data):
+        """Calibrate IR channels to BT."""
+        fk1 = self.nc["planck_fk1"][()]
+        fk2 = self.nc["planck_fk2"][()]
+        bc1 = self.nc["planck_bc1"][()]
+        bc2 = self.nc["planck_bc2"][()]
 
-        fk1 = self.nc["planck_fk1"][...]
-        fk2 = self.nc["planck_fk2"][...]
-        bc1 = self.nc["planck_bc1"][...]
-        bc2 = self.nc["planck_bc2"][...]
+        np.divide(fk1, data, out=data.data)
+        data.data[:] += 1
+        np.log(data, out=data.data)
+        np.divide(fk2, data, out=data.data)
+        data.data[:] -= bc1
+        data.data[:] /= bc2
 
-        bt = (fk2 / (np.log((fk1 / data) + 1)) - bc1) / bc2
-
-        data.data[:] = bt
         return 'K'
 
-    def calibrate(self, data, key):
+    def calibrate(self, data):
         logger.debug("CALIBRATE")
 
-        ch = self.nc["band_id"][...]
+        ch = self.nc["band_id"][()]
         if ch < 7:
-            return self._vis_calibrate(data, key)
+            return self._vis_calibrate(data)
         else:
-            return self._ir_calibrate(data, key)
+            return self._ir_calibrate(data)
 
     @property
     def start_time(self):

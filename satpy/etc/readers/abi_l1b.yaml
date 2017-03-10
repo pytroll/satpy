@@ -60,7 +60,7 @@ datasets:
     name: C01
     sensor: abi
     wavelength: [0.450, 0.470, 0.490]
-    resolution: 300
+    resolution: 1000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -74,7 +74,7 @@ datasets:
     name: C02
     sensor: abi
     wavelength: [0.590, 0.640, 0.690]
-    resolution: 300
+    resolution: 500
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -88,7 +88,7 @@ datasets:
     name: C03
     sensor: abi
     wavelength: [0.8455, 0.865, 0.8845]
-    resolution: 300
+    resolution: 1000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -102,7 +102,7 @@ datasets:
     name: C04
     sensor: abi
     wavelength: [1.3705, 1.378, 1.3855]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -116,7 +116,7 @@ datasets:
     name: C05
     sensor: abi
     wavelength: [1.580, 1.610, 1.640]
-    resolution: 300
+    resolution: 1000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -130,7 +130,7 @@ datasets:
     name: C06
     sensor: abi
     wavelength: [2.225, 2.250, 2.275]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -144,7 +144,7 @@ datasets:
     name: C07
     sensor: abi
     wavelength: [3.80, 3.90, 4.00]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -158,7 +158,7 @@ datasets:
     name: C08
     sensor: abi
     wavelength: [5.770, 6.185, 6.600]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -172,7 +172,7 @@ datasets:
     name: C09
     sensor: abi
     wavelength: [6.75, 6.95, 7.15]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -186,7 +186,7 @@ datasets:
     name: C10
     sensor: abi
     wavelength: [7.24, 7.34, 7.44]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -200,7 +200,7 @@ datasets:
     name: C11
     sensor: abi
     wavelength: [8.30, 8.50, 8.70]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -214,7 +214,7 @@ datasets:
     name: C12
     sensor: abi
     wavelength: [9.42, 9.61, 9.80]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -228,7 +228,7 @@ datasets:
     name: C13
     sensor: abi
     wavelength: [10.10, 10.35, 10.60]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -242,7 +242,7 @@ datasets:
     name: C14
     sensor: abi
     wavelength: [10.80, 11.20, 11.60]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -256,7 +256,7 @@ datasets:
     name: C15
     sensor: abi
     wavelength: [11.80, 12.30, 12.80]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -270,7 +270,7 @@ datasets:
     name: C16
     sensor: abi
     wavelength: [13.00, 13.30, 13.60]
-    resolution: 300
+    resolution: 2000
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -279,27 +279,3 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
     file_type: c16
-
-  solar_zenith_angle:
-    name: solar_zenith_angle
-    sensor: abi
-    resolution: 300
-    file_type: esa_angles
-
-  solar_azimuth_angle:
-    name: solar_azimuth_angle
-    sensor: abi
-    resolution: 300
-    file_type: esa_angles
-
-  satellite_zenith_angle:
-    name: satellite_zenith_angle
-    sensor: abi
-    resolution: 300
-    file_type: esa_angles
-
-  satellite_azimuth_angle:
-    name: satellite_azimuth_angle
-    sensor: abi
-    resolution: 300
-    file_type: esa_angles
