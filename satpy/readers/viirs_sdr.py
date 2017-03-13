@@ -185,7 +185,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return file_units
 
-    def get_shape(self, item):
+    def get_shape(self, item, ds_info):
         return self[item + "/shape"]
 
     def scale_swath_data(self, data, mask, scaling_factors):
@@ -242,22 +242,22 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_default = 'All_Data/{file_group}_All/Longitude'
-        lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
-        valid_min = -180.
-        valid_max = 180.
-        lon_out.data[:] = self[lon_key][:]
-        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
-
-        lat_default = 'All_Data/{file_group}_All/Latitude'
-        lat_key = nav_info.get("latitude_key", lat_default).format(**self.filetype_info)
-        valid_min = -90.
-        valid_max = 90.
-        lat_out.data[:] = self[lat_key][:]
-        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-
-        return {}
+    # def get_lonlats(self, navid, nav_info, lon_out, lat_out):
+    #     lon_default = 'All_Data/{file_group}_All/Longitude'
+    #     lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
+    #     valid_min = -180.
+    #     valid_max = 180.
+    #     lon_out.data[:] = self[lon_key][:]
+    #     lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
+    #
+    #     lat_default = 'All_Data/{file_group}_All/Latitude'
+    #     lat_key = nav_info.get("latitude_key", lat_default).format(**self.filetype_info)
+    #     valid_min = -90.
+    #     valid_max = 90.
+    #     lat_out.data[:] = self[lat_key][:]
+    #     lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
+    #
+    #     return {}
 
     def get_dataset(self, dataset_id, ds_info, out=None):
         var_path = self._generate_file_key(dataset_id, ds_info)
@@ -299,16 +299,18 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if factors is not None:
             self.scale_swath_data(out.data, out.mask, factors)
 
-        ds_info.update({
+        i = getattr(out, 'info', {})
+        i.update(ds_info)
+        i.update({
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_dict())
+        i.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)
-        return cls(out, **ds_info)
+        return cls(out.data, mask=out.mask, copy=False, **i)
 
 
 class VIIRSSDRReader(FileYAMLReader):
