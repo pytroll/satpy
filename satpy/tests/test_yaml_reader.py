@@ -27,6 +27,7 @@ import unittest
 from datetime import datetime
 from tempfile import mkdtemp
 
+import numpy as np
 from mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
@@ -39,6 +40,8 @@ class FakeFH(object):
         self.start_time = start_time
         self.end_time = end_time
         self.get_bounding_box = MagicMock()
+        self.get_dataset = MagicMock()
+        self.combine_info = MagicMock()
 
 
 class TestUtils(unittest.TestCase):
@@ -704,6 +707,44 @@ class TestFileFileYAMLReader(unittest.TestCase):
                          resolution=None, polarization=None,
                          calibration=None, modifiers=())
         self.assertEqual(self.reader._get_file_handlers(lons), None)
+
+    def test_get_shape_slices(self):
+        """Test getting the dataset shape and slices."""
+        all_shapes = [[2, 5], [3, 5], [4, 5]]
+
+        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes)
+
+        self.assertListEqual(shape, [9, 5])
+        self.assertEquals(xsl, slice(0, 5))
+        self.assertEquals(ysl, slice(0, 9))
+
+        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes,
+                                                         slice(0, 4),
+                                                         slice(0, 6))
+
+        self.assertListEqual(shape, [6, 4])
+        self.assertEquals(xsl, slice(0, 4))
+        self.assertEquals(ysl, slice(0, 6))
+
+        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes,
+                                                         slice(0, 8),
+                                                         slice(0, 6))
+
+        self.assertListEqual(shape, [6, 5])
+        self.assertEquals(xsl, slice(0, 8))
+        self.assertEquals(ysl, slice(0, 6))
+
+    @patch('satpy.readers.yaml_reader.np.ma.vstack', spec=np.ma.vstack)
+    @patch('satpy.readers.yaml_reader.Dataset')
+    def test_load_entire_dataset(self, Dataset, vstack):
+        file_handlers = [FakeFH(None, None), FakeFH(None, None),
+                         FakeFH(None, None), FakeFH(None, None)]
+
+        proj = self.reader._load_entire_dataset(None, {}, file_handlers)
+
+        self.assertIs(proj, Dataset.return_value)
+
+        Dataset.assert_called_once_with(vstack.return_value)
 
 
 def suite():
