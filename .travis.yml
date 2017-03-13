@@ -16,6 +16,7 @@ install:
 - pip install coveralls
 - pip install pyorbital
 - pip install behave
+- pip install h5netcdf
 addons:
   apt_packages:
     - libhdf5-serial-dev
