@@ -22,12 +22,13 @@
 """The tests package.
 """
 
-import sys
 import logging
+import sys
 
 from satpy.tests import test_readers  # test_viirs_sdr,
 from satpy.tests import (test_dataset, test_helper_functions, test_resample,
                          test_scene, test_writers, test_yaml_reader)
+from satpy.tests.reader_tests import test_abi_l1b
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -49,6 +50,7 @@ def suite():
     mysuite.addTests(test_resample.suite())
     mysuite.addTests(test_yaml_reader.suite())
     mysuite.addTests(test_helper_functions.suite())
+    mysuite.addTest(test_abi_l1b.suite())
 
     return mysuite
 
