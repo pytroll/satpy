@@ -737,6 +737,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.np.ma.vstack', spec=np.ma.vstack)
     @patch('satpy.readers.yaml_reader.Dataset')
     def test_load_entire_dataset(self, Dataset, vstack):
+        """Check loading an entire dataset."""
         file_handlers = [FakeFH(None, None), FakeFH(None, None),
                          FakeFH(None, None), FakeFH(None, None)]
 
