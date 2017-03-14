@@ -139,7 +139,7 @@ class TestVIIRSSDRFileHandler(unittest.TestCase):
         handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
         self.assertEquals(handler.sensor_name, 'viirs')
 
-    def test_get_shape(self):
+    def test_get_shape_rad(self):
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         from satpy.dataset import DatasetID
         handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
@@ -147,6 +147,30 @@ class TestVIIRSSDRFileHandler(unittest.TestCase):
         ds_info = {
             'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
             'units': 'W m-2 um-1 sr-1',
+        }
+        shape = handler.get_shape(i, ds_info)
+        self.assertTupleEqual(shape, (10, 300))
+
+    def test_get_shape_refl(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.dataset import DatasetID
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
+        i = DatasetID(name='I01', wavelength=(0.600, 0.640, 0.680), resolution=371, calibration='reflectance', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_bidirectional_reflectance',
+            'units': '%',
+        }
+        shape = handler.get_shape(i, ds_info)
+        self.assertTupleEqual(shape, (10, 300))
+
+    def test_get_shape_bt(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.dataset import DatasetID
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I4-SDR'})
+        i = DatasetID(name='I04', wavelength=(3.580, 3.740, 3.900), resolution=371, calibration='brightness_temperature', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_brightness_temperature',
+            'units': 'K',
         }
         shape = handler.get_shape(i, ds_info)
         self.assertTupleEqual(shape, (10, 300))
@@ -173,6 +197,113 @@ class TestVIIRSSDRFileHandler(unittest.TestCase):
         ds_info = {
             'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
             'units': 'W m-2 um-1 sr-1',
+        }
+        overall_shape = (10, 300)
+        data = np.empty(overall_shape,
+                        dtype=ds_info.get('dtype', np.float32))
+        mask = np.ma.make_mask_none(overall_shape)
+        info = {}
+        s = Shuttle(data=data, mask=mask, info=info)
+        ds = handler.get_dataset(i, ds_info, out=s)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+        self.assertTupleEqual(np.byte_bounds(ds), np.byte_bounds(data))
+        self.assertTupleEqual(np.byte_bounds(ds.mask), np.byte_bounds(mask))
+
+    def test_dnb_radiance_no_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-DNB-SDR'})
+        i = DatasetID(name='DNB', wavelength=(0.500, 0.700, 0.900), resolution=743, calibration='radiance')
+        ds_info = {
+            'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
+            'units': 'W m-2 sr-1',
+            'file_units': 'W cm-2 sr-1',
+        }
+        ds = handler.get_dataset(i, ds_info)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+
+    def test_dnb_radiance_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.yaml_reader import Shuttle
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-DNB-SDR'})
+        i = DatasetID(name='DNB', wavelength=(0.500, 0.700, 0.900), resolution=743, calibration='radiance')
+        ds_info = {
+            'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
+            'units': 'W m-2 sr-1',
+            'file_units': 'W cm-2 sr-1',
+        }
+        overall_shape = (10, 300)
+        data = np.empty(overall_shape,
+                        dtype=ds_info.get('dtype', np.float32))
+        mask = np.ma.make_mask_none(overall_shape)
+        info = {}
+        s = Shuttle(data=data, mask=mask, info=info)
+        ds = handler.get_dataset(i, ds_info, out=s)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+        self.assertTupleEqual(np.byte_bounds(ds), np.byte_bounds(data))
+        self.assertTupleEqual(np.byte_bounds(ds.mask), np.byte_bounds(mask))
+
+    def test_reflectance_no_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
+        i = DatasetID(name='I01', wavelength=(0.600, 0.640, 0.680), resolution=371, calibration='reflectance', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_bidirectional_reflectance',
+            'units': '%',
+        }
+        ds = handler.get_dataset(i, ds_info)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+
+    def test_reflectance_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.yaml_reader import Shuttle
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
+        i = DatasetID(name='I01', wavelength=(0.600, 0.640, 0.680), resolution=371, calibration='reflectance', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_bidirectional_reflectance',
+            'units': '%',
+        }
+        overall_shape = (10, 300)
+        data = np.empty(overall_shape,
+                        dtype=ds_info.get('dtype', np.float32))
+        mask = np.ma.make_mask_none(overall_shape)
+        info = {}
+        s = Shuttle(data=data, mask=mask, info=info)
+        ds = handler.get_dataset(i, ds_info, out=s)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+        self.assertTupleEqual(np.byte_bounds(ds), np.byte_bounds(data))
+        self.assertTupleEqual(np.byte_bounds(ds.mask), np.byte_bounds(mask))
+
+    def test_bt_no_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I4-SDR'})
+        i = DatasetID(name='I04', wavelength=(3.580, 3.740, 3.900), resolution=371, calibration='brightness_temperature', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_brightness_temperature',
+            'units': 'K',
+        }
+        ds = handler.get_dataset(i, ds_info)
+        self.assertIsInstance(ds, Dataset)
+        self.assertDictContainsSubset(ds_info, ds.info)
+
+    def test_bt_out(self):
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.readers.yaml_reader import Shuttle
+        from satpy.dataset import DatasetID, Dataset
+        handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I4-SDR'})
+        i = DatasetID(name='I04', wavelength=(3.580, 3.740, 3.900), resolution=371, calibration='brightness_temperature', modifiers=('sunz_corrected',))
+        ds_info = {
+            'standard_name': 'toa_brightness_temperature',
+            'units': 'K',
         }
         overall_shape = (10, 300)
         data = np.empty(overall_shape,

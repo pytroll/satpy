@@ -226,4 +226,4 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         })
         ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)
-        return cls(out, **ds_info)
+        return cls(out.data, mask=out.mask, copy=False, **ds_info)
