@@ -37,7 +37,6 @@ import os.path
 from datetime import datetime, timedelta
 
 import numpy as np
-import six
 
 from satpy.dataset import Dataset
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -185,9 +184,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return file_units
 
-    def get_shape(self, item, ds_info):
-        return self[item + "/shape"]
-
     def scale_swath_data(self, data, mask, scaling_factors):
         """Scale swath data using scaling factors and offsets.
 
@@ -242,23 +238,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
-    # def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-    #     lon_default = 'All_Data/{file_group}_All/Longitude'
-    #     lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
-    #     valid_min = -180.
-    #     valid_max = 180.
-    #     lon_out.data[:] = self[lon_key][:]
-    #     lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
-    #
-    #     lat_default = 'All_Data/{file_group}_All/Latitude'
-    #     lat_key = nav_info.get("latitude_key", lat_default).format(**self.filetype_info)
-    #     valid_min = -90.
-    #     valid_max = 90.
-    #     lat_out.data[:] = self[lat_key][:]
-    #     lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-    #
-    #     return {}
-
     def get_dataset(self, dataset_id, ds_info, out=None):
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
@@ -284,11 +263,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             fill_min = int(ds_info.pop("fill_min_int", 65528))
             out.mask[:] |= out.data >= fill_min
 
-        factors = None
-        try:
-            factors = self[factor_var_path]
-        except KeyError:
-            pass
+        factors = self.get(factor_var_path)
         if factors is None:
             LOG.debug("No scaling factors found for %s", dataset_id)
 

@@ -100,7 +100,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: "%"
+        units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -114,7 +114,7 @@ datasets:
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
-        units: "%"
+        units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
