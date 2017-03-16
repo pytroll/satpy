@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015
+# Copyright (c) 2015-2017
 
 # Author(s):
 
@@ -19,12 +19,13 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Composite classes for the VIIRS instrument.
+"""Composite classes for the AHI instrument.
 """
 
 import logging
 
 from pyresample.geometry import AreaDefinition
+
 from satpy.composites import CompositeBase
 from satpy.dataset import Dataset
 
@@ -59,11 +60,13 @@ class Reducer2(CompositeBase):
 
         factor = 2
 
-        # proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
-        newshape = (band.shape[0] / factor, factor,
-                    band.shape[1] / factor, factor)
-        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                       copy=False, **band.info)
+        LOG.info('Reducing datasize by a factor %d.', factor)
+
+        proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
+        # newshape = (band.shape[0] / factor, factor,
+        #            band.shape[1] / factor, factor)
+        # proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+        #               copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,
@@ -86,11 +89,13 @@ class Reducer4(CompositeBase):
 
         factor = 4
 
-        #proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
-        newshape = (band.shape[0] / factor, factor,
-                    band.shape[1] / factor, factor)
-        proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
-                       copy=False, **band.info)
+        LOG.info('Reducing datasize by a factor %d.', factor)
+
+        proj = Dataset(band[::factor, ::factor], copy=False, **band.info)
+        # newshape = (band.shape[0] / factor, factor,
+        #            band.shape[1] / factor, factor)
+        # proj = Dataset(band.reshape(newshape).mean(axis=3).mean(axis=1),
+        #               copy=False, **band.info)
 
         old_area = proj.info['area']
         proj.info['area'] = AreaDefinition(old_area.area_id,
