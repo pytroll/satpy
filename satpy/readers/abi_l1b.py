@@ -87,32 +87,8 @@ class NC_ABI_L1B(BaseFileHandler):
 
         return out
 
-    def calc_area_extent(self, key):
-        # Calculate the area extent of the swath based on start line and column
-        # information, total number of segments and channel resolution
-        xyres = {500: 22272, 1000: 11136, 2000: 5568}
-        chkres = xyres[key.resolution]
-        logger.debug(chkres)
-        logger.debug("ROW/COLS: %d / %d" % (self.nlines, self.ncols))
-        logger.debug("START/END ROW: %d / %d" % (self.startline, self.endline))
-        logger.debug("START/END COL: %d / %d" % (self.startcol, self.endcol))
-        total_segments = 70
-
-        # Calculate full globe line extent
-        max_y = 5432229.9317116784
-        min_y = -5429229.5285458621
-        full_y = max_y + abs(min_y)
-        # Single swath line extent
-        res_y = full_y / chkres  # Extent per pixel resolution
-        startl = min_y + res_y * self.startline - 0.5 * (res_y)
-        endl = min_y + res_y * self.endline + 0.5 * (res_y)
-        logger.debug("START / END EXTENT: %d / %d" % (startl, endl))
-
-        chk_extent = (-5432229.9317116784, endl,
-                      5429229.5285458621, startl)
-        return(chk_extent)
-
     def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
         projection = self.nc["goes_imager_projection"]
         a = projection.attrs['semi_major_axis'][...]
         h = projection.attrs['perspective_point_height'][...]
@@ -181,7 +157,8 @@ class NC_ABI_L1B(BaseFileHandler):
         return 'K'
 
     def calibrate(self, data):
-        logger.debug("CALIBRATE")
+        """Calibrate the data."""
+        logger.debug("Calibrate")
 
         ch = self.nc["band_id"][()]
         if ch < 7:

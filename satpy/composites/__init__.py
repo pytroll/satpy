@@ -308,6 +308,7 @@ class PSPRayleighReflectance(CompositeBase):
             from pyorbital.orbital import get_observer_look
             sunalt, suna = get_alt_az(
                 vis.info['start_time'], *vis.info['area'].get_lonlats())
+            suna = np.rad2deg(suna)
             sunz = sun_zenith_angle(
                 vis.info['start_time'], *vis.info['area'].get_lonlats())
             lons, lats = vis.info['area'].get_lonlats()
@@ -317,11 +318,12 @@ class PSPRayleighReflectance(CompositeBase):
                                             vis.info['start_time'],
                                             lons, lats, 0)
             satz = 90 - satel
-
+            del satel
         LOG.info('Removing Rayleigh scattering')
 
         ssadiff = np.abs(suna - sata)
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+        del sata, suna
 
         corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
                              atmosphere='us-standard', rural_aerosol=False)
