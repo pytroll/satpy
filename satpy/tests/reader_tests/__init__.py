@@ -23,7 +23,9 @@
 """
 
 import sys
-from satpy.tests.reader_tests import test_viirs_sdr, test_abi_l1b
+
+from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
+                                      test_viirs_sdr)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -35,5 +37,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_abi_l1b.suite())
     mysuite.addTests(test_viirs_sdr.suite())
+    mysuite.addTests(test_hrit_base.suite())
 
     return mysuite
