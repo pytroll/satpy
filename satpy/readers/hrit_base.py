@@ -28,8 +28,8 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -98,8 +98,8 @@ base_hdr_map = {0: primary_header,
 
 def dec10216(inbuf):
     arr10 = inbuf.astype(np.uint16)
-    arr16 = np.zeros((len(arr10) * 4 / 5,), dtype=np.uint16)
-    arr10_len = (len(arr16) * 5) / 4
+    arr16 = np.zeros((int(len(arr10) * 4 / 5),), dtype=np.uint16)
+    arr10_len = int((len(arr16) * 5) / 4)
     arr10 = arr10[:arr10_len]  # adjust size
     """
     /*
@@ -129,8 +129,7 @@ def dec10216(inbuf):
 
 class HRITFileHandler(BaseFileHandler):
 
-    """HRIT standard format reader
-    """
+    """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the reader."""
@@ -256,8 +255,8 @@ class HRITFileHandler(BaseFileHandler):
         ncols = int(self.mda['number_of_columns'])
 
         segment_number = self.mda['segment_sequence_number']
-        total_segments = self.mda[
-            'planned_end_segment_number'] - self.mda['planned_start_segment_number'] + 1
+        total_segments = (self.mda['planned_end_segment_number'] -
+                          self.mda['planned_start_segment_number'] + 1)
 
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
