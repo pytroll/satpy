@@ -57,7 +57,9 @@ class TestHRITFileHandler(unittest.TestCase):
         m = mock.mock_open()
         fromfile.return_value = np.array([(1, 2)], dtype=[('total_header_length', int),
                                                           ('hdr_id', int)])
-        with mock.patch('satpy.readers.hrit_base.open', m, create=True):
+
+        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
+            newopen.return_value.__enter__.return_value.tell.return_value = 1
             self.reader = HRITFileHandler('filename',
                                           {'platform_shortname': 'MSG3',
                                            'start_time': datetime(2016, 3, 3, 0, 0)},
