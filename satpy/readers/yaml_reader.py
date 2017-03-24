@@ -35,8 +35,8 @@ from fnmatch import fnmatch
 import numpy as np
 import six
 import yaml
-from pyresample.geometry import AreaDefinition
 
+from pyresample.geometry import AreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
@@ -264,8 +264,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         new_datasets = []
 
+        for cal in calibrations:
+            for ds_id in datasets:
+                if ds_id.calibration == cal:
+                    new_datasets.append(ds_id)
         for ds_id in datasets:
-            if (ds_id.calibration in calibrations or
+            if (ds_id not in new_datasets and
                     (ds_id.calibration is None and calibration is None)):
                 new_datasets.append(ds_id)
         return new_datasets
