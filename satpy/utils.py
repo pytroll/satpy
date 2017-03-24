@@ -31,12 +31,16 @@
 """Module defining various utilities.
 """
 
+import logging
 import os
+import re
+
+import numpy as np
+
 try:
     import configparser
 except:
     from six.moves import configparser
-import logging
 
 
 class OrderedConfigParser(object):
@@ -142,7 +146,6 @@ def get_logger(name):
 
 ###
 
-import re
 
 
 def strftime(utctime, format_string):
@@ -161,3 +164,35 @@ def strftime(utctime, format_string):
     for i in re.finditer("%\w", format_string):
         res = res.replace(i.group(), utctime.strftime(i.group()))
     return res
+
+# Spherical conversions
+
+
+def lonlat2xyz(lon, lat):
+    lat = np.deg2rad(lat)
+    lon = np.deg2rad(lon)
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+
+
+def xyz2lonlat(x, y, z):
+    lon = np.rad2deg(np.arctan2(y, x))
+    lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    return lon, lat
+
+
+def angle2xyz(azi, zen):
+    azi = np.deg2rad(azi)
+    zen = np.deg2rad(zen)
+    x = np.sin(zen) * np.sin(azi)
+    y = np.sin(zen) * np.cos(azi)
+    z = np.cos(zen)
+    return x, y, z
+
+
+def xyz2angle(x, y, z):
+    azi = np.rad2deg(np.arctan2(x, y))
+    zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
+    return azi, zen

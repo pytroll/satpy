@@ -30,10 +30,11 @@ from datetime import datetime, timedelta
 
 import h5py
 import numpy as np
-from pyresample.geometry import SwathDefinition
 
+from pyresample.geometry import SwathDefinition
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
 
 try:
     import tables
@@ -411,36 +412,6 @@ def expand_array(data,
              ((1 - a_scan) * data_a + a_scan * data_b) + a_track * (
                  (1 - a_scan) * data_d + a_scan * data_c))
     return fdata.reshape(scans * scan_size, nties * tpz_size)
-
-
-def lonlat2xyz(lon, lat):
-    lat = np.deg2rad(lat)
-    lon = np.deg2rad(lon)
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-    return x, y, z
-
-
-def xyz2lonlat(x, y, z):
-    lon = np.rad2deg(np.arctan2(y, x))
-    lat = np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
-    return lon, lat
-
-
-def angle2xyz(azi, zen):
-    azi = np.deg2rad(azi)
-    zen = np.deg2rad(zen)
-    x = np.sin(zen) * np.sin(azi)
-    y = np.sin(zen) * np.cos(azi)
-    z = np.cos(zen)
-    return x, y, z
-
-
-def xyz2angle(x, y, z):
-    azi = np.rad2deg(np.arctan2(x, y))
-    zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
-    return azi, zen
 
 
 def navigate_dnb(h5f):
