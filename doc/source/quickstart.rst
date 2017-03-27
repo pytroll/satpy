@@ -22,14 +22,14 @@ files, or the `base_dir` keyword argument has to be provided on scene creation::
     >>> from satpy import Scene
     >>> from datetime import datetime
     >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", reader="hrit_msg", start_time=datetime(2015, 4, 20, 10, 0))
 
 or::
 
     >>> from satpy.scene import Scene
     >>> from datetime import datetime
     >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
+    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", reader="hrit_msg", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
     >>>
 
 For some platforms, it might be necessary to also specify an `end_time`::
@@ -69,7 +69,7 @@ list of wavelengths in micrometers. Another way to load the channels is to provi
 To have a look at the available bands you should be able to load with your `Scene` object, you can call the
 :meth:`available_datasets` method::
 
-    >>> global_scene.available_datasets()
+    >>> global_scene.available_dataset_names()
 
     [u'HRV',
      u'IR_108',
