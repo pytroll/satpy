@@ -33,8 +33,8 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function, make_time_cds_short,
@@ -286,21 +286,6 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
-
-    def get_area_extent(self, size, offsets, factors, platform_height):
-        """Get the area extent of the file."""
-        aex = super(HRITGOMSFileHandler, self).get_area_extent(size,
-                                                               offsets,
-                                                               factors,
-                                                               platform_height)
-
-        if self.start_time < datetime(2037, 1, 24):
-            xadj = 1500
-            yadj = 1500
-            aex = (aex[0] + xadj, aex[1] + yadj,
-                   aex[2] + xadj, aex[3] + yadj)
-
-        return aex
 
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
