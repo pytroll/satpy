@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2010-2017
 
 # Author(s):
 
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
@@ -794,12 +792,37 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         return pacqtime['ForwardScanEnd']
 
+    def get_xy_from_linecol(self, line, col, offsets, factors):
+        """Get the intermediate coordinates from line & col.
+
+        Intermediate coordinates are actually the instruments scanning angles.
+        """
+        loff, coff = offsets
+        lfac, cfac = factors
+        x__ = (col - coff) / cfac * 2**16
+        y__ = - (line - loff) / lfac * 2**16
+
+        return x__, y__
+
     def get_area_extent(self, size, offsets, factors, platform_height):
         """Get the area extent of the file."""
-        aex = super(HRITMSGFileHandler, self).get_area_extent(size,
-                                                              offsets,
-                                                              factors,
-                                                              platform_height)
+        nlines, ncols = size
+        h = platform_height
+
+        loff, coff = offsets
+        loff -= nlines
+        offsets = loff, coff
+        # count starts at 1
+        cols = 1 - 0.5
+        lines = 1 - 0.5
+        ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
+
+        cols += ncols
+        lines += nlines
+        ur_x, ur_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
+
+        aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
+               np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
         if self.start_time < datetime(2037, 1, 24):
             xadj = 1500
