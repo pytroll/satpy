@@ -58,9 +58,9 @@ image_navigation = np.dtype([('projection_name', 'S32'),
                              ('coff', '>i4'),
                              ('loff', '>i4')])
 
-image_data_function = np.dtype('|S1')
+image_data_function = np.dtype([('function', '|S1')])
 
-annotation_header = np.dtype('|S1')
+annotation_header = np.dtype([('annotation', '|S1')])
 
 time_cds_short = np.dtype([('days', '>u2'),
                            ('milliseconds', '>u4')])
@@ -74,9 +74,9 @@ def make_time_cds_short(tcds_array):
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
 
-ancillary_text = np.dtype('|S1')
+ancillary_text = np.dtype([('ancillary', '|S1')])
 
-key_header = np.dtype('|S1')
+key_header = np.dtype([('key', '|S1')])
 
 base_variable_length_headers = {}
 
@@ -144,7 +144,6 @@ class HRITFileHandler(BaseFileHandler):
             total_header_length = 16
             while fp.tell() < total_header_length:
                 hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
-
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = (
@@ -157,7 +156,8 @@ class HRITFileHandler(BaseFileHandler):
                 elif the_type in text_headers:
                     field_length = (
                         hdr_id['record_length'] - 3) / the_type.itemsize
-                    new_type = np.dtype(the_type.char + str(field_length))
+                    char = the_type.fields.values()[0][0].char
+                    new_type = np.dtype(char + str(field_length))
                     current_hdr = np.fromfile(fp,
                                               dtype=new_type,
                                               count=1)[0]
@@ -179,6 +179,8 @@ class HRITFileHandler(BaseFileHandler):
                 self._end_time = self.mda['timestamp']
             except KeyError:
                 self._end_time = self._start_time + timedelta(minutes=15)
+
+            self.mda.setdefault('number_of_bits_per_pixel', 10)
 
             self.mda['projection_parameters'] = {'a': 6378169.00,
                                                  'b': 6356583.80,
@@ -289,10 +291,17 @@ class HRITFileHandler(BaseFileHandler):
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
-                self.mda['data_field_length'] / 8.)))
-            out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
-                                                  self.mda['number_of_columns']))[yslice, xslice] * 1.0
+            if self.mda['number_of_bits_per_pixel'] == 10:
+                data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
+                    self.mda['data_field_length'] / 8.)))
+                out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
+                                                      self.mda['number_of_columns']))[yslice, xslice] * 1.0
+            elif self.mda['number_of_bits_per_pixel'] == 16:
+                data = np.fromfile(fp_, dtype='>u2', count=int(np.ceil(
+                    self.mda['data_field_length'] / 8.)))
+
+                out.data[:] = data.reshape((self.mda['number_of_lines'],
+                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
             out.mask[:] = out.data == 0
         logger.debug("Reading time " + str(datetime.now() - tic))
 
