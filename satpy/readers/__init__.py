@@ -231,6 +231,37 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__delitem__(key)
 
 
+def read_reader_config(config_files):
+    """Read the reader *config_files* and return the info extracted.
+    """
+
+    conf = {}
+    LOG.debug('Reading ' + str(config_files))
+    for config_file in config_files:
+        with open(config_file) as fd:
+            conf.update(yaml.load(fd.read()))
+
+    try:
+        reader_info = conf['reader']
+    except KeyError:
+        raise MalformedConfigError(
+            "Malformed config file {}: missing reader 'reader'".format(
+                config_files))
+    reader_info['config_files'] = config_files
+    return reader_info
+
+
+def load_reader(reader_configs, **reader_kwargs):
+    """Import and setup the reader from *reader_info*
+    """
+    reader_info = read_reader_config(reader_configs)
+    reader_instance = reader_info['reader'](
+        config_files=reader_configs,
+        **reader_kwargs
+    )
+    return reader_instance
+
+
 class ReaderFinder(object):
     """Find readers given a scene, filenames, sensors, and/or a reader_name
     """
@@ -283,20 +314,12 @@ class ReaderFinder(object):
                 continue
 
             try:
-                reader_info = self._read_reader_config(reader_configs)
-            except (MalformedConfigError, yaml.YAMLError) as err:
-                LOG.info('Cannot use %s', str(reader_configs))
-                LOG.debug(str(err))
-                continue
-            try:
-                reader_instance = reader_info['reader'](
-                    config_files=reader_configs,
-                    start_time=self.start_time,
-                    end_time=self.end_time,
-                    area=self.area,
-                    **reader_kwargs
-                )
-            except KeyError as err:
+                reader_instance = load_reader(reader_configs,
+                                              start_time=self.start_time,
+                                              end_time=self.end_time,
+                                              area=self.area,
+                                              **reader_kwargs)
+            except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
                 LOG.info('Cannot use %s', str(reader_configs))
                 LOG.debug(str(err))
                 continue
@@ -329,36 +352,3 @@ class ReaderFinder(object):
     def config_files(self):
         return glob_config(
             os.path.join("readers", "*.yaml"), self.ppp_config_dir)
-
-    def _read_reader_config(self, config_files):
-        """Read the reader *config_files* and return the info extracted.
-        """
-
-        conf = {}
-        LOG.debug('Reading ' + str(config_files))
-        for config_file in config_files:
-            with open(config_file) as fd:
-                conf.update(yaml.load(fd.read()))
-
-        try:
-            reader_info = conf['reader']
-        except KeyError:
-            raise MalformedConfigError(
-                "Malformed config file {}: missing reader 'reader'".format(
-                    config_files))
-        reader_info['config_files'] = config_files
-        return reader_info
-
-    @staticmethod
-    def _load_reader(reader_info):
-        """Import and setup the reader from *reader_info*
-        """
-        try:
-            loader = runtime_import(reader_info["reader"])
-        except ImportError as err:
-            raise ImportError(
-                "Could not import reader class '{}' for reader '{}': {}".format(
-                    reader_info["reader"], reader_info["name"], str(err)))
-        reader_instance = loader(reader_info['config_files'])
-
-        return reader_instance

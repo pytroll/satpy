@@ -153,10 +153,10 @@ class TestReaders(unittest.TestCase):
     #         return []
     #
     #     with mock.patch.multiple("satpy.readers.ReaderFinder",
-    #                              _read_reader_config=mock.DEFAULT,
+    #                              read_reader_config=mock.DEFAULT,
     #                              get_filenames=mock.DEFAULT,
-    #                              _load_reader=mock.DEFAULT) as mock_objs:
-    #         mock_objs["_read_reader_config"].side_effect = fake_read_config
+    #                              load_reader=mock.DEFAULT) as mock_objs:
+    #         mock_objs["read_reader_config"].side_effect = fake_read_config
     #         mock_objs["get_filenames"].side_effect = fake_get_filenames
     #
     #         scn = Scene()
