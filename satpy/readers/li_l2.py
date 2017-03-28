@@ -25,15 +25,13 @@
 """Interface to MTG-LI L2 product NetCDF files
 
 The reader is based on preliminary test data provided by EUMETSAT.
-The data description is described in the 
+The data description is described in the
     "LI L2 Product User Guide [LIL2PUG] Draft version" documentation
 """
 import h5netcdf
 import logging
 import numpy as np
-import os.path
-from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
@@ -47,22 +45,29 @@ class LIFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(LIFileHandler, self).__init__(filename, filename_info,
-                                        filetype_info)
-        logger.debug("READING: %s" % filename)
-        logger.debug("START: %s" % self.start_time)
-        logger.debug("END: %s" % self.end_time)
-        
+                                            filetype_info)
+
         self.nc = h5netcdf.File(filename, 'r')
+        # Get grid dimensions from file
+        refdim = self.nc['grid_position'][:]
+        # Get number of lines and columns
+        self.nlines = int(refdim[2])
+        self.ncols = int(refdim[3])
         self.filename = filename
         self.cache = {}
+        logger.debug('Dimension : {}'.format(refdim))
+        logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
+        logger.debug('Reading: {}'.format(filename))
+        logger.debug('Start: {}'.format(self.start_time))
+        logger.debug('End: {}'.format(self.end_time))
 
     @property
     def start_time(self):
-        return self.filename_info['start_time']
+        return datetime.strptime(self.nc.attrs['sensing_start'], '%Y%m%d%H%M%S')
 
     @property
     def end_time(self):
-        return self.filename_info['end_time']
+        return datetime.strptime(self.nc.attrs['end_time'], '%Y%m%d%H%M%S')
 
     def get_dataset(self, key, info=None):
         """Load a dataset
@@ -77,15 +82,11 @@ class LIFileHandler(BaseFileHandler):
                     "lef": "radiance",
                     "lfl": "radiance"}
 
-        #Get lightning data out of NetCDF container
-        logger.debug("KEY: %s" % key.name)
-        # Get grid dimensions from file
-        refdim = self.nc['grid_position'][:]
-        # Get number of lines and columns
-        self.nlines = int(refdim[2])
-        self.ncols = int(refdim[3])
+        # Get lightning data out of NetCDF container
+        logger.debug("Key: {}".format(key.name))
+
         # Create reference grid
-        grid = np.full((refdim[2], refdim[3]), np.NaN)
+        grid = np.full((self.nlines, self.ncols), np.NaN)
         # Get product value
         values = self.nc[typedict[key.name]][:]
         rows = self.nc['row'][:]
@@ -96,18 +97,15 @@ class LIFileHandler(BaseFileHandler):
         np.put(grid, ids, values)
         # Correct for bottom left origin in LI row/column indices.
         rotgrid = np.flipud(grid)
-        logger.debug('DATA SHAPE: %s' % str(rotgrid.shape))
+        logger.debug('Data shape: {}'.format(str(rotgrid.shape)))
         # Rotate the grid by 90 degree clockwise
         logger.warning("LI data has been roteted to fit to reference grid. \
                         Works only for test dataset")
         rotgrid = np.rot90(rotgrid, 3)
 
-        logger.debug('[ Dimension ] : %s' % (refdim))
-        logger.debug("ROW/COLS: %d / %d" % (self.nlines, self.ncols))
-        logger.debug('[ Number of values ] : %d' % (len(values)))
-        logger.debug('[Min/Max] : <%d> / <%d>' % (np.min(values), np.max(values)))
-        logger.debug("START: %s" % self.start_time)
-        logger.debug("END: %s" % self.end_time)
+        logger.debug('[ Number of values ] : {}'.format((len(values))))
+        logger.debug('[Min/Max] : <{}> / <{}>'.format(np.min(values),
+                                                      np.max(values)))
         ds = (np.ma.masked_invalid(rotgrid[:]))
         # Create projectable object
         out = Dataset(ds, dtype=np.float32)
@@ -115,18 +113,18 @@ class LIFileHandler(BaseFileHandler):
 
         return(out)
 
-    def get_area_def(self, key, info):
+    def get_area_def(self, key, info=None):
         """ Projection information are hard coded for 0 degree geos projection
         Test dataset doen't provide the values in the file container.
         Only fill values are inserted
         """
         # TODO Get projection information from input file
         a = 6378169.
-        h=35785831.
-        b=6356583.8
+        h = 35785831.
+        b = 6356583.8
         lon_0 = 0.
         area_extent = (-5432229.9317116784, -5429229.5285458621,
-                        5429229.5285458621, 5432229.9317116784)
+                       5429229.5285458621, 5432229.9317116784)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -136,15 +134,13 @@ class LIFileHandler(BaseFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'Test_area_name',
-            "Test area",
+            'LI_area_name',
+            "LI area",
             'geosli',
             proj_dict,
             self.ncols,
             self.nlines,
             area_extent)
-
         self.area = area
 
         return area
-
