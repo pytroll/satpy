@@ -227,12 +227,12 @@ class NativeMSGFileHandler(BaseFileHandler):
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key not in ['HRV']:
-            ch_idn = self.channel_order_list.index(key)
+        if key.name not in ['HRV']:
+            ch_idn = self.channel_order_list.index(key.name)
             data = dec10to16(
                 self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
 
-            return Dataset(data, dtype=np.float32)
+            res = Dataset(data, dtype=np.float32)
         else:
             raise NotImplementedError("HRV not supported yet...!")
 
@@ -270,7 +270,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         coeffs = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['Level15ImageCalibration']
 
-        channel_index = self.channel_order_list.index(key)
+        channel_index = self.channel_order_list.index(key.name)
 
         gain = coeffs['CalSlope'][0][channel_index]
         offset = coeffs['CalOffset'][0][channel_index]
@@ -287,7 +287,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _tl15(self, data, key):
         """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][key]["VC"]
+        wavenumber = CALIB[self.platform_id][key.name]["VC"]
         data.data[:] **= -1
         data.data[:] *= C1 * wavenumber ** 3
         data.data[:] += 1
@@ -297,7 +297,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _erads2bt(self, data, key):
         """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][key]
+        cal_info = CALIB[self.platform_id][key.name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
 
@@ -308,7 +308,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _srads2bt(self, data, key):
         """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[key]
+        coef_a, coef_b, coef_c = BTFIT[key.name]
 
         self._tl15(data, key)
 
@@ -319,7 +319,7 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _ir_calibrate(self, data, key):
         """IR calibration."""
 
-        channel_index = self.channel_order_list.index(key)
+        channel_index = self.channel_order_list.index(key.name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
             'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
