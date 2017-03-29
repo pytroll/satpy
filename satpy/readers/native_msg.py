@@ -43,9 +43,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
-# Sauli says we need to get rid of mipp! FIXME!
-from mipp import get_cds_time
-from mipp import dec10to16
+from satpy.readers.msg_base import get_cds_time
+from satpy.readers.msg_base import dec10to16
 
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -235,7 +234,24 @@ class NativeMSGFileHandler(BaseFileHandler):
             data = np.ma.masked_array(data, mask=(data == 0))
             res = Dataset(data, dtype=np.float32)
         else:
-            raise NotImplementedError("HRV not supported yet...!")
+            data2 = dec10to16(
+                self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
+            data1 = dec10to16(
+                self.memmap["hrv"]["line_data"][:, 1, :])[::-1, ::-1]
+            data0 = dec10to16(
+                self.memmap["hrv"]["line_data"][:, 0, :])[::-1, ::-1]
+            # Make empty array:
+            shape = data0.shape[0] * 3, data0.shape[1]
+            data = np.zeros(shape)
+            idx = range(0, shape[0], 3)
+            data[idx, :] = data2
+            idx = range(1, shape[0], 3)
+            data[idx, :] = data1
+            idx = range(2, shape[0], 3)
+            data[idx, :] = data0
+
+            data = np.ma.masked_array(data, mask=(data == 0))
+            res = Dataset(data, dtype=np.float32)
 
         if res is not None:
             out = res
