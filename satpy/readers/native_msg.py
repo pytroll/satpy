@@ -232,6 +232,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             data = dec10to16(
                 self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
 
+            data = np.ma.masked_array(data, mask=(data == 0))
             res = Dataset(data, dtype=np.float32)
         else:
             raise NotImplementedError("HRV not supported yet...!")
@@ -259,7 +260,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             self.convert_to_radiance(data, key)
         if calibration == 'reflectance':
-            self._vis_calibrate(data)
+            self._vis_calibrate(data, key)
         elif calibration == 'brightness_temperature':
             self._ir_calibrate(data, key)
 
@@ -280,11 +281,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         data.data[:] += offset
         data.data[data.data < 0] = 0
 
-    def _vis_calibrate(self, data):
+    def _vis_calibrate(self, data, key):
         """Visible channel calibration only."""
-        # solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        # data.data[:] *= 100 / solar_irradiance
-        pass
+        solar_irradiance = CALIB[self.platform_id][key.name]["F"]
+        data.data[:] *= 100 / solar_irradiance
 
     def _tl15(self, data, key):
         """Compute the L15 temperature."""
