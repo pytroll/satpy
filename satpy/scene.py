@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2016
+# Copyright (c) 2010-2017
 #
 # Author(s):
 #
@@ -43,6 +43,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Scene(InfoObject):
+
     """The almighty scene class."""
 
     def __init__(self,
@@ -178,8 +179,8 @@ class Scene(InfoObject):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
         available_datasets = sorted([dataset_id
-                              for reader in readers
-                              for dataset_id in reader.available_dataset_ids])
+                                     for reader in readers
+                                     for dataset_id in reader.available_dataset_ids])
         if composites:
             available_datasets += sorted(self.available_composite_ids(
                 available_datasets))
@@ -229,10 +230,12 @@ class Scene(InfoObject):
                     "'available_datasets' must all be DatasetID objects")
 
         all_comps = self.all_composite_ids()
-        # recreate the dependency tree so it doesn't interfere with the user's wishlist
+        # recreate the dependency tree so it doesn't interfere with the user's
+        # wishlist
         comps, mods = self.cpl.load_compositors(self.info['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
-        unknowns = dep_tree.find_dependencies(set(available_datasets + all_comps))
+        unknowns = dep_tree.find_dependencies(
+            set(available_datasets + all_comps))
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
@@ -252,7 +255,8 @@ class Scene(InfoObject):
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
         for sensor_name in sensor_names:
-            compositors.extend(self.cpl.compositors.get(sensor_name, {}).keys())
+            compositors.extend(
+                self.cpl.compositors.get(sensor_name, {}).keys())
         return sorted(set(compositors))
 
     def all_composite_names(self, sensor_names=None):
@@ -312,6 +316,7 @@ class Scene(InfoObject):
         """Read the given datasets from file."""
         # Sort requested datasets by reader
         reader_datasets = {}
+
         for node in dataset_nodes:
             ds_id = node.name
             if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
@@ -483,7 +488,8 @@ class Scene(InfoObject):
         if compute:
             keepables = self.compute()
         missing_str = ", ".join(map(str, self.missing_datasets))
-        LOG.warning("The following datasets were not created: {}".format(missing_str))
+        LOG.warning(
+            "The following datasets were not created: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -516,10 +522,12 @@ class Scene(InfoObject):
         # resolutions, etc.)
         keepables = None
         if compute:
-            nodes = [self.dep_tree[i] for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
+            nodes = [self.dep_tree[i]
+                     for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
         missing_str = ", ".join(map(str, new_scn.missing_datasets))
-        LOG.warning("The following datasets were not created: {}".format(missing_str))
+        LOG.warning(
+            "The following datasets were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 
