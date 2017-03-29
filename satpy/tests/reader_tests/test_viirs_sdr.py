@@ -3,6 +3,7 @@
 """Module for testing the satpy.readers.viirs_sdr module.
 """
 
+import os
 import sys
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -24,36 +25,6 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-def _setup_file_keys():
-    from satpy.readers.viirs_sdr import FileKey
-    file_keys = [
-        FileKey("beginning_date", "AggregateBeginningDate"),
-        FileKey("beginning_time", "AggregateBeginningTime"),
-        FileKey("ending_date", "AggregateEndingDate"),
-        FileKey("ending_time", "AggregateEndingTime"),
-        FileKey("gring_longitude", "G-Ring_Longitude"),
-        FileKey("gring_latitude", "G-Ring_Latitude"),
-        FileKey("beginning_orbit_number", "AggregateBeginningOrbitNumber"),
-        FileKey("ending_orbit_number", "AggregateEndingOrbitNumber"),
-        FileKey("instrument_short_name", "Instrument_Short_Name"),
-        FileKey("platform_short_name", "Platform_Short_Name"),
-        FileKey("geo_file_reference", "N_GEO_Ref"),
-        FileKey("radiance", "Radiance", factor="radiance_factors", units="W m-2 sr-1"),
-        FileKey("radiance_factors", "RadianceFactors"),
-        FileKey("reflectance", "Reflectance", factor="reflectance_factors", units="%"),
-        FileKey("reflectance_factors", "ReflectanceFactors"),
-        FileKey("brightness_temperature", "BrightnessTemperature", factor="bt_factors", units="K"),
-        FileKey("bt_factors", "BrightnessTemperatureFactors"),
-        FileKey("unknown_data", "FakeData", factor="bad_factors"),
-        FileKey("unknown_data2", "FakeData", file_units="fake", dtype="int64"),
-        FileKey("unknown_data3", "FakeDataFloat", factor="nonexistent"),
-        FileKey("bad_factors", "BadFactors"),
-        FileKey("longitude", "Longitude"),
-        FileKey("latitude", "Latitude"),
-    ]
-    return dict((x.name, x) for x in file_keys)
-
-
 class FakeHDF5FileHandler(HDF5FileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
@@ -65,9 +36,9 @@ class FakeHDF5FileHandler(HDF5FileHandler):
         prefix2 = '{prefix}/{file_group}_Aggr'.format(prefix=prefix1, **filetype_info)
         prefix3 = 'All_Data/{file_group}_All'.format(**filetype_info)
         file_content = {
-            "{prefix2}/attr/AggregateBeginningDate": "20150101",
+            "{prefix2}/attr/AggregateBeginningDate": "20120225",
             "{prefix2}/attr/AggregateBeginningTime": begin_times[offset],
-            "{prefix2}/attr/AggregateEndingDate": "20150101",
+            "{prefix2}/attr/AggregateEndingDate": "20120225",
             "{prefix2}/attr/AggregateEndingTime": end_times[offset],
             "{prefix2}/attr/G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
             "{prefix2}/attr/G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
@@ -120,8 +91,8 @@ class TestVIIRSSDRFileHandler(unittest.TestCase):
     def test_start_end_time(self):
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         handler = VIIRSSDRFileHandler('fake.h5', {}, {'file_group': 'VIIRS-I1-SDR'})
-        self.assertEquals(handler.start_time, datetime(2015, 1, 1, 10, 0, 12, 500000))
-        self.assertEquals(handler.end_time, datetime(2015, 1, 1, 11, 0, 10, 600000))
+        self.assertEquals(handler.start_time, datetime(2012, 2, 25, 10, 0, 12, 500000))
+        self.assertEquals(handler.end_time, datetime(2012, 2, 25, 11, 0, 10, 600000))
 
     def test_start_end_orbit(self):
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
@@ -316,6 +287,68 @@ class TestVIIRSSDRFileHandler(unittest.TestCase):
         self.assertDictContainsSubset(ds_info, ds.info)
         self.assertTupleEqual(np.byte_bounds(ds), np.byte_bounds(data))
         self.assertTupleEqual(np.byte_bounds(ds.mask), np.byte_bounds(mask))
+
+
+class TestVIIRSSDRReader(unittest.TestCase):
+    yaml_file = "viirs_sdr.yaml"
+
+    def setUp(self):
+        from satpy.config import config_search_paths
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.p = mock.patch('satpy.readers.hdf5_utils.HDF5FileHandler', FakeHDF5FileHandler)
+        self.fake_hdf5 = self.p.start()
+
+    def tearDown(self):
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
+    def test_init_start_time_beyond(self):
+        """Test basic init with start_time after the provided files."""
+        from satpy.readers import load_reader
+        from datetime import datetime
+        r = load_reader(self.reader_configs,
+                        start_time=datetime(2012, 2, 26))
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertTrue(len(loadables), 0)
+
+    def test_init_end_time_beyond(self):
+        """Test basic init with end_time before the provided files."""
+        from satpy.readers import load_reader
+        from datetime import datetime
+        r = load_reader(self.reader_configs,
+                        end_time=datetime(2012, 2, 24))
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertTrue(len(loadables), 0)
+
+    def test_init_start_end_time(self):
+        """Test basic init with end_time before the provided files."""
+        from satpy.readers import load_reader
+        from datetime import datetime
+        r = load_reader(self.reader_configs,
+                        start_time=datetime(2012, 2, 24),
+                        end_time=datetime(2012, 2, 26))
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
 
 # class TestHDF5MetaData(unittest.TestCase):
 #     def test_init_doesnt_exist(self):
@@ -854,5 +887,6 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRFileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))
 
     return mysuite

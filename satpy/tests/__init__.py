@@ -27,7 +27,8 @@ import sys
 
 from satpy.tests import (reader_tests, test_dataset, test_file_handlers,
                          test_helper_functions, test_readers, test_resample,
-                         test_scene, test_writers, test_yaml_reader)
+                         test_scene, test_utils, test_writers,
+                         test_yaml_reader)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -50,6 +51,7 @@ def suite():
     mysuite.addTests(test_helper_functions.suite())
     mysuite.addTests(reader_tests.suite())
     mysuite.addTests(test_file_handlers.suite())
+    mysuite.addTests(test_utils.suite())
 
     return mysuite
 

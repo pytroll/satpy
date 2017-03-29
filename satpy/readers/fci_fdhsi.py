@@ -25,7 +25,6 @@
 """Interface to MTG-FCI Retrieval NetCDF files
 
 """
-import os.path
 from datetime import datetime, timedelta
 import numpy as np
 from pyresample import geometry
@@ -47,9 +46,9 @@ class FCIFDHSIFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
-        logger.debug("READING: %s" % filename)
-        logger.debug("START: %s" % self.start_time)
-        logger.debug("START: %s" % self.end_time)
+        logger.debug('Reading: {}'.format(filename))
+        logger.debug('Start: {}'.format(self.start_time))
+        logger.debug('End: {}'.format(self.end_time))
 
         self.nc = h5netcdf.File(filename, 'r')
         self.filename = filename
@@ -69,17 +68,11 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         if key in self.cache:
             return self.cache[key]
 
-        logger.debug('Reading %s.', key.name)
-        measured = self.nc['/data/%s/measured' % key.name]
-        variable = self.nc['/data/%s/measured/effective_radiance' % key.name]
-
-        # Get start/end line and column of loaded swath.
-
-        self.startline = int(measured.variables['start_position_row'][...])
-        self.endline = int(measured.variables['end_position_row'][...])
-        self.startcol = int(measured.variables['start_position_column'][...])
-        self.endcol = int(measured.variables['end_position_column'][...])
-
+        logger.debug('Reading {}'.format(key.name))
+        # Get the dataset
+        # Get metadata for given dataset
+        variable = self.nc['/data/{}/measured/effective_radiance'
+                           .format(key.name)]
         ds = (np.ma.masked_equal(variable[:],
                                  variable.attrs['_FillValue']) *
               (variable.attrs['scale_factor'] * 1.0) +
@@ -101,10 +94,24 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # information, total number of segments and channel resolution
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
-        logger.debug(chkres)
-        logger.debug("ROW/COLS: %d / %d" % (self.nlines, self.ncols))
-        logger.debug("START/END ROW: %d / %d" % (self.startline, self.endline))
-        logger.debug("START/END COL: %d / %d" % (self.startcol, self.endcol))
+
+        # Get metadata for given dataset
+        measured = self.nc['/data/{}/measured'.format(key.name)]
+        variable = self.nc['/data/{}/measured/effective_radiance'
+                           .format(key.name)]
+        # Get start/end line and column of loaded swath.
+        self.startline = int(measured.variables['start_position_row'][...])
+        self.endline = int(measured.variables['end_position_row'][...])
+        self.startcol = int(measured.variables['start_position_column'][...])
+        self.endcol = int(measured.variables['end_position_column'][...])
+        self.nlines, self.ncols = variable[:].shape
+
+        logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
+        logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
+        logger.debug('Start/End row: {} / {}'.format(self.startline,
+                                                     self.endline))
+        logger.debug('Start/End col: {} / {}'.format(self.startcol,
+                                                     self.endcol))
         total_segments = 70
 
         # Calculate full globe line extent
@@ -115,13 +122,13 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         res_y = full_y / chkres  # Extent per pixel resolution
         startl = min_y + res_y * self.startline - 0.5 * (res_y)
         endl = min_y + res_y * self.endline + 0.5 * (res_y)
-        logger.debug("START / END EXTENT: %d / %d" % (startl, endl))
+        logger.debug('Start / end extent: {} / {}'.format(startl, endl))
 
         chk_extent = (-5432229.9317116784, endl,
                       5429229.5285458621, startl)
         return(chk_extent)
 
-    def get_area_def(self, key, info):
+    def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection
         for a dataset
         """
@@ -146,7 +153,8 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         #ncols = 5568
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
-        logger.debug("Calculated area extent: %s" % ''.join(str(area_extent)))
+        logger.debug('Calculated area extent: {}'
+                     .format(''.join(str(area_extent))))
 
         #c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
         #ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
@@ -201,13 +209,17 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
         Lv = data.data * \
             self.nc[
-                '/data/%s/measured/radiance_unit_conversion_coefficient' % key.name][...]
+                '/data/{}/measured/radiance_unit_conversion_coefficient'
+                .format(key.name)][...]
 
-        vc = self.nc['/data/%s/central_wavelength_actual' % key.name][...]
+        vc = self.nc['/data/{}/central_wavelength_actual'
+                     .format(key.name)][...]
         a, b, dummy = self.nc[
-            '/data/%s/measured/radiance_to_bt_conversion_coefficients' % key.name][...]
+            '/data/{}/measured/radiance_to_bt_conversion_coefficients'
+            .format(key.name)][...]
         c1, c2 = self.nc[
-            '/data/%s/measured/radiance_to_bt_conversion_constants' % key.name][...]
+            '/data/{}/measured/radiance_to_bt_conversion_constants'
+            .format(key.name)][...]
 
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / Lv)
@@ -221,7 +233,8 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # again FCI User Guide is not clear on how to do this
 
         sirr = self.nc[
-            '/data/%s/measured/channel_effective_solar_irradiance' % key.name][...]
+            '/data/{}/measured/channel_effective_solar_irradiance'
+            .format(key.name)][...]
 
         # reflectance = radiance / sirr * 100
         data.data[:] /= sirr
