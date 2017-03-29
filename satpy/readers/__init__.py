@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2016.
+# Copyright (c) 2015-2017.
 
 # Author(s):
 
@@ -50,6 +50,7 @@ class MalformedConfigError(Exception):
 
 
 class DatasetDict(dict):
+
     """Special dictionary object that can handle dict operations based on
     dataset name, wavelength, or DatasetID.
 
@@ -138,7 +139,8 @@ class DatasetDict(dict):
     def get_best_choice(self, key, choices):
         if key.modifiers is None and choices:
             num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-            choices = [c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
+            choices = [
+                c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
         if key.resolution is None and choices:
             low_res = [x.resolution for x in choices if x.resolution]
             if low_res:
@@ -232,6 +234,7 @@ class DatasetDict(dict):
 
 
 class ReaderFinder(object):
+
     """Find readers given a scene, filenames, sensors, and/or a reader_name
     """
 
@@ -359,6 +362,7 @@ class ReaderFinder(object):
             raise ImportError(
                 "Could not import reader class '{}' for reader '{}': {}".format(
                     reader_info["reader"], reader_info["name"], str(err)))
+
         reader_instance = loader(reader_info['config_files'])
 
         return reader_instance
