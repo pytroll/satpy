@@ -70,10 +70,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.filename = filename
         self.platform_name = None
 
-        # hdrrec = Msg15NativeHeaderRecord().get()
-        # hd_dt = np.dtype(hdrrec)
-        # hd_dt = hd_dt.newbyteorder('>')
-        # self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
         self._get_header()
 
         self.channel_order_list = CHANNEL_LIST
@@ -86,34 +82,39 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Create memory map for lazy reading of channel data:
         with open(self.filename) as fp_:
 
-            linetype = np.dtype([("visir", [("gp_pk", pk_head_dtype),
-                                            ("version", ">u1"),
-                                            ("satid", ">u2"),
-                                            ("time", ">u2", (5, )),
-                                            ("lineno", ">u4"),
-                                            ("chan_id", ">u1"),
-                                            ("acq_time", ">u2", (3, )),
-                                            ("line_validity", ">u1"),
-                                            ("line_rquality", ">u1"),
-                                            ("line_gquality", ">u1"),
-                                            ("line_data", ">u1", (self._cols_visir, ))],
-                                  (11, )),
-                                 ("hrv",  [("gp_pk", pk_head_dtype),
-                                           ("version", ">u1"),
-                                           ("satid", ">u2"),
-                                           ("time", ">u2", (5, )),
-                                           ("lineno", ">u4"),
-                                           ("chan_id", ">u1"),
-                                           ("acq_time", ">u2", (3, )),
-                                           ("line_validity", ">u1"),
-                                           ("line_rquality", ">u1"),
-                                           ("line_gquality", ">u1"),
-                                           ("line_data", ">u1", (self._cols_hrv, ))],
-                                  (3, ))])
+            
+            def get_lrec(cols):
+
+                lrec = [
+                        ("gp_pk", pk_head_dtype),
+                        ("version", np.uint8),
+                        ("satid", np.uint16),
+                        ("time", (np.uint16, 5)),
+                        ("lineno", np.uint32),
+                        ("chan_id", np.uint8),
+                        ("acq_time", (np.uint16, 3)),
+                        ("line_validity", np.uint8),
+                        ("line_rquality", np.uint8),
+                        ("line_gquality", np.uint8),
+                        ("line_data", (np.uint8, cols))
+                        ]
+                
+                return lrec
+
+            visir_rec = get_lrec(self._cols_visir)
+            hrv_rec = get_lrec(self._cols_hrv)
+
+            drec = [
+                    ('visir',(visir_rec,11)),
+                    ('hrv',(hrv_rec,3)),
+                    ]
+
+            dt = np.dtype(drec)
 
             # Lazy reading:
+            hdr_size = self.header.dtype.itemsize
             self.memmap = np.memmap(
-                fp_, dtype=linetype, shape=(self.data_len, ), offset=450400, mode="r")
+                fp_, dtype=dt, shape=(self.data_len, ), offset=hdr_size, mode="r")
 
         # Don't know yet how to get the pro and epi into the object
         self.prologue = None
@@ -173,11 +174,11 @@ class NativeMSGFileHandler(BaseFileHandler):
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
         numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
-        self._cols_visir = np.ceil(numlines_visir * 5.0 / 4)  # 4640
+        self._cols_visir = int(np.ceil(numlines_visir * 5.0 / 4))  # 4640
         if (west - east) < 3711:
-            self._cols_hrv = np.ceil(numcols_hrv * 5.0 / 4)  # 6960
+            self._cols_hrv = int(np.ceil(numcols_hrv * 5.0 / 4))  # 6960
         else:
-            self._cols_hrv = np.ceil(5568 * 5.0 / 4)  # 6960
+            self._cols_hrv = int(np.ceil(5568 * 5.0 / 4))  # 6960
         #'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
         #'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
 
