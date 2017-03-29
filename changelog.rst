@@ -2,6 +2,28 @@ Changelog
 =========
 
 
+v0.5.0 (2017-03-27)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.4.3 → 0.5.0. [Martin Raspaud]
+- Make sure calibration order is respected. [Martin Raspaud]
+- Fix angles interpolation in olci reader. [Martin Raspaud]
+- Fix some py3 tests. [Martin Raspaud]
+- Test BaseFileHandler. [Martin Raspaud]
+- Add some reader tests. [Martin Raspaud]
+- Work on ABI true color. [Martin Raspaud]
+- Add more VIIRS SDR tests. [davidh-ssec]
+- Add a missing docstring. [Martin Raspaud]
+- Refactor and test yaml_reader. [Martin Raspaud]
+- Add basic VIIRS SDR file handler tests. [davidh-ssec]
+- Add h5netcdf to travis. [Martin Raspaud]
+- Add the ABI reader tests to main test suite. [Martin Raspaud]
+- Optimize and test ABI l1b calibration functions. [Martin Raspaud]
+- Add Zinke NCC algorithm to viirs DNB. [Martin Raspaud]
+- Fix lunar angles names in viirs sdr. [Martin Raspaud]
+- Add lunar angles support in compact viirs. [Martin Raspaud]
+
+
 v0.4.3 (2017-03-07)
 -------------------
 - Update changelog. [Martin Raspaud]

@@ -1,0 +1,298 @@
+reader:
+  description: JMA HRIT Reader
+  name: hrit_jma
+  sensors: [ahi]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    hrit_b01:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B01_{start_time:%Y%m%d%H%M}_{segment:3s}']
+
+    hrit_b02:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B02_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b03:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01VIS_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b04:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B04_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b05:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B05_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b06:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B06_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b07:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01IR4_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b08:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01IR3_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b09:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B09_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b10:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B10_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b11:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B11_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b12:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B12_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b13:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01IR1_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b14:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B14_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b15:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01IR2_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+    hrit_b16:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns: ['IMG_DK01B16_{start_time:%Y%m%d%H%M}_{segment:03d}']
+
+
+
+datasets:
+  B01:
+    name: B01
+    sensor: ahi
+    wavelength: [0.45,0.47,0.49]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b01
+
+  B02:
+    name: B02
+    sensor: ahi
+    wavelength: [0.49,0.51,0.53]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b02
+
+  B03:
+    name: B03
+    sensor: ahi
+    wavelength: [0.62,0.64,0.66]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b04
+
+  B04:
+    name: B04
+    sensor: ahi
+    wavelength: [0.83, 0.85, 0.87]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b04
+
+  B05:
+    name: B05
+    sensor: ahi
+    wavelength: [1.5, 1.6, 1.7]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b05
+
+  B06:
+    name: B06
+    sensor: ahi
+    wavelength: [2.2, 2.3, 2.4]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b06
+
+  B07:
+    name: B07
+    sensor: ahi
+    wavelength: [3.7, 3.9, 4.1]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b07
+
+  B08:
+    name: B08
+    sensor: ahi
+    wavelength: [6.0, 6.2, 6.4]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b08
+
+  B09:
+    name: B09
+    sensor: ahi
+    wavelength: [6.7, 6.9, 7.1]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b09
+
+  B10:
+    name: B10
+    sensor: ahi
+    wavelength: [7.1, 7.3, 7.5]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b10
+
+  B11:
+    name: B11
+    sensor: ahi
+    wavelength: [8.4, 8.6, 8.8]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b11
+
+  B12:
+    name: B12
+    sensor: ahi
+    wavelength: [9.4, 9.6, 9.8]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b12
+
+  B13:
+    name: B13
+    sensor: ahi
+    wavelength: [10.2, 10.4, 10.6]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b13
+
+  B14:
+    name: B14
+    sensor: ahi
+    wavelength: [11.0, 11.2, 11.4]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b14
+
+  B15:
+    name: B15
+    sensor: ahi
+    wavelength: [12.2, 12.4, 12.6]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b15
+
+  B16:
+    name: B16
+    sensor: ahi
+    wavelength: [13.1, 13.3, 13.5]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: hrit_b16
