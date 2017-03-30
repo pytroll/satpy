@@ -44,7 +44,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      time_cds_short)
 
 from satpy.readers.msg_base import get_cds_time
-from satpy.readers.hrit_base import dec10216
+from satpy.readers.msg_base import dec10216
+#from satpy.readers.hrit_base import dec10216
 
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
