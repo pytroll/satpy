@@ -21,18 +21,19 @@ on your machine.
 Installation based on conda
 ===========================
 
-The `satpy repository <https://github.com/pytroll/satpy>`_ contains a file `satpy-environment.yml`
+The `satpy repository <https://github.com/pytroll/satpy>`_ contains environment files
 to install `satpy` and all its dependencies (including non python dependencies) via 
 `conda <https://conda.io/docs/intro.html>`_.
-The environment file uses python 2.7 and numpy 1.11 as a basis, environments for python 3 or other 
-numpy versions can be created by adapting this file.
+For now versions for python 2.7 and numpy 1.11 (`satpy-env_np111py27.yml`) and
+python 3.6 / numpy 1.11 exist (`satpy-env_np111py27.yml`).
+Environment files for other python or numpy versions can be created by adapting these files.
 
-After downloading this file you can install `satpy` in an environment called `satpy-env`
+After downloading the file you need you can install `satpy` in an environment called `satpy-env`
 using `conda`:
 
 .. code-block:: bash
 
-    $ conda env create -f satpy-environment.yml 
+    $ conda env create -f satpy-env_np<xxx>py<yy>.yml
 
 To activate this environment use     
 
