@@ -81,14 +81,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             if item in self.available_channels and self.available_channels[item]:
                 self.channel_order_list.append(item)
 
-        with open(self.filename) as fp_:
-
-            dt = self._get_filedtype()
-
-            # Lazy reading:
-            hdr_size = self.header.dtype.itemsize
-            self.memmap = np.memmap(
-                fp_, dtype=dt, shape=(self.data_len, ), offset=hdr_size, mode="r")
+        self.memmap = self._get_memmap()
 
     @property
     def start_time(self):
@@ -103,6 +96,18 @@ class NativeMSGFileHandler(BaseFileHandler):
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
         return get_cds_time(
             tend['Day'][0], tend['MilliSecsOfDay'][0])
+
+    def _get_memmap(self):
+        """Get the numpy memory map for the SEVIRI data"""
+
+        with open(self.filename) as fp_:
+
+            dt = self._get_filedtype()
+
+            # Lazy reading:
+            hdr_size = self.header.dtype.itemsize
+            return np.memmap(
+                fp_, dtype=dt, shape=(self.data_len, ), offset=hdr_size, mode="r")
 
     def _get_filedtype(self):
         """Get the dtype of the file based on the actual available channels"""
@@ -307,7 +312,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             return
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            self.convert_to_radiance(data, key)
+            self.convert_to_radiance(data, key.name)
         if calibration == 'reflectance':
             self._vis_calibrate(data, key)
         elif calibration == 'brightness_temperature':
@@ -315,13 +320,13 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
 
-    def convert_to_radiance(self, data, key):
+    def convert_to_radiance(self, data, key_name):
         """Calibrate to radiance."""
 
         coeffs = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['Level15ImageCalibration']
 
-        channel_index = self.channel_order_list.index(key.name)
+        channel_index = self.channel_order_list.index(key_name)
 
         gain = coeffs['CalSlope'][0][channel_index]
         offset = coeffs['CalOffset'][0][channel_index]
