@@ -80,6 +80,7 @@ Reprojection of data is also available through the use of pyresample_.
 .. toctree::
    :maxdepth: 2
 
+   install
    quickstart
    satpy
 
