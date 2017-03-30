@@ -1,9 +1,9 @@
 name: satpy-env
 channels:
 - !!python/unicode
-  'conda-forge'
-- !!python/unicode
   'defaults'
+- !!python/unicode
+  'conda-forge'
 dependencies:
 - !!python/unicode
   'pykdtree=1.2.1=np111py27_0'
