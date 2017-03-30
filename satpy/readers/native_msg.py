@@ -44,7 +44,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      time_cds_short)
 
 from satpy.readers.msg_base import get_cds_time
-from satpy.readers.msg_base import dec10to16
+from satpy.readers.hrit_base import dec10216
 
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -69,56 +69,25 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         self.filename = filename
         self.platform_name = None
+        self.available_channels = {}
+        self.channel_order_list = []
+        for item in CHANNEL_LIST:
+            self.available_channels[item] = False
 
         self._get_header()
 
-        self.channel_order_list = CHANNEL_LIST
-        pkhrec = [
-            ('GP_PK_HEADER', self.header['GP_PK_HEADER'].dtype),
-            ('GP_PK_SH1', self.header['GP_PK_SH1'].dtype)
-        ]
-        pk_head_dtype = np.dtype(pkhrec)
+        for item in CHANNEL_LIST:
+            if item in self.available_channels and self.available_channels[item]:
+                self.channel_order_list.append(item)
 
-        # Create memory map for lazy reading of channel data:
         with open(self.filename) as fp_:
 
-            
-            def get_lrec(cols):
-
-                lrec = [
-                        ("gp_pk", pk_head_dtype),
-                        ("version", np.uint8),
-                        ("satid", np.uint16),
-                        ("time", (np.uint16, 5)),
-                        ("lineno", np.uint32),
-                        ("chan_id", np.uint8),
-                        ("acq_time", (np.uint16, 3)),
-                        ("line_validity", np.uint8),
-                        ("line_rquality", np.uint8),
-                        ("line_gquality", np.uint8),
-                        ("line_data", (np.uint8, cols))
-                        ]
-                
-                return lrec
-
-            visir_rec = get_lrec(self._cols_visir)
-            hrv_rec = get_lrec(self._cols_hrv)
-
-            drec = [
-                    ('visir',(visir_rec,11)),
-                    ('hrv',(hrv_rec,3)),
-                    ]
-
-            dt = np.dtype(drec)
+            dt = self._get_filedtype()
 
             # Lazy reading:
             hdr_size = self.header.dtype.itemsize
             self.memmap = np.memmap(
                 fp_, dtype=dt, shape=(self.data_len, ), offset=hdr_size, mode="r")
-
-        # Don't know yet how to get the pro and epi into the object
-        self.prologue = None
-        self.epilogue = None
 
     @property
     def start_time(self):
@@ -134,6 +103,46 @@ class NativeMSGFileHandler(BaseFileHandler):
         return get_cds_time(
             tend['Day'][0], tend['MilliSecsOfDay'][0])
 
+    def _get_filedtype(self):
+        """Get the dtype of the file based on the actual available channels"""
+
+        pkhrec = [
+            ('GP_PK_HEADER', self.header['GP_PK_HEADER'].dtype),
+            ('GP_PK_SH1', self.header['GP_PK_SH1'].dtype)
+        ]
+        pk_head_dtype = np.dtype(pkhrec)
+
+        # Create memory map for lazy reading of channel data:
+
+        def get_lrec(cols):
+
+            lrec = [
+                ("gp_pk", pk_head_dtype),
+                ("version", np.uint8),
+                ("satid", np.uint16),
+                ("time", (np.uint16, 5)),
+                ("lineno", np.uint32),
+                ("chan_id", np.uint8),
+                ("acq_time", (np.uint16, 3)),
+                ("line_validity", np.uint8),
+                ("line_rquality", np.uint8),
+                ("line_gquality", np.uint8),
+                ("line_data", (np.uint8, cols))
+            ]
+
+            return lrec
+
+        visir_rec = get_lrec(self._cols_visir)
+
+        number_of_lowres_channels = len(
+            [s for s in self.channel_order_list if not s == 'HRV'])
+        drec = [('visir', (visir_rec, number_of_lowres_channels))]
+        if self.available_channels['HRV']:
+            hrv_rec = get_lrec(self._cols_hrv)
+            drec.append(('hrv', (hrv_rec, 3)))
+
+        return np.dtype(drec)
+
     def _get_header(self):
         """Read the header info"""
 
@@ -141,6 +150,12 @@ class NativeMSGFileHandler(BaseFileHandler):
         hd_dt = np.dtype(hdrrec)
         hd_dt = hd_dt.newbyteorder('>')
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
+
+        # Set the list of available channels:
+        chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
+            'SelectedBandIDs'][0][-1].strip()
+        for item, chmark in zip(CHANNEL_LIST, chlist_str):
+            self.available_channels[item] = (chmark == 'X')
 
         self.platform_id = self.header['15_DATA_HEADER'][
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
@@ -174,11 +189,22 @@ class NativeMSGFileHandler(BaseFileHandler):
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
         numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
-        self._cols_visir = int(np.ceil(numlines_visir * 5.0 / 4))  # 4640
+        # Subsetting doesn't work unless number of pixels on a line
+        # divded by 4 is a whole number!
+        # FIXME!
+        if abs(int(numlines_visir / 4.) - numlines_visir / 4.) > 0.001:
+            msgstr = (
+                "Number of pixels in east-west direction needs to be a multiple of 4!" +
+                "\nPlease get the full disk!")
+            raise NotImplementedError(msgstr)
+
+        # Data are stored in 10 bits!
+        self._cols_visir = int(np.ceil(numlines_visir * 10.0 / 8))  # 4640
         if (west - east) < 3711:
-            self._cols_hrv = int(np.ceil(numcols_hrv * 5.0 / 4))  # 6960
+            self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
         else:
-            self._cols_hrv = int(np.ceil(5568 * 5.0 / 4))  # 6960
+            self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
+
         #'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
         #'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
 
@@ -227,19 +253,22 @@ class NativeMSGFileHandler(BaseFileHandler):
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key.name not in ['HRV']:
+        if key.name not in self.channel_order_list:
+            logger.error('Channel %s not available in the file', key.name)
+            return None
+        elif key.name not in ['HRV']:
             ch_idn = self.channel_order_list.index(key.name)
-            data = dec10to16(
+            data = dec10216(
                 self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
 
             data = np.ma.masked_array(data, mask=(data == 0))
             res = Dataset(data, dtype=np.float32)
         else:
-            data2 = dec10to16(
+            data2 = dec10216(
                 self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
-            data1 = dec10to16(
+            data1 = dec10216(
                 self.memmap["hrv"]["line_data"][:, 1, :])[::-1, ::-1]
-            data0 = dec10to16(
+            data0 = dec10216(
                 self.memmap["hrv"]["line_data"][:, 0, :])[::-1, ::-1]
             # Make empty array:
             shape = data0.shape[0] * 3, data0.shape[1]
@@ -256,6 +285,8 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         if res is not None:
             out = res
+        else:
+            return None
 
         self.calibrate(out, key)
         out.info['units'] = info['units']
