@@ -37,6 +37,7 @@ import numpy as np
 import six
 
 from pyresample.ewa import fornav, ll2cr
+from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
 from satpy.config import get_config, get_config_path
@@ -195,7 +196,7 @@ class KDTreeResampler(BaseResampler):
         # the data may have additional masked pixels
         # let's compare them to see if we can use the same area
         # assume lons and lats mask are the same
-        if np.any(mask):
+        if np.any(mask) and isinstance(source_geo_def, SwathDefinition):
             # copy the source area and use it for the rest of the calculations
             LOG.debug("Copying source area to mask invalid dataset points")
             source_geo_def = deepcopy(self.source_geo_def)
