@@ -41,10 +41,6 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
-
-class CalibrationError(Exception):
-    pass
-
 logger = logging.getLogger('hrit_msg')
 
 
