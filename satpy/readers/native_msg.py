@@ -260,8 +260,7 @@ class NativeMSGFileHandler(BaseFileHandler):
                     xslice=slice(None), yslice=slice(None)):
 
         if key.name not in self.channel_order_list:
-            logger.error('Channel %s not available in the file', key.name)
-            return None
+            raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
             ch_idn = self.channel_order_list.index(key.name)
             data = dec10216(
@@ -314,9 +313,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             self.convert_to_radiance(data, key.name)
         if calibration == 'reflectance':
-            self._vis_calibrate(data, key)
+            self._vis_calibrate(data, key.name)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data, key)
+            self._ir_calibrate(data, key.name)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
 
@@ -335,14 +334,14 @@ class NativeMSGFileHandler(BaseFileHandler):
         data.data[:] += offset
         data.data[data.data < 0] = 0
 
-    def _vis_calibrate(self, data, key):
+    def _vis_calibrate(self, data, key_name):
         """Visible channel calibration only."""
-        solar_irradiance = CALIB[self.platform_id][key.name]["F"]
+        solar_irradiance = CALIB[self.platform_id][key_name]["F"]
         data.data[:] *= 100 / solar_irradiance
 
-    def _tl15(self, data, key):
+    def _tl15(self, data, key_name):
         """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][key.name]["VC"]
+        wavenumber = CALIB[self.platform_id][key_name]["VC"]
         data.data[:] **= -1
         data.data[:] *= C1 * wavenumber ** 3
         data.data[:] += 1
@@ -350,40 +349,40 @@ class NativeMSGFileHandler(BaseFileHandler):
         data.data[:] **= -1
         data.data[:] *= C2 * wavenumber
 
-    def _erads2bt(self, data, key):
+    def _erads2bt(self, data, key_name):
         """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][key.name]
+        cal_info = CALIB[self.platform_id][key_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
 
-        self._tl15(data, key)
+        self._tl15(data, key_name)
 
         data.data[:] -= beta
         data.data[:] /= alpha
 
-    def _srads2bt(self, data, key):
+    def _srads2bt(self, data, key_name):
         """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[key.name]
+        coef_a, coef_b, coef_c = BTFIT[key_name]
 
-        self._tl15(data, key)
+        self._tl15(data, key_name)
 
         data.data[:] = (coef_a * data.data[:] ** 2 +
                         coef_b * data.data[:] +
                         coef_c)
 
-    def _ir_calibrate(self, data, key):
+    def _ir_calibrate(self, data, key_name):
         """IR calibration."""
 
-        channel_index = self.channel_order_list.index(key.name)
+        channel_index = self.channel_order_list.index(key_name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
             'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
 
         if cal_type == 1:
             # spectral radiances
-            self._srads2bt(data, key)
+            self._srads2bt(data, key_name)
         elif cal_type == 2:
             # effective radiances
-            self._erads2bt(data, key)
+            self._erads2bt(data, key_name)
         else:
             raise NotImplementedError('Unknown calibration type')
