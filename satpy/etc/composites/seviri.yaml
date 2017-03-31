@@ -9,6 +9,7 @@ modifiers:
     - 13.4
 
 composites:
+
   cloudtop:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -17,6 +18,7 @@ composites:
     - 10.8
     - 12.0
     standard_name: cloudtop
+
   convection:
     compositor: !!python/name:satpy.composites.Convection
     prerequisites:
@@ -28,6 +30,7 @@ composites:
     - 7.3
     - 10.8
     standard_name: convection
+
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
@@ -37,16 +40,136 @@ composites:
     - 12.0
     standard_name: night_fog
 
-  cloudtype:
+  cloud_mask:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cma
+    - cma_pal
+    standard_name: cloud_mask
+
+  cloud_type:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ct
     - ct_pal
-    standard_name: cloudtype
+    standard_name: cloud_type
 
-  cloudheight:
+  cloud_top_height:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ctth_alti
     - ctth_alti_pal
-    standard_name: cloudheight
+    standard_name: cloud_top_height
+
+  cloud_top_pressure:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_pres
+    - ctth_pres_pal
+    standard_name: cloud_top_pressure
+
+  cloud_top_temperature:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_tempe
+    - ctth_tempe_pal
+    standard_name: cloud_top_temperature
+
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_phase
+    - cmic_phase_pal
+    standard_name: cloud_top_phase
+
+  cloud_drop_effective_radius:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_reff
+    - cmic_reff_pal
+    standard_name: cloud_drop_effective_radius
+
+  cloud_optical_thickness:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_cot
+    - cmic_cot_pal
+    standard_name: cloud_optical_thickness
+
+  cloud_liquid_water_path:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_lwp
+    - cmic_lwp_pal
+    standard_name: cloud_liquid_water_path
+
+  cloud_ice_water_path:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_iwp
+    - cmic_iwp_pal
+    standard_name: cloud_ice_water_path
+
+  precipitation_probability:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - pc
+    - pc_pal
+    standard_name: precipitation_probability
+
+  convective_rain_rate:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - crr
+    - crr_pal
+    standard_name: convective_rain_rate
+
+  convective_precipitation_hourly_accumulation:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - crr_accum
+    - crr_pal
+    standard_name: convective_precipitation_hourly_accumulation
+
+  total_precipitable_water:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ishai_tpw
+    - ishai_tpw_pal
+    standard_name: total_precipitable_water
+
+  showalter_index:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ishai_shw
+    - ishai_shw_pal
+    standard_name: showalter_index
+
+  lifted_index:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ishai_li
+    - ishai_li_pal
+    standard_name: lifted_index
+
+  convection_initiation_prob30:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ci_prob30
+    - ci_pal
+    standard_name: convection_initiation_prob30
+
+  convection_initiation_prob60:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ci_prob60
+    - ci_pal
+    standard_name: convection_initiation_prob60
+
+  convection_initiation_prob90:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ci_prob90
+    - ci_pal
+    standard_name: convection_initiation_prob90
+
