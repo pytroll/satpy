@@ -40,7 +40,8 @@ def dec10216(data):
 
     arr10 = data.astype(np.uint16).flat
     new_shape = list(data.shape[:-1]) + [(data.shape[-1] * 8) / 10]
-    arr16 = np.zeros(new_shape).astype(dtype=np.uint16)
+    new_shape = [int(s) for s in new_shape]
+    arr16 = np.zeros(new_shape, dtype=np.uint16)
     arr16.flat[::4] = np.left_shift(arr10[::5], 2) + \
         np.right_shift((arr10[1::5]), 6)
     arr16.flat[1::4] = np.left_shift((arr10[1::5] & 63), 4) + \
