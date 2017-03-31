@@ -23,7 +23,6 @@
 """Unittesting the native msg reader
 """
 
-import os
 import sys
 from datetime import datetime
 
@@ -79,7 +78,6 @@ CALIBRATION_TYPE = np.array(
     [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
 
 from satpy.readers.native_msg import NativeMSGFileHandler
-from satpy.readers.hrit_msg import SATNUM
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest

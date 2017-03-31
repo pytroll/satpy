@@ -43,6 +43,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
+from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import get_cds_time
 from satpy.readers.msg_base import dec10216
 #from satpy.readers.hrit_base import dec10216
@@ -56,8 +57,6 @@ class CalibrationError(Exception):
     pass
 
 logger = logging.getLogger('native_msg')
-
-from native_msg_hdr import (Msg15NativeHeaderRecord)
 
 
 class NativeMSGFileHandler(BaseFileHandler):
