@@ -33,10 +33,6 @@ from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
-
-class CalibrationError(Exception):
-    pass
-
 logger = logging.getLogger('hrit_base')
 
 
@@ -242,7 +238,7 @@ class HRITFileHandler(BaseFileHandler):
                 np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
     def get_area_def(self, dsid):
-
+        """Get the area definition of the band."""
         cfac = np.int32(self.mda['cfac'])
         lfac = np.int32(self.mda['lfac'])
         coff = np.float32(self.mda['coff'])
@@ -289,6 +285,7 @@ class HRITFileHandler(BaseFileHandler):
         """Read the data"""
         # TODO slicing !
         tic = datetime.now()
+
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             if self.mda['number_of_bits_per_pixel'] == 10:
