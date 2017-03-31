@@ -39,10 +39,6 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
-
-class CalibrationError(Exception):
-    pass
-
 logger = logging.getLogger('hrit_jma')
 
 
@@ -151,7 +147,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_longitude'] = sublon
 
     def get_area_def(self, dsid):
-
+        """Get the area definition of the band."""
         cfac = np.int32(self.mda['cfac'])
         lfac = np.int32(self.mda['lfac'])
         coff = np.float32(self.mda['coff'])
@@ -225,67 +221,6 @@ class HRITJMAFileHandler(HRITFileHandler):
             data.data[:] = np.interp(data.data.ravel(),
                                      cal[:, 0], cal[:, 1]).reshape(data.data.shape)
         logger.debug("Calibration time " + str(datetime.now() - tic))
-
-    def convert_to_radiance(self, data):
-        """Calibrate to radiance."""
-        coeffs = self.prologue["RadiometricProcessing"]
-        coeffs = coeffs["Level1_5ImageCalibration"]
-        gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
-        offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
-
-        data.data[:] *= gain
-        data.data[:] += offset
-        data.data[data.data < 0] = 0
-
-    def _vis_calibrate(self, data):
-        """Visible channel calibration only."""
-        solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        data.data[:] *= 100 / solar_irradiance
-
-    def _tl15(self, data):
-        """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
-        data.data[:] **= -1
-        data.data[:] *= C1 * wavenumber ** 3
-        data.data[:] += 1
-        np.log(data.data, out=data.data)
-        data.data[:] **= -1
-        data.data[:] *= C2 * wavenumber
-
-    def _erads2bt(self, data):
-        """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][self.channel_name]
-        alpha = cal_info["ALPHA"]
-        beta = cal_info["BETA"]
-
-        self._tl15(data)
-
-        data.data[:] -= beta
-        data.data[:] /= alpha
-
-    def _srads2bt(self, data):
-        """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[self.channel_name]
-
-        self._tl15(data)
-
-        data.data[:] = (coef_a * data.data[:] ** 2 +
-                        coef_b * data.data[:] +
-                        coef_c)
-
-    def _ir_calibrate(self, data):
-        """IR calibration."""
-        cal_type = self.prologue['ImageDescription'][
-            'Level1_5ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
-
-        if cal_type == 1:
-            # spectral radiances
-            self._srads2bt(data)
-        elif cal_type == 2:
-            # effective radiances
-            self._erads2bt(data)
-        else:
-            raise NotImplemented('Unknown calibration type')
 
 
 def show(data, negate=False):
