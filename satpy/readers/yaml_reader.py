@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016, 2017.
 
 # Author(s):
 
@@ -369,6 +369,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
+
     """Implementation of the YAML reader."""
 
     def __init__(self,
