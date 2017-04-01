@@ -473,17 +473,21 @@ class PaletteCompositor(RGBCompositor):
 
         data, palette = projectables
         palette = palette / 255.0
-
+        
         from trollimage.colormap import Colormap
         if data.dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
                     for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
+
         elif 'valid_range' in data.info:
             tups = [(val, tuple(tup))
                     for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
-            colormap.set_range(*data.info['valid_range'])
+            #colormap.set_range(*data.info['valid_range'])
+            sf = data.info['scale_factor']
+            colormap.set_range(*data.info['valid_range'] * sf + data.info['add_offset'])
+
         r, g, b = colormap.colorize(data)
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
