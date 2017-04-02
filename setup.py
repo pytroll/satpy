@@ -36,8 +36,8 @@ version = imp.load_source('satpy.version', 'satpy/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample', 'trollsift', 'trollimage',
-            'pykdtree', 'six', 'pyyaml']
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
+            'trollimage', 'pykdtree', 'six', 'pyyaml']
 
 if sys.version < '2.7':
     requires.append('ordereddict')
