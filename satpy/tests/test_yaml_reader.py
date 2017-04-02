@@ -570,69 +570,19 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                       calibration='reflectance',
                                       modifiers=()))
 
-    def test_combine_area_extents(self):
-        """Test combination of area extents."""
-        area1 = MagicMock()
-        area1.area_extent = (1, 2, 3, 4)
-        area2 = MagicMock()
-        area2.area_extent = (1, 6, 3, 2)
-        res = self.reader._combine_area_extents(area1, area2)
-        self.assertListEqual(res, [1, 6, 3, 4])
-
-        area1 = MagicMock()
-        area1.area_extent = (1, 2, 3, 4)
-        area2 = MagicMock()
-        area2.area_extent = (1, 4, 3, 6)
-        res = self.reader._combine_area_extents(area1, area2)
-        self.assertListEqual(res, [1, 2, 3, 6])
-
-    def test_append_area_defs_fail(self):
-        """Fail appending areas."""
-        from satpy.composites import IncompatibleAreas
-        area1 = MagicMock()
-        area1.proj_dict = {"proj": 'A'}
-        area2 = MagicMock()
-        area2.proj_dict = {'proj': 'B'}
-        res = self.reader._combine_area_extents(area1, area2)
-        self.assertRaises(IncompatibleAreas,
-                          self.reader._append_area_defs, area1, area2)
-
-    @patch('satpy.readers.yaml_reader.AreaDefinition')
-    def test_append_area_defs(self, adef):
-        """Test appending area definitions."""
-        area1 = MagicMock()
-        area1.area_extent = (1, 2, 3, 4)
-        area1.proj_dict = {"proj": 'A'}
-        area1.y_size = random.randrange(6425)
-
-        area2 = MagicMock()
-        area2.area_extent = (1, 4, 3, 6)
-        area2.proj_dict = {"proj": 'A'}
-        area2.y_size = random.randrange(6425)
-
-        res = self.reader._append_area_defs(area1, area2)
-        area_extent = [1, 2, 3, 6]
-        y_size = area1.y_size + area2.y_size
-        adef.assert_called_once_with(area1.area_id, area1.name, area1.proj_id,
-                                     area1.proj_dict, area1.x_size, y_size,
-                                     area_extent)
-
-    def test_load_area_def(self):
+    @patch('satpy.readers.yaml_reader.StackedAreaDefinition')
+    def test_load_area_def(self, sad):
         """Test loading the area def for the reader."""
         dsid = MagicMock()
         file_handlers = []
         items = random.randrange(2, 10)
         for i in range(items):
             file_handlers.append(MagicMock())
-        with patch.object(self.reader, '_append_area_defs') as aad:
-            final_area = self.reader._load_area_def(dsid, file_handlers)
-            self.assertEqual(final_area, aad.return_value)
-            self.assertEqual(len(aad.mock_calls), items)
-            fh1 = file_handlers[0]
-            aad.reset_mock()
-            final_area = self.reader._load_area_def(dsid, file_handlers[:1])
-            self.assertEqual(final_area, fh1.get_area_def.return_value)
-            self.assertEqual(len(aad.mock_calls), 0)
+        final_area = self.reader._load_area_def(dsid, file_handlers)
+        self.assertEqual(final_area, sad.return_value.squeeze.return_value)
+
+        args, kwargs = sad.call_args
+        self.assertEqual(len(args), items)
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""

@@ -36,7 +36,7 @@ import numpy as np
 import six
 import yaml
 
-from pyresample.geometry import AreaDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 from satpy.composites import IncompatibleAreas
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
@@ -655,51 +655,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 return filetype
         return None
 
-    # TODO: move this out of here.
-    @staticmethod
-    def _combine_area_extents(area1, area2):
-        """Combine the area extents of areas 1 and 2."""
-        if (area1.area_extent[0] == area2.area_extent[0] and
-                area1.area_extent[2] == area2.area_extent[2]):
-            current_extent = list(area1.area_extent)
-            if np.isclose(area1.area_extent[1], area2.area_extent[3]):
-                current_extent[1] = area2.area_extent[1]
-            elif np.isclose(area1.area_extent[3], area2.area_extent[1]):
-                current_extent[3] = area2.area_extent[3]
-            else:
-                raise IncompatibleAreas(
-                    "Can't concatenate area definitions with "
-                    "incompatible area extents: "
-                    "{} and {}".format(area1, area2))
-            return current_extent
-
-    # TODO: move this out of here.
-    def _append_area_defs(self, area1, area2):
-        """Append *area2* to *area1* and return the results"""
-        different_items = (set(area1.proj_dict.items()) ^
-                           set(area2.proj_dict.items()))
-        if different_items:
-            raise IncompatibleAreas("Can't concatenate area definitions with "
-                                    "different projections: "
-                                    "{} and {}".format(area1, area2))
-
-        area_extent = self._combine_area_extents(area1, area2)
-        y_size = area1.y_size + area2.y_size
-        return AreaDefinition(area1.area_id, area1.name, area1.proj_id,
-                              area1.proj_dict, area1.x_size, y_size,
-                              area_extent)
-
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
         area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
         area_defs = [area_def for area_def in area_defs
                      if area_def is not None]
 
-        final_area = copy.deepcopy(area_defs[0])
-        for area_def in area_defs[1:]:
-            final_area = self._append_area_defs(final_area, area_def)
-
-        return final_area
+        final_area = StackedAreaDefinition(*area_defs)
+        return final_area.squeeze()
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
