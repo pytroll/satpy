@@ -361,6 +361,11 @@ class EWAResampler(BaseResampler):
             LOG.debug("Data fits in grid %s and uses %f%% of the swath",
                       grid_name, fraction_in * 100)
 
+        # Can't save masked arrays to npz, so remove the mask
+        if hasattr(rows, 'mask'):
+            rows = rows.data
+            cols = cols.data
+
         # it's important here not to modify the existing cache dictionary.
         self.cache = {
             "source_geo_def": source_geo_def,
