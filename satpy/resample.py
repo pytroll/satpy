@@ -40,6 +40,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
+from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
 from satpy.dataset import Dataset
 
@@ -78,6 +79,7 @@ def get_area_def(area_name):
 
 
 class BaseResampler(object):
+
     """
     The base resampler class. Abstract.
     """
@@ -176,13 +178,15 @@ class BaseResampler(object):
 
 
 class KDTreeResampler(BaseResampler):
+
     """
     Resample using nearest neighbour.
     """
 
     caches = OrderedDict()
 
-    def precompute(self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
+    def precompute(
+        self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
                    cache_dir=False, **kwargs):
         """Create a KDTree structure and store it for later use.
 
@@ -192,27 +196,7 @@ class KDTreeResampler(BaseResampler):
 
         del kwargs
 
-        source_geo_def = self.source_geo_def
-        # the data may have additional masked pixels
-        # let's compare them to see if we can use the same area
-        # assume lons and lats mask are the same
-        if np.any(mask) and isinstance(source_geo_def, SwathDefinition):
-            # copy the source area and use it for the rest of the calculations
-            LOG.debug("Copying source area to mask invalid dataset points")
-            source_geo_def = deepcopy(self.source_geo_def)
-            lons, lats = source_geo_def.get_lonlats()
-            if np.ndim(mask) == 3:
-                # FIXME: we should treat 3d arrays (composites) layer by layer!
-                mask = np.sum(mask, axis=2)
-                # FIXME: pyresample doesn't seem to like this
-                #lons = np.tile(lons, (1, 1, mask.shape[2]))
-                #lats = np.tile(lats, (1, 1, mask.shape[2]))
-
-            # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            # the ma.array function combines the undelying mask with the new
-            # one (OR)
-            source_geo_def.lons = np.ma.array(lons, mask=mask)
-            source_geo_def.lats = np.ma.array(lats, mask=mask)
+        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
                                 radius_of_influence=radius_of_influence,
@@ -418,7 +402,8 @@ class EWAResampler(BaseResampler):
         # otherwise assume the entire input swath is one large "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get(
             "rows_per_scan", data.shape[0])
-        num_valid_points, out_arrs = fornav(cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
+        num_valid_points, out_arrs = fornav(
+            cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
                                             weight_count=weight_count, weight_min=weight_min,
                                             weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
                                             maximum_weight_mode=maximum_weight_mode, **kwargs)
@@ -439,9 +424,96 @@ class EWAResampler(BaseResampler):
         return Dataset(out_arr, **info)
 
 
+class BilinearResampler(BaseResampler):
+
+    """Resample using bilinear."""
+
+    caches = OrderedDict()
+
+    def precompute(self, mask=None, radius_of_influence=50000,
+                   reduce_data=True, nprocs=1, segments=None,
+                   cache_dir=False, **kwargs):
+        """Create bilinear coefficients and store them for later use.
+
+        Note: The `mask` keyword should be provided if geolocation may be valid
+        where data points are invalid. This defaults to the `mask` attribute of
+        the `data` numpy masked array passed to the `resample` method.
+        """
+
+        del kwargs
+
+        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
+
+        # FIXME: cache handling is almost identical to kdtree
+        bil_hash = self.get_hash(source_geo_def=source_geo_def,
+                                 radius_of_influence=radius_of_influence,
+                                 mode="bilinear")
+        if isinstance(cache_dir, (str, six.text_type)):
+            filename = os.path.join(
+                cache_dir, hashlib.sha1(bil_hash).hexdigest() + ".npz")
+        else:
+            filename = os.path.join('.', hashlib.sha1(
+                bil_hash.encode("utf-8")).hexdigest() + ".npz")
+
+        try:
+            self.cache = self.caches[bil_hash]
+            # trick to keep most used caches away from deletion
+            del self.caches[bil_hash]
+            self.caches[bil_hash] = self.cache
+
+            if cache_dir:
+                self.dump(filename)
+            return self.cache
+        except KeyError:
+            if os.path.exists(filename):
+                LOG.debug("Loading bilinear parameters")
+                self.cache = dict(np.load(filename))
+                self.caches[bil_hash] = self.cache
+                while len(self.caches) > CACHE_SIZE:
+                    self.caches.popitem(False)
+                if cache_dir:
+                    self.dump(filename)
+                return self.cache
+            else:
+                LOG.debug("Computing bilinear parameters")
+
+        bilinear_t, bilinear_s, input_idxs, idx_arr = \
+            get_bil_info(source_geo_def, self.target_geo_def,
+                         radius_of_influence, neighbours=32,
+                         nprocs=nprocs, masked=False)
+        self.cache = {'bilinear_s': bilinear_s,
+                      'bilinear_t': bilinear_t,
+                      'input_idxs': input_idxs,
+                      'idx_arr': idx_arr}
+
+        self.caches[bil_hash] = self.cache
+        while len(self.caches) > CACHE_SIZE:
+            self.caches.popitem(False)
+
+        if cache_dir:
+            self.dump(filename)
+        return self.cache
+
+    def compute(self, data, fill_value=None, **kwargs):
+        """Resample the given data using bilinear interpolation"""
+        del kwargs
+
+        res = np.ma.masked_invalid(
+            get_sample_from_bil_info(data.ravel(),
+                                     self.cache['bilinear_t'],
+                                     self.cache['bilinear_s'],
+                                     self.cache['input_idxs'],
+                                     self.cache['idx_arr'],
+                                     output_shape=self.target_geo_def.shape))
+        res = np.ma.masked_invalid(res)
+
+        return res
+
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
+              "bilinear": BilinearResampler,
               }
 
 
@@ -454,3 +526,31 @@ def resample(source_area, data, destination_area, resampler=KDTreeResampler, **k
         resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
     return resampler.resample(data, **kwargs)
+
+
+def mask_source_lonlats(source_def, mask):
+    """Mask source longitudes and latitudes to match data mask"""
+    source_geo_def = source_def
+
+    # the data may have additional masked pixels
+    # let's compare them to see if we can use the same area
+    # assume lons and lats mask are the same
+    if np.any(mask) and isinstance(source_geo_def, SwathDefinition):
+        # copy the source area and use it for the rest of the calculations
+        LOG.debug("Copying source area to mask invalid dataset points")
+        source_geo_def = deepcopy(source_geo_def)
+        lons, lats = source_geo_def.get_lonlats()
+        if np.ndim(mask) == 3:
+            # FIXME: we should treat 3d arrays (composites) layer by layer!
+            mask = np.sum(mask, axis=2)
+            # FIXME: pyresample doesn't seem to like this
+            # lons = np.tile(lons, (1, 1, mask.shape[2]))
+            # lats = np.tile(lats, (1, 1, mask.shape[2]))
+
+        # use the same data, but make a new mask (i.e. don't affect the original masked array)
+        # the ma.array function combines the undelying mask with the new
+        # one (OR)
+        source_geo_def.lons = np.ma.array(lons, mask=mask)
+        source_geo_def.lats = np.ma.array(lats, mask=mask)
+
+    return source_geo_def
