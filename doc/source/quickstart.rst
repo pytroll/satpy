@@ -165,7 +165,19 @@ The image is automatically saved here in GeoTiff_ format.
 
 .. _GeoTiff: http://trac.osgeo.org/geotiff/
 
+The default resampling method is nearest neighbour. Also bilinear interpolation
+is available, which can be used by adding `resampler="bilinear"` keyword:
 
+    >>> local_scene = global_scene.resample("euro4", resampler="bilinear")
+    >>>
+
+To make resampling faster next time (when resampling geostationary satellite
+data), it is possible to save the resampling coefficients and use more CPUs
+when calculating the coefficients on the first go:
+
+    >>> local_scene = global_scene.resample("euro4", resampler="bilinear",
+    ...                                     nprocs=4, cache_dir="/var/tmp")
+    >>>
 
 Making custom composites
 ========================
