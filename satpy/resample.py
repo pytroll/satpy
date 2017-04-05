@@ -84,6 +84,8 @@ class BaseResampler(object):
     The base resampler class. Abstract.
     """
 
+    caches = OrderedDict()
+
     def __init__(self, source_geo_def, target_geo_def):
         """
         :param source_geo_def: The source area
@@ -176,14 +178,56 @@ class BaseResampler(object):
         """
         self.resample(*args, **kwargs)
 
+    def _create_cache_filename(self, cache_dir, hash_str):
+        """Create filename for the cached resampling parameters"""
+        if isinstance(cache_dir, (str, six.text_type)):
+            filename = os.path.join(
+                cache_dir, hashlib.sha1(hash_str).hexdigest() + ".npz")
+        else:
+            filename = os.path.join('.', hashlib.sha1(
+                hash_str.encode("utf-8")).hexdigest() + ".npz")
+
+        return filename
+
+    def _read_params_from_cache(self, cache_dir, hash_str, filename):
+        """Read resampling parameters from cache"""
+        try:
+            self.cache = self.caches[hash_str]
+            # trick to keep most used caches away from deletion
+            del self.caches[hash_str]
+            self.caches[hash_str] = self.cache
+
+            if cache_dir:
+                self.dump(filename)
+            return
+        except KeyError:
+            if os.path.exists(filename):
+                self.cache = dict(np.load(filename))
+                self.caches[hash_str] = self.cache
+                while len(self.caches) > CACHE_SIZE:
+                    self.caches.popitem(False)
+                if cache_dir:
+                    self.dump(filename)
+            else:
+                self.cache = None
+
+    def _update_caches(self, hash_str, cache_dir, filename):
+        """Update caches and dump new resampling parameters to disk"""
+        self.caches[hash_str] = self.cache
+        while len(self.caches) > CACHE_SIZE:
+            self.caches.popitem(False)
+
+        if cache_dir:
+            # XXX: Look in to doing memmap-able files instead
+            # `arr.tofile(filename)`
+            self.dump(filename)
+
 
 class KDTreeResampler(BaseResampler):
 
     """
     Resample using nearest neighbour.
     """
-
-    caches = OrderedDict()
 
     def precompute(
         self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
@@ -201,34 +245,15 @@ class KDTreeResampler(BaseResampler):
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
                                 radius_of_influence=radius_of_influence,
                                 epsilon=epsilon)
-        if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
-        else:
-            filename = os.path.join('.', hashlib.sha1(
-                kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
-        try:
-            self.cache = self.caches[kd_hash]
-            # trick to keep most used caches away from deletion
-            del self.caches[kd_hash]
-            self.caches[kd_hash] = self.cache
+        filename = self._create_cache_filename(cache_dir, kd_hash)
+        self._read_params_from_cache(cache_dir, kd_hash, filename)
 
-            if cache_dir:
-                self.dump(filename)
+        if self.cache is not None:
+            LOG.debug("Loaded kd-tree parameters")
             return self.cache
-        except KeyError:
-            if os.path.exists(filename):
-                LOG.debug("Loading kd-tree parameters")
-                self.cache = dict(np.load(filename))
-                self.caches[kd_hash] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-                return self.cache
-            else:
-                LOG.debug("Computing kd-tree parameters")
+        else:
+            LOG.debug("Computing kd-tree parameters")
 
         valid_input_index, valid_output_index, index_array, distance_array = \
             get_neighbour_info(source_geo_def,
@@ -248,12 +273,8 @@ class KDTreeResampler(BaseResampler):
                       "source_geo_def": source_geo_def,
                       }
 
-        self.caches[kd_hash] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
+        self._update_caches(kd_hash, cache_dir, filename)
 
-        if cache_dir:
-            self.dump(filename)
         return self.cache
 
     def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
@@ -274,7 +295,6 @@ class KDTreeResampler(BaseResampler):
 
 
 class EWAResampler(BaseResampler):
-    caches = OrderedDict()
 
     def __init__(self, source_geo_def, target_geo_def, swath_usage=0, grid_coverage=0, **kwargs):
         """
@@ -303,35 +323,16 @@ class EWAResampler(BaseResampler):
 
         source_geo_def = self.source_geo_def
 
-        kd_hash = self.get_hash(source_geo_def=source_geo_def)
-        if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
-        else:
-            filename = os.path.join('.', hashlib.sha1(
-                kd_hash.encode("utf-8")).hexdigest() + ".npz")
+        ewa_hash = self.get_hash(source_geo_def=source_geo_def)
 
-        try:
-            self.cache = self.caches[kd_hash]
-            # trick to keep most used caches away from deletion
-            del self.caches[kd_hash]
-            self.caches[kd_hash] = self.cache
+        filename = self._create_cache_filename(cache_dir, ewa_hash)
+        self._read_params_from_cache(cache_dir, ewa_hash, filename)
 
-            if cache_dir:
-                self.dump(filename)
+        if self.cache is not None:
+            LOG.debug("Loaded ll2cr parameters")
             return self.cache
-        except KeyError:
-            if os.path.exists(filename):
-                LOG.debug("Loading kd-tree parameters")
-                self.cache = dict(np.load(filename))
-                self.caches[kd_hash] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-                return self.cache
-            else:
-                LOG.debug("Computing ll2cr parameters")
+        else:
+            LOG.debug("Computing ll2cr parameters")
 
         lons, lats = source_geo_def.get_lonlats()
         fill_in = np.nan
@@ -382,14 +383,8 @@ class EWAResampler(BaseResampler):
             "cols": lon_arr,
         }
 
-        self.caches[kd_hash] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
+        self._update_caches(self, ewa_hash, cache_dir, filename)
 
-        if cache_dir:
-            # XXX: Look in to doing memmap-able files instead
-            # `arr.tofile(filename)`
-            self.dump(filename)
         return self.cache
 
     def compute(self, data,
@@ -428,8 +423,6 @@ class BilinearResampler(BaseResampler):
 
     """Resample using bilinear."""
 
-    caches = OrderedDict()
-
     def precompute(self, mask=None, radius_of_influence=50000,
                    reduce_data=True, nprocs=1, segments=None,
                    cache_dir=False, **kwargs):
@@ -444,38 +437,18 @@ class BilinearResampler(BaseResampler):
 
         source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
-        # FIXME: cache handling is almost identical to kdtree
         bil_hash = self.get_hash(source_geo_def=source_geo_def,
                                  radius_of_influence=radius_of_influence,
                                  mode="bilinear")
-        if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(bil_hash).hexdigest() + ".npz")
-        else:
-            filename = os.path.join('.', hashlib.sha1(
-                bil_hash.encode("utf-8")).hexdigest() + ".npz")
 
-        try:
-            self.cache = self.caches[bil_hash]
-            # trick to keep most used caches away from deletion
-            del self.caches[bil_hash]
-            self.caches[bil_hash] = self.cache
+        filename = self._create_cache_filename(cache_dir, bil_hash)
+        self._read_params_from_cache(cache_dir, bil_hash, filename)
 
-            if cache_dir:
-                self.dump(filename)
+        if self.cache is not None:
+            LOG.debug("Loaded bilinear parameters")
             return self.cache
-        except KeyError:
-            if os.path.exists(filename):
-                LOG.debug("Loading bilinear parameters")
-                self.cache = dict(np.load(filename))
-                self.caches[bil_hash] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-                return self.cache
-            else:
-                LOG.debug("Computing bilinear parameters")
+        else:
+            LOG.debug("Computing bilinear parameters")
 
         bilinear_t, bilinear_s, input_idxs, idx_arr = \
             get_bil_info(source_geo_def, self.target_geo_def,
@@ -486,12 +459,8 @@ class BilinearResampler(BaseResampler):
                       'input_idxs': input_idxs,
                       'idx_arr': idx_arr}
 
-        self.caches[bil_hash] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
+        self._update_caches(bil_hash, cache_dir, filename)
 
-        if cache_dir:
-            self.dump(filename)
         return self.cache
 
     def compute(self, data, fill_value=None, **kwargs):
