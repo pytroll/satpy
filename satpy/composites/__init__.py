@@ -421,7 +421,7 @@ class DifferenceCompositor(CompositeBase):
         info = combine_info(*projectables)
         info['name'] = self.info['name']
 
-        return Projectable(projectables[0] - projectables[1], **info)
+        return Dataset(projectables[0] - projectables[1], **info)
 
 
 class RGBCompositor(CompositeBase):
