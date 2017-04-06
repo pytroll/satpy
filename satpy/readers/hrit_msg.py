@@ -860,10 +860,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-        print self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
-        print coff, loff
-        # import pdb
-        # pdb.set_trace()
+
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
 
@@ -883,9 +880,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
         upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
-        # 5566, 3737
-        print current_first_line, loff
-        print lower_coff, upper_coff
+
         lower_area_extent = self.get_area_extent((upper_south_line, ncols),
                                                  (loff, lower_coff),
                                                  (lfac, cfac),
