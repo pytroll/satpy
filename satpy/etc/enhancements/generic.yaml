@@ -1,0 +1,405 @@
+enhancements:
+  default:
+    operations:
+    - name: stretch
+      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      kwargs: {stretch: linear}
+  true_color_default:
+    standard_name: true_color
+    operations:
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
+  true_color_ahi_default:
+    standard_name: true_color_ahi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  true_color_norayleigh_default:
+    standard_name: true_color_norayleigh
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  true_color_reducedsize_default:
+    standard_name: true_color_reducedsize
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  overview_default:
+    standard_name: overview
+    operations:
+    - name: inverse
+      method: &inversefun !!python/name:satpy.enhancements.invert ''
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: &gammafun !!python/name:satpy.enhancements.gamma ''
+      kwargs: {gamma: 1.6}
+  night_overview_default:
+    standard_name: night_overview
+    operations:
+    - name: inverse
+      method: *inversefun
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.6}
+  natural_default:
+    standard_name: natural
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 90}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.8}
+  airmass_default:
+    standard_name: airmass
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-25, -40, 243]
+        max_stretch: [0, 5, 208]
+  green_snow_default:
+    standard_name: green_snow
+    operations:
+    - name: inverse
+      method: *inversefun
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: crude}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.6}
+  convection_default:
+    standard_name: convection
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-30, 0, -70]
+        max_stretch: [0, 55, 20]
+  dust_default:
+    standard_name: dust
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 261]
+        max_stretch: [2, 15, 289]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2.5, 1]
+  ash_default:
+    standard_name: ash
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, -4, 243]
+        max_stretch: [2, 5, 303]
+  fog_default:
+    standard_name: fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 6, 283]
+  night_fog_default:
+    standard_name: night_fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 6, 293]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2, 1]
+  day_microphysics_default:
+    standard_name: day_microphysics
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 203]
+        max_stretch: [100, 60, 323]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2.5, 1]
+  cloudtop_default:
+    standard_name: cloudtop
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.005, 0.005]
+  reflectance:
+    standard_name: reflectance
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  sar-ice:
+    standard_name: sar-ice
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.2, 0.02]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 1.2, 1]
+  cloud_type:
+    standard_name: cloud_type
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_mask:
+    standard_name: cloud_mask
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_height:
+    standard_name: cloud_top_height
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_pressure:
+    standard_name: cloud_top_pressure
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_temperature:
+    standard_name: cloud_top_temperature
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_phase:
+    standard_name: cloud_top_phase
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_drop_effective_radius:
+    standard_name: cloud_drop_effective_radius
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_optical_thickness:
+    standard_name: cloud_optical_thickness
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_liquid_water_path:
+    standard_name: cloud_liquid_water_path
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_ice_water_path:
+    standard_name: cloud_ice_water_path
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  precipitation_probability:
+    standard_name: precipitation_probability
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convective_rain_rate:
+    standard_name: convective_rain_rate
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convective_precipitation_hourly_accumulation:
+    standard_name: convective_precipitation_hourly_accumulation
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  total_precipitable_water:
+    standard_name: total_precipitable_water
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  showalter_index:
+    standard_name: showalter_index
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  lifted_index:
+    standard_name: lifted_index
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob30:
+    standard_name: convection_initiation_prob30
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob60:
+    standard_name: convection_initiation_prob60
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob90:
+    standard_name: convection_initiation_prob90
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  day_microphysics_ahi:
+    standard_name: day_microphysics_ahi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 203]
+        max_stretch: [100, 70, 323]
+  cloud_phase_distinction_default:
+    standard_name: cloud_phase_distinction
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [280.67, 0, 1]
+        max_stretch: [219.62, 78, 59]
+  water_vapors1_default:
+    standard_name: water_vapors1
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [278.96, 242.67, 261.03]
+        max_stretch: [202.29, 214.66, 245.12]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [10, 5.5, 5.5]
+  water_vapors2_default:
+    standard_name: water_vapors2
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [30, 278.15, 243.9]
+        max_stretch: [-3, 213.15, 208.5]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [3.5, 2.5, 2.5]
+  ncc_default:
+    standard_name: ncc_radiance
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0]
+        max_stretch: [0.075]
