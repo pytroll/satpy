@@ -531,7 +531,7 @@ image_production_stats = np.dtype([('SatelliteId', '>u2'),
                                          'bool'),
                                         ('NonNominalGeometricQuality', 'bool'),
                                         ('NonNominalTimeliness', 'bool'),
-                                        ('IncompleteL15', 'bool')]),
+                                        ('IncompleteL15', 'bool')], (12, )),
                                    ('ActualL15CoverageVIS_IR',
                                     [('SouthernLineActual', '>i4'),
                                      ('NorthernLineActual', '>i4'),
@@ -845,6 +845,87 @@ class HRITMSGFileHandler(HRITFileHandler):
                    aex[2] + xadj, aex[3] + yadj)
 
         return aex
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        if dsid.name != 'HRV':
+            return super(HRITMSGFileHandler, self).get_area_def(dsid)
+
+        cfac = np.int32(self.mda['cfac'])
+        lfac = np.int32(self.mda['lfac'])
+        coff = np.float32(self.mda['coff'])
+        loff = np.float32(self.mda['loff'])
+
+        a = self.mda['projection_parameters']['a']
+        b = self.mda['projection_parameters']['b']
+        h = self.mda['projection_parameters']['h']
+        lon_0 = self.mda['projection_parameters']['SSP_longitude']
+        print self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+        print coff, loff
+        # import pdb
+        # pdb.set_trace()
+        nlines = int(self.mda['number_of_lines'])
+        ncols = int(self.mda['number_of_columns'])
+
+        segment_number = self.mda['segment_sequence_number']
+        total_segments = (self.mda['planned_end_segment_number'] -
+                          self.mda['planned_start_segment_number'] + 1)
+
+        current_first_line = (segment_number -
+                              self.mda['planned_start_segment_number']) * nlines
+        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+
+        upper_south_line = bounds[
+            'LowerNorthLineActual'] - current_first_line - 1
+        upper_south_line = min(max(upper_south_line, 0), nlines)
+        lower_slice = slice(0, upper_south_line)
+        upper_slice = slice(upper_south_line, nlines)
+
+        lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
+        upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
+        # 5566, 3737
+        print current_first_line, loff
+        print lower_coff, upper_coff
+        lower_area_extent = self.get_area_extent((upper_south_line, ncols),
+                                                 (loff, lower_coff),
+                                                 (lfac, cfac),
+                                                 h)
+
+        upper_area_extent = self.get_area_extent((nlines - upper_south_line,
+                                                  ncols),
+                                                 (loff - upper_south_line, upper_coff),
+                                                 (lfac, cfac),
+                                                 h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        lower_area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            upper_south_line,
+            lower_area_extent)
+
+        upper_area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            nlines - upper_south_line,
+            upper_area_extent)
+
+        area = geometry.StackedAreaDefinition(lower_area, upper_area)
+
+        self.area = area.squeeze()
+        return area
 
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
