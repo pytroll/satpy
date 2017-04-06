@@ -150,3 +150,11 @@ composites:
     - dnb_moon_illumination_fraction
     standard_name: ncc_radiance
     units: "1"
+
+  night_overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - ncc_zinke
+    - ncc_zinke
+    - M15
+    standard_name: night_overview
