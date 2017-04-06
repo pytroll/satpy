@@ -42,7 +42,6 @@ from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
 from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
-from satpy.dataset import Dataset
 
 try:
     import configparser
@@ -417,7 +416,6 @@ class EWAResampler(BaseResampler):
                 weight_min=weight_min, weight_distance_max=weight_distance_max,
                 weight_sum_min=weight_sum_min,
                 maximum_weight_mode=maximum_weight_mode)
-        # out_arr = out_arrs[0]
 
         grid_covered_ratio = num_valid_points / float(res.size)
         grid_covered = grid_covered_ratio > self.grid_coverage
