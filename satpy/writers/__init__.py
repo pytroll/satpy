@@ -31,16 +31,13 @@ import logging
 import os
 
 import numpy as np
+import yaml
 
-from satpy.config import config_search_paths, get_environ_config_dir
+from satpy.config import (config_search_paths, get_environ_config_dir,
+                          recursive_dict_update)
 from satpy.plugin_base import Plugin
 from trollimage.image import Image
 from trollsift import parser
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
 
@@ -293,20 +290,15 @@ class EnhancementDecisionTree(object):
         self.add_config_to_tree(*config_files)
 
     def add_config_to_tree(self, *config_files):
-        conf = configparser.ConfigParser(allow_no_value=True)
-        for fn in config_files:
-            if isinstance(fn, str):
-                conf.read(fn)
-            else:
-                conf.readfp(fn)
+        conf = {}
+        for config_file in config_files:
+            with open(config_file) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
 
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        for section_name in conf.sections():
-            if not section_name.startswith(self.prefix):
-                continue
-            attrs = dict(conf.items(section_name))
+        for section_name, attrs in conf['enhancements'].items():
             # Set a path in the tree for each section in the configuration
             # files
             curr_level = self.tree
@@ -368,12 +360,11 @@ class EnhancementDecisionTree(object):
 
 
 class Enhancer(object):
-    """
-    Helper class to get enhancement information for images.
-    """
+    """Helper class to get enhancement information for images."""
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
-        """
+        """Initialize an Enhancer instance.
+
         Args:
             ppp_config_dir: Points to the base configuration directory
             enhancement_config_file: The enhancement configuration to
@@ -385,7 +376,7 @@ class Enhancer(object):
         if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
-            config_fn = os.path.join("enhancements", "generic.cfg")
+            config_fn = os.path.join("enhancements", "generic.yaml")
             self.enhancement_config_file = config_search_paths(
                 config_fn, self.ppp_config_dir)
         if not isinstance(self.enhancement_config_file, (list, tuple)):
@@ -406,7 +397,7 @@ class Enhancer(object):
             sensor = [sensor]
 
         for sensor_name in sensor:
-            config_fn = os.path.join("enhancements", sensor_name + ".cfg")
+            config_fn = os.path.join("enhancements", sensor_name + ".yaml")
             config_files = config_search_paths(config_fn, self.ppp_config_dir)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
@@ -427,6 +418,12 @@ class Enhancer(object):
 
     def apply(self, img, **info):
         enh_kwargs = self.enhancement_tree.find_match(**info)
+
         LOG.debug("Enhancement configuration options: %s" %
-                  (str(enh_kwargs), ))
-        img.enhance(**enh_kwargs)
+                  (str(enh_kwargs['operations']), ))
+        for operation in enh_kwargs['operations']:
+            fun = operation['method']
+            args = operation.get('args', [])
+            kwargs = operation.get('kwargs', {})
+            fun(img, *args, **kwargs)
+        # img.enhance(**enh_kwargs)
