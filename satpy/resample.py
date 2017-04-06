@@ -379,9 +379,9 @@ class EWAResampler(BaseResampler):
     def compute(self, data, fill_value=0, weight_count=10000, weight_min=0.01,
                 weight_distance_max=1.0, weight_sum_min=-1.0,
                 maximum_weight_mode=False, **kwargs):
-
         rows = self.cache["rows"]
         cols = self.cache["cols"]
+
         # if the data is scan based then check its metadata or the passed
         # kwargs otherwise assume the entire input swath is one large
         # "scanline"
@@ -401,7 +401,7 @@ class EWAResampler(BaseResampler):
             for i in range(data.shape[-1]):
                 num_valid_points, res[:, :, i] = \
                     fornav(cols, rows, self.target_geo_def,
-                           data[:, :, i],
+                           data[:, :, i].copy(),
                            rows_per_scan=rows_per_scan,
                            weight_count=weight_count,
                            weight_min=weight_min,
