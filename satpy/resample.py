@@ -411,7 +411,7 @@ class EWAResampler(BaseResampler):
             num_valid_points *= 3
         else:
             num_valid_points, res = fornav(
-                cols, rows, self.target_geo_def, data,
+                cols, rows, self.target_geo_def, data.copy(),
                 rows_per_scan=rows_per_scan, weight_count=weight_count,
                 weight_min=weight_min, weight_distance_max=weight_distance_max,
                 weight_sum_min=weight_sum_min,
