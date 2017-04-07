@@ -29,7 +29,7 @@ import os.path
 import sys
 from glob import glob
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
@@ -87,8 +87,7 @@ setup(name=NAME,
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
       test_suite='satpy.tests.suite',
-      packages=['satpy', 'satpy.composites', 'satpy.readers',
-                'satpy.writers', 'satpy.tests', 'satpy.enhancements'],
+      packages=find_packages('satpy'),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
                               os.path.join('etc', 'areas.def'),
                               os.path.join('etc', 'satpy.cfg'),
