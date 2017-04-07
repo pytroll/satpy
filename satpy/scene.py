@@ -305,7 +305,7 @@ class Scene(InfoObject):
     def __delitem__(self, key):
         """Remove the item from the scene."""
         k = self.datasets.get_key(key)
-        self.wishlist.remove(k)
+        self.wishlist.discard(k)
         del self.datasets[k]
 
     def __contains__(self, name):
@@ -487,9 +487,10 @@ class Scene(InfoObject):
         keepables = None
         if compute:
             keepables = self.compute()
-        missing_str = ", ".join(map(str, self.missing_datasets))
-        LOG.warning(
-            "The following datasets were not created: {}".format(missing_str))
+        if self.missing_datasets:
+            missing_str = ", ".join(map(str, self.missing_datasets))
+            LOG.warning(
+                "The following datasets were not created: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -525,9 +526,10 @@ class Scene(InfoObject):
             nodes = [self.dep_tree[i]
                      for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
-        missing_str = ", ".join(map(str, new_scn.missing_datasets))
-        LOG.warning(
-            "The following datasets were not created: {}".format(missing_str))
+        if new_scn.missing_datasets:
+            missing_str = ", ".join(map(str, new_scn.missing_datasets))
+            LOG.warning(
+                "The following datasets were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 
