@@ -392,30 +392,25 @@ class EWAResampler(BaseResampler):
             data = data.data
             data[mask] = np.nan
 
-        target_shape = self.target_geo_def.shape
-        if data.ndim == 3:
-            output_shape = list(target_shape)
-            output_shape.append(data.shape[-1])
-            res = np.zeros(output_shape, dtype=data.dtype)
-
-            for i in range(data.shape[-1]):
-                num_valid_points, res[:, :, i] = \
-                    fornav(cols, rows, self.target_geo_def,
-                           data[:, :, i].copy(),
-                           rows_per_scan=rows_per_scan,
-                           weight_count=weight_count,
-                           weight_min=weight_min,
-                           weight_distance_max=weight_distance_max,
-                           weight_sum_min=weight_sum_min,
-                           maximum_weight_mode=maximum_weight_mode)
-            num_valid_points *= 3
+        if data.ndim >= 3:
+            data_in = tuple(data[..., i] for i in range(data.shape[-1]))
         else:
-            num_valid_points, res = fornav(
-                cols, rows, self.target_geo_def, data.copy(),
-                rows_per_scan=rows_per_scan, weight_count=weight_count,
-                weight_min=weight_min, weight_distance_max=weight_distance_max,
-                weight_sum_min=weight_sum_min,
-                maximum_weight_mode=maximum_weight_mode)
+            data_in = data
+
+        num_valid_points, res = \
+            fornav(cols, rows, self.target_geo_def,
+                   data_in,
+                   rows_per_scan=rows_per_scan,
+                   weight_count=weight_count,
+                   weight_min=weight_min,
+                   weight_distance_max=weight_distance_max,
+                   weight_sum_min=weight_sum_min,
+                   maximum_weight_mode=maximum_weight_mode)
+
+        if data.ndim >= 3:
+            # convert 'res' from tuple of arrays to one array
+            res = np.dstack(res)
+            num_valid_points = sum(num_valid_points)
 
         grid_covered_ratio = num_valid_points / float(res.size)
         grid_covered = grid_covered_ratio > self.grid_coverage
