@@ -42,7 +42,6 @@ from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
 from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
-from satpy.dataset import Dataset
 
 try:
     import configparser
@@ -335,88 +334,95 @@ class EWAResampler(BaseResampler):
             LOG.debug("Computing ll2cr parameters")
 
         lons, lats = source_geo_def.get_lonlats()
-        fill_in = np.nan
         grid_name = getattr(self.target_geo_def, "name", "N/A")
-        p = self.target_geo_def.proj4_string
-        cw = self.target_geo_def.pixel_size_x
-        ch = -abs(self.target_geo_def.pixel_size_y)
-        w = self.target_geo_def.x_size
-        h = self.target_geo_def.y_size
-        ox = self.target_geo_def.area_extent[0]
-        oy = self.target_geo_def.area_extent[3]
 
-        is_static = True  # SatPy/PyResample don't support dynamic grids out of the box yet
+        # SatPy/PyResample don't support dynamic grids out of the box yet
+        is_static = True
         if is_static:
             # we are remapping to a static unchanging grid/area with all of
             # its parameters specified
             # inplace operation so lon_arr and lat_arr are written to
-            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
+            swath_points_in_grid, cols, rows = ll2cr(source_geo_def,
+                                                     self.target_geo_def)
         else:
             raise NotImplementedError(
                 "Dynamic ll2cr is not supported by satpy yet")
-            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
-            swath_points_in_grid, lon_orig, lat_orig, origin_x, origin_y, width, height = results
-
-            # edit the grid information because now we know what it is
-            # FIXME: This should be less magical to the user, maybe a separate
-            # step for this operation
-            self.target_geo_def.origin_x = origin_x
-            self.target_geo_def.origin_y = origin_y
-            self.target_geo_def.width = width
-            self.target_geo_def.height = height
 
         # Determine if enough of the input swath was used
-        fraction_in = swath_points_in_grid / float(lon_arr.size)
+        fraction_in = swath_points_in_grid / float(lons.size)
         swath_used = fraction_in > self.swath_usage
         if not swath_used:
-            LOG.info("Data does not fit in grid %s because it only %f%% of the swath is used" %
+            LOG.info("Data does not fit in grid %s because it only %f%% of "
+                     "the swath is used" %
                      (grid_name, fraction_in * 100))
             raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
         else:
             LOG.debug("Data fits in grid %s and uses %f%% of the swath",
                       grid_name, fraction_in * 100)
 
+        # Can't save masked arrays to npz, so remove the mask
+        if hasattr(rows, 'mask'):
+            rows = rows.data
+            cols = cols.data
+
         # it's important here not to modify the existing cache dictionary.
         self.cache = {
             "source_geo_def": source_geo_def,
-            "rows": lat_arr,
-            "cols": lon_arr,
+            "rows": rows,
+            "cols": cols,
         }
 
-        self._update_caches(self, ewa_hash, cache_dir, filename)
+        self._update_caches(ewa_hash, cache_dir, filename)
 
         return self.cache
 
-    def compute(self, data,
-                weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
-                weight_sum_min=-1.0, maximum_weight_mode=False,
-                **kwargs):
+    def compute(self, data, fill_value=0, weight_count=10000, weight_min=0.01,
+                weight_distance_max=1.0, weight_sum_min=-1.0,
+                maximum_weight_mode=False, **kwargs):
         rows = self.cache["rows"]
         cols = self.cache["cols"]
-        # if the data is scan based then check its metadata or the passed kwargs
-        # otherwise assume the entire input swath is one large "scanline"
+
+        # if the data is scan based then check its metadata or the passed
+        # kwargs otherwise assume the entire input swath is one large
+        # "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get(
             "rows_per_scan", data.shape[0])
-        num_valid_points, out_arrs = fornav(
-            cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
-                                            weight_count=weight_count, weight_min=weight_min,
-                                            weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
-                                            maximum_weight_mode=maximum_weight_mode, **kwargs)
-        num_valid_points = num_valid_points[0]
-        out_arr = out_arrs[0]
+        if hasattr(data, 'mask'):
+            mask = data.mask
+            data = data.data
+            data[mask] = np.nan
 
-        grid_covered_ratio = num_valid_points / float(out_arr.size)
+        if data.ndim >= 3:
+            data_in = tuple(data[..., i] for i in range(data.shape[-1]))
+        else:
+            data_in = data
+
+        num_valid_points, res = \
+            fornav(cols, rows, self.target_geo_def,
+                   data_in,
+                   rows_per_scan=rows_per_scan,
+                   weight_count=weight_count,
+                   weight_min=weight_min,
+                   weight_distance_max=weight_distance_max,
+                   weight_sum_min=weight_sum_min,
+                   maximum_weight_mode=maximum_weight_mode)
+
+        if data.ndim >= 3:
+            # convert 'res' from tuple of arrays to one array
+            res = np.dstack(res)
+            num_valid_points = sum(num_valid_points)
+
+        grid_covered_ratio = num_valid_points / float(res.size)
         grid_covered = grid_covered_ratio > self.grid_coverage
         if not grid_covered:
-            msg = "EWA resampling only found %f%% of the grid covered (need %f%%)" % (grid_covered_ratio * 100,
-                                                                                      self.grid_coverage * 100)
+            msg = "EWA resampling only found %f%% of the grid covered "
+            "(need %f%%)" % (grid_covered_ratio * 100,
+                             self.grid_coverage * 100)
             raise RuntimeError(msg)
         LOG.debug("EWA resampling found %f%% of the grid covered" %
                   (grid_covered_ratio * 100))
-        info = getattr(data, "info", {})
-        info["mask"] = np.isnan(out_arr) if np.issubdtype(
-            data.dtype, np.floating) else out_arr == fill
-        return Dataset(out_arr, **info)
+
+        return np.ma.masked_invalid(res)
 
 
 class BilinearResampler(BaseResampler):
@@ -501,7 +507,8 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
-def resample(source_area, data, destination_area, resampler=KDTreeResampler, **kwargs):
+def resample(source_area, data, destination_area, resampler=KDTreeResampler,
+             **kwargs):
     """Do the resampling
     """
     if isinstance(resampler, (str, six.text_type)):
