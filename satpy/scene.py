@@ -325,7 +325,7 @@ class Scene(InfoObject):
             reader_datasets.setdefault(reader_name, set()).add(ds_id)
 
         # load all datasets for one reader at a time
-        loaded_datasets = {}
+        loaded_datasets = DatasetDict()
         for reader_name, ds_ids in reader_datasets.items():
             reader_instance = self.readers[reader_name]
             new_datasets = reader_instance.load(ds_ids, **kwargs)
@@ -442,8 +442,19 @@ class Scene(InfoObject):
         return keepables
 
     def read(self, nodes=None, **kwargs):
+        """Load datasets from the necessary reader.
+        
+        Args:
+            nodes (iterable): DependencyTree Node objects
+            **kwargs: Keyword arguments to pass to the reader's `load` method.
+
+        Returns:
+            DatasetDict of loaded datasets
+
+        """
         if nodes is None:
-            nodes = self.dep_tree.leaves()
+            required_nodes = self.wishlist - set(self.datasets.keys())
+            nodes = self.dep_tree.leaves(nodes=required_nodes)
         return self.read_datasets(nodes, **kwargs)
 
     def compute(self, nodes=None):
