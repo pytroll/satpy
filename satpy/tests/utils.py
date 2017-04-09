@@ -104,7 +104,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 def test_composites(sensor_name):
     from satpy import DatasetID, DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
-    # TODO: Composites with DatasetIDs as prereqs
     comps = {
         DatasetID(name='comp1'): (['ds1'], []),
         DatasetID(name='comp2'): (['ds1', 'ds2'], []),
@@ -198,5 +197,5 @@ def create_fake_reader(reader_name, sensor_name='fake_sensor', datasets=None,
     r.get_dataset_key = partial(_get_dataset_key, r)
     r.all_dataset_ids = r.datasets
     r.available_dataset_ids = r.datasets
-    r.load = partial(_reader_load, r)
+    r.load.side_effect = partial(_reader_load, r)
     return r

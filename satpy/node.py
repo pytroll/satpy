@@ -148,6 +148,27 @@ class DependencyTree(Node):
         # __contains__
         self._all_nodes = DatasetDict()
 
+    def leaves(self, nodes=None, unique=True):
+        """Get the leaves of the tree starting at this root.
+        
+        Args:
+            nodes (iterable): limit leaves for these node names
+            unique: only include individual leaf nodes once
+
+        Returns:
+            list of leaf nodes
+
+        """
+        if nodes is None:
+            return super(DependencyTree, self).leaves(unique=unique)
+
+        res = list()
+        for child_id in nodes:
+            for sub_child in self._all_nodes[child_id].leaves(unique=unique):
+                if not unique or sub_child not in res:
+                    res.append(sub_child)
+        return res
+
     def add_child(self, parent, child):
         Node.add_child(parent, child)
         self._all_nodes[child.name] = child
