@@ -24,10 +24,11 @@
 """Dataset objects.
 """
 
+import numbers
+from collections import namedtuple
+
 import numpy as np
 import six
-from collections import namedtuple
-import numbers
 
 
 class InfoObject(object):
@@ -114,13 +115,8 @@ def copy_info1(func):
         return res
     return wrapper
 
-DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration", "modifiers")
-DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
 
-
-class DatasetID(DatasetID):
+class DatasetIDHelper(object):
     """Identifier for all `Dataset` objects.
 
     DatasetID is a namedtuple that holds identifying and classifying
@@ -221,8 +217,35 @@ class DatasetID(DatasetID):
             return dict(zip(DATASET_KEYS, self))
 
     def _to_trimmed_dict(self):
-        return {key: getattr(self, key) for key in DATASET_KEYS
+        return {key: getattr(self, key) for key in self.dataset_keys
                 if getattr(self, key) is not None}
+
+
+DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
+                "calibration", "modifiers")
+# DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
+# DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+
+
+def generate_DID_class(dataset_keys=('name', 'modifiers')):
+    BaseDatasetID = namedtuple("DatasetID", " ".join(dataset_keys))
+    BaseDatasetID.__new__.__defaults__ = tuple([None] * len(dataset_keys))
+
+    class DatasetID(BaseDatasetID, DatasetIDHelper):
+        """The actual DatasetID class."""
+
+        def __init__(self, *args, **kwargs):
+            super(DatasetID, self).__init__(*args, **kwargs)
+            self.dataset_keys = dataset_keys
+
+    return DatasetID
+
+DatasetID = generate_DID_class(DATASET_KEYS)
+
+
+def is_datasetid(obj):
+    """Check if *obj* is a DatasetID."""
+    return isinstance(obj, tuple) and hasattr(obj, 'dataset_keys')
 
 
 class Dataset(np.ma.MaskedArray):
