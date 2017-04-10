@@ -376,13 +376,15 @@ class FileYAMLReader(AbstractYAMLReader):
                  config_files,
                  start_time=None,
                  end_time=None,
-                 area=None, **kwargs):
+                 area=None,
+                 filter_filenames=True, **kwargs):
         super(FileYAMLReader, self).__init__(config_files,
                                              start_time=start_time,
                                              end_time=end_time,
                                              area=area)
 
         self.file_handlers = {}
+        self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
 
     @property
     def available_dataset_ids(self):
@@ -435,6 +437,7 @@ class FileYAMLReader(AbstractYAMLReader):
         if requirements:
             for requirement in requirements:
                 for fhd in self.file_handlers[requirement]:
+                    # FIXME: Isn't this super wasteful? filename_info.items() every iteration?
                     if (all(item in filename_info.items()
                             for item in fhd.filename_info.items())):
                         req_fh.append(fhd)
@@ -499,6 +502,26 @@ class FileYAMLReader(AbstractYAMLReader):
                 continue
             yield filehandler
 
+    def filter_filenames_by_info(self, filename_items):
+        """Filter out file using metadata from the filenames.
+        
+        Currently only uses start and end time.
+        """
+        for filename, filename_info in filename_items:
+            s = filename_info.get('start_time')
+            e = filename_info.get('end_time', s)
+            if e and not s:
+                s = e
+
+            if e < s:
+                # correct for filenames with 1 date and 2 times
+                e = e.replace(year=s.year, month=s.month, day=s.day)
+            if self._start_time and e < self._start_time:
+                continue
+            if self._end_time and s > self._end_time:
+                continue
+            yield filename, filename_info
+
     def filter_fh_by_area(self, filehandlers):
         """Filter out filehandlers outside the desired area."""
         for filehandler in filehandlers:
@@ -509,6 +532,8 @@ class FileYAMLReader(AbstractYAMLReader):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
+        if self.filter_filenames and self._start_time or self._end_time:
+            filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
         return [fhd
