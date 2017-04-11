@@ -21,7 +21,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to VIIRS L1B format
+"""ACSPO SST Reader
+
+See the following page for more information:
+
+https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
 """
 import logging
