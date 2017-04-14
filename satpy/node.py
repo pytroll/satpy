@@ -76,6 +76,9 @@ class Node(object):
         """Display the node."""
         return self.display()
 
+    def __repr__(self):
+        return "<Node ({})>".format(repr(self.name))
+
     def __eq__(self, other):
         return self.name == other.name
 

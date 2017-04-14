@@ -886,6 +886,7 @@ class TestSceneLoading(unittest.TestCase):
         """Test load complex composite followed by other datasets"""
         import satpy.scene
         from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
         r = create_fake_reader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
@@ -897,16 +898,17 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(r.load.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 1)
+        ds1_modid = DatasetID('ds1', modifiers=('mod1',))
         with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
             # FIXME: This currently tries to load the modified ds1, it should load the unmodified version
-            scene.load(['ds1'])
+            scene.load([ds1_modid])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
             self.assertEquals(len(loaded_ids), 2)
-            m.assert_called_once_with(set([scene.dep_tree['ds1']]))
+            m.assert_called_once_with(set([scene.dep_tree[ds1_modid]]))
         with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
             # FIXME: This currently tries to load the modified ds1, it should load the unmodified version
-            scene.load(['ds1'])
+            scene.load([ds1_modid])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
             self.assertEquals(len(loaded_ids), 2)
@@ -915,7 +917,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(comps['fake_sensor']['comp10'].side_effect.call_count, 1)
         # Create the modded ds1 at comp10, create it again when loading 'ds1' (unknowningly modded)
         # FIXME: This should only create the modified ds1 once, but once the above FIXMEs are fixed then this should only be 1
-        self.assertEqual(comps['fake_sensor']['ds1']._call_mock.call_count, 2)
+        self.assertEqual(comps['fake_sensor'][ds1_modid]._call_mock.call_count, 2)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 2)
 
