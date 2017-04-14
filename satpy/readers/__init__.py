@@ -110,6 +110,8 @@ class DatasetDict(dict):
         else:
             raise TypeError("First argument must be a wavelength or name")
 
+        # sort keys so things are a little more deterministic (.keys() is not)
+        keys = sorted(keys)
         if resolution is not None:
             if not isinstance(resolution, (list, tuple)):
                 resolution = (resolution, )
