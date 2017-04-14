@@ -58,14 +58,23 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
-        return self['/attr/sensor']
-        res = self['/attr/instrument']
+        res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         else:
             return res
 
     def get_shape(self, ds_id, ds_info):
+        """Get numpy array shape for the specified dataset.
+        
+        Args:
+            ds_id (DatasetID): ID of dataset that will be loaded
+            ds_info (dict): Dictionary of dataset information from config file
+            
+        Returns:
+            tuple: (rows, cols)
+            
+        """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         s = self[var_path + "/shape"]
         if len(s) == 3:
@@ -73,7 +82,8 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             s = s[1:]
         return s
 
-    def _parse_datetime(self, datestr):
+    @staticmethod
+    def _parse_datetime(datestr):
         return datetime.strptime(datestr, "%Y%m%dT%H%M%SZ")
 
     @property
@@ -85,6 +95,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
     def get_dataset(self, dataset_id, ds_info, out=None, xslice=slice(None), yslice=slice(None)):
+        """Load data array and metadata from file on disk."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
         cls = ds_info.get("container", Dataset)
