@@ -205,7 +205,7 @@ class DatasetDict(dict):
                                 wavelength=d.get("wavelength"),
                                 polarization=d.get("polarization"),
                                 calibration=d.get("calibration"),
-                                modifiers=d.get("modifiers"))
+                                modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
                         "One of 'name' or 'wavelength' info values should be set.")
