@@ -62,7 +62,7 @@ class DatasetDict(dict):
 
     def keys(self, names=False, wavelengths=False):
         # sort keys so things are a little more deterministic (.keys() is not)
-        keys = DatasetID.sort(super(DatasetDict, self).keys())
+        keys = sorted(super(DatasetDict, self).keys())
         if names:
             return (k.name for k in keys)
         elif wavelengths:

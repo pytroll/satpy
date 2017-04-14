@@ -160,20 +160,6 @@ class DatasetID(DatasetID):
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
                            etc). `None` or empty tuple if not applicable.
     """
-    @classmethod
-    def sort(cls, iterable, reverse=False):
-        """Sort DatasetIDs with special care of `None` values"""
-        # modifiers should never be None when sorted, should be tuples
-        def key_func(obj):
-            return obj._replace(
-                name='' if obj.name is None else obj.name,
-                wavelength=0. if obj.wavelength is None else obj.wavelength,
-                resolution=0 if obj.resolution is None else obj.resolution,
-                polarization='' if obj.polarization is None else obj.polarization,
-                calibration='' if obj.calibration is None else obj.calibration,
-            )
-        return sorted(iterable, key=key_func, reverse=reverse)
-
     @staticmethod
     def name_match(a, b):
         """Return if two string names are equal
@@ -203,6 +189,27 @@ class DatasetID(DatasetID):
             return b[0] <= a <= b[2]
         else:
             raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+    def _comparable(self):
+        """Get a comparable version of the DatasetID.
+        
+        Without this DatasetIDs often raise an exception when compared in
+        Python 3 due to None not being comparable with other types.
+        """
+        return self._replace(
+            name='' if self.name is None else self.name,
+            wavelength=0. if self.wavelength is None else self.wavelength,
+            resolution=0 if self.resolution is None else self.resolution,
+            polarization='' if self.polarization is None else self.polarization,
+            calibration='' if self.calibration is None else self.calibration,
+        )
+
+    def __lt__(self, other):
+        """Compare DatasetIDs with special handling of `None` values"""
+        # modifiers should never be None when sorted, should be tuples
+        if isinstance(other, DatasetID):
+            other = other._comparable()
+        return super(DatasetID, self._comparable()).__lt__(other)
 
     def __eq__(self, other):
         if isinstance(other, str):
