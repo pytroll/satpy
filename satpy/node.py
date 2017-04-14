@@ -169,6 +169,28 @@ class DependencyTree(Node):
                     res.append(sub_child)
         return res
 
+    def trunk(self, nodes=None, unique=True):
+        """Get the trunk nodes of the tree starting at this root.
+        
+        Args:
+            nodes (iterable): limit trunk nodes to the names specified or the
+                              children of them that are also trunk nodes.
+            unique: only include individual trunk nodes once
+            
+        Returns:
+            list of trunk nodes
+            
+        """
+        if nodes is None:
+            return super(DependencyTree, self).trunk(unique=unique)
+
+        res = list()
+        for child_id in nodes:
+            for sub_child in self._all_nodes[child_id].trunk(unique=unique):
+                if not unique or sub_child not in res:
+                    res.append(sub_child)
+        return res
+
     def add_child(self, parent, child):
         Node.add_child(parent, child)
         self._all_nodes[child.name] = child
