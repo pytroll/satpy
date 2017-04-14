@@ -83,7 +83,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
-                print("Calling mod ", datasets[0].id)
                 if name == 'res_change' and datasets[0].id.resolution is not None:
                     i = datasets[0].info.copy()
                     i['resolution'] *= 5
