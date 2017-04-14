@@ -80,7 +80,7 @@ class RatioSharpenedRGB(CompositeBase):
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
-    def __call__(self, datasets, optional_datasets=[], **info):
+    def __call__(self, datasets, optional_datasets=None, **info):
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
 
@@ -92,7 +92,7 @@ class RatioSharpenedRGB(CompositeBase):
             low_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
             if high_res.info["area"] != low_res.info["area"]:
                 if np.mod(high_res.shape[0], low_res.shape[0]) or \
-                    np.mod(high_res.shape[1], low_res.shape[1]):
+                   np.mod(high_res.shape[1], low_res.shape[1]):
                     raise IncompatibleAreas(
                         "High resolution band is not mapped the same area as the low resolution bands")
                 else:

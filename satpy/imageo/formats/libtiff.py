@@ -396,11 +396,11 @@ tifftags = {
 
 def debug(func):
     return func
-    def new_func(*args, **kws):
-        print 'Calling',func.__name__
-        r = func (*args, **kws)
-        return r
-    return new_func
+    # def new_func(*args, **kws):
+    #     print 'Calling',func.__name__
+    #     r = func (*args, **kws)
+    #     return r
+    # return new_func
 
 class TIFF(ctypes.c_void_p):
     """ Holds a pointer to TIFF object.
