@@ -396,7 +396,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                            resolution=None,
                                            polarization=None,
                                            calibration='reflectance',
-                                           modifiers=None)])
+                                           modifiers=tuple())])
 
     def test_dfilter_from_key(self):
         """Test creating a dfilter from a key."""
@@ -405,7 +405,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='radiance')
 
         expected = {'polarization': None,
-                    'modifiers': None,
+                    'modifiers': tuple(),
                     'resolution': None,
                     'calibration': ['radiance']}
         self.assertDictEqual(expected,
@@ -414,7 +414,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='reflectance')
 
         expected = {'polarization': None,
-                    'modifiers': None,
+                    'modifiers': tuple(),
                     'resolution': None,
                     'calibration': ['reflectance']}
         self.assertDictEqual(expected,
@@ -435,7 +435,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='radiance')
 
         expected = {'polarization': None,
-                    'modifiers': None,
+                    'modifiers': tuple(),
                     'resolution': [1000],
                     'calibration': ['radiance']}
         self.assertDictEqual(expected,
@@ -444,7 +444,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='reflectance')
 
         expected = {'polarization': None,
-                    'modifiers': None,
+                    'modifiers': tuple(),
                     'resolution': [1000],
                     'calibration': ['reflectance']}
         self.assertDictEqual(expected,
@@ -479,7 +479,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                            resolution=None,
                                            polarization=None,
                                            calibration='reflectance',
-                                           modifiers=None)])
+                                           modifiers=tuple())])
 
     def test_datasets_from_any_key(self):
         """Test getting dataset from any key."""

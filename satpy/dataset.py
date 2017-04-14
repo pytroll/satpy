@@ -117,7 +117,7 @@ def copy_info1(func):
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, tuple())
 
 
 class DatasetID(DatasetID):
@@ -160,6 +160,20 @@ class DatasetID(DatasetID):
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
                            etc). `None` or empty tuple if not applicable.
     """
+    @classmethod
+    def sort(cls, iterable, reverse=False):
+        """Sort DatasetIDs with special care of `None` values"""
+        # modifiers should never be None when sorted, should be tuples
+        def key_func(obj):
+            return obj._replace(
+                name='' if obj.name is None else obj.name,
+                wavelength=0. if obj.wavelength is None else obj.wavelength,
+                resolution=0 if obj.resolution is None else obj.resolution,
+                polarization='' if obj.polarization is None else obj.polarization,
+                calibration='' if obj.calibration is None else obj.calibration,
+            )
+        return sorted(iterable, key=key_func, reverse=reverse)
+
     @staticmethod
     def name_match(a, b):
         """Return if two string names are equal
