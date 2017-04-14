@@ -461,11 +461,22 @@ class Scene(InfoObject):
         """Compute all the composites contained in `requirements`.
         """
         if nodes is None:
-            nodes = self.dep_tree.trunk()
+            required_nodes = self.wishlist - set(self.datasets.keys())
+            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
+                    set(self.datasets.keys())
         return self.read_composites(nodes)
 
     def unload(self, keepables=None):
-        """Unload all loaded composites.
+        """Unload all unneeded datasets.
+        
+        Datasets are considered unneeded if they weren't directly requested
+        or added to the Scene by the user or they are no longer needed to
+        compute composites that have yet to be computed.
+        
+        Args:
+            keepables (iterable): DatasetIDs to keep whether they are needed
+                                  or not.
+            
         """
         to_del = [ds_id for ds_id, projectable in self.datasets.items()
                   if ds_id not in self.wishlist and (not keepables or ds_id
@@ -484,12 +495,12 @@ class Scene(InfoObject):
         """Read, compute and unload.
         """
         dataset_keys = set(wishlist)
-        self.wishlist |= dataset_keys
-
-        unknown = self.dep_tree.find_dependencies(self.wishlist,
+        needed_datasets = (self.wishlist | dataset_keys) - set(self.datasets.keys())
+        unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
                                                   resolution=resolution)
+        self.wishlist |= needed_datasets
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
             raise KeyError("Unknown datasets: {}".format(unknown_str))

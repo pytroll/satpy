@@ -876,7 +876,40 @@ class TestSceneLoading(unittest.TestCase):
         # we should only load from the file twice
         self.assertEqual(r.load.call_count, 2)
         # we should only compute the composite once
-        self.assertEqual(comps['fake_sensor']['comp3'].call_count, 1)
+        self.assertEqual(comps['fake_sensor']['comp3'].side_effect.call_count, 1)
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 2)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_dataset_after_composite2(self, cri, cl):
+        """Test load complex composite followed by other datasets"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        r = create_fake_reader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': r}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames='bla',
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['comp10'])
+        self.assertEqual(r.load.call_count, 1)
+        with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
+            # FIXME: This currently tries to load the modified ds1, it should load the unmodified version
+            scene.load(['ds1'])
+            self.assertEqual(r.load.call_count, 2)
+            m.assert_called_once_with(set([scene.dep_tree['ds1']]))
+        with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
+            # FIXME: This currently tries to load the modified ds1, it should load the unmodified version
+            scene.load(['ds1'])
+            self.assertEqual(r.load.call_count, 2)
+            m.assert_called_once_with(set())
+        # we should only compute the composite once
+        self.assertEqual(comps['fake_sensor']['comp10'].side_effect.call_count, 1)
+        # Create the modded ds1 at comp10, create it again when loading 'ds1' (unknowningly modded)
+        # FIXME: This should only create the modified ds1 once, but once the above FIXMEs are fixed then this should only be 1
+        self.assertEqual(comps['fake_sensor']['ds1']._call_mock.call_count, 2)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 2)
 

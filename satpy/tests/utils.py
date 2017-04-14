@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 
 
 def test_datasets():
+    """Get list of various test datasets"""
     from satpy import DatasetID
     d = [
         DatasetID(name='ds1'),
@@ -61,10 +62,12 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     c.info.update(ds_id.to_dict())
     c.id = ds_id
 
-    def se(datasets, optional_datasets=None, **kwargs):
+    se = mock.MagicMock()
+    def _se(datasets, optional_datasets=None, **kwargs):
         if len(datasets) != len(prereqs):
             raise ValueError("Not enough prerequisite datasets passed")
         return Dataset(data=np.arange(5), **ds_id.to_dict())
+    se.side_effect = _se
     c.side_effect = se
     return c
 
@@ -80,6 +83,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
+                print("Calling mod ", datasets[0].id)
                 if name == 'res_change' and datasets[0].id.resolution is not None:
                     i = datasets[0].info.copy()
                     i['resolution'] *= 5
@@ -96,6 +100,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
             'prerequisites': tuple(prereqs),
             'optional_prerequisites': tuple(opt_prereqs)
         }
+        m._call_mock = mock.patch.object(FakeMod, '__call__', wraps=m.__call__).start()
         return m
 
     return _mod_loader, {}
