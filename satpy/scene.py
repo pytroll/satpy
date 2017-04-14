@@ -291,6 +291,9 @@ class Scene(InfoObject):
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
 
+    def keys(self, **kwargs):
+        return self.datasets.keys(**kwargs)
+
     def __getitem__(self, key):
         """Get a dataset."""
         return self.datasets[key]

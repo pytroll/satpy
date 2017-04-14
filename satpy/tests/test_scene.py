@@ -230,6 +230,7 @@ class TestScene(unittest.TestCase):
         self.assertSetEqual(set(scene.wishlist), {ds1.id})
 
     def test_getitem(self):
+        """Test __getitem__ with names only"""
         from satpy import Scene, Dataset
         import numpy as np
         scene = Scene()
@@ -240,6 +241,33 @@ class TestScene(unittest.TestCase):
         self.assertIs(scene['2'], ds2)
         self.assertIs(scene['3'], ds3)
         self.assertRaises(KeyError, scene.__getitem__, '4')
+
+    def test_getitem_modifiers(self):
+        """Test __getitem__ with names and modifiers"""
+        from satpy import Scene, Dataset, DatasetID
+        import numpy as np
+
+        # Return least modified item
+        scene = Scene()
+        scene['1'] = ds1_m0 = Dataset(np.arange(5))
+        scene[DatasetID(name='1', modifiers=('mod1',))] = ds1_m1 = Dataset(np.arange(5))
+        self.assertIs(scene['1'], ds1_m0)
+        self.assertEquals(len(list(scene.keys())), 2)
+
+        scene = Scene()
+        scene['1'] = ds1_m0 = Dataset(np.arange(5))
+        scene[DatasetID(name='1', modifiers=('mod1',))] = ds1_m1 = Dataset(np.arange(5))
+        scene[DatasetID(name='1', modifiers=('mod1', 'mod2'))] = ds1_m2 = Dataset(np.arange(5))
+        self.assertIs(scene['1'], ds1_m0)
+        self.assertEquals(len(list(scene.keys())), 3)
+
+        scene = Scene()
+        scene[DatasetID(name='1', modifiers=('mod1', 'mod2'))] = ds1_m2 = Dataset(np.arange(5))
+        scene[DatasetID(name='1', modifiers=('mod1',))] = ds1_m1 = Dataset(np.arange(5))
+        self.assertIs(scene['1'], ds1_m1)
+        self.assertIs(scene[DatasetID('1', modifiers=('mod1', 'mod2'))], ds1_m2)
+        self.assertRaises(KeyError, scene.__getitem__, DatasetID(name='1', modifiers=tuple()))
+        self.assertEquals(len(list(scene.keys())), 2)
 
     def test_contains(self):
         from satpy import Scene, Dataset
@@ -903,6 +931,7 @@ class TestSceneLoading(unittest.TestCase):
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
             self.assertEquals(len(loaded_ids), 2)
+            self.assertIn(DatasetID(name='ds1'), loaded_ids) # this is the unmodified ds1
             # m.assert_called_once_with(set([scene.dep_tree['ds1']]))
             m.assert_called_once_with(set())
         with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
@@ -910,10 +939,11 @@ class TestSceneLoading(unittest.TestCase):
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
             self.assertEquals(len(loaded_ids), 2)
+            self.assertIn(DatasetID(name='ds1'), loaded_ids) # this is the unmodified ds1
             m.assert_called_once_with(set())
         # we should only compute the composite once
         self.assertEqual(comps['fake_sensor']['comp10'].side_effect.call_count, 1)
-        # Create the modded ds1 at comp10, create it again when loading 'ds1' (unknowningly modded)
+        # Create the modded ds1 at comp10, then load the numodified version again
         self.assertEqual(comps['fake_sensor']['ds1']._call_mock.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 2)
