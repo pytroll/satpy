@@ -145,7 +145,7 @@ class CompositorLoader(object):
                     # we want this prerequisite to act as a query with
                     # 'modifiers' being None otherwise it will be an empty
                     # tuple
-                    item.setdefault(modifiers=None)
+                    item.setdefault('modifiers', None)
                     key = DatasetID.from_dict(item)
                     prereqs.append(key)
                 else:
