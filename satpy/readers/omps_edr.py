@@ -78,8 +78,6 @@ class EDRFileHandler(HDF5FileHandler):
             return self[item + "/attr/{}".format(unit_attr_name)]
         return None
 
-        return file_units
-
     def get_shape(self, ds_id, ds_info):
         return self[ds_info['file_key'] + '/shape']
 

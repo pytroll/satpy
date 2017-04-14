@@ -201,15 +201,15 @@ class CompositeBase(InfoObject):
 
     def __init__(self,
                  name,
-                 prerequisites=[],
-                 optional_prerequisites=[],
-                 metadata_requirements=[],
+                 prerequisites=None,
+                 optional_prerequisites=None,
+                 metadata_requirements=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
-        kwargs["prerequisites"] = prerequisites
-        kwargs["optional_prerequisites"] = optional_prerequisites
-        kwargs["metadata_requirements"] = metadata_requirements
+        kwargs["prerequisites"] = prerequisites or []
+        kwargs["optional_prerequisites"] = optional_prerequisites or []
+        kwargs["metadata_requirements"] = metadata_requirements or []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
