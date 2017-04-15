@@ -40,8 +40,8 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
+from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
-from satpy.dataset import Dataset
 
 try:
     import configparser
@@ -78,9 +78,12 @@ def get_area_def(area_name):
 
 
 class BaseResampler(object):
+
     """
     The base resampler class. Abstract.
     """
+
+    caches = OrderedDict()
 
     def __init__(self, source_geo_def, target_geo_def):
         """
@@ -174,15 +177,59 @@ class BaseResampler(object):
         """
         self.resample(*args, **kwargs)
 
+    def _create_cache_filename(self, cache_dir, hash_str):
+        """Create filename for the cached resampling parameters"""
+        if isinstance(cache_dir, (str, six.text_type)):
+            filename = os.path.join(
+                cache_dir, hashlib.sha1(hash_str).hexdigest() + ".npz")
+        else:
+            filename = os.path.join('.', hashlib.sha1(
+                hash_str.encode("utf-8")).hexdigest() + ".npz")
+
+        return filename
+
+    def _read_params_from_cache(self, cache_dir, hash_str, filename):
+        """Read resampling parameters from cache"""
+        try:
+            self.cache = self.caches[hash_str]
+            # trick to keep most used caches away from deletion
+            del self.caches[hash_str]
+            self.caches[hash_str] = self.cache
+
+            if cache_dir:
+                self.dump(filename)
+            return
+        except KeyError:
+            if os.path.exists(filename):
+                self.cache = dict(np.load(filename))
+                self.caches[hash_str] = self.cache
+                while len(self.caches) > CACHE_SIZE:
+                    self.caches.popitem(False)
+                if cache_dir:
+                    self.dump(filename)
+            else:
+                self.cache = None
+
+    def _update_caches(self, hash_str, cache_dir, filename):
+        """Update caches and dump new resampling parameters to disk"""
+        self.caches[hash_str] = self.cache
+        while len(self.caches) > CACHE_SIZE:
+            self.caches.popitem(False)
+
+        if cache_dir:
+            # XXX: Look in to doing memmap-able files instead
+            # `arr.tofile(filename)`
+            self.dump(filename)
+
 
 class KDTreeResampler(BaseResampler):
+
     """
     Resample using nearest neighbour.
     """
 
-    caches = OrderedDict()
-
-    def precompute(self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
+    def precompute(
+        self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
                    cache_dir=False, **kwargs):
         """Create a KDTree structure and store it for later use.
 
@@ -192,59 +239,20 @@ class KDTreeResampler(BaseResampler):
 
         del kwargs
 
-        source_geo_def = self.source_geo_def
-        # the data may have additional masked pixels
-        # let's compare them to see if we can use the same area
-        # assume lons and lats mask are the same
-        if np.any(mask) and isinstance(source_geo_def, SwathDefinition):
-            # copy the source area and use it for the rest of the calculations
-            LOG.debug("Copying source area to mask invalid dataset points")
-            source_geo_def = deepcopy(self.source_geo_def)
-            lons, lats = source_geo_def.get_lonlats()
-            if np.ndim(mask) == 3:
-                # FIXME: we should treat 3d arrays (composites) layer by layer!
-                mask = np.sum(mask, axis=2)
-                # FIXME: pyresample doesn't seem to like this
-                #lons = np.tile(lons, (1, 1, mask.shape[2]))
-                #lats = np.tile(lats, (1, 1, mask.shape[2]))
-
-            # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            # the ma.array function combines the undelying mask with the new
-            # one (OR)
-            source_geo_def.lons = np.ma.array(lons, mask=mask)
-            source_geo_def.lats = np.ma.array(lats, mask=mask)
+        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
                                 radius_of_influence=radius_of_influence,
                                 epsilon=epsilon)
-        if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
-        else:
-            filename = os.path.join('.', hashlib.sha1(
-                kd_hash.encode("utf-8")).hexdigest() + ".npz")
 
-        try:
-            self.cache = self.caches[kd_hash]
-            # trick to keep most used caches away from deletion
-            del self.caches[kd_hash]
-            self.caches[kd_hash] = self.cache
+        filename = self._create_cache_filename(cache_dir, kd_hash)
+        self._read_params_from_cache(cache_dir, kd_hash, filename)
 
-            if cache_dir:
-                self.dump(filename)
+        if self.cache is not None:
+            LOG.debug("Loaded kd-tree parameters")
             return self.cache
-        except KeyError:
-            if os.path.exists(filename):
-                LOG.debug("Loading kd-tree parameters")
-                self.cache = dict(np.load(filename))
-                self.caches[kd_hash] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-                return self.cache
-            else:
-                LOG.debug("Computing kd-tree parameters")
+        else:
+            LOG.debug("Computing kd-tree parameters")
 
         valid_input_index, valid_output_index, index_array, distance_array = \
             get_neighbour_info(source_geo_def,
@@ -264,12 +272,8 @@ class KDTreeResampler(BaseResampler):
                       "source_geo_def": source_geo_def,
                       }
 
-        self.caches[kd_hash] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
+        self._update_caches(kd_hash, cache_dir, filename)
 
-        if cache_dir:
-            self.dump(filename)
         return self.cache
 
     def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
@@ -290,7 +294,6 @@ class KDTreeResampler(BaseResampler):
 
 
 class EWAResampler(BaseResampler):
-    caches = OrderedDict()
 
     def __init__(self, source_geo_def, target_geo_def, swath_usage=0, grid_coverage=0, **kwargs):
         """
@@ -319,133 +322,193 @@ class EWAResampler(BaseResampler):
 
         source_geo_def = self.source_geo_def
 
-        kd_hash = self.get_hash(source_geo_def=source_geo_def)
-        if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(kd_hash).hexdigest() + ".npz")
-        else:
-            filename = os.path.join('.', hashlib.sha1(
-                kd_hash.encode("utf-8")).hexdigest() + ".npz")
+        ewa_hash = self.get_hash(source_geo_def=source_geo_def)
 
-        try:
-            self.cache = self.caches[kd_hash]
-            # trick to keep most used caches away from deletion
-            del self.caches[kd_hash]
-            self.caches[kd_hash] = self.cache
+        filename = self._create_cache_filename(cache_dir, ewa_hash)
+        self._read_params_from_cache(cache_dir, ewa_hash, filename)
 
-            if cache_dir:
-                self.dump(filename)
+        if self.cache is not None:
+            LOG.debug("Loaded ll2cr parameters")
             return self.cache
-        except KeyError:
-            if os.path.exists(filename):
-                LOG.debug("Loading kd-tree parameters")
-                self.cache = dict(np.load(filename))
-                self.caches[kd_hash] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-                return self.cache
-            else:
-                LOG.debug("Computing ll2cr parameters")
+        else:
+            LOG.debug("Computing ll2cr parameters")
 
         lons, lats = source_geo_def.get_lonlats()
-        fill_in = np.nan
         grid_name = getattr(self.target_geo_def, "name", "N/A")
-        p = self.target_geo_def.proj4_string
-        cw = self.target_geo_def.pixel_size_x
-        ch = -abs(self.target_geo_def.pixel_size_y)
-        w = self.target_geo_def.x_size
-        h = self.target_geo_def.y_size
-        ox = self.target_geo_def.area_extent[0]
-        oy = self.target_geo_def.area_extent[3]
 
-        is_static = True  # SatPy/PyResample don't support dynamic grids out of the box yet
+        # SatPy/PyResample don't support dynamic grids out of the box yet
+        is_static = True
         if is_static:
             # we are remapping to a static unchanging grid/area with all of
             # its parameters specified
             # inplace operation so lon_arr and lat_arr are written to
-            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
+            swath_points_in_grid, cols, rows = ll2cr(source_geo_def,
+                                                     self.target_geo_def)
         else:
             raise NotImplementedError(
                 "Dynamic ll2cr is not supported by satpy yet")
-            swath_points_in_grid = ll2cr(source_geo_def, self.target_geo_def)
-            swath_points_in_grid, lon_orig, lat_orig, origin_x, origin_y, width, height = results
-
-            # edit the grid information because now we know what it is
-            # FIXME: This should be less magical to the user, maybe a separate
-            # step for this operation
-            self.target_geo_def.origin_x = origin_x
-            self.target_geo_def.origin_y = origin_y
-            self.target_geo_def.width = width
-            self.target_geo_def.height = height
 
         # Determine if enough of the input swath was used
-        fraction_in = swath_points_in_grid / float(lon_arr.size)
+        fraction_in = swath_points_in_grid / float(lons.size)
         swath_used = fraction_in > self.swath_usage
         if not swath_used:
-            LOG.info("Data does not fit in grid %s because it only %f%% of the swath is used" %
+            LOG.info("Data does not fit in grid %s because it only %f%% of "
+                     "the swath is used" %
                      (grid_name, fraction_in * 100))
             raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
         else:
             LOG.debug("Data fits in grid %s and uses %f%% of the swath",
                       grid_name, fraction_in * 100)
 
+        # Can't save masked arrays to npz, so remove the mask
+        if hasattr(rows, 'mask'):
+            rows = rows.data
+            cols = cols.data
+
         # it's important here not to modify the existing cache dictionary.
         self.cache = {
             "source_geo_def": source_geo_def,
-            "rows": lat_arr,
-            "cols": lon_arr,
+            "rows": rows,
+            "cols": cols,
         }
 
-        self.caches[kd_hash] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
+        self._update_caches(ewa_hash, cache_dir, filename)
 
-        if cache_dir:
-            # XXX: Look in to doing memmap-able files instead
-            # `arr.tofile(filename)`
-            self.dump(filename)
         return self.cache
 
-    def compute(self, data,
-                weight_count=10000, weight_min=0.01, weight_distance_max=1.0,
-                weight_sum_min=-1.0, maximum_weight_mode=False,
-                **kwargs):
+    def compute(self, data, fill_value=0, weight_count=10000, weight_min=0.01,
+                weight_distance_max=1.0, weight_sum_min=-1.0,
+                maximum_weight_mode=False, **kwargs):
         rows = self.cache["rows"]
         cols = self.cache["cols"]
-        # if the data is scan based then check its metadata or the passed kwargs
-        # otherwise assume the entire input swath is one large "scanline"
+
+        # if the data is scan based then check its metadata or the passed
+        # kwargs otherwise assume the entire input swath is one large
+        # "scanline"
         rows_per_scan = getattr(data, "info", kwargs).get(
             "rows_per_scan", data.shape[0])
-        num_valid_points, out_arrs = fornav(cols, rows, self.target_area_def, data, rows_per_scan=rows_per_scan,
-                                            weight_count=weight_count, weight_min=weight_min,
-                                            weight_distance_max=weight_distance_max, weight_sum_min=weight_sum_min,
-                                            maximum_weight_mode=maximum_weight_mode, **kwargs)
-        num_valid_points = num_valid_points[0]
-        out_arr = out_arrs[0]
+        if hasattr(data, 'mask'):
+            mask = data.mask
+            data = data.data
+            data[mask] = np.nan
 
-        grid_covered_ratio = num_valid_points / float(out_arr.size)
+        if data.ndim >= 3:
+            data_in = tuple(data[..., i] for i in range(data.shape[-1]))
+        else:
+            data_in = data
+
+        num_valid_points, res = \
+            fornav(cols, rows, self.target_geo_def,
+                   data_in,
+                   rows_per_scan=rows_per_scan,
+                   weight_count=weight_count,
+                   weight_min=weight_min,
+                   weight_distance_max=weight_distance_max,
+                   weight_sum_min=weight_sum_min,
+                   maximum_weight_mode=maximum_weight_mode)
+
+        if data.ndim >= 3:
+            # convert 'res' from tuple of arrays to one array
+            res = np.dstack(res)
+            num_valid_points = sum(num_valid_points)
+
+        grid_covered_ratio = num_valid_points / float(res.size)
         grid_covered = grid_covered_ratio > self.grid_coverage
         if not grid_covered:
-            msg = "EWA resampling only found %f%% of the grid covered (need %f%%)" % (grid_covered_ratio * 100,
-                                                                                      self.grid_coverage * 100)
+            msg = "EWA resampling only found %f%% of the grid covered "
+            "(need %f%%)" % (grid_covered_ratio * 100,
+                             self.grid_coverage * 100)
             raise RuntimeError(msg)
         LOG.debug("EWA resampling found %f%% of the grid covered" %
                   (grid_covered_ratio * 100))
-        info = getattr(data, "info", {})
-        info["mask"] = np.isnan(out_arr) if np.issubdtype(
-            data.dtype, np.floating) else out_arr == fill
-        return Dataset(out_arr, **info)
+
+        return np.ma.masked_invalid(res)
+
+
+class BilinearResampler(BaseResampler):
+
+    """Resample using bilinear."""
+
+    def precompute(self, mask=None, radius_of_influence=50000,
+                   reduce_data=True, nprocs=1, segments=None,
+                   cache_dir=False, **kwargs):
+        """Create bilinear coefficients and store them for later use.
+
+        Note: The `mask` keyword should be provided if geolocation may be valid
+        where data points are invalid. This defaults to the `mask` attribute of
+        the `data` numpy masked array passed to the `resample` method.
+        """
+
+        del kwargs
+
+        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
+
+        bil_hash = self.get_hash(source_geo_def=source_geo_def,
+                                 radius_of_influence=radius_of_influence,
+                                 mode="bilinear")
+
+        filename = self._create_cache_filename(cache_dir, bil_hash)
+        self._read_params_from_cache(cache_dir, bil_hash, filename)
+
+        if self.cache is not None:
+            LOG.debug("Loaded bilinear parameters")
+            return self.cache
+        else:
+            LOG.debug("Computing bilinear parameters")
+
+        bilinear_t, bilinear_s, input_idxs, idx_arr = \
+            get_bil_info(source_geo_def, self.target_geo_def,
+                         radius_of_influence, neighbours=32,
+                         nprocs=nprocs, masked=False)
+        self.cache = {'bilinear_s': bilinear_s,
+                      'bilinear_t': bilinear_t,
+                      'input_idxs': input_idxs,
+                      'idx_arr': idx_arr}
+
+        self._update_caches(bil_hash, cache_dir, filename)
+
+        return self.cache
+
+    def compute(self, data, fill_value=None, **kwargs):
+        """Resample the given data using bilinear interpolation"""
+        del kwargs
+
+        target_shape = self.target_geo_def.shape
+        if data.ndim == 3:
+            output_shape = list(target_shape)
+            output_shape.append(data.shape[-1])
+            res = np.zeros(output_shape, dtype=data.dtype)
+            for i in range(data.shape[-1]):
+                res[:, :, i] = \
+                    get_sample_from_bil_info(data[:, :, i].ravel(),
+                                             self.cache['bilinear_t'],
+                                             self.cache['bilinear_s'],
+                                             self.cache['input_idxs'],
+                                             self.cache['idx_arr'],
+                                             output_shape=target_shape)
+
+        else:
+            res = \
+                get_sample_from_bil_info(data.ravel(),
+                                         self.cache['bilinear_t'],
+                                         self.cache['bilinear_s'],
+                                         self.cache['input_idxs'],
+                                         self.cache['idx_arr'],
+                                         output_shape=target_shape)
+        res = np.ma.masked_invalid(res)
+
+        return res
 
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
+              "bilinear": BilinearResampler,
               }
 
 
-def resample(source_area, data, destination_area, resampler=KDTreeResampler, **kwargs):
+def resample(source_area, data, destination_area, resampler=KDTreeResampler,
+             **kwargs):
     """Do the resampling
     """
     if isinstance(resampler, (str, six.text_type)):
@@ -454,3 +517,31 @@ def resample(source_area, data, destination_area, resampler=KDTreeResampler, **k
         resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
     return resampler.resample(data, **kwargs)
+
+
+def mask_source_lonlats(source_def, mask):
+    """Mask source longitudes and latitudes to match data mask"""
+    source_geo_def = source_def
+
+    # the data may have additional masked pixels
+    # let's compare them to see if we can use the same area
+    # assume lons and lats mask are the same
+    if np.any(mask) and isinstance(source_geo_def, SwathDefinition):
+        # copy the source area and use it for the rest of the calculations
+        LOG.debug("Copying source area to mask invalid dataset points")
+        source_geo_def = deepcopy(source_geo_def)
+        lons, lats = source_geo_def.get_lonlats()
+        if np.ndim(mask) == 3:
+            # FIXME: we should treat 3d arrays (composites) layer by layer!
+            mask = np.sum(mask, axis=2)
+            # FIXME: pyresample doesn't seem to like this
+            # lons = np.tile(lons, (1, 1, mask.shape[2]))
+            # lats = np.tile(lats, (1, 1, mask.shape[2]))
+
+        # use the same data, but make a new mask (i.e. don't affect the original masked array)
+        # the ma.array function combines the undelying mask with the new
+        # one (OR)
+        source_geo_def.lons = np.ma.array(lons, mask=mask)
+        source_geo_def.lats = np.ma.array(lats, mask=mask)
+
+    return source_geo_def
