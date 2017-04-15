@@ -89,23 +89,27 @@ class RatioSharpenedRGB(CompositeBase):
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
-            low_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
+            low_res = datasets[["red", "green", "blue"].index(
+                self.high_resolution_band)]
             if high_res.info["area"] != low_res.info["area"]:
                 if np.mod(high_res.shape[0], low_res.shape[0]) or \
-                   np.mod(high_res.shape[1], low_res.shape[1]):
+                        np.mod(high_res.shape[1], low_res.shape[1]):
                     raise IncompatibleAreas(
                         "High resolution band is not mapped the same area as the low resolution bands")
                 else:
                     f0 = high_res.shape[0] / low_res.shape[0]
                     f1 = high_res.shape[1] / low_res.shape[1]
                     if p1.shape != high_res.shape:
-                        p1 = np.ma.repeat(np.ma.repeat(p1, f0, axis=0), f1, axis=1)
+                        p1 = np.ma.repeat(np.ma.repeat(
+                            p1, f0, axis=0), f1, axis=1)
                         p1.info["area"] = high_res.info["area"]
                     if p2.shape != high_res.shape:
-                        p2 = np.ma.repeat(np.ma.repeat(p2, f0, axis=0), f1, axis=1)
+                        p2 = np.ma.repeat(np.ma.repeat(
+                            p2, f0, axis=0), f1, axis=1)
                         p2.info["area"] = high_res.info["area"]
                     if p3.shape != high_res.shape:
-                        p3 = np.ma.repeat(np.ma.repeat(p3, f0, axis=0), f1, axis=1)
+                        p3 = np.ma.repeat(np.ma.repeat(
+                            p3, f0, axis=0), f1, axis=1)
                         p3.info["area"] = high_res.info["area"]
                     area = high_res.info["area"]
             if 'rows_per_scan' in high_res.info:

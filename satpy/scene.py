@@ -30,8 +30,8 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import)
+from satpy.dataset import Dataset, DatasetID, InfoObject
 from satpy.node import DependencyTree
-from satpy.dataset import InfoObject, Dataset, DatasetID
 from satpy.readers import DatasetDict, ReaderFinder
 
 try:
@@ -446,7 +446,7 @@ class Scene(InfoObject):
 
     def read(self, nodes=None, **kwargs):
         """Load datasets from the necessary reader.
-        
+
         Args:
             nodes (iterable): DependencyTree Node objects
             **kwargs: Keyword arguments to pass to the reader's `load` method.
