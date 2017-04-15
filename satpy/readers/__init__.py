@@ -20,9 +20,7 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Shared objects of the various reader classes.
-
-"""
+"""Shared objects of the various reader classes."""
 
 import logging
 import numbers
@@ -35,7 +33,7 @@ import six
 import yaml
 
 from satpy.config import config_search_paths, glob_config, runtime_import
-from satpy.dataset import DatasetID, DATASET_KEYS
+from satpy.dataset import DATASET_KEYS, DatasetID
 
 try:
     import configparser
@@ -50,7 +48,6 @@ class MalformedConfigError(Exception):
 
 
 class DatasetDict(dict):
-
     """Special dictionary object that can handle dict operations based on
     dataset name, wavelength, or DatasetID.
 
@@ -140,8 +137,8 @@ class DatasetDict(dict):
     def get_best_choice(self, key, choices):
         if key.modifiers is None and choices:
             num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-            choices = [
-                c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
+            choices = [c for c in choices if len(
+                c.modifiers or tuple()) == num_modifiers]
         if key.resolution is None and choices:
             low_res = [x.resolution for x in choices if x.resolution]
             if low_res:
@@ -266,7 +263,6 @@ def load_reader(reader_configs, **reader_kwargs):
 
 
 class ReaderFinder(object):
-
     """Find readers given a scene, filenames, sensors, and/or a reader_name
     """
 
