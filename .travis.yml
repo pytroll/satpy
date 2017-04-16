@@ -7,9 +7,6 @@ python:
 - '3.6'
 os:
 - linux
-matrix:
-  allow_failures:
-    - os: osx
 install:
 - pip install .
 - pip install h5py
@@ -21,6 +18,8 @@ install:
 addons:
   apt_packages:
     - libhdf5-serial-dev
+    - netcdf-bin
+    - libnetcdf-dev
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
