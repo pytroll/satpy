@@ -608,6 +608,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         offset = 0
         out_offset = 0
+        failure = True
         for idx, fh in enumerate(file_handlers):
             segment_height = all_shapes[idx][0]
             # XXX: Does this work with masked arrays and subclasses of them?
@@ -634,11 +635,17 @@ class FileYAMLReader(AbstractYAMLReader):
 
             try:
                 fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
+                failure = False
             except KeyError:
-                continue
+                logger.warning("Failed to load {} from {}".format(dsid, fh), exc_info=True)
+                mask[out_offset:out_offset + stop - start] = True
 
             out_offset += stop - start
             offset += segment_height
+
+        if failure:
+            raise KeyError("Could not load {} from any provided files".format(dsid))
+
         out_info.pop('area', None)
         return cls(data, mask=mask, copy=False, **out_info)
 
@@ -796,18 +803,21 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def load(self, dataset_keys):
         """Load *dataset_keys*."""
+        all_datasets = DatasetDict()
         datasets = DatasetDict()
 
         # Include coordinates in the list of datasets to load
         dsids = [self.get_dataset_key(ds_key) for ds_key in dataset_keys]
         coordinates = self._get_coordinates_for_dataset_keys(dsids)
-        dsids = list(set().union(*coordinates.values())) + dsids
+        all_dsids = list(set().union(*coordinates.values())) + dsids
 
-        for dsid in dsids:
-            coords = [datasets.get(cid, None)
+        for dsid in all_dsids:
+            coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
             if ds is not None:
-                datasets[dsid] = ds
+                all_datasets[dsid] = ds
+                if dsid in dsids:
+                    datasets[dsid] = ds
 
         return datasets
