@@ -17,6 +17,7 @@ install:
 - pip install pyorbital
 - pip install behave
 - pip install h5netcdf
+- pip install netCDF4
 addons:
   apt_packages:
     - libhdf5-serial-dev
