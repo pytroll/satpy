@@ -40,6 +40,12 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         self.filename_info = filename_info
         self.filetype_info = filetype_info
 
+    def __str__(self):
+        return "<{}: '{}'>".format(self.__class__.__name__, self.filename)
+
+    def __repr__(self):
+        return str(self)
+
     def get_dataset(self, dataset_id, ds_info, out=None,
                     xslice=slice(None), yslice=slice(None)):
         raise NotImplementedError
