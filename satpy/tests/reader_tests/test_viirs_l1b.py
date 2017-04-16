@@ -85,7 +85,7 @@ def get_test_content(filename, dt):
         file_content['observation_data/DNB_observations'] = DEFAULT_FILE_DATA
         file_content['observation_data/DNB_observations/attr/units'] = 'Watts/cm^2/steradian'
 
-    for k in file_content.keys():
+    for k in list(file_content.keys()):
         if not k.startswith('observation_data') and not k.startswith('geolocation_data'):
             continue
         file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
