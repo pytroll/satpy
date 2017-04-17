@@ -64,6 +64,9 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler('test.nc', {}, {})
 
+        self.assertEqual(file_handler['/dimension/rows'], 10)
+        self.assertEqual(file_handler['/dimension/cols'], 100)
+
         for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
             self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith('f') else np.int32)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))

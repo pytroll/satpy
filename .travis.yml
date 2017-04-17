@@ -20,6 +20,7 @@ addons:
     - libhdf5-serial-dev
     - netcdf-bin
     - libnetcdf-dev
+    - cython
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
