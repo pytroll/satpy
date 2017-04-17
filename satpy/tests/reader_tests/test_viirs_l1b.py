@@ -12,7 +12,7 @@ else:
 import mock
 from datetime import datetime, timedelta
 import numpy as np
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -25,112 +25,111 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-def get_test_content(filename, filename_info, filetype_info):
-    dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
-    file_type = filename[:5].lower()
-    # num_lines = {
-    #     'vl1bi': 3248 * 2,
-    #     'vl1bm': 3248,
-    #     'vl1bd': 3248,
-    # }[file_type]
-    # num_pixels = {
-    #     'vl1bi': 6400,
-    #     'vl1bm': 3200,
-    #     'vl1bd': 4064,
-    # }[file_type]
-    # num_scans = 203
-    # num_luts = 65536
-    num_lines = DEFAULT_FILE_SHAPE[0]
-    num_pixels = DEFAULT_FILE_SHAPE[1]
-    num_scans = 5
-    num_luts = DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1]
-    file_content = {
-        '/dimension/number_of_scans': num_scans,
-        '/dimension/number_of_lines': num_lines,
-        '/dimension/number_of_pixels': num_pixels,
-        '/dimension/number_of_LUT_values': num_luts,
-        '/attr/time_coverage_start': dt.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-        '/attr/time_coverage_end': (dt + timedelta(minutes=6)).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-        '/attr/orbit_number': 26384,
-        '/attr/instrument': 'viirs',
-        '/attr/platform': 'Suomi-NPP',
-    }
-    if file_type.startswith('vgeo'):
-        file_content['/attr/OrbitNumber'] = file_content.pop('/attr/orbit_number')
-        file_content['geolocation_data/latitude'] = DEFAULT_LAT_DATA
-        file_content['geolocation_data/longitude'] = DEFAULT_LON_DATA
-    elif file_type == 'vl1bm':
-        file_content['observation_data/M01'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M02'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M03'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M04'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M05'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M06'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M07'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M08'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M09'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M10'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M11'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M12'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M13'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M14'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M15'] = DEFAULT_FILE_DATA
-        file_content['observation_data/M16'] = DEFAULT_FILE_DATA
-    elif file_type == 'vl1bi':
-        file_content['observation_data/I01'] = DEFAULT_FILE_DATA
-        file_content['observation_data/I02'] = DEFAULT_FILE_DATA
-        file_content['observation_data/I03'] = DEFAULT_FILE_DATA
-        file_content['observation_data/I04'] = DEFAULT_FILE_DATA
-        file_content['observation_data/I05'] = DEFAULT_FILE_DATA
-    elif file_type == 'vl1bd':
-        file_content['observation_data/DNB_observations'] = DEFAULT_FILE_DATA
-        file_content['observation_data/DNB_observations/attr/units'] = 'Watts/cm^2/steradian'
+class FakeNetCDF4FileHandler(FakeNetCDF4FileHandler):
+    """Swap-in NetCDF4 File Handler"""
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content"""
+        dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
+        file_type = filename[:5].lower()
+        # num_lines = {
+        #     'vl1bi': 3248 * 2,
+        #     'vl1bm': 3248,
+        #     'vl1bd': 3248,
+        # }[file_type]
+        # num_pixels = {
+        #     'vl1bi': 6400,
+        #     'vl1bm': 3200,
+        #     'vl1bd': 4064,
+        # }[file_type]
+        # num_scans = 203
+        # num_luts = 65536
+        num_lines = DEFAULT_FILE_SHAPE[0]
+        num_pixels = DEFAULT_FILE_SHAPE[1]
+        num_scans = 5
+        num_luts = DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1]
+        file_content = {
+            '/dimension/number_of_scans': num_scans,
+            '/dimension/number_of_lines': num_lines,
+            '/dimension/number_of_pixels': num_pixels,
+            '/dimension/number_of_LUT_values': num_luts,
+            '/attr/time_coverage_start': dt.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            '/attr/time_coverage_end': (dt + timedelta(minutes=6)).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+            '/attr/orbit_number': 26384,
+            '/attr/instrument': 'viirs',
+            '/attr/platform': 'Suomi-NPP',
+        }
+        if file_type.startswith('vgeo'):
+            file_content['/attr/OrbitNumber'] = file_content.pop('/attr/orbit_number')
+            file_content['geolocation_data/latitude'] = DEFAULT_LAT_DATA
+            file_content['geolocation_data/longitude'] = DEFAULT_LON_DATA
+        elif file_type == 'vl1bm':
+            file_content['observation_data/M01'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M02'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M03'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M04'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M05'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M06'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M07'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M08'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M09'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M10'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M11'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M12'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M13'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M14'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M15'] = DEFAULT_FILE_DATA
+            file_content['observation_data/M16'] = DEFAULT_FILE_DATA
+        elif file_type == 'vl1bi':
+            file_content['observation_data/I01'] = DEFAULT_FILE_DATA
+            file_content['observation_data/I02'] = DEFAULT_FILE_DATA
+            file_content['observation_data/I03'] = DEFAULT_FILE_DATA
+            file_content['observation_data/I04'] = DEFAULT_FILE_DATA
+            file_content['observation_data/I05'] = DEFAULT_FILE_DATA
+        elif file_type == 'vl1bd':
+            file_content['observation_data/DNB_observations'] = DEFAULT_FILE_DATA
+            file_content['observation_data/DNB_observations/attr/units'] = 'Watts/cm^2/steradian'
 
-    for k in list(file_content.keys()):
-        if not k.startswith('observation_data') and not k.startswith('geolocation_data'):
-            continue
-        file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
-        if k[-3:] in ['M12', 'M13', 'M14', 'M15', 'M16', 'I04', 'I05']:
-            file_content[k + '_brightness_temperature_lut'] = DEFAULT_FILE_DATA.ravel()
-            file_content[k + '_brightness_temperature_lut/attr/units'] = 'Kelvin'
-            file_content[k + '_brightness_temperature_lut/attr/valid_min'] = 0
-            file_content[k + '_brightness_temperature_lut/attr/valid_max'] = 65534
-            file_content[k + '_brightness_temperature_lut/attr/_FillValue'] = 65535
-            file_content[k + '/attr/units'] = 'Watts/meter^2/steradian/micrometer'
-        elif k[-3:] in ['M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07', 'M08',
-                        'M09', 'M10', 'M11', 'I01', 'I02', 'I03']:
-            file_content[k + '/attr/radiance_units'] = 'Watts/meter^2/steradian/micrometer'
-            file_content[k + '/attr/radiance_scale_factor'] = 1.1
-            file_content[k + '/attr/radiance_add_offset'] = 0.1
-        elif k.endswith('longitude'):
-            file_content[k + '/attr/units'] = 'degrees_east'
-        elif k.endswith('latitude'):
-            file_content[k + '/attr/units'] = 'degrees_north'
-        file_content[k + '/attr/valid_min'] = 0
-        file_content[k + '/attr/valid_max'] = 65534
-        file_content[k + '/attr/_FillValue'] = 65535
-        file_content[k + '/attr/scale_factor'] = 1.1
-        file_content[k + '/attr/add_offset'] = 0.1
-    return file_content
-
-
-class FakeNetCDF4FileHandler(NetCDF4FileHandler):
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
-        self.file_content = get_test_content(filename, filename_info, filetype_info)
-        self.file_content.update(kwargs)
+        for k in list(file_content.keys()):
+            if not k.startswith('observation_data') and not k.startswith('geolocation_data'):
+                continue
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            if k[-3:] in ['M12', 'M13', 'M14', 'M15', 'M16', 'I04', 'I05']:
+                file_content[k + '_brightness_temperature_lut'] = DEFAULT_FILE_DATA.ravel()
+                file_content[k + '_brightness_temperature_lut/attr/units'] = 'Kelvin'
+                file_content[k + '_brightness_temperature_lut/attr/valid_min'] = 0
+                file_content[k + '_brightness_temperature_lut/attr/valid_max'] = 65534
+                file_content[k + '_brightness_temperature_lut/attr/_FillValue'] = 65535
+                file_content[k + '/attr/units'] = 'Watts/meter^2/steradian/micrometer'
+            elif k[-3:] in ['M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07', 'M08',
+                            'M09', 'M10', 'M11', 'I01', 'I02', 'I03']:
+                file_content[k + '/attr/radiance_units'] = 'Watts/meter^2/steradian/micrometer'
+                file_content[k + '/attr/radiance_scale_factor'] = 1.1
+                file_content[k + '/attr/radiance_add_offset'] = 0.1
+            elif k.endswith('longitude'):
+                file_content[k + '/attr/units'] = 'degrees_east'
+            elif k.endswith('latitude'):
+                file_content[k + '/attr/units'] = 'degrees_north'
+            file_content[k + '/attr/valid_min'] = 0
+            file_content[k + '/attr/valid_max'] = 65534
+            file_content[k + '/attr/_FillValue'] = 65535
+            file_content[k + '/attr/scale_factor'] = 1.1
+            file_content[k + '/attr/add_offset'] = 0.1
+        return file_content
 
 
 class TestVIIRSL1BReader(unittest.TestCase):
+    """Test VIIRS L1B Reader"""
     yaml_file = "viirs_l1b.yaml"
 
     def setUp(self):
+        """Wrap NetCDF4 file handler with our own fake handler"""
         from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch('satpy.readers.netcdf_utils.NetCDF4FileHandler', FakeNetCDF4FileHandler)
         self.fake_base_handler = self.p.start()
 
     def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler"""
         self.p.stop()
 
     def test_init(self):
