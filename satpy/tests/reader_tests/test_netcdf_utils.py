@@ -16,8 +16,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
     """Test NetCDF4 File Handler Utility class"""
     def setUp(self):
         """Create a test NetCDF4 file"""
-        # from netCDF4 import Dataset
-        from h5netcdf.legacyapi import Dataset
+        from netCDF4 import Dataset
         nc = Dataset('test.nc', 'w')
 
         # Create dimensions
