@@ -13,7 +13,9 @@ else:
 
 
 class TestHDF5FileHandler(unittest.TestCase):
+    """Test HDF5 File Handler Utility class"""
     def setUp(self):
+        """Create a test HDF5 file"""
         import h5py
         h = h5py.File('test.h5', 'w')
         # Create Group
@@ -53,9 +55,11 @@ class TestHDF5FileHandler(unittest.TestCase):
         h.close()
 
     def tearDown(self):
+        """Remove the previously created test file"""
         os.remove('test.h5')
 
     def test_all_basic(self):
+        """Test everything about the HDF5 class"""
         from satpy.readers.hdf5_utils import HDF5FileHandler
         file_handler = HDF5FileHandler('test.h5', {}, {})
 
