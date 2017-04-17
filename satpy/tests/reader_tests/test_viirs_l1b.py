@@ -25,7 +25,8 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-def get_test_content(filename, dt):
+def get_test_content(filename, filename_info, filetype_info):
+    dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
     file_type = filename[:5].lower()
     # num_lines = {
     #     'vl1bi': 3248 * 2,
@@ -116,8 +117,7 @@ def get_test_content(filename, dt):
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
-        start_time = filetype_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
-        self.file_content = get_test_content(filename, dt=start_time)
+        self.file_content = get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
 
 
