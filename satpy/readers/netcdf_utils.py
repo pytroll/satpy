@@ -120,14 +120,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
             v = netCDF4.Dataset(self.filename, 'r')
-            try:
-                val = v[key]
-            except KeyError:
-                # older versions of netcdf4 need more work (version <1.1.8)
-                group_path = key[:key.rfind('/')]
-                var_name = key[key.rfind('/'):]
-                group = v[group_path]
-                val = group[var_name]
+            val = v[key]
             val.set_auto_maskandscale(self.auto_maskandscale)
         return val
 
