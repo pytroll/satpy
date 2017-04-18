@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014.
+# Copyright (c) 2010-2014, 2017.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -131,17 +131,17 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             self.resolution = 5000
         self.cache = {}
-        self.lons = None
-        self.lats = None
+        self.cache['lons'] = None
+        self.cache['lats'] = None
 
     def get_area_def(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_dataset(self, key, info):
+    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
         if key.name not in ['longitude', 'latitude']:
             return
 
-        if self.lons is None or self.lats is None:
+        if self.cache['lons'] is None or self.cache['lats'] is None:
 
             lons_id = DatasetID('longitude',
                                 resolution=key.resolution)
@@ -151,13 +151,13 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             lons, lats = self.load(
                 [lons_id, lats_id], interpolate=False, raw=True)
             from geotiepoints.geointerpolator import GeoInterpolator
-            self.lons, self.lats = self._interpolate(
+            self.cache['lons'], self.cache['lats'] = self._interpolate(
                 [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
 
         if key.name == 'latitude':
-            return Dataset(self.lats, id=key, **info)
+            return Dataset(self.cache['lats'], id=key, **info)
         else:
-            return Dataset(self.lons, id=key, **info)
+            return Dataset(self.cache['lons'], id=key, **info)
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
