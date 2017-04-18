@@ -22,7 +22,6 @@
 
 # New stuff
 
-import copy
 import glob
 import itertools
 import logging
@@ -738,11 +737,11 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
         if len(coords) == 2:
-            for i in [0, 1]:
-                if 'standard_name' not in coords[i].info:
-                    raise IOError(
-                        'Coordinates info object missing standard_name key: ' +
-                        str(coords[i].info))
+            if ('standard_name' not in coords[0].info or
+                    'standard_name' not in coords[1].info):
+                raise ValueError(
+                    'Coordinates info object missing standard_name key: ' +
+                    str(coords))
 
         if (len(coords) == 2 and
                 coords[0].info.get('standard_name') == 'longitude' and
