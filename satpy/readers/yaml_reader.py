@@ -384,7 +384,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                              area=area)
 
         self.file_handlers = {}
-        self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
+        self.filter_filenames = self.info.get(
+            'filter_filenames', filter_filenames)
 
     @property
     def available_dataset_ids(self):
@@ -437,7 +438,8 @@ class FileYAMLReader(AbstractYAMLReader):
         if requirements:
             for requirement in requirements:
                 for fhd in self.file_handlers[requirement]:
-                    # FIXME: Isn't this super wasteful? filename_info.items() every iteration?
+                    # FIXME: Isn't this super wasteful? filename_info.items()
+                    # every iteration?
                     if (all(item in filename_info.items()
                             for item in fhd.filename_info.items())):
                         req_fh.append(fhd)
@@ -504,7 +506,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def filter_filenames_by_info(self, filename_items):
         """Filter out file using metadata from the filenames.
-        
+
         Currently only uses start and end time.
         """
         for filename, filename_info in filename_items:
@@ -637,14 +639,16 @@ class FileYAMLReader(AbstractYAMLReader):
                 fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
                 failure = False
             except KeyError:
-                logger.warning("Failed to load {} from {}".format(dsid, fh), exc_info=True)
+                logger.warning(
+                    "Failed to load {} from {}".format(dsid, fh), exc_info=True)
                 mask[out_offset:out_offset + stop - start] = True
 
             out_offset += stop - start
             offset += segment_height
 
         if failure:
-            raise KeyError("Could not load {} from any provided files".format(dsid))
+            raise KeyError(
+                "Could not load {} from any provided files".format(dsid))
 
         out_info.pop('area', None)
         return cls(data, mask=mask, copy=False, **out_info)
@@ -733,6 +737,13 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
+        if len(coords) == 2:
+            for i in [0, 1]:
+                if 'standard_name' not in coords[i].info:
+                    raise IOError(
+                        'Coordinates info object missing standard_name key: ' +
+                        str(coords[i].info))
+
         if (len(coords) == 2 and
                 coords[0].info.get('standard_name') == 'longitude' and
                 coords[1].info.get('standard_name') == 'latitude'):
