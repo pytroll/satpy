@@ -6,8 +6,9 @@ The SatPy package is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and
 data file formats. SatPy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
-processing output. The pyresample_ package is used to resample data to
-different uniform areas or grids.
+processing output. The
+`pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
+to resample data to different uniform areas or grids.
 
 Get to the project_ page for source code and downloads.
 
@@ -105,7 +106,6 @@ distribution, we provide support for the following readers:
 Reprojection of data is also available through the use of pyresample_.
 
 .. _project: http://github.com/pytroll/satpy
-.. _pyresample: http://pyresample.readthedocs.io/en/latest/
 
 .. toctree::
     :maxdepth: 2
