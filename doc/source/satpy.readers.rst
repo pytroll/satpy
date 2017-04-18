@@ -17,6 +17,14 @@ satpy.readers.aapp_l1b module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.acspo module
+--------------------------
+
+.. automodule:: satpy.readers.acspo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.eps_l1b module
 ----------------------------
 
