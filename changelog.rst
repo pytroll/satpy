@@ -2,6 +2,209 @@ Changelog
 =========
 
 
+v0.6.0 (2017-04-18)
+-------------------
+
+Fix
+~~~
+- Bugfix: Masking data and apply vis-calibration. [Adam.Dybbroe]
+- Bugfix: Add wavelength to the DatasetID. [Adam.Dybbroe]
+- Bugfix: Add wavelength to the dataset info object, so pyspectral
+  interface works. [Adam.Dybbroe]
+
+Other
+~~~~~
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.5.0 → 0.6.0. [Martin Raspaud]
+- Fix pyresample link in README. [davidh-ssec]
+- Update documentation and readme to be more SatPy-y. [davidh-ssec]
+- Add ACSPO reader to documentation. [davidh-ssec]
+- Reduce redundant code in netcdf4 based tests. [davidh-ssec]
+- Add ACSPO reader tests. [davidh-ssec]
+- Force minimum version of netcdf4-python. [davidh-ssec]
+- Update pip on travis before installing dependencies. [davidh-ssec]
+- Install netcdf4 from source tarball on travis instead of from wheel.
+  [davidh-ssec]
+
+  netCDF4-python seems to be broken on travis when installed from a wheel.
+  This tries installing it from a source tarball.
+
+- Replace netcdf4 with h5netcdf in netcdf4 file handler tests. [davidh-
+  ssec]
+
+  Travis has a library issue with netcdf4 so trying h5netcdf instead
+
+- Install cython via apt for travis tests. [davidh-ssec]
+- Add tests for NetCDF4 File Handler utility class. [davidh-ssec]
+- Add tests for HDF5 File Handler utility class. [davidh-ssec]
+- Update VIIRS L1B tests to work with python 3. [davidh-ssec]
+
+  Includes installing netcdf4 apt packages on travis
+
+- Add netCDF4 library to travis tests. [davidh-ssec]
+- Add VIIRS L1B tests. [davidh-ssec]
+- Change YAML reader to only provide datasets that are requested.
+  [davidh-ssec]
+
+  Includes changes to mask any data slices when data can't be loaded from
+  one or more file handlers. Raises an error if all file handlers fail.
+
+- Clean up style. [Martin Raspaud]
+- Add behave test for returned least modified dataset. [davidh-ssec]
+- Merge pull request #48 from pytroll/feature_bilinear. [David Hoese]
+
+  Bilinear interpolation
+- Merge pull request #49 from pytroll/fix_ewa. [David Hoese]
+
+  Fix EWA resampling
+- Remove data copy from EWA resampling. [davidh-ssec]
+- Send copy of the data to fornav() [Panu Lahtinen]
+- Merge branch 'fix_ewa' of https://github.com/pytroll/satpy into
+  fix_ewa. [Panu Lahtinen]
+- Send copy of data to fornav() [Panu Lahtinen]
+
+  - Fixes EWA resampling
+
+- Remove unused import. [Panu Lahtinen]
+- Discard masks from cache data. [Panu Lahtinen]
+- Start fixing EWA; single channels work, multichannels yield bad
+  images. [Panu Lahtinen]
+- Add example using bilinear interpolation, caching and more CPUs. [Panu
+  Lahtinen]
+- Handle datasets with multiple channels. [Panu Lahtinen]
+- Reorganize code. [Panu Lahtinen]
+
+  - move caches to base class attribute
+  - move cache reading to base class
+  - move cache updating to base class
+
+- Add bilinear resampling, separate lonlat masking to a function. [Panu
+  Lahtinen]
+- Merge pull request #50 from pytroll/feature-acspo-reader. [David
+  Hoese]
+
+  Add ACSPO SST Reader
+- Add more documentation methods in ACSPO reader. [davidh-ssec]
+- Fix ACSPO reader module docstring. [davidh-ssec]
+- Add ACSPO SST Reader. [davidh-ssec]
+- Cleanup code based on quantifiedcode. [davidh-ssec]
+- Add test to make sure least modified datasets are priorities in
+  getitem. [davidh-ssec]
+- Change DatasetID sorting to be more pythonic. [davidh-ssec]
+- Fix incorrect usage of setdefault. [davidh-ssec]
+- Change DatasetIDs to be sortable and sort them in DatasetDict.keys()
+  [davidh-ssec]
+- Make failing test more deterministic. [davidh-ssec]
+
+  Planning to change how requested datasets are loaded/discovered so this test will need to get updated in the future anyway.
+
+- Fix DatasetDict.__getitem__ being slightly non-deterministic. [davidh-
+  ssec]
+
+  __getitem__ was depending on the output and order of .keys() which is
+  not guaranteed to be the same every time. If more than one key was found
+  to match the `item` then the first in a list based on .keys() was
+  returned. The first element in this list was not always the same.
+
+- Fix Scene loading or computing datasets multiple times. [davidh-ssec]
+- Add filename filtering for start and end time. [davidh-ssec]
+- Fix Scene loading datasets multiple times. [davidh-ssec]
+
+  Fix #45
+
+- Fix setup.py's usage of find_packages. [davidh-ssec]
+- Fix deleting an item from the Scene if it wasn't in the wishlist.
+  [davidh-ssec]
+
+  If a user specified `unload=False` then there may be something in the Scene that isn't needed later.
+
+- Use setuptool's find_packages in setup.py. [davidh-ssec]
+- Use only h5py for compact viirs reading. [Martin Raspaud]
+- Remove hanging print statements. [Martin Raspaud]
+- Add night overview composite for viirs. [Martin Raspaud]
+- Add area def for MSG HRV. [Martin Raspaud]
+- Merge pull request #47 from pytroll/feature-yaml-enhancements. [Martin
+  Raspaud]
+
+  Switch enhancements to yaml format
+- Switch enhancements to yaml format. [Martin Raspaud]
+- Fix missed Projectable use in composites. [davidh-ssec]
+- Add support for segmented geostationary data. [Martin Raspaud]
+- Merge pull request #43 from pytroll/msg-native. [Martin Raspaud]
+
+  Msg native
+- Possible fix for python 3.5. [Adam.Dybbroe]
+- Fix for python 3.5. [Adam.Dybbroe]
+- Change from relative to absolute import. [Adam.Dybbroe]
+- Merge branch 'develop' into msg-native. [Adam.Dybbroe]
+- Handle (nastily) cases where channel data are not available in the
+  file. Add unittests. [Adam.Dybbroe]
+- Merge branch 'develop' into msg-native. [Adam.Dybbroe]
+- Add unittests for count to radiance calibration. [Adam.Dybbroe]
+- Use 10 to 16 bit conversion function that was copied from mipp.
+  [Adam.Dybbroe]
+- Handle subset of SEVIRI channels Full disk supported only.
+  [Adam.Dybbroe]
+- Make file reading numpy 1.12 compatible. [Sauli Joro]
+- Remove dependency on mipp. [Adam.Dybbroe]
+- Merge branch 'develop' into msg-native. [Adam.Dybbroe]
+
+  Conflicts:
+  	satpy/readers/__init__.py
+  	satpy/readers/hrit_msg.py
+- Fix IR and VIS calibration. [Adam.Dybbroe]
+- Pep8 and editorial (header) updates. [Adam.Dybbroe]
+- Adding the native msg header record definitions. [Adam.Dybbroe]
+- Semi-stable native reader version. Calibration unfinished.
+  [Adam.Dybbroe]
+- Unfinished msg native reader. [Adam.Dybbroe]
+- Merge pull request #38 from bmu/develop. [Martin Raspaud]
+
+  conda based install
+- Reformulated the documentation again. [bmu]
+- Corrected channel preferences of conda requirement file. [bmu]
+- Corrected file name in documentation. [bmu]
+- Renamed requirement file to reflect python and numpy version. [bmu]
+- Added installation section to the docs. [bmu]
+- Add vi swp files to gitignore. [bmu]
+- Added environment file for conda installations. [bmu]
+- Merge pull request #40 from m4sth0/develop. [Martin Raspaud]
+
+  Add area slicing support for MTG-LI filehandler
+- Add workaround for area slicing issue. [m4sth0]
+
+  Choosing an sub area for data import in a scene objects like
+  EuropeCanary results in a wrong area slice due to wrong area
+  interpolation. If the lat lon values of a sub area are invalid
+  (e.g. in space) the slicing gets incorrect.
+  This commit will bypass this by calculating the slices directly
+  without interpolation for two areas with the same projection (geos)
+
+- Add area slicing support for MTG-LI filehandler. [m4sth0]
+- Merge pull request #41 from meteoswiss-mdr/develop. [Martin Raspaud]
+
+  Pytroll workshop --> new NWCSAF v2016 products
+- Pytroll workshop --> new NWCSAF v2016 products. [sam]
+- Change table of supported data types. [Adam.Dybbroe]
+- Add column "shortcomings" to table of supported readers, and add row
+  for native reader. [Adam.Dybbroe]
+- Do not compute resampling mask for AreaDefintions. [Martin Raspaud]
+- Add support for LRIT 8 bits. [Martin Raspaud]
+- Cleanup HRIT readers. [Martin Raspaud]
+- Add ABI composite module. [Martin Raspaud]
+- Update list of supported formats. [Martin Raspaud]
+- Remove uneeded code for electro reader. [Martin Raspaud]
+- Add HRIT JMA reader. [Martin Raspaud]
+- Merge pull request #35 from m4sth0/develop. [Martin Raspaud]
+
+  Fix MTG-FCI and LI readers
+- Fix MTG-FCI and LI readers. [m4sth0]
+- Fix area extent for MSG segments. [Martin Raspaud]
+- Add very basic tests for the VIIRS SDR file reader. [davidh-ssec]
+- Test some utility functions. [Martin Raspaud]
+- Fix tutorial. [Martin Raspaud]
+
+
 v0.5.0 (2017-03-27)
 -------------------
 - Update changelog. [Martin Raspaud]
