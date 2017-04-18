@@ -35,8 +35,7 @@ import numpy as np
 import six
 import yaml
 
-from pyresample.geometry import AreaDefinition, StackedAreaDefinition
-from satpy.composites import IncompatibleAreas
+from pyresample.geometry import SwathDefinition, StackedAreaDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
@@ -737,23 +736,20 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
         if len(coords) == 2:
-            if ('standard_name' not in coords[0].info or
-                    'standard_name' not in coords[1].info):
+            lon_sn = coords[0].info.get('standard_name')
+            lat_sn = coords[1].info.get('standard_name')
+            if lon_sn == 'longitude' and lat_sn == 'latitude':
+                sdef = SwathDefinition(*coords)
+                sensor_str = sdef.name = '_'.join(self.info['sensors'])
+                shape_str = '_'.join(map(str, coords[0].shape))
+                sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                                 coords[0].info['name'],
+                                                 coords[1].info['name'])
+                return sdef
+            else:
                 raise ValueError(
                     'Coordinates info object missing standard_name key: ' +
                     str(coords))
-
-        if (len(coords) == 2 and
-                coords[0].info.get('standard_name') == 'longitude' and
-                coords[1].info.get('standard_name') == 'latitude'):
-            from pyresample.geometry import SwathDefinition
-            sdef = SwathDefinition(*coords)
-            sensor_str = sdef.name = '_'.join(self.info['sensors'])
-            shape_str = '_'.join(map(str, coords[0].shape))
-            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                             coords[0].info['name'],
-                                             coords[1].info['name'])
-            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
