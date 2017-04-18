@@ -302,6 +302,7 @@ class ReaderFinder(object):
             config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
+        sensor_supported = False
         remaining_filenames = set(
             filenames) if filenames is not None else set()
         for config_file in config_files:
@@ -326,6 +327,9 @@ class ReaderFinder(object):
 
             if not reader_instance.supports_sensor(sensor):
                 continue
+            elif sensor is not None:
+                # sensor was specified and a reader supports it
+                sensor_supported = True
             if remaining_filenames:
                 loadables = reader_instance.select_files_from_pathnames(
                     remaining_filenames)
@@ -340,6 +344,9 @@ class ReaderFinder(object):
                 # we were given filenames to look through and found a reader
                 # for all of them
                 break
+
+        if sensor and not sensor_supported:
+            LOG.warning("Sensor '{}' not supported by any readers".format(sensor))
 
         if remaining_filenames:
             LOG.warning(
