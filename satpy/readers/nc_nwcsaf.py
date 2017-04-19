@@ -74,10 +74,10 @@ class NcNWCSAF(BaseFileHandler):
 
         self.sensor = SENSOR.get(self.platform_name, 'seviri')
 
-    def get_shape(self, dsid, ds_info):
-        """Get the shape of the data."""
-        raise NotImplementedError
-        #     return self.nc[dsid.name].shape
+    # def get_shape(self, dsid, ds_info):
+    #     """Get the shape of the data."""
+    #     raise NotImplementedError
+    #     #     return self.nc[dsid.name].shape
 
     def get_dataset(self, dsid, info, out=None):
         """Load a dataset."""
