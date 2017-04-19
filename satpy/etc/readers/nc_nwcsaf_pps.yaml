@@ -1,0 +1,51 @@
+reader:
+  description: NetCDF4 reader for the NWCSAF/PPS 2014 format
+  name: nc_nwcsaf
+  sensors: ['avhrr-3', 'viirs']
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    nc_nwcsaf_cma:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_ct:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+
+datasets:
+
+  lon:
+    name: lon
+    file_type: nc_nwcsaf_cma
+    units: "degrees"
+    standard_name: longitude
+  lat:
+    name: lat
+    file_type: nc_nwcsaf_cma
+    units: "degrees"
+    standard_name: latitude
+
+# ---- CMA products ------------
+
+  cma:
+    name: cma
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+
+  cma_pal:
+    name: cma_pal
+    file_type: nc_nwcsaf_cma
+
+# ---- CT products ------------
+
+  ct:
+    name: ct
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+
+  ct_pal:
+    name: ct_pal
+    file_type: nc_nwcsaf_ct
