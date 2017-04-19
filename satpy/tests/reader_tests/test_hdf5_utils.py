@@ -6,11 +6,38 @@
 import os
 import sys
 import numpy as np
+from satpy.readers.hdf5_utils import HDF5FileHandler
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
 
+
+class FakeHDF5FileHandler(HDF5FileHandler):
+    """Swap-in HDF5 File Handler for reader tests to use"""
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Get fake file content from 'get_test_content'"""
+        super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.file_content = self.get_test_content(filename, filename_info, filetype_info)
+        self.file_content.update(kwargs)
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content
+        
+        Args:
+            filename (str): input filename 
+            filename_info (dict): Dict of metadata pulled from filename
+            filetype_info (dict): Dict of metadata from the reader's yaml config for this file type
+
+        Returns: dict of file content with keys like:
+        
+            - 'dataset'
+            - '/attr/global_attr'
+            - 'dataset/attr/global_attr'
+            - 'dataset/shape'
+
+        """
+        raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 class TestHDF5FileHandler(unittest.TestCase):
     """Test HDF5 File Handler Utility class"""

@@ -405,7 +405,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='radiance')
 
         expected = {'polarization': None,
-                    'modifiers': tuple(),
+                    'modifiers': None,
                     'resolution': None,
                     'calibration': ['radiance']}
         self.assertDictEqual(expected,
@@ -414,7 +414,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='reflectance')
 
         expected = {'polarization': None,
-                    'modifiers': tuple(),
+                    'modifiers': None,
                     'resolution': None,
                     'calibration': ['reflectance']}
         self.assertDictEqual(expected,
@@ -435,7 +435,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='radiance')
 
         expected = {'polarization': None,
-                    'modifiers': tuple(),
+                    'modifiers': None,
                     'resolution': [1000],
                     'calibration': ['radiance']}
         self.assertDictEqual(expected,
@@ -444,7 +444,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         key = yr.DatasetID(name='bla', calibration='reflectance')
 
         expected = {'polarization': None,
-                    'modifiers': tuple(),
+                    'modifiers': None,
                     'resolution': [1000],
                     'calibration': ['reflectance']}
         self.assertDictEqual(expected,

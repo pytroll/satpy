@@ -1,7 +1,7 @@
 reader:
   name: viirs_sdr
   description: VIIRS SDR Reader
-  reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader ''
+  reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
   default_channels:
 

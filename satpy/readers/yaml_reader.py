@@ -205,7 +205,9 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             ids = self.ids.keys()
         for key in DATASET_KEYS:
             value = getattr(dsid, key)
-            if value is None:
+            if value is None or (key == 'modifiers' and not value):
+                # filter everything else except modifiers if it isn't
+                # specified (None or tuple())
                 continue
             if key == "wavelength":
                 ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
@@ -234,8 +236,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             dfilter = {}
         else:
             dfilter = dfilter.copy()
-        for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
+        for attr in ['calibration', 'polarization', 'resolution']:
             dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
+        # modifiers default is an empty tuple so handle it specially
+        dfilter['modifiers'] = dfilter.get('modifiers',
+                                           getattr(key, 'modifiers', None) or None)
 
         for attr in ['calibration', 'polarization', 'resolution']:
             if (dfilter[attr] is not None
@@ -759,6 +764,10 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             return self._load_area_def(dsid, file_handlers)
         except NotImplementedError:
+            if any(x is None for x in coords):
+                logger.warning("Failed to load coordinates for '{}'".format(dsid))
+                return None
+
             area = self._make_area_from_coords(coords)
             if area is None:
                 logger.debug("No coordinates found for %s", str(dsid))
