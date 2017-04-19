@@ -140,3 +140,10 @@ composites:
     - 0.5
     - 0.45
     standard_name: true_color
+
+  cloudtype:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ct
+    - ct_pal
+    standard_name: cloudtype
