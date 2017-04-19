@@ -72,6 +72,11 @@ distribution, we provide support for the following readers:
     * - NWCSAF MSG 2016 products in netCDF4 format
       - `nc_nwcsaf_msg`
       - Nominal
+    * - NWCSAF PPS 2014 products in netCDF4 format
+      - `nc_nwcsaf_pps`
+      - | Not yet support for remapped netCDF products. 
+        | Only the standard swath based output is supported.
+        | CPP products not supported yet
     * - Sentinel-1 A and B SAR-C data in SAFE format
       - `sar_c`
       - Nominal
