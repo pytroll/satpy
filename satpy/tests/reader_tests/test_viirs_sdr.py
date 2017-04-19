@@ -25,7 +25,9 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF5FileHandler(FakeHDF5FileHandler):
+    """Swap-in HDF5 File Handler"""
     def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content"""
         start_time = filename_info['start_time']
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
@@ -58,7 +60,7 @@ class FakeHDF5FileHandler(FakeHDF5FileHandler):
         }
         if geo_prefix:
             file_content['/attr/N_GEO_Ref'] = geo_prefix + filename[5:]
-        for k, v in file_content.items():
+        for k, v in list(file_content.items()):
             file_content[k.format(prefix1=prefix1, prefix2=prefix2)] = v
 
         if filename[:3] in ['SVM', 'SVI', 'SVD']:
@@ -98,15 +100,18 @@ class FakeHDF5FileHandler(FakeHDF5FileHandler):
 
 
 class TestVIIRSSDRReader(unittest.TestCase):
+    """Test VIIRS SDR Reader"""
     yaml_file = "viirs_sdr.yaml"
 
     def setUp(self):
+        """Wrap HDF5 file handler with our own fake handler"""
         from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch('satpy.readers.hdf5_utils.HDF5FileHandler', FakeHDF5FileHandler)
         self.fake_hdf5 = self.p.start()
 
     def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler"""
         self.p.stop()
 
     def test_init(self):
@@ -159,6 +164,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_all_m_reflectances_no_geo(self):
+        """Load all M band reflectances with no geo files provided"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -194,6 +200,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertNotIn('area', d.info)
 
     def test_load_all_m_reflectances_find_geo(self):
+        """Load all M band reflectances with geo files not specified but existing"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -238,6 +245,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.info['area'])
 
     def test_load_all_m_reflectances_provided_geo(self):
+        """Load all M band reflectances with geo files provided"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -277,6 +285,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.info['area'].lats.min(), 45)
 
     def test_load_all_m_reflectances_use_nontc(self):
+        """Load all M band reflectances but use non-TC geolocation"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=False)
         loadables = r.select_files_from_pathnames([
@@ -317,6 +326,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.info['area'].lats.min(), 55)
 
     def test_load_all_m_reflectances_use_nontc2(self):
+        """Load all M band reflectances but use non-TC geolocation (uce_tc=None)"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
         loadables = r.select_files_from_pathnames([
@@ -356,6 +366,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.info['area'].lats.min(), 55)
 
     def test_load_all_m_bts(self):
+        """Load all M band brightness temperatures"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -381,6 +392,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.info['area'])
 
     def test_load_all_m_radiances(self):
+        """Load all M band radiances"""
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -430,6 +442,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.info['area'])
 
     def test_load_dnb(self):
+        """Load DNB dataset"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -444,6 +457,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.info['units'], 'W m-2 sr-1')
             self.assertIn('area', d.info)
             self.assertIsNotNone(d.info['area'])
+
 
 def suite():
     """The test suite for test_viirs_sdr.
