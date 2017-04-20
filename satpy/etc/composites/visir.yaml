@@ -182,3 +182,18 @@ composites:
     - ctth_tempe
     - ctth_tempe_pal
     standard_name: cloud_top_temperature
+
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_phase
+    - cpp_phase_pal
+    standard_name: cloud_top_phase
+
+  cloud_drop_effective_radius:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_reff
+    - cpp_reff_pal
+    standard_name: cloud_drop_effective_radius
+

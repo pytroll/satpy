@@ -22,6 +22,11 @@ file_types:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_PC_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
 
+    nc_nwcsaf_cpp:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CPP_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+
 
 datasets:
 
@@ -127,3 +132,22 @@ datasets:
   ctth_tempe_pal:
     name: ctth_tempe_pal
     file_type: nc_nwcsaf_ctth
+
+
+# ---- CPP products ------------
+
+  cpp_phase:
+    name: cpp_phase
+    file_type: nc_nwcsaf_cpp
+
+  cmic_phase_pal:
+    name: cpp_phase_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_reff:
+    name: cpp_reff
+    file_type: nc_nwcsaf_cpp
+
+  cpp_reff_pal:
+    name: cpp_reff_pal
+    file_type: nc_nwcsaf_cpp
