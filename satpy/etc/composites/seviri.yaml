@@ -40,19 +40,19 @@ composites:
     - 12.0
     standard_name: night_fog
 
-  cloud_mask:
+  cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cma
     - cma_pal
-    standard_name: cloud_mask
+    standard_name: cloudmask
 
-  cloud_type:
+  cloudtype:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - ct
     - ct_pal
-    standard_name: cloud_type
+    standard_name: cloudtype
 
   cloud_top_height:
     compositor: !!python/name:satpy.composites.PaletteCompositor
