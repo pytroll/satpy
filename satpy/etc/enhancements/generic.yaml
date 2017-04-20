@@ -179,8 +179,9 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 1.2, 1]
-  cloud_type:
-    standard_name: cloud_type
+
+  cloudtype:
+    standard_name: cloudtype
     operations:
     - name: stretch
       method: *stretchfun
@@ -188,8 +189,8 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
-  cloud_mask:
-    standard_name: cloud_mask
+  cloudmask:
+    standard_name: cloudmask
     operations:
     - name: stretch
       method: *stretchfun
@@ -197,6 +198,7 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
+
   cloud_top_height:
     standard_name: cloud_top_height
     operations:

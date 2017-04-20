@@ -99,13 +99,17 @@ class NcNWCSAF(BaseFileHandler):
         if 'add_offset' in variable.attrs:
             values = values + variable.attrs['add_offset']
             info['add_offset'] = variable.attrs['add_offset']
-
         if 'valid_range' in variable.attrs:
             info['valid_range'] = variable.attrs['valid_range']
         if 'units' in variable.attrs:
             info['units'] = variable.attrs['units']
         if 'standard_name' in variable.attrs:
             info['standard_name'] = variable.attrs['standard_name']
+
+        if self.pps and dsid.name == 'ctth_alti':
+            info['valid_range'] = (0., 8500.)
+        if self.pps and dsid.name == 'ctth_alti_pal':
+            values = values[1:, :]
 
         proj = Dataset(np.squeeze(values),
                        copy=False,
