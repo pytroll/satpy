@@ -32,7 +32,8 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import InfoObject, Dataset, DatasetID, DATASET_KEYS, combine_info
+from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
+                           combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
 
@@ -465,7 +466,60 @@ class RGBCompositor(CompositeBase):
         return Dataset(data=the_data, **info)
 
 
-class PaletteCompositor(RGBCompositor):
+class ColormapCompositor(RGBCompositor):
+    """A compositor that uses colormaps."""
+    @staticmethod
+    def build_colormap(palette, dtype, info):
+        """Create the colormap from the `raw_palette` and the valid_range."""
+
+        from trollimage.colormap import Colormap
+        if dtype == np.dtype('uint8'):
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
+
+        elif 'valid_range' in info:
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
+
+            sf = info['scale_factor']
+            colormap.set_range(
+                *info['valid_range'] * sf + info['add_offset'])
+
+        return colormap
+
+
+class ColorizeCompositor(ColormapCompositor):
+    """A compositor colorizing the data, interpolating the palette colors when
+    needed.
+    """
+
+    def __call__(self, projectables, **info):
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+
+        # TODO: support datasets with palette to delegate this to the image
+        # writer.
+
+        data, palette = projectables
+        colormap = self.build_colormap(palette / 255.0, data.dtype, data.info)
+
+        r, g, b = colormap.colorize(data)
+        r[data.mask] = palette[-1][0]
+        g[data.mask] = palette[-1][1]
+        b[data.mask] = palette[-1][2]
+        r = Dataset(r, copy=False, mask=data.mask, **data.info)
+        g = Dataset(g, copy=False, mask=data.mask, **data.info)
+        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+
+        return super(ColorizeCompositor, self).__call__((r, g, b), **data.info)
+
+
+class PaletteCompositor(ColormapCompositor):
+    """A compositor colorizing the data, not interpolating the palette colors.
+    """
 
     def __call__(self, projectables, **info):
         if len(projectables) != 2:
@@ -477,28 +531,14 @@ class PaletteCompositor(RGBCompositor):
 
         data, palette = projectables
         palette = palette / 255.0
-        
-        from trollimage.colormap import Colormap
-        if data.dtype == np.dtype('uint8'):
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
+        colormap = self.build_colormap(palette, data.dtype, data.info)
 
-        elif 'valid_range' in data.info:
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
-            #colormap.set_range(*data.info['valid_range'])
-            sf = data.info['scale_factor']
-            colormap.set_range(*data.info['valid_range'] * sf + data.info['add_offset'])
+        channels, colors = colormap.palettize(data)
+        channels = palette[channels]
 
-        r, g, b = colormap.colorize(data)
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.info)
-        g = Dataset(g, copy=False, mask=data.mask, **data.info)
-        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+        r = Dataset(channels[:, :, 0], copy=False, mask=data.mask, **data.info)
+        g = Dataset(channels[:, :, 1], copy=False, mask=data.mask, **data.info)
+        b = Dataset(channels[:, :, 2], copy=False, mask=data.mask, **data.info)
 
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
 
