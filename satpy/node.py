@@ -220,11 +220,6 @@ class DependencyTree(Node):
     def __getitem__(self, item):
         return self._all_nodes[item]
 
-    # def update(self, other):
-    #     self.flatten()
-    #     for child in other.children:
-    #         self.children.append(child)
-
     def get_compositor(self, key):
         for sensor_name in self.compositors.keys():
             try:

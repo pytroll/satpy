@@ -469,6 +469,14 @@ class Scene(InfoObject):
                     set(self.datasets.keys())
         return self.read_composites(nodes)
 
+    def _remove_failed_datasets(self, keepables):
+        keepables = keepables or set()
+        # remove reader datasets that couldn't be loaded so they aren't
+        # attempted again later
+        for n in self.missing_datasets:
+            if n not in keepables:
+                self.wishlist.discard(n)
+
     def unload(self, keepables=None):
         """Unload all unneeded datasets.
         
@@ -513,6 +521,7 @@ class Scene(InfoObject):
         if compute:
             keepables = self.compute()
         if self.missing_datasets:
+            self._remove_failed_datasets(keepables)
             missing_str = ", ".join(map(str, self.missing_datasets))
             LOG.warning(
                 "The following datasets were not created: {}".format(missing_str))
@@ -552,6 +561,7 @@ class Scene(InfoObject):
                      for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
         if new_scn.missing_datasets:
+            self._remove_failed_datasets(keepables)
             missing_str = ", ".join(map(str, new_scn.missing_datasets))
             LOG.warning(
                 "The following datasets were not created: {}".format(missing_str))

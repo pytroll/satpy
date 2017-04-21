@@ -433,6 +433,31 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load, ['im_a_dataset_that_doesnt_exist'])
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_no_exist2(self, cri, cl):
+        """Test loading a dataset that doesn't exist then another load"""
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID, Scene
+        r = create_fake_reader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': r}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = Scene(filenames='bla',
+                      base_dir='bli',
+                      reader='fake_reader')
+        scene.load(['ds9_fail_load'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 0)
+        r.load.assert_called_once_with(set([DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))]))
+
+        scene.load(['ds1'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(r.load.call_count, 2)
+        # most recent call should have only been ds1
+        r.load.assert_called_with(set([DatasetID(name='ds1')]))
+        self.assertEquals(len(loaded_ids), 1)
+
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds1_no_comps(self, cri):
         """Test loading one dataset with no loaded compositors"""
