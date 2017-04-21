@@ -458,6 +458,17 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIn('area', d.info)
             self.assertIsNotNone(d.info['area'])
 
+    def test_load_i_no_files(self):
+        """Load I01 when only DNB files are provided"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables)
+        ds = r.load(['I01'])
+        self.assertEqual(len(ds), 0)
 
 def suite():
     """The test suite for test_viirs_sdr.

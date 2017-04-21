@@ -322,6 +322,9 @@ class VIIRSSDRReader(FileYAMLReader):
     def _load_from_geo_ref(self, dsid):
         """Load filenames from the N_GEO_Ref attribute of a dataset's file"""
         file_handlers = self._get_file_handlers(dsid)
+        if not file_handlers:
+            return None
+
         fns = []
         for fh in file_handlers:
             base_dir = os.path.dirname(fh.filename)
