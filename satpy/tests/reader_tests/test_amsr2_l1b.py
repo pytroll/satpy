@@ -53,6 +53,17 @@ class FakeHDF5FileHandler(FakeHDF5FileHandler):
             '(89.0GHz-B,V)',
         ]:
             k = 'Brightness Temperature {}'.format(bt_chan)
+            file_content[k] = DEFAULT_FILE_DATA[:, ::2]
+            file_content[k + '/shape'] = (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2)
+            file_content[k + '/attr/UNIT'] = 'K'
+            file_content[k + '/attr/SCALE FACTOR'] = 0.01
+        for bt_chan in [
+            '(89.0GHz-A,H)',
+            '(89.0GHz-A,V)',
+            '(89.0GHz-B,H)',
+            '(89.0GHz-B,V)',
+        ]:
+            k = 'Brightness Temperature {}'.format(bt_chan)
             file_content[k] = DEFAULT_FILE_DATA
             file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
             file_content[k + '/attr/UNIT'] = 'K'
@@ -125,8 +136,13 @@ class TestAMSR2L1BReader(unittest.TestCase):
         self.assertEqual(len(ds), 12)
         for d in ds.values():
             self.assertEqual(d.info['calibration'], 'brightness_temperature')
-        self.assertIn('area', d.info)
-        self.assertIsNotNone(d.info['area'])
+            self.assertTupleEqual(d.shape, (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1] // 2)))
+            self.assertIn('area', d.info)
+            self.assertIsNotNone(d.info['area'])
+            self.assertTupleEqual(d.info['area'].lons.shape,
+                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
+            self.assertTupleEqual(d.info['area'].lats.shape,
+                                  (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
 
     def test_load_89ghz(self):
         """Test loading of basic channels"""
@@ -147,8 +163,13 @@ class TestAMSR2L1BReader(unittest.TestCase):
         self.assertEqual(len(ds), 4)
         for d in ds.values():
             self.assertEqual(d.info['calibration'], 'brightness_temperature')
-        self.assertIn('area', d.info)
-        self.assertIsNotNone(d.info['area'])
+            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
+            self.assertIn('area', d.info)
+            self.assertIsNotNone(d.info['area'])
+            self.assertTupleEqual(d.info['area'].lons.shape,
+                                  DEFAULT_FILE_SHAPE)
+            self.assertTupleEqual(d.info['area'].lats.shape,
+                                  DEFAULT_FILE_SHAPE)
 
 
 def suite():
