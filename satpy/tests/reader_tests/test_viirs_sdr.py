@@ -326,7 +326,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.info['area'].lats.min(), 55)
 
     def test_load_all_m_reflectances_use_nontc2(self):
-        """Load all M band reflectances but use non-TC geolocation (uce_tc=None)"""
+        """Load all M band reflectances but use non-TC geolocation (use_tc=None)"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
         loadables = r.select_files_from_pathnames([
