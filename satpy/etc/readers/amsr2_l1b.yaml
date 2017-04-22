@@ -11,8 +11,9 @@ datasets:
     name: 'btemp_10.7v'
     # FIXME: These are actually GHz not micrometers
     wavelength: [10.7, 10.7, 10.7]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (10.7GHz,V)"
@@ -24,8 +25,9 @@ datasets:
   btemp_10.7h:
     name: 'btemp_10.7h'
     wavelength: [10.7, 10.7, 10.7]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (10.7GHz,H)"
@@ -37,8 +39,9 @@ datasets:
   btemp_6.9v:
     name: 'btemp_6.9v'
     wavelength: [6.9, 6.9, 6.9]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (6.9GHz,V)"
@@ -50,8 +53,9 @@ datasets:
   btemp_6.9h:
     name: 'btemp_6.9h'
     wavelength: [6.9, 6.9, 6.9]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (6.9GHz,H)"
@@ -63,8 +67,9 @@ datasets:
   btemp_7.3v:
     name: 'btemp_7.3v'
     wavelength: [7.3, 7.3, 7.3]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (7.3GHz,V)"
@@ -76,8 +81,9 @@ datasets:
   btemp_7.3h:
     name: 'btemp_7.3h'
     wavelength: [7.3, 7.3, 7.3]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (7.3GHz,H)"
@@ -89,8 +95,9 @@ datasets:
   btemp_18.7v:
     name: 'btemp_18.7v'
     wavelength: [18.7, 18.7, 18.7]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (18.7GHz,V)"
@@ -102,8 +109,9 @@ datasets:
   btemp_18.7h:
     name: 'btemp_18.7h'
     wavelength: [18.7, 18.7, 18.7]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (18.7GHz,H)"
@@ -115,8 +123,9 @@ datasets:
   btemp_23.8v:
     name: 'btemp_23.8v'
     wavelength: [23.8, 23.8, 23.8]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (23.8GHz,V)"
@@ -128,8 +137,9 @@ datasets:
   btemp_23.8h:
     name: 'btemp_23.8h'
     wavelength: [23.8, 23.8, 23.8]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (23.8GHz,H)"
@@ -141,8 +151,9 @@ datasets:
   btemp_36.5v:
     name: 'btemp_36.5v'
     wavelength: [36.5, 36.5, 36.5]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (36.5GHz,V)"
@@ -154,8 +165,9 @@ datasets:
   btemp_36.5h:
     name: 'btemp_36.5h'
     wavelength: [36.5, 36.5, 36.5]
+    calibration: brightness_temperature
     resolution: 10000
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (36.5GHz,H)"
@@ -167,9 +179,10 @@ datasets:
   btemp_89.0av:
     name: 'btemp_89.0av'
     wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
     resolution: 5000
     navigation: amsr2_5km_a
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (89.0GHz-A,V)"
@@ -181,9 +194,10 @@ datasets:
   btemp_89.0ah:
     name: 'btemp_89.0ah'
     wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
     resolution: 5000
     navigation: amsr2_5km_a
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (89.0GHz-A,H)"
@@ -195,9 +209,10 @@ datasets:
   btemp_89.0bv:
     name: 'btemp_89.0bv'
     wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
     resolution: 5000
     navigation: amsr2_5km_b
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: V
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (89.0GHz-B,V)"
@@ -209,9 +224,10 @@ datasets:
   btemp_89.0bh:
     name: 'btemp_89.0bh'
     wavelength: [89.0, 89.0, 89.0]
+    calibration: brightness_temperature
     resolution: 5000
     navigation: amsr2_5km_b
-    standard_name: brightness_temperature
+    standard_name: toa_brightness_temperature
     polarization: H
     file_type: amsr2_l1b
     file_key: "Brightness Temperature (89.0GHz-B,H)"
