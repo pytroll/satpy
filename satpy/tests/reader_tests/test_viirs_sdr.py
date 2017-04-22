@@ -470,6 +470,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 
+
 def suite():
     """The test suite for test_viirs_sdr.
     """
