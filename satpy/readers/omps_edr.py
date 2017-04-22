@@ -99,7 +99,7 @@ class EDRFileHandler(HDF5FileHandler):
 
         if valid_min is not None and valid_max is not None:
             # the original .cfg/INI based reader only checked valid_max
-            out.mask[:] |= (out.data > valid_max) | (out < valid_min)
+            out.mask[:] |= (out.data > valid_max) | (out.data < valid_min)
         if fill_value is not None:
             out.mask[:] |= out.data == fill_value
 
