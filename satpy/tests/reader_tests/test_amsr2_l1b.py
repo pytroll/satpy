@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the satpy.readers.viirs_sdr module.
+"""Module for testing the satpy.readers.amsr2_l1b module.
 """
 
 import os
@@ -94,7 +94,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         self.fake_hdf5 = self.p.start()
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the HDF5 file handler"""
         self.p.stop()
 
     def test_init(self):
@@ -112,7 +112,6 @@ class TestAMSR2L1BReader(unittest.TestCase):
     def test_load_basic(self):
         """Test loading of basic channels"""
         from satpy.readers import load_reader
-        from datetime import datetime
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
@@ -145,9 +144,8 @@ class TestAMSR2L1BReader(unittest.TestCase):
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
 
     def test_load_89ghz(self):
-        """Test loading of basic channels"""
+        """Test loading of 89GHz channels"""
         from satpy.readers import load_reader
-        from datetime import datetime
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
@@ -173,7 +171,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_viirs_sdr.
+    """The test suite for test_amsr2_l1b.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
