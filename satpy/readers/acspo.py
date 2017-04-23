@@ -98,7 +98,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         """Load data array and metadata from file on disk."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
-        cls = ds_info.get("container", Dataset)
+        cls = ds_info.pop("container", Dataset)
         if var_path + '/shape' not in self:
             # loading a scalar value
             shape = 1

@@ -64,7 +64,7 @@ class FakeNetCDF4FileHandler(FakeNetCDF4FileHandler):
                   'satellite_zenith_angle',
                   'sea_ice_fraction',
                   'wind_speed']:
-            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k] = DEFAULT_FILE_DATA[None, ...]
             file_content[k + '/attr/scale_factor'] = 1.1
             file_content[k + '/attr/add_offset'] = 0.1
             file_content[k + '/attr/units'] = 'some_units'
@@ -74,7 +74,7 @@ class FakeNetCDF4FileHandler(FakeNetCDF4FileHandler):
             file_content[k + '/attr/valid_min'] = 0
             file_content[k + '/attr/valid_max'] = 65534
             file_content[k + '/attr/_FillValue'] = 65534
-            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/shape'] = (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1])
 
         file_content['l2p_flags'] = np.zeros(
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
@@ -110,7 +110,7 @@ class TestACSPOReader(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
-    def test_load_every_m_band_bt(self):
+    def test_load_every_dataset(self):
         """Test loading all datasets"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
@@ -123,6 +123,8 @@ class TestACSPOReader(unittest.TestCase):
                            'sea_ice_fraction',
                            'wind_speed'])
         self.assertEqual(len(datasets), 4)
+        for d in datasets.values():
+            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
 
 
 def suite():
