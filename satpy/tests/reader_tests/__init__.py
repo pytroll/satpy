@@ -28,7 +28,8 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_viirs_sdr, test_viirs_l1b,
                                       test_native_msg, test_msg_base,
                                       test_hdf5_utils, test_netcdf_utils,
-                                      test_acspo, test_amsr2_l1b, test_omps_edr)
+                                      test_acspo, test_amsr2_l1b,
+                                      test_omps_edr, test_nucaps)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -50,5 +51,6 @@ def suite():
     mysuite.addTests(test_acspo.suite())
     mysuite.addTests(test_amsr2_l1b.suite())
     mysuite.addTests(test_omps_edr.suite())
+    mysuite.addTests(test_nucaps.suite())
 
     return mysuite
