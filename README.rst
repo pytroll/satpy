@@ -1,3 +1,24 @@
+Satpy
+=====
+
+.. image:: https://travis-ci.org/pytroll/satpy.svg?branch=develop
+    :target: https://travis-ci.org/pytroll/satpy
+
+.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=develop
+    :target: https://coveralls.io/github/pytroll/satpy?branch=develop
+
+.. image:: https://landscape.io/github/pytroll/satpy/master/landscape.svg?style=flat
+    :target: https://landscape.io/github/pytroll/satpy/master
+    :alt: Code Health[![Code Health](https://landscape.io/github/pytroll/pyspectral/pre-master/landscape.png)](https://landscape.io/github/pytroll/pyspectral/pre-master)
+
+.. image:: https://badge.fury.io/py/satpy.svg
+    :target: https://badge.fury.io/py/satpy[![PyPI version](https://badge.fury.io/py/pyspectral.svg)](https://badge.fury.io/py/pyspectral)
+
+.. image:: https://www.quantifiedcode.com/api/v1/project/87e41e5e8fa045dba2cb4912df5c4fad/badge.svg
+    :target: https://www.quantifiedcode.com/app/project/87e41e5e8fa045dba2cb4912df5c4fad
+    :alt: Code issues
+
+
 The SatPy package is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and
 data file formats. SatPy comes with the ability to make various RGB
@@ -8,4 +29,3 @@ to resample data to different uniform areas or grids.
 
 The documentation is available at
 http://satpy.readthedocs.org/.
-
