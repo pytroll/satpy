@@ -24,7 +24,7 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-class FakeHDF5FileHandler(FakeHDF5FileHandler):
+class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler"""
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content"""
@@ -92,12 +92,19 @@ class TestOMPSEDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler"""
         from satpy.config import config_search_paths
+        from satpy.readers.omps_edr import EDRFileHandler, EDREOSFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch('satpy.readers.hdf5_utils.HDF5FileHandler', FakeHDF5FileHandler)
-        self.fake_hdf5 = self.p.start()
+        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
+        self.p = mock.patch.object(EDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+        self.p2 = mock.patch.object(EDREOSFileHandler, '__bases__', (EDRFileHandler,))
+        self.fake_handler2 = self.p2.start()
+        self.p2.is_local = True
 
     def tearDown(self):
         """Stop wrapping the NetCDF4 file handler"""
+        self.p2.stop()
         self.p.stop()
 
     def test_init(self):
