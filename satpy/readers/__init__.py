@@ -25,14 +25,10 @@
 import logging
 import numbers
 import os
-from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import namedtuple
-
-import numpy as np
 import six
 import yaml
 
-from satpy.config import config_search_paths, glob_config, runtime_import
+from satpy.config import config_search_paths, glob_config, get_environ_config_dir
 from satpy.dataset import DATASET_KEYS, DatasetID
 
 try:
@@ -267,7 +263,7 @@ class ReaderFinder(object):
     """
 
     def __init__(self,
-                 ppp_config_dir=None,
+                 ppp_config_dir=get_environ_config_dir(),
                  base_dir=None,
                  start_time=None,
                  end_time=None,

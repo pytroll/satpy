@@ -94,6 +94,93 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
 
 
+class TestReaderFinder(unittest.TestCase):
+    """Test the ReaderFinder class
+    
+    Assumes that the VIIRS SDR reader exists and works.
+    """
+    def setUp(self):
+        """Wrap HDF5 file handler with our own fake handler"""
+        from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
+        from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
+        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
+        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the HDF5 file handler"""
+        self.p.stop()
+
+    def test_no_args(self):
+        """Test no args provided.
+        
+        This should check the local directory which should have no files.
+        """
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        ri = rf()
+        self.assertDictEqual(ri, {})
+
+    def test_filenames_only(self):
+        """Test with filenames specified"""
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        ri = rf(filenames=[
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_filenames_and_reader(self):
+        """Test with filenames and reader specified"""
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        ri = rf(reader='viirs_sdr',
+                filenames=[
+                    'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_bad_reader_name_with_filenames(self):
+        """Test bad reader name with filenames provided"""
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        self.assertRaises(ValueError, rf, reader='i_dont_exist', filenames=[
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            ])
+
+    def test_bad_sensor_with_filenames(self):
+        """Test bad sensor with filenames provided"""
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        self.assertRaises(ValueError, rf, sensor='i_dont_exist', filenames=[
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+
+    def test_sensor(self):
+        """Test with filenames and sensor specified"""
+        from satpy.readers import ReaderFinder
+        rf = ReaderFinder()
+        ri = rf(sensor='viirs',
+                filenames=[
+                    'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+                ])
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_reader_name_base_dir(self):
+        """Test with default base_dir and reader specified"""
+        from satpy.readers import ReaderFinder
+        fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
+        # touch the file so it exists on disk
+        open(fn, 'w')
+        try:
+            rf = ReaderFinder()
+            ri = rf(reader='viirs_sdr')
+            self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+        finally:
+            os.remove(fn)
+
+
 class TestReaders(unittest.TestCase):
     '''Class for testing satpy.satin'''
 
@@ -326,6 +413,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaders))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestReaderFinder))
 
     return mysuite
 
