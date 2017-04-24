@@ -2,6 +2,55 @@ Changelog
 =========
 
 
+v0.6.1 (2017-04-24)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.6.0 → 0.6.1. [Martin Raspaud]
+- Change branch for landscape badge. [Martin Raspaud]
+- Fix badge to point to develop. [Martin Raspaud]
+- Add a couple of badges to the readme. [Martin Raspaud]
+- Remove imageo subpackage and related tests. [davidh-ssec]
+- Add test for ReaderFinder. [davidh-ssec]
+
+  Required fixing all reader tests that had improper patching of base file handlers.
+
+- Add NUCAPS reader tests. [davidh-ssec]
+- Fix OMPS EDR valid_min comparison. [davidh-ssec]
+- Add OMPS EDR tests. [davidh-ssec]
+- Add shape checking to AMSR2 L1B tests. [davidh-ssec]
+- Attempt to fix AMSR2 L1B reader tests. [davidh-ssec]
+- Add AMSR2 L1B tests. [davidh-ssec]
+- Fix loading of failed datasets. [davidh-ssec]
+
+  Fix #42
+
+- Fix viirs sdr loading when dataset's file type isn't loaded. [davidh-
+  ssec]
+- Add a ColorizeCompositor vs PaletteCompositor. [Martin Raspaud]
+- Fix viirs sdr tests for python 3. [davidh-ssec]
+- Add ability for VIIRS SDRs to load geolocation files from N_GEO_Ref.
+  [davidh-ssec]
+
+  Also fixed tests and fixed dfilter not working in VIIRS SDRs when
+  key was a DatasetID
+
+- Clean up styling for coordinates check. [davidh-ssec]
+
+  Quantified code complained about duplicate if statements
+
+- Raise ValueError instead of IOError when standard_name is missing in
+  coordinates. [Adam.Dybbroe]
+- Use previously unused cache dict to hold cached geolocation data.
+  [Adam.Dybbroe]
+- Remove redundant import. [Adam.Dybbroe]
+- Raise an IOError when (lon,lat) coordinates doesn't have a
+  standard_name. [Adam.Dybbroe]
+- Add warning when sensor is not supported by any readers. [davidh-ssec]
+
+  Fix #32
+
+
+
 v0.6.0 (2017-04-18)
 -------------------
 
