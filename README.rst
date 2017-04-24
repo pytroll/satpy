@@ -7,8 +7,8 @@ Satpy
 .. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=develop
     :target: https://coveralls.io/github/pytroll/satpy?branch=develop
 
-.. image:: https://landscape.io/github/pytroll/satpy/master/landscape.svg?style=flat
-    :target: https://landscape.io/github/pytroll/satpy/master
+.. image:: https://landscape.io/github/pytroll/satpy/develop/landscape.svg?style=flat
+    :target: https://landscape.io/github/pytroll/satpy/develop
     :alt: Code Health
 
 .. image:: https://badge.fury.io/py/satpy.svg
