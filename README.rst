@@ -9,12 +9,12 @@ Satpy
 
 .. image:: https://landscape.io/github/pytroll/satpy/master/landscape.svg?style=flat
     :target: https://landscape.io/github/pytroll/satpy/master
-    :alt: Code Health[![Code Health](https://landscape.io/github/pytroll/pyspectral/pre-master/landscape.png)](https://landscape.io/github/pytroll/pyspectral/pre-master)
+    :alt: Code Health
 
 .. image:: https://badge.fury.io/py/satpy.svg
-    :target: https://badge.fury.io/py/satpy[![PyPI version](https://badge.fury.io/py/pyspectral.svg)](https://badge.fury.io/py/pyspectral)
+    :target: https://badge.fury.io/py/satpy
 
-.. image:: https://www.quantifiedcode.com/api/v1/project/87e41e5e8fa045dba2cb4912df5c4fad/badge.svg
+.. image:: https://www.quantifiedcode.com/api/v1/project/87e41e5e8fa045dba2cb4912df5c4fad/snapshot/origin:develop:HEAD/badge.svg
     :target: https://www.quantifiedcode.com/app/project/87e41e5e8fa045dba2cb4912df5c4fad
     :alt: Code issues
 
