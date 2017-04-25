@@ -26,7 +26,9 @@ import unittest
 import numpy as np
 from satpy import dataset
 import mock
+import yaml
 from satpy.writers import to_image, show
+
 
 class TestWritersModule(unittest.TestCase):
 
@@ -75,11 +77,36 @@ class TestWritersModule(unittest.TestCase):
         self.assertRaises(ValueError, show, p)
 
 
+class TestEnhancer(unittest.TestCase):
+    def test_basic_init_no_args(self):
+        from satpy.writers import Enhancer
+        e = Enhancer()
+        self.assertIsNotNone(e.enhancement_tree)
+
+    def test_basic_init_no_enh(self):
+        from satpy.writers import Enhancer
+        e = Enhancer(enhancement_config_file=False)
+        self.assertIsNone(e.enhancement_tree)
+
+    def test_basic_init_provided_enh(self):
+        from satpy.writers import Enhancer
+        e = Enhancer(enhancement_config_file=["""enhancements:
+  enh1:
+    standard_name: toa_bidirectional_reflectance
+    operations:
+    - name: stretch
+      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      kwargs: {stretch: linear}
+"""])
+        self.assertIsNotNone(e.enhancement_tree)
+
+
 def suite():
     """The test suite for test_projector.
     """
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
 
     return my_suite
