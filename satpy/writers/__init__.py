@@ -292,8 +292,12 @@ class EnhancementDecisionTree(object):
     def add_config_to_tree(self, *config_files):
         conf = {}
         for config_file in config_files:
-            with open(config_file) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
+            if os.path.isfile(config_file):
+                with open(config_file) as fd:
+                    conf = recursive_dict_update(conf, yaml.load(fd))
+            else:
+                LOG.debug("Loading enhancement config string")
+                conf = recursive_dict_update(conf, yaml.load(config_file))
 
         self._build_tree(conf)
 
@@ -379,15 +383,16 @@ class Enhancer(object):
             config_fn = os.path.join("enhancements", "generic.yaml")
             self.enhancement_config_file = config_search_paths(
                 config_fn, self.ppp_config_dir)
-        if not isinstance(self.enhancement_config_file, (list, tuple)):
-            self.enhancement_config_file = [self.enhancement_config_file]
 
-        if self.enhancement_config_file:
-            self.enhancement_tree = EnhancementDecisionTree(
-                *self.enhancement_config_file)
-        else:
+        if not self.enhancement_config_file:
             # They don't want any automatic enhancements
             self.enhancement_tree = None
+        else:
+            if not isinstance(self.enhancement_config_file, (list, tuple)):
+                self.enhancement_config_file = [self.enhancement_config_file]
+
+            self.enhancement_tree = EnhancementDecisionTree(
+                *self.enhancement_config_file)
 
         self.sensor_enhancement_configs = []
 
