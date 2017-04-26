@@ -140,3 +140,60 @@ composites:
     - 0.5
     - 0.45
     standard_name: true_color
+
+  cloudmask:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cma
+    - cma_pal
+    standard_name: cloudmask
+
+  cloudmask_extended:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cma_extended
+    - cma_extended_pal
+    standard_name: cloudmask
+
+  cloudtype:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ct
+    - ct_pal
+    standard_name: cloudtype
+
+  cloud_top_height:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_alti
+    - ctth_alti_pal
+    standard_name: cloud_top_height
+
+  cloud_top_pressure:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_pres
+    - ctth_pres_pal
+    standard_name: cloud_top_pressure
+
+  cloud_top_temperature:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_tempe
+    - ctth_tempe_pal
+    standard_name: cloud_top_temperature
+
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_phase
+    - cpp_phase_pal
+    standard_name: cloud_top_phase
+
+  cloud_drop_effective_radius:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_reff
+    - cpp_reff_pal
+    standard_name: cloud_drop_effective_radius
+
