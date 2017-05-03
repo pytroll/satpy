@@ -24,10 +24,14 @@
 """Dataset objects.
 """
 
+import logging
+import numbers
+from collections import namedtuple
+
 import numpy as np
 import six
-from collections import namedtuple
-import numbers
+
+logger = logging.getLogger(__name__)
 
 
 class InfoObject(object):
@@ -193,7 +197,7 @@ class DatasetID(DatasetID):
 
     def _comparable(self):
         """Get a comparable version of the DatasetID.
-        
+
         Without this DatasetIDs often raise an exception when compared in
         Python 3 due to None not being comparable with other types.
         """
@@ -548,7 +552,13 @@ class Dataset(np.ma.MaskedArray):
         # avoid circular imports, this is just a convenience function anyway
         from satpy.resample import resample, get_area_def
         # call the projection stuff here
-        source_area = self.info["area"]
+        try:
+            source_area = self.info["area"]
+        except KeyError:
+            logger.info("Cannot reproject dataset %s, missing area info",
+                        self.info['name'])
+
+            return self
 
         if isinstance(source_area, (str, six.text_type)):
             source_area = get_area_def(source_area)
