@@ -29,7 +29,7 @@ import os.path
 import sys
 from glob import glob
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
@@ -37,7 +37,7 @@ BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
 requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
-            'trollimage', 'pykdtree', 'six', 'pyyaml']
+            'trollimage', 'pykdtree', 'six', 'pyyaml', 'xarray', 'dask']
 
 if sys.version < '2.7':
     requires.append('ordereddict')

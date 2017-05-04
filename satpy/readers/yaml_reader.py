@@ -33,9 +33,10 @@ from fnmatch import fnmatch
 
 import numpy as np
 import six
+import xarray as xr
 import yaml
 
-from pyresample.geometry import SwathDefinition, StackedAreaDefinition
+from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
@@ -596,7 +597,8 @@ class FileYAMLReader(AbstractYAMLReader):
         cls = ds_info.get("container", Dataset)
         return cls(np.ma.vstack(projectables), **combined_info)
 
-    def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice):
+    def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice,
+                             dim='y'):
         """Load only a piece of the dataset."""
         # we can optimize
         cls = ds_info.get("container", Dataset)
@@ -605,6 +607,8 @@ class FileYAMLReader(AbstractYAMLReader):
         overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
                                                                 xslice,
                                                                 yslice)
+
+        slice_list = []
 
         out_info = {}
         data = np.empty(overall_shape,
@@ -627,9 +631,9 @@ class FileYAMLReader(AbstractYAMLReader):
             start = max(yslice.start - offset, 0)
             stop = min(yslice.stop - offset, segment_height)
 
-            shuttle = Shuttle(data[out_offset:out_offset + stop - start],
-                              mask[out_offset:out_offset + stop - start],
-                              out_info)
+            # shuttle = Shuttle(data[out_offset:out_offset + stop - start],
+            #                   mask[out_offset:out_offset + stop - start],
+            #                   out_info)
 
             kwargs = {}
             if stop - start != segment_height:
@@ -639,12 +643,12 @@ class FileYAMLReader(AbstractYAMLReader):
                 kwargs['xslice'] = xslice
 
             try:
-                fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
+                slice_list.append(fh.get_dataset(dsid, ds_info, **kwargs))
                 failure = False
             except KeyError:
                 logger.warning(
                     "Failed to load {} from {}".format(dsid, fh), exc_info=True)
-                mask[out_offset:out_offset + stop - start] = True
+                #mask[out_offset:out_offset + stop - start] = True
 
             out_offset += stop - start
             offset += segment_height
@@ -653,8 +657,12 @@ class FileYAMLReader(AbstractYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        out_info.pop('area', None)
-        return cls(data, mask=mask, copy=False, **out_info)
+        # out_info.pop('area', None)
+        # return cls(data, mask=mask, copy=False, **out_info)
+
+        res = xr.concat(slice_list, dim=dim)
+        res.attrs = slice_list[-1].attrs
+        return res
 
     def _load_dataset_data(self,
                            file_handlers,
@@ -674,8 +682,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                              xslice, yslice)
         # FIXME: areas could be concatenated here
         # Update the metadata
-        proj.info['start_time'] = file_handlers[0].start_time
-        proj.info['end_time'] = file_handlers[-1].end_time
+        proj.attrs['start_time'] = file_handlers[0].start_time
+        proj.attrs['end_time'] = file_handlers[-1].end_time
 
         return proj
 
@@ -765,7 +773,8 @@ class FileYAMLReader(AbstractYAMLReader):
             return self._load_area_def(dsid, file_handlers)
         except NotImplementedError:
             if any(x is None for x in coords):
-                logger.warning("Failed to load coordinates for '{}'".format(dsid))
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
                 return None
 
             area = self._make_area_from_coords(coords)
@@ -813,7 +822,7 @@ class FileYAMLReader(AbstractYAMLReader):
             return None
 
         if area is not None:
-            ds.info['area'] = area
+            ds.attrs['area'] = area
         return ds
 
     def load(self, dataset_keys):

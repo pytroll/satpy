@@ -417,12 +417,15 @@ class Scene(InfoObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.info)
-            self.datasets[composite.id] = composite
+
+            cid = DatasetID.from_dict(composite.attrs)
+
+            self.datasets[cid] = composite
             # update the node with the computed DatasetID
-            comp_node.name = composite.id
+            comp_node.name = cid
             if comp_node.name in self.wishlist:
                 self.wishlist.remove(comp_node.name)
-                self.wishlist.add(composite.id)
+                self.wishlist.add(cid)
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",

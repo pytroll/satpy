@@ -25,10 +25,12 @@
 import logging
 import numbers
 import os
+
 import six
 import yaml
 
-from satpy.config import config_search_paths, glob_config, get_environ_config_dir
+from satpy.config import (config_search_paths, get_environ_config_dir,
+                          glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
 
 try:
@@ -183,7 +185,7 @@ class DatasetDict(dict):
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.info if hasattr(value, 'info') else value
+        d = value.attrs if hasattr(value, 'attrs') else value
         if not isinstance(key, DatasetID):
             old_key = key
             key = self.get_key(key)
@@ -201,7 +203,7 @@ class DatasetDict(dict):
                                 modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
-                        "One of 'name' or 'wavelength' info values should be set.")
+                        "One of 'name' or 'wavelength' attrs values should be set.")
 
         # update the 'value' with the information contained in the key
         if hasattr(d, '__setitem__'):
@@ -342,7 +344,8 @@ class ReaderFinder(object):
                 break
 
         if sensor and not sensor_supported:
-            LOG.warning("Sensor '{}' not supported by any readers".format(sensor))
+            LOG.warning(
+                "Sensor '{}' not supported by any readers".format(sensor))
 
         if remaining_filenames:
             LOG.warning(

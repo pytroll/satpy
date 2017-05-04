@@ -35,14 +35,6 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     '''
 
     # Convert the zenith angle limit to cosine of zenith angle
-    limit = np.cos(np.radians(limit))
+    limit = np.cos(np.deg2rad(limit))
 
-    # Cosine correction
-    lim_y, lim_x = np.where(cos_zen > limit)
-    data[lim_y, lim_x] /= cos_zen[lim_y, lim_x]
-    # Use constant value (the limit) for larger zenith
-    # angles
-    lim_y, lim_x = np.where(cos_zen <= limit)
-    data[lim_y, lim_x] /= limit
-
-    return data
+    return data / cos_zen.clip(min=limit)

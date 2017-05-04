@@ -25,7 +25,6 @@
 import logging
 
 from pyresample.geometry import AreaDefinition
-
 from satpy.composites import RGBCompositor
 from satpy.dataset import Dataset
 
@@ -38,8 +37,17 @@ class TrueColor(RGBCompositor):
 
         c01, c02, c03 = projectables
 
-        r = c02
+        # c02 = c02.sel(x=c01.coords['x'], y=c01.coords[
+        #               'y'], method='nearest', tolerance=0.1)
+
+        c02.coords['x'] = c01.coords['x']
+        c02.coords['y'] = c01.coords['y']
+
+        r = c02.load()
         b = c01
-        g = (c01 + c02) / 2 * 0.93 + 0.07 * c03
+        g = (c01 + r) / 2 * 0.93 + 0.07 * c03
+        g.attrs = b.attrs
+        g.coords['t'] = b.coords['t']
+        del g.attrs['wavelength']
 
         return super(TrueColor, self).__call__((r, g, b), **info)

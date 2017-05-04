@@ -43,8 +43,8 @@ LOG = logging.getLogger(__name__)
 
 
 def _determine_mode(dataset):
-    if "mode" in dataset.info:
-        return dataset.info["mode"]
+    if "mode" in dataset.attrs:
+        return dataset.attrs["mode"]
 
     if dataset.ndim == 2:
         return "L"
@@ -140,17 +140,17 @@ def get_enhanced_image(dataset,
             "No enhancement configuration files found or specified, cannot"
             " automatically enhance dataset")
 
-    if dataset.info.get("sensor", None):
-        enhancer.add_sensor_enhancements(dataset.info["sensor"])
+    if dataset.attrs.get("sensor", None):
+        enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
 
     # Create an image for enhancement
     img = to_image(dataset, mode=mode, fill_value=fill_value)
-    enhancer.apply(img, **dataset.info)
+    enhancer.apply(img, **dataset.attrs)
 
-    img.info.update(dataset.info)
+    img.info.update(dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.info['area'], **overlay)
+        add_overlay(img, dataset.attrs['area'], **overlay)
     return img
 
 
@@ -167,13 +167,16 @@ def show(dataset, **kwargs):
 def to_image(dataset, copy=True, **kwargs):
     # Only add keywords if they are present
     for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.info:
-            kwargs.setdefault(key, dataset.info[key])
+        if key in dataset.attrs:
+            kwargs.setdefault(key, dataset.attrs[key])
 
     if dataset.ndim == 2:
         return Image([dataset], copy=copy, **kwargs)
     elif dataset.ndim == 3:
-        return Image([band for band in dataset], copy=copy, **kwargs)
+        import ipdb
+        ipdb.set_trace()
+
+        return Image([dataset.sel(bands=0).values, dataset.sel(bands=1).values, dataset.sel(bands=2).values], copy=copy, **kwargs)
     else:
         raise ValueError(
             "Don't know how to convert array with ndim %d to image" %
