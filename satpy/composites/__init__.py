@@ -26,14 +26,16 @@
 import logging
 import os
 
+import dask.array as da
 import numpy as np
 import six
+import xarray as xr
 import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
-                           combine_info)
+                           combine_attrs, combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
 
@@ -225,8 +227,8 @@ class CompositeBase(InfoObject):
         return pformat(self.info)
 
     def apply_modifier_info(self, origin, destination):
-        o = getattr(origin, 'info', origin)
-        d = getattr(destination, 'info', destination)
+        o = getattr(origin, 'attrs', origin)
+        d = getattr(destination, 'attrs', destination)
         for k in DATASET_KEYS:
             if k == 'modifiers':
                 d[k] = self.info[k]
@@ -243,27 +245,31 @@ class SunZenithCorrector(CompositeBase):
 
     def __call__(self, projectables, **info):
         vis = projectables[0]
-        if vis.info.get("sunz_corrected"):
+        if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.info["area"], 'name'):
-            area_name = vis.info["area"].name
+        if hasattr(vis.attrs["area"], 'name'):
+            area_name = vis.attrs["area"].name
         else:
-            area_name = 'swath' + str(vis.info["area"].lons.shape)
-        key = (vis.info["start_time"], area_name)
+            area_name = 'swath' + str(vis.attrs["area"].lons.shape)
+        key = (vis.attrs["start_time"], area_name)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
-                                                                *vis.info["area"].get_lonlats()),
+
+                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.attrs["start_time"],
+                                                                *vis.attrs["area"].get_lonlats()),
                                                         # about 88 degrees.
                                                         0.035,
                                                         1,
                                                         copy=False)
-            coszen = self.coszen[key]
+
+            coszen = xr.DataArray(da.from_array(self.coszen[key].filled(np.nan),
+                                                chunks=vis.chunks),
+                                  coords=vis.coords)
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
 
@@ -275,10 +281,9 @@ class SunZenithCorrector(CompositeBase):
             coszen = np.repeat(
                 np.repeat(coszen, factor, axis=0), factor, axis=1)
 
-        # sunz correction will be in place so we need a copy
-        proj = vis.copy()
-        proj = sunzen_corr_cos(proj, coszen)
-        vis.mask[coszen < 0] = True
+        proj = sunzen_corr_cos(vis, coszen)
+        proj = proj.where(coszen >= 0)
+
         self.apply_modifier_info(vis, proj)
         return proj
 
@@ -436,22 +441,21 @@ class RGBCompositor(CompositeBase):
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
         try:
-            the_data = np.rollaxis(
-                np.ma.dstack([projectable for projectable in projectables]),
-                axis=2)
+
+            the_data = xr.concat(projectables, 'bands')
         except ValueError:
             raise IncompatibleAreas
         # info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
-        info = combine_info(*projectables)
+        info = combine_attrs(*projectables)
         info.update(self.info)
         # FIXME: should this be done here ?
         info["wavelength"] = None
         info.pop("units", None)
         sensor = set()
         for projectable in projectables:
-            current_sensor = projectable.info.get("sensor", None)
+            current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
                 if isinstance(current_sensor, (str, bytes, six.text_type)):
                     sensor.add(current_sensor)
@@ -463,7 +467,11 @@ class RGBCompositor(CompositeBase):
             sensor = list(sensor)[0]
         info["sensor"] = sensor
         info["mode"] = "RGB"
-        return Dataset(data=the_data, **info)
+        the_data.attrs.update(info)
+        del the_data.attrs['resolution']
+        del the_data.attrs['calibration']
+
+        return the_data
 
 
 class ColormapCompositor(RGBCompositor):
