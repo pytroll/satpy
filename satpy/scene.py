@@ -578,7 +578,9 @@ class Scene(InfoObject):
         """
 
         from satpy.writers import get_enhanced_image
-        get_enhanced_image(self[dataset_id], overlay=overlay).show()
+        img = get_enhanced_image(self[dataset_id], overlay=overlay)
+        img.show()
+        return img
 
     def images(self):
         """Generate images for all the datasets from the scene.

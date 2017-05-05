@@ -68,7 +68,6 @@ class NC_ABI_L1B(BaseFileHandler):
 
         radiances = self.nc["Rad"][xslice, yslice]
 
-        # units = variable.attrs['units']
         res = self.calibrate(radiances)
 
         # convert to satpy standard units
@@ -148,14 +147,6 @@ class NC_ABI_L1B(BaseFileHandler):
         res = (fk2 / xu.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
         res.attrs['units'] = 'K'
-        # np.divide(fk1, data, out=data.data)
-        # data.data[:] += 1
-        # np.log(data, out=data.data)
-        # np.divide(fk2, data, out=data.data)
-        # data.data[:] -= bc1
-        # data.data[:] /= bc2
-        #
-        # return 'K'
 
         return res
 
