@@ -253,23 +253,48 @@ class SunZenithCorrector(CompositeBase):
             area_name = vis.attrs["area"].name
         else:
             area_name = 'swath' + str(vis.attrs["area"].lons.shape)
-        key = (vis.attrs["start_time"], area_name)
+        key = (vis.attrs["start_time"], area_name, vis.shape)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
+                shape = len(vis.coords['y']), len(vis.coords['x'])
+                area = vis.attrs['area']
 
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.attrs["start_time"],
-                                                                *vis.attrs["area"].get_lonlats()),
-                                                        # about 88 degrees.
-                                                        0.035,
-                                                        1,
-                                                        copy=False)
+                def get_lonlats(area, slicex, slicey):
+                    return np.dstack(area.get_lonlats(data_slice=(slicex, slicey)))
 
-            coszen = xr.DataArray(da.from_array(self.coszen[key].filled(np.nan),
-                                                chunks=vis.chunks),
-                                  coords=vis.coords)
+                blocksize = 1000
+                from dask.base import tokenize
+                name_lon = 'lon-' + tokenize(blocksize)
+                nlines, ncols = area.y_size, area.x_size
+                chunks = ([min(blocksize, nlines - j) for j in range(0, nlines, blocksize)],
+                          [min(blocksize, ncols - i)
+                           for i in range(0, ncols, blocksize)],
+                          (2,))
+                dsk = {(name_lon, i // blocksize, j // blocksize, k): (get_lonlats,
+                                                                       area,
+                                                                       slice(
+                                                                           i, min(i + blocksize, ncols)),
+                                                                       slice(j, min(j + blocksize, nlines)))
+                       for i in range(0, ncols, blocksize)
+                       for j in range(0, nlines, blocksize)
+                       for k in range(1)}
+
+                arr = da.Array(dsk, name_lon, chunks=chunks, dtype=np.float)
+
+                lons = xr.DataArray(arr[:, :, 0], coords=vis.coords)
+                lats = xr.DataArray(arr[:, :, 1], coords=vis.coords)
+
+                cz = cos_zen(vis.attrs["start_time"], lons, lats)
+
+                import ipdb
+                ipdb.set_trace()
+
+                self.coszen[key] = cz.where((cz >= 0.035) & (cz <= 1))
+
+            coszen = self.coszen[key]
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
 
@@ -283,7 +308,7 @@ class SunZenithCorrector(CompositeBase):
 
         proj = sunzen_corr_cos(vis, coszen)
         proj = proj.where(coszen >= 0)
-
+        proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
         return proj
 
@@ -468,8 +493,11 @@ class RGBCompositor(CompositeBase):
         info["sensor"] = sensor
         info["mode"] = "RGB"
         the_data.attrs.update(info)
-        del the_data.attrs['resolution']
-        del the_data.attrs['calibration']
+        the_data.attrs.pop('resolution', None)
+        the_data.attrs.pop('calibration', None)
+        the_data.attrs.pop('modifiers', None)
+        import ipdb
+        ipdb.set_trace()
 
         return the_data
 
