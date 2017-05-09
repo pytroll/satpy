@@ -36,11 +36,11 @@ from logging import getLogger
 import numpy as np
 import six
 
+from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
-from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
 
 try:
@@ -99,31 +99,33 @@ class BaseResampler(object):
     def hash_area(area):
         """Get (and set) the hash for the *area*.
         """
-        try:
-            return area.kdtree_hash
-        except AttributeError:
-            LOG.debug("Computing kd-tree hash for area %s",
-                      getattr(area, 'name', 'swath'))
-        try:
-            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.area_extent).encode(
-                                     "utf-8")).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
-        except AttributeError:
-            if not hasattr(area, "lons") or area.lons is None:
-                lons, lats = area.get_lonlats()
-            else:
-                lons, lats = area.lons, area.lats
-
-            try:
-                mask_hash = hashlib.sha1(area.mask).hexdigest()
-            except AttributeError:
-                mask_hash = "False"
-            area_hash = "".join((mask_hash,
-                                 hashlib.sha1(lons).hexdigest(),
-                                 hashlib.sha1(lats).hexdigest()))
-        area.kdtree_hash = area_hash
-        return area_hash
+        return str(id(area))
+        #
+        # try:
+        #     return area.kdtree_hash
+        # except AttributeError:
+        #     LOG.debug("Computing kd-tree hash for area %s",
+        #               getattr(area, 'name', 'swath'))
+        # try:
+        #     area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
+        #                          hashlib.sha1(json.dumps(area.area_extent).encode(
+        #                              "utf-8")).hexdigest(),
+        #                          hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
+        # except AttributeError:
+        #     if not hasattr(area, "lons") or area.lons is None:
+        #         lons, lats = area.get_lonlats()
+        #     else:
+        #         lons, lats = area.lons, area.lats
+        #
+        #     try:
+        #         mask_hash = hashlib.sha1(area.mask).hexdigest()
+        #     except AttributeError:
+        #         mask_hash = "False"
+        #     area_hash = "".join((mask_hash,
+        #                          hashlib.sha1(lons).hexdigest(),
+        #                          hashlib.sha1(lats).hexdigest()))
+        # area.kdtree_hash = area_hash
+        # return area_hash
 
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
         """Get hash for the current resample with the given *kwargs*.
@@ -229,8 +231,8 @@ class KDTreeResampler(BaseResampler):
     """
 
     def precompute(
-        self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
-                   cache_dir=False, **kwargs):
+            self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
+            cache_dir=False, **kwargs):
         """Create a KDTree structure and store it for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid where data points are invalid.
@@ -280,17 +282,40 @@ class KDTreeResampler(BaseResampler):
 
         del kwargs
 
-        return get_sample_from_neighbour_info('nn',
-                                              self.target_geo_def.shape,
-                                              data,
-                                              self.cache["valid_input_index"],
-                                              self.cache["valid_output_index"],
-                                              self.cache["index_array"],
-                                              distance_array=self.cache[
-                                                  "distance_array"],
-                                              weight_funcs=weight_funcs,
-                                              fill_value=fill_value,
-                                              with_uncert=with_uncert)
+        import dask.array as da
+        from dask import delayed
+        import xarray as xr
+
+        value = delayed(np.zeros)(self.target_geo_def.shape)
+        res = da.from_delayed(value, (self.target_geo_def.shape), float)
+
+        import ipdb
+        ipdb.set_trace()
+
+        res = xr.DataArray(res, coords={'x': self.target_geo_def.proj_x_coords,
+                                        'y': self.target_geo_def.proj_y_coords})
+
+        voi = self.cache["valid_output_index"]
+        vii = self.cache["valid_input_index"]
+        iarr = self.cache['index_array']
+
+        import ipdb
+        ipdb.set_trace()
+
+        res[np.where(voi)] = data[np.where(vii)][iarr]
+
+        return res
+        # return get_sample_from_neighbour_info('nn',
+        #                                       self.target_geo_def.shape,
+        #                                       data,
+        #                                       self.cache["valid_input_index"],
+        #                                       self.cache["valid_output_index"],
+        #                                       self.cache["index_array"],
+        #                                       distance_array=self.cache[
+        #                                           "distance_array"],
+        #                                       weight_funcs=weight_funcs,
+        #                                       fill_value=fill_value,
+        #                                       with_uncert=with_uncert)
 
 
 class EWAResampler(BaseResampler):
@@ -517,6 +542,51 @@ def resample(source_area, data, destination_area, resampler=KDTreeResampler,
         resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
     return resampler.resample(data, **kwargs)
+
+
+def resample_dataset(dataset, destination_area, **kwargs):
+    """Resample the current projectable and return the resampled one.
+
+    Args:
+        destination_area: The destination onto which to project the data,
+          either a full blown area definition or a string corresponding to
+          the name of the area as defined in the area file.
+        **kwargs: The extra parameters to pass to the resampling functions.
+
+    Returns:
+        A resampled projectable, with updated .info["area"] field
+    """
+    # avoid circular imports, this is just a convenience function anyway
+    from satpy.resample import resample, get_area_def
+    # call the projection stuff here
+    try:
+        source_area = dataset.attrs["area"]
+    except KeyError:
+        logger.info("Cannot reproject dataset %s, missing area info",
+                    dataset.attrs['name'])
+
+        return dataset
+
+    if isinstance(source_area, (str, six.text_type)):
+        source_area = get_area_def(source_area)
+    if isinstance(destination_area, (str, six.text_type)):
+        destination_area = get_area_def(destination_area)
+
+    dataset = dataset.squeeze()
+
+    if dataset.ndim == 3:
+        data = np.rollaxis(dataset, 0, 3)
+    else:
+        data = dataset
+    new_data = resample(source_area, data, destination_area, **kwargs)
+
+    if new_data.ndim == 3:
+        new_data = np.rollaxis(new_data, 2)
+
+    # FIXME: is this necessary with the ndarray subclass ?
+    new_data.attrs.update(dataset.attrs)
+    res.attrs["area"] = destination_area
+    return res
 
 
 def mask_source_lonlats(source_def, mask):

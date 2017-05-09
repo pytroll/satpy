@@ -582,7 +582,7 @@ class FileYAMLReader(AbstractYAMLReader):
         return overall_shape, xslice, yslice
 
     @staticmethod
-    def _load_entire_dataset(dsid, ds_info, file_handlers):
+    def _load_entire_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load the entire dataset as inplace loading isn't an option."""
         # can't optimize by using inplace loading
         projectables = []
@@ -593,9 +593,12 @@ class FileYAMLReader(AbstractYAMLReader):
 
         # Join them all together
         combined_info = file_handlers[0].combine_info(
-            [p.info for p in projectables])
-        cls = ds_info.get("container", Dataset)
-        return cls(np.ma.vstack(projectables), **combined_info)
+            [p.attrs for p in projectables])
+        #cls = ds_info.get("container", Dataset)
+        # return cls(np.ma.vstack(projectables), **combined_info)
+        res = xr.concat(projectables, dim=dim)
+        res.attrs = combined_info
+        return res
 
     def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice,
                              dim='y'):
@@ -749,15 +752,16 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].info.get('standard_name')
-            lat_sn = coords[1].info.get('standard_name')
+            lon_sn = coords[0].attrs.get('standard_name')
+            lat_sn = coords[1].attrs.get('standard_name')
             if lon_sn == 'longitude' and lat_sn == 'latitude':
+
                 sdef = SwathDefinition(*coords)
                 sensor_str = sdef.name = '_'.join(self.info['sensors'])
                 shape_str = '_'.join(map(str, coords[0].shape))
                 sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                 coords[0].info['name'],
-                                                 coords[1].info['name'])
+                                                 coords[0].attrs['name'],
+                                                 coords[1].attrs['name'])
                 return sdef
             else:
                 raise ValueError(
