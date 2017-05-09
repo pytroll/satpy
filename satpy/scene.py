@@ -614,7 +614,7 @@ class Scene(InfoObject):
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id],
                             filename=filename,
-                            overlay=overlay)
+                            overlay=overlay, **kwargs)
 
     def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*.
