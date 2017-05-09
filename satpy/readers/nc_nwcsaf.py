@@ -27,8 +27,8 @@
 import logging
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
+import xarray as xr
 
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
@@ -60,7 +60,13 @@ class NcNWCSAF(BaseFileHandler):
         """Init method"""
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine='h5netcdf',
+                                  chunks={'nx': 1000, 'ny': 1000, 'time': 10})
+        self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
+
         self.pps = False
 
         try:
@@ -74,50 +80,25 @@ class NcNWCSAF(BaseFileHandler):
 
         self.sensor = SENSOR.get(self.platform_name, 'seviri')
 
-    # def get_shape(self, dsid, ds_info):
-    #     """Get the shape of the data."""
-    #     raise NotImplementedError
-    #     #     return self.nc[dsid.name].shape
-
-    def get_dataset(self, dsid, info, out=None):
+    def get_dataset(self, dsid, info):
         """Load a dataset."""
 
         logger.debug('Reading %s.', dsid.name)
         variable = self.nc[dsid.name]
+        variable.attrs.update({'platform_name': self.platform_name,
+                               'sensor': self.sensor})
 
-        info = {'platform_name': self.platform_name,
-                'sensor': self.sensor}
-
-        try:
-            values = np.ma.masked_equal(variable[:],
-                                        variable.attrs['_FillValue'], copy=False)
-        except KeyError:
-            values = np.ma.array(variable[:], copy=False)
-        if 'scale_factor' in variable.attrs:
-            values = values * variable.attrs['scale_factor']
-            info['scale_factor'] = variable.attrs['scale_factor']
-        if 'add_offset' in variable.attrs:
-            values = values + variable.attrs['add_offset']
-            info['add_offset'] = variable.attrs['add_offset']
-        if 'valid_range' in variable.attrs:
-            info['valid_range'] = variable.attrs['valid_range']
-        if 'units' in variable.attrs:
-            info['units'] = variable.attrs['units']
-        if 'standard_name' in variable.attrs:
-            info['standard_name'] = variable.attrs['standard_name']
+        variable.attrs.setdefault('units', '1')
 
         if self.pps and dsid.name == 'ctth_alti':
-            info['valid_range'] = (0., 8500.)
+            variable.atts['valid_range'] = (0., 8500.)
         if self.pps and dsid.name == 'ctth_alti_pal':
-            values = values[1:, :]
+            variable = variable[1:, :]
 
-        proj = Dataset(np.squeeze(values),
-                       copy=False,
-                       **info)
-        return proj
+        return variable
 
     def get_area_def(self, dsid):
-        """Get the area definition of the datasets in the file. 
+        """Get the area definition of the datasets in the file.
         Only applicable for MSG products!"""
         if self.pps:
             # PPS:
