@@ -28,8 +28,8 @@ import os
 from datetime import datetime
 
 import numpy as np
-
 from pyresample.geometry import SwathDefinition
+
 from satpy.config import CONFIG_PATH
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
@@ -85,7 +85,7 @@ def read_raw(filename):
             grh = np.fromfile(fdes, grh_dtype, 1)
             if not grh:
                 break
-            rec_class = record_class[grh["record_class"]]
+            rec_class = record_class[int(grh["record_class"])]
             sub_class = grh["RECORD_SUBCLASS"][0]
             offset = fdes.tell()
             try:
@@ -94,9 +94,9 @@ def read_raw(filename):
                                                  sub_class)),
                                      count=1)
             except KeyError:
-                fdes.seek(grh["RECORD_SIZE"] - 20, 1)
+                fdes.seek(int(grh["RECORD_SIZE"]) - 20, 1)
             else:
-                fdes.seek(offset + grh["RECORD_SIZE"] - 20, 0)
+                fdes.seek(offset + int(grh["RECORD_SIZE"]) - 20, 0)
                 records.append((rec_class, record, sub_class))
 
     return records, form
