@@ -22,7 +22,8 @@
 """Nodes to build trees."""
 
 import logging
-from satpy import DatasetID, DatasetDict
+
+from satpy import DatasetDict, DatasetID
 
 LOG = logging.getLogger(__name__)
 
