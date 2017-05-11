@@ -79,13 +79,15 @@ class CFWriter(Writer):
         fields = []
         shapes = {}
         for dataset in datasets:
+            dataset = dataset.squeeze()
             if dataset.shape in shapes:
                 domain = shapes[dataset.shape]
             else:
                 lines, pixels = dataset.shape
 
-                area = dataset.info.get('area')
+                area = dataset.attrs.get('area')
                 add_time = False
+
                 try:
                     # Create a longitude auxiliary coordinate
                     lat = cf.AuxiliaryCoordinate(data=cf.Data(area.lats,
@@ -124,17 +126,15 @@ class CFWriter(Writer):
                         data=cf.Data(np.arange(pixels), '1'))
                     pixel_coord.standard_name = "pixel"
 
-                start_time = cf.dt(dataset.info['start_time'])
-                end_time = cf.dt(dataset.info['end_time'])
-                middle_time = cf.dt((dataset.info['end_time'] -
-                                     dataset.info['start_time']) / 2 +
-                                    dataset.info['start_time'])
-                # import ipdb
-                # ipdb.set_trace()
+                start_time = cf.dt(dataset.attrs['start_time'])
+                end_time = cf.dt(dataset.attrs['end_time'])
+                middle_time = cf.dt((dataset.attrs['end_time'] -
+                                     dataset.attrs['start_time']) / 2 +
+                                    dataset.attrs['start_time'])
+
                 if add_time:
-                    info = dataset.info
-                    dataset = dataset[np.newaxis, :, :]
-                    dataset.info = info
+                    dataset = dataset.expand_dims('time')
+                    dataset.coords['time'] = [middle_time]
 
                     bounds = cf.CoordinateBounds(
                         data=cf.Data([start_time, end_time],
@@ -151,17 +151,19 @@ class CFWriter(Writer):
                                    aux=aux,
                                    ref=grid_mapping)
                 shapes[dataset.shape] = domain
-            data = cf.Data(dataset, dataset.info['units'])
+            import ipdb
+            ipdb.set_trace()
+
+            data = cf.Data(dataset.values, dataset.attrs['units'])
 
             wanted_keys = ['standard_name', 'long_name']
-            properties = {k: dataset.info[k]
-                          for k in set(wanted_keys) & set(dataset.info.keys())}
+            properties = {k: dataset.attrs[k]
+                          for k in set(wanted_keys) & set(dataset.attrs.keys())}
             new_field = cf.Field(properties=properties,
                                  data=data,
                                  domain=domain)
 
-            new_field._FillValue = dataset.fill_value
-            new_field.valid_range = dataset.info['valid_range']
+            new_field.valid_range = dataset.attrs['valid_range']
             new_field.Conventions = 'CF-1.7'
             fields.append(new_field)
 

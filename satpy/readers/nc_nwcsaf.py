@@ -28,8 +28,8 @@ import logging
 from datetime import datetime
 
 import numpy as np
-import xarray as xr
 
+import xarray as xr
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -90,8 +90,11 @@ class NcNWCSAF(BaseFileHandler):
 
         variable.attrs.setdefault('units', '1')
 
+        if 'standard_name' in info:
+            variable.attrs.setdefault('standard_name', info['standard_name'])
+
         if self.pps and dsid.name == 'ctth_alti':
-            variable.atts['valid_range'] = (0., 8500.)
+            variable.attrs['valid_range'] = (0., 8500.)
         if self.pps and dsid.name == 'ctth_alti_pal':
             variable = variable[1:, :]
 
