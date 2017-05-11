@@ -282,40 +282,25 @@ class KDTreeResampler(BaseResampler):
 
         del kwargs
 
-        import dask.array as da
-        from dask import delayed
+        # TODO: index directly the xarray (performance is the issue atm)
+
+        res = get_sample_from_neighbour_info('nn',
+                                             self.target_geo_def.shape,
+                                             data.values,
+                                             self.cache["valid_input_index"],
+                                             self.cache["valid_output_index"],
+                                             self.cache["index_array"],
+                                             distance_array=self.cache[
+                                                 "distance_array"],
+                                             weight_funcs=weight_funcs,
+                                             fill_value=fill_value,
+                                             with_uncert=with_uncert)
         import xarray as xr
-
-        value = delayed(np.zeros)(self.target_geo_def.shape)
-        res = da.from_delayed(value, (self.target_geo_def.shape), float)
-
-        import ipdb
-        ipdb.set_trace()
-
-        res = xr.DataArray(res, coords={'x': self.target_geo_def.proj_x_coords,
-                                        'y': self.target_geo_def.proj_y_coords})
-
-        voi = self.cache["valid_output_index"]
-        vii = self.cache["valid_input_index"]
-        iarr = self.cache['index_array']
-
-        import ipdb
-        ipdb.set_trace()
-
-        res[np.where(voi)] = data[np.where(vii)][iarr]
+        res = xr.DataArray(res.filled(np.nan),
+                           coords={'x': self.target_geo_def.proj_x_coords,
+                                   'y': self.target_geo_def.proj_y_coords})
 
         return res
-        # return get_sample_from_neighbour_info('nn',
-        #                                       self.target_geo_def.shape,
-        #                                       data,
-        #                                       self.cache["valid_input_index"],
-        #                                       self.cache["valid_output_index"],
-        #                                       self.cache["index_array"],
-        #                                       distance_array=self.cache[
-        #                                           "distance_array"],
-        #                                       weight_funcs=weight_funcs,
-        #                                       fill_value=fill_value,
-        #                                       with_uncert=with_uncert)
 
 
 class EWAResampler(BaseResampler):
@@ -562,8 +547,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
     try:
         source_area = dataset.attrs["area"]
     except KeyError:
-        logger.info("Cannot reproject dataset %s, missing area info",
-                    dataset.attrs['name'])
+        LOG.info("Cannot reproject dataset %s, missing area info",
+                 dataset.attrs['name'])
 
         return dataset
 
@@ -585,8 +570,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
     # FIXME: is this necessary with the ndarray subclass ?
     new_data.attrs.update(dataset.attrs)
-    res.attrs["area"] = destination_area
-    return res
+    new_data.attrs["area"] = destination_area
+    return new_data
 
 
 def mask_source_lonlats(source_def, mask):
