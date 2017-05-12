@@ -27,9 +27,10 @@ import logging
 import os
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
 
+import dask.array as da
+import xarray as xr
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
@@ -45,26 +46,20 @@ class NCOLCIGeo(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIGeo, self).__init__(filename, filename_info,
                                         filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
-
-        self.cache = {}
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine='h5netcdf',
+                                  chunks={'columns': 1000, 'rows': 1000})
+        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
 
         logger.debug('Reading %s.', key.name)
         variable = self.nc[key.name]
 
-        ds = (np.ma.masked_equal(variable[:],
-                                 variable.attrs['_FillValue']) *
-              (variable.attrs['scale_factor'] * 1.0) +
-              variable.attrs.get('add_offset', 0))
-
-        proj = Dataset(ds,
-                       copy=False,
-                       **info)
-        return proj
+        return variable
 
     @property
     def start_time(self):
@@ -80,11 +75,26 @@ class NCOLCI1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine='h5netcdf',
+                                  chunks={'columns': 1000, 'rows': 1000})
+
+        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+
         self.channel = filename_info['dataset_name']
         cal_file = os.path.join(os.path.dirname(
             filename), 'instrument_data.nc')
-        self.cal = h5netcdf.File(cal_file, 'r')
+        # self.cal = h5netcdf.File(cal_file, 'r')
+        self.cal = xr.open_dataset(cal_file,
+                                   decode_cf=True,
+                                   mask_and_scale=True,
+                                   engine='h5netcdf',
+                                   chunks={'columns': 1000, 'rows': 1000})
+
+        self.cal = self.cal.rename({'columns': 'x', 'rows': 'y'})
+
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
@@ -95,31 +105,21 @@ class NCOLCI1B(BaseFileHandler):
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-        variable = self.nc[self.channel + '_radiance']
+        radiances = self.nc[self.channel + '_radiance']
 
-        radiances = (np.ma.masked_equal(variable[:],
-                                        variable.attrs['_FillValue'], copy=False) *
-                     variable.attrs['scale_factor'] +
-                     variable.attrs['add_offset'])
-        units = variable.attrs['units']
         if key.calibration == 'reflectance':
-            solar_flux = self.cal['solar_flux'][:]
-            d_index = np.ma.masked_equal(self.cal['detector_index'][:],
-                                         self.cal['detector_index'].attrs[
-                                             '_FillValue'],
-                                         copy=False)
-            idx = int(key.name[2:]) - 1
-            radiances /= solar_flux[idx, d_index]
-            radiances *= np.pi * 100
-            units = '%'
+            solar_flux = self.cal['solar_flux']
+            d_index = self.cal['detector_index']
 
-        proj = Dataset(radiances,
-                       copy=False,
-                       units=units,
-                       platform_name=self.platform_name,
-                       sensor=self.sensor)
-        proj.info.update(key.to_dict())
-        return proj
+            idx = int(key.name[2:]) - 1
+            sflux = solar_flux.values[idx, d_index.fillna(0).values.astype(int)]
+            radiances = radiances / sflux * np.pi * 100
+            radiances.attrs['units'] = '%'
+
+        radiances.attrs['platform_name'] = self.platform_name
+        radiances.attrs['sensor'] = self.sensor
+        radiances.attrs.update(key.to_dict())
+        return radiances
 
     @property
     def start_time(self):
@@ -164,8 +164,14 @@ class NCOLCIAngles(BaseFileHandler):
             return
 
         if self.nc is None:
-            self.nc = h5netcdf.File(self.filename, 'r')
+            self.nc = xr.open_dataset(self.filename,
+                                      decode_cf=True,
+                                      mask_and_scale=True,
+                                      engine='h5netcdf',
+                                      chunks={'tie_columns': 1000,
+                                              'tie_rows': 1000})
 
+            self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
         logger.debug('Reading %s.', key.name)
 
         l_step = self.nc.attrs['al_subsampling_factor']
@@ -174,15 +180,15 @@ class NCOLCIAngles(BaseFileHandler):
         if (c_step != 1 or l_step != 1) and key.name not in self.cache:
 
             if key.name.startswith('satellite'):
-                zen, zattrs = self._get_scaled_variable(
-                    self.datasets['satellite_zenith_angle'])
-                azi, aattrs = self._get_scaled_variable(
-                    self.datasets['satellite_azimuth_angle'])
+                zen = self.nc[self.datasets['satellite_zenith_angle']]
+                zattrs = zen.attrs
+                azi = self.nc[self.datasets['satellite_azimuth_angle']]
+                aattrs = azi.attrs
             elif key.name.startswith('solar'):
-                zen, zattrs = self._get_scaled_variable(
-                    self.datasets['solar_zenith_angle'])
-                azi, aattrs = self._get_scaled_variable(
-                    self.datasets['solar_azimuth_angle'])
+                zen = self.nc[self.datasets['solar_zenith_angle']]
+                zattrs = zen.attrs
+                azi = self.nc[self.datasets['solar_azimuth_angle']]
+                aattrs = azi.attrs
             else:
                 raise NotImplementedError("Don't know how to read " + key.name)
 
@@ -197,14 +203,22 @@ class NCOLCIAngles(BaseFileHandler):
             cols = np.arange((shape[1] - 1) * c_step + 1)
             along_track_order = 1
             cross_track_order = 3
-            satint = Interpolator([x, y, z],
+            satint = Interpolator([x.values, y.values, z.values],
                                   (tie_lines, tie_cols),
                                   (lines, cols),
                                   along_track_order,
                                   cross_track_order)
             (x, y, z, ) = satint.interpolate()
+            x = xr.DataArray(da.from_array(x, chunks=(1000, 1000)),
+                             dims=['y', 'x'])
+            y = xr.DataArray(da.from_array(y, chunks=(1000, 1000)),
+                             dims=['y', 'x'])
+            z = xr.DataArray(da.from_array(z, chunks=(1000, 1000)),
+                             dims=['y', 'x'])
 
             azi, zen = xyz2angle(x, y, z)
+            azi.attrs = aattrs
+            zen.attrs = zattrs
 
             if 'zenith' in key.name:
                 values, attrs = zen, zattrs
@@ -225,15 +239,12 @@ class NCOLCIAngles(BaseFileHandler):
         else:
             values, attrs = self._get_scaled_variable(self.datasets[key.name])
 
-        units = attrs['units']
+        values.attrs['units'] = attrs['units']
+        values.attrs['platform_name'] = self.platform_name
+        values.attrs['sensor'] = self.sensor
 
-        proj = Dataset(values,
-                       copy=False,
-                       units=units,
-                       platform_name=self.platform_name,
-                       sensor=self.sensor)
-        proj.info.update(key.to_dict())
-        return proj
+        values.attrs.update(key.to_dict())
+        return values
 
     @property
     def start_time(self):
