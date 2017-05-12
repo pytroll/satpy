@@ -26,12 +26,12 @@
 import logging
 import os
 
-import dask.array as da
 import numpy as np
 import six
-import xarray as xr
 import yaml
 
+import dask.array as da
+import xarray as xr
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
