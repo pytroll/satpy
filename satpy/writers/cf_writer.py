@@ -37,9 +37,36 @@ def omerc2cf(proj_dict):
     """Return the cf grid mapping for the omerc projection."""
     grid_mapping_name = 'oblique_mercator'
 
+    if "no_rot" in proj_dict:
+        no_rotation = " "
+    else:
+        no_rotation = None
+
     args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lonc'),
+                # longitude_of_projection_origin=0.,
+                no_rotation=no_rotation,
+                # reference_ellipsoid_name=proj_dict.get('ellps'),
+                semi_major_axis=6378137.0,
+                semi_minor_axis=6356752.3142,
+                false_easting=0.,
+                false_northing=0.,
+                crtype='grid_mapping',
+                coords=['projection_x_coordinate', 'projection_y_coordinate'])
+    return cf.CoordinateReference(grid_mapping_name, **args)
+
+
+def geos2cf(proj_dict):
+    """Return the cf grid mapping for the geos projection."""
+    grid_mapping_name = 'geostationary'
+
+    args = dict(perspective_point_height=proj_dict.get('h'),
+                latitude_of_projection_origin=proj_dict.get('lat_0'),
+                longitude_of_projection_origin=proj_dict.get('lon_0'),
+                semi_major_axis=proj_dict.get('a'),
+                semi_minor_axis=proj_dict.get('b'),
+                sweep_axis=proj_dict.get('sweep'),
                 crtype='grid_mapping',
                 coords=['projection_x_coordinate', 'projection_y_coordinate'])
     return cf.CoordinateReference(grid_mapping_name, **args)
@@ -57,7 +84,8 @@ def laea2cf(proj_dict):
 
 
 mappings = {'omerc': omerc2cf,
-            'laea': laea2cf}
+            'laea': laea2cf,
+            'geos': geos2cf}
 
 
 def create_grid_mapping(area):
@@ -151,7 +179,10 @@ class CFWriter(Writer):
                                    aux=aux,
                                    ref=grid_mapping)
                 shapes[dataset.shape] = domain
-            data = cf.Data(dataset, dataset.info['units'])
+            data = cf.Data(dataset, dataset.info.get('units', 'm'))
+
+            # import ipdb
+            # ipdb.set_trace()
 
             wanted_keys = ['standard_name', 'long_name']
             properties = {k: dataset.info[k]
@@ -161,7 +192,10 @@ class CFWriter(Writer):
                                  domain=domain)
 
             new_field._FillValue = dataset.fill_value
-            new_field.valid_range = dataset.info['valid_range']
+            try:
+                new_field.valid_range = dataset.info['valid_range']
+            except KeyError:
+                new_field.valid_range = new_field.min(), new_field.max()
             new_field.Conventions = 'CF-1.7'
             fields.append(new_field)
 
