@@ -473,11 +473,12 @@ class RGBCompositor(CompositeBase):
         # info = projectables[0].info.copy()
         # info.update(projectables[1].info)
         # info.update(projectables[2].info)
-        info = combine_attrs(*projectables)
-        info.update(self.info)
+        attrs = combine_attrs(*projectables)
+        attrs.update(info)
+        attrs.update(self.info)
         # FIXME: should this be done here ?
-        info["wavelength"] = None
-        info.pop("units", None)
+        attrs["wavelength"] = None
+        attrs.pop("units", None)
         sensor = set()
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
@@ -490,14 +491,13 @@ class RGBCompositor(CompositeBase):
             sensor = None
         elif len(sensor) == 1:
             sensor = list(sensor)[0]
-        info["sensor"] = sensor
-        info["mode"] = "RGB"
-        the_data.attrs.update(info)
+        attrs["sensor"] = sensor
+        attrs["mode"] = "RGB"
+        the_data.attrs.update(attrs)
         the_data.attrs.pop('resolution', None)
         the_data.attrs.pop('calibration', None)
         the_data.attrs.pop('modifiers', None)
-        import ipdb
-        ipdb.set_trace()
+        the_data.name = the_data.attrs['name']
 
         return the_data
 
@@ -509,19 +509,15 @@ class ColormapCompositor(RGBCompositor):
         """Create the colormap from the `raw_palette` and the valid_range."""
 
         from trollimage.colormap import Colormap
-        if dtype == np.dtype('uint8'):
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
 
-        elif 'valid_range' in info:
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
+        palette = np.asanyarray(palette).squeeze()
 
-            sf = info['scale_factor']
-            colormap.set_range(
-                *info['valid_range'] * sf + info['add_offset'])
+        tups = [(val, tuple(tup))
+                for (val, tup) in enumerate(palette[:-1])]
+        colormap = Colormap(*tups)
+
+        # if 'valid_range' in info and dtype != np.dtype('uint8'):
+        #    colormap.set_range(*info['valid_range'])
 
         return colormap
 
@@ -540,17 +536,18 @@ class ColorizeCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
+        palette = np.asanyarray(palette).squeeze()
         colormap = self.build_colormap(palette / 255.0, data.dtype, data.info)
 
-        r, g, b = colormap.colorize(data)
+        r, g, b = colormap.colorize(np.asanyarray(data))
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.info)
-        g = Dataset(g, copy=False, mask=data.mask, **data.info)
-        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+        r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
+        g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
+        b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
 
-        return super(ColorizeCompositor, self).__call__((r, g, b), **data.info)
+        return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -566,17 +563,20 @@ class PaletteCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = palette / 255.0
-        colormap = self.build_colormap(palette, data.dtype, data.info)
+        palette = np.asanyarray(palette).squeeze() / 255.0
+        colormap = self.build_colormap(palette, data.dtype, data.attrs)
 
-        channels, colors = colormap.palettize(data)
+        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
 
-        r = Dataset(channels[:, :, 0], copy=False, mask=data.mask, **data.info)
-        g = Dataset(channels[:, :, 1], copy=False, mask=data.mask, **data.info)
-        b = Dataset(channels[:, :, 2], copy=False, mask=data.mask, **data.info)
+        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
+        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
+        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
 
-        return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
+        return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class Airmass(RGBCompositor):
