@@ -169,18 +169,12 @@ def to_image(dataset, copy=True, **kwargs):
     for key in ["mode", "fill_value", "palette"]:
         if key in dataset.attrs:
             kwargs.setdefault(key, dataset.attrs[key])
+    dataset = dataset.squeeze()
 
-    if dataset.ndim == 2:
-        return Image([dataset], copy=copy, **kwargs)
-    elif dataset.ndim == 3:
-        import ipdb
-        ipdb.set_trace()
-
+    if 'bands' in dataset.dims:
         return Image([dataset.sel(bands=0).values, dataset.sel(bands=1).values, dataset.sel(bands=2).values], copy=copy, **kwargs)
     else:
-        raise ValueError(
-            "Don't know how to convert array with ndim %d to image" %
-            dataset.ndim)
+        return Image([dataset], copy=copy, **kwargs)
 
 
 class Writer(Plugin):

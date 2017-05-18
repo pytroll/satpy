@@ -283,10 +283,17 @@ class KDTreeResampler(BaseResampler):
         del kwargs
 
         # TODO: index directly the xarray (performance is the issue atm)
+        try:
+            stacked = data.stack(z=('time', 'bands'))
+            stacked = stacked.transpose('y', 'x', 'z')
+            unstack = True
+        except KeyError:
+            stacked = data.transpose('y', 'x', 'time')
+            unstack = False
 
         res = get_sample_from_neighbour_info('nn',
                                              self.target_geo_def.shape,
-                                             data.values,
+                                             stacked.values,
                                              self.cache["valid_input_index"],
                                              self.cache["valid_output_index"],
                                              self.cache["index_array"],
@@ -296,9 +303,21 @@ class KDTreeResampler(BaseResampler):
                                              fill_value=fill_value,
                                              with_uncert=with_uncert)
         import xarray as xr
+
         res = xr.DataArray(res.filled(np.nan),
-                           coords={'x': self.target_geo_def.proj_x_coords,
-                                   'y': self.target_geo_def.proj_y_coords})
+                           name=data.name,
+                           dims=stacked.dims)
+
+        res.coords.update({'x': self.target_geo_def.proj_x_coords,
+                           'y': self.target_geo_def.proj_y_coords})
+        units = self.target_geo_def.proj_dict.get('units', 'm')
+        res.coords['x'].attrs['units'] = units
+        res.coords['y'].attrs['units'] = units
+        if unstack:
+            res = res.unstack('z')
+            res.coords.update({'z': stacked.coords['z']})
+        else:
+            res.coords.update({'time': stacked.coords['time']})
 
         return res
 
@@ -407,15 +426,14 @@ class EWAResampler(BaseResampler):
         else:
             data_in = data
 
-        num_valid_points, res = \
-            fornav(cols, rows, self.target_geo_def,
-                   data_in,
-                   rows_per_scan=rows_per_scan,
-                   weight_count=weight_count,
-                   weight_min=weight_min,
-                   weight_distance_max=weight_distance_max,
-                   weight_sum_min=weight_sum_min,
-                   maximum_weight_mode=maximum_weight_mode)
+        num_valid_points, res = fornav(cols, rows, self.target_geo_def,
+                                       data_in,
+                                       rows_per_scan=rows_per_scan,
+                                       weight_count=weight_count,
+                                       weight_min=weight_min,
+                                       weight_distance_max=weight_distance_max,
+                                       weight_sum_min=weight_sum_min,
+                                       maximum_weight_mode=maximum_weight_mode)
 
         if data.ndim >= 3:
             # convert 'res' from tuple of arrays to one array
@@ -466,10 +484,9 @@ class BilinearResampler(BaseResampler):
         else:
             LOG.debug("Computing bilinear parameters")
 
-        bilinear_t, bilinear_s, input_idxs, idx_arr = \
-            get_bil_info(source_geo_def, self.target_geo_def,
-                         radius_of_influence, neighbours=32,
-                         nprocs=nprocs, masked=False)
+        bilinear_t, bilinear_s, input_idxs, idx_arr = get_bil_info(source_geo_def, self.target_geo_def,
+                                                                   radius_of_influence, neighbours=32,
+                                                                   nprocs=nprocs, masked=False)
         self.cache = {'bilinear_s': bilinear_s,
                       'bilinear_t': bilinear_t,
                       'input_idxs': input_idxs,
@@ -489,22 +506,23 @@ class BilinearResampler(BaseResampler):
             output_shape.append(data.shape[-1])
             res = np.zeros(output_shape, dtype=data.dtype)
             for i in range(data.shape[-1]):
-                res[:, :, i] = \
-                    get_sample_from_bil_info(data[:, :, i].ravel(),
-                                             self.cache['bilinear_t'],
-                                             self.cache['bilinear_s'],
-                                             self.cache['input_idxs'],
-                                             self.cache['idx_arr'],
-                                             output_shape=target_shape)
+                res[:, :, i] = get_sample_from_bil_info(data[:, :, i].ravel(),
+                                                        self.cache[
+                                                            'bilinear_t'],
+                                                        self.cache[
+                                                            'bilinear_s'],
+                                                        self.cache[
+                                                            'input_idxs'],
+                                                        self.cache['idx_arr'],
+                                                        output_shape=target_shape)
 
         else:
-            res = \
-                get_sample_from_bil_info(data.ravel(),
-                                         self.cache['bilinear_t'],
-                                         self.cache['bilinear_s'],
-                                         self.cache['input_idxs'],
-                                         self.cache['idx_arr'],
-                                         output_shape=target_shape)
+            res = get_sample_from_bil_info(data.ravel(),
+                                           self.cache['bilinear_t'],
+                                           self.cache['bilinear_s'],
+                                           self.cache['input_idxs'],
+                                           self.cache['idx_arr'],
+                                           output_shape=target_shape)
         res = np.ma.masked_invalid(res)
 
         return res
@@ -521,9 +539,9 @@ def resample(source_area, data, destination_area, resampler=KDTreeResampler,
              **kwargs):
     """Do the resampling
     """
-    if isinstance(resampler, (str, six.text_type)):
+    try:
         resampler_class = RESAMPLERS[resampler]
-    else:
+    except KeyError:
         resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
     return resampler.resample(data, **kwargs)
@@ -557,18 +575,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
     if isinstance(destination_area, (str, six.text_type)):
         destination_area = get_area_def(destination_area)
 
-    dataset = dataset.squeeze()
+    new_data = resample(source_area, dataset, destination_area, **kwargs)
 
-    if dataset.ndim == 3:
-        data = np.rollaxis(dataset, 0, 3)
-    else:
-        data = dataset
-    new_data = resample(source_area, data, destination_area, **kwargs)
-
-    if new_data.ndim == 3:
-        new_data = np.rollaxis(new_data, 2)
-
-    # FIXME: is this necessary with the ndarray subclass ?
     new_data.attrs.update(dataset.attrs)
     new_data.attrs["area"] = destination_area
     return new_data

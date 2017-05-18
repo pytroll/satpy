@@ -33,9 +33,9 @@ from fnmatch import fnmatch
 
 import numpy as np
 import six
-import xarray as xr
 import yaml
 
+import xarray as xr
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
@@ -596,9 +596,14 @@ class FileYAMLReader(AbstractYAMLReader):
             [p.attrs for p in projectables])
         #cls = ds_info.get("container", Dataset)
         # return cls(np.ma.vstack(projectables), **combined_info)
-        res = xr.concat(projectables, dim=dim)
-        res.attrs = combined_info
-        return res
+        if dim in projectables[0].dims:
+            res = xr.concat(projectables, dim=dim)
+            res.attrs = combined_info
+            return res
+        else:
+            logger.info("Can't concatenate %s, passing on first item",
+                        projectables[0].name)
+            return projectables[0]
 
     def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice,
                              dim='y'):
