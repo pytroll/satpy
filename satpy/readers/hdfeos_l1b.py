@@ -48,6 +48,8 @@ import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
+import dask.array as da
+import xarray as xr
 from pyresample import geometry
 from satpy.config import CONFIG_PATH
 from satpy.dataset import Dataset, DatasetID
@@ -155,9 +157,16 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
 
         if key.name == 'latitude':
-            return Dataset(self.cache['lats'], id=key, **info)
+            data = self.cache['lats'].filled(np.nan)
+            # return Dataset(self.cache['lats'], id=key, **info)
         else:
-            return Dataset(self.cache['lons'], id=key, **info)
+            data = self.cache['lons'].filled(np.nan)
+            # return Dataset(self.cache['lons'], id=key, **info)
+
+        data = xr.DataArray(da.from_array(data, chunks=(1000, 1000)),
+                            dims=['y', 'x'])
+        data.attrs = info
+        return data
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
@@ -173,10 +182,11 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             # TODO: interpolate if needed
             if key.resolution is not None and key.resolution < self.resolution and interpolate:
                 data = self._interpolate(data, self.resolution, key.resolution)
-            if raw:
-                projectables.append(data)
-            else:
-                projectables.append(Dataset(data, id=key))
+            if not raw:
+                data = data.filled(np.nan)
+                data = xr.DataArray(da.from_array(data, chunks=(1000, 1000)),
+                                    dims=['y', 'x'])
+            projectables.append(data)
 
         return projectables
 
@@ -324,8 +334,11 @@ class HDFEOSBandReader(HDFEOSFileReader):
                 array = calibrate_tb(subdata, uncertainty, [index], band_names)
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
-
-            projectable = Dataset(array[0], id=key, mask=array[0].mask)
+            projectable = xr.DataArray(da.from_array(array[0].filled(np.nan),
+                                                     chunks=(1000, 1000)),
+                                       dims=['y', 'x'])
+            projectable.attrs = info
+            #projectable = Dataset(array[0], id=key, mask=array[0].mask)
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape
