@@ -174,7 +174,7 @@ def to_image(dataset, copy=True, **kwargs):
     if 'bands' in dataset.dims:
         return Image([dataset.sel(bands=0).values, dataset.sel(bands=1).values, dataset.sel(bands=2).values], copy=copy, **kwargs)
     else:
-        return Image([dataset], copy=copy, **kwargs)
+        return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
 
 
 class Writer(Plugin):
