@@ -3,6 +3,8 @@ sensor_name: visir
 modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
+    optional_prerequisites:
+    - satellite_zenith_angle
 
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
@@ -196,4 +198,3 @@ composites:
     - cpp_reff
     - cpp_reff_pal
     standard_name: cloud_drop_effective_radius
-

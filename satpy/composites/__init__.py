@@ -243,7 +243,7 @@ class SunZenithCorrector(CompositeBase):
     # FIXME: the cache should be cleaned up
     coszen = {}
 
-    def __call__(self, projectables, **info):
+    def __call__(self, projectables, optional_datasets=None, **info):
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -255,7 +255,7 @@ class SunZenithCorrector(CompositeBase):
             area_name = 'swath' + str(vis.attrs["area"].lons.shape)
         key = (vis.attrs["start_time"], area_name, vis.shape)
         LOG.debug("Applying sun zen correction")
-        if len(projectables) == 1:
+        if optional_datasets is None:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
@@ -289,14 +289,11 @@ class SunZenithCorrector(CompositeBase):
 
                 cz = cos_zen(vis.attrs["start_time"], lons, lats)
 
-                import ipdb
-                ipdb.set_trace()
-
                 self.coszen[key] = cz.where((cz >= 0.035) & (cz <= 1))
 
             coszen = self.coszen[key]
         else:
-            coszen = np.cos(np.deg2rad(projectables[1]))
+            coszen = np.cos(np.deg2rad(optional_datasets[0]))
 
         if vis.shape != coszen.shape:
             # assume we were given lower resolution szen data than band data
@@ -342,15 +339,15 @@ class PSPRayleighReflectance(CompositeBase):
             from pyorbital.astronomy import get_alt_az, sun_zenith_angle
             from pyorbital.orbital import get_observer_look
             sunalt, suna = get_alt_az(
-                vis.info['start_time'], *vis.info['area'].get_lonlats())
+                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats())
             suna = np.rad2deg(suna)
             sunz = sun_zenith_angle(
-                vis.info['start_time'], *vis.info['area'].get_lonlats())
-            lons, lats = vis.info['area'].get_lonlats()
-            sata, satel = get_observer_look(vis.info['satellite_longitude'],
-                                            vis.info['satellite_latitude'],
-                                            vis.info['satellite_altitude'],
-                                            vis.info['start_time'],
+                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats())
+            lons, lats = vis.attrs['area'].get_lonlats()
+            sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
+                                            vis.attrs['satellite_latitude'],
+                                            vis.attrs['satellite_altitude'],
+                                            vis.attrs['start_time'],
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
@@ -360,15 +357,14 @@ class PSPRayleighReflectance(CompositeBase):
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
         del sata, suna
 
-        corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
+        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                              atmosphere='us-standard', rural_aerosol=False)
 
         refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.id.wavelength[1], blue)
+            sunz, satz, ssadiff, vis.attrs['wavelength'][1], blue)
 
-        proj = Dataset(vis - refl_cor_band,
-                       copy=False,
-                       **vis.info)
+        proj = vis - refl_cor_band
+        proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
 
         return proj
@@ -387,32 +383,32 @@ class NIRReflectance(CompositeBase):
             raise
 
         nir, tb11 = projectables
-        LOG.info('Getting reflective part of %s', nir.info['name'])
+        LOG.info('Getting reflective part of %s', nir.attrs['name'])
 
         sun_zenith = None
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if (dataset.info['units'] == 'K' and
-                    "wavelengh" in dataset.info and
-                    dataset.info["wavelength"][0] <= 13.4 <= dataset.info["wavelength"][2]):
+            if (dataset.attrs['units'] == 'K' and
+                    "wavelengh" in dataset.attrs and
+                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
                 tb13_4 = dataset
-            elif dataset.info["standard_name"] == "solar_zenith_angle":
+            elif dataset.attrs["standard_name"] == "solar_zenith_angle":
                 sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = nir.info["area"].get_lonlats()
-            sun_zenith = sza(nir.info['start_time'], lons, lats)
+            lons, lats = nir.attrs["area"].get_lonlats()
+            sun_zenith = sza(nir.attrs['start_time'], lons, lats)
 
-        refl39 = Calculator(nir.info['platform_name'],
-                            nir.info['sensor'], nir.id.wavelength[1])
+        refl39 = Calculator(nir.attrs['platform_name'],
+                            nir.attrs['sensor'], nir.id.wavelength[1])
 
         proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir,
                                                    tb11, tb13_4) * 100,
-                       **nir.info)
-        proj.info['units'] = '%'
+                       **nir.attrs)
+        proj.attrs['units'] = '%'
         self.apply_modifier_info(nir, proj)
 
         return proj
@@ -438,7 +434,7 @@ class CO2Corrector(CompositeBase):
         t4_co2corr = np.ma.where(t4_co2corr > 0.0, t4_co2corr, 0)
         t4_co2corr = t4_co2corr**0.25
 
-        info = ir_039.info.copy()
+        info = ir_039.attrs.copy()
 
         proj = Dataset(t4_co2corr, mask=t4_co2corr.mask, **info)
 
@@ -537,7 +533,7 @@ class ColorizeCompositor(ColormapCompositor):
 
         data, palette = projectables
         palette = np.asanyarray(palette).squeeze()
-        colormap = self.build_colormap(palette / 255.0, data.dtype, data.info)
+        colormap = self.build_colormap(palette / 255.0, data.dtype, data.attrs)
 
         r, g, b = colormap.colorize(np.asanyarray(data))
         r[data.mask] = palette[-1][0]
