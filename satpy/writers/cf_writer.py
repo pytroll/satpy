@@ -26,7 +26,6 @@ import logging
 from datetime import datetime
 
 import cf
-import numpy as np
 
 from satpy.writers import Writer
 
@@ -71,6 +70,91 @@ def create_grid_mapping(area):
     return grid_mapping
 
 
+def auxiliary_coordinates_from_area(area):
+    """Create auxiliary coordinates for `area` if possible."""
+    try:
+        # Create a longitude auxiliary coordinate
+        lat = cf.AuxiliaryCoordinate(data=cf.Data(area.lats,
+                                                  'degrees_north'))
+        lat.standard_name = 'latitude'
+
+        # Create a latitude auxiliary coordinate
+        lon = cf.AuxiliaryCoordinate(data=cf.Data(area.lons,
+                                                  'degrees_east'))
+        lon.standard_name = 'longitude'
+        return [lat, lon]
+    except AttributeError:
+        LOG.info('No longitude and latitude data to save.')
+
+
+def grid_mapping_from_area(area):
+    """Get the grid mapping for `area` if possible."""
+    try:
+        return create_grid_mapping(area)
+
+    except (AttributeError, NotImplementedError):
+        LOG.info('No grid mapping to save.')
+
+
+def create_time_coordinate_with_bounds(start_time, end_time, properties):
+    """Create a time coordinate from start and end times."""
+    middle_time = cf.dt((end_time - start_time) / 2 + start_time)
+    start_time = cf.dt(start_time)
+    end_time = cf.dt(end_time)
+    bounds = cf.CoordinateBounds(data=cf.Data([start_time, end_time],
+                                              cf.Units('days since 1970-1-1')))
+    properties.update(dict(standard_name='time'))
+    return cf.DimensionCoordinate(properties=properties,
+                                  data=cf.Data(middle_time,
+                                               cf.Units('days since 1970-1-1')),
+                                  bounds=bounds)
+
+
+def get_data_array_coords(data_array):
+    """Get the coordinates for `data_array`."""
+    coords = []
+    for name, coord in data_array.coords.items():
+        if name == 'time' and len(coord) == 1:
+            coords.append(create_time_coordinate_with_bounds(
+                data_array.attrs['start_time'],
+                data_array.attrs['end_time'],
+                coord.attrs.copy()))
+        else:
+            dimc = cf.DimensionCoordinate(properties=coord.attrs.copy(),
+                                          data=cf.Data(coord.values,
+                                                       cf.Units(
+                                                           coord.attrs['units'])),
+                                          )
+            dimc.id = coord.name
+            coords.append(dimc)
+    return coords
+
+
+def create_data_domain(data_array):
+    """Create a cf domain from `data_array`."""
+    area = data_array.attrs.get('area')
+    return cf.Domain(dim=get_data_array_coords(data_array),
+                     aux=auxiliary_coordinates_from_area(area),
+                     ref=grid_mapping_from_area(area))
+
+
+def cf_field_from_data_array(data_array, **extra_properties):
+    """Get the cf Field object corresponding to `data_array`."""
+    wanted_keys = set(['standard_name', 'long_name'])
+    properties = {k: data_array.attrs[k]
+                  for k in wanted_keys & set(data_array.attrs.keys())}
+    properties.update(extra_properties)
+
+    new_field = cf.Field(properties=properties,
+                         data=cf.Data(data_array.values,
+                                      data_array.attrs['units']),
+                         domain=create_data_domain(data_array))
+
+    new_field.valid_range = data_array.attrs['valid_range']
+
+    return new_field
+
+
 class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename, **kwargs):
@@ -78,84 +162,13 @@ class CFWriter(Writer):
         LOG.info('Saving datasets to NetCDF4/CF.')
         fields = []
 
-        history = ("Created by pytroll/satpy on " +
-                   str(datetime.utcnow()))
+        history = ("Created by pytroll/satpy on " + str(datetime.utcnow()))
         conventions = 'CF-1.7'
-        for dataset in datasets:
 
-            area = dataset.attrs.get('area')
-            add_time = False
-
-            try:
-                # Create a longitude auxiliary coordinate
-                lat = cf.AuxiliaryCoordinate(data=cf.Data(area.lats,
-                                                          'degrees_north'))
-                lat.standard_name = 'latitude'
-
-                # Create a latitude auxiliary coordinate
-                lon = cf.AuxiliaryCoordinate(data=cf.Data(area.lons,
-                                                          'degrees_east'))
-                lon.standard_name = 'longitude'
-                aux = [lat, lon]
-                add_time = True
-            except AttributeError:
-                LOG.info('No longitude and latitude data to save.')
-                aux = None
-
-            try:
-                grid_mapping = create_grid_mapping(area)
-
-            except (AttributeError, NotImplementedError):
-                LOG.info('No grid mapping to save.')
-                grid_mapping = None
-
-            coords = []
-            for name, coord in dataset.coords.items():
-                properties = coord.attrs.copy()
-                # properties.update(dict(history=history,
-                #                        Conventions=conventions))
-                if name == 'time' and len(coord) == 1:
-                    start_time = cf.dt(dataset.attrs['start_time'])
-                    end_time = cf.dt(dataset.attrs['end_time'])
-                    middle_time = cf.dt((dataset.attrs['end_time'] -
-                                         dataset.attrs['start_time']) / 2 +
-                                        dataset.attrs['start_time'])
-                    bounds = cf.CoordinateBounds(
-                        data=cf.Data([start_time, end_time],
-                                     cf.Units('days since 1970-1-1')))
-
-                    properties.update(dict(standard_name='time'))
-                    coords.append(cf.DimensionCoordinate(properties=properties,
-                                                         data=cf.Data(middle_time,
-                                                                      cf.Units('days since 1970-1-1')),
-                                                         bounds=bounds))
-                else:
-                    dimc = cf.DimensionCoordinate(properties=properties,
-                                                  data=cf.Data(coord.values,
-                                                               cf.Units(
-                                                                   coord.attrs['units'])),
-                                                  #attributes={id: coord.name}
-                                                  )
-                    dimc.id = coord.name
-                    coords.append(dimc)
-
-            domain = cf.Domain(dim=coords,
-                               aux=aux,
-                               ref=grid_mapping)
-
-            data = cf.Data(dataset.values, dataset.attrs['units'])
-
-            wanted_keys = ['standard_name', 'long_name']
-            properties = {k: dataset.attrs[k]
-                          for k in set(wanted_keys) & set(dataset.attrs.keys())}
-            properties.update(history=history,
-                              Conventions=conventions)
-            new_field = cf.Field(properties=properties,
-                                 data=data,
-                                 domain=domain)
-
-            new_field.valid_range = dataset.attrs['valid_range']
-            fields.append(new_field)
+        fields = [cf_field_from_data_array(data_array,
+                                           history=history,
+                                           Conventions=conventions)
+                  for data_array in datasets]
 
         flist = cf.FieldList(fields)
 
