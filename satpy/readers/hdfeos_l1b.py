@@ -226,7 +226,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             chunk_size = 20
         elif resolution == 250:
             fine_cols = np.arange(1354 * 4) / 4.0
-            fine_rows = (np.arange(lines * 4) + 1.5) / 4.0
+            fine_rows = (np.arange(lines * 4) - 1.5) / 4.0
             chunk_size = 40
 
         along_track_order = 1
