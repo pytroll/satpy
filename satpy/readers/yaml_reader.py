@@ -834,9 +834,30 @@ class FileYAMLReader(AbstractYAMLReader):
             ds.attrs['area'] = area
         return ds
 
-    def load(self, dataset_keys):
-        """Load *dataset_keys*."""
-        all_datasets = DatasetDict()
+    def _load_ancillary_variables(self, datasets):
+        """Load the ancillary variables of `datasets`."""
+        all_av_ids = set()
+        for dataset in datasets.values():
+            av_ids = [self.get_dataset_key(key)
+                      for key in dataset.attrs.get('ancillary_variables', [])]
+            all_av_ids |= set(av_ids)
+            dataset.attrs['ancillary_variables'] = av_ids
+        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        if not all_av_ids:
+            return
+        av_ds = self.load(all_av_ids, datasets)
+        for dataset in datasets.values():
+            new_vars = []
+            for av_id in dataset.attrs.get('ancillary_variables', []):
+                new_vars.append(av_ds.get(av_id, av_id))
+            dataset.attrs['ancillary_variables'] = new_vars
+        datasets.update(av_ds)
+
+    def load(self, dataset_keys, previous_datasets=None):
+        """Load `dataset_keys`.
+
+        If `previous_datasets` is provided, do not reload those."""
+        all_datasets = previous_datasets or DatasetDict()
         datasets = DatasetDict()
 
         # Include coordinates in the list of datasets to load
@@ -845,6 +866,8 @@ class FileYAMLReader(AbstractYAMLReader):
         all_dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in all_dsids:
+            if dsid in all_datasets:
+                pass
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
@@ -852,5 +875,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
+        self._load_ancillary_variables(all_datasets)
 
         return datasets

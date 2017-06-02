@@ -288,7 +288,10 @@ class KDTreeResampler(BaseResampler):
             stacked = stacked.transpose('y', 'x', 'z')
             unstack = True
         except KeyError:
-            stacked = data.transpose('y', 'x', 'time')
+            try:
+                stacked = data.transpose('y', 'x', 'time')
+            except ValueError:
+                return data
             unstack = False
 
         res = get_sample_from_neighbour_info('nn',
@@ -544,7 +547,10 @@ def resample(source_area, data, destination_area, resampler=KDTreeResampler,
     except KeyError:
         resampler_class = resampler
     resampler = resampler_class(source_area, destination_area)
-    return resampler.resample(data, **kwargs)
+    if isinstance(data, list):
+        return [resampler.resample(ds, **kwargs) for ds in data]
+    else:
+        return resampler.resample(data, **kwargs)
 
 
 def resample_dataset(dataset, destination_area, **kwargs):
@@ -559,8 +565,6 @@ def resample_dataset(dataset, destination_area, **kwargs):
     Returns:
         A resampled projectable, with updated .info["area"] field
     """
-    # avoid circular imports, this is just a convenience function anyway
-    from satpy.resample import resample, get_area_def
     # call the projection stuff here
     try:
         source_area = dataset.attrs["area"]
@@ -575,10 +579,22 @@ def resample_dataset(dataset, destination_area, **kwargs):
     if isinstance(destination_area, (str, six.text_type)):
         destination_area = get_area_def(destination_area)
 
-    new_data = resample(source_area, dataset, destination_area, **kwargs)
+    try:
+        destination_area = destination_area.freeze(source_area)
+    except AttributeError:
+        pass
 
-    new_data.attrs.update(dataset.attrs)
-    new_data.attrs["area"] = destination_area
+    datasets = [dataset] + dataset.attrs.get('ancillary_variables', [])
+
+    new_datasets = resample(source_area, datasets, destination_area, **kwargs)
+    for nds, ds in zip(new_datasets, datasets):
+        nds.attrs.update(ds.attrs)
+        if 'area' in ds.attrs:
+            nds.attrs["area"] = destination_area
+
+    new_data = new_datasets[0]
+    new_data.attrs['ancillary_variables'] = new_datasets[1:]
+
     return new_data
 
 
