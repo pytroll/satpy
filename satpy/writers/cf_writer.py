@@ -158,6 +158,10 @@ def cf_field_from_data_array(data_array, **extra_properties):
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
+    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+        """Saves the *dataset* to a given *filename*."""
+        return self.save_datasets([dataset], filename, **kwargs)
+
     def save_datasets(self, datasets, filename, **kwargs):
         """Save all datasets to one or more files."""
         LOG.info('Saving datasets to NetCDF4/CF.')
