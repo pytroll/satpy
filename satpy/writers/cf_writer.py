@@ -113,13 +113,19 @@ def create_time_coordinate_with_bounds(start_time, end_time, properties):
 def get_data_array_coords(data_array):
     """Get the coordinates for `data_array`."""
     coords = []
-    for name, coord in data_array.coords.items():
-        if name == 'time' and len(coord) == 1:
+    for name in data_array.dims:
+        if name not in data_array.coords:
+            dimc = cf.DimensionCoordinate(data=cf.Data(range(data_array[name].size),
+                                                       cf.Units('1')))
+            dimc.id = name
+            coords.append(dimc)
+        elif name == 'time' and len(data_array.coords[name]) == 1:
             coords.append(create_time_coordinate_with_bounds(
                 data_array.attrs['start_time'],
                 data_array.attrs['end_time'],
-                coord.attrs.copy()))
+                data_array.coords[name].attrs.copy()))
         else:
+            coord = data_array.coords[name]
             dimc = cf.DimensionCoordinate(properties=coord.attrs.copy(),
                                           data=cf.Data(coord.values,
                                                        cf.Units(
@@ -170,10 +176,16 @@ class CFWriter(Writer):
         history = ("Created by pytroll/satpy on " + str(datetime.utcnow()))
         conventions = 'CF-1.7'
 
+        ds_to_save = [dataset for dataset in datasets]
+        for ds in ds_to_save:
+            for anc_var in ds.attrs.get('ancillary_variables', []):
+                # if anc_var not in ds_to_save:
+                ds_to_save.append(anc_var)
+
         fields = [cf_field_from_data_array(data_array,
                                            history=history,
                                            Conventions=conventions)
-                  for data_array in datasets]
+                  for data_array in ds_to_save]
 
         flist = cf.FieldList(fields)
 

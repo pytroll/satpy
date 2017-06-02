@@ -90,6 +90,12 @@ class NcNWCSAF(BaseFileHandler):
 
         variable.attrs.setdefault('units', '1')
 
+        ancillary_names = variable.attrs.get('ancillary_variables', '')
+        try:
+            variable.attrs['ancillary_variables'] = ancillary_names.split()
+        except AttributeError:
+            pass
+
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
 
