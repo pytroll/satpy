@@ -287,7 +287,7 @@ class Scene(InfoObject):
             a_str = str(a) if a is not None else None
             datasets_by_area.setdefault(
                 a_str, (a, []))
-            datasets_by_area[a_str][1].append(ds.id)
+            datasets_by_area[a_str][1].append(DatasetID.from_dict(ds.attrs))
 
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
@@ -556,7 +556,8 @@ class Scene(InfoObject):
         if datasets is None:
             new_scn.wishlist = self.wishlist
         else:
-            new_scn.wishlist = set([ds.id for ds in new_scn])
+            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
+                                    for ds in new_scn])
 
         # recompute anything from the wishlist that needs it (combining multiple
         # resolutions, etc.)
