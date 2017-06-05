@@ -26,16 +26,11 @@
 
 """
 import netCDF4
-
-import os.path
-from datetime import datetime, timedelta
 import numpy as np
 import logging
 
 from satpy.readers.file_handlers import BaseFileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
