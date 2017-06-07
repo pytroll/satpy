@@ -141,7 +141,11 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
             # this is a pressure based field
             # include surface_pressure as metadata
-            ds_info.setdefault('surface_pressure', self['Surface_Pressure'][:])
+            sp = self['Surface_Pressure'][:]
+            if 'surface_pressure' in ds_info:
+                ds_info['surface_pressure'] = np.concatenate((ds_info['surface_pressure'], sp))
+            else:
+                ds_info['surface_pressure'] = sp
             # include all the pressure levels
             ds_info.setdefault('pressure_levels', self['Pressure'][0])
         out.data[:] = d_tmp
@@ -167,7 +171,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if 'standard_name' not in i:
             sname_path = var_path + '/attr/standard_name'
             i['standard_name'] = self.get(sname_path)
-        i.update({'quality_flag': self['Quality_Flag'][:]})
+        if 'quality_flag' in i:
+            i['quality_flag'] = np.concatenate((i['quality_flag'], self['Quality_Flag'][:]))
+        else:
+            i['quality_flag'] = self['Quality_Flag'][:]
         return cls(out.data, mask=out.mask, copy=False, **i)
 
 
@@ -291,7 +298,7 @@ class NUCAPSReader(FileYAMLReader):
 
         if self.mask_surface:
             LOG.debug("Filtering pressure levels at or below the surface pressure")
-            for ds_id in dataset_keys:
+            for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
                 if "surface_pressure" not in ds.info or "pressure_levels" not in ds.info:
                     continue
@@ -316,7 +323,7 @@ class NUCAPSReader(FileYAMLReader):
 
         if self.mask_quality:
             LOG.debug("Filtering data based on quality flags")
-            for ds_id in dataset_keys:
+            for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
                 if "quality_flag" not in ds.info:
                     continue
