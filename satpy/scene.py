@@ -526,8 +526,11 @@ class Scene(InfoObject):
         if compute:
             keepables = self.compute()
         if self.missing_datasets:
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = self.missing_datasets.copy()
             self._remove_failed_datasets(keepables)
-            missing_str = ", ".join(map(str, self.missing_datasets))
+            missing_str = ", ".join(str(x) for x in missing)
             LOG.warning(
                 "The following datasets were not created: {}".format(missing_str))
         if unload:
@@ -567,8 +570,11 @@ class Scene(InfoObject):
                      for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
         if new_scn.missing_datasets:
-            self._remove_failed_datasets(keepables)
-            missing_str = ", ".join(map(str, new_scn.missing_datasets))
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = new_scn.missing_datasets.copy()
+            new_scn._remove_failed_datasets(keepables)
+            missing_str = ", ".join(str(x) for x in missing)
             LOG.warning(
                 "The following datasets were not created: {}".format(missing_str))
         if unload:
