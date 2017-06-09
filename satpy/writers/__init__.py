@@ -115,7 +115,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     arr = np.array(img)
 
     if len(orig.channels) == 1:
-        orgi.channels[0] = np.ma.array(arr[:, :] / 255.0)
+        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
     else:
         for idx in range(len(orig.channels)):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
