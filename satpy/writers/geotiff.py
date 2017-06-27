@@ -78,7 +78,7 @@ class GeoTIFFWriter(ImageWriter):
         self.gdal_options = {}
         for k in self.GDAL_OPTIONS:
             if k in kwargs or k in self.config_options:
-                kwargs.get(k, self.config_options[k])
+                self.gdal_options[k] = kwargs.get(k, self.config_options[k])
 
     def _gdal_write_datasets(self, dst_ds, datasets, opacity, fill_value):
         """Write *datasets* in a gdal raster structure *dts_ds*, using
@@ -154,7 +154,7 @@ class GeoTIFFWriter(ImageWriter):
         LOG.debug("Saving to GeoTiff: %s", filename)
 
         g_opts = ["{0}={1}".format(k.upper(), str(v))
-                  for k, v in self.gdal_options.items()]
+                  for k, v in gdal_options.items()]
 
         ensure_dir(filename)
         if img.mode == "L":
@@ -233,5 +233,4 @@ class GeoTIFFWriter(ImageWriter):
         dst_ds.SetMetadata(tags, '')
 
         # Close the dataset
-
         dst_ds = None
