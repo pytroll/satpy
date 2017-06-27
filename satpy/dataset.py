@@ -521,7 +521,7 @@ class Dataset(np.ma.MaskedArray):
             elif key == "resolution":
                 res.append("{0}: {1} m".format(key, self.info[key]))
             elif key == "area":
-                res.append("{0}: {1}".format(key, self.info[key].name))
+                res.append("{0}: {1}".format(key, getattr(self.info[key], 'name', '<no name>')))
             elif key in ["name", "sensor"]:
                 continue
             else:
