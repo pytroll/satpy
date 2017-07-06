@@ -100,6 +100,10 @@ class TestEnhancer(unittest.TestCase):
 """])
         self.assertIsNotNone(e.enhancement_tree)
 
+    def test_init_nonexistent_enh_file(self):
+        from satpy.writers import Enhancer
+        self.assertRaises(ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
+
 
 def suite():
     """The test suite for test_projector.
