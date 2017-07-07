@@ -45,12 +45,12 @@ class NC_ABI_L1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
-
+        self.filename = filename
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
-        self.nlines, self.ncols = self.nc["Rad"].shape
+        with h5netcdf.File(self.filename, 'r') as nc:
+            self.nlines, self.ncols = nc["Rad"].shape
 
     def get_shape(self, key, info):
         """Get the shape of the data."""
@@ -60,92 +60,96 @@ class NC_ABI_L1B(BaseFileHandler):
                     xslice=slice(None), yslice=slice(None)):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
-
-        variable = self.nc["Rad"]
-
-        radiances = (np.ma.masked_equal(variable[yslice, xslice],
-                                        variable.attrs['_FillValue'], copy=False) *
-                     variable.attrs['scale_factor'] +
-                     variable.attrs['add_offset'])
-        # units = variable.attrs['units']
-        units = self.calibrate(radiances)
-
-        # convert to satpy standard units
-        if units == '1':
-            radiances[:] *= 100.
-            units = '%'
-
-        out.data[:] = radiances
-        out.mask[:] = np.ma.getmask(radiances)
-        out.info.update({'units': units,
-                         'platform_name': self.platform_name,
-                         'sensor': self.sensor,
-                         'satellite_latitude': self.nc['nominal_satellite_subpoint_lat'][()],
-                         'satellite_longitude': self.nc['nominal_satellite_subpoint_lon'][()],
-                         'satellite_altitude': self.nc['nominal_satellite_height'][()]})
-        out.info.update(key.to_dict())
+        
+        with h5netcdf.File(self.filename, 'r') as nc:
+            variable = nc["Rad"]
+    
+            radiances = (np.ma.masked_equal(variable[yslice, xslice],
+                                            variable.attrs['_FillValue'], copy=False) *
+                         variable.attrs['scale_factor'] +
+                         variable.attrs['add_offset'])
+            # units = variable.attrs['units']
+            units = self.calibrate(radiances)
+    
+            # convert to satpy standard units
+            if units == '1':
+                radiances[:] *= 100.
+                units = '%'
+    
+            out.data[:] = radiances
+            out.mask[:] = np.ma.getmask(radiances)
+            out.info.update({'units': units,
+                             'platform_name': self.platform_name,
+                             'sensor': self.sensor,
+                             'satellite_latitude': nc['nominal_satellite_subpoint_lat'][()],
+                             'satellite_longitude': nc['nominal_satellite_subpoint_lon'][()],
+                             'satellite_altitude': nc['nominal_satellite_height'][()]})
+            out.info.update(key.to_dict())
 
         return out
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
-        projection = self.nc["goes_imager_projection"]
-        a = projection.attrs['semi_major_axis'][...]
-        h = projection.attrs['perspective_point_height'][...]
-        b = projection.attrs['semi_minor_axis'][...]
-        lon_0 = projection.attrs['longitude_of_projection_origin'][...]
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
-
-        scale_x = self.nc['x'].attrs["scale_factor"][0]
-        scale_y = self.nc['y'].attrs["scale_factor"][0]
-        offset_x = self.nc['x'].attrs["add_offset"][0]
-        offset_y = self.nc['y'].attrs["add_offset"][0]
-
-        # x and y extents in m
-        h = float(h)
-        x_l = h * (self.nc['x'][0] * scale_x + offset_x)
-        x_r = h * (self.nc['x'][-1] * scale_x + offset_x)
-        y_l = h * (self.nc['y'][-1] * scale_y + offset_y)
-        y_u = h * (self.nc['y'][0] * scale_y + offset_y)
-        x_half = (x_r - x_l) / (self.ncols - 1) / 2.
-        y_half = (y_u - y_l) / (self.nlines - 1) / 2.
-        area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
-
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': h,
-                     'proj': 'geos',
-                     'units': 'm',
-                     'sweep': sweep_axis}
-
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosabii',
-            proj_dict,
-            self.ncols,
-            self.nlines,
-            area_extent)
+        with h5netcdf.File(self.filename, 'r') as nc:
+            projection = nc["goes_imager_projection"]
+            a = projection.attrs['semi_major_axis'][...]
+            h = projection.attrs['perspective_point_height'][...]
+            b = projection.attrs['semi_minor_axis'][...]
+            lon_0 = projection.attrs['longitude_of_projection_origin'][...]
+            sweep_axis = projection.attrs['sweep_angle_axis'][0]
+    
+            scale_x = nc['x'].attrs["scale_factor"][0]
+            scale_y = nc['y'].attrs["scale_factor"][0]
+            offset_x = nc['x'].attrs["add_offset"][0]
+            offset_y = nc['y'].attrs["add_offset"][0]
+    
+            # x and y extents in m
+            h = float(h)
+            x_l = h * (nc['x'][0] * scale_x + offset_x)
+            x_r = h * (nc['x'][-1] * scale_x + offset_x)
+            y_l = h * (nc['y'][-1] * scale_y + offset_y)
+            y_u = h * (nc['y'][0] * scale_y + offset_y)
+            x_half = (x_r - x_l) / (self.ncols - 1) / 2.
+            y_half = (y_u - y_l) / (self.nlines - 1) / 2.
+            area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
+    
+            proj_dict = {'a': float(a),
+                         'b': float(b),
+                         'lon_0': float(lon_0),
+                         'h': h,
+                         'proj': 'geos',
+                         'units': 'm',
+                         'sweep': sweep_axis}
+    
+            area = geometry.AreaDefinition(
+                'some_area_name',
+                "On-the-fly area",
+                'geosabii',
+                proj_dict,
+                self.ncols,
+                self.nlines,
+                area_extent)
 
         return area
 
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
-        solar_irradiance = self.nc['esun'][()]
-        esd = self.nc["earth_sun_distance_anomaly_in_AU"][()]
-
-        factor = np.pi * esd * esd / solar_irradiance
-        data.data[:] *= factor
+        with h5netcdf.File(self.filename, 'r') as nc:
+            solar_irradiance = nc['esun'][()]
+            esd = nc["earth_sun_distance_anomaly_in_AU"][()]
+    
+            factor = np.pi * esd * esd / solar_irradiance
+            data.data[:] *= factor
 
         return '1'
 
     def _ir_calibrate(self, data):
         """Calibrate IR channels to BT."""
-        fk1 = self.nc["planck_fk1"][()]
-        fk2 = self.nc["planck_fk2"][()]
-        bc1 = self.nc["planck_bc1"][()]
-        bc2 = self.nc["planck_bc2"][()]
+        with h5netcdf.File(self.filename, 'r') as nc:
+            fk1 = nc["planck_fk1"][()]
+            fk2 = nc["planck_fk2"][()]
+            bc1 = nc["planck_bc1"][()]
+            bc2 = nc["planck_bc2"][()]
 
         np.divide(fk1, data, out=data.data)
         data.data[:] += 1
@@ -159,8 +163,8 @@ class NC_ABI_L1B(BaseFileHandler):
     def calibrate(self, data):
         """Calibrate the data."""
         logger.debug("Calibrate")
-
-        ch = self.nc["band_id"][()]
+        with h5netcdf.File(self.filename, 'r') as nc:
+            ch = nc["band_id"][()]
         if ch < 7:
             return self._vis_calibrate(data)
         else:
@@ -168,8 +172,10 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        with h5netcdf.File(self.filename, 'r') as nc:
+            return datetime.strptime(nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        with h5netcdf.File(self.filename, 'r') as nc:
+            return datetime.strptime(nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
