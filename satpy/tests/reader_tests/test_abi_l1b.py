@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from pip.util import file_contents
-
 # Copyright (c) 2017 Martin Raspaud
 
 # Author(s):
