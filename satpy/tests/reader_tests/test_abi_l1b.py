@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from pip.util import file_contents
 
 # Copyright (c) 2017 Martin Raspaud
 
@@ -34,13 +35,14 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-
+ 
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
     @mock.patch('satpy.readers.abi_l1b.h5netcdf')
     def setUp(self, h5netcdf):
         """Setup for test."""
-        h5netcdf.File.return_value = {
+         
+        file_content = {
             'band_id': np.array(8),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -49,50 +51,61 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
             "earth_sun_distance_anomaly_in_AU": np.array(0.99)}
-
+        mo = mock.Mock()
+        mo.__enter__ = mock.Mock(return_value=file_content)
+        mo.__exit__ = mock.Mock(return_value=None)
+        h5netcdf.File.return_value = mo
+        self.file_mock = mo
+ 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
                                  {'filetype': 'info'})
-
-    def test_ir_calibrate(self):
+ 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
+    def test_ir_calibrate(self, h5netcdf):
         """Test IR calibration."""
+        h5netcdf.File.return_value = self.file_mock
         data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 50
-
+ 
         self.reader._ir_calibrate(data)
-
+ 
         expected = np.ma.array([[267.55572248, 305.15576503, 332.37383249,
                                  354.73895301, 374.19710115],
                                 [391.68679226, 407.74064808, 422.69329105,
                                  436.77021913, 450.13141732]])
         self.assertTrue(np.allclose(data, expected))
-
-    def test_vis_calibrate(self):
+ 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
+    def test_vis_calibrate(self, h5netcdf):
         """Test VIS calibration."""
+        h5netcdf.File.return_value = self.file_mock
         data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 100
-
+ 
         self.reader._vis_calibrate(data)
-
+ 
         expected = np.ma.array([[0.15265617, 0.30531234, 0.45796851,
                                  0.61062468, 0.76328085],
                                 [0.91593702, 1.06859319, 1.22124936,
                                  1.37390553, 1.52656171]])
         self.assertTrue(np.allclose(data, expected))
-
+ 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
     @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._ir_calibrate')
-    def test_calibrate(self, cal):
+    def test_calibrate(self, cal, h5netcdf):
         """Test the calibration."""
+        h5netcdf.File.return_value = self.file_mock
         data = np.ma.arange(15.)
         self.reader.calibrate(data)
         cal.assert_called_once_with(data)
-
-
+ 
+ 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
-
+ 
     @mock.patch('satpy.readers.abi_l1b.h5netcdf')
     def setUp(self, h5netcdf):
         """Setup for test."""
-        h5netcdf.File.return_value = {
+        file_content = {
             'band_id': np.array(5),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -101,26 +114,35 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
             "earth_sun_distance_anomaly_in_AU": np.array(0.99)}
-
+        mo = mock.Mock()
+        mo.__enter__ = mock.Mock(return_value=file_content)
+        mo.__exit__ = mock.Mock(return_value=None)
+        h5netcdf.File.return_value = mo
+        self.file_mock = mo
+ 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
                                  {'filetype': 'info'})
-
-    def test_vis_calibrate(self):
+ 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
+    def test_vis_calibrate(self, h5netcdf):
         """Test VIS calibration."""
+        h5netcdf.File.return_value = self.file_mock
         data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 100
-
+ 
         self.reader._vis_calibrate(data)
-
+ 
         expected = np.ma.array([[0.15265617, 0.30531234, 0.45796851,
                                  0.61062468, 0.76328085],
                                 [0.91593702, 1.06859319, 1.22124936,
                                  1.37390553, 1.52656171]])
         self.assertTrue(np.allclose(data, expected))
-
+ 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
     @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._vis_calibrate')
-    def test_calibrate(self, cal):
+    def test_calibrate(self, cal, h5netcdf):
         """Test the calibration."""
+        h5netcdf.File.return_value = self.file_mock
         data = np.ma.arange(15.)
         self.reader.calibrate(data)
         cal.assert_called_once_with(data)
@@ -128,7 +150,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
-    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
+
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')    
     def setUp(self, h5netcdf):
         """Setup for test."""
         proj = mock.MagicMock()
@@ -148,19 +171,27 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
         y__[0] = -1.
         y__[-1] = 1.
         y__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
-        h5netcdf.File.return_value = {
+        
+        file_content = {
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
             'Rad': np.ma.ones((10, 10))}
+        mo = mock.Mock()
+        mo.__enter__ = mock.Mock(return_value=file_content)
+        mo.__exit__ = mock.Mock(return_value=None)
+        h5netcdf.File.return_value = mo
+        self.file_mock = mo
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
                                  {'filetype': 'info'})
 
+    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
     @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
-    def test_get_area_def(self, adef):
+    def test_get_area_def(self, adef, h5netcdf):
         """Test the area generation."""
+        h5netcdf.File.return_value = self.file_mock
         self.reader.get_area_def(None)
 
         adef.assert_called_once_with('some_area_name',
