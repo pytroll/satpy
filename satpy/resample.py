@@ -116,7 +116,7 @@ class BaseResampler(object):
                 lons, lats = area.lons, area.lats
 
             try:
-                mask_hash = hashlib.sha1(area.mask).hexdigest()
+                mask_hash = hashlib.sha1(lons.mask | lats.mask).hexdigest()
             except AttributeError:
                 mask_hash = "False"
             area_hash = "".join((mask_hash,
