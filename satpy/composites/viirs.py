@@ -1030,21 +1030,27 @@ def _linear_normalization_from_0to1(
         theoretical_max,
         theoretical_min=0,
         message="normalizing equalized data to fit in 0 to 1 range"):
-    #"    normalizing DNB data into 0 to 1 range") :
-    """
-    do a linear normalization so all data is in the 0 to 1 range. This is a sloppy but fast calculation that relies on parameters
-    giving it the correct theoretical current max and min so it can scale the data accordingly.
+    """Do a linear normalization so all data is in the 0 to 1 range.
+
+    This is a sloppy but fast calculation that relies on parameters giving it
+    the correct theoretical current max and min so it can scale the data
+    accordingly.
     """
 
     LOG.debug(message)
-    if (theoretical_min is not 0):
+    if theoretical_min is not 0:
         data[mask] = data[mask] - theoretical_min
         theoretical_max = theoretical_max - theoretical_min
     data[mask] = data[mask] / theoretical_max
 
 
 class NCCZinke(CompositeBase):
-    """Equalized DNB composite using the Zinke algorithm."""
+    """Equalized DNB composite using the Zinke algorithm.
+
+    http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
+    DOI: 10.1080/01431161.2017.1338838
+
+    """
 
     def __call__(self, datasets, **info):
         if len(datasets) != 4:
