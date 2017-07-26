@@ -33,13 +33,20 @@ from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
 LOG = logging.getLogger(__name__)
 
 
+CF_UNITS = {
+    'none': '1',
+}
+
+
 class CLAVRXFileHandler(HDF4FileHandler):
     sensors = {
         'MODIS': 'modis',
         'VIIRS': 'viirs',
         'AVHRR': 'avhrr',
     }
-    platforms = {}
+    platforms = {
+        'SNPP': 'npp',
+    }
     rows_per_scan = {
         'viirs': 16,
         'modis': 10,
@@ -99,16 +106,35 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 yield DatasetID(name=var_name, resolution=nadir_resolution), ds_info
 
     def get_shape(self, dataset_id, ds_info):
-        return self[dataset_id.name + '/shape']
+        var_name = ds_info.get('file_key', dataset_id.name)
+        return self[var_name + '/shape']
+
+    def get_data_type(self, dataset_id, ds_info):
+        base_default = super(CLAVRXFileHandler, self).get_data_type(
+            dataset_id, ds_info)
+        var_name = ds_info.get('file_key', dataset_id.name)
+        if self.get(var_name + '/attr/SCALED', 1) or self.get(var_name + '/attr/flag_meanings'):
+            return self.get(var_name + '/attr/dtype', base_default)
+        return base_default
 
     def get_metadata(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
         i = {}
         i.update(ds_info)
-        for a in ['standard_name', 'units', 'long_name', 'actual_range']:
+        for a in ['standard_name', 'units', 'long_name', 'actual_range', 'flag_meanings', 'flag_values', 'flag_masks']:
             attr_path = var_name + '/attr/' + a
             if attr_path in self:
                 i[a] = self[attr_path]
+
+        flag_meanings = i.get('flag_meanings')
+        if not self.get(var_name + '/attr/SCALED', 1) and not flag_meanings:
+            i['flag_meanings'] = '<flag_meanings_unknown>'
+            i.setdefault('flag_values', [None])
+
+        u = i.get('units')
+        if u in CF_UNITS:
+            # CF compliance
+            i['units'] = CF_UNITS[u]
 
         i['sensor'] = self.get_sensor(self['/attr/sensor'])
         i['platform'] = self.get_platform(self['/attr/platform'])
@@ -132,9 +158,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
         mask = data == fill
         if valid_range is not None:
             mask |= (data < valid_range[0]) | (data > valid_range[1])
-        default_dtype = np.float32 if self.get(var_name + '/attr/SCALED', 1) != 0 else data.dtype
-        dtype = ds_info.get('dtype', default_dtype)
-        data = data.astype(dtype)
+        data = data.astype(out.data.dtype)
         if factor is not None and offset is not None:
             data *= factor
             data += offset
