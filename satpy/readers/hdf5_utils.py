@@ -63,6 +63,7 @@ class HDF5FileHandler(BaseFileHandler):
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
             self.file_content[name] = obj
+            self.file_content[name + "/dtype"] = obj.dtype
             self.file_content[name + "/shape"] = obj.shape
         self._collect_attrs(name, obj.attrs)
 

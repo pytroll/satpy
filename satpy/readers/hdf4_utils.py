@@ -35,6 +35,20 @@ from satpy.readers.file_handlers import BaseFileHandler
 LOG = logging.getLogger(__name__)
 
 
+HTYPE_TO_DTYPE = {
+    SDC.INT8: np.int8,
+    SDC.UCHAR: np.uint8,
+    SDC.CHAR: np.int8,
+    SDC.INT32: np.int32,
+    SDC.INT16: np.int16,
+    SDC.UINT8: np.uint8,
+    SDC.UINT16: np.uint16,
+    SDC.UINT32: np.uint32,
+    SDC.FLOAT32: np.float32,
+    SDC.FLOAT64: np.float64,
+}
+
+
 class HDF4FileHandler(BaseFileHandler):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
@@ -65,6 +79,7 @@ class HDF4FileHandler(BaseFileHandler):
         if isinstance(obj, SDS):
             self.file_content[name] = obj
             info = obj.info()
+            self.file_content[name + "/dtype"] = HTYPE_TO_DTYPE.get(info[3])
             self.file_content[name + "/shape"] = info[2] if isinstance(info[2], (int, float)) else tuple(info[2])
         self._collect_attrs(name, obj.attributes())
 
