@@ -607,7 +607,7 @@ class FileYAMLReader(AbstractYAMLReader):
                                                                 xslice,
                                                                 yslice)
 
-        out_info = {}
+        out_info = {'reader': self.name}
         data = np.empty(overall_shape,
                         dtype=ds_info.get('dtype', np.float32))
         mask = np.ma.make_mask_none(overall_shape)
