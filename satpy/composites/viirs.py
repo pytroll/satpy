@@ -1076,9 +1076,9 @@ class NCCZinke(CompositeBase):
         # convert to decimal instead of %
         moon_illum_fraction = np.mean(datasets[3]) * 0.01
 
-        phi = np.rad2deg(np.arccos(2 * moon_illum_fraction - 1))
+        phi = np.rad2deg(np.arccos(2. * moon_illum_fraction - 1))
 
-        vfl = 0.026 * phi + 4e-9 * (phi ** 4)
+        vfl = 0.026 * phi + 4.0e-9 * (phi ** 4.)
 
         m_fullmoon = -12.74
         m_sun = -26.74
@@ -1086,14 +1086,14 @@ class NCCZinke(CompositeBase):
 
         gs_ = self.gain_factor(sza_data)
 
-        r_sun_moon = 10**((m_sun - m_moon) / -2.5)
+        r_sun_moon = 10.**((m_sun - m_moon) / -2.5)
         gl_ = r_sun_moon * self.gain_factor(lza_data)
-        gtot = 1 / (1 / gs_ + 1 / gl_)
+        gtot = 1. / (1. / gs_ + 1. / gl_)
 
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = 'ncc_zinke'
+        mda['name'] = self.info['name']
         mda.pop('calibration')
         mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
@@ -1118,6 +1118,6 @@ class NCCZinke(CompositeBase):
         gain[mask] = (123 * np.exp(1.06 * (101 - 89.589)) *
                       np.log(theta[mask] - (101 - np.e)) ** 2)
 
-        gain[theta > 103.49] = 6e7
+        gain[theta > 103.49] = 6.0e7
 
         return gain
