@@ -403,7 +403,7 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        self.assertEqual(len(id_list), 4)
+        self.assertEqual(len(id_list), 5)
 
     def test_available_composite_ids_bad_available(self):
         from satpy import Scene
