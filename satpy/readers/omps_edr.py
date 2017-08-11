@@ -71,8 +71,10 @@ class EDRFileHandler(HDF5FileHandler):
         shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get('file_units')
         if file_units is None:
-            file_units = self[var_path + '/attr/Units']
-        if file_units == 'deg':
+            file_units = self.get(var_path + '/attr/units', self.get(var_path + '/attr/Units'))
+        if file_units is None:
+            raise KeyError("File variable '{}' has no units attribute".format(var_path))
+        elif file_units == 'deg':
             file_units = 'degrees'
         elif file_units == 'Unitless':
             file_units = '1'
@@ -81,7 +83,10 @@ class EDRFileHandler(HDF5FileHandler):
             out = np.ma.empty(shape, dtype=dtype)
             out.mask = np.zeros(shape, dtype=np.bool)
 
-        valid_min, valid_max = self[var_path + '/attr/ValidRange']
+        valid_min, valid_max = self.get(var_path + '/attr/valid_range',
+                                        self.get(var_path + '/attr/ValidRange', (None, None)))
+        if valid_min is None or valid_max is None:
+            raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
         fill_name = var_path + '/attr/{}'.format(self._fill_name)
         if fill_name in self:
             fill_value = self[fill_name]
@@ -120,7 +125,7 @@ class EDRFileHandler(HDF5FileHandler):
         })
         i.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
-            i['standard_name'] = self[var_path + '/attr/Title']
+            i['standard_name'] = self.get(var_path + '/attr/Title', dataset_id.name)
         cls = ds_info.pop("container", Dataset)
         return cls(out.data, mask=out.mask, copy=False, **i)
 
