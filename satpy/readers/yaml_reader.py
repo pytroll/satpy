@@ -35,7 +35,7 @@ import numpy as np
 import six
 import yaml
 
-from pyresample.geometry import SwathDefinition, StackedAreaDefinition
+from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
@@ -381,7 +381,9 @@ class FileYAMLReader(AbstractYAMLReader):
                  start_time=None,
                  end_time=None,
                  area=None,
-                 filter_filenames=True, **kwargs):
+                 filter_filenames=True,
+                 reader_kwargs=None,
+                 metadata=None):
         super(FileYAMLReader, self).__init__(config_files,
                                              start_time=start_time,
                                              end_time=end_time,
@@ -390,6 +392,8 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
         self.filter_filenames = self.info.get(
             'filter_filenames', filter_filenames)
+        self.reader_kwargs = reader_kwargs
+        self.metadata = metadata
 
     @property
     def available_dataset_ids(self):
@@ -534,6 +538,18 @@ class FileYAMLReader(AbstractYAMLReader):
             if self.check_file_covers_area(filehandler):
                 yield filehandler
 
+    def filter_fh_by_mda(self, filehandlers):
+        """Filter out filehandlers using provide metadata."""
+
+        for filehandler in filehandlers:
+            if self.metadata is None:
+                yield filehandler
+            for key, val in self.metadata.items():
+                if key in filehandler.mda and val != filehandler.mda[key]:
+                    break
+            else:
+                yield filehandler
+
     def new_filehandlers_for_filetype(self, filetype_info, filenames):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
@@ -543,8 +559,8 @@ class FileYAMLReader(AbstractYAMLReader):
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
         return [fhd
-                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
-                    filehandler_iter))]
+                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(self.filter_fh_by_mda(
+                    filehandler_iter)))]
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
@@ -766,7 +782,8 @@ class FileYAMLReader(AbstractYAMLReader):
             return self._load_area_def(dsid, file_handlers)
         except NotImplementedError:
             if any(x is None for x in coords):
-                logger.warning("Failed to load coordinates for '{}'".format(dsid))
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
                 return None
 
             area = self._make_area_from_coords(coords)
