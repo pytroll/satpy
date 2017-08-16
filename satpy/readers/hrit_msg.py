@@ -463,6 +463,12 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
 
+        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        if service == '':
+            self.mda['service'] = '0° Service'
+        else:
+            self.mda['service'] = service
+
     def read_prologue(self):
         """Read the prologue metadata."""
         with open(self.filename, "rb") as fp_:
@@ -566,6 +572,12 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
                                                           msg_text_headers))
         self.epilogue = {}
         self.read_epilogue()
+
+        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        if service == '':
+            self.mda['service'] = '0° Service'
+        else:
+            self.mda['service'] = service
 
     def read_epilogue(self):
         """Read the prologue metadata."""
@@ -790,6 +802,12 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda['platform_name'] = self.platform_name
+        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        if service == '':
+            self.mda['service'] = '0° Service'
+        else:
+            self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
