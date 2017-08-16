@@ -168,13 +168,7 @@ class HRITFileHandler(BaseFileHandler):
                 total_header_length = self.mda['total_header_length']
 
             self._start_time = filename_info['start_time']
-            try:
-                self.mda['timestamp'] = make_time_cds_short(
-                    self.mda['timestamp'])
-
-                self._end_time = self.mda['timestamp']
-            except KeyError:
-                self._end_time = self._start_time + timedelta(minutes=15)
+            self._end_time = self._start_time + timedelta(minutes=15)
 
             self.mda.setdefault('number_of_bits_per_pixel', 10)
 
