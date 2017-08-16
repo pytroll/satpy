@@ -494,7 +494,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         pacqtime['TrueRepeatCycleStart'] = start
         pacqtime['PlannedForwardScanEnd'] = psend
-        pacqtime['TrueRepeatCycleStart'] = prend
+        pacqtime['PlannedRepeatCycleEnd'] = prend
 
 
 image_production_stats = np.dtype([('SatelliteId', '>u2'),
