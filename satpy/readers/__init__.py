@@ -25,10 +25,12 @@
 import logging
 import numbers
 import os
+
 import six
 import yaml
 
-from satpy.config import config_search_paths, glob_config, get_environ_config_dir
+from satpy.config import (config_search_paths, get_environ_config_dir,
+                          glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
 
 try:
@@ -247,12 +249,13 @@ def read_reader_config(config_files):
     return reader_info
 
 
-def load_reader(reader_configs, **reader_kwargs):
+def load_reader(reader_configs, metadata=None, **reader_kwargs):
     """Import and setup the reader from *reader_info*
     """
     reader_info = read_reader_config(reader_configs)
     reader_instance = reader_info['reader'](
         config_files=reader_configs,
+        metadata=metadata,
         **reader_kwargs
     )
     return reader_instance
@@ -280,7 +283,7 @@ class ReaderFinder(object):
         self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None):
+                 reader_kwargs=None, metadata=None):
         reader_instances = {}
         reader_kwargs = reader_kwargs or {}
 
@@ -315,6 +318,7 @@ class ReaderFinder(object):
                                               start_time=self.start_time,
                                               end_time=self.end_time,
                                               area=self.area,
+                                              metadata=metadata,
                                               **reader_kwargs)
             except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
                 LOG.info('Cannot use %s', str(reader_configs))
@@ -342,7 +346,8 @@ class ReaderFinder(object):
                 break
 
         if sensor and not sensor_supported:
-            LOG.warning("Sensor '{}' not supported by any readers".format(sensor))
+            LOG.warning(
+                "Sensor '{}' not supported by any readers".format(sensor))
 
         if remaining_filenames:
             LOG.warning(
