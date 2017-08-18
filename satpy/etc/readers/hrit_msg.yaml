@@ -8,71 +8,71 @@ reader:
 file_types:
     HRIT_HRV:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_016:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_016___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_016___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_039:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_039___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_039___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_087:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_087___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_087___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_097:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_097___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_097___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_108:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_108___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_108___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_120:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_120___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_120___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_IR_134:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-IR_134___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_134___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_VIS006:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-VIS006___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS006___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_VIS008:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-VIS008___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS008___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_WV_062:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-WV_062___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_062___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_WV_073:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-WV_073___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_073___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
         requires: [HRIT_PRO, HRIT_EPI]
 
     HRIT_PRO:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
 
     HRIT_EPI:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<12s}-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
 
 datasets:
   HRV:
