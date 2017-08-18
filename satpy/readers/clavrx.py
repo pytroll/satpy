@@ -90,7 +90,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     @property
     def end_time(self):
-        return self.filename_info['end_time']
+        return self.filename_info.get('end_time', self.start_time)
 
     def available_dataset_ids(self):
         """Automatically determine datasets provided by this file"""
