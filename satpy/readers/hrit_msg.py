@@ -805,7 +805,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['platform_name'] = self.platform_name
         service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
