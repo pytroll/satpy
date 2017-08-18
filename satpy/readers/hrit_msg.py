@@ -465,7 +465,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
 
@@ -575,7 +575,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
 
         service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
 
