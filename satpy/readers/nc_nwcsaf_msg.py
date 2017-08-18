@@ -51,7 +51,10 @@ class NcNWCSAFMSG(BaseFileHandler):
         self.nc = h5netcdf.File(filename, 'r')
         self.sensor = 'seviri'
         sat_id = self.nc.attrs['satellite_identifier']
-        self.platform_name = PLATFORM_NAMES[sat_id]
+        try:
+            self.platform_name = PLATFORM_NAMES[sat_id]
+        except KeyError:
+            self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -90,8 +93,10 @@ class NcNWCSAFMSG(BaseFileHandler):
         """Get the area definition of the datasets in the file."""
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
-
-        proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        try:
+            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
 
         nlines, ncols = self.nc[dsid.name].shape
 
@@ -112,8 +117,18 @@ class NcNWCSAFMSG(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                     '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
+                                     '%Y-%m-%dT%H:%M:%SZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                     '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
+                                     '%Y-%m-%dT%H:%M:%SZ')
