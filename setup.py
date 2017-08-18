@@ -29,7 +29,7 @@ import os.path
 import sys
 from glob import glob
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
@@ -109,6 +109,7 @@ setup(name=NAME,
                       'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
                       'proj': ['pyresample'],
                       'pyspectral': ['pyspectral'],
-                      'pyorbital': ['pyorbital >= v0.2.3']}
+                      'pyorbital': ['pyorbital >= v0.2.3'],
+                      'hrit_msg': ['pytroll-schedule']}
 
       )
