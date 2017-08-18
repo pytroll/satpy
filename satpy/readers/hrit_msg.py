@@ -463,7 +463,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
 
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
             self.mda['service'] = '0° Service'
         else:
@@ -573,7 +573,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         self.epilogue = {}
         self.read_epilogue()
 
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
             self.mda['service'] = '0° Service'
         else:
@@ -803,7 +803,7 @@ class HRITMSGFileHandler(HRITFileHandler):
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['platform_name'] = self.platform_name
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
             self.mda['service'] = '0° Service'
         else:
