@@ -36,11 +36,11 @@ from logging import getLogger
 import numpy as np
 import six
 
+from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
-from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
 
 try:
@@ -105,10 +105,12 @@ class BaseResampler(object):
             LOG.debug("Computing kd-tree hash for area %s",
                       getattr(area, 'name', 'swath'))
         try:
-            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
+            area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict,
+                                                         sort_keys=True).encode("utf-8")).hexdigest(),
                                  hashlib.sha1(json.dumps(area.area_extent).encode(
                                      "utf-8")).hexdigest(),
-                                 hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
+                                 hashlib.sha1(json.dumps((int(area.shape[0]),
+                                                          int(area.shape[1]))).encode('utf-8')).hexdigest()))
         except AttributeError:
             if not hasattr(area, "lons") or area.lons is None:
                 lons, lats = area.get_lonlats()
@@ -229,8 +231,8 @@ class KDTreeResampler(BaseResampler):
     """
 
     def precompute(
-        self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
-                   cache_dir=False, **kwargs):
+            self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
+            cache_dir=False, **kwargs):
         """Create a KDTree structure and store it for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid where data points are invalid.
