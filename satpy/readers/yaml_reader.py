@@ -544,6 +544,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for filehandler in filehandlers:
             if self.metadata is None:
                 yield filehandler
+                continue
             for key, val in self.metadata.items():
                 if key in filehandler.mda and val != filehandler.mda[key]:
                     break
