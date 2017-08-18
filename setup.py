@@ -110,6 +110,7 @@ setup(name=NAME,
                       'proj': ['pyresample'],
                       'pyspectral': ['pyspectral'],
                       'pyorbital': ['pyorbital >= v0.2.3'],
-                      'hrit_msg': ['pytroll-schedule']}
+                      'hrit_msg': ['pytroll-schedule'],
+                      'nc_nwcsaf_msg': ['h5netcdf']}
 
       )
