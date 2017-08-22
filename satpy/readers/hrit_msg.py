@@ -463,9 +463,9 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
 
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
 
@@ -573,9 +573,9 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         self.epilogue = {}
         self.read_epilogue()
 
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
 
@@ -607,8 +607,8 @@ VIS006_F = 20.76
 VIS008_F = 23.30
 IR_016_F = 19.73
 
-SATNUM = {321: "08",
-          322: "09",
+SATNUM = {321: "8",
+          322: "9",
           323: "10",
           324: "11"}
 
@@ -803,9 +803,9 @@ class HRITMSGFileHandler(HRITFileHandler):
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['platform_name'] = self.platform_name
-        service = ' '.join(filename_info['platform_shortname'].split('_')[1:])
+        service = filename_info['service']
         if service == '':
-            self.mda['service'] = '0° Service'
+            self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]

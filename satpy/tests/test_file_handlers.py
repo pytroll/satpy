@@ -39,7 +39,8 @@ class TestBaseFileHandler(unittest.TestCase):
         """Setup the test."""
         self._old_set = BaseFileHandler.__abstractmethods__
         BaseFileHandler._abstractmethods__ = set()
-        self.fh = BaseFileHandler('filename', 'filename_info', 'filetype_info')
+        self.fh = BaseFileHandler(
+            'filename', {'filename_info': 'bla'}, 'filetype_info')
 
     def test_combine_times(self):
         """Combine times."""
