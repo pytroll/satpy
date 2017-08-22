@@ -35,7 +35,7 @@ import numpy as np
 import six
 import yaml
 
-from pyresample.geometry import SwathDefinition, StackedAreaDefinition
+from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
@@ -478,7 +478,12 @@ class FileYAMLReader(AbstractYAMLReader):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
-                filename_info = parse(pattern, get_filebase(filename, pattern))
+                try:
+                    filename_info = parse(
+                        pattern, get_filebase(filename, pattern))
+                except ValueError:
+                    logger.debug("Can't parse %s with %s.", filename, pattern)
+                    continue
 
                 yield filename, filename_info
 
@@ -766,7 +771,8 @@ class FileYAMLReader(AbstractYAMLReader):
             return self._load_area_def(dsid, file_handlers)
         except NotImplementedError:
             if any(x is None for x in coords):
-                logger.warning("Failed to load coordinates for '{}'".format(dsid))
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
                 return None
 
             area = self._make_area_from_coords(coords)
