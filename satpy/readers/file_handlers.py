@@ -39,6 +39,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
+        self.metadata = filename_info.copy()
 
     def __str__(self):
         return "<{}: '{}'>".format(self.__class__.__name__, self.filename)
