@@ -382,8 +382,8 @@ class FileYAMLReader(AbstractYAMLReader):
                  end_time=None,
                  area=None,
                  filter_filenames=True,
-                 reader_kwargs=None,
-                 metadata=None):
+                 metadata=None,
+                 **kwargs):
         super(FileYAMLReader, self).__init__(config_files,
                                              start_time=start_time,
                                              end_time=end_time,
@@ -392,7 +392,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
         self.filter_filenames = self.info.get(
             'filter_filenames', filter_filenames)
-        self.reader_kwargs = reader_kwargs
+        self.reader_kwargs = kwargs
         self.metadata = metadata
 
     @property
@@ -538,7 +538,7 @@ class FileYAMLReader(AbstractYAMLReader):
             if self.check_file_covers_area(filehandler):
                 yield filehandler
 
-    def filter_fh_by_mda(self, filehandlers):
+    def filter_fh_by_metadata(self, filehandlers):
         """Filter out filehandlers using provide metadata."""
 
         for filehandler in filehandlers:
@@ -546,10 +546,19 @@ class FileYAMLReader(AbstractYAMLReader):
                 yield filehandler
                 continue
             for key, val in self.metadata.items():
-                if key in filehandler.mda and val != filehandler.mda[key]:
+                if (key in filehandler.metadata and
+                        val != filehandler.metadata[key]):
                     break
             else:
                 yield filehandler
+
+    @staticmethod
+    def apply_filters(iterator, *filters):
+        """Apply filters on an iterator."""
+        result = iterator
+        for filt in filters:
+            result = filt(result)
+        return result
 
     def new_filehandlers_for_filetype(self, filetype_info, filenames):
         """Create filehandlers for a given filetype."""
@@ -559,9 +568,11 @@ class FileYAMLReader(AbstractYAMLReader):
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fhd
-                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(self.filter_fh_by_mda(
-                    filehandler_iter)))]
+        filtered_iter = self.apply_filters(filehandler_iter,
+                                           self.filter_fh_by_metadata,
+                                           self.filter_fh_by_time,
+                                           self.filter_fh_by_area)
+        return list(filtered_iter)
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
