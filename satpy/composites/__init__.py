@@ -445,7 +445,7 @@ class RGBCompositor(CompositeBase):
         else:
             areas = [projectable.info.get('area', None)
                      for projectable in projectables]
-            areas = filter(lambda x: x is not None, areas)
+            areas = [area for area in areas if area is not None]
             if areas and areas.count(areas[0]) != len(areas):
                 raise IncompatibleAreas
 
