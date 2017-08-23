@@ -136,7 +136,7 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
                       'semi_minor_axis': np.array(1.),
                       'perspective_point_height': np.array(1.),
                       'longitude_of_projection_origin': np.array(-90.),
-                      'sweep_angle_axis': ['x']
+                      'sweep_angle_axis': 'x'
                       }
         x__ = mock.MagicMock()
         x__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
