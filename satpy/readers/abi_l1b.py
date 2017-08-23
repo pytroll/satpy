@@ -94,7 +94,7 @@ class NC_ABI_L1B(BaseFileHandler):
         h = projection.attrs['perspective_point_height'][...]
         b = projection.attrs['semi_minor_axis'][...]
         lon_0 = projection.attrs['longitude_of_projection_origin'][...]
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
+        sweep_axis = projection.attrs['sweep_angle_axis'].decode()
 
         # need 64-bit floats otherwise small shift
         scale_x = np.float64(self.nc['x'].attrs["scale_factor"][0])
@@ -169,14 +169,8 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        try:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
-        except TypeError:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        try:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
-        except TypeError:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
