@@ -31,8 +31,8 @@ from datetime import datetime
 
 import h5netcdf
 import numpy as np
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -169,8 +169,14 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
