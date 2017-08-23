@@ -113,6 +113,7 @@ setup(name=NAME,
                       'hrit_msg': ['pytroll-schedule'],
                       'nc_nwcsaf_msg': ['h5netcdf'],
                       'sar_c': ['python-geotiepoints', 'gdal'],
-                      'abi_l1b': ['h5netcdf']}
+                      'abi_l1b': ['h5netcdf'],
+                      'viirs_compact': ['h5py >= 2.7.0']}
 
       )
