@@ -112,6 +112,7 @@ setup(name=NAME,
                       'pyorbital': ['pyorbital >= v0.2.3'],
                       'hrit_msg': ['pytroll-schedule'],
                       'nc_nwcsaf_msg': ['h5netcdf'],
-                      'sar_c': ['python-geotiepoints', 'gdal']}
+                      'sar_c': ['python-geotiepoints', 'gdal'],
+                      'abi_l1b': ['h5netcdf']}
 
       )
