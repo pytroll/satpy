@@ -390,8 +390,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                              area=area)
 
         self.file_handlers = {}
-        self.filter_filenames = self.info.get(
-            'filter_filenames', filter_filenames)
+        self.filter_filenames = self.info.get('filter_filenames',
+                                              filter_filenames)
         self.reader_kwargs = kwargs
         self.metadata = metadata
 
@@ -520,20 +520,23 @@ class FileYAMLReader(AbstractYAMLReader):
     def filter_filenames_by_info(self, filename_items):
         """Filter out file using metadata from the filenames.
 
-        Currently only uses start and end time.
+        Currently only uses start and end time. If only start time is available
+        from the filename, keep all the filename that have a start time before
+        the requested end time.
         """
         for filename, filename_info in filename_items:
-            s = filename_info.get('start_time')
-            e = filename_info.get('end_time', s)
-            if e and not s:
-                s = e
-
-            if e < s:
+            fstart = filename_info.get('start_time')
+            fend = filename_info.get('end_time')
+            if fend and not fstart:
+                fstart = fend
+            if fend and fend < fstart:
                 # correct for filenames with 1 date and 2 times
-                e = e.replace(year=s.year, month=s.month, day=s.day)
-            if self._start_time and e < self._start_time:
+                fend = fend.replace(year=fstart.year,
+                                    month=fstart.month,
+                                    day=fstart.day)
+            if self._start_time and fend and fend < self._start_time:
                 continue
-            if self._end_time and s > self._end_time:
+            if self._end_time and fstart > self._end_time:
                 continue
             yield filename, filename_info
 
