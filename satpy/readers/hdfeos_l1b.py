@@ -65,22 +65,22 @@ class HDFEOSFileReader(BaseFileHandler):
         except HDF4Error as err:
             raise ValueError("Could not load data from " + str(self.filename)
                              + ": " + str(err))
-        self.mda = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.mda.update(self.read_mda(
+        self.metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
+        self.metadata.update(self.read_mda(
             self.sd.attributes()['StructMetadata.0']))
-        self.mda.update(self.read_mda(
+        self.metadata.update(self.read_mda(
             self.sd.attributes()['ArchiveMetadata.0']))
 
     @property
     def start_time(self):
-        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
-                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
+                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
-        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
-                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
+                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     def read_mda(self, attribute):
@@ -124,7 +124,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA'][
+        ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
             self.resolution = 1000
@@ -286,7 +286,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA'][
+        ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         self.resolution = self.res[ds[-3]]
 
@@ -302,7 +302,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
-        platform_name = self.mda['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+        platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
             'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
 
         if self.resolution != key.resolution:
