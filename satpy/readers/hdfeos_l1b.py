@@ -40,7 +40,6 @@ import logging
 import math
 import multiprocessing
 import os.path
-from ConfigParser import ConfigParser
 from datetime import datetime
 from fnmatch import fnmatch
 

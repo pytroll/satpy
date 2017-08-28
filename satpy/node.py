@@ -154,7 +154,7 @@ class DependencyTree(Node):
 
     def leaves(self, nodes=None, unique=True):
         """Get the leaves of the tree starting at this root.
-        
+
         Args:
             nodes (iterable): limit leaves for these node names
             unique: only include individual leaf nodes once
@@ -175,15 +175,15 @@ class DependencyTree(Node):
 
     def trunk(self, nodes=None, unique=True):
         """Get the trunk nodes of the tree starting at this root.
-        
+
         Args:
             nodes (iterable): limit trunk nodes to the names specified or the
                               children of them that are also trunk nodes.
             unique: only include individual trunk nodes once
-            
+
         Returns:
             list of trunk nodes
-            
+
         """
         if nodes is None:
             return super(DependencyTree, self).trunk(unique=unique)

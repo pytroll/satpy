@@ -150,9 +150,9 @@ class DatasetDict(dict):
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and DatasetID.wavelength_match(
-                                getattr(k, key), getattr(did, key))]
-
+                            if (getattr(k, key) is not None and
+                                DatasetID.wavelength_match(getattr(k, key),
+                                                           getattr(did, key)))]
                 else:
                     keys = [k for k in keys
                             if getattr(k, key) is not None and getattr(k, key)
