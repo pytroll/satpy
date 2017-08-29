@@ -2,6 +2,57 @@ Changelog
 =========
 
 
+v0.7.1 (2017-08-29)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.0 → 0.7.1. [Martin Raspaud]
+- Fix style. [Martin Raspaud]
+- Fix hdf4 lib name in dependencies. [Martin Raspaud]
+- Rename optional dependencies for hdfeos to match reader name. [Martin
+  Raspaud]
+- Rename mda with metadata in hdfeos_l1b reader. [Martin Raspaud]
+- Add overview composite for modis. [Martin Raspaud]
+- Do not guess end time when filtering a filename. [Martin Raspaud]
+- Add optional dependencies for viirs_compact. [Martin Raspaud]
+- Fix abi_l1b test again. [Martin Raspaud]
+- Fix abi_l1b tests. [Martin Raspaud]
+- Fix sweep axis parameter reading in py3 for abi_l1b. [Martin Raspaud]
+- Support py3 in abi_l1b. [Martin Raspaud]
+- Add optional dependencies for abi_l1b. [Martin Raspaud]
+- Merge pull request #58 from pytroll/metadata-filtering. [Martin
+  Raspaud]
+
+  Metadata filtering
+- Fix filehandler unit test to use filename_info as a dict. [Martin
+  Raspaud]
+- Implement suggested style changes. [Martin Raspaud]
+
+  See conversation in PR #58
+- Finish fixing 0° Service to 0DEG. [Martin Raspaud]
+- Fix Meteosat numbers to remove leading 0. [Martin Raspaud]
+- Change HRIT base service to 0DEG. [Martin Raspaud]
+- Change HRIT MSG patterns to explicit `service` [Martin Raspaud]
+- Correct unit tests for metadata filtering compatibility. [Martin
+  Raspaud]
+- Add metadata filtering of filehandlers. [Martin Raspaud]
+- Replace filter by list comprehension for py3 compatibility. [Martin
+  Raspaud]
+- Check area compatibility before merging channels in RGBCompositor.
+  [Martin Raspaud]
+- Add overview for ABI. [Martin Raspaud]
+- Add EUM file patterns for ABI. [Martin Raspaud]
+- Avoid crash when pattern matching on file crashes. [Martin Raspaud]
+- Fix clavrx reader when filenames don't have end_time. [davidh-ssec]
+- Add optional dependencies for sar_c. [Martin Raspaud]
+- Fix h5py py3 issues with byte arrays as strings. [Martin Raspaud]
+- Add optional dependency for the nc_nwcsaf_msg reader. [Martin Raspaud]
+- Fix hrit_msg reading for py3. [Martin Raspaud]
+- Add optional dependency for the hrit_msg reader. [Martin Raspaud]
+- Add platform_name and service to msg metadata. [Martin Raspaud]
+- Bugfix in MSG acquisition time metadata. [Martin Raspaud]
+- Fix xRIT end time to follow specifications. [Martin Raspaud]
+
+
 v0.7.0 (2017-08-15)
 -------------------
 - Update changelog. [Martin Raspaud]
