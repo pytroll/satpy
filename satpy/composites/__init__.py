@@ -243,57 +243,31 @@ class SunZenithCorrector(CompositeBase):
     # FIXME: the cache should be cleaned up
     coszen = {}
 
-    def __call__(self, projectables, optional_datasets=None, **info):
+    def __call__(self, projectables, **info):
         vis = projectables[0]
-        if vis.attrs.get("sunz_corrected"):
+        if vis.info.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.attrs["area"], 'name'):
-            area_name = vis.attrs["area"].name
+        if hasattr(vis.info["area"], 'name'):
+            area_name = vis.info["area"].name
         else:
-            area_name = 'swath' + str(vis.attrs["area"].lons.shape)
-        key = (vis.attrs["start_time"], area_name, vis.shape)
+            area_name = 'swath' + str(vis.info["area"].lons.shape)
+        key = (vis.info["start_time"], area_name)
         LOG.debug("Applying sun zen correction")
-        if optional_datasets is None:
+        if len(projectables) == 1:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                shape = len(vis.coords['y']), len(vis.coords['x'])
-                area = vis.attrs['area']
-
-                def get_lonlats(area, slicex, slicey):
-                    return np.dstack(area.get_lonlats(data_slice=(slicex, slicey)))
-
-                blocksize = 1000
-                from dask.base import tokenize
-                name_lon = 'lon-' + tokenize(blocksize)
-                nlines, ncols = area.y_size, area.x_size
-                chunks = ([min(blocksize, nlines - j) for j in range(0, nlines, blocksize)],
-                          [min(blocksize, ncols - i)
-                           for i in range(0, ncols, blocksize)],
-                          (2,))
-                dsk = {(name_lon, i // blocksize, j // blocksize, k): (get_lonlats,
-                                                                       area,
-                                                                       slice(
-                                                                           i, min(i + blocksize, ncols)),
-                                                                       slice(j, min(j + blocksize, nlines)))
-                       for i in range(0, ncols, blocksize)
-                       for j in range(0, nlines, blocksize)
-                       for k in range(1)}
-
-                arr = da.Array(dsk, name_lon, chunks=chunks, dtype=np.float)
-
-                lons = xr.DataArray(arr[:, :, 0], coords=vis.coords)
-                lats = xr.DataArray(arr[:, :, 1], coords=vis.coords)
-
-                cz = cos_zen(vis.attrs["start_time"], lons, lats)
-
-                self.coszen[key] = cz.where((cz >= 0.035) & (cz <= 1))
-
+                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
+                                                                *vis.info["area"].get_lonlats()),
+                                                        # about 88 degrees.
+                                                        0.035,
+                                                        1,
+                                                        copy=False)
             coszen = self.coszen[key]
         else:
-            coszen = np.cos(np.deg2rad(optional_datasets[0]))
+            coszen = np.cos(np.deg2rad(projectables[1]))
 
         if vis.shape != coszen.shape:
             # assume we were given lower resolution szen data than band data
@@ -303,9 +277,10 @@ class SunZenithCorrector(CompositeBase):
             coszen = np.repeat(
                 np.repeat(coszen, factor, axis=0), factor, axis=1)
 
-        proj = sunzen_corr_cos(vis, coszen)
-        proj = proj.where(coszen >= 0)
-        proj.attrs = vis.attrs
+        # sunz correction will be in place so we need a copy
+        proj = vis.copy()
+        proj = sunzen_corr_cos(proj, coszen)
+        vis.mask[coszen < 0] = True
         self.apply_modifier_info(vis, proj)
         return proj
 
@@ -466,9 +441,13 @@ class RGBCompositor(CompositeBase):
             the_data = xr.concat(projectables, 'bands')
         except ValueError:
             raise IncompatibleAreas
-        # info = projectables[0].info.copy()
-        # info.update(projectables[1].info)
-        # info.update(projectables[2].info)
+        else:
+            areas = [projectable.attrs.get('area', None)
+                     for projectable in projectables]
+            areas = [area for area in areas if area is not None]
+            if areas and areas.count(areas[0]) != len(areas):
+                raise IncompatibleAreas
+
         attrs = combine_attrs(*projectables)
         attrs.update(info)
         attrs.update(self.info)
@@ -507,13 +486,19 @@ class ColormapCompositor(RGBCompositor):
         from trollimage.colormap import Colormap
 
         palette = np.asanyarray(palette).squeeze()
+        if dtype == np.dtype('uint8'):
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
 
-        tups = [(val, tuple(tup))
-                for (val, tup) in enumerate(palette[:-1])]
-        colormap = Colormap(*tups)
+        elif 'valid_range' in info:
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
 
-        # if 'valid_range' in info and dtype != np.dtype('uint8'):
-        #    colormap.set_range(*info['valid_range'])
+            sf = info['scale_factor']
+            colormap.set_range(
+                *info['valid_range'] * sf + info['add_offset'])
 
         return colormap
 

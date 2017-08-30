@@ -55,15 +55,15 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         'optional_prerequisites': tuple(opt_prereqs),
     }
     # special case
-    if ds_id.name == 'comp14':
-        # used as a test when composites update the dataset id with
-        # information from prereqs
-        ds_id = ds_id._replace(resolution=555)
     c.info.update(ds_id.to_dict())
     c.id = ds_id
 
     se = mock.MagicMock()
-    def _se(datasets, optional_datasets=None, **kwargs):
+    def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
+        if ds_id.name == 'comp14':
+            # used as a test when composites update the dataset id with
+            # information from prereqs
+            ds_id = ds_id._replace(resolution=555)
         if len(datasets) != len(prereqs):
             raise ValueError("Not enough prerequisite datasets passed")
         return Dataset(data=np.arange(5), **ds_id.to_dict())

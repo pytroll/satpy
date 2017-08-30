@@ -34,6 +34,7 @@ import xarray as xr
 import xarray.ufuncs as xu
 
 from pyresample import geometry
+
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,11 @@ class NC_ABI_L1B(BaseFileHandler):
         lon_0 = projection.attrs['longitude_of_projection_origin']
         sweep_axis = projection.attrs['sweep_angle_axis'][0]
 
+        scale_x = self.nc['x'].attrs["scale_factor"][0]
+        scale_y = self.nc['y'].attrs["scale_factor"][0]
+        offset_x = self.nc['x'].attrs["add_offset"][0]
+        offset_y = self.nc['y'].attrs["add_offset"][0]
+
         # x and y extents in m
         h = float(h)
         x_l = h * self.nc['x'][0]
@@ -129,7 +135,6 @@ class NC_ABI_L1B(BaseFileHandler):
         esd = float(self.nc["earth_sun_distance_anomaly_in_AU"])
 
         factor = np.pi * esd * esd / solar_irradiance
-        # data.data[:] *= factor
 
         res = data * factor
         res.attrs = data.attrs

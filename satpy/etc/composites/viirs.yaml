@@ -141,7 +141,7 @@ composites:
     - dnb_moon_illumination_fraction
     standard_name: equalized_radiance
     units: "1"
-  ncc_zinke:
+  hncc_dnb:
     compositor: !!python/name:satpy.composites.viirs.NCCZinke
     prerequisites:
     - DNB
@@ -154,7 +154,7 @@ composites:
   night_overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - ncc_zinke
-    - ncc_zinke
+    - hncc_dnb
+    - hncc_dnb
     - M15
     standard_name: night_overview

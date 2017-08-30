@@ -150,9 +150,9 @@ class DatasetDict(dict):
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and DatasetID.wavelength_match(
-                                getattr(k, key), getattr(did, key))]
-
+                            if (getattr(k, key) is not None and
+                                DatasetID.wavelength_match(getattr(k, key),
+                                                           getattr(did, key)))]
                 else:
                     keys = [k for k in keys
                             if getattr(k, key) is not None and getattr(k, key)
@@ -249,12 +249,13 @@ def read_reader_config(config_files):
     return reader_info
 
 
-def load_reader(reader_configs, **reader_kwargs):
+def load_reader(reader_configs, metadata=None, **reader_kwargs):
     """Import and setup the reader from *reader_info*
     """
     reader_info = read_reader_config(reader_configs)
     reader_instance = reader_info['reader'](
         config_files=reader_configs,
+        metadata=metadata,
         **reader_kwargs
     )
     return reader_instance
@@ -282,7 +283,7 @@ class ReaderFinder(object):
         self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None):
+                 reader_kwargs=None, metadata=None):
         reader_instances = {}
         reader_kwargs = reader_kwargs or {}
 
@@ -317,6 +318,7 @@ class ReaderFinder(object):
                                               start_time=self.start_time,
                                               end_time=self.end_time,
                                               area=self.area,
+                                              metadata=metadata,
                                               **reader_kwargs)
             except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
                 LOG.info('Cannot use %s', str(reader_configs))

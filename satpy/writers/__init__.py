@@ -115,7 +115,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     arr = np.array(img)
 
     if len(orig.channels) == 1:
-        orgi.channels[0] = np.ma.array(arr[:, :] / 255.0)
+        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
     else:
         for idx in range(len(orig.channels)):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
@@ -294,7 +294,10 @@ class EnhancementDecisionTree(object):
                     conf = recursive_dict_update(conf, yaml.load(fd))
             else:
                 LOG.debug("Loading enhancement config string")
-                conf = recursive_dict_update(conf, yaml.load(config_file))
+                d = yaml.load(config_file)
+                if not isinstance(d, dict):
+                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+                conf = recursive_dict_update(conf, d)
 
         self._build_tree(conf)
 

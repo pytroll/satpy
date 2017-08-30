@@ -142,17 +142,17 @@ class HRITFileHandler(BaseFileHandler):
                 hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
-                    field_length = (
-                        hdr_id['record_length'] - 3) / the_type.itemsize
+                    field_length = int((hdr_id['record_length'] - 3) /
+                                       the_type.itemsize)
                     current_hdr = np.fromfile(fp,
                                               dtype=the_type,
                                               count=field_length)
                     self.mda[variable_length_headers[
                         the_type]] = current_hdr
                 elif the_type in text_headers:
-                    field_length = (
-                        hdr_id['record_length'] - 3) / the_type.itemsize
-                    char = the_type.fields.values()[0][0].char
+                    field_length = int((hdr_id['record_length'] - 3) /
+                                       the_type.itemsize)
+                    char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
                     current_hdr = np.fromfile(fp,
                                               dtype=new_type,
@@ -168,13 +168,7 @@ class HRITFileHandler(BaseFileHandler):
                 total_header_length = self.mda['total_header_length']
 
             self._start_time = filename_info['start_time']
-            try:
-                self.mda['timestamp'] = make_time_cds_short(
-                    self.mda['timestamp'])
-
-                self._end_time = self.mda['timestamp']
-            except KeyError:
-                self._end_time = self._start_time + timedelta(minutes=15)
+            self._end_time = self._start_time + timedelta(minutes=15)
 
             self.mda.setdefault('number_of_bits_per_pixel', 10)
 
