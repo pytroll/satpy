@@ -57,14 +57,6 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     platforms = {
     }
 
-    # def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=None):
-    #     if auto_maskandscale is None:
-    #         auto_maskandscale = True
-    #     super(GEOCATFileHandler, self).__init__(filename,
-    #                                             filename_info,
-    #                                             filetype_info,
-    #                                             auto_maskandscale)
-
     def get_sensor(self, sensor):
         for k, v in self.sensors.items():
             if k in sensor:
@@ -135,6 +127,16 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 right_x + half_x,
                 top_y + half_y)
 
+    def _load_nav(self, name):
+        nav = self[name]
+        factor = self[name + '/attr/scale_factor']
+        offset = self[name + '/attr/add_offset']
+        fill = self[name + '/attr/_FillValue']
+        nav = nav[:]
+        mask = nav == fill
+        nav = np.ma.masked_array(nav * factor + offset, mask=mask)
+        return nav[:]
+
     def get_area_def(self, dsid):
         if not self.is_geo:
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
@@ -146,12 +148,8 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             platform,
             self.metadata.get('sector_id', ''),
             int(res))
-        lon = self['pixel_longitude']
-        lon.set_auto_maskandscale(True)
-        lon = lon[:]
-        lat = self['pixel_latitude']
-        lat.set_auto_maskandscale(True)
-        lat = lat[:]
+        lon = self._load_nav('pixel_longitude')
+        lat = self._load_nav('pixel_latitude')
         extents = self._get_extents(proj, res, lon, lat)
         area_def = geometry.AreaDefinition(
             area_name,
@@ -168,7 +166,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         var_name = ds_info.get('file_key', dataset_id.name)
         i = {}
         i.update(ds_info)
-        for a in ['standard_name', 'units', 'long_name', 'actual_range', 'flag_meanings', 'flag_values', 'flag_masks']:
+        for a in ['standard_name', 'units', 'long_name', 'flag_meanings', 'flag_values', 'flag_masks']:
             attr_path = var_name + '/attr/' + a
             if attr_path in self:
                 i[a] = self[attr_path]
@@ -181,6 +179,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         i['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
         i['platform'] = self.get_platform(self['/attr/Platform_Name'])
         i['resolution'] = dataset_id.resolution
+        if var_name == 'pixel_longitude':
+            i['standard_name'] = 'longitude'
+        elif var_name == 'pixel_latitude':
+            i['standard_name'] = 'latitude'
 
         return i
 
