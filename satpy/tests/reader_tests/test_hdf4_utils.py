@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the satpy.readers.netcdf_utils module.
+"""Module for testing the satpy.readers.hdf4_utils module.
 """
 
 import os
@@ -45,74 +45,53 @@ class TestNetCDF4FileHandler(unittest.TestCase):
     """Test NetCDF4 File Handler Utility class"""
     def setUp(self):
         """Create a test NetCDF4 file"""
-        from netCDF4 import Dataset
-        nc = Dataset('test.nc', 'w')
-
-        # Create dimensions
-        row_dim = nc.createDimension('rows', 10)
-        col_dim = nc.createDimension('cols', 100)
-
-        # Create Group
-        g1 = nc.createGroup('test_group')
-
-        # Add datasets
-        ds1_f = g1.createVariable('ds1_f', np.float32,
-                                  dimensions=('rows', 'cols'))
-        ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds1_i = g1.createVariable('ds1_i', np.int32,
-                                  dimensions=('rows', 'cols'))
-        ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
-        ds2_f = nc.createVariable('ds2_f', np.float32,
-                                  dimensions=('rows', 'cols'))
-        ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds2_i = nc.createVariable('ds2_i', np.int32,
-                                  dimensions=('rows', 'cols'))
-        ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
+        from pyhdf.SD import SD, SDC
+        h = SD('test.hdf', SDC.WRITE | SDC.CREATE | SDC.TRUNC)
+        data = np.arange(10. * 100, dtype=np.float32).reshape((10, 100))
+        v1 = h.create('ds1_f', SDC.FLOAT32, (10, 100))
+        v1[:] = data
+        v2 = h.create('ds1_i', SDC.INT16, (10, 100))
+        v2[:] = data.astype(np.int16)
 
         # Add attributes
-        nc.test_attr_str = 'test_string'
-        nc.test_attr_int = 0
-        nc.test_attr_float = 1.2
-        nc.test_attr_str_arr = np.array(b"test_string2")
-        g1.test_attr_str = 'test_string'
-        g1.test_attr_int = 0
-        g1.test_attr_float = 1.2
-        for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
+        h.test_attr_str = 'test_string'
+        h.test_attr_int = 0
+        h.test_attr_float = 1.2
+        # h.test_attr_str_arr = np.array(b"test_string2")
+        for d in [v1, v2]:
             d.test_attr_str = 'test_string'
             d.test_attr_int = 0
             d.test_attr_float = 1.2
 
-        nc.close()
+        h.end()
 
     def tearDown(self):
         """Remove the previously created test file"""
-        os.remove('test.nc')
+        os.remove('test.hdf')
 
     def test_all_basic(self):
         """Test everything about the NetCDF4 class"""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
-        file_handler = NetCDF4FileHandler('test.nc', {}, {})
+        from satpy.readers.hdf4_utils import HDF4FileHandler
+        from pyhdf.SD import SDC
+        file_handler = HDF4FileHandler('test.hdf', {}, {})
 
-        self.assertEqual(file_handler['/dimension/rows'], 10)
-        self.assertEqual(file_handler['/dimension/cols'], 100)
-
-        for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
-            self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith('f') else np.int32)
+        for ds in ('ds1_f', 'ds1_i'):
+            self.assertEqual(file_handler[ds + '/dtype'], np.float32 if ds.endswith('f') else np.int16)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
             self.assertEqual(file_handler[ds + '/attr/test_attr_str'], 'test_string')
             self.assertEqual(file_handler[ds + '/attr/test_attr_int'], 0)
             self.assertEqual(file_handler[ds + '/attr/test_attr_float'], 1.2)
 
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
-        self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
+        # self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
-        self.assertIsInstance(file_handler.get('ds2_f')[:], np.ndarray)
+        self.assertIsInstance(file_handler.get('ds1_f')[:], np.ndarray)
         self.assertIsNone(file_handler.get('fake_ds'))
         self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
 
-        self.assertTrue('ds2_f' in file_handler)
+        self.assertTrue('ds1_f' in file_handler)
         self.assertFalse('fake_ds' in file_handler)
 
 
