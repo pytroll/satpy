@@ -36,11 +36,11 @@ from logging import getLogger
 import numpy as np
 import six
 
-from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (get_neighbour_info,
                                 get_sample_from_neighbour_info)
+from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
 
 try:

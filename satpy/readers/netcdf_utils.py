@@ -26,16 +26,11 @@
 
 """
 import netCDF4
-
-import os.path
-from datetime import datetime, timedelta
 import numpy as np
 import logging
 
 from satpy.readers.file_handlers import BaseFileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
@@ -105,6 +100,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
             self.file_content[var_name] = var_obj
+            self.file_content[var_name + "/dtype"] = var_obj.dtype
             self.file_content[var_name + "/shape"] = var_obj.shape
             self._collect_attrs(var_name, var_obj)
         self._collect_attrs(name, obj)

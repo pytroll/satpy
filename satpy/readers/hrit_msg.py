@@ -463,6 +463,12 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
 
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
+
     def read_prologue(self):
         """Read the prologue metadata."""
         with open(self.filename, "rb") as fp_:
@@ -494,7 +500,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         pacqtime['TrueRepeatCycleStart'] = start
         pacqtime['PlannedForwardScanEnd'] = psend
-        pacqtime['TrueRepeatCycleStart'] = prend
+        pacqtime['PlannedRepeatCycleEnd'] = prend
 
 
 image_production_stats = np.dtype([('SatelliteId', '>u2'),
@@ -567,6 +573,12 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         self.epilogue = {}
         self.read_epilogue()
 
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
+
     def read_epilogue(self):
         """Read the prologue metadata."""
         tic = datetime.now()
@@ -595,8 +607,8 @@ VIS006_F = 20.76
 VIS008_F = 23.30
 IR_016_F = 19.73
 
-SATNUM = {321: "08",
-          322: "09",
+SATNUM = {321: "8",
+          322: "9",
           323: "10",
           324: "11"}
 
@@ -790,6 +802,12 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda['platform_name'] = self.platform_name
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property

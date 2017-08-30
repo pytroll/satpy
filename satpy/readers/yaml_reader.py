@@ -639,9 +639,6 @@ class FileYAMLReader(AbstractYAMLReader):
             start = max(yslice.start - offset, 0)
             stop = min(yslice.stop - offset, segment_height)
 
-            # shuttle = Shuttle(data[out_offset:out_offset + stop - start],
-            #                   mask[out_offset:out_offset + stop - start],
-            #                   out_info)
 
             kwargs = {}
             if stop - start != segment_height:
@@ -656,7 +653,6 @@ class FileYAMLReader(AbstractYAMLReader):
             except KeyError:
                 logger.warning(
                     "Failed to load {} from {}".format(dsid, fh), exc_info=True)
-                #mask[out_offset:out_offset + stop - start] = True
 
             out_offset += stop - start
             offset += segment_height
@@ -664,9 +660,6 @@ class FileYAMLReader(AbstractYAMLReader):
         if failure:
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
-
-        # out_info.pop('area', None)
-        # return cls(data, mask=mask, copy=False, **out_info)
 
         res = xr.concat(slice_list, dim=dim)
         res.attrs = slice_list[-1].attrs
@@ -760,7 +753,6 @@ class FileYAMLReader(AbstractYAMLReader):
             lon_sn = coords[0].attrs.get('standard_name')
             lat_sn = coords[1].attrs.get('standard_name')
             if lon_sn == 'longitude' and lat_sn == 'latitude':
-
                 sdef = SwathDefinition(*coords)
                 sensor_str = sdef.name = '_'.join(self.info['sensors'])
                 shape_str = '_'.join(map(str, coords[0].shape))

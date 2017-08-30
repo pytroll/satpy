@@ -11,3 +11,14 @@ composites:
     - name: '3'
       modifiers: [sunz_corrected]
     standard_name: true_color
+
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected]
+    - name: '2'
+      modifiers: [sunz_corrected]
+    - name: '31'
+      modifiers: [sunz_corrected]
+    standard_name: overview

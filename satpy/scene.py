@@ -99,7 +99,8 @@ class Scene(InfoObject):
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     base_dir=base_dir,
                                                     reader=reader,
-                                                    reader_kwargs=reader_kwargs)
+                                                    reader_kwargs=reader_kwargs,
+                                                    metadata=metadata)
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
@@ -135,7 +136,8 @@ class Scene(InfoObject):
                                 filenames=None,
                                 base_dir=None,
                                 reader=None,
-                                reader_kwargs=None):
+                                reader_kwargs=None,
+                                metadata=None):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
@@ -145,7 +147,8 @@ class Scene(InfoObject):
         return finder(reader=reader,
                       sensor=self.info.get("sensor"),
                       filenames=filenames,
-                      reader_kwargs=reader_kwargs)
+                      reader_kwargs=reader_kwargs,
+                      metadata=metadata)
 
     @property
     def start_time(self):
@@ -301,8 +304,6 @@ class Scene(InfoObject):
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
-        # if not isinstance(value, Dataset):
-        #     raise ValueError("Only 'Dataset' objects can be assigned")
         self.datasets[key] = value
         self.wishlist.add(self.datasets.get_key(key))
 
