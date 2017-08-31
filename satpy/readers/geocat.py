@@ -30,7 +30,7 @@ from pyproj import Proj
 from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
 
-from satpy.dataset import DatasetID, Dataset
+from satpy.dataset import DatasetID
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
@@ -101,25 +101,24 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         var_name = ds_info.get('file_key', dataset_id.name)
         return self[var_name + '/shape']
 
-    def _get_extents(self, proj, res, lon_arr, lat_arr):
-        p = Proj(proj)
-        res = float(res)
-        shape = lon_arr.shape
+    def _first_good_nav(self, lon_arr, lat_arr):
         if hasattr(lon_arr, 'mask'):
             good_indexes = np.nonzero(~lon_arr.mask)
         else:
             # no masked values found in auto maskandscale
             good_indexes = ([0], [0])
         # nonzero returns (<ndarray of row indexes>, <ndarray of col indexes>)
-        first_good = tuple(x[0] for x in good_indexes)
-        one_lon = lon_arr[first_good]
-        one_lat = lat_arr[first_good]
+        return tuple(x[0] for x in good_indexes)
 
-        one_x, one_y = p(one_lon, one_lat)
+    def _get_extents(self, proj, res, lon_arr, lat_arr):
+        p = Proj(proj)
+        res = float(res)
+        first_good = self._first_good_nav(lon_arr, lat_arr)
+        one_x, one_y = p(lon_arr[first_good], lat_arr[first_good])
         left_x = one_x - res * first_good[1]
-        right_x = left_x + res * shape[1]
+        right_x = left_x + res * lon_arr.shape[1]
         top_y = one_y + res * first_good[0]
-        bot_y = top_y - res * shape[0]
+        bot_y = top_y - res * lon_arr.shape[0]
         half_x = res / 2.
         half_y = res / 2.
         return (left_x - half_x,
@@ -217,7 +216,7 @@ class GEOCATYAMLReader(FileYAMLReader):
         self.load_ds_ids_from_files()
 
     def load_ds_ids_from_files(self):
-        for file_type, file_handlers in self.file_handlers.items():
+        for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
             for ds_id, ds_info in fh.available_dataset_ids():
                 # don't overwrite an existing dataset
