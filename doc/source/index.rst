@@ -98,6 +98,9 @@ distribution, we provide support for the following readers:
     * - NOAA Level 2 ACSPO SST data in netCDF4 format
       - `acspo`
       - Nominal
+    * - GEOstationary Cloud Algorithm Test-bed (GEOCAT)
+      - `geocat`
+      - Nominal
     * - SNPP VIIRS data in hdf5 SDR format
       - `viirs_sdr`
       - Nominal
