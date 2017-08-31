@@ -175,7 +175,7 @@ class CLAVRXYAMLReader(FileYAMLReader):
         self.load_ds_ids_from_files()
 
     def load_ds_ids_from_files(self):
-        for file_type, file_handlers in self.file_handlers.items():
+        for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
             for ds_id, ds_info in fh.available_dataset_ids():
                 # don't overwrite an existing dataset
