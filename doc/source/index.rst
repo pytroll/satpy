@@ -101,6 +101,9 @@ distribution, we provide support for the following readers:
     * - GEOstationary Cloud Algorithm Test-bed (GEOCAT)
       - `geocat`
       - Nominal
+    * - The Clouds from AVHRR Extended (CLAVR-x)
+      - `clavrx`
+      - Nominal
     * - SNPP VIIRS data in hdf5 SDR format
       - `viirs_sdr`
       - Nominal

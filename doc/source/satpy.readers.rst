@@ -41,6 +41,14 @@ satpy.readers.geocat module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.clavrx module
+---------------------------
+
+.. automodule:: satpy.readers.clavrx
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.mipp_xrit module
 ------------------------------
 
