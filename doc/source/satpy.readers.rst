@@ -33,6 +33,14 @@ satpy.readers.eps_l1b module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.geocat module
+---------------------------
+
+.. automodule:: satpy.readers.geocat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.mipp_xrit module
 ------------------------------
 
