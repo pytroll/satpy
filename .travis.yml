@@ -25,7 +25,7 @@ addons:
   apt_packages:
     - libgdal-dev
     - libhdf5-serial-dev
-    - libhdf4-dev
+    - libhdf4-alt-dev
     - netcdf-bin
     - libnetcdf-dev
     - cython
