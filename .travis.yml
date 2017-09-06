@@ -26,6 +26,7 @@ addons:
     - libgdal-dev
     - libhdf5-serial-dev
     - libhdf4-alt-dev
+    - libhdf4-dev
     - netcdf-bin
     - libnetcdf-dev
     - cython
