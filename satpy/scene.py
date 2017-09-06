@@ -26,10 +26,11 @@
 
 import logging
 import os
+import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
-                          runtime_import)
+                          runtime_import, recursive_dict_update)
 from satpy.dataset import Dataset, DatasetID, InfoObject
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, ReaderFinder
@@ -595,21 +596,15 @@ class Scene(InfoObject):
                 yield projectable.to_image()
 
     def load_writer_config(self, config_files, **kwargs):
-        conf = configparser.RawConfigParser()
-        successes = conf.read(config_files)
-        if not successes:
-            raise IOError("Writer configuration files do not exist: %s" %
-                          (config_files, ))
-
-        for section_name in conf.sections():
-            if section_name.startswith("writer:"):
-                options = dict(conf.items(section_name))
-                writer_class_name = options["writer"]
-                writer_class = runtime_import(writer_class_name)
-                writer = writer_class(ppp_config_dir=self.ppp_config_dir,
-                                      config_files=config_files,
-                                      **kwargs)
-                return writer
+        conf = {}
+        for conf_fn in config_files:
+            with open(conf_fn) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
+        writer_class = conf['writer']['writer']
+        writer = writer_class(ppp_config_dir=self.ppp_config_dir,
+                              config_files=config_files,
+                              **kwargs)
+        return writer
 
     def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, **kwargs):
         """Save the *dataset_id* to file using *writer* (geotiff by default).
@@ -637,7 +632,7 @@ class Scene(InfoObject):
         writer.save_datasets(datasets, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
-        config_fn = writer + ".cfg" if "." not in writer else writer
+        config_fn = writer + ".yaml" if "." not in writer else writer
         config_files = config_search_paths(
             os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)
