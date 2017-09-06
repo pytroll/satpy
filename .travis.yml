@@ -29,6 +29,8 @@ addons:
     - libnetcdf-dev
     - cython
     - libgdal1h
+    - proj-bin
+    - gdal-bin
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
