@@ -24,12 +24,13 @@
 
 import logging
 import os
+import yaml
 
-from satpy.config import config_search_paths, get_environ_config_dir
+from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
 
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
@@ -56,29 +57,11 @@ class Plugin(object):
         if not isinstance(self.config_files, (list, tuple)):
             self.config_files = [self.config_files]
 
+        self.config = {}
         if self.config_files:
-            conf = configparser.RawConfigParser()
-            conf.read(self.config_files)
-            self.load_config(conf)
+            for config_file in self.config_files:
+                self.load_yaml_config(config_file)
 
-    # FIXME: why is this a static method, and not a function ?
-    @staticmethod
-    def _runtime_import(object_path):
-        """Import at runtime
-        """
-        obj_module, obj_element = object_path.rsplit(".", 1)
-        loader = __import__(obj_module, globals(), locals(), [obj_element])
-        return getattr(loader, obj_element)
-
-    def get_section_type(self, section_name):
-        return section_name.split(":")[0]
-
-    def load_config(self, conf):
-        # XXX: Need to load specific object section first if we want to do name-based section filtering
-        # Assumes only one section with "reader:" prefix
-        for section_name in conf.sections():
-            section_type = self.get_section_type(section_name)
-            load_func = "load_section_%s" % (section_type, )
-            if hasattr(self, load_func):
-                getattr(self, load_func)(section_name,
-                                         dict(conf.items(section_name)))
+    def load_yaml_config(self, conf):
+        with open(conf) as fd:
+            self.config = recursive_dict_update(self.config, yaml.load(fd))
