@@ -44,7 +44,7 @@ from datetime import datetime, timedelta
 from netCDF4 import Dataset
 
 import numpy as np
-
+from pyproj import Proj
 from satpy.writers import Writer, DecisionTree
 from pyresample.geometry import AreaDefinition
 
@@ -86,9 +86,9 @@ LETTERED_GRIDS = {
 
 
 class NumberedTileGenerator(object):
-    def __init__(self, grid_definition, data,
+    def __init__(self, area_definition, data,
                  tile_shape=None, tile_count=None):
-        self.grid_definition = grid_definition
+        self.area_definition = area_definition
         self.data = data
 
         # get tile shape, number of tiles, etc.
@@ -122,7 +122,7 @@ class NumberedTileGenerator(object):
         self.x, self.y = self._get_xy_arrays()
 
     def _get_xy_arrays(self):
-        gd = self.grid_definition
+        gd = self.area_definition
         ts = self.tile_shape
         tc = self.tile_count
         # Since our tiles may go over the edge of the original "grid" we
@@ -163,7 +163,7 @@ class NumberedTileGenerator(object):
 
     def _get_xy_scaling_parameters(self):
         """Get the X/Y coordinate limits for the full resulting image"""
-        gd = self.grid_definition
+        gd = self.area_definition
         bx = self.x.min()
         mx = gd.pixel_size_x
         by = self.y.min()
@@ -212,7 +212,7 @@ class NumberedTileGenerator(object):
 
 
 class LetteredTileGenerator(NumberedTileGenerator):
-    def __init__(self, grid_definition, data, extents,
+    def __init__(self, area_definition, data, extents,
                  cell_size=(2000000, 2000000),
                  num_subtiles=None):
         # (row subtiles, col subtiles)
@@ -221,23 +221,23 @@ class LetteredTileGenerator(NumberedTileGenerator):
         # lon/lat
         self.ll_extents = extents[:2]  # (-135, 20)
         self.ur_extents = extents[2:]  # (-60, 60)
-        super(LetteredTileGenerator, self).__init__(grid_definition, data)
+        super(LetteredTileGenerator, self).__init__(area_definition, data)
 
     def _get_tile_properties(self, tile_shape, tile_count):
         # ignore tile_shape and tile_count
         # they come from the base class, but aren't used here
 
         # get original image's X/Y
-        gd = self.grid_definition
-        p = gd.proj
-        x, y = gd.get_xy_arrays()
+        ad = self.area_definition
+        p = Proj(ad.proj4_string)
+        x, y = ad.get_proj_coords()
         x = x[0].squeeze()  # all rows should have the same coordinates
         y = y[:, 0].squeeze()  # all columns should have the same coordinates
 
         ll_corner = self.ll_extents
         ur_corner = self.ur_extents
-        cw = abs(gd['cell_width'])
-        ch = abs(gd['cell_height'])
+        cw = abs(ad.pixel_size_x)
+        ch = abs(ad.pixel_size_y)
         st = self.num_subtiles
         cs = self.cell_size  # row height, column width
         # make sure the number of total tiles is a factor of the subtiles
@@ -318,8 +318,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
         ts = self.tile_shape
         ul_xy = self.ul_xy
         x, y = self.x, self.y
-        cw = abs(float(self.grid_definition['cell_width']))
-        ch = abs(float(self.grid_definition['cell_height']))
+        cw = abs(float(self.area_definition.pixel_size_x))
+        ch = abs(float(self.area_definition.pixel_size_y))
         tmp_tile = np.ma.zeros((ts[0], ts[1]), dtype=np.float32)
         tmp_tile.set_fill_value(fill_value)
         tmp_x = np.ma.zeros((ts[1],), dtype=np.float32)
@@ -718,8 +718,8 @@ class SCMIWriter(Writer):
             if lettered_grid:
                 LOG.warning("Sector '{}' is unknown, using defaults for lettered grid".format(sector_id))
                 sector_info = {
-                    'lower_left_lonlat': area_def.ll_extent_lonlat,
-                    'upper_right_lonlat': area_def.ur_extent_lonlat,
+                    'lower_left_lonlat': area_def.area_extent_ll[:2],
+                    'upper_right_lonlat': area_def.area_extent_ll[2:],
                     'resolution': (2000000, 2000000),
                 }
             else:
