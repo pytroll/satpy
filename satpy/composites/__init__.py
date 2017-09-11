@@ -257,8 +257,10 @@ class SunZenithCorrector(CompositeBase):
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
-                                                                *vis.info["area"].get_lonlats()),
+                self.coszen[key] = np.ma.masked_outside(
+                    cos_zen(vis.info["start_time"],
+                            *vis.info[
+                            "area"].get_lonlats()),
                                                         # about 88 degrees.
                                                         0.035,
                                                         1,
@@ -471,7 +473,22 @@ class RGBCompositor(CompositeBase):
         return Dataset(data=the_data, **info)
 
 
+class BWCompositor(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 1:
+            raise ValueError("Expected 1 dataset, got %d" %
+                             (len(projectables), ))
+
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
+
+        return Dataset(projectables[0], **info)
+
+
 class ColormapCompositor(RGBCompositor):
+
     """A compositor that uses colormaps."""
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -496,6 +513,7 @@ class ColormapCompositor(RGBCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, interpolating the palette colors when
     needed.
     """
@@ -523,6 +541,7 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, not interpolating the palette colors.
     """
 
@@ -564,10 +583,11 @@ class Airmass(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
-                                                projectables[2] -
-                                                projectables[3],
-                                                projectables[0]), *args, **kwargs)
+            res = RGBCompositor.__call__(
+                self, (projectables[0] - projectables[1],
+                       projectables[2] -
+                       projectables[3],
+                       projectables[0]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
@@ -589,10 +609,12 @@ class Convection(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
-                                                projectables[2] -
-                                                projectables[5],
-                                                projectables[1] - projectables[0]),
+            res = RGBCompositor.__call__(
+                self, (projectables[3] - projectables[4],
+                       projectables[2] -
+                       projectables[5],
+                       projectables[
+                       1] - projectables[0]),
                                          *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
@@ -627,10 +649,11 @@ class Dust(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
-                                                projectables[1] -
-                                                projectables[0],
-                                                projectables[1]), *args, **kwargs)
+            res = RGBCompositor.__call__(
+                self, (projectables[2] - projectables[1],
+                       projectables[1] -
+                       projectables[0],
+                       projectables[1]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
 
