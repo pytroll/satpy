@@ -102,7 +102,7 @@ class NumberedTileGenerator(object):
     def _get_tile_properties(self, tile_shape, tile_count):
         if tile_shape is not None:
             tile_shape = (int(min(tile_shape[0], self.data.shape[0])), int(min(tile_shape[1], self.data.shape[1])))
-            tile_count = (int(np.ceil(self.data.shape[0] / tile_shape[0])), int(np.ceil(self.data.shape[1] / tile_shape[1])))
+            tile_count = (int(np.ceil(self.data.shape[0] / float(tile_shape[0]))), int(np.ceil(self.data.shape[1] / float(tile_shape[1]))))
         elif tile_count:
             tile_shape = (int(np.ceil(self.data.shape[0] / float(tile_count[0]))), int(np.ceil(self.data.shape[1] / float(tile_count[1]))))
         else:
@@ -682,16 +682,13 @@ class SCMIWriter(Writer):
             del h.attrs['_NCProperties']
         h.close()
 
-    def save_dataset(self, dataset, filename=None, fill_value=np.nan,
-                     sector_id=None,
-                     source_name=None,
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     sector_id=None, source_name=None,
                      tile_count=(1, 1), tile_size=None,
                      # tile_offset=(0, 0),
                      lettered_grid=False, num_subtiles=None,
                      **kwargs):
         dtype = np.dtype(np.uint16)
-        dtype_str = 'uint2'
-        fill_value = np.nan
         ds_info = dataset.info
         area_def = ds_info['area']
 
@@ -770,11 +767,10 @@ class SCMIWriter(Writer):
                 )
 
             attr_helper = AttributeHelper(ds_info)
-            for trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile in tile_gen(fill_value=fill_value):
+            for trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile in tile_gen():
                 if filename is None:
                     # format the filename
                     of_kwargs = ds_info.copy()
-                    of_kwargs['data_type'] = dtype_str
                     of_kwargs["start_time"] += timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
                     output_filename = self.get_filename(
                         area_id=area_def.area_id,
