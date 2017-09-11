@@ -53,14 +53,20 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'goes': 'goes_imager',
         'himawari8': 'ahi',
         'goes16': 'abi',  # untested
+        'goesr': 'abi',  # untested
     }
     platforms = {
     }
 
     def get_sensor(self, sensor):
+        last_resort = None
         for k, v in self.sensors.items():
-            if k in sensor:
+            if k == sensor:
                 return v
+            elif k in sensor:
+                last_resort = v
+        if last_resort:
+            return last_resort
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
     def get_platform(self, platform):
