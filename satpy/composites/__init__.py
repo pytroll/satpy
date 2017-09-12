@@ -135,8 +135,8 @@ class CompositorLoader(object):
         except KeyError:
             if composite_name in compositors or composite_name in modifiers:
                 return conf
-            raise ValueError("'compositor' missing or empty in %s" %
-                             composite_config)
+            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
+                composite_config, str(options.keys())))
 
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
@@ -388,6 +388,47 @@ class NIRReflectance(CompositeBase):
         return proj
 
 
+class PSPAtmosphericalCorrection(CompositeBase):
+
+    def __call__(self, projectables, satz=None, **info):
+        """Get the atmospherical correction. Uses pyspectral.
+        """
+        from pyspectral.atm_correction_ir import AtmosphericalCorrection
+
+        band = projectables[0]
+        if satz is None:
+            from pyorbital.orbital import get_observer_look
+            lons, lats = band.info['area'].get_lonlats()
+
+            try:
+                dummy, satel = get_observer_look(band.info['satellite_longitude'],
+                                                 band.info[
+                                                     'satellite_latitude'],
+                                                 band.info[
+                                                     'satellite_altitude'],
+                                                 band.info['start_time'],
+                                                 lons, lats, 0)
+            except KeyError:
+                raise KeyError(
+                    'Band info is missing some meta data!')
+            satz = 90 - satel
+            del satel
+
+        LOG.info('Correction for limb cooling')
+
+        corrector = AtmosphericalCorrection(band.info['platform_name'],
+                                            band.info['sensor'])
+
+        atm_corr = corrector.get_correction(satz, band.info['name'], band)
+
+        proj = Dataset(atm_corr,
+                       copy=False,
+                       **band.info)
+        self.apply_modifier_info(band, proj)
+
+        return proj
+
+
 class CO2Corrector(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -472,6 +513,7 @@ class RGBCompositor(CompositeBase):
 
 
 class ColormapCompositor(RGBCompositor):
+
     """A compositor that uses colormaps."""
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -496,6 +538,7 @@ class ColormapCompositor(RGBCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, interpolating the palette colors when
     needed.
     """
@@ -523,6 +566,7 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, not interpolating the palette colors.
     """
 

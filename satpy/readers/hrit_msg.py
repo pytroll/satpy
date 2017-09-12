@@ -799,6 +799,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         ssp = self.prologue['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
         self.mda['projection_parameters']['SSP_longitude'] = ssp
+        self.mda['projection_parameters']['SSP_latitude'] = 0.0
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
@@ -906,7 +907,8 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         upper_area_extent = self.get_area_extent((nlines - upper_south_line,
                                                   ncols),
-                                                 (loff - upper_south_line, upper_coff),
+                                                 (loff - upper_south_line,
+                                                  upper_coff),
                                                  (lfac, cfac),
                                                  h)
 
@@ -948,11 +950,17 @@ class HRITMSGFileHandler(HRITFileHandler):
             out = res
 
         self.calibrate(out, key.calibration)
+
         out.info['units'] = info['units']
         out.info['wavelength'] = info['wavelength']
         out.info['standard_name'] = info['standard_name']
         out.info['platform_name'] = self.platform_name
         out.info['sensor'] = 'seviri'
+        out.info['satellite_longitude'] = self.mda[
+            'projection_parameters']['SSP_longitude']
+        out.info['satellite_latitude'] = self.mda[
+            'projection_parameters']['SSP_latitude']
+        out.info['satellite_altitude'] = self.mda['projection_parameters']['h']
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
