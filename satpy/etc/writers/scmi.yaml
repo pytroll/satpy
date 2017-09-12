@@ -12,23 +12,31 @@ sectors:
     lower_left_lonlat: [-135, 20]
     upper_right_lonlat: [-60, 60]
     resolution: [1300000, 1300000]  # y, x
-    projection: '+proj: lcc +datum: WGS84 +ellps: WGS84 +lat_0: 25 +lat_1: 25 +lon_0: -95 +units: m +no_defs'
+    projection: '+proj=lcc +datum=WGS84 +ellps=WGS84 +lat_0=25 +lat_1=25 +lon_0=-95 +units=m +no_defs'
   Polar:
     lower_left_lonlat: [-180, 33]
     upper_right_lonlat: [-40.5, 78]
     resolution: [1400000, 1400000]
-    projection: '+proj: stere +datum: WGS84 +ellps: WGS84 +lat_0: 90 +lat_ts: 60.0 +lon_0: -150 +units: m'
+    projection: '+proj=stere +datum=WGS84 +ellps=WGS84 +lat_0=90 +lat_ts=60.0 +lon_0=-150 +units=m'
   Mercator:
     lower_left_lonlat: [-135, 0]
     upper_right_lonlat: [-30, 50]
     resolution: [2150000, 2150000]
-    projection: '+proj: merc +datum: WGS84 +ellps: WGS84 +lon_0: -95 +lat_0: 0 +units: m +no_defs'
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=-95 +lat_0=0 +units=m +no_defs'
   Pacific:
     lower_left_lonlat: [120, 0]
     upper_right_lonlat: [-135, 50]
     resolution: [2150000, 2150000]
-    projection: '+proj: merc +datum: WGS84 +ellps: WGS84 +lon_0: 170 +lat_0: 0 +units: m +no_defs'
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=170 +lat_0=0 +units=m +no_defs'
+  GOESR_FLDK:
+    lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
+    upper_right_xy: [5433893.2095645051, 5433892.6923244298]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-89.5 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
 datasets:
+    default:
+       physical_element: '{name}'
+
     # ACSPO Products
     acspo_sst:
       reader: acspo
@@ -38,7 +46,7 @@ datasets:
     # CLAVR-x Products
     default_clavrx:
       reader: clavrx
-      physical_element: CLAVR-x {name}
+      physical_element: 'CLAVR-x {name}'
     clavrx_cloud_type:
       reader: clavrx
       name: cloud_type

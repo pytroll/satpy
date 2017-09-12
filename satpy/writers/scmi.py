@@ -47,11 +47,13 @@ import numpy as np
 from pyproj import Proj
 from satpy.writers import Writer, DecisionTree
 from pyresample.geometry import AreaDefinition
+from pyresample.utils import proj4_str_to_dict
 
 
 LOG = logging.getLogger(__name__)
 # AWIPS 2 seems to not like data values under 0
 AWIPS_USES_NEGATIVES = False
+DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
 
 # misc. global attributes
 SCMI_GLOBAL_ATT = dict(
@@ -218,9 +220,9 @@ class LetteredTileGenerator(NumberedTileGenerator):
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
         self.cell_size = cell_size  # (row tile height, col tile width)
-        # lon/lat
-        self.ll_extents = extents[:2]  # (-135, 20)
-        self.ur_extents = extents[2:]  # (-60, 60)
+        # x/y
+        self.ll_extents = extents[:2]  # (x min, y min)
+        self.ur_extents = extents[2:]  # (x max, y max)
         super(LetteredTileGenerator, self).__init__(area_definition, data)
 
     def _get_tile_properties(self, tile_shape, tile_count):
@@ -234,16 +236,14 @@ class LetteredTileGenerator(NumberedTileGenerator):
         x = x[0].squeeze()  # all rows should have the same coordinates
         y = y[:, 0].squeeze()  # all columns should have the same coordinates
 
-        ll_corner = self.ll_extents
-        ur_corner = self.ur_extents
+        ll_xy = self.ll_extents
+        ur_xy = self.ur_extents
         cw = abs(ad.pixel_size_x)
         ch = abs(ad.pixel_size_y)
         st = self.num_subtiles
         cs = self.cell_size  # row height, column width
         # make sure the number of total tiles is a factor of the subtiles
         # meaning each letter has the full number of subtiles
-        ll_xy = p(*ll_corner)
-        ur_xy = p(*ur_corner)
         # Tile numbering/naming starts from the upper left corner
         ul_xy = (ll_xy[0], ur_xy[1])
 
@@ -282,8 +282,9 @@ class LetteredTileGenerator(NumberedTileGenerator):
         num_cols = max_col - min_col + 1
         num_rows = max_row - min_row + 1
 
-        if (max_cols * max_rows) / (st[0] * st[1]) > 26:
-            raise ValueError("Too many lettered grid cells (sector cell size too small). Max 26")
+        total_alphas = (max_cols * max_rows) / (st[0] * st[1])
+        if total_alphas > 26:
+            raise ValueError("Too many lettered grid cells '{}' (sector cell size too small). Maximum of 26".format(total_alphas))
 
         self.tile_shape = (num_pixels_y, num_pixels_x)
         self.total_tile_count = (max_rows, max_cols)
@@ -539,15 +540,42 @@ class NetCDFWriter(object):
         assert(hasattr(data, 'mask'))
         self.image_data[:, :] = np.require(data.filled(fill_value), dtype=np.float32)
 
-    def set_projection_attrs(self, area_def):
+    def proj4_radius_parameters(self, proj4_dict_or_str):
+        """Calculate 'a' and 'b' radius parameters.
+
+        Returns:
+            a (float), b (float): equatorial and polar radius
+        """
+        if isinstance(proj4_dict_or_str, str):
+            new_info = proj4_str_to_dict(proj4_dict_or_str)
+        else:
+            new_info = proj4_dict_or_str.copy()
+
+        # load information from PROJ.4 about the ellipsis if possible
+        if '+ellps' in new_info and '+a' not in new_info or '+b' not in new_info:
+            import pyproj
+            ellps = pyproj.pj_ellps[new_info['+ellps']]
+            new_info['+a'] = ellps['a']
+            if 'b' not in ellps and 'rf' in ellps:
+                new_info['+f'] = 1. / ellps['rf']
+            else:
+                new_info['+b'] = ellps['b']
+
+        if '+a' in new_info and '+f' in new_info and '+b' not in new_info:
+            # add a 'b' attribute back in if they used 'f' instead
+            new_info['+b'] = new_info['+a'] * (1 - new_info['+f'])
+
+        return float(new_info['+a']), float(new_info['+b'])
+
+    def set_projection_attrs(self, area_id, proj4_info):
         """
         assign projection attributes per GRB standard
         """
-        proj4_info = area_def.proj_dict
+        proj4_info['+a'], proj4_info['+b'] = self.proj4_radius_parameters(proj4_info)
         if proj4_info["+proj"] == "geos":
             p = self.projection = self._nc.createVariable("fixedgrid_projection", 'i4')
             self.image_data.grid_mapping = "fixedgrid_projection"
-            p.short_name = area_def.area_id
+            p.short_name = area_id
             p.grid_mapping_name = "geostationary"
             p.sweep_angle_axis = proj4_info.get("+sweep", "x")
             p.perspective_point_height = proj4_info['+h']
@@ -556,7 +584,7 @@ class NetCDFWriter(object):
         elif proj4_info["+proj"] == "lcc":
             p = self.projection = self._nc.createVariable("lambert_projection", 'i4')
             self.image_data.grid_mapping = "lambert_projection"
-            p.short_name = area_def.area_id
+            p.short_name = area_id
             p.grid_mapping_name = "lambert_conformal_conic"
             p.standard_parallel = proj4_info["+lat_0"]  # How do we specify two standard parallels?
             p.longitude_of_central_meridian = proj4_info["+lon_0"]
@@ -564,7 +592,7 @@ class NetCDFWriter(object):
         elif proj4_info['+proj'] == 'stere':
             p = self.projection = self._nc.createVariable("polar_projection", 'i4')
             self.image_data.grid_mapping = "polar_projection"
-            p.short_name = area_def.area_id
+            p.short_name = area_id
             p.grid_mapping_name = "polar_stereographic"
             p.standard_parallel = proj4_info["+lat_ts"]
             p.straight_vertical_longitude_from_pole = proj4_info.get("+lon_0", 0.0)
@@ -572,7 +600,7 @@ class NetCDFWriter(object):
         elif proj4_info['+proj'] == 'merc':
             p = self.projection = self._nc.createVariable("mercator_projection", 'i4')
             self.image_data.grid_mapping = "mercator_projection"
-            p.short_name = area_def.area_id
+            p.short_name = area_id
             p.grid_mapping_name = "mercator"
             p.standard_parallel = proj4_info.get('+lat_ts', proj4_info.get('+lat_0', 0.0))
             p.longitude_of_projection_origin = proj4_info.get("+lon_0", 0.0)
@@ -587,9 +615,12 @@ class NetCDFWriter(object):
     def set_global_attrs(self, physical_element, awips_id, sector_id,
                          creating_entity, total_tiles, total_pixels,
                          tile_row, tile_column,
-                         tile_height, tile_width):
+                         tile_height, tile_width, creator=None):
         self._nc.Conventions = "CF-1.7"
-        self._nc.creator = "UW SSEC - CSPP Polar2Grid"
+        if creator is None:
+            self._nc.creator = "UW SSEC - CSPP Polar2Grid"
+        else:
+            self._nc.creator = creator
         self._nc.creation_time = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
         # name as it shows in the product browser (physicalElement)
         self._nc.physical_element = physical_element
@@ -623,6 +654,19 @@ class SCMIWriter(Writer):
         self.scmi_datasets = SCMIDatasetDecisionTree([self.config['datasets']])
         self.compress = compress
         self.fix_awips = fix_awips
+        self._fill_sector_info()
+
+    def _fill_sector_info(self):
+        for sector_info in self.scmi_sectors.values():
+            p = Proj(sector_info['projection'])
+            if 'lower_left_xy' in sector_info:
+                sector_info['lower_left_lonlat'] = p(*sector_info['lower_left_xy'], inverse=True)
+            else:
+                sector_info['lower_left_xy'] = p(*sector_info['lower_left_lonlat'])
+            if 'upper_right_xy' in sector_info:
+                sector_info['upper_right_lonlat'] = p(*sector_info['upper_right_xy'], inverse=True)
+            else:
+                sector_info['upper_right_xy'] = p(*sector_info['upper_right_lonlat'])
 
     def _calc_factor_offset(self, data=None, dtype=np.int16, bitdepth=None,
                             min=None, max=None, num_fills=1,
@@ -684,6 +728,7 @@ class SCMIWriter(Writer):
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      sector_id=None, source_name=None,
+                     physical_element=None,
                      tile_count=(1, 1), tile_size=None,
                      # tile_offset=(0, 0),
                      lettered_grid=False, num_subtiles=None,
@@ -697,15 +742,21 @@ class SCMIWriter(Writer):
 
         try:
             awips_info = self.scmi_datasets.find_match(**ds_info)
-            physical_element = awips_info.get('physical_element', ds_info['name'])
             awips_id = "AWIPS_" + ds_info['name']
+
+            if physical_element:
+                awips_info['physical_element'] = physical_element
+            physical_element = awips_info.get('physical_element', ds_info['name'])
+
             if source_name:
                 awips_info['source_name'] = source_name
             source_name = awips_info['source_name']
             if source_name is None:
                 raise TypeError("'source_name' keyword must be specified")
+
             if "{" in physical_element:
                 physical_element = physical_element.format(**ds_info)
+
             def_ce = "{}-{}".format(ds_info["platform"].upper(), ds_info["sensor"].upper())
             creating_entity = awips_info.get('creating_entity', def_ce)
         except KeyError as e:
@@ -720,6 +771,8 @@ class SCMIWriter(Writer):
                 sector_info = {
                     'lower_left_lonlat': area_def.area_extent_ll[:2],
                     'upper_right_lonlat': area_def.area_extent_ll[2:],
+                    'lower_left_xy': area_def.area_extent[:2],
+                    'upper_right_xy': area_def.area_extent[2:],
                     'resolution': (2000000, 2000000),
                 }
             else:
@@ -754,7 +807,7 @@ class SCMIWriter(Writer):
                 tile_gen = LetteredTileGenerator(
                     area_def,
                     data,
-                    sector_info['lower_left_lonlat'] + sector_info['upper_right_lonlat'],
+                    sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
                     num_subtiles=num_subtiles,
                     cell_size=sector_info['resolution'],
                 )
@@ -804,7 +857,7 @@ class SCMIWriter(Writer):
                                     tile_gen.tile_count, tile_gen.image_shape,
                                     trow, tcol, tmp_tile.shape[0], tmp_tile.shape[1])
                 LOG.debug("Creating projection attributes...")
-                nc.set_projection_attrs(area_def)
+                nc.set_projection_attrs(area_def.area_id, area_def.proj_dict)
                 LOG.debug("Writing image data...")
                 np.clip(tmp_tile, valid_min, valid_max, out=tmp_tile)
                 nc.set_image_data(tmp_tile, fills[0])
@@ -830,15 +883,9 @@ class SCMIWriter(Writer):
         return created_files[-1] if created_files else None
 
 
-def _create_debug_array(sector_id, num_subtiles, font_path='Vera.ttf'):
+def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
     from PIL import Image, ImageDraw, ImageFont
-    from pyproj import Proj
-    from polar2grid.core.containers import GridDefinition
     from pkg_resources import resource_filename as get_resource_filename
-
-
-    sector_config = SCMISectorConfigReader('polar2grid.awips:scmi_backend.ini')
-    sector_info = sector_config.get_sector_info(sector_id)
     size = (1000, 1000)
     img = Image.new("L", size, 0)
     draw = ImageDraw.Draw(img)
@@ -846,17 +893,14 @@ def _create_debug_array(sector_id, num_subtiles, font_path='Vera.ttf'):
     if ':' in font_path:
         # load from a python package
         font_path = get_resource_filename(*font_path.split(':'))
-    if not os.path.exists(font_path):
-        raise ValueError("Font path does not exist: {}".format(font_path))
     font = ImageFont.truetype(font_path, 25)
 
-    p = Proj(sector_info['proj'])
-    ll_extent = p(*sector_info['ll_extent'])
-    ur_extent = p(*sector_info['ur_extent'])
+    ll_extent = sector_info['lower_left_xy']
+    ur_extent = sector_info['upper_right_xy']
     total_meters_x = ur_extent[0] - ll_extent[0]
     total_meters_y = ur_extent[1] - ll_extent[1]
-    fcs_x = np.ceil(float(sector_info['cell_size'][1]) / num_subtiles[1])
-    fcs_y = np.ceil(float(sector_info['cell_size'][0]) / num_subtiles[0])
+    fcs_x = np.ceil(float(sector_info['resolution'][1]) / num_subtiles[1])
+    fcs_y = np.ceil(float(sector_info['resolution'][0]) / num_subtiles[0])
     total_cells_x = np.ceil(total_meters_x / fcs_x)
     total_cells_y = np.ceil(total_meters_y / fcs_y)
     total_cells_x = np.ceil(total_cells_x / num_subtiles[1]) * num_subtiles[1]
@@ -900,15 +944,15 @@ def _create_debug_array(sector_id, num_subtiles, font_path='Vera.ttf'):
 
     img.save("test.png")
 
-    grid_def = GridDefinition(
-        grid_name='debug_grid',
-        proj4_definition=sector_info['proj'],
-        height=1000,
-        width=1000,
-        cell_height=-meters_ppy,
-        cell_width=meters_ppx,
-        origin_x=ll_extent[0] + meters_ppx / 2.,
-        origin_y=ur_extent[1] - meters_ppy / 2.,
+    from pyresample.utils import proj4_str_to_dict
+    grid_def = AreaDefinition(
+        'debug_grid',
+        'debug_grid',
+        'debug_grid',
+        proj4_str_to_dict(sector_info['projection']),
+        1000,
+        1000,
+        ll_extent + ur_extent
     )
     return grid_def, np.array(img)
 
@@ -920,33 +964,33 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
         draw.rectangle((rect_start, rect_end), outline=outline, fill=fill)
 
 
-def create_debug_lettered_tiles(args):
-    from polar2grid.core.containers import GriddedProduct
-    init_args = args.subgroup_args['Backend Initialization']
-    create_args = args.subgroup_args['Backend Output Creation']
+def create_debug_lettered_tiles(init_args, create_args):
+    from satpy import Dataset
     create_args['lettered_grid'] = True
     create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
-    sector_id = create_args['sector_id']
-    grid_def, arr = _create_debug_array(sector_id, create_args['num_subtiles'])
 
-    backend = SCMIWriter(**init_args)
+    writer = SCMIWriter(**init_args)
+
+    sector_id = create_args['sector_id']
+    sector_info = writer.scmi_sectors[sector_id]
+    area_def, arr = _create_debug_array(sector_info, create_args['num_subtiles'])
+
     now = datetime.utcnow()
-    product = GriddedProduct(
+    product = Dataset(
+        arr,
+        mask=np.isnan(arr),
         name='debug_{}'.format(sector_id),
-        satellite='DEBUG',
-        instrument='TILES',
+        platform='DEBUG',
+        sensor='TILES',
         start_time=now,
         end_time=now,
-        data_type=arr.dtype,
-        grid_data=arr,
-        grid_definition=grid_def,
-        fill_value=np.nan,
-        data_kind='reflectance',
+        area=area_def,
+        standard_name="toa_bidirectional_reflectance",
         units='1',
         valid_min=0,
         valid_max=255,
     )
-    created_files = backend.create_output_from_product(
+    created_files = writer.save_dataset(
         product,
         **create_args
     )
@@ -954,70 +998,57 @@ def create_debug_lettered_tiles(args):
 
 
 def add_backend_argument_groups(parser):
-    group = parser.add_argument_group(title="Backend Initialization")
-    group.add_argument("--backend-configs", nargs="*", dest="backend_configs",
+    group_1 = parser.add_argument_group(title="Backend Initialization")
+    group_1.add_argument("--backend-configs", nargs="*", dest="backend_configs",
                        help="alternative backend configuration files")
-    group.add_argument("--compress", action="store_true",
+    group_1.add_argument("--compress", action="store_true",
                        help="zlib compress each netcdf file")
-    group.add_argument("--fix-awips", action="store_true",
+    group_1.add_argument("--fix-awips", action="store_true",
                        help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
-    group = parser.add_argument_group(title="Backend Output Creation")
-    group.add_argument("--tiles", dest="tile_count", nargs=2, type=int, default=[1, 1],
+    group_2 = parser.add_argument_group(title="Backend Output Creation")
+    group_2.add_argument("--tiles", dest="tile_count", nargs=2, type=int, default=[1, 1],
                        help="Number of tiles to produce in Y (rows) and X (cols) direction respectively")
-    group.add_argument("--tile-size", dest="tile_size", nargs=2, type=int, default=None,
+    group_2.add_argument("--tile-size", dest="tile_size", nargs=2, type=int, default=None,
                        help="Specify how many pixels are in each tile (overrides '--tiles')")
     # group.add_argument('--tile-offset', nargs=2, default=(0, 0),
     #                    help="Start counting tiles from this offset ('row_offset col_offset')")
-    group.add_argument("--letters", dest="lettered_grid", action='store_true',
+    group_2.add_argument("--letters", dest="lettered_grid", action='store_true',
                        help="Create tiles from a static letter-based grid based on the product projection")
-    group.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
+    group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
                        help="Specify number of subtiles in each lettered tile: \'row col\'")
-    group.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
+    group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
                        help="output filenaming pattern")
-    group.add_argument("--source-name", default='SSEC',
+    group_2.add_argument("--source-name", default='SSEC',
                        help="specify processing source name used in attributes and filename (default 'SSEC')")
-    group.add_argument("--sector-id", required=True,
+    group_2.add_argument("--sector-id", required=True,
                        help="specify name for sector/region used in attributes and filename (example 'LCC')")
-    return ["Backend Initialization", "Backend Output Creation"]
+    return group_1, group_2
 
 
 def main():
-    from polar2grid.core.script_utils import create_basic_parser, create_exc_handler, setup_logging
-    from polar2grid.core.containers import GriddedScene, GriddedProduct
-    parser = create_basic_parser(description="Create SCMI AWIPS compatible NetCDF files")
-    subgroup_titles = add_backend_argument_groups(parser)
-    parser.add_argument("--scene", required=True, help="JSON SwathScene filename to be remapped")
-    parser.add_argument("-p", "--products", nargs="*", default=None,
-                        help="Specify only certain products from the provided scene")
+    import argparse
+    parser = argparse.ArgumentParser(description="Create SCMI AWIPS compatible NetCDF files")
+    subgroups = add_backend_argument_groups(parser)
     parser.add_argument("--create-debug", action='store_true',
                         help='Create debug NetCDF files to show tile locations in AWIPS')
-    global_keywords = ("keep_intermediate", "overwrite_existing", "exit_on_error")
-    args = parser.parse_args(subgroup_titles=subgroup_titles, global_keywords=global_keywords)
+    parser.add_argument('-v', '--verbose', dest='verbosity', action="count", default=0,
+                        help='each occurrence increases verbosity 1 level through ERROR-WARNING-INFO-DEBUG (default INFO)')
+    parser.add_argument('-l', '--log', dest="log_fn", default=None,
+                        help="specify the log filename")
+    args = parser.parse_args()
+
+    init_args = {ga.dest: getattr(args, ga.dest) for ga in subgroups[0]._group_actions}
+    create_args = {ga.dest: getattr(args, ga.dest) for ga in subgroups[1]._group_actions}
 
     # Logs are renamed once data the provided start date is known
     levels = [logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG]
-    setup_logging(console_level=levels[min(3, args.verbosity)], log_filename=args.log_fn)
-    sys.excepthook = create_exc_handler(LOG.name)
+    logging.basicConfig(level=levels[min(3, args.verbosity)], filename=args.log_fn)
 
     if args.create_debug:
-        create_debug_lettered_tiles(args)
+        create_debug_lettered_tiles(init_args, create_args)
         return
-
-    LOG.info("Loading scene or product...")
-    gridded_scene = GriddedScene.load(args.scene)
-    if args.products and isinstance(gridded_scene, GriddedScene):
-        for k in gridded_scene.keys():
-            if k not in args.products:
-                del gridded_scene[k]
-
-    LOG.info("Initializing backend...")
-    backend = Backend(**args.subgroup_args["Backend Initialization"])
-    if isinstance(gridded_scene, GriddedScene):
-        backend.create_output_from_scene(gridded_scene, **args.subgroup_args["Backend Output Creation"])
-    elif isinstance(gridded_scene, GriddedProduct):
-        backend.create_output_from_product(gridded_scene, **args.subgroup_args["Backend Output Creation"])
     else:
-        raise ValueError("Unknown Polar2Grid object provided")
+        raise NotImplementedError("Command line interface not implemented yet for SCMI writer")
 
 if __name__ == '__main__':
     sys.exit(main())
