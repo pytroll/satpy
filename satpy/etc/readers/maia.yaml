@@ -1,7 +1,7 @@
 reader:
   description: MAIA Reader
   name: maia
-  reader: !!python/name:satpy.readers.maia.MAIAYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs, avhrr]
 
 file_types:
