@@ -1,0 +1,51 @@
+reader:
+  description: MAIA Reader
+  name: maia
+  reader: !!python/name:satpy.readers.maia.MAIAYAMLReader
+  sensors: [viirs, avhrr]
+
+file_types:
+  maia:
+    file_reader: !!python/name:satpy.readers.maia.MAIAFileHandler
+#    viiCT_npp_DB_20121010_S132824_E132947_ASC_D_La050_Lo-012_00001.h5
+#    viiCT_npp_20121010_S132824_E132947.h5
+    file_patterns:
+#     - 'viiCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_ASC_D_La{latitude}_Lo{longitude}_#{orbit:5d}.h5'
+#     - 'viiCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_ASC_D_La050_Lo-012_{orbit:5d}.h5'
+#     - 'avhCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_{}_{}_La{latitude}_Lo{longitude}_{orbit:5d}.h5'
+     - 'viiCT_{platform}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}.h5'
+
+
+datasets:
+  Mask_in:
+    name: Mask_in
+    file_type: maia
+    coordinates: [Longitude, Latitude ]
+
+  Latitude:
+    name: Latitude
+    file_type: maia
+    units: "degrees"
+    standard_name: latitude
+
+  Longitude:
+    name: Longitude
+    file_type: maia
+    units: "degrees"
+    standard_name: longitude
+
+  Alt_surface:
+   name: Alt_surface
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudType:
+   name: CloudType
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudMask:
+   name: CloudMask  
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
