@@ -48,3 +48,32 @@ def cira_stretch(img, **kwargs):
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
+
+
+def colorize(img, **kwargs):
+    """Colorize the given image."""
+    full_cmap = None
+
+    for itm in kwargs["palettes"]:
+        cmap = create_colormap(itm["filename"])
+        cmap.set_range(itm["min_value"], itm["max_value"])
+        if full_cmap is None:
+            full_cmap = cmap
+        else:
+            full_cmap = full_cmap + cmap
+
+    img.colorize(full_cmap)
+
+
+def create_colormap(fname):
+    """Create colormap of the given numpy file."""
+
+    from trollimage.colormap import Colormap
+
+    data = np.load(fname)
+    cmap = []
+    num = 1.0 * data.shape[0]
+    for i in range(int(num)):
+        cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
+                               data[i, 2] / 255.)))
+    return Colormap(*cmap)
