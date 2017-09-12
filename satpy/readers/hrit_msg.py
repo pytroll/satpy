@@ -856,7 +856,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
-        if self.start_time < datetime(2037, 1, 24):
+        if (self.prologue['GeometricProcessing']['EarthModel']['TypeOfEarthModel'] < 2):
             xadj = 1500
             yadj = 1500
             aex = (aex[0] + xadj, aex[1] + yadj,
