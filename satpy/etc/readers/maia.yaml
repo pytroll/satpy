@@ -48,4 +48,102 @@ datasets:
    name: CloudMask  
    file_type: maia
    coordinates: [Longitude, Latitude ]
+  
+# CloudType and CloudMask are bitfields
+# description of sub fields
+  CT:
+   name: CT
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask On Pixel  
+  CM:
+   name: CM
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask Confidence
+  CM_conf:
+   name: CM_conf
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask Quality
+  CM_qual:
+   name: CM_qual
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  land_water_background:
+   name: land_water_background
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  opaque_cloud:
+   name: land_water_background
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
 

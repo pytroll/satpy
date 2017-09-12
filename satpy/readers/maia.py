@@ -57,7 +57,7 @@ class MAIAFileHandler(BaseFileHandler):
         'viirs': 742,
         'avhrr': 1050,
     }
-
+    
     def __init__(self, filename, filename_info, filetype_info):
         super(MAIAFileHandler, self).__init__(
             filename, filename_info, filetype_info)
@@ -67,15 +67,53 @@ class MAIAFileHandler(BaseFileHandler):
     def read(self, filename):
         self.h5 = h5py.File(filename, 'r')
         missing = -9999.
-        self.Lat = self.h5["DATA/Latitude"][:] / 10000.
-        self.Lon = self.h5["DATA/Longitude"][:] / 10000.
+        self.Lat = self.h5[u'DATA/Latitude'][:] / 10000.
+        self.Lon = self.h5[u'DATA/Longitude'][:] / 10000.
         self.selected = (self.Lon > missing)
         self.file_content = {}
-        for key in self.h5["DATA"].keys():
-            self.file_content[key] = self.h5["DATA/" + key][:]
-        for key in self.h5["HEADER"].keys():
-            self.file_content[key] = self.h5["HEADER/" + key][:]
+        for key in self.h5['DATA'].keys():
+            self.file_content[key] = self.h5[u'DATA/' + key][:]
+        for key in self.h5[u'HEADER'].keys():
+            self.file_content[key] = self.h5[u'HEADER/' + key][:]
         self.h5.close()
+        
+        # Cloud Mask on pixel
+        mask = 2**0+2**1+2**2
+        lst =  self.file_content[u'CloudMask'][:]&mask
+        lst = lst/2**0
+        self.file_content[u"CM"] = lst
+        
+        # Cloud Mask confidence
+        mask = 2**5+2**6
+        lst = self.file_content[u'CloudMask'][:]&mask
+        lst = lst/2**5
+        self.file_content[u"CM_conf"] = lst
+        
+        Cloud Mask Quality
+        mask = 2**3+2**4
+        lst = self.file_content[u'CloudMask'][:]&mask
+        lst = lst/2**3
+        self.file_content[u'CM_qual'] = lst
+        
+        # Opaque Cloud
+        mask =  2**21
+        lst = self.file_content[u'CloudMask'][:]&mask
+        lst = lst/2**21
+        self.file_content[u'opaque_cloud'] = lst
+      
+        # land /water Background
+        mask = 2**15+2**16+2**17
+        lst = self.file_content[u'CloudMask'][:]&mask
+        lst = lst/2**15
+        self.file_content[u'land_water_background'] = lst
+        
+        # CT (Actual CloudType)
+        mask = 2**4+2**5+2**6+2**7+2**8
+        classif = self.file_content[u'CloudType'][:]&mask
+        classif = classif/2**4
+        self.file_content['CT'] = classif
+        
+
 
     # def __getitem__(self, key):
     #     if key in self.file_content.keys():
@@ -168,19 +206,7 @@ class MAIAFileHandler(BaseFileHandler):
         return ds
 
 
-# class MAIAYAMLReader(FileYAMLReader):
-#
-#     def create_filehandlers(self, filenames):
-#         super(MAIAYAMLReader, self).create_filehandlers(filenames)
-#         self.load_ds_ids_from_files()
-#
-#     def load_ds_ids_from_files(self):
-#         for file_type, file_handlers in self.file_handlers.items():
-#             print file_type, file_handlers
-#             fh = file_handlers[0]
-#             for ds in fh.available_dataset_ids():
-#                 # load the dataset
-#                 pass
+
 
 
 if __name__ == '__main__':
