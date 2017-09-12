@@ -226,7 +226,7 @@ that black.
 
     >>> import numpy as np
     >>> from satpy.composites import BWCompositor
-    >>> from satpy.enhancemetns import colorize
+    >>> from satpy.enhancements import colorize
     >>> from satpy.writers import to_image
     >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
     >>> np.save("/tmp/binary_colormap.npy", arr)
