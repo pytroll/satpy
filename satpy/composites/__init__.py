@@ -512,6 +512,20 @@ class RGBCompositor(CompositeBase):
         return Dataset(data=the_data, **info)
 
 
+class BWCompositor(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 1:
+            raise ValueError("Expected 1 dataset, got %d" %
+                             (len(projectables), ))
+
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
+
+        return Dataset(projectables[0], **info)
+
+
 class ColormapCompositor(RGBCompositor):
 
     """A compositor that uses colormaps."""
