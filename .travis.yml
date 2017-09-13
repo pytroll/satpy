@@ -7,6 +7,8 @@ python:
 - '3.6'
 os:
 - linux
+before_install:
+- source travis/linux_install.sh
 install:
 - pip install -U pip
 - pip install -U setuptools
@@ -16,10 +18,14 @@ install:
 - pip install pyorbital
 - pip install behave
 - pip install h5netcdf
+- pip install python-hdf4
 - "pip install --no-binary :all: netCDF4"
+- pip install gdal==1.10.0
 addons:
   apt_packages:
+    - libgdal-dev
     - libhdf5-serial-dev
+    - libhdf4-alt-dev
     - netcdf-bin
     - libnetcdf-dev
     - cython
@@ -35,7 +41,7 @@ deploy:
   on:
     tags: true
     repo: pytroll/satpy
-sudo: false
+sudo: true
 notifications:
   slack:
     rooms:

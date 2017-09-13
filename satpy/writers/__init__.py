@@ -193,13 +193,14 @@ class Writer(Plugin):
                  **kwargs):
         # Load the config
         Plugin.__init__(self, **kwargs)
+        self.info = self.config['writer']
 
         # Use options from the config file if they weren't passed as arguments
-        self.name = self.config_options.get("name",
-                                            None) if name is None else name
-        self.fill_value = self.config_options.get(
+        self.name = self.info.get("name",
+                                  None) if name is None else name
+        self.fill_value = self.info.get(
             "fill_value", None) if fill_value is None else fill_value
-        self.file_pattern = self.config_options.get(
+        self.file_pattern = self.info.get(
             "file_pattern", None) if file_pattern is None else file_pattern
 
         if self.name is None:
@@ -218,9 +219,6 @@ class Writer(Plugin):
             file_pattern = self.file_pattern
         self.filename_parser = parser.Parser(
             file_pattern) if file_pattern else None
-
-    def load_section_writer(self, section_name, section_options):
-        self.config_options = section_options
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
@@ -256,7 +254,7 @@ class ImageWriter(Writer):
                  **kwargs):
         Writer.__init__(self, name, fill_value, file_pattern, base_dir,
                         **kwargs)
-        enhancement_config = self.config_options.get(
+        enhancement_config = self.info.get(
             "enhancement_config",
             None) if enhancement_config is None else enhancement_config
 

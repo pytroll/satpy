@@ -212,6 +212,56 @@ To save the custom composite, the following procedure can be used:
 
 With that, you should be able to load your new composite directly.
 
+
+Colorizing and Palettizing using user-supplied colormaps
+========================================================
+
+It is possible to create single channel "composites" that are then colorized 
+using users' own colormaps.  The colormaps are Numpy arrays with shape 
+(num, 3), see the example below how to create the mapping file(s).
+
+This example creates a 2-color colormap, and we interpolate the colors between 
+the defined temperature ranges.  Beyond those limits the image clipped to 
+the specified colors.
+
+    >>> import numpy as np
+    >>> from satpy.composites import BWCompositor
+    >>> from satpy.enhancements import colorize
+    >>> from satpy.writers import to_image
+    >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
+    >>> np.save("/tmp/binary_colormap.npy", arr)
+    >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
+    >>> composite = compositor((local_scene[10.8], ))
+    >>> img = to_image(composite)
+    >>> kwargs = {"palettes": [{"filename": "/tmp/binary_colormap.npy",
+    ...           "min_value": 223.15, "max_value": 303.15}]}
+    >>> colorize(img, **kwargs)
+    >>> img.show()
+
+Similarly it is possible to use discreet values without color interpolation 
+using `palettize()` instead of `colorize()`
+
+You can define several colormaps and ranges in the `palettes` list and they 
+are merged together.  See trollimage_ documentation for more information how 
+colormaps and color ranges are merged.
+
+The above example can be used in enhancements YAML config like this:
+
+.. code-block:: yaml
+
+  hot_or_cold:
+    standard_name: hot_or_cold
+    operations:
+      - name: colorize
+        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        kwargs:
+          palettes:
+            - {filename: /tmp/binary_colormap.npy, min_value: 223.15, max_value: 303.15}
+
+
+.. _trollimage: http://trollimage.readthedocs.io/en/latest/
+
+
 .. todo::
    How to save custom-made composites
 
