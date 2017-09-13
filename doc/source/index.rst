@@ -114,7 +114,7 @@ distribution, we provide support for the following readers:
       - `viirs_compact`
       - Nominal
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
-      - `maia_compact`
+      - `maia`
       - Nominal
 
 Reprojection of data is also available through the use of pyresample_.
