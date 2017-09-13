@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the geotiff writer.
+"""Tests for the SCMI writer
 """
 import os
 import sys
@@ -37,10 +37,10 @@ else:
     import unittest
 
 
-class TestGeoTIFFWriter(unittest.TestCase):
+class TestSCMIWriter(unittest.TestCase):
     def test_init(self):
-        from satpy.writers.geotiff import GeoTIFFWriter
-        w = GeoTIFFWriter()
+        from satpy.writers.scmi import SCMIWriter
+        w = SCMIWriter()
 
 
 def suite():
@@ -48,5 +48,5 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGeoTIFFWriter))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIWriter))
     return mysuite
