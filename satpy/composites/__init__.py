@@ -390,13 +390,16 @@ class NIRReflectance(CompositeBase):
 
 class PSPAtmosphericalCorrection(CompositeBase):
 
-    def __call__(self, projectables, satz=None, **info):
+    def __call__(self, projectables, optional_datasets=None, **info):
         """Get the atmospherical correction. Uses pyspectral.
         """
         from pyspectral.atm_correction_ir import AtmosphericalCorrection
 
         band = projectables[0]
-        if satz is None:
+
+        if optional_datasets:
+            satz = optional_datasets[0]
+        else:
             from pyorbital.orbital import get_observer_look
             lons, lats = band.info['area'].get_lonlats()
 
@@ -415,7 +418,6 @@ class PSPAtmosphericalCorrection(CompositeBase):
             del satel
 
         LOG.info('Correction for limb cooling')
-
         corrector = AtmosphericalCorrection(band.info['platform_name'],
                                             band.info['sensor'])
 
