@@ -50,20 +50,20 @@ class MAIAFileHandler(BaseFileHandler):
         'viirs': 742,
         'avhrr': 1050,
     }
-    
+
     def __init__(self, filename, filename_info, filetype_info):
         super(MAIAFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
         # set the day date part of end_time
         self.finfo['end_time'] = self.finfo['end_time'].replace(
-                    year = self.finfo['start_time'].year,
-                    month = self.finfo['start_time'].month,
-                    day = self.finfo['start_time'].day )
+            year=self.finfo['start_time'].year,
+            month=self.finfo['start_time'].month,
+            day=self.finfo['start_time'].day)
         if self.finfo['end_time'] < self.finfo['start_time']:
-            myday =  self.finfo['end_time'].day
+            myday = self.finfo['end_time'].day
             self.finfo['end_time'] = self.finfo['end_time'].replace(
-                                          day = myday + 1)
+                day=myday + 1)
         self.selected = None
         self.read(filename)
 
@@ -79,51 +79,49 @@ class MAIAFileHandler(BaseFileHandler):
         for key in self.h5[u'HEADER'].keys():
             self.file_content[key] = self.h5[u'HEADER/' + key][:]
         self.h5.close()
-        
+
         # Cloud Mask on pixel
-        mask = 2**0+2**1+2**2
-        lst =  self.file_content[u'CloudMask'][:]&mask
-        lst = lst/2**0
+        mask = 2**0 + 2**1 + 2**2
+        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = lst / 2**0
         self.file_content[u"cma"] = lst
-        
+
         # Cloud Mask confidence
-        mask = 2**5+2**6
-        lst = self.file_content[u'CloudMask'][:]&mask
-        lst = lst/2**5
+        mask = 2**5 + 2**6
+        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = lst / 2**5
         self.file_content[u"cma_conf"] = lst
-        
-        #Cloud Mask Quality
-        mask = 2**3+2**4
-        lst = self.file_content[u'CloudMask'][:]&mask
-        lst = lst/2**3
+
+        # Cloud Mask Quality
+        mask = 2**3 + 2**4
+        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = lst / 2**3
         self.file_content[u'cma_qual'] = lst
-        
+
         # Opaque Cloud
-        mask =  2**21
-        lst = self.file_content[u'CloudMask'][:]&mask
-        lst = lst/2**21
+        mask = 2**21
+        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = lst / 2**21
         self.file_content[u'opaq_cloud'] = lst
-      
+
         # land /water Background
-        mask = 2**15+2**16+2**17
-        lst = self.file_content[u'CloudMask'][:]&mask
-        lst = lst/2**15
+        mask = 2**15 + 2**16 + 2**17
+        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = lst / 2**15
         self.file_content[u'land_water_background'] = lst
-        
+
         # CT (Actual CloudType)
-        mask = 2**4+2**5+2**6+2**7+2**8
-        classif = self.file_content[u'CloudType'][:]&mask
-        classif = classif/2**4
+        mask = 2**4 + 2**5 + 2**6 + 2**7 + 2**8
+        classif = self.file_content[u'CloudType'][:] & mask
+        classif = classif / 2**4
         self.file_content['ct'] = classif
-        
-        
 
     def get_platform(self, platform):
         if self.file_content['sat_id'] in (14,):
             return viirs
         else:
             return avhrr
-   
+
     @property
     def start_time(self):
         return self.finfo['start_time']
@@ -131,7 +129,6 @@ class MAIAFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         return self.finfo['end_time']
-
 
     #
     # def get_shape(self, dataset_id, ds_info):
@@ -141,37 +138,30 @@ class MAIAFileHandler(BaseFileHandler):
     #     var_name = dataset_id.name
     #     return self.file_content[var_name].shape
     #
-    
+
     def get_dataset(self, key, info, out=None):
-        #import pdb
-        # pdb.set_trace()
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
         selected = np.array(self.selected)
         if key.name in ("Latitude", "Longitude"):
             values = values / 10000.
-        if key.name in ('Tsurf','CloudTopPres','CloudTopTemp'):
+        if key.name in ('Tsurf', 'CloudTopPres', 'CloudTopTemp'):
             goods = values > -9998.
             selected = np.array(selected & goods)
-            if key.name in ('Tsurf',"Alt_surface","CloudTopTemp"):
+            if key.name in ('Tsurf', "Alt_surface", "CloudTopTemp"):
                 values = values / 100.
             if key.name in ("CloudTopPres"):
-                values = values / 10.               
+                values = values / 10.
         else:
             selected = self.selected
         mask_values = np.ma.masked_array(values, mask=~selected)
-        
-#         import pdb
-#         pdb.set_trace()
-        # update fataset info with file_info
-        for k,v in self.finfo.items():
+
+        # update dataset info with file_info
+        for k, v in self.finfo.items():
             info[k] = v
 
         ds = Dataset(mask_values, copy=False, **info)
         return ds
-
-
-
 
 
 if __name__ == '__main__':
