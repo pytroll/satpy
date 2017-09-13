@@ -915,6 +915,8 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
     # Pixels per tile
     ppt_x = np.floor(float(size[0]) / total_cells_x)
     ppt_y = np.floor(float(size[1]) / total_cells_y)
+    half_ppt_x = np.floor(ppt_x / 2.)
+    half_ppt_y = np.floor(ppt_y / 2.)
     # Meters per pixel
     meters_ppx = fcs_x / ppt_x
     meters_ppy = fcs_y / ppt_y
@@ -930,8 +932,6 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
                 continue
             elif cell_y > total_cells_y:
                 continue
-            half_ppt_x = np.floor(ppt_x / 2.)
-            half_ppt_y = np.floor(ppt_y / 2.)
             x = ppt_x * cell_x + half_ppt_x
             y = ppt_y * cell_y + half_ppt_y
             # draw box around the tile edge
@@ -945,6 +945,12 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
     img.save("test.png")
 
     from pyresample.utils import proj4_str_to_dict
+    new_extents = (
+        ll_extent[0],
+        ur_extent[1] - 1001. * meters_ppy,
+        ll_extent[0] + 1001. * meters_ppx,
+        ur_extent[1],
+    )
     grid_def = AreaDefinition(
         'debug_grid',
         'debug_grid',
@@ -952,7 +958,7 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
         proj4_str_to_dict(sector_info['projection']),
         1000,
         1000,
-        ll_extent + ur_extent
+        new_extents
     )
     return grid_def, np.array(img)
 
