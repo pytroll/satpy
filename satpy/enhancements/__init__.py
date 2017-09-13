@@ -65,6 +65,21 @@ def colorize(img, **kwargs):
     img.colorize(full_cmap)
 
 
+def palettize(img, **kwargs):
+    """Palettize the given image."""
+    full_cmap = None
+
+    for itm in kwargs["palettes"]:
+        cmap = create_colormap(itm["filename"])
+        cmap.set_range(itm["min_value"], itm["max_value"])
+        if full_cmap is None:
+            full_cmap = cmap
+        else:
+            full_cmap = full_cmap + cmap
+
+    img.palettize(full_cmap)
+
+
 def create_colormap(fname):
     """Create colormap of the given numpy file."""
 
