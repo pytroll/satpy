@@ -48,3 +48,23 @@ def cira_stretch(img, **kwargs):
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
+
+
+def lookup(img, **kwargs):
+    """Assigns values to channels based on a table"""
+    luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
+    [ch1, ch2, ch3] = img.channels
+    np.ma.clip(ch1, 0, 255, ch1)
+    np.ma.clip(ch2, 0, 255, ch2)
+    np.ma.clip(ch3, 0, 255, ch3)
+    ch1 = np.ma.array(
+        luts[:, 0][ch1.astype(np.uint8)], copy=False, mask=ch1.mask)
+    ch2 = np.ma.array(
+        luts[:, 1][ch2.astype(np.uint8)], copy=False, mask=ch2.mask)
+    ch3 = np.ma.array(
+        luts[:, 2][ch3.astype(np.uint8)], copy=False, mask=ch3.mask)
+
+    img.channels = [ch1, ch2, ch3]
+
+
+
