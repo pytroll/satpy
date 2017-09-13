@@ -52,21 +52,20 @@ def cira_stretch(img, **kwargs):
 
 def colorize(img, **kwargs):
     """Colorize the given image."""
-    full_cmap = None
 
-    for itm in kwargs["palettes"]:
-        cmap = create_colormap(itm["filename"])
-        cmap.set_range(itm["min_value"], itm["max_value"])
-        if full_cmap is None:
-            full_cmap = cmap
-        else:
-            full_cmap = full_cmap + cmap
-
+    full_cmap = _merge_colormaps(kwargs)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
-    """Palettize the given image."""
+    """Palettize the given image (no color interpolation)."""
+
+    full_cmap = _merge_colormaps(kwargs)
+    img.palettize(full_cmap)
+
+
+def _merge_colormaps(kwargs):
+    """Merge colormaps listed in kwargs."""
     full_cmap = None
 
     for itm in kwargs["palettes"]:
@@ -77,7 +76,7 @@ def palettize(img, **kwargs):
         else:
             full_cmap = full_cmap + cmap
 
-    img.palettize(full_cmap)
+    return full_cmap
 
 
 def create_colormap(fname):
