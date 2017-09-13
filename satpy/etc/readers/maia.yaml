@@ -11,9 +11,9 @@ file_types:
 #    viiCT_npp_20121010_S132824_E132947.h5
     file_patterns:
 #     - 'viiCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_ASC_D_La{latitude}_Lo{longitude}_#{orbit:5d}.h5'
-#     - 'viiCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_ASC_D_La050_Lo-012_{orbit:5d}.h5'
-#     - 'avhCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_{}_{}_La{latitude}_Lo{longitude}_{orbit:5d}.h5'
-     - 'viiCT_{platform}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}.h5'
+     - 'viiCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
+     - 'avhCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
+#     - 'viiCT_{platform}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}.h5'
 
 
 datasets:
@@ -36,6 +36,7 @@ datasets:
 
   Alt_surface:
    name: Alt_surface
+   units: m
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
@@ -51,25 +52,25 @@ datasets:
   
 # CloudType and CloudMask are bitfields
 # description of sub fields
-  CT:
-   name: CT
+  ct:
+   name: ct
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
 # Cloud Mask On Pixel  
-  CM:
-   name: CM
+  cma:
+   name: cma
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
 # Cloud Mask Confidence
-  CM_conf:
-   name: CM_conf
+  cma_conf:
+   name: cma_conf
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
 # Cloud Mask Quality
-  CM_qual:
+  cma_qual:
    name: CM_qual
    file_type: maia
    coordinates: [Longitude, Latitude ]
@@ -79,11 +80,44 @@ datasets:
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
-  opaque_cloud:
-   name: land_water_background
+  opaq_cloud:
+   name: opaq_cloud
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
+  CloudTopPres:
+   name: CloudTopPres
+   units: hPa
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudTopTemp:
+   name: CloudTopTemp
+   units: degree celcius
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  Mask_ind:
+   name: Mask_ind
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  fov_qual:
+   name: fov_qual
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  Tsurf:
+   name: Tsurf
+   units: degrees celcius
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+  
+  Sat_zenith:
+   name: Sat_zenith
+   units: degrees
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
 
 
 
