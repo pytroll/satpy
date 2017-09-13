@@ -22,3 +22,16 @@ composites:
     - name: '31'
       modifiers: [sunz_corrected]
     standard_name: overview
+
+  airmass_corr:
+    compositor: !!python/name:satpy.composites.Airmass
+    prerequisites:
+    - wavelength: 6.7
+      modifiers: [atm_correction]
+    - wavelength: 7.3
+      modifiers: [atm_correction]
+    - wavelength: 9.7
+      modifiers: [atm_correction]
+    - wavelength: 10.8
+      modifiers: [atm_correction]
+    standard_name: airmass
