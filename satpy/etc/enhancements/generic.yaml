@@ -405,3 +405,16 @@ enhancements:
         stretch: crude
         min_stretch: [0]
         max_stretch: [0.075]
+  realistic_colors:
+    standard_name: realistic_colors
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [110, 110, 110]
+      - name: gamma
+        method: *gammafun
+        kwargs:
+          gamma: [1.4, 1.4, 1.2]
