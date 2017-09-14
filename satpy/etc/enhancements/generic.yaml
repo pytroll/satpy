@@ -405,3 +405,12 @@ enhancements:
         stretch: crude
         min_stretch: [0]
         max_stretch: [0.075]
+  night_microphysics_default:
+    standard_name: night_microphysics
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 10, 293]
