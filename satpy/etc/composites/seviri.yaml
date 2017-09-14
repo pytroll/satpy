@@ -183,3 +183,12 @@ composites:
         modifiers: [sunz_corrected]
       - name: HRV
         modifiers: [sunz_corrected]
+
+  ir_overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 3.75
+      modifiers: [co2_corrected]
+    - 10.8
+    - 12.0
+    standard_name: ir_overview
