@@ -173,11 +173,11 @@ composites:
     - ci_pal
     standard_name: convection_initiation_prob90
 
-  night_overview:
+  ir_overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 3.75
       modifiers: [co2_corrected]
     - 10.8
     - 12.0
-    standard_name: night_overview
+    standard_name: ir_overview
