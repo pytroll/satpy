@@ -157,6 +157,14 @@ composites:
     - 0.45
     standard_name: true_color
 
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural
+      - night_fog
+      - solar_zenith_angle
+
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:

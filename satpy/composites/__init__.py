@@ -36,6 +36,7 @@ from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.writers import get_enhanced_image
 
 try:
     import configparser
@@ -606,6 +607,65 @@ class PaletteCompositor(ColormapCompositor):
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
 
 
+class DayNightCompositor(RGBCompositor):
+
+    """A compositor that takes one composite on the night side, another on day
+    side, and then blends them together."""
+
+    def __call__(self, projectables, lim_low=85., lim_high=95., *args,
+                 **kwargs):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables), ))
+        try:
+            day_data = projectables[0].copy()
+            night_data = projectables[1].copy()
+            coszen = np.cos(np.deg2rad(projectables[2]))
+
+            coszen -= min(np.cos(np.deg2rad(lim_high)),
+                          np.cos(np.deg2rad(lim_low)))
+            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
+                             np.cos(np.deg2rad(lim_high)))
+            coszen = np.clip(coszen, 0, 1)
+
+            full_data = []
+
+            # Apply enhancements
+            day_data = enhance2dataset(day_data)
+            night_data = enhance2dataset(night_data)
+
+            # Match dimensions to the data with more channels
+            # There are only 1-channel and 3-channel composites
+            if day_data.shape[0] > night_data.shape[0]:
+                night_data = np.ma.repeat(night_data, 3, 0)
+            elif day_data.shape[0] < night_data.shape[0]:
+                day_data = np.ma.repeat(day_data, 3, 0)
+
+            for i in range(day_data.shape[0]):
+                day = day_data[i, :, :]
+                night = night_data[i, :, :]
+
+                data = (1 - coszen) * np.ma.masked_invalid(night).filled(0) + \
+                    coszen * np.ma.masked_invalid(day).filled(0)
+                data = np.ma.array(data, mask=np.logical_and(night.mask,
+                                                             day.mask),
+                                   copy=False)
+                data = Dataset(np.ma.masked_invalid(data),
+                               copy=True,
+                               **projectables[0].info)
+                full_data.append(data)
+
+            res = RGBCompositor.__call__(self, (full_data[0],
+                                                full_data[1],
+                                                full_data[2]),
+                                         *args, **kwargs)
+
+        except ValueError:
+            raise IncompatibleAreas
+
+        return res
+
+
 class Airmass(RGBCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -693,3 +753,16 @@ class Dust(RGBCompositor):
             raise IncompatibleAreas
 
         return res
+
+
+def enhance2dataset(dset):
+    """Apply enhancements to dataset *dset* and convert the image data
+    back to Dataset object."""
+    img = get_enhanced_image(dset)
+
+    data = np.rollaxis(np.dstack(img.channels), axis=2)
+    mask = dset.mask
+    data = Dataset(np.ma.masked_array(data, mask=mask),
+                   copy=False,
+                   **dset.info)
+    return data
