@@ -34,7 +34,9 @@ MAIA files are named with a specific syntax for example:
 References :     https://nwpsaf.eu/site/software/aapp/
       [NWPSAF-MF-UD-003) DATA Formats
       [NWPSAF-MF-UD-009] MAIA version 4 Scientific User Manual
-    
+      
+This example uses the MAIA product which can be found in the 
+MAIA4_test.tgz tar test case file available with the AAPP software.
 
 
 """
@@ -101,9 +103,9 @@ if __name__ == '__main__':
         mycolors.append(hex_to_rgb(cpool[i]))
     arr = np.array(mycolors)
     np.save("/tmp/binary_maia_ct_colormap.npy", arr)
-    
+
     # step2: creation of the composite
-    compositor = BWCompositor("test", standard_name="maia_ct")  
+    compositor = BWCompositor("test", standard_name="maia_ct")
     composite = compositor((maia_scene["ct"],))
     kwargs = {"palettes": [
         {"filename": "/tmp/binary_maia_ct_colormap.npy", "min_value": 0, "max_value": 20}]}
