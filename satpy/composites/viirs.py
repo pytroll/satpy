@@ -1121,3 +1121,50 @@ class NCCZinke(CompositeBase):
         gain[theta > 103.49] = 6.0e7
 
         return gain
+
+
+
+class SnowAge(CompositeBase):
+    """Returns RGB snow product based on method presented at the second 
+    CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
+    """
+    # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
+    # These Look-up Tables allow you to create the RGB snow product
+    # for SUOMI-NPP VIIRS Imager according to the algorithm
+    # presented at the second CSPP/IMAPP users' meeting at Eumetsat
+    # in Darmstadt on 14-16 April 2015
+    # The algorithm and the product are described in this
+    # presentation :
+    # http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+    # For further information you may contact
+    # Bernard Bellec at Bernard.Bellec@meteo.fr
+    # or
+    # Pascale Roquet at Pascale.Roquet@meteo.fr
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 5:
+            raise ValueError("Expected 5 datasets, got %d" %
+                             (len(projectables), ))
+
+        # Collect information that is the same between the projectables
+        info = combine_info(*projectables)
+        # Update that information with configured information (including name)
+        info.update(self.info)
+        # Force certain pieces of metadata that we *know* to be true
+        info["wavelength"] = None
+        info["mode"] = self.info.get("mode", "RGB")
+
+        m07 = projectables[0]
+        m08 = projectables[1]
+        m09 = projectables[2]
+        m10 = projectables[3]
+        m11 = projectables[4]
+        refcu = m11 - m10
+        refcu[refcu < 0] = 0
+
+        ch1 = m07 - refcu / 2. - m09 / 4.
+        ch2 = m08 + refcu / 4. + m09 / 4.
+        ch3 = m11 + m09
+
+        return Dataset(data=[ch1, ch2, ch3], **info)
+
