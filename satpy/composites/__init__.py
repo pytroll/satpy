@@ -250,7 +250,7 @@ class SunZenithCorrector(CompositeBase):
         if hasattr(vis.info["area"], 'name'):
             area_name = vis.info["area"].name
         else:
-            area_name = 'swath' + str(vis.info["area"].lons.shape)
+            area_name = 'swath' + str(vis.shape)
         key = (vis.info["start_time"], area_name)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
