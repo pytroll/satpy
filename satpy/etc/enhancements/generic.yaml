@@ -409,7 +409,7 @@ enhancements:
     standard_name: snow_age
     operations:
     - name: snow_age
-      method: !!python/name:enha.lookup
+      method: !!python/name:satpy.enhancements.lookup
       kwargs:
        luts: [[0, 0, 0], [1, 2, 2], [3, 8, 5], [4, 12, 8], [6, 15, 10], [8, 18, 13], [9, 21, 16],
                          [11, 24, 19], [13, 26, 21], [14, 28, 24], [
