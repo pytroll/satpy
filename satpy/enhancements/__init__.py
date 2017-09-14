@@ -55,7 +55,7 @@ def lookup(img, **kwargs):
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
 
     for idx, ch in enumerate(img.channels):
-        np.ma.clip(ch, 0, 255, ch)
+        np.ma.clip(ch, 0, 255, out=ch)
         img.channels[idx] = np.ma.array(luts[:, idx][ch.astype(np.uint8)], copy=False, mask=ch.mask)
 
 
