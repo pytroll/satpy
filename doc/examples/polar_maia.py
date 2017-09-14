@@ -110,3 +110,4 @@ if __name__ == '__main__':
     img = to_image(composite)
     palettize(img, ** kwargs)
     img.show()
+    img.pil_save("ct.png")
