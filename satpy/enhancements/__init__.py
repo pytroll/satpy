@@ -44,8 +44,8 @@ def cira_stretch(img, **kwargs):
     """Logarithmic stretch adapted to human vision."""
     for chn in img.channels:
         chn /= 100
-        #np.ma.log10(chn, out=chn)
-        chn = np.ma.log10(chn)
+        np.ma.log10(chn, out=chn)
+        #chn[:] = np.ma.log10(chn)
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
