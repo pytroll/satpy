@@ -414,7 +414,19 @@ enhancements:
         stretch: crude
         min_stretch: [0]
         max_stretch: [0.075]
-
+  realistic_colors:
+    standard_name: realistic_colors
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [110, 110, 110]
+      - name: gamma
+        method: *gammafun
+        kwargs:
+          gamma: [1.4, 1.4, 1.2]
   snow_age_default:
     standard_name: snow_age
     operations:
@@ -517,8 +529,6 @@ enhancements:
                          [252, 254, 254], [253, 254, 254], [253, 254, 254], [
                              253, 254, 254], [253, 254, 254],
                          [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
-
-
   night_microphysics_default:
     standard_name: night_microphysics
     operations:
@@ -538,3 +548,4 @@ enhancements:
       method: *stretchfun
       kwargs:
         stretch: histogram
+
