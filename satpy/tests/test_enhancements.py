@@ -31,8 +31,8 @@ CH1 = np.ma.arange(-210, 790, 100) * 0.95
 CH1.mask = np.logical_and(np.arange(10) * 0.1 > 0.3, np.arange(10) * 0.1 < 0.8)
 
 RESMASK = np.array(
-    [False, False, False,  True,  True,  True,  True,  True, False, False], dtype=bool)
-RESULT = np.ma.array([np.nan,         np.nan,  np.nan, 1.93196611,  2.25647721,
+    [False,  False,  False,  True,  True,  True,  True,  True, False, False], dtype=bool)
+RESULT = np.ma.array([np.nan,         np.nan,      np.nan,  1.93196611,  2.25647721,
                       2.4401216,  2.56878821,  2.66791969,  1.20691137,  1.24110186], mask=RESMASK)
 
 
