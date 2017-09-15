@@ -28,6 +28,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
 from pyresample import geometry
 from satpy.dataset import Dataset
@@ -190,17 +191,15 @@ class HRITFileHandler(BaseFileHandler):
         return self._end_time
 
     def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
-        to_return = out is None
-        if out is None:
-            nlines = int(self.mda['number_of_lines'])
-            ncols = int(self.mda['number_of_columns'])
-            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
+        """Load a dataset."""
+        # Read bands
+        data = self.read_band(key, info, out, xslice, yslice)
+        # Convert to xarray
+        xdata = xr.DataArray(data, dims=['y', 'x'])
+        # Mask invalid values
+        xdata.values[xdata == 0] = np.nan
 
-        self.read_band(key, info, out, xslice, yslice)
-
-        if to_return:
-            from satpy.yaml_reader import Shuttle
-            return Shuttle(out.data, out.mask, out.info)
+        return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -285,21 +284,21 @@ class HRITFileHandler(BaseFileHandler):
             if self.mda['number_of_bits_per_pixel'] == 10:
                 data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
                     self.mda['data_field_length'] / 8.)))
-                out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
+                outdata = dec10216(data).reshape((self.mda['number_of_lines'],
                                                       self.mda['number_of_columns']))[yslice, xslice] * 1.0
             elif self.mda['number_of_bits_per_pixel'] == 16:
                 data = np.fromfile(fp_, dtype='>u2', count=int(np.ceil(
                     self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
+                outdata = data.reshape((self.mda['number_of_lines'],
                                             self.mda['number_of_columns']))[yslice, xslice] * 1.0
             elif self.mda['number_of_bits_per_pixel'] == 8:
                 data = np.fromfile(fp_, dtype='>u1', count=int(np.ceil(
                     self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
+                outdata = data.reshape((self.mda['number_of_lines'],
                                             self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            out.mask[:] = out.data == 0
         logger.debug("Reading time " + str(datetime.now() - tic))
 
+        return(outdata)
         # new_info = dict(units=info['units'],
         #                 standard_name=info['standard_name'],
         #                 wavelength=info['wavelength'],
