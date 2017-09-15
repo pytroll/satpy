@@ -948,12 +948,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         if res is not None:
             out = res
 
-        self.calibrate(out, key.calibration)
-        out.info['units'] = info['units']
-        out.info['wavelength'] = info['wavelength']
-        out.info['standard_name'] = info['standard_name']
-        out.info['platform_name'] = self.platform_name
-        out.info['sensor'] = 'seviri'
+        self.calibrate(res, key.calibration)
+        res.attrs['units'] = info['units']
+        res.attrs['wavelength'] = info['wavelength']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'seviri'
+
+        return res
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
