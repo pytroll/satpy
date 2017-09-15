@@ -137,21 +137,18 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         raise NotImplementedError
 
     def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
+
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
                         'satellite_zenith_angle', 'satellite_azimuth_angle']:
-            sat_zen = self.sd.select('SensorZenith')
-            sun_zen = self.sd.select('SolarZenith')
-            sat_azi = self.sd.select('SensorAzimuth')
-            sun_azi = self.sd.select('SolarAzimuth')
 
             if key.name == 'solar_zenith_angle':
-                var = sat_zen
+                var = self.sd.select('SolarZenith')
             if key.name == 'solar_azimuth_angle':
-                var = sun_azi
+                var = self.sd.select('SolarAzimuth')
             if key.name == 'satellite_zenith_angle':
-                var = sat_zen
+                var = self.sd.select('SensorZenith')
             if key.name == 'satellite_azimuth_angle':
-                var = sat_azi
+                var = self.sd.select('SensorAzimuth')
 
             mask = var[:] == var._FillValue
             data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
