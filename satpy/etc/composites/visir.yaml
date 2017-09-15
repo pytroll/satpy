@@ -18,6 +18,11 @@ modifiers:
     - solar_zenith_angle
     - 13.4
 
+  atm_correction:
+    compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
+    optional_prerequisites:
+    - satellite_zenith_angle
+
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     prerequisites:
@@ -29,8 +34,19 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
-
 composites:
+  airmass_corr:
+    compositor: !!python/name:satpy.composites.Airmass
+    prerequisites:
+    - wavelength: 6.7
+      modifiers: [atm_correction]
+    - wavelength: 7.3
+      modifiers: [atm_correction]
+    - wavelength: 9.7
+      modifiers: [atm_correction]
+    - wavelength: 10.8
+      modifiers: [atm_correction]
+    standard_name: airmass
   airmass:
     compositor: !!python/name:satpy.composites.Airmass
     prerequisites:
@@ -141,6 +157,14 @@ composites:
     - 0.45
     standard_name: true_color
 
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural
+      - night_fog
+      - solar_zenith_angle
+
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
@@ -197,3 +221,10 @@ composites:
     - cpp_reff_pal
     standard_name: cloud_drop_effective_radius
 
+  night_microphysics:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - 3.9
+    - 10.8
+    - 12.0
+    standard_name: night_microphysics

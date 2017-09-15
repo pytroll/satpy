@@ -158,3 +158,20 @@ composites:
     - hncc_dnb
     - M15
     standard_name: night_overview
+
+  snow_age:
+    compositor: !!python/name:satpy.composites.viirs.SnowAge
+    prerequisites:
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M08
+      modifiers: [sunz_corrected]
+    - name: M09
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M11
+      modifiers: [sunz_corrected]
+    standard_name: snow_age
+
+

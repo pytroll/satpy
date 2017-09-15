@@ -44,10 +44,20 @@ def cira_stretch(img, **kwargs):
     """Logarithmic stretch adapted to human vision."""
     for chn in img.channels:
         chn /= 100
-        np.ma.log10(chn, out=chn)
+        np.log10(chn.data, out=chn.data)
+        #chn[:] = np.ma.masked_invalid(chn)
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
+
+
+def lookup(img, **kwargs):
+    """Assigns values to channels based on a table"""
+    luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
+
+    for idx, ch in enumerate(img.channels):
+        np.ma.clip(ch, 0, 255, out=ch)
+        img.channels[idx] = np.ma.array(luts[:, idx][ch.astype(np.uint8)], copy=False, mask=ch.mask)
 
 
 def colorize(img, **kwargs):

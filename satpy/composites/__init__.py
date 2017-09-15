@@ -36,6 +36,7 @@ from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.writers import get_enhanced_image
 
 try:
     import configparser
@@ -135,8 +136,8 @@ class CompositorLoader(object):
         except KeyError:
             if composite_name in compositors or composite_name in modifiers:
                 return conf
-            raise ValueError("'compositor' missing or empty in %s" %
-                             composite_config)
+            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
+                composite_config, str(options.keys())))
 
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
@@ -250,7 +251,7 @@ class SunZenithCorrector(CompositeBase):
         if hasattr(vis.info["area"], 'name'):
             area_name = vis.info["area"].name
         else:
-            area_name = 'swath' + str(vis.info["area"].lons.shape)
+            area_name = 'swath' + str(vis.shape)
         key = (vis.info["start_time"], area_name)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
@@ -388,6 +389,47 @@ class NIRReflectance(CompositeBase):
         return proj
 
 
+class PSPAtmosphericalCorrection(CompositeBase):
+
+    def __call__(self, projectables, satz=None, **info):
+        """Get the atmospherical correction. Uses pyspectral.
+        """
+        from pyspectral.atm_correction_ir import AtmosphericalCorrection
+
+        band = projectables[0]
+        if satz is None:
+            from pyorbital.orbital import get_observer_look
+            lons, lats = band.info['area'].get_lonlats()
+
+            try:
+                dummy, satel = get_observer_look(band.info['satellite_longitude'],
+                                                 band.info[
+                                                     'satellite_latitude'],
+                                                 band.info[
+                                                     'satellite_altitude'],
+                                                 band.info['start_time'],
+                                                 lons, lats, 0)
+            except KeyError:
+                raise KeyError(
+                    'Band info is missing some meta data!')
+            satz = 90 - satel
+            del satel
+
+        LOG.info('Correction for limb cooling')
+
+        corrector = AtmosphericalCorrection(band.info['platform_name'],
+                                            band.info['sensor'])
+
+        atm_corr = corrector.get_correction(satz, band.info['name'], band)
+
+        proj = Dataset(atm_corr,
+                       copy=False,
+                       **band.info)
+        self.apply_modifier_info(band, proj)
+
+        return proj
+
+
 class CO2Corrector(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -486,6 +528,7 @@ class BWCompositor(CompositeBase):
 
 
 class ColormapCompositor(RGBCompositor):
+
     """A compositor that uses colormaps."""
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -510,6 +553,7 @@ class ColormapCompositor(RGBCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, interpolating the palette colors when
     needed.
     """
@@ -537,6 +581,7 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, not interpolating the palette colors.
     """
 
@@ -560,6 +605,65 @@ class PaletteCompositor(ColormapCompositor):
         b = Dataset(channels[:, :, 2], copy=False, mask=data.mask, **data.info)
 
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
+
+
+class DayNightCompositor(RGBCompositor):
+
+    """A compositor that takes one composite on the night side, another on day
+    side, and then blends them together."""
+
+    def __call__(self, projectables, lim_low=85., lim_high=95., *args,
+                 **kwargs):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables), ))
+        try:
+            day_data = projectables[0].copy()
+            night_data = projectables[1].copy()
+            coszen = np.cos(np.deg2rad(projectables[2]))
+
+            coszen -= min(np.cos(np.deg2rad(lim_high)),
+                          np.cos(np.deg2rad(lim_low)))
+            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
+                             np.cos(np.deg2rad(lim_high)))
+            coszen = np.clip(coszen, 0, 1)
+
+            full_data = []
+
+            # Apply enhancements
+            day_data = enhance2dataset(day_data)
+            night_data = enhance2dataset(night_data)
+
+            # Match dimensions to the data with more channels
+            # There are only 1-channel and 3-channel composites
+            if day_data.shape[0] > night_data.shape[0]:
+                night_data = np.ma.repeat(night_data, 3, 0)
+            elif day_data.shape[0] < night_data.shape[0]:
+                day_data = np.ma.repeat(day_data, 3, 0)
+
+            for i in range(day_data.shape[0]):
+                day = day_data[i, :, :]
+                night = night_data[i, :, :]
+
+                data = (1 - coszen) * np.ma.masked_invalid(night).filled(0) + \
+                    coszen * np.ma.masked_invalid(day).filled(0)
+                data = np.ma.array(data, mask=np.logical_and(night.mask,
+                                                             day.mask),
+                                   copy=False)
+                data = Dataset(np.ma.masked_invalid(data),
+                               copy=True,
+                               **projectables[0].info)
+                full_data.append(data)
+
+            res = RGBCompositor.__call__(self, (full_data[0],
+                                                full_data[1],
+                                                full_data[2]),
+                                         *args, **kwargs)
+
+        except ValueError:
+            raise IncompatibleAreas
+
+        return res
 
 
 class Airmass(RGBCompositor):
@@ -649,3 +753,53 @@ class Dust(RGBCompositor):
             raise IncompatibleAreas
 
         return res
+
+
+class RealisticColors(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        try:
+
+            vis06 = projectables[0]
+            vis08 = projectables[1]
+            hrv = projectables[2]
+
+            ndvi = (vis08 - vis06) / (vis08 + vis06)
+            ndvi = np.where(ndvi < 0, 0, ndvi)
+
+            # info = combine_info(*projectables)
+            # info['name'] = self.info['name']
+            # info['standard_name'] = self.info['standard_name']
+
+            ch1 = Dataset(ndvi * vis06 + (1 - ndvi) * vis08,
+                          copy=False,
+                          **vis06.info)
+            ch2 = Dataset(ndvi * vis08 + (1 - ndvi) * vis06,
+                          copy=False,
+                          **vis08.info)
+            ch3 = Dataset(3 * hrv - vis06 - vis08,
+                          copy=False,
+                          **hrv.info)
+
+            res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
+                                         *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+def enhance2dataset(dset):
+    """Apply enhancements to dataset *dset* and convert the image data
+    back to Dataset object."""
+    img = get_enhanced_image(dset)
+
+    data = np.rollaxis(np.dstack(img.channels), axis=2)
+    mask = dset.mask
+    if mask.ndim < data.ndim:
+        mask = np.expand_dims(mask, 0)
+        mask = np.repeat(mask, 3, 0)
+    elif mask.ndim > data.ndim:
+        mask = mask[0, :, :]
+    data = Dataset(np.ma.masked_array(data, mask=mask),
+                   copy=False,
+                   **dset.info)
+    return data
