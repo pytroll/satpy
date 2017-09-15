@@ -49,7 +49,7 @@ class TrollImageMock(object):
         self.channels = []
 
 
-class TestSatinHelpers(unittest.TestCase):
+class TestEnhancementStretch(unittest.TestCase):
 
     '''Class for testing satpy.satin'''
 
@@ -76,7 +76,7 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHelpers))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
 
     return mysuite
 
