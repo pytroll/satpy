@@ -7,13 +7,10 @@ reader:
 file_types:
   maia:
     file_reader: !!python/name:satpy.readers.maia.MAIAFileHandler
-#    viiCT_npp_DB_20121010_S132824_E132947_ASC_D_La050_Lo-012_00001.h5
-#    viiCT_npp_20121010_S132824_E132947.h5
+# example of file name:  viiCT_npp_DB_20121010_S132824_E132947_ASC_D_La050_Lo-012_00001.h5
     file_patterns:
-#     - 'viiCT_{platform_shortname}_DB_{start_time:%Y%m%d}_S{start_time:%H%M%S}_E{end_time:%H%M%S}_ASC_D_La{latitude}_Lo{longitude}_#{orbit:5d}.h5'
      - 'viiCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
      - 'avhCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
-#     - 'viiCT_{platform}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}.h5'
 
 
 datasets:

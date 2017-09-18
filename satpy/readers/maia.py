@@ -30,26 +30,12 @@ import numpy as np
 
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
 logger = logging.getLogger(__name__)
 
 
-CF_UNITS = {
-    'none': '1',
-}
-
-
 class MAIAFileHandler(BaseFileHandler):
-
-    platforms = {
-        'npp': 'npp',
-    }
-    nadir_resolution = {
-        'viirs': 742,
-        'avhrr': 1050,
-    }
 
     def __init__(self, filename, filename_info, filetype_info):
         super(MAIAFileHandler, self).__init__(
@@ -130,15 +116,6 @@ class MAIAFileHandler(BaseFileHandler):
     def end_time(self):
         return self.finfo['end_time']
 
-    #
-    # def get_shape(self, dataset_id, ds_info):
-    #     logger.debug("in get_shape ")
-    #     print dataset_id
-    #     print ds_info
-    #     var_name = dataset_id.name
-    #     return self.file_content[var_name].shape
-    #
-
     def get_dataset(self, key, info, out=None):
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
@@ -162,7 +139,3 @@ class MAIAFileHandler(BaseFileHandler):
 
         ds = Dataset(mask_values, copy=False, **info)
         return ds
-
-
-if __name__ == '__main__':
-    pass

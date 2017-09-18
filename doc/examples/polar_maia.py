@@ -20,8 +20,8 @@
 
 """Exemple script for reading MAIA cloud products files.
 
-MAIA files can be created with AAPP with scripts MAIA4_RUN and MAIA4_RUN_AVHRR scripts
-for BOTH VIIRS an AVHRR imagers
+MAIA files can be created with AAPP with scripts MAIA4_RUN and MAIA4_RUN_AVHRR
+scripts for BOTH VIIRS an AVHRR imagers
 
 - Install satpy and pyresample
 - pycoast can also be installed if you want to generate plots with coast
@@ -30,12 +30,12 @@ for BOTH VIIRS an AVHRR imagers
 MAIA files are named with a specific syntax for example:
     avhCT_M02_GL_20151012_S005503_E005802_DES_D_La-11_Lo0126_00000.h5
     viiCT_npp_DB_20121010_S132824_E132947_ASC_D_La050_Lo-012_00001.h5
-    
+
 References :     https://nwpsaf.eu/site/software/aapp/
-      [NWPSAF-MF-UD-003) DATA Formats
+      [NWPSAF-MF-UD-003] DATA Formats
       [NWPSAF-MF-UD-009] MAIA version 4 Scientific User Manual
-      
-This example uses the MAIA product which can be found in the 
+
+This example uses the MAIA product which can be found in the
 MAIA4_test.tgz tar test case file available with the AAPP software.
 
 
@@ -81,17 +81,18 @@ def hex_to_rgb(value):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "Usage: " + sys.argv[0] + " MAIA_file "
+        print("Usage: " + sys.argv[0] + " MAIA_file ")
         sys.exit()
 
     fnmaia = sys.argv[1]
     maia_scene = Scene(reader='maia', filenames=[fnmaia])
-    print (maia_scene.available_dataset_ids())
+    print(maia_scene.available_dataset_ids())
     maia_scene.load(["CloudType", "ct", "cma", "cma_conf",
-                     'opaq_cloud', "CloudTopPres", "CloudTopTemp", "Alt_surface"])
+                     'opaq_cloud', "CloudTopPres",
+                     "CloudTopTemp", "Alt_surface"])
 
-    # CloudType is a bit field containing the actual "ct" with values from 0 to 20
-    # which can be interpreted according to the cpool colormap
+    # CloudType is a bit field containing the actual "ct" with values
+    # from 0 to 20 which can be interpreted according to the cpool colormap
 
     # "ct" can be display in black and white:
     maia_scene.show("ct")
@@ -108,7 +109,8 @@ if __name__ == '__main__':
     compositor = BWCompositor("test", standard_name="maia_ct")
     composite = compositor((maia_scene["ct"],))
     kwargs = {"palettes": [
-        {"filename": "/tmp/binary_maia_ct_colormap.npy", "min_value": 0, "max_value": 20}]}
+        {"filename": "/tmp/binary_maia_ct_colormap.npy",
+         "min_value": 0, "max_value": 20}]}
     img = to_image(composite)
     palettize(img, ** kwargs)
     img.show()
