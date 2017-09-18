@@ -23,6 +23,9 @@
 """Enhancements."""
 
 import numpy as np
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 def stretch(img, **kwargs):
@@ -42,6 +45,7 @@ def invert(img, *args):
 
 def cira_stretch(img, **kwargs):
     """Logarithmic stretch adapted to human vision."""
+    LOG.debug("Applying the cira-stretch")
     for chn in img.channels:
         chn /= 100
         np.log10(chn.data, out=chn.data)
@@ -57,7 +61,8 @@ def lookup(img, **kwargs):
 
     for idx, ch in enumerate(img.channels):
         np.ma.clip(ch, 0, 255, out=ch)
-        img.channels[idx] = np.ma.array(luts[:, idx][ch.astype(np.uint8)], copy=False, mask=ch.mask)
+        img.channels[idx] = np.ma.array(
+            luts[:, idx][ch.astype(np.uint8)], copy=False, mask=ch.mask)
 
 
 def colorize(img, **kwargs):
