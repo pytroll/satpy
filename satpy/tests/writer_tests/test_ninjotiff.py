@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the CF writer.
+"""Tests for the NinJoTIFF writer.
 """
 import os
 import sys
