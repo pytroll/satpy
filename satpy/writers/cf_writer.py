@@ -58,7 +58,7 @@ def omerc2cf(proj_dict):
 
 def geos2cf(proj_dict):
     """Return the cf grid mapping for the geos projection."""
-    grid_mapping_name = 'vertical_perspective'
+    grid_mapping_name = 'geostationary'
 
     args = dict(perspective_point_height=proj_dict.get('h'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
