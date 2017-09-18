@@ -26,7 +26,7 @@ import logging
 from datetime import datetime
 
 import cf
-
+import numpy as np
 from satpy.writers import Writer
 
 LOG = logging.getLogger(__name__)
@@ -102,12 +102,13 @@ def auxiliary_coordinates_from_area(area):
     """Create auxiliary coordinates for `area` if possible."""
     try:
         # Create a longitude auxiliary coordinate
-        lat = cf.AuxiliaryCoordinate(data=cf.Data(area.lats,
+        lons, lats = area.get_lonlats()
+        lat = cf.AuxiliaryCoordinate(data=cf.Data(lats,
                                                   'degrees_north'))
         lat.standard_name = 'latitude'
 
         # Create a latitude auxiliary coordinate
-        lon = cf.AuxiliaryCoordinate(data=cf.Data(area.lons,
+        lon = cf.AuxiliaryCoordinate(data=cf.Data(lons,
                                                   'degrees_east'))
         lon.standard_name = 'longitude'
         return [lat, lon]
@@ -141,11 +142,13 @@ def create_time_coordinate_with_bounds(start_time, end_time, properties):
 def get_data_array_coords(data_array):
     """Get the coordinates for `data_array`."""
     coords = []
+    transdims = {'x': 'grid_longitude',
+                 'y': 'grid_latitude'}
     for name in data_array.dims:
         if name not in data_array.coords:
             dimc = cf.DimensionCoordinate(data=cf.Data(range(data_array[name].size),
-                                                       cf.Units('1')))
-            dimc.id = name
+                                                       cf.Units('Degree')))
+            dimc.standard_name = transdims[name]
             coords.append(dimc)
         elif name == 'time' and len(data_array.coords[name]) == 1:
             coords.append(create_time_coordinate_with_bounds(
@@ -159,7 +162,7 @@ def get_data_array_coords(data_array):
                                                        cf.Units(
                                                            coord.attrs['units'])),
                                           )
-            dimc.id = coord.name
+            dimc.standard_name = coord.name
             coords.append(dimc)
     return coords
 
@@ -167,24 +170,27 @@ def get_data_array_coords(data_array):
 def create_data_domain(data_array):
     """Create a cf domain from `data_array`."""
     area = data_array.attrs.get('area')
-    return cf.Domain(dim=get_data_array_coords(data_array),
-                     aux=auxiliary_coordinates_from_area(area),
-                     ref=grid_mapping_from_area(area))
-
+    y, x =get_data_array_coords(data_array)
+    lat, lon =auxiliary_coordinates_from_area(area)
+    ref=grid_mapping_from_area(area)
+    return(y, x, lat, lon, ref) 
 
 def cf_field_from_data_array(data_array, **extra_properties):
     """Get the cf Field object corresponding to `data_array`."""
-    wanted_keys = set(['standard_name', 'long_name'])
+    wanted_keys = set(['standard_name', 'long_name', 'valid_range'])
     properties = {k: data_array.attrs[k]
                   for k in wanted_keys & set(data_array.attrs.keys())}
     properties.update(extra_properties)
-
-    new_field = cf.Field(properties=properties,
-                         data=cf.Data(data_array.values,
-                                      data_array.attrs['units']),
-                         domain=create_data_domain(data_array))
-
-    new_field.valid_range = data_array.attrs['valid_range']
+    Y, X, lat, lon, ref = create_data_domain(data_array)
+    new_field = cf.Field(properties=properties)
+    new_field.insert_dim(X)
+    new_field.insert_dim(Y)
+    new_field.insert_aux(lat, axes=['Y', 'X'])
+    new_field.insert_aux(lon, axes=['X', 'Y'])
+    new_field.insert_ref(ref)
+    new_field.insert_data(data=cf.Data(data_array.values,
+                                       data_array.attrs['units']),
+                          axes=['Y', 'X'])
 
     return new_field
 
