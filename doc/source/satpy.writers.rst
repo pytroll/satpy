@@ -25,6 +25,13 @@ satpy.writers.simple_image module
     :undoc-members:
     :show-inheritance:
 
+satpy.writers.scmi module
+-------------------------
+
+.. automodule:: satpy.writers.scmi
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Module contents
 ---------------

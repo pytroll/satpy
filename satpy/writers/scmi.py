@@ -30,10 +30,37 @@ the SCMI NetCDF backend can be used to provide compatible products to the
 system. The files created by this backend are compatible with AWIPS II (AWIPS I is no
 longer supported).
 
-The AWIPS NetCDF backend takes remapped binary image data and creates an
-AWIPS-compatible NetCDF 4 file.
-Both the AWIPS backend and the AWIPS client must be configured to handle certain
-products over certain grids
+The SCMI writer takes remapped binary image data and creates an
+AWIPS-compatible NetCDF4 file. The SCMI writer and the AWIPS client may
+need to be configured to make things appear the way the user wants in
+the AWIPS client. The SCMI writer can only produce files for datasets mapped
+to areas with specific projections:
+
+ - lcc
+ - geos
+ - merc
+ - stere
+
+This is a limitation of the AWIPS client and not of the SCMI writer.
+
+Numbered versus Lettered Grids
+------------------------------
+
+By default the SCMI writer will save tiles by number starting with '1'
+representing the upper-left image tile. Tile numbers then increase
+along the column and then on to the next row.
+
+By specifying `lettered_grid` as `True` tiles can be designated with a
+letter. Lettered grids or sectors are preconfigured in the `scmi.yaml`
+configuration file. The lettered tile locations are static and will not
+change with the data being written to them. Each lettered tile is split
+in to a certain number of subtiles (`num_subtiles`), default 2 rows by
+2 columns. Lettered tiles are meant to make it easier for receiving
+AWIPS clients/stations to filter what tiles they receive; saving time,
+bandwidth, and space.
+
+Any tiles (numbered or lettered) not containing any valid data are not
+created.
 
 """
 import os
