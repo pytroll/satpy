@@ -136,13 +136,13 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            x_size=1000,
+            y_size=2000,
+            area_extent=(-1000000., -1500000., 1000000., 1500000.),
         )
         now = datetime.utcnow()
         ds = Dataset(
-            np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)),
+            np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
             name='test_ds',
             platform='PLAT',
             sensor='SENSOR',
@@ -161,6 +161,8 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertTrue(os.path.isfile(fn))
 
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 def suite():
     """The test suite for this writer's tests.
     """
