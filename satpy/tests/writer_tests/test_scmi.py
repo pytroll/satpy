@@ -154,7 +154,8 @@ class TestSCMIWriter(unittest.TestCase):
         fn = w.save_dataset(ds,
                             sector_id='LCC',
                             source_name="TESTS",
-                            tile_count=(3, 3))
+                            tile_count=(3, 3),
+                            lettered_grid=True)
         # `fn` is currently the last file created
         print(fn)
         self.assertTrue(os.path.isfile(fn))
