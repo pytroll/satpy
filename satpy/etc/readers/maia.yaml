@@ -1,0 +1,180 @@
+reader:
+  description: MAIA Reader
+  name: maia
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs, avhrr]
+
+file_types:
+  maia:
+    file_reader: !!python/name:satpy.readers.maia.MAIAFileHandler
+# example of file name:  viiCT_npp_DB_20121010_S132824_E132947_ASC_D_La050_Lo-012_00001.h5
+    file_patterns:
+     - 'viiCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
+     - 'avhCT_{platform_name}_{origin}_{start_time:%Y%m%d_S%H%M%S}_E{end_time:%H%M%S}_{orbit_type}_La{center_lat}_Lo{center_lon}_{orbit:5d}.h5'
+
+
+datasets:
+  Mask_in:
+    name: Mask_in
+    file_type: maia
+    coordinates: [Longitude, Latitude ]
+
+  Latitude:
+    name: Latitude
+    file_type: maia
+    units: "degrees"
+    standard_name: latitude
+
+  Longitude:
+    name: Longitude
+    file_type: maia
+    units: "degrees"
+    standard_name: longitude
+
+  Alt_surface:
+   name: Alt_surface
+   units: m
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudType:
+   name: CloudType
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudMask:
+   name: CloudMask  
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+  
+# CloudType and CloudMask are bitfields
+# description of sub fields
+  ct:
+   name: ct
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask On Pixel  
+  cma:
+   name: cma
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask Confidence
+  cma_conf:
+   name: cma_conf
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+# Cloud Mask Quality
+  cma_qual:
+   name: CM_qual
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  land_water_background:
+   name: land_water_background
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  opaq_cloud:
+   name: opaq_cloud
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudTopPres:
+   name: CloudTopPres
+   units: hPa
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  CloudTopTemp:
+   name: CloudTopTemp
+   units: degree celcius
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  Mask_ind:
+   name: Mask_ind
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  fov_qual:
+   name: fov_qual
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+  Tsurf:
+   name: Tsurf
+   units: degrees celcius
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+  
+  Sat_zenith:
+   name: Sat_zenith
+   units: degrees
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   file_type: maia
+   coordinates: [Longitude, Latitude ]
+
