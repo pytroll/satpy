@@ -15,6 +15,12 @@ modifiers:
     prerequisites:
     - solar_zenith_angle
 
+  effective_solar_pathlength_corrected:
+    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    prerequisites:
+    - solar_zenith_angle
+
+
 composites:
 
   true_color:
