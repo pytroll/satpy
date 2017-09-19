@@ -19,7 +19,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to CLAVR-X HDF4 products.
+"""Reader for NWPSAF AAPP MAIA Cloud product.
+   https://nwpsaf.eu/site/software/aapp/
+   Documentation reference:
+     [NWPSAF-MF-UD-003] DATA Formats
+     [NWPSAF-MF-UD-009] MAIA version 4 Scientific User Manual
 """
 import logging
 from collections import defaultdict
@@ -41,7 +45,7 @@ class MAIAFileHandler(BaseFileHandler):
         super(MAIAFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
-        # set the day date part of end_time
+        # set the day date part for end_time from the file name
         self.finfo['end_time'] = self.finfo['end_time'].replace(
             year=self.finfo['start_time'].year,
             month=self.finfo['start_time'].month,
@@ -117,6 +121,8 @@ class MAIAFileHandler(BaseFileHandler):
         return self.finfo['end_time']
 
     def get_dataset(self, key, info, out=None):
+        """Get a dataset from the file."""
+        
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
         selected = np.array(self.selected)
