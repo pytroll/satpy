@@ -4,6 +4,10 @@ modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
 
+  effective_solar_pathlength_corrected:
+    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+
+
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
@@ -25,6 +29,9 @@ modifiers:
 
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: midlatitude summer
+    #aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - wavelength: 0.44
       modifiers: [sunz_corrected]
