@@ -1,0 +1,7 @@
+sensor_name: bitmap
+
+composites:
+  bitmap:
+    compositor: !!python/name:satpy.composites.bitmap.bitmap
+    prerequisites:
+     - name: image

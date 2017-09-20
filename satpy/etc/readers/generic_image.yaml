@@ -1,0 +1,20 @@
+reader:
+    name: generic_image
+    description: generic image reader, used to convert to NinjoTiff
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [bitmap]
+
+datasets:
+    'image':
+      sensor: bitmap
+      name: 'image'
+      file_type: graphic
+
+file_types:
+    graphic:
+        file_reader: !!python/name:satpy.readers.generic_image.GenericImageFileHandler
+        file_patterns:
+         - '{filename}.png'
+         - '{filename}.jpg'
+         - '{filename}.gif'
+         - '{filename}.tif'
