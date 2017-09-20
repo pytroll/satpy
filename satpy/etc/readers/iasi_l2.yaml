@@ -11,88 +11,103 @@ datasets:
     file_type: iasi_l2_hdf5
     standard_name: longitude
     units: "degrees"
+    resolution: 12000
   latitude:
     name: latitude
     file_type: iasi_l2_hdf5
     standard_name: latitude
     units: "degrees"
+    resolution: 12000
 
   ozone_mixing_ratio:
     name: ozone_mixing_ratio
     file_type: iasi_l2_hdf5
     units: "kg/kg"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   ozone_mixing_ratio_quality:
     name: ozone_mixing_ratio_quality
     file_type: iasi_l2_hdf5
     units: ""
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   pressure:
     name: pressure
     file_type: iasi_l2_hdf5
     units: "hPa"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   pressure_quality:
     name: pressure_quality
     file_type: iasi_l2_hdf5
     units: ""
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   temperature:
     name: temperature
     file_type: iasi_l2_hdf5
     units: "K"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   temperature_quality:
     name: temperature_quality
     file_type: iasi_l2_hdf5
     units: ""
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   water_mixing_ratio:
     name: water_mixing_ratio
     file_type: iasi_l2_hdf5
     units: "kg/kg"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   water_mixing_ratio_quality:
     name: water_mixing_ratio_quality
     file_type: iasi_l2_hdf5
     units: ""
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     file_type: iasi_l2_hdf5
     units: "degrees"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     file_type: iasi_l2_hdf5
     units: "degrees"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   sensing_time:
     name: sensing_time
     file_type: iasi_l2_hdf5
     units: "degrees"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     file_type: iasi_l2_hdf5
     units: "degrees"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
   solar_zenith_angle:
     name: solar_zenith_angle
     file_type: iasi_l2_hdf5
     units: "degrees"
+    resolution: 12000
     coordinates: [longitude, latitude]
 
 file_types:
