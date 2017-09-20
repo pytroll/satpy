@@ -74,19 +74,16 @@ class IASIL2HDF5(BaseFileHandler):
     """File handler for IASI L2 HDF5 files."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(IASIL2HDF5FileHandler, self).__init__(filename, filename_info,
-                                                    filetype_info)
-        pdb.set_trace()
-        LOGGER.debug(filename)
-        LOGGER.debug(filename_info)
-        LOGGER.debug(filetype_info)
+        super(IASIL2HDF5, self).__init__(filename, filename_info,
+                                         filetype_info)
 
         self.filename = filename
         self.finfo = filename_info
         self.lons = None
         self.lats = None
 
-        short_name = filename_info['platform_short_name']
+        self.mda = {}
+        short_name = filename_info['platform_id']
         self.mda['platform_name'] = SHORT_NAMES.get(short_name, short_name)
         self.mda['sensor'] = 'iasi'
 
@@ -96,56 +93,57 @@ class IASIL2HDF5(BaseFileHandler):
 
     @property
     def end_time(self):
-        end_time = datetime.combine(self.start_time.date(),
-                                    self.finfo['end_time'].time())
+        end_time = dt.datetime.combine(self.start_time.date(),
+                                       self.finfo['end_time'].time())
         if end_time < self.start_time:
-            end_time += timedelta(days=1)
+            end_time += dt.timedelta(days=1)
         return end_time
 
     def get_dataset(self, key, info):
         """Load a dataset"""
         with h5py.File(self.filename, 'r') as fid:
             LOGGER.debug('Reading %s.', key.name)
-            if key.name in chans_dict:
-                m_data = self.read_dataset(fid, key, info)
+            if key.name in DSET_NAMES:
+                m_data = read_dataset(fid, key, info)
             else:
-                m_data = self.read_geo(fid, key, info)
+                m_data = read_geo(fid, key, info)
         m_data.info.update(info)
 
         return m_data
 
-    def read_dataset(fid, key, info):
-        """Read dataset"""
-        dsid = CHAN_DICT[key.name]
-        data = fid["/PWLR/" + dsid].value
-        try:
-            unit = fid["/PWLR/" + dsid].attrs['units']
-            long_name = fid["/PWLR/" + dsid].attrs['long_name']
-        except KeyError:
-            unit = ''
-            long_name = ''
 
-        data = np.ma.masked_where(data > 1e30, data)
+def read_dataset(fid, key, info):
+    """Read dataset"""
+    dsid = DSET_NAMES[key.name]
+    data = fid["/PWLR/" + dsid].value
+    try:
+        unit = fid["/PWLR/" + dsid].attrs['units']
+        long_name = fid["/PWLR/" + dsid].attrs['long_name']
+    except KeyError:
+        unit = ''
+        long_name = ''
 
-        return Dataset(data, copy=False, units=unit, long_name=long_name,
-                       name=key.name, **info)
+    data = np.ma.masked_where(data > 1e30, data)
 
-    def read_geo(fid, key, info):
-        """Read geolocation and related datasets."""
-        dsid = GEO_DICT[key.name]
-        if "time" in key.name:
-            days = fid["/L1C/" + dsid["days"]].value
-            msecs = fid["/L1C/" + dsid["msec"]].value
-            unit = ""
-            data = _form_datetimes(days, msecs)
-        else:
-            data = fid["/L1C/" + dsid].value
-            unit = fid["/L1C/" + dsid].attrs['units']
+    return Dataset(data, copy=False, long_name=long_name,
+                   **info)
 
-        data = Dataset(data, units=unit, copy=False,
-                       name=key.name, **info)
 
-        return data
+def read_geo(fid, key, info):
+    """Read geolocation and related datasets."""
+    dsid = GEO_NAMES[key.name]
+    if "time" in key.name:
+        days = fid["/L1C/" + dsid["day"]].value
+        msecs = fid["/L1C/" + dsid["msec"]].value
+        unit = ""
+        data = _form_datetimes(days, msecs)
+    else:
+        data = fid["/L1C/" + dsid].value
+        unit = fid["/L1C/" + dsid].attrs['units']
+
+    data = Dataset(data, copy=False, **info)
+
+    return data
 
 
 def _form_datetimes(days, msecs):
@@ -154,13 +152,13 @@ def _form_datetimes(days, msecs):
 
     all_datetimes = []
     for i in range(days.size):
-        day = days[i]
+        day = int(days[i])
         msec = msecs[i]
         scanline_datetimes = []
         for j in range(VALUES_PER_SCAN_LINE / 4):
-            usecs = 1000 * (j * VIEW_TIME_ADJUSTMENT + msecs)
+            usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
             for k in range(4):
-                delta = (dt.timedelta(days=days, microseconds=usecs))
+                delta = (dt.timedelta(days=day, microseconds=usec))
                 scanline_datetimes.append(EPOCH + delta)
         all_datetimes.append(np.array(scanline_datetimes))
 
