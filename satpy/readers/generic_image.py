@@ -62,9 +62,7 @@ class GenericImageFileHandler(BaseFileHandler):
 
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
-        selected = np.array(self.selected)
-
-
-        ds = Dataset(selected, copy=False, **info)
+        selected = np.array(values)
+        ds = Dataset(np.transpose(selected), copy=False, **info)
         return ds
 
