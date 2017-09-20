@@ -363,14 +363,8 @@ class PSPRayleighReflectance(CompositeBase):
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
         del sata, suna
 
-        if 'atmosphere' not in self.info:
-            atmosphere = 'us-standard'
-        else:
-            atmosphere = self.info['atmosphere']
-        if 'aerosol_type' not in self.info:
-            aerosol_type = 'marine_clean_aerosol'
-        else:
-            aerosol_type = self.info['aerosol_type']
+        atmosphere = self.info.get('atmosphere', 'us-standard')
+        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
 
         corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
                              atmosphere=atmosphere,
