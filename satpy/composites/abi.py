@@ -48,7 +48,7 @@ class TrueColor2km(RGBCompositor):
         b = c01
         g = (c01 + c02) / 2 * 0.93 + 0.07 * c03
 
-        return super(TrueColor, self).__call__((r, g, b), **info)
+        return super(TrueColor2km, self).__call__((r, g, b), **info)
 
 
 class TrueColor(RGBCompositor):
