@@ -1,34 +1,13 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-# Lorenzo Clementi   <lorenzo.clementi@meteoswiss.ch>
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-import logging
-from collections import defaultdict
-from datetime import datetime, timedelta
-
 from PIL import Image
 import numpy as np
+import os
 
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
+from pyresample import utils
+from pyresample.geometry import AreaDefinition
+from mpop.projector import get_area_def
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +18,7 @@ class GenericImageFileHandler(BaseFileHandler):
         super(GenericImageFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
-        self.finfo['end_time'] =  datetime(1900,1,27,7,45)
-        self.finfo['start_time'] = datetime(1900,1,27,7,45)
+        self.finfo['end_time'] =  self.finfo['start_time']
         self.selected = None
         self.read(filename)
 
@@ -63,6 +41,7 @@ class GenericImageFileHandler(BaseFileHandler):
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
         selected = np.array(values)
-        ds = Dataset(np.transpose(selected), copy=False, **info)
+        out = np.rot90(np.fliplr(np.transpose(selected)))
+        ds = Dataset(out, copy=False, **info)
         return ds
 

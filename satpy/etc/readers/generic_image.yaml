@@ -2,19 +2,22 @@ reader:
     name: generic_image
     description: generic image reader
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-    sensors: [bitmap]
+    sensors: [images]
+    default_channels: [image]
 
 datasets:
-    'image':
-      sensor: bitmap
-      name: 'image'
-      file_type: graphic
+  image:
+    name: image
+    file_type: graphic
+
+
 
 file_types:
     graphic:
         file_reader: !!python/name:satpy.readers.generic_image.GenericImageFileHandler
         file_patterns:
-         - '{filename}.png'
-         - '{filename}.jpg'
-         - '{filename}.gif'
-         - '{filename}.tif'
+         - '{filename}_{start_time:%Y%m%d%H%M}.png'
+         - '{filename}_{start_time:%Y%m%d%H%M}.jpg'
+         - '{filename}{start_time:%Y%m%d%H%M}.gif'
+         - '{filename}{start_time:%Y%m%d%H%M}.tif'
+
