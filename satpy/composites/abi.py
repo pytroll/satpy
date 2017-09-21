@@ -23,16 +23,22 @@
 """
 
 import logging
-
-from pyresample.geometry import AreaDefinition
+import numpy as np
 
 from satpy.composites import RGBCompositor
-from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 
 
-class TrueColor(RGBCompositor):
+def four_element_average(d):
+    """Average every 4 elements (2x2) in a 2D array"""
+    rows, cols = d.shape
+    new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
+    return np.mean(d.reshape(new_shape), axis=(1, 3))
+
+
+class TrueColor2km(RGBCompositor):
+    """True Color ABI compositor assuming all bands are the same resolution"""
 
     def __call__(self, projectables, **info):
 
@@ -43,3 +49,20 @@ class TrueColor(RGBCompositor):
         g = (c01 + c02) / 2 * 0.93 + 0.07 * c03
 
         return super(TrueColor, self).__call__((r, g, b), **info)
+
+
+class TrueColor(RGBCompositor):
+    """Ratio sharpened full resolution true color"""
+
+    def __call__(self, projectables, **info):
+        c01, c02, c03 = projectables
+        r = c02
+        b = np.repeat(np.repeat(c01, 2, axis=0), 2, axis=1)
+        c03_high = np.repeat(np.repeat(c03, 2, axis=0), 2, axis=1)
+
+        low_res_red = four_element_average(r)
+        low_res_red = np.repeat(np.repeat(low_res_red, 2, axis=0), 2, axis=1)
+        ratio = r / low_res_red
+        g = (b + r) / 2 * 0.93 + 0.07 * c03_high
+
+        return super(TrueColor, self).__call__((r, g * ratio, b * ratio), **info)
