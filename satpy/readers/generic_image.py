@@ -1,7 +1,7 @@
 from PIL import Image
 import numpy as np
 import os
-
+import logging
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
