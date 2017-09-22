@@ -19,6 +19,7 @@ class GenericImageFileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
         self.finfo = filename_info
         self.finfo['end_time'] =  self.finfo['start_time']
+        self.finfo['filename'] = filename
         self.selected = None
         self.read(filename)
 
@@ -42,6 +43,7 @@ class GenericImageFileHandler(BaseFileHandler):
         values = self.file_content[key.name]
         selected = np.array(values)
         out = np.rot90(np.fliplr(np.transpose(selected)))
+        info['filename'] = self.finfo['filename']
         ds = Dataset(out, copy=False, **info)
         return ds
 
