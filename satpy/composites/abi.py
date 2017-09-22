@@ -65,4 +65,12 @@ class TrueColor(RGBCompositor):
         low_res_red = np.repeat(np.repeat(low_res_red, 2, axis=0), 2, axis=1)
         ratio = r / low_res_red
 
-        return super(TrueColor, self).__call__((r, g * ratio, b * ratio), **info)
+        # make sure metadata is copied over
+        # copy red channel area to get correct resolution
+        g *= ratio
+        g.info = c03.info.copy()
+        g.info['area'] = r.info['area']
+        b *= ratio
+        b.info = c01.info.copy()
+        b.info['area'] = r.info['area']
+        return super(TrueColor, self).__call__((r, g, b), **info)
