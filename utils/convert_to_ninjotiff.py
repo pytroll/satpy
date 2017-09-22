@@ -1,4 +1,4 @@
-mport os, sys
+import os, sys
 from satpy.utils import debug_on
 import pyninjotiff
 debug_on()
