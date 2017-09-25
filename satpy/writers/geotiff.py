@@ -60,14 +60,14 @@ class GeoTIFFWriter(ImageWriter):
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
         ImageWriter.__init__(self,
-                             default_config_filename="writers/geotiff.cfg",
+                             default_config_filename="writers/geotiff.yaml",
                              **kwargs)
 
-        self.floating_point = bool(self.config_options.get(
+        self.floating_point = bool(self.info.get(
             "floating_point", None) if floating_point is None else
             floating_point)
-        self.tags = self.config_options.get("tags",
-                                            None) if tags is None else tags
+        self.tags = self.info.get("tags",
+                                  None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -77,8 +77,8 @@ class GeoTIFFWriter(ImageWriter):
         # GDAL specific settings
         self.gdal_options = {}
         for k in self.GDAL_OPTIONS:
-            if k in kwargs or k in self.config_options:
-                self.gdal_options[k] = kwargs.get(k, self.config_options[k])
+            if k in kwargs or k in self.info:
+                self.gdal_options[k] = kwargs.get(k, self.info[k])
 
     def _gdal_write_datasets(self, dst_ds, datasets, opacity, fill_value):
         """Write *datasets* in a gdal raster structure *dts_ds*, using

@@ -1,0 +1,19 @@
+reader:
+  description: GEOCAT
+  name: geocat
+  reader: !!python/name:satpy.readers.geocat.GEOCATYAMLReader
+  sensors: [abi, ahi, goes_imager]
+
+file_types:
+  level2:
+    file_reader: !!python/name:satpy.readers.geocat.GEOCATFileHandler
+    file_patterns:
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.nc'
+     # Himawari 8 files:
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.nc'
+     # GOES-16 ABI files:
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.nc'
+

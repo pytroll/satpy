@@ -62,14 +62,14 @@ class NinjoTIFFWriter(ImageWriter):
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
         ImageWriter.__init__(self,
-                             default_config_filename="writers/ninjotiff.cfg",
+                             default_config_filename="writers/ninjotiff.yaml",
                              **kwargs)
 
         # self.floating_point = bool(self.config_options.get(
         #     "floating_point", None) if floating_point is None else
         #     floating_point)
-        self.tags = self.config_options.get("tags",
-                                            None) if tags is None else tags
+        self.tags = self.info.get("tags",
+                                  None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):

@@ -98,6 +98,12 @@ distribution, we provide support for the following readers:
     * - NOAA Level 2 ACSPO SST data in netCDF4 format
       - `acspo`
       - Nominal
+    * - GEOstationary Cloud Algorithm Test-bed (GEOCAT)
+      - `geocat`
+      - Nominal
+    * - The Clouds from AVHRR Extended (CLAVR-x)
+      - `clavrx`
+      - Nominal
     * - SNPP VIIRS data in hdf5 SDR format
       - `viirs_sdr`
       - Nominal
@@ -106,6 +112,9 @@ distribution, we provide support for the following readers:
       - Nominal
     * - SNPP VIIRS data in hdf5 Compact format
       - `viirs_compact`
+      - Nominal
+    * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
+      - `maia`
       - Nominal
 
 Reprojection of data is also available through the use of pyresample_.
