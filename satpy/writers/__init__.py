@@ -164,7 +164,7 @@ def show(dataset, **kwargs):
     img.show()
 
 
-def to_image(dataset, copy=True, **kwargs):
+def to_image(dataset, copy=False, **kwargs):
     # Only add keywords if they are present
     for key in ["mode", "fill_value", "palette"]:
         if key in dataset.attrs:
@@ -172,7 +172,10 @@ def to_image(dataset, copy=True, **kwargs):
     dataset = dataset.squeeze()
 
     if 'bands' in dataset.dims:
-        return Image([dataset.sel(bands=0).values, dataset.sel(bands=1).values, dataset.sel(bands=2).values], copy=copy, **kwargs)
+        return Image([np.ma.masked_invalid(dataset.sel(bands='R').values),
+                      np.ma.masked_invalid(dataset.sel(bands='G').values),
+                      np.ma.masked_invalid(dataset.sel(bands='B').values)],
+                     copy=copy, **kwargs)
     else:
         return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
 
@@ -296,7 +299,8 @@ class EnhancementDecisionTree(object):
                 LOG.debug("Loading enhancement config string")
                 d = yaml.load(config_file)
                 if not isinstance(d, dict):
-                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+                    raise ValueError(
+                        "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
                 conf = recursive_dict_update(conf, d)
 
         self._build_tree(conf)

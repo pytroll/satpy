@@ -34,7 +34,6 @@ import xarray as xr
 import xarray.ufuncs as xu
 
 from pyresample import geometry
-
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,7 @@ class NC_ABI_L1B(BaseFileHandler):
                                   mask_and_scale=True,
                                   engine='h5netcdf',
                                   chunks={'x': 1000, 'y': 1000})
-
+        self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
@@ -67,7 +66,7 @@ class NC_ABI_L1B(BaseFileHandler):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
 
-        radiances = self.nc["Rad"][xslice, yslice]
+        radiances = self.nc["Rad"][xslice, yslice].expand_dims('time')
 
         res = self.calibrate(radiances)
 
@@ -94,11 +93,6 @@ class NC_ABI_L1B(BaseFileHandler):
 
         lon_0 = projection.attrs['longitude_of_projection_origin']
         sweep_axis = projection.attrs['sweep_angle_axis'][0]
-
-        scale_x = self.nc['x'].attrs["scale_factor"][0]
-        scale_y = self.nc['y'].attrs["scale_factor"][0]
-        offset_x = self.nc['x'].attrs["add_offset"][0]
-        offset_y = self.nc['y'].attrs["add_offset"][0]
 
         # x and y extents in m
         h = float(h)
