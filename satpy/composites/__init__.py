@@ -25,6 +25,7 @@
 
 import logging
 import os
+import time
 
 import numpy as np
 import six
@@ -38,6 +39,8 @@ from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_attrs, combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.tools import atmospheric_path_length_correction
+from satpy.writers import get_enhanced_image
 
 try:
     import configparser
@@ -145,8 +148,8 @@ class CompositorLoader(object):
         except KeyError:
             if composite_name in compositors or composite_name in modifiers:
                 return conf
-            raise ValueError("'compositor' missing or empty in %s" %
-                             composite_config)
+            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
+                composite_config, str(options.keys())))
 
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
@@ -247,7 +250,10 @@ class CompositeBase(InfoObject):
                     d[k] = o[k]
 
 
-class SunZenithCorrector(CompositeBase):
+class SunZenithCorrectorBase(CompositeBase):
+
+    """Base class for sun zenith correction"""
+
     # FIXME: the cache should be cleaned up
     coszen = {}
 
@@ -260,8 +266,9 @@ class SunZenithCorrector(CompositeBase):
         if hasattr(vis.attrs["area"], 'name'):
             area_name = vis.attrs["area"].name
         else:
-            area_name = 'swath' + str(vis.attrs["area"].lons.shape)
+            area_name = 'swath' + str(vis.shape)
         key = (vis.attrs["start_time"], area_name)
+        tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
@@ -287,10 +294,36 @@ class SunZenithCorrector(CompositeBase):
 
         # sunz correction will be in place so we need a copy
         proj = vis.copy()
-        proj = sunzen_corr_cos(proj, coszen)
+        proj = self._apply_correction(proj, coszen)
         vis.mask[coszen < 0] = True
         self.apply_modifier_info(vis, proj)
+        LOG.debug(
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
+
+    def _apply_correction(self, proj, coszen):
+        raise NotImplementedError("Correction method shall be defined!")
+
+
+class SunZenithCorrector(SunZenithCorrectorBase):
+
+    """Standard sun zenith correction, 1/cos(sunz)"""
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
+        return sunzen_corr_cos(proj, coszen)
+
+
+class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
+
+    """Special sun zenith correction with the method proposed by Li and Shibata
+    (2006): https://doi.org/10.1175/JAS3682.1
+    """
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug(
+            "Apply the effective solar atmospheric path length correction method by Li and Shibata")
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 def show(data, filename=None):
@@ -334,14 +367,18 @@ class PSPRayleighReflectance(CompositeBase):
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
-        LOG.info('Removing Rayleigh scattering')
+        LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         ssadiff = np.abs(suna - sata)
         ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
         del sata, suna
 
+        atmosphere = self.attrs.get('atmosphere', 'us-standard')
+        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
+
         corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                             atmosphere='us-standard', rural_aerosol=False)
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         refl_cor_band = corrector.get_reflectance(
             sunz, satz, ssadiff, vis.attrs['wavelength'][1], blue)
@@ -388,11 +425,51 @@ class NIRReflectance(CompositeBase):
         refl39 = Calculator(nir.attrs['platform_name'],
                             nir.attrs['sensor'], nir.id.wavelength[1])
 
-        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir,
-                                                   tb11, tb13_4) * 100,
-                       **nir.attrs)
+        proj = refl39.reflectance_from_tbs(sun_zenith, nir,
+                                                   tb11, tb13_4) * 100
+        proj.attrs = nir.attrs
         proj.attrs['units'] = '%'
         self.apply_modifier_info(nir, proj)
+
+        return proj
+
+
+class PSPAtmosphericalCorrection(CompositeBase):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the atmospherical correction. Uses pyspectral.
+        """
+        from pyspectral.atm_correction_ir import AtmosphericalCorrection
+
+        band = projectables[0]
+
+        if optional_datasets:
+            satz = optional_datasets[0]
+        else:
+            from pyorbital.orbital import get_observer_look
+            lons, lats = band.attrs['area'].get_lonlats()
+
+            try:
+                dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
+                                                 band.attrs[
+                                                     'satellite_latitude'],
+                                                 band.attrs[
+                                                     'satellite_altitude'],
+                                                 band.attrs['start_time'],
+                                                 lons, lats, 0)
+            except KeyError:
+                raise KeyError(
+                    'Band info is missing some meta data!')
+            satz = 90 - satel
+            del satel
+
+        LOG.info('Correction for limb cooling')
+        corrector = AtmosphericalCorrection(band.attrs['platform_name'],
+                                            band.attrs['sensor'])
+
+        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
+        atm_corr.attrs = band.attrs
+        self.apply_modifier_info(band, proj)
 
         return proj
 
@@ -494,7 +571,22 @@ class RGBCompositor(CompositeBase):
         return the_data
 
 
+class BWCompositor(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 1:
+            raise ValueError("Expected 1 dataset, got %d" %
+                             (len(projectables), ))
+
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
+
+        return Dataset(projectables[0], **info)
+
+
 class ColormapCompositor(RGBCompositor):
+
     """A compositor that uses colormaps."""
     @staticmethod
     def build_colormap(palette, dtype, info):
@@ -521,6 +613,7 @@ class ColormapCompositor(RGBCompositor):
 
 
 class ColorizeCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, interpolating the palette colors when
     needed.
     """
@@ -549,6 +642,7 @@ class ColorizeCompositor(ColormapCompositor):
 
 
 class PaletteCompositor(ColormapCompositor):
+
     """A compositor colorizing the data, not interpolating the palette colors.
     """
 
@@ -575,6 +669,65 @@ class PaletteCompositor(ColormapCompositor):
                          dims=data.dims, coords=data.coords)
 
         return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
+
+
+class DayNightCompositor(RGBCompositor):
+
+    """A compositor that takes one composite on the night side, another on day
+    side, and then blends them together."""
+
+    def __call__(self, projectables, lim_low=85., lim_high=95., *args,
+                 **kwargs):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables), ))
+        try:
+            day_data = projectables[0].copy()
+            night_data = projectables[1].copy()
+            coszen = np.cos(np.deg2rad(projectables[2]))
+
+            coszen -= min(np.cos(np.deg2rad(lim_high)),
+                          np.cos(np.deg2rad(lim_low)))
+            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
+                             np.cos(np.deg2rad(lim_high)))
+            coszen = np.clip(coszen, 0, 1)
+
+            full_data = []
+
+            # Apply enhancements
+            day_data = enhance2dataset(day_data)
+            night_data = enhance2dataset(night_data)
+
+            # Match dimensions to the data with more channels
+            # There are only 1-channel and 3-channel composites
+            if day_data.shape[0] > night_data.shape[0]:
+                night_data = np.ma.repeat(night_data, 3, 0)
+            elif day_data.shape[0] < night_data.shape[0]:
+                day_data = np.ma.repeat(day_data, 3, 0)
+
+            for i in range(day_data.shape[0]):
+                day = day_data[i, :, :]
+                night = night_data[i, :, :]
+
+                data = (1 - coszen) * np.ma.masked_invalid(night).filled(0) + \
+                    coszen * np.ma.masked_invalid(day).filled(0)
+                data = np.ma.array(data, mask=np.logical_and(night.mask,
+                                                             day.mask),
+                                   copy=False)
+                data = Dataset(np.ma.masked_invalid(data),
+                               copy=True,
+                               **projectables[0].info)
+                full_data.append(data)
+
+            res = RGBCompositor.__call__(self, (full_data[0],
+                                                full_data[1],
+                                                full_data[2]),
+                                         *args, **kwargs)
+
+        except ValueError:
+            raise IncompatibleAreas
+
+        return res
 
 
 class Airmass(RGBCompositor):
@@ -664,3 +817,54 @@ class Dust(RGBCompositor):
             raise IncompatibleAreas
 
         return res
+
+
+class RealisticColors(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        try:
+
+            vis06 = projectables[0]
+            vis08 = projectables[1]
+            hrv = projectables[2]
+
+            ndvi = (vis08 - vis06) / (vis08 + vis06)
+            ndvi = np.where(ndvi < 0, 0, ndvi)
+
+            # info = combine_info(*projectables)
+            # info['name'] = self.info['name']
+            # info['standard_name'] = self.info['standard_name']
+
+            ch1 = Dataset(ndvi * vis06 + (1 - ndvi) * vis08,
+                          copy=False,
+                          **vis06.info)
+            ch2 = Dataset(ndvi * vis08 + (1 - ndvi) * vis06,
+                          copy=False,
+                          **vis08.info)
+            ch3 = Dataset(3 * hrv - vis06 - vis08,
+                          copy=False,
+                          **hrv.info)
+
+            res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
+                                         *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+
+def enhance2dataset(dset):
+    """Apply enhancements to dataset *dset* and convert the image data
+    back to Dataset object."""
+    img = get_enhanced_image(dset)
+
+    data = np.rollaxis(np.dstack(img.channels), axis=2)
+    mask = dset.mask
+    if mask.ndim < data.ndim:
+        mask = np.expand_dims(mask, 0)
+        mask = np.repeat(mask, 3, 0)
+    elif mask.ndim > data.ndim:
+        mask = mask[0, :, :]
+    data = Dataset(np.ma.masked_array(data, mask=mask),
+                   copy=False,
+                   **dset.info)
+    return data

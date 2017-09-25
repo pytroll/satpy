@@ -139,7 +139,23 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         raise NotImplementedError
 
     def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
-        if key.name not in ['longitude', 'latitude']:
+
+        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
+                        'satellite_zenith_angle', 'satellite_azimuth_angle']:
+
+            if key.name == 'solar_zenith_angle':
+                var = self.sd.select('SolarZenith')
+            if key.name == 'solar_azimuth_angle':
+                var = self.sd.select('SolarAzimuth')
+            if key.name == 'satellite_zenith_angle':
+                var = self.sd.select('SensorZenith')
+            if key.name == 'satellite_azimuth_angle':
+                var = self.sd.select('SensorAzimuth')
+
+            mask = var[:] == var._FillValue
+            data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
+
+        elif key.name not in ['longitude', 'latitude']:
             return
 
         if self.cache['lons'] is None or self.cache['lats'] is None:
@@ -314,6 +330,9 @@ class HDFEOSBandReader(HDFEOSFileReader):
         platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
             'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
 
+        info.update({'platform_name': 'EOS-' + platform_name})
+        info.update({'sensor': 'modis'})
+
         if self.resolution != key.resolution:
             return
 
@@ -337,7 +356,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
                                                      chunks=(1000, 1000)),
                                        dims=['y', 'x'])
             projectable.attrs = info
-            #projectable = Dataset(array[0], id=key, mask=array[0].mask)
+
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape
