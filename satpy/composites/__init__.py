@@ -28,10 +28,10 @@ import os
 
 import numpy as np
 import six
+import xarray as xr
 import yaml
 
 import dask.array as da
-import xarray as xr
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
@@ -51,6 +51,14 @@ class IncompatibleAreas(Exception):
 
     """
     Error raised upon compositing things of different shapes.
+    """
+    pass
+
+
+class IncompatibleTimes(Exception):
+
+    """
+    Error raised upon compositing things from different times.
     """
     pass
 
@@ -245,22 +253,22 @@ class SunZenithCorrector(CompositeBase):
 
     def __call__(self, projectables, **info):
         vis = projectables[0]
-        if vis.info.get("sunz_corrected"):
+        if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.info["area"], 'name'):
-            area_name = vis.info["area"].name
+        if hasattr(vis.attrs["area"], 'name'):
+            area_name = vis.attrs["area"].name
         else:
-            area_name = 'swath' + str(vis.info["area"].lons.shape)
-        key = (vis.info["start_time"], area_name)
+            area_name = 'swath' + str(vis.attrs["area"].lons.shape)
+        key = (vis.attrs["start_time"], area_name)
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
-                                                                *vis.info["area"].get_lonlats()),
+                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.attrs["start_time"],
+                                                                *vis.attrs["area"].get_lonlats()),
                                                         # about 88 degrees.
                                                         0.035,
                                                         1,
@@ -436,17 +444,26 @@ class RGBCompositor(CompositeBase):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
-        try:
 
+        areas = [projectable.attrs.get('area', None)
+                 for projectable in projectables]
+        areas = [area for area in areas if area is not None]
+        if areas and areas.count(areas[0]) != len(areas):
+            raise IncompatibleAreas
+        try:
+            times = [proj['time'][0].values for proj in projectables]
+            # Is there a more gracious way to handle this ?
+            if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
+                raise IncompatibleTimes
+            else:
+                mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+            projectables[0]['time'] = [mid_time]
+            projectables[1]['time'] = [mid_time]
+            projectables[2]['time'] = [mid_time]
             the_data = xr.concat(projectables, 'bands')
+            the_data['bands'] = ['R', 'G', 'B']
         except ValueError:
             raise IncompatibleAreas
-        else:
-            areas = [projectable.attrs.get('area', None)
-                     for projectable in projectables]
-            areas = [area for area in areas if area is not None]
-            if areas and areas.count(areas[0]) != len(areas):
-                raise IncompatibleAreas
 
         attrs = combine_attrs(*projectables)
         attrs.update(info)

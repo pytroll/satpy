@@ -33,9 +33,9 @@ from fnmatch import fnmatch
 
 import numpy as np
 import six
+import xarray as xr
 import yaml
 
-import xarray as xr
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
@@ -478,7 +478,12 @@ class FileYAMLReader(AbstractYAMLReader):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
-                filename_info = parse(pattern, get_filebase(filename, pattern))
+                try:
+                    filename_info = parse(
+                        pattern, get_filebase(filename, pattern))
+                except ValueError:
+                    logger.debug("Can't parse %s with %s.", filename, pattern)
+                    continue
 
                 yield filename, filename_info
 
@@ -638,7 +643,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 continue
             start = max(yslice.start - offset, 0)
             stop = min(yslice.stop - offset, segment_height)
-
 
             kwargs = {}
             if stop - start != segment_height:
@@ -830,8 +834,16 @@ class FileYAMLReader(AbstractYAMLReader):
         """Load the ancillary variables of `datasets`."""
         all_av_ids = set()
         for dataset in datasets.values():
-            av_ids = [self.get_dataset_key(key)
-                      for key in dataset.attrs.get('ancillary_variables', [])]
+            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            if not isinstance(ancillary_variables, (list, tuple, set)):
+                ancillary_variables = ancillary_variables.split(',')
+            av_ids = []
+            for key in ancillary_variables:
+                try:
+                    av_ids.append(self.get_dataset_key(key))
+                except KeyError:
+                    logger.warning("Can't load ancillary dataset %s", str(key))
+
             all_av_ids |= set(av_ids)
             dataset.attrs['ancillary_variables'] = av_ids
         all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]

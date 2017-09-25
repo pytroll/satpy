@@ -791,6 +791,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.epilogue = epilogue.epilogue
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
+        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 1
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         self.mda['projection_parameters'][
@@ -856,7 +857,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
-        if self.start_time < datetime(2037, 1, 24):
+        if not self.mda['offset_corrected']:
             xadj = 1500
             yadj = 1500
             aex = (aex[0] + xadj, aex[1] + yadj,

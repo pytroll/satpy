@@ -36,11 +36,11 @@ from logging import getLogger
 import numpy as np
 import six
 
+from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
-from pyresample.kd_tree import (get_neighbour_info,
+from pyresample.kd_tree import (XArrayResamplerNN, get_neighbour_info,
                                 get_sample_from_neighbour_info)
-from pyresample.bilinear import get_sample_from_bil_info, get_bil_info
 from satpy.config import get_config, get_config_path
 
 try:
@@ -256,73 +256,87 @@ class KDTreeResampler(BaseResampler):
         else:
             LOG.debug("Computing kd-tree parameters")
 
+        self.resampler = XArrayResamplerNN(source_geo_def,
+                                           self.target_geo_def,
+                                           radius_of_influence,
+                                           neighbours=1,
+                                           epsilon=epsilon,
+                                           reduce_data=reduce_data,
+                                           nprocs=nprocs,
+                                           segments=segments)
+
         valid_input_index, valid_output_index, index_array, distance_array = \
-            get_neighbour_info(source_geo_def,
-                               self.target_geo_def,
-                               radius_of_influence,
-                               neighbours=1,
-                               epsilon=epsilon,
-                               reduce_data=reduce_data,
-                               nprocs=nprocs,
-                               segments=segments)
+            self.resampler.get_neighbour_info()
+        # vii, voi, ia, da = get_neighbour_info(source_geo_def,
+        #                                       self.target_geo_def,
+        #                                       radius_of_influence,
+        #                                       neighbours=1,
+        #                                       epsilon=epsilon,
+        #                                       reduce_data=reduce_data,
+        #                                       nprocs=nprocs,
+        #                                       segments=segments)
 
         # it's important here not to modify the existing cache dictionary.
-        self.cache = {"valid_input_index": valid_input_index,
-                      "valid_output_index": valid_output_index,
-                      "index_array": index_array,
-                      "distance_array": distance_array,
-                      "source_geo_def": source_geo_def,
-                      }
+        if cache_dir:
+            self.cache = {"valid_input_index": valid_input_index,
+                          "valid_output_index": valid_output_index,
+                          "index_array": index_array,
+                          "distance_array": distance_array,
+                          "source_geo_def": source_geo_def,
+                          }
 
-        self._update_caches(kd_hash, cache_dir, filename)
+            self._update_caches(kd_hash, cache_dir, filename)
 
-        return self.cache
+            return self.cache
 
     def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
 
         del kwargs
-
-        # TODO: index directly the xarray (performance is the issue atm)
-        try:
-            stacked = data.stack(z=('time', 'bands'))
-            stacked = stacked.transpose('y', 'x', 'z')
-            unstack = True
-        except KeyError:
-            try:
-                stacked = data.transpose('y', 'x', 'time')
-            except ValueError:
-                return data
-            unstack = False
-
-        res = get_sample_from_neighbour_info('nn',
-                                             self.target_geo_def.shape,
-                                             stacked.values,
-                                             self.cache["valid_input_index"],
-                                             self.cache["valid_output_index"],
-                                             self.cache["index_array"],
-                                             distance_array=self.cache[
-                                                 "distance_array"],
-                                             weight_funcs=weight_funcs,
-                                             fill_value=fill_value,
-                                             with_uncert=with_uncert)
-        import xarray as xr
-
-        res = xr.DataArray(res.filled(np.nan),
-                           name=data.name,
-                           dims=stacked.dims)
-
-        res.coords.update({'x': self.target_geo_def.proj_x_coords,
-                           'y': self.target_geo_def.proj_y_coords})
-        units = self.target_geo_def.proj_dict.get('units', 'm')
-        res.coords['x'].attrs['units'] = units
-        res.coords['y'].attrs['units'] = units
-        if unstack:
-            res = res.unstack('z')
-            res.coords.update({'z': stacked.coords['z']})
-        else:
-            res.coords.update({'time': stacked.coords['time']})
-
+        LOG.debug("Resampling")
+        res = self.resampler.get_sample_from_neighbour_info(data)
         return res
+
+        # # TODO: index directly the xarray (performance is the issue atm)
+        # try:
+        #     stacked = data.stack(z=('time', 'bands'))
+        #     stacked = stacked.transpose('y', 'x', 'z')
+        #     unstack = True
+        # except KeyError:
+        #     try:
+        #         stacked = data.transpose('y', 'x', 'time')
+        #     except ValueError as err:
+        #         LOG.warning("Cannot resample data: %s", str(err))
+        #         return data
+        #     unstack = False
+        #
+        # res = get_sample_from_neighbour_info('nn',
+        #                                      self.target_geo_def.shape,
+        #                                      data.values,
+        #                                      self.resampler.valid_input_index.compute().ravel(),
+        #                                      self.resampler.valid_output_index.compute().ravel(),
+        #                                      self.resampler.index_array.compute().ravel(),
+        #                                      distance_array=self.resampler.distance_array.compute().ravel(),
+        #                                      weight_funcs=weight_funcs,
+        #                                      fill_value=fill_value,
+        #                                      with_uncert=with_uncert)
+        # import xarray as xr
+        #
+        # res = xr.DataArray(res.filled(np.nan),
+        #                    name=data.name,
+        #                    dims=stacked.dims)
+        #
+        # res.coords.update({'x': self.target_geo_def.proj_x_coords,
+        #                    'y': self.target_geo_def.proj_y_coords})
+        # units = self.target_geo_def.proj_dict.get('units', 'm')
+        # res.coords['x'].attrs['units'] = units
+        # res.coords['y'].attrs['units'] = units
+        # if unstack:
+        #     res = res.unstack('z')
+        #     res.coords.update({'z': stacked.coords['z']})
+        # else:
+        #     res.coords.update({'time': stacked.coords['time']})
+        #
+        # return res
 
 
 class EWAResampler(BaseResampler):
