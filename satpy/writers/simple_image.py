@@ -32,7 +32,7 @@ class PillowWriter(ImageWriter):
     def __init__(self, **kwargs):
         ImageWriter.__init__(
             self,
-            default_config_filename="writers/simple_image.cfg",
+            default_config_filename="writers/simple_image.yaml",
             **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):

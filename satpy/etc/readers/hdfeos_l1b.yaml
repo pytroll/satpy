@@ -388,6 +388,34 @@ datasets:
     standard_name: latitude
     units: degree
 
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+        
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
 
 file_types:
   hdf_eos_data:
