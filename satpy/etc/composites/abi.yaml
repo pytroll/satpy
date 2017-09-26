@@ -11,7 +11,7 @@ modifiers:
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: midlatitude summer
-    aerosol_type: marine_tropical_aerosol      
+    aerosol_type: marine_tropical_aerosol
     prerequisites:
     - name: C01
       modifiers: [reducer2, effective_solar_pathlength_corrected]
@@ -23,15 +23,15 @@ modifiers:
 
 
 composites:
-  true_color_abi:
+  true_color:
     compositor: !!python/name:satpy.composites.abi.TrueColor
     prerequisites:
     - name: C01
-      modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: C02
-      modifiers: [reducer4, effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: C03
-      modifiers: [reducer2, effective_solar_pathlength_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
 
   overview:
@@ -39,5 +39,15 @@ composites:
     prerequisites:
     - 0.65
     - 0.85
+    - 11.0
+    standard_name: overview
+
+  overview_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [sunz_corrected]
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
     - 11.0
     standard_name: overview
