@@ -294,11 +294,8 @@ class SunZenithCorrectorBase(CompositeBase):
             coszen = np.repeat(
                 np.repeat(coszen, factor, axis=0), factor, axis=1)
 
-        # sunz correction will be in place so we need a copy
-        proj = vis.copy()
-        proj = self._apply_correction(proj, coszen)
-        #vis.mask[coszen < 0] = True
-        proj = proj.where(coszen >= 0)
+        proj = self._apply_correction(vis, coszen)
+        proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
         LOG.debug(
             "Sun-zenith correction applied. Computation time: %5.1f (sec)",
