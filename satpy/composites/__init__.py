@@ -26,6 +26,7 @@
 import logging
 import os
 import time
+from weakref import WeakValueDictionary
 
 import numpy as np
 import six
@@ -38,8 +39,7 @@ from satpy.config import (CONFIG_PATH, config_search_paths,
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_attrs, combine_info)
 from satpy.readers import DatasetDict
-from satpy.tools import sunzen_corr_cos
-from satpy.tools import atmospheric_path_length_correction
+from satpy.tools import atmospheric_path_length_correction, sunzen_corr_cos
 from satpy.writers import get_enhanced_image
 
 try:
@@ -254,8 +254,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     """Base class for sun zenith correction"""
 
-    # FIXME: the cache should be cleaned up
-    coszen = {}
+    coszen = WeakValueDictionary()
 
     def __call__(self, projectables, **info):
         vis = projectables[0]
@@ -271,18 +270,21 @@ class SunZenithCorrectorBase(CompositeBase):
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
-            if key not in self.coszen:
+            coszen = self.coszen.get(key)
+            if coszen is None:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.attrs["start_time"],
-                                                                *vis.attrs["area"].get_lonlats()),
-                                                        # about 88 degrees.
-                                                        0.035,
-                                                        1,
-                                                        copy=False)
-            coszen = self.coszen[key]
+                lonlats = vis.attrs["area"].get_lonlats_dask()
+                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
+                                              lonlats[:, :, 0],
+                                              lonlats[:, :, 1]),
+                                      dims=['y', 'x'],
+                                      coords=[vis['y'], vis['x']])
+                coszen = coszen.where((coszen > 0.035) & (coszen < 1))
+                self.coszen[key] = coszen
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
+            self.coszen[key] = coszen
 
         if vis.shape != coszen.shape:
             # assume we were given lower resolution szen data than band data
@@ -295,10 +297,12 @@ class SunZenithCorrectorBase(CompositeBase):
         # sunz correction will be in place so we need a copy
         proj = vis.copy()
         proj = self._apply_correction(proj, coszen)
-        vis.mask[coszen < 0] = True
+        #vis.mask[coszen < 0] = True
+        proj = proj.where(coszen >= 0)
         self.apply_modifier_info(vis, proj)
         LOG.debug(
-            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)",
+            time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -426,7 +430,7 @@ class NIRReflectance(CompositeBase):
                             nir.attrs['sensor'], nir.id.wavelength[1])
 
         proj = refl39.reflectance_from_tbs(sun_zenith, nir,
-                                                   tb11, tb13_4) * 100
+                                           tb11, tb13_4) * 100
         proj.attrs = nir.attrs
         proj.attrs['units'] = '%'
         self.apply_modifier_info(nir, proj)
