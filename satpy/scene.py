@@ -26,11 +26,12 @@
 
 import logging
 import os
+
 import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
-                          runtime_import, recursive_dict_update)
+                          recursive_dict_update, runtime_import)
 from satpy.dataset import Dataset, DatasetID, InfoObject
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, ReaderFinder
@@ -589,7 +590,7 @@ class Scene(InfoObject):
         """
 
         from satpy.writers import get_enhanced_image
-        img = get_enhanced_image(self[dataset_id], overlay=overlay)
+        img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         img.show()
         return img
 

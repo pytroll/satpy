@@ -32,12 +32,12 @@ import os
 
 import numpy as np
 import yaml
+from trollimage.image import Image
+from trollsift import parser
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
 from satpy.plugin_base import Plugin
-from trollimage.image import Image
-from trollsift import parser
 
 LOG = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def _determine_mode(dataset):
         return "RGBA"
     else:
         raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           (dataset.id,))
+                           str(dataset))
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None):
@@ -160,8 +160,9 @@ def show(dataset, **kwargs):
     if not dataset.is_loaded():
         raise ValueError("Dataset not loaded, cannot display.")
 
-    img = get_enhanced_image(dataset, **kwargs)
+    img = get_enhanced_image(dataset.squeeze(), **kwargs)
     img.show()
+    return img
 
 
 def to_image(dataset, copy=False, **kwargs):
@@ -346,6 +347,7 @@ class DecisionTree(object):
 
 
 class EnhancementDecisionTree(DecisionTree):
+
     def __init__(self, *decision_dicts, **kwargs):
         attrs = kwargs.pop("attrs", ("name",
                                      "platform",
@@ -353,21 +355,24 @@ class EnhancementDecisionTree(DecisionTree):
                                      "standard_name",
                                      "units",))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        super(EnhancementDecisionTree, self).__init__(decision_dicts, attrs, **kwargs)
+        super(EnhancementDecisionTree, self).__init__(
+            decision_dicts, attrs, **kwargs)
 
     def add_config_to_tree(self, *decision_dict):
         conf = {}
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    conf = recursive_dict_update(conf, yaml.load(fd)[self.prefix])
+                    conf = recursive_dict_update(
+                        conf, yaml.load(fd)[self.prefix])
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
             else:
                 LOG.debug("Loading enhancement config string")
                 d = yaml.load(config_file)
                 if not isinstance(d, dict):
-                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+                    raise ValueError(
+                        "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
                 conf = recursive_dict_update(conf, d)
 
         self._build_tree(conf)
