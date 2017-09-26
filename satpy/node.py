@@ -320,7 +320,8 @@ class DependencyTree(Node):
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
 
-        dataset_key = compositor.id
+        if not isinstance(dataset_key, DatasetID):
+            dataset_key = compositor.id
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
             compositor.info['prerequisites'])
