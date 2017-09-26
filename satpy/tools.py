@@ -44,12 +44,11 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     limit = np.cos(np.deg2rad(limit))
 
     # Cosine correction
-    lim_y, lim_x = np.where(cos_zen > limit)
-    data[lim_y, lim_x] /= cos_zen[lim_y, lim_x]
+    corr = 1 / cos_zen
     # Use constant value (the limit) for larger zenith
     # angles
-    lim_y, lim_x = np.where(cos_zen <= limit)
-    data[lim_y, lim_x] /= limit
+    corr = corr.where(cos_zen > limit).fillna(limit)
+    data /= corr
 
     return data
 
@@ -69,14 +68,12 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     limit = np.cos(np.radians(limit))
 
     # Cosine correction
-    lim_y, lim_x = np.where(cos_zen > limit)
-
     corr = _get_sunz_corr_li_and_shibata(cos_zen)
-    data[lim_y, lim_x] *= corr[lim_y, lim_x]
     # Use constant value (the limit) for larger zenith
     # angles
-    lim_y, lim_x = np.where(cos_zen <= limit)
     corr_lim = _get_sunz_corr_li_and_shibata(limit)
-    data[lim_y, lim_x] *= corr_lim
+    corr = corr.where(cos_zen > limit).fillna(corr_lim)
+
+    data *= corr
 
     return data
