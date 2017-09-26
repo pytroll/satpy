@@ -47,10 +47,9 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     corr = 1 / cos_zen
     # Use constant value (the limit) for larger zenith
     # angles
-    corr = corr.where(cos_zen > limit).fillna(limit)
-    data /= corr
+    corr = corr.where(cos_zen > limit).fillna(1 / limit)
 
-    return data
+    return data * corr
 
 
 def atmospheric_path_length_correction(data, cos_zen, limit=88.):
@@ -74,6 +73,4 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     corr_lim = _get_sunz_corr_li_and_shibata(limit)
     corr = corr.where(cos_zen > limit).fillna(corr_lim)
 
-    data *= corr
-
-    return data
+    return data * corr
