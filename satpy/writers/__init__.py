@@ -274,36 +274,24 @@ class ImageWriter(Writer):
             "Writer '%s' has not implemented image saving" % (self.name, ))
 
 
-class EnhancementDecisionTree(object):
+class DecisionTree(object):
     any_key = None
 
-    def __init__(self, *config_files, **kwargs):
-        self.attrs = kwargs.pop("attrs", ("name",
-                                          "platform",
-                                          "sensor",
-                                          "standard_name",
-                                          "units", ))
-        self.prefix = kwargs.pop("prefix", "enhancement:")
+    def __init__(self, decision_dicts, attrs, **kwargs):
+        self.attrs = attrs
         self.tree = {}
-        self.add_config_to_tree(*config_files)
+        if not isinstance(decision_dicts, (list, tuple)):
+            decision_dicts = [decision_dicts]
+        self.add_config_to_tree(*decision_dicts)
 
-    def add_config_to_tree(self, *config_files):
+    def add_config_to_tree(self, *decision_dicts):
         conf = {}
-        for config_file in config_files:
-            if os.path.isfile(config_file):
-                with open(config_file) as fd:
-                    conf = recursive_dict_update(conf, yaml.load(fd))
-            else:
-                LOG.debug("Loading enhancement config string")
-                d = yaml.load(config_file)
-                if not isinstance(d, dict):
-                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
-                conf = recursive_dict_update(conf, d)
-
+        for decision_dict in decision_dicts:
+            conf = recursive_dict_update(conf, decision_dict)
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        for section_name, attrs in conf['enhancements'].items():
+        for section_name, attrs in conf.items():
             # Set a path in the tree for each section in the configuration
             # files
             curr_level = self.tree
@@ -346,22 +334,51 @@ class EnhancementDecisionTree(object):
     def find_match(self, **kwargs):
         try:
             match = self._find_match(self.tree, self.attrs, kwargs)
-        except StandardError:
+        except (KeyError, IndexError, ValueError):
             LOG.debug("Match exception:", exc_info=True)
-            LOG.error("Error when finding matching enhancement section")
+            LOG.error("Error when finding matching decision section")
 
         if match is None:
             # only possible if no default section was provided
+            raise KeyError("No decision section found for %s" %
+                           (kwargs.get("uid", None), ))
+        return match
+
+
+class EnhancementDecisionTree(DecisionTree):
+    def __init__(self, *decision_dicts, **kwargs):
+        attrs = kwargs.pop("attrs", ("name",
+                                     "platform",
+                                     "sensor",
+                                     "standard_name",
+                                     "units",))
+        self.prefix = kwargs.pop("config_section", "enhancements")
+        super(EnhancementDecisionTree, self).__init__(decision_dicts, attrs, **kwargs)
+
+    def add_config_to_tree(self, *decision_dict):
+        conf = {}
+        for config_file in decision_dict:
+            if os.path.isfile(config_file):
+                with open(config_file) as fd:
+                    conf = recursive_dict_update(conf, yaml.load(fd)[self.prefix])
+            elif isinstance(config_file, dict):
+                conf = recursive_dict_update(conf, config_file)
+            else:
+                LOG.debug("Loading enhancement config string")
+                d = yaml.load(config_file)
+                if not isinstance(d, dict):
+                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+                conf = recursive_dict_update(conf, d)
+
+        self._build_tree(conf)
+
+    def find_match(self, **kwargs):
+        try:
+            return super(EnhancementDecisionTree, self).find_match(**kwargs)
+        except KeyError:
+            # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
                            (kwargs.get("uid", None), ))
-        for key, val in match.items():
-            try:
-                match[key] = json.loads(val)
-            except TypeError:
-                match[key] = val
-            except ValueError:
-                pass
-        return match
 
 
 class Enhancer(object):

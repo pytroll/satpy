@@ -173,3 +173,22 @@ composites:
     - ci_pal
     standard_name: convection_initiation_prob90
 
+  realistic_colors:
+    compositor: !!python/name:satpy.composites.RealisticColors
+    standard_name: realistic_colors
+    prerequisites:
+      - name: VIS006
+        modifiers: [sunz_corrected]
+      - name: VIS008
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  ir_overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 3.75
+      modifiers: [co2_corrected]
+    - 10.8
+    - 12.0
+    standard_name: ir_overview

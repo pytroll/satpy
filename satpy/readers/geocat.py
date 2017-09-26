@@ -21,7 +21,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to GEOCAT HDF4 or NetCDF4 products.
 
-Note:
+Note: GEOCAT files do not currently have projection information or precise
+pixel resolution information. Additionally the longitude and latitude arrays
+are stored as 16-bit integers which causes loss of precision. For this reason
+the lon/lats can't be used as a reliable coordinate system to calculate the
+projection X/Y coordinates.
+
+Until GEOCAT adds projection information and X/Y coordinate arrays, this
+reader will estimate the geostationary area the best it can. It currently
+takes a single lon/lat point as reference and uses hardcoded resolution
+and projection information to calculate the area extents.
 
 """
 import logging
@@ -53,14 +62,30 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'goes': 'goes_imager',
         'himawari8': 'ahi',
         'goes16': 'abi',  # untested
+        'goesr': 'abi',  # untested
     }
     platforms = {
     }
+    resolutions = {
+        'abi': {
+            1: 1002.0086577437705,
+            2: 2004.0173154875411,
+        },
+        'ahi': {
+            1: 999.9999820317674,  # assumption
+            2: 1999.999964063535,
+        }
+    }
 
     def get_sensor(self, sensor):
+        last_resort = None
         for k, v in self.sensors.items():
-            if k in sensor:
+            if k == sensor:
                 return v
+            elif k in sensor:
+                last_resort = v
+        if last_resort:
+            return last_resort
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
     def get_platform(self, platform):
@@ -84,18 +109,19 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def available_dataset_ids(self):
         """Automatically determine datasets provided by this file"""
-        # line_res = self['/attr/Line_Resolution'] * 1000.
-        elem_res = self['/attr/Element_Resolution'] * 1000.
+        elem_res = self['/attr/Element_Resolution']
+        sensor = self.get_sensor(self['/attr/Sensor_Name'])
+        res = self.resolutions.get(sensor, {}).get(int(elem_res), elem_res * 1000.)
         coordinates = ['pixel_longitude', 'pixel_latitude']
         for var_name, val in self.file_content.items():
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
-                    'resolution': elem_res,
+                    'resolution': res,
                 }
                 if not self.is_geo:
                     ds_info['coordinates'] = coordinates
-                yield DatasetID(name=var_name, resolution=elem_res), ds_info
+                yield DatasetID(name=var_name, resolution=res), ds_info
 
     def get_shape(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
