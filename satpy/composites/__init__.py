@@ -530,6 +530,9 @@ class RGBCompositor(CompositeBase):
             raise IncompatibleAreas
         try:
             times = [proj['time'][0].values for proj in projectables]
+        except KeyError:
+            pass
+        else:
             # Is there a more gracious way to handle this ?
             if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
                 raise IncompatibleTimes
@@ -538,6 +541,7 @@ class RGBCompositor(CompositeBase):
             projectables[0]['time'] = [mid_time]
             projectables[1]['time'] = [mid_time]
             projectables[2]['time'] = [mid_time]
+        try:
             the_data = xr.concat(projectables, 'bands')
             the_data['bands'] = ['R', 'G', 'B']
         except ValueError:
