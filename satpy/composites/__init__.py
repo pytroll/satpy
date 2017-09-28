@@ -548,7 +548,9 @@ class RGBCompositor(CompositeBase):
             raise IncompatibleAreas
 
         attrs = combine_attrs(*projectables)
-        attrs.update(info)
+        attrs.update({key: val
+                      for (key, val) in info.items()
+                      if val is not None})
         attrs.update(self.info)
         # FIXME: should this be done here ?
         attrs["wavelength"] = None
