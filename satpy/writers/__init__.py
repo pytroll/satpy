@@ -72,6 +72,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
+    if orig.mode.startswith('L'):
+        orig.channels = [orig.channels[0].copy(),
+                         orig.channels[0].copy(),
+                         orig.channels[0]] + orig.channels[1:]
+        orig.mode = 'RGB' + orig.mode[1:]
     img = orig.pil_image()
 
     if area is None:
@@ -267,7 +272,7 @@ class ImageWriter(Writer):
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
-            dataset, self.enhancer, fill_value, overlay=overlay)
+            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay)
         self.save_image(img, filename=filename, **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
