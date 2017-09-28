@@ -360,7 +360,7 @@ class PSPRayleighReflectance(CompositeBase):
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
         del sata, suna
 
         atmosphere = self.info.get('atmosphere', 'us-standard')
