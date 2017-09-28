@@ -34,6 +34,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
@@ -950,7 +951,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         if res is not None:
             out = res
 
-        self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key.calibration)
         res.attrs['units'] = info['units']
         res.attrs['wavelength'] = info['wavelength']
         res.attrs['standard_name'] = info['standard_name']
@@ -961,24 +962,23 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        
+
         return res
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-
         if calibration == 'counts':
-            return
-
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            self.convert_to_radiance(data)
+            res = data
+        elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            res = self.convert_to_radiance(data)
         if calibration == 'reflectance':
-            self._vis_calibrate(data)
+            res = self._vis_calibrate(res)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data)
+            res = self._ir_calibrate(res)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
@@ -987,24 +987,20 @@ class HRITMSGFileHandler(HRITFileHandler):
         gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
         offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
 
-        data.data[:] *= gain
-        data.data[:] += offset
-        data.data[data.data < 0] = 0
+        res = (data * gain) + offset
+        res = res.clip(0, None)
+        return res
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
         solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        data.data[:] *= 100 / solar_irradiance
+        return data * 100.0 / solar_irradiance
 
     def _tl15(self, data):
         """Compute the L15 temperature."""
         wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
-        data.data[:] **= -1
-        data.data[:] *= C1 * wavenumber ** 3
-        data.data[:] += 1
-        np.log(data.data, out=data.data)
-        data.data[:] **= -1
-        data.data[:] *= C2 * wavenumber
+        return ((C2 * wavenumber) /
+                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1))
 
     def _erads2bt(self, data):
         """computation based on effective radiance."""
@@ -1012,20 +1008,14 @@ class HRITMSGFileHandler(HRITFileHandler):
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
 
-        self._tl15(data)
-
-        data.data[:] -= beta
-        data.data[:] /= alpha
+        return (self._tl15(data) - beta) / alpha
 
     def _srads2bt(self, data):
         """computation based on spectral radiance."""
         coef_a, coef_b, coef_c = BTFIT[self.channel_name]
 
-        self._tl15(data)
-
-        data.data[:] = (coef_a * data.data[:] ** 2 +
-                        coef_b * data.data[:] +
-                        coef_c)
+        res = self._tl15(data)
+        return coef_a * res ** 2 + coef_b * res + coef_c
 
     def _ir_calibrate(self, data):
         """IR calibration."""
@@ -1034,10 +1024,10 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         if cal_type == 1:
             # spectral radiances
-            self._srads2bt(data)
+            return self._srads2bt(data)
         elif cal_type == 2:
             # effective radiances
-            self._erads2bt(data)
+            return self._erads2bt(data)
         else:
             raise NotImplemented('Unknown calibration type')
 
