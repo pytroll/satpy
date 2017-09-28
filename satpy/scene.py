@@ -570,7 +570,7 @@ class Scene(InfoObject):
         keepables = None
         if compute:
             nodes = [self.dep_tree[i]
-                     for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
+                     for i in new_scn.wishlist if i in self.dep_tree and not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
