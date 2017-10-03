@@ -40,7 +40,9 @@ class FakeFH(object):
         self.start_time = start_time
         self.end_time = end_time
         self.get_bounding_box = MagicMock()
-        self.get_dataset = MagicMock()
+        fake_ds = MagickMock()
+        fake_ds.dims = ['x', 'y']
+        self.get_dataset = fake_ds
         self.combine_info = MagicMock()
 
 
@@ -684,18 +686,15 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.assertEquals(xsl, slice(0, 8))
         self.assertEquals(ysl, slice(0, 6))
 
-    @patch('satpy.readers.yaml_reader.np.ma.vstack', spec=np.ma.vstack)
-    @patch('satpy.readers.yaml_reader.Dataset')
-    def test_load_entire_dataset(self, Dataset, vstack):
+    @patch('satpy.readers.yaml_reader.xr')
+    def test_load_entire_dataset(self, xarray):
         """Check loading an entire dataset."""
         file_handlers = [FakeFH(None, None), FakeFH(None, None),
                          FakeFH(None, None), FakeFH(None, None)]
 
         proj = self.reader._load_entire_dataset(None, {}, file_handlers)
 
-        self.assertIs(proj, Dataset.return_value)
-
-        Dataset.assert_called_once_with(vstack.return_value)
+        self.assertIs(proj, xarray.concatenate.return_value)
 
 
 def suite():
