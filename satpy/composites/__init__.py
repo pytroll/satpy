@@ -356,11 +356,11 @@ class PSPRayleighReflectance(CompositeBase):
             from pyorbital.astronomy import get_alt_az, sun_zenith_angle
             from pyorbital.orbital import get_observer_look
             sunalt, suna = get_alt_az(
-                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats())
+                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats_dask())
             suna = np.rad2deg(suna)
             sunz = sun_zenith_angle(
-                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats())
-            lons, lats = vis.attrs['area'].get_lonlats()
+                vis.attrs['start_time'], *vis.attrs['area'].get_lonlats_dask())
+            lons, lats = vis.attrs['area'].get_lonlats_dask()
             sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
                                             vis.attrs['satellite_latitude'],
                                             vis.attrs['satellite_altitude'],
@@ -420,7 +420,7 @@ class NIRReflectance(CompositeBase):
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = nir.attrs["area"].get_lonlats()
+            lons, lats = nir.attrs["area"].get_lonlats_dask()
             sun_zenith = sza(nir.attrs['start_time'], lons, lats)
 
         refl39 = Calculator(nir.attrs['platform_name'],
@@ -448,7 +448,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats()
+            lons, lats = band.attrs['area'].get_lonlats_dask()
 
             try:
                 dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
