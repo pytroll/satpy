@@ -35,13 +35,13 @@ import numpy as np
 import six
 import xarray as xr
 import yaml
-from trollsift.parser import globify, parse
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
+from trollsift.parser import globify, parse
 
 logger = logging.getLogger(__name__)
 
@@ -829,9 +829,14 @@ class FileYAMLReader(AbstractYAMLReader):
         if area is not None:
             ds.attrs['area'] = area
             if ('x' not in ds.coords) or ('y' not in ds.coords):
-                proj_coords = area.get_proj_coords_dask(1000)
-                ds['x'] = proj_coords[0, :, 1].compute()
-                ds['y'] = proj_coords[:, 0, 0].compute()
+                try:
+                    proj_coords = area.get_proj_coords_dask(1000)
+                except AttributeError:
+                    ds['x'] = np.arange(area.x_size)
+                    ds['y'] = np.arange(area.y_size)
+                else:
+                    ds['x'] = proj_coords[0, :, 1].compute()
+                    ds['y'] = proj_coords[:, 0, 0].compute()
         return ds
 
     def _load_ancillary_variables(self, datasets):
