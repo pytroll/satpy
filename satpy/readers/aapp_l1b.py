@@ -55,7 +55,7 @@ ANGLES = {'sensor_zenith_angle': 'satz',
 
 def create_xarray(arr):
     res = da.from_array(arr, chunks=(1000, 1000))
-    res = xr.DataArray(res, dims=['x', 'y'],
+    res = xr.DataArray(res, dims=['y', 'x'],
                        coords=[np.arange(res.shape[0]),
                                np.arange(res.shape[1])])
     return res
