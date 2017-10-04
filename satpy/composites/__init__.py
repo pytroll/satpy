@@ -28,12 +28,12 @@ import os
 import time
 from weakref import WeakValueDictionary
 
+import dask.array as da
 import numpy as np
 import six
 import xarray as xr
 import yaml
 
-import dask.array as da
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
@@ -835,22 +835,19 @@ class RealisticColors(RGBCompositor):
             vis08 = projectables[1]
             hrv = projectables[2]
 
+            try:
+                ch3 = 3 * hrv - vis06 - vis08
+                ch3.attrs = hrv.attrs
+            except ValueError as err:
+                raise IncompatibleAreas
+
             ndvi = (vis08 - vis06) / (vis08 + vis06)
             ndvi = np.where(ndvi < 0, 0, ndvi)
 
-            # info = combine_info(*projectables)
-            # info['name'] = self.info['name']
-            # info['standard_name'] = self.info['standard_name']
-
-            ch1 = Dataset(ndvi * vis06 + (1 - ndvi) * vis08,
-                          copy=False,
-                          **vis06.info)
-            ch2 = Dataset(ndvi * vis08 + (1 - ndvi) * vis06,
-                          copy=False,
-                          **vis08.info)
-            ch3 = Dataset(3 * hrv - vis06 - vis08,
-                          copy=False,
-                          **hrv.info)
+            ch1 = ndvi * vis06 + (1 - ndvi) * vis08
+            ch1.attrs = vis06.attrs
+            ch2 = ndvi * vis08 + (1 - ndvi) * vis06
+            ch2.attrs = vis08.attrs
 
             res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
                                          *args, **kwargs)
