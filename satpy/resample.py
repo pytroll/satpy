@@ -600,7 +600,9 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
     datasets = [dataset] + dataset.attrs.get('ancillary_variables', [])
 
-    new_datasets = resample(source_area, datasets, destination_area, **kwargs)
+    new_datasets = [resample(ds.attrs['area'], ds, destination_area, **kwargs)
+                    if 'area' in ds.attrs else ds for ds in datasets]
+    #new_datasets = resample(source_area, datasets, destination_area, **kwargs)
     for nds, ds in zip(new_datasets, datasets):
         nds.attrs.update(ds.attrs)
         if 'area' in ds.attrs:
