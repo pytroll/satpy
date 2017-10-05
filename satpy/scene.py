@@ -426,10 +426,10 @@ class Scene(InfoObject):
 
             self.datasets[cid] = composite
             # update the node with the computed DatasetID
-            comp_node.name = cid
             if comp_node.name in self.wishlist:
                 self.wishlist.remove(comp_node.name)
                 self.wishlist.add(cid)
+            comp_node.name = cid
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
