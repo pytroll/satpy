@@ -38,6 +38,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             '/attr/Platform_Name': filename_info['platform_shortname'],
             '/attr/Element_Resolution': 2.,
             '/attr/Line_Resolution': 2.,
+            '/attr/Subsatellite_Longitude': -70.2 if 'GOES' in filename_info['platform_shortname'] else 140.65,
             'pixel_longitude': DEFAULT_LON_DATA,
             'pixel_longitude/attr/scale_factor': 1.,
             'pixel_longitude/attr/add_offset': 0.,
