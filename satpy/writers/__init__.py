@@ -32,12 +32,12 @@ import os
 
 import numpy as np
 import yaml
-from trollimage.image import Image
-from trollsift import parser
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
 from satpy.plugin_base import Plugin
+from trollimage.image import Image
+from trollsift import parser
 
 LOG = logging.getLogger(__name__)
 
@@ -162,9 +162,6 @@ def get_enhanced_image(dataset,
 def show(dataset, **kwargs):
     """Display the dataset as an image.
     """
-    if not dataset.is_loaded():
-        raise ValueError("Dataset not loaded, cannot display.")
-
     img = get_enhanced_image(dataset.squeeze(), **kwargs)
     img.show()
     return img
@@ -177,10 +174,12 @@ def to_image(dataset, copy=False, **kwargs):
             kwargs.setdefault(key, dataset.attrs[key])
     dataset = dataset.squeeze()
 
+    if dataset.ndim < 2 or 'x' not in dataset.dims or 'y' not in dataset.dims:
+        raise ValueError("Need at least a 2D array to make an image.")
+
     if 'bands' in dataset.dims:
-        return Image([np.ma.masked_invalid(dataset.sel(bands='R').values),
-                      np.ma.masked_invalid(dataset.sel(bands='G').values),
-                      np.ma.masked_invalid(dataset.sel(bands='B').values)],
+        return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
+                      for band in dataset['bands']],
                      copy=copy, **kwargs)
     else:
         return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
