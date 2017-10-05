@@ -200,7 +200,15 @@ class CFWriter(Writer):
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Saves the *dataset* to a given *filename*."""
-        return self.save_datasets([dataset], filename, **kwargs)
+        dataset.attrs['start_time'] = str(dataset.attrs['start_time'])
+        dataset.attrs['end_time'] = str(dataset.attrs['end_time'])
+        dataset.attrs['area'] = str(dataset.attrs['area'])
+        dataset.attrs.pop('ancillary_variables')
+        for key, val in dataset.attrs.copy().items():
+            if val is None:
+                dataset.attrs.pop(key)
+        dataset.to_netcdf(filename)
+        # return self.save_datasets([dataset], filename, **kwargs)
 
     def save_datasets(self, datasets, filename, **kwargs):
         """Save all datasets to one or more files."""
