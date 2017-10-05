@@ -23,11 +23,13 @@
 """
 
 import unittest
-import numpy as np
-from satpy import dataset
+
 import mock
+import numpy as np
+import xarray as xr
 import yaml
-from satpy.writers import to_image, show
+
+from satpy.writers import show, to_image
 
 
 class TestWritersModule(unittest.TestCase):
@@ -37,7 +39,7 @@ class TestWritersModule(unittest.TestCase):
         Conversion to image
         """
         # 1D
-        p = dataset.Dataset(np.arange(25))
+        p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.Image')
@@ -47,9 +49,13 @@ class TestWritersModule(unittest.TestCase):
         """
         # 2D
         data = np.arange(25).reshape((5, 5))
-        p = dataset.Dataset(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
+        p = xr.DataArray(data, attrs=dict(
+            mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5]),
+            dims=['y', 'x'])
         to_image(p)
-        np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
+
+        np.testing.assert_array_equal(
+            data, mock_geoimage.call_args[0][0][0])
         mock_geoimage.reset_mock()
 
     @mock.patch('satpy.writers.Image')
@@ -59,7 +65,8 @@ class TestWritersModule(unittest.TestCase):
         """
         # 3D
         data = np.arange(75).reshape((3, 5, 5))
-        p = dataset.Dataset(data)
+        p = xr.DataArray(data, dims=['bands', 'y', 'x'])
+        p['bands'] = ['R', 'G', 'B']
         to_image(p)
         np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
@@ -68,16 +75,13 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         data = np.arange(25).reshape((5, 5))
-        p = dataset.Dataset(data)
+        p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
         self.assertTrue(mock_get_image.return_value.show.called)
 
-    def test_show_unloaded(self):
-        p = dataset.Dataset([])
-        self.assertRaises(ValueError, show, p)
-
 
 class TestEnhancer(unittest.TestCase):
+
     def test_basic_init_no_args(self):
         from satpy.writers import Enhancer
         e = Enhancer()
@@ -102,7 +106,8 @@ class TestEnhancer(unittest.TestCase):
 
     def test_init_nonexistent_enh_file(self):
         from satpy.writers import Enhancer
-        self.assertRaises(ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
+        self.assertRaises(
+            ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
 def suite():
