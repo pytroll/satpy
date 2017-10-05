@@ -22,8 +22,9 @@
 """Utilities for various satpy tests.
 """
 
-import mock
 from datetime import datetime, timedelta
+
+import mock
 
 
 def test_datasets():
@@ -48,7 +49,7 @@ def test_datasets():
 
 def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     import numpy as np
-    from satpy import Dataset
+    from xarray import DataArray
     c = mock.MagicMock()
     c.info = {
         'prerequisites': tuple(prereqs),
@@ -59,6 +60,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     c.id = ds_id
 
     se = mock.MagicMock()
+
     def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
         if ds_id.name == 'comp14':
             # used as a test when composites update the dataset id with
@@ -66,7 +68,10 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
             ds_id = ds_id._replace(resolution=555)
         if len(datasets) != len(prereqs):
             raise ValueError("Not enough prerequisite datasets passed")
-        return Dataset(data=np.arange(5), **ds_id.to_dict())
+        return DataArray(data=np.arange(75).reshape(5, 5, 3),
+                         attrs=ds_id.to_dict(),
+                         dims=['y', 'x', 'bands'],
+                         coords={'bands': ['R', 'G', 'B']})
     se.side_effect = _se
     c.side_effect = se
     return c
@@ -74,32 +79,35 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
 
 def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
-    from satpy.dataset import Dataset
+    from xarray import DataArray
     from satpy.composites import CompositeBase, IncompatibleAreas
 
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
+
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
                 if name == 'res_change' and datasets[0].id.resolution is not None:
-                    i = datasets[0].info.copy()
+                    i = datasets[0].attrs.copy()
                     i['resolution'] *= 5
                 elif name == 'incomp_areas':
-                    raise IncompatibleAreas("Test modifier 'incomp_areas' always raises IncompatibleAreas")
+                    raise IncompatibleAreas(
+                        "Test modifier 'incomp_areas' always raises IncompatibleAreas")
                 else:
-                    i = datasets[0].info
-                info = datasets[0].info.copy()
+                    i = datasets[0].attrs
+                info = datasets[0].attrs.copy()
                 self.apply_modifier_info(i, info)
-                return Dataset(data=np.ma.MaskedArray(datasets[0]), **info)
+                return DataArray(datasets[0], attrs=info)
 
         m = FakeMod()
         m.info = {
             'prerequisites': tuple(prereqs),
             'optional_prerequisites': tuple(opt_prereqs)
         }
-        m._call_mock = mock.patch.object(FakeMod, '__call__', wraps=m.__call__).start()
+        m._call_mock = mock.patch.object(
+            FakeMod, '__call__', wraps=m.__call__).start()
         return m
 
     return _mod_loader, {}
@@ -121,9 +129,10 @@ def test_composites(sensor_name):
         DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
         DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
         DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
-                                    DatasetID(wavelength=0.48, modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.48,
+                                              modifiers=('mod1',)),
                                     DatasetID(wavelength=0.85, modifiers=('mod1',))],
-                                    []),
+                                   []),
         DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
         DatasetID(name='comp14'): (['ds1'], []),
         DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
@@ -139,8 +148,10 @@ def test_composites(sensor_name):
         'incomp_areas': (['ds1'], []),
     }
 
-    comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
-    mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}
+    comps = {sensor_name: DatasetDict(
+        (k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
+    mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v))
+                              for k, v in mods.items())}
 
     return comps, mods
 
@@ -168,7 +179,8 @@ def _get_dataset_key(self,
 
 
 def _reader_load(self, dataset_keys):
-    from satpy import DatasetDict, Dataset
+    from satpy import DatasetDict
+    from xarray import DataArray
     import numpy as np
     dataset_ids = self.datasets
     loaded_datasets = DatasetDict()
@@ -177,8 +189,9 @@ def _reader_load(self, dataset_keys):
             continue
         for ds in dataset_ids:
             if ds == k:
-                loaded_datasets[ds] = Dataset(data=np.arange(5),
-                                              **ds.to_dict())
+                loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
+                                                attrs=ds.to_dict(),
+                                                dims=['y', 'x'])
     return loaded_datasets
 
 
