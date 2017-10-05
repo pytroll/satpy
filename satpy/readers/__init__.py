@@ -186,7 +186,10 @@ class DatasetDict(dict):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
         d = value.attrs if hasattr(value, 'attrs') else value
+        # use value information to make a more complete DatasetID
         if not isinstance(key, DatasetID):
+            if not isinstance(d, dict):
+                raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
             old_key = key
             key = self.get_key(key)
             if key is None:
@@ -206,7 +209,7 @@ class DatasetDict(dict):
                         "One of 'name' or 'wavelength' attrs values should be set.")
 
         # update the 'value' with the information contained in the key
-        if hasattr(d, '__setitem__'):
+        if isinstance(d, dict):
             d["name"] = key.name
             # XXX: What should users be allowed to modify?
             d["resolution"] = key.resolution

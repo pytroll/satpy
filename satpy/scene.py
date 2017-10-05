@@ -288,7 +288,7 @@ class Scene(InfoObject):
         """
         datasets_by_area = {}
         for ds in self:
-            a = ds.info.get('area')
+            a = ds.attrs.get('area')
             a_str = str(a) if a is not None else None
             datasets_by_area.setdefault(
                 a_str, (a, []))
