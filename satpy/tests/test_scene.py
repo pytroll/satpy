@@ -195,24 +195,26 @@ class TestScene(unittest.TestCase):
                 )
 
     def test_iter(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
+        from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = Dataset(np.arange(5))
-        scene["2"] = Dataset(np.arange(5))
-        scene["3"] = Dataset(np.arange(5))
+        scene["1"] = DataArray(np.arange(5))
+        scene["2"] = DataArray(np.arange(5))
+        scene["3"] = DataArray(np.arange(5))
         for x in scene:
-            self.assertIsInstance(x, Dataset)
+            self.assertIsInstance(x, DataArray)
 
     def test_iter_by_area_swath(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
+        from xarray import DataArray
         from pyresample.geometry import SwathDefinition
         import numpy as np
         scene = Scene()
         sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
-        scene["1"] = Dataset(np.arange(5), area=sd)
-        scene["2"] = Dataset(np.arange(5), area=sd)
-        scene["3"] = Dataset(np.arange(5))
+        scene["1"] = DataArray(np.arange(5), attrs={'area': sd})
+        scene["2"] = DataArray(np.arange(5), attrs={'area': sd})
+        scene["3"] = DataArray(np.arange(5))
         for area_obj, ds_list in scene.iter_by_area():
             ds_list_names = set(ds.name for ds in ds_list)
             if area_obj is sd:
@@ -228,21 +230,24 @@ class TestScene(unittest.TestCase):
         self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
 
     def test_setitem(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene, DatasetID
         import numpy as np
+        import xarray as xr
         scene = Scene()
-        scene["1"] = ds1 = Dataset(np.arange(5))
-        self.assertSetEqual(set(scene.datasets.keys()), {ds1.id})
-        self.assertSetEqual(set(scene.wishlist), {ds1.id})
+        scene["1"] = ds1 = xr.DataArray(np.arange(5))
+        expected_id = DatasetID.from_dict(ds1.attrs)
+        self.assertSetEqual(set(scene.datasets.keys()), {expected_id})
+        self.assertSetEqual(set(scene.wishlist), {expected_id})
 
     def test_getitem(self):
         """Test __getitem__ with names only"""
-        from satpy import Scene, Dataset
+        from satpy import Scene
+        from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = ds1 = Dataset(np.arange(5))
-        scene["2"] = ds2 = Dataset(np.arange(5))
-        scene["3"] = ds3 = Dataset(np.arange(5))
+        scene["1"] = ds1 = DataArray(np.arange(5))
+        scene["2"] = ds2 = DataArray(np.arange(5))
+        scene["3"] = ds3 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1)
         self.assertIs(scene['2'], ds2)
         self.assertIs(scene['3'], ds3)
@@ -250,31 +255,32 @@ class TestScene(unittest.TestCase):
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers"""
-        from satpy import Scene, Dataset, DatasetID
+        from satpy import Scene, DatasetID
+        from xarray import DataArray
         import numpy as np
 
         # Return least modified item
         scene = Scene()
-        scene['1'] = ds1_m0 = Dataset(np.arange(5))
+        scene['1'] = ds1_m0 = DataArray(np.arange(5))
         scene[DatasetID(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = Dataset(np.arange(5))
+              ] = ds1_m1 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m0)
         self.assertEquals(len(list(scene.keys())), 2)
 
         scene = Scene()
-        scene['1'] = ds1_m0 = Dataset(np.arange(5))
+        scene['1'] = ds1_m0 = DataArray(np.arange(5))
         scene[DatasetID(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = Dataset(np.arange(5))
+              ] = ds1_m1 = DataArray(np.arange(5))
         scene[DatasetID(name='1', modifiers=('mod1', 'mod2'))
-              ] = ds1_m2 = Dataset(np.arange(5))
+              ] = ds1_m2 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m0)
         self.assertEquals(len(list(scene.keys())), 3)
 
         scene = Scene()
         scene[DatasetID(name='1', modifiers=('mod1', 'mod2'))
-              ] = ds1_m2 = Dataset(np.arange(5))
+              ] = ds1_m2 = DataArray(np.arange(5))
         scene[DatasetID(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = Dataset(np.arange(5))
+              ] = ds1_m1 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m1)
         self.assertIs(scene[DatasetID('1', modifiers=('mod1', 'mod2'))], ds1_m2)
         self.assertRaises(KeyError, scene.__getitem__,
@@ -282,22 +288,24 @@ class TestScene(unittest.TestCase):
         self.assertEquals(len(list(scene.keys())), 2)
 
     def test_contains(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
+        from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = ds1 = Dataset(np.arange(5), wavelength=(0.1, 0.2, 0.3))
+        scene["1"] = ds1 = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
         self.assertTrue('1' in scene)
         self.assertTrue(0.15 in scene)
         self.assertFalse('2' in scene)
         self.assertFalse(0.31 in scene)
 
     def test_delitem(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
+        from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = ds1 = Dataset(np.arange(5), wavelength=(0.1, 0.2, 0.3))
-        scene["2"] = ds2 = Dataset(np.arange(5), wavelength=(0.4, 0.5, 0.6))
-        scene["3"] = ds3 = Dataset(np.arange(5), wavelength=(0.7, 0.8, 0.9))
+        scene["1"] = ds1 = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
+        scene["2"] = ds2 = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6)})
+        scene["3"] = ds3 = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9)})
         del scene['1']
         del scene['3']
         del scene[0.45]
