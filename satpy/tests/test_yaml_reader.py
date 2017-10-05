@@ -40,8 +40,8 @@ class FakeFH(object):
         self.start_time = start_time
         self.end_time = end_time
         self.get_bounding_box = MagicMock()
-        fake_ds = MagickMock()
-        fake_ds.dims = ['x', 'y']
+        fake_ds = MagicMock()
+        fake_ds.return_value.dims = ['x', 'y']
         self.get_dataset = fake_ds
         self.combine_info = MagicMock()
 
@@ -694,7 +694,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         proj = self.reader._load_entire_dataset(None, {}, file_handlers)
 
-        self.assertIs(proj, xarray.concatenate.return_value)
+        self.assertIs(proj, xarray.concat.return_value)
 
 
 def suite():
