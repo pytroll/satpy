@@ -831,8 +831,12 @@ class FileYAMLReader(AbstractYAMLReader):
                 try:
                     proj_coords = area.get_proj_coords_dask(1000)
                 except AttributeError:
-                    ds['x'] = np.arange(area.x_size)
-                    ds['y'] = np.arange(area.y_size)
+                    try:
+                        ds['x'] = np.arange(area.x_size)
+                        ds['y'] = np.arange(area.y_size)
+                    except AttributeError:
+                        ds['x'] = np.arange(area.shape[1])
+                        ds['y'] = np.arange(area.shape[0])
                 else:
                     ds['x'] = proj_coords[0, :, 1].compute()
                     ds['y'] = proj_coords[:, 0, 0].compute()
