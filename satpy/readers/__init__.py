@@ -185,7 +185,13 @@ class DatasetDict(dict):
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.attrs if hasattr(value, 'attrs') else value
+        d = value
+        if hasattr(value, 'attrs'):
+            # xarray.DataArray objects
+            d = value.attrs
+        if hasattr(value, 'info'):
+            # SatPy InfoObjects
+            d = value.info
         # use value information to make a more complete DatasetID
         if not isinstance(key, DatasetID):
             if not isinstance(d, dict):
