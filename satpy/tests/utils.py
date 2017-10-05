@@ -22,9 +22,8 @@
 """Utilities for various satpy tests.
 """
 
-from datetime import datetime, timedelta
-
 import mock
+from datetime import datetime, timedelta
 
 
 def test_datasets():
@@ -60,7 +59,6 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     c.id = ds_id
 
     se = mock.MagicMock()
-
     def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
         if ds_id.name == 'comp14':
             # used as a test when composites update the dataset id with
@@ -81,15 +79,16 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
     from xarray import DataArray
     from satpy.composites import CompositeBase, IncompatibleAreas
+    from satpy import DatasetID
 
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
-
             def __init__(self, *args, **kwargs):
                 self.info = {}
 
             def __call__(self, datasets, optional_datasets, **info):
-                if name == 'res_change' and datasets[0].id.resolution is not None:
+                resolution = DatasetID.from_dict(datasets[0].attrs).resolution
+                if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
                     i['resolution'] *= 5
                 elif name == 'incomp_areas':
@@ -99,7 +98,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                     i = datasets[0].attrs
                 info = datasets[0].attrs.copy()
                 self.apply_modifier_info(i, info)
-                return DataArray(datasets[0], attrs=info)
+                return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
 
         m = FakeMod()
         m.info = {
@@ -129,10 +128,9 @@ def test_composites(sensor_name):
         DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
         DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
         DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
-                                    DatasetID(wavelength=0.48,
-                                              modifiers=('mod1',)),
+                                    DatasetID(wavelength=0.48, modifiers=('mod1',)),
                                     DatasetID(wavelength=0.85, modifiers=('mod1',))],
-                                   []),
+                                    []),
         DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
         DatasetID(name='comp14'): (['ds1'], []),
         DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
@@ -148,10 +146,8 @@ def test_composites(sensor_name):
         'incomp_areas': (['ds1'], []),
     }
 
-    comps = {sensor_name: DatasetDict(
-        (k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
-    mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v))
-                              for k, v in mods.items())}
+    comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
+    mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}
 
     return comps, mods
 
