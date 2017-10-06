@@ -1154,11 +1154,11 @@ class SnowAge(CompositeBase):
         info["wavelength"] = None
         info["mode"] = self.info.get("mode", "RGB")
 
-        m07 = projectables[0]
-        m08 = projectables[1]
-        m09 = projectables[2]
-        m10 = projectables[3]
-        m11 = projectables[4]
+        m07 = projectables[0]*255./160.
+        m08 = projectables[1]*255./160.
+        m09 = projectables[2]*255./160.
+        m10 = projectables[3]*255./160.
+        m11 = projectables[4]*255./160.
         refcu = m11 - m10
         refcu[refcu < 0] = 0
 
