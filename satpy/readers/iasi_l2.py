@@ -45,7 +45,8 @@ VALUES_PER_SCAN_LINE = 120
 EPOCH = dt.datetime(2000, 1, 1)
 
 SHORT_NAMES = {'M01': 'Metop-B',
-               'M02': 'Metop-A'}
+               'M02': 'Metop-A',
+               'M03': 'Metop-C'}
 
 DSET_NAMES = {'ozone_mixing_ratio': 'O',
               'ozone_mixing_ratio_quality': 'QO',
