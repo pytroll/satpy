@@ -604,7 +604,7 @@ class NetCDFWriter(object):
             self.image_data.grid_mapping = "fixedgrid_projection"
             p.short_name = area_id
             p.grid_mapping_name = "geostationary"
-            p.sweep_angle_axis = proj4_info.get("+sweep", "x")
+            p.sweep_angle_axis = proj4_info.get("+sweep", "y")
             p.perspective_point_height = proj4_info['+h']
             p.latitude_of_projection_origin = np.float32(0.0)
             p.longitude_of_projection_origin = np.float32(proj4_info.get('+lon_0', 0.0))  # is the float32 needed?
@@ -634,8 +634,8 @@ class NetCDFWriter(object):
         else:
             raise ValueError("SCMI can not handle projection '{}'".format(proj4_info['+proj']))
 
-        p.semi_major = np.float32(proj4_info["+a"])
-        p.semi_minor = np.float32(proj4_info["+b"])
+        p.semi_major_axis = np.float64(proj4_info["+a"])
+        p.semi_minor_axis = np.float64(proj4_info["+b"])
         p.false_easting = np.float32(proj4_info.get("+x", 0.0))
         p.false_northing = np.float32(proj4_info.get("+y", 0.0))
 
