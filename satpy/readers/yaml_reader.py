@@ -81,7 +81,6 @@ def match_filenames(filenames, pattern):
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
-    __metaclass__ = ABCMeta
 
     def __init__(self,
                  config_files,

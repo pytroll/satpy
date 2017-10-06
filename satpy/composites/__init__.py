@@ -25,6 +25,7 @@
 
 import logging
 import os
+import time
 
 import numpy as np
 import six
@@ -36,6 +37,7 @@ from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.tools import atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 
 try:
@@ -238,7 +240,10 @@ class CompositeBase(InfoObject):
                     d[k] = o[k]
 
 
-class SunZenithCorrector(CompositeBase):
+class SunZenithCorrectorBase(CompositeBase):
+
+    """Base class for sun zenith correction"""
+
     # FIXME: the cache should be cleaned up
     coszen = {}
 
@@ -253,6 +258,7 @@ class SunZenithCorrector(CompositeBase):
         else:
             area_name = 'swath' + str(vis.shape)
         key = (vis.info["start_time"], area_name)
+        tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
@@ -278,10 +284,36 @@ class SunZenithCorrector(CompositeBase):
 
         # sunz correction will be in place so we need a copy
         proj = vis.copy()
-        proj = sunzen_corr_cos(proj, coszen)
+        proj = self._apply_correction(proj, coszen)
         vis.mask[coszen < 0] = True
         self.apply_modifier_info(vis, proj)
+        LOG.debug(
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
+
+    def _apply_correction(self, proj, coszen):
+        raise NotImplementedError("Correction method shall be defined!")
+
+
+class SunZenithCorrector(SunZenithCorrectorBase):
+
+    """Standard sun zenith correction, 1/cos(sunz)"""
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
+        return sunzen_corr_cos(proj, coszen)
+
+
+class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
+
+    """Special sun zenith correction with the method proposed by Li and Shibata
+    (2006): https://doi.org/10.1175/JAS3682.1
+    """
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug(
+            "Apply the effective solar atmospheric path length correction method by Li and Shibata")
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 def show(data, filename=None):
@@ -325,14 +357,18 @@ class PSPRayleighReflectance(CompositeBase):
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
-        LOG.info('Removing Rayleigh scattering')
+        LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
         del sata, suna
 
+        atmosphere = self.info.get('atmosphere', 'us-standard')
+        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
+
         corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
-                             atmosphere='us-standard', rural_aerosol=False)
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         refl_cor_band = corrector.get_reflectance(
             sunz, satz, ssadiff, vis.id.wavelength[1], blue)
@@ -788,6 +824,7 @@ class RealisticColors(RGBCompositor):
         except ValueError:
             raise IncompatibleAreas
         return res
+
 
 def enhance2dataset(dset):
     """Apply enhancements to dataset *dset* and convert the image data
