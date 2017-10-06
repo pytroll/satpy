@@ -1,7 +1,7 @@
 reader:
   description: Reader for IASI L2 files
   name: iasi_l2
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [iasi]
   default_datasets:
 
