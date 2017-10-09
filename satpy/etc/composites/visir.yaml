@@ -235,3 +235,9 @@ composites:
     - 10.8
     - 12.0
     standard_name: night_microphysics
+
+  ir108_3d:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir108_3d
+    prerequisites:
+      - name: IR_108
