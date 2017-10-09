@@ -49,7 +49,7 @@ def cira_stretch(img, **kwargs):
     for chn in img.channels:
         chn /= 100
         np.log10(chn.data, out=chn.data)
-        #chn[:] = np.ma.masked_invalid(chn)
+        # chn[:] = np.ma.masked_invalid(chn)
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
@@ -106,3 +106,18 @@ def create_colormap(fname):
         cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
                                data[i, 2] / 255.)))
     return Colormap(*cmap)
+
+
+def three_d_effect(img, **kwargs):
+    """Create 3D effect using convolution"""
+    from scipy.signal import convolve2d
+    LOG.debug("Applying 3D effect")
+    kernel = np.array([[-1, 0, 1],
+                       [-1, 1, 1],
+                       [-1, 0, 1]])
+
+    for i in range(len(img.channels)):
+        mask = img.channels[i].mask
+        img.channels[i] = np.ma.masked_where(mask,
+                                             convolve2d(img.channels[i],
+                                                        kernel, mode='same'))
