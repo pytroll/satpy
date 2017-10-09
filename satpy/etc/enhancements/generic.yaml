@@ -1,3 +1,5 @@
+3d_filter: &3d_filter !!python/name:satpy.enhancements.three_d_effect ''
+
 enhancements:
   default:
     operations:
@@ -548,4 +550,16 @@ enhancements:
       method: *stretchfun
       kwargs:
         stretch: histogram
+
+  ir108_3d:
+    standard_name: ir108_3d
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: 3d_filter
+      method: *3d_filter
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
 
