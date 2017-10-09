@@ -562,7 +562,7 @@ class BWCompositor(CompositeBase):
         info['name'] = self.info['name']
         info['standard_name'] = self.info['standard_name']
 
-        return Dataset(projectables[0], **info)
+        return Dataset(projectables[0].copy(), **info.copy())
 
 
 class ColormapCompositor(RGBCompositor):
