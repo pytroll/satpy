@@ -49,7 +49,7 @@ def cira_stretch(img, **kwargs):
     for chn in img.channels:
         chn /= 100
         np.log10(chn.data, out=chn.data)
-        #chn[:] = np.ma.masked_invalid(chn)
+        # chn[:] = np.ma.masked_invalid(chn)
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
@@ -105,7 +105,7 @@ def create_colormap(palette):
         num = 1.0 * data.shape[0]
         for i in range(int(num)):
             cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
-                               data[i, 2] / 255.)))
+                                   data[i, 2] / 255.)))
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
@@ -116,8 +116,8 @@ def create_colormap(palette):
             if values:
                 value = values[idx]
             else:
-                value = idx / float(len(colors)-1)
-            cmap.append( (value, tuple(color)) )
+                value = idx / float(len(colors) - 1)
+            cmap.append((value, tuple(color)))
         return Colormap(*cmap)
 
     if isinstance(colors, basestring):
@@ -126,3 +126,19 @@ def create_colormap(palette):
         return copy.copy(getattr(colormap, colors))
 
     return None
+
+
+def three_d_effect(img, **kwargs):
+    """Create 3D effect using convolution"""
+    from scipy.signal import convolve2d
+    LOG.debug("Applying 3D effect")
+    kernel = np.array([[-1, 0, 1],
+                       [-1, 1, 1],
+                       [-1, 0, 1]])
+
+    for i in range(len(img.channels)):
+        mask = img.channels[i].mask
+        img.channels[i] = np.ma.masked_where(mask,
+                                             convolve2d(img.channels[i],
+                                                        kernel, mode='same'))
+>>>>>> > Add 3D effect enhancement
