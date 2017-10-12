@@ -42,6 +42,7 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAFMSG(BaseFileHandler):
+
     """NWCSAF MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -100,10 +101,10 @@ class NcNWCSAFMSG(BaseFileHandler):
 
         nlines, ncols = self.nc[dsid.name].shape
 
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']),
-                       float(self.nc.attrs['gdal_ygeo_low_right']),
-                       float(self.nc.attrs['gdal_xgeo_low_right']),
-                       float(self.nc.attrs['gdal_ygeo_up_left']))
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000.,
+                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000.,
+                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000.,
+                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000.)
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
