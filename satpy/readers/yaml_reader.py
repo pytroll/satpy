@@ -613,7 +613,6 @@ class FileYAMLReader(AbstractYAMLReader):
                              dim='y'):
         """Load only a piece of the dataset."""
         # we can optimize
-        cls = ds_info.get("container", Dataset)
         all_shapes = [list(fhd.get_shape(dsid, ds_info))
                       for fhd in file_handlers]
         overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
@@ -621,11 +620,6 @@ class FileYAMLReader(AbstractYAMLReader):
                                                                 yslice)
 
         slice_list = []
-
-        out_info = {}
-        data = np.empty(overall_shape,
-                        dtype=ds_info.get('dtype', np.float32))
-        mask = np.ma.make_mask_none(overall_shape)
 
         offset = 0
         out_offset = 0
@@ -751,7 +745,7 @@ class FileYAMLReader(AbstractYAMLReader):
             return self.file_handlers[filetype]
 
     def _make_area_from_coords(self, coords):
-        """Create an apropriate area with the given *coords*."""
+        """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
             lon_sn = coords[0].attrs.get('standard_name')
             lat_sn = coords[1].attrs.get('standard_name')
@@ -827,19 +821,11 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            if ('x' not in ds.coords) or ('y' not in ds.coords):
-                try:
-                    proj_coords = area.get_proj_coords_dask(1000)
-                except AttributeError:
-                    try:
-                        ds['x'] = np.arange(area.x_size)
-                        ds['y'] = np.arange(area.y_size)
-                    except AttributeError:
-                        ds['x'] = np.arange(area.shape[1])
-                        ds['y'] = np.arange(area.shape[0])
-                else:
-                    ds['x'] = proj_coords[0, :, 1].compute()
-                    ds['y'] = proj_coords[:, 0, 0].compute()
+            if (('x' not in ds.coords) or('y' not in ds.coords)) and \
+                    hasattr(area, 'get_proj_coords_dask'):
+                proj_coords = area.get_proj_coords_dask(1000)
+                ds['x'] = proj_coords[0, :, 1].compute()
+                ds['y'] = proj_coords[:, 0, 0].compute()
         return ds
 
     def _load_ancillary_variables(self, datasets):
