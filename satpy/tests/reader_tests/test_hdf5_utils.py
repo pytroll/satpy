@@ -88,6 +88,7 @@ class TestHDF5FileHandler(unittest.TestCase):
     def test_all_basic(self):
         """Test everything about the HDF5 class"""
         from satpy.readers.hdf5_utils import HDF5FileHandler
+        import xarray as xr
         file_handler = HDF5FileHandler('test.h5', {}, {})
 
         for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
@@ -102,7 +103,7 @@ class TestHDF5FileHandler(unittest.TestCase):
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
-        self.assertIsInstance(file_handler.get('ds2_f'), np.ndarray)
+        self.assertIsInstance(file_handler.get('ds2_f'), xr.DataArray)
         self.assertIsNone(file_handler.get('fake_ds'))
         self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
 
