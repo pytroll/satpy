@@ -74,8 +74,11 @@ import numpy as np
 from pyproj import Proj
 from satpy.writers import Writer, DecisionTree
 from pyresample.geometry import AreaDefinition
-from pyresample.utils import proj4_str_to_dict
 
+try:
+    from pyresample.utils import proj4_radius_parameters
+except ImportError:
+    raise ImportError("SCMI Writer requires pyresample>=1.7.0")
 
 LOG = logging.getLogger(__name__)
 # AWIPS 2 seems to not like data values under 0
@@ -567,77 +570,50 @@ class NetCDFWriter(object):
         assert(hasattr(data, 'mask'))
         self.image_data[:, :] = np.require(data.filled(fill_value), dtype=np.float32)
 
-    def proj4_radius_parameters(self, proj4_dict_or_str):
-        """Calculate 'a' and 'b' radius parameters.
-
-        Returns:
-            a (float), b (float): equatorial and polar radius
-        """
-        if isinstance(proj4_dict_or_str, str):
-            new_info = proj4_str_to_dict(proj4_dict_or_str)
-        else:
-            new_info = proj4_dict_or_str.copy()
-
-        # load information from PROJ.4 about the ellipsis if possible
-        if '+ellps' in new_info and '+a' not in new_info or '+b' not in new_info:
-            import pyproj
-            ellps = pyproj.pj_ellps[new_info['+ellps']]
-            new_info['+a'] = ellps['a']
-            if 'b' not in ellps and 'rf' in ellps:
-                new_info['+f'] = 1. / ellps['rf']
-            else:
-                new_info['+b'] = ellps['b']
-
-        if '+a' in new_info and '+f' in new_info and '+b' not in new_info:
-            # add a 'b' attribute back in if they used 'f' instead
-            new_info['+b'] = new_info['+a'] * (1 - new_info['+f'])
-
-        return float(new_info['+a']), float(new_info['+b'])
-
     def set_projection_attrs(self, area_id, proj4_info):
         """
         assign projection attributes per GRB standard
         """
-        proj4_info['+a'], proj4_info['+b'] = self.proj4_radius_parameters(proj4_info)
-        if proj4_info["+proj"] == "geos":
+        proj4_info['a'], proj4_info['b'] = proj4_radius_parameters(proj4_info)
+        if proj4_info["proj"] == "geos":
             p = self.projection = self._nc.createVariable("fixedgrid_projection", 'i4')
             self.image_data.grid_mapping = "fixedgrid_projection"
             p.short_name = area_id
             p.grid_mapping_name = "geostationary"
-            p.sweep_angle_axis = proj4_info.get("+sweep", "y")
-            p.perspective_point_height = proj4_info['+h']
+            p.sweep_angle_axis = proj4_info.get("sweep", "y")
+            p.perspective_point_height = proj4_info['h']
             p.latitude_of_projection_origin = np.float32(0.0)
-            p.longitude_of_projection_origin = np.float32(proj4_info.get('+lon_0', 0.0))  # is the float32 needed?
-        elif proj4_info["+proj"] == "lcc":
+            p.longitude_of_projection_origin = np.float32(proj4_info.get('lon_0', 0.0))  # is the float32 needed?
+        elif proj4_info["proj"] == "lcc":
             p = self.projection = self._nc.createVariable("lambert_projection", 'i4')
             self.image_data.grid_mapping = "lambert_projection"
             p.short_name = area_id
             p.grid_mapping_name = "lambert_conformal_conic"
-            p.standard_parallel = proj4_info["+lat_0"]  # How do we specify two standard parallels?
-            p.longitude_of_central_meridian = proj4_info["+lon_0"]
-            p.latitude_of_projection_origion = proj4_info.get('+lat_1', proj4_info['+lat_0'])  # Correct?
-        elif proj4_info['+proj'] == 'stere':
+            p.standard_parallel = proj4_info["lat_0"]  # How do we specify two standard parallels?
+            p.longitude_of_central_meridian = proj4_info["lon_0"]
+            p.latitude_of_projection_origion = proj4_info.get('lat_1', proj4_info['lat_0'])  # Correct?
+        elif proj4_info['proj'] == 'stere':
             p = self.projection = self._nc.createVariable("polar_projection", 'i4')
             self.image_data.grid_mapping = "polar_projection"
             p.short_name = area_id
             p.grid_mapping_name = "polar_stereographic"
-            p.standard_parallel = proj4_info["+lat_ts"]
-            p.straight_vertical_longitude_from_pole = proj4_info.get("+lon_0", 0.0)
-            p.latitude_of_projection_origion = proj4_info["+lat_0"]  # ?
-        elif proj4_info['+proj'] == 'merc':
+            p.standard_parallel = proj4_info["lat_ts"]
+            p.straight_vertical_longitude_from_pole = proj4_info.get("lon_0", 0.0)
+            p.latitude_of_projection_origion = proj4_info["lat_0"]  # ?
+        elif proj4_info['proj'] == 'merc':
             p = self.projection = self._nc.createVariable("mercator_projection", 'i4')
             self.image_data.grid_mapping = "mercator_projection"
             p.short_name = area_id
             p.grid_mapping_name = "mercator"
-            p.standard_parallel = proj4_info.get('+lat_ts', proj4_info.get('+lat_0', 0.0))
-            p.longitude_of_projection_origin = proj4_info.get("+lon_0", 0.0)
+            p.standard_parallel = proj4_info.get('lat_ts', proj4_info.get('lat_0', 0.0))
+            p.longitude_of_projection_origin = proj4_info.get("lon_0", 0.0)
         else:
-            raise ValueError("SCMI can not handle projection '{}'".format(proj4_info['+proj']))
+            raise ValueError("SCMI can not handle projection '{}'".format(proj4_info['proj']))
 
-        p.semi_major_axis = np.float64(proj4_info["+a"])
-        p.semi_minor_axis = np.float64(proj4_info["+b"])
-        p.false_easting = np.float32(proj4_info.get("+x", 0.0))
-        p.false_northing = np.float32(proj4_info.get("+y", 0.0))
+        p.semi_major_axis = np.float64(proj4_info["a"])
+        p.semi_minor_axis = np.float64(proj4_info["b"])
+        p.false_easting = np.float32(proj4_info.get("x", 0.0))
+        p.false_northing = np.float32(proj4_info.get("y", 0.0))
 
     def set_global_attrs(self, physical_element, awips_id, sector_id,
                          creating_entity, total_tiles, total_pixels,
@@ -895,7 +871,7 @@ class SCMIWriter(Writer):
 
                 if self.fix_awips:
                     self._fix_awips_file(output_filename)
-        except StandardError:
+        except (KeyError, AttributeError, RuntimeError):
             last_fn = created_files[-1] if created_files else "N/A"
             LOG.error("Error while filling in NC file with data: %s", last_fn)
             for fn in created_files:
