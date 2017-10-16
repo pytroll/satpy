@@ -26,11 +26,12 @@
 import logging
 import os
 from datetime import datetime
-
-import numpy as np
+from weakref import WeakValueDictionary
 
 import dask.array as da
+import numpy as np
 import xarray as xr
+
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
@@ -86,7 +87,6 @@ class NCOLCI1B(BaseFileHandler):
         self.channel = filename_info['dataset_name']
         cal_file = os.path.join(os.path.dirname(
             filename), 'instrument_data.nc')
-        # self.cal = h5netcdf.File(cal_file, 'r')
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
                                    mask_and_scale=True,
@@ -98,6 +98,37 @@ class NCOLCI1B(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
+
+    def _get_solar_flux(self, band):
+        from dask.base import tokenize
+        from dask.array import Array
+        blocksize = 1000
+
+        solar_flux = self.cal['solar_flux'].isel(bands=band).values
+        d_index = self.cal['detector_index'].fillna(0).astype(int)
+
+        shape = d_index.shape
+        vchunks = range(0, shape[0], blocksize)
+        hchunks = range(0, shape[1], blocksize)
+
+        token = tokenize(band, d_index, solar_flux)
+        name = 'solar_flux_' + token
+
+        def get_items(array, slices):
+            return solar_flux[d_index[slices].values]
+
+        dsk = {(name, i, j): (get_items,
+                              d_index,
+                              (slice(vcs, min(vcs + blocksize, shape[0])),
+                               slice(hcs, min(hcs + blocksize, shape[1]))))
+               for i, vcs in enumerate(vchunks)
+               for j, hcs in enumerate(hchunks)
+               }
+
+        res = da.Array(dsk, name, shape=shape,
+                       chunks=(blocksize, blocksize),
+                       dtype=solar_flux.dtype)
+        return res
 
     def get_dataset(self, key, info):
         """Load a dataset
@@ -112,7 +143,7 @@ class NCOLCI1B(BaseFileHandler):
             d_index = self.cal['detector_index']
 
             idx = int(key.name[2:]) - 1
-            sflux = solar_flux.values[idx, d_index.fillna(0).values.astype(int)]
+            sflux = self._get_solar_flux(idx)
             radiances = radiances / sflux * np.pi * 100
             radiances.attrs['units'] = '%'
 
@@ -144,7 +175,7 @@ class NCOLCIAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.cache = {}
+        self.cache = WeakValueDictionary()
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
 
@@ -177,7 +208,7 @@ class NCOLCIAngles(BaseFileHandler):
         l_step = self.nc.attrs['al_subsampling_factor']
         c_step = self.nc.attrs['ac_subsampling_factor']
 
-        if (c_step != 1 or l_step != 1) and key.name not in self.cache:
+        if (c_step != 1 or l_step != 1) and self.cache.get(key.name) is None:
 
             if key.name.startswith('satellite'):
                 zen = self.nc[self.datasets['satellite_zenith_angle']]
@@ -209,6 +240,7 @@ class NCOLCIAngles(BaseFileHandler):
                                   along_track_order,
                                   cross_track_order)
             (x, y, z, ) = satint.interpolate()
+            del satint
             x = xr.DataArray(da.from_array(x, chunks=(1000, 1000)),
                              dims=['y', 'x'])
             y = xr.DataArray(da.from_array(y, chunks=(1000, 1000)),
@@ -221,25 +253,24 @@ class NCOLCIAngles(BaseFileHandler):
             zen.attrs = zattrs
 
             if 'zenith' in key.name:
-                values, attrs = zen, zattrs
+                values = zen
             elif 'azimuth' in key.name:
-                values, attrs = azi, aattrs
+                values = azi
             else:
                 raise NotImplementedError("Don't know how to read " + key.name)
 
             if key.name.startswith('satellite'):
-                self.cache['satellite_zenith_angle'] = zen, zattrs
-                self.cache['satellite_azimuth_angle'] = azi, aattrs
+                self.cache['satellite_zenith_angle'] = zen
+                self.cache['satellite_azimuth_angle'] = azi
             elif key.name.startswith('solar'):
-                self.cache['solar_zenith_angle'] = zen, zattrs
-                self.cache['solar_azimuth_angle'] = azi, aattrs
+                self.cache['solar_zenith_angle'] = zen
+                self.cache['solar_azimuth_angle'] = azi
 
         elif key.name in self.cache:
-            values, attrs = self.cache[key.name]
+            values = self.cache[key.name]
         else:
-            values, attrs = self._get_scaled_variable(self.datasets[key.name])
+            values = self._get_scaled_variable(self.datasets[key.name])
 
-        values.attrs['units'] = attrs['units']
         values.attrs['platform_name'] = self.platform_name
         values.attrs['sensor'] = self.sensor
 
