@@ -125,8 +125,8 @@ class NC_ABI_L1B(BaseFileHandler):
 
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
-        solar_irradiance = self.nc['esun'][()]
-        esd = float(self.nc["earth_sun_distance_anomaly_in_AU"])
+        solar_irradiance = self.nc['esun']
+        esd = self.nc["earth_sun_distance_anomaly_in_AU"].astype(float)
 
         factor = np.pi * esd * esd / solar_irradiance
 
