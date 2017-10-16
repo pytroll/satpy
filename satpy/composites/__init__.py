@@ -32,6 +32,7 @@ import dask.array as da
 import numpy as np
 import six
 import xarray as xr
+import xarray.ufuncs as xu
 import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
@@ -370,12 +371,12 @@ class PSPRayleighReflectance(CompositeBase):
             del satel
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
-        ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
+        ssadiff = abs(suna - sata)
+        ssadiff = xu.minimum(ssadiff, 360 - ssadiff)
         del sata, suna
 
-        atmosphere = self.attrs.get('atmosphere', 'us-standard')
-        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
+        atmosphere = self.info.get('atmosphere', 'us-standard')
+        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
 
         corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                              atmosphere=atmosphere,
@@ -448,7 +449,9 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats_dask()
+            lonslats = band.attrs['area'].get_lonlats_dask()
+            lons = lonslats[:, :, 0]
+            lats = lonslats[:, :, 1]
 
             try:
                 dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
