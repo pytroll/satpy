@@ -37,6 +37,15 @@ def four_element_average(d):
     return np.ma.mean(d.reshape(new_shape), axis=(1, 3))
 
 
+def simulated_green(c01, c02, c03):
+    # Kaba:
+    # return (c01 + c02) * 0.45 + 0.1 * c03
+    # EDC:
+    # return c01 * 0.45706946 + c02 * 0.48358168 + 0.06038137 * c03
+    # Original:
+    return (c01 + c02) / 2 * 0.93 + 0.07 * c03
+
+
 class TrueColor2km(RGBCompositor):
     """True Color ABI compositor assuming all bands are the same resolution"""
 
@@ -46,7 +55,7 @@ class TrueColor2km(RGBCompositor):
 
         r = c02
         b = c01
-        g = (c01 + c02) / 2 * 0.93 + 0.07 * c03
+        g = simulated_green(c01, c02, c03)
 
         return super(TrueColor2km, self).__call__((r, g, b), **info)
 
@@ -59,7 +68,7 @@ class TrueColor(RGBCompositor):
         r = c02
         b = np.repeat(np.repeat(c01, 2, axis=0), 2, axis=1)
         c03_high = np.repeat(np.repeat(c03, 2, axis=0), 2, axis=1)
-        g = (b + r) / 2 * 0.93 + 0.07 * c03_high
+        g = simulated_green(b, r, c03_high)
 
         low_res_red = four_element_average(r)
         low_res_red = np.repeat(np.repeat(low_res_red, 2, axis=0), 2, axis=1)
