@@ -55,7 +55,7 @@ def step_impl(context):
     from satpy.scene import Scene
     from datetime import datetime
     os.chdir("/tmp/")
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
+    scn = Scene(sensor="viirs",
                 start_time=datetime(2015, 3, 11, 11, 20),
                 end_time=datetime(2015, 3, 11, 11, 26))
     scn.load(["M02"])
