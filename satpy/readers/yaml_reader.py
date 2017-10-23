@@ -391,8 +391,11 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
         self.filter_filenames = self.info.get('filter_filenames',
                                               filter_filenames)
-        self.reader_kwargs = kwargs
+        # subclasses are responsible for adding relevant keyword arguments
+        # to the metadata
         self.metadata = metadata
+        if kwargs:
+            logger.warning("Unrecognized/unused reader keyword argument(s) '{:r}'".format(kwargs))
 
     @property
     def available_dataset_ids(self):
@@ -524,6 +527,10 @@ class FileYAMLReader(AbstractYAMLReader):
         the requested end time.
         """
         for filename, filename_info in filename_items:
+            if self._start_time is None and self._end_time is None:
+                # shortcut
+                yield filename, filename_info
+                continue
             fstart = filename_info.get('start_time')
             fend = filename_info.get('end_time')
             if fend and not fstart:
@@ -571,7 +578,7 @@ class FileYAMLReader(AbstractYAMLReader):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
-        if self.filter_filenames and self._start_time or self._end_time:
+        if self.filter_filenames:
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)

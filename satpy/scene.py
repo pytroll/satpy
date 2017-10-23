@@ -56,8 +56,7 @@ class Scene(InfoObject):
                  start_time=None,
                  end_time=None,
                  area=None,
-                 reader_kwargs=None,
-                 **metadata):
+                 reader_kwargs=None):
         """The Scene object constructor.
 
         Note to load data either `filenames`, `reader`, or a 'base_dir' must
@@ -89,18 +88,33 @@ class Scene(InfoObject):
             metadata: Other metadata to assign to the Scene's ``.info``.
         """
         InfoObject.__init__(self, sensor=sensor or set(), area=area,
-                            start_time=start_time, end_time=end_time,
-                            **metadata)
+                            start_time=start_time, end_time=end_time)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
         # in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir = ppp_config_dir
 
+        if not filenames and (start_time or end_time or base_dir):
+            import warnings
+            warnings.warn(
+                "Deprecated: Please use " + \
+                "'from satpy import find_files_and_readers' to find files")
+            from satpy import find_files_and_readers
+            filenames = find_files_and_readers(
+                start_time=start_time,
+                end_time=end_time,
+                base_dir=base_dir,
+                reader=reader,
+                sensor=sensor,
+                ppp_config_dir=self.ppp_config_dir,
+                reader_kwargs=reader_kwargs,
+            )
+
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     base_dir=base_dir,
                                                     reader=reader,
-                                                    reader_kwargs=reader_kwargs,
-                                                    metadata=metadata)
+                                                    reader_kwargs=reader_kwargs
+                                                    )
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
@@ -136,8 +150,7 @@ class Scene(InfoObject):
                                 filenames=None,
                                 base_dir=None,
                                 reader=None,
-                                reader_kwargs=None,
-                                metadata=None):
+                                reader_kwargs=None):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
@@ -147,8 +160,7 @@ class Scene(InfoObject):
         return finder(reader=reader,
                       sensor=self.info.get("sensor"),
                       filenames=filenames,
-                      reader_kwargs=reader_kwargs,
-                      metadata=metadata)
+                      reader_kwargs=reader_kwargs)
 
     @property
     def start_time(self):
