@@ -249,16 +249,106 @@ def read_reader_config(config_files):
     return reader_info
 
 
-def load_reader(reader_configs, metadata=None, **reader_kwargs):
+def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*
     """
     reader_info = read_reader_config(reader_configs)
     reader_instance = reader_info['reader'](
         config_files=reader_configs,
-        metadata=metadata,
         **reader_kwargs
     )
     return reader_instance
+
+
+def configs_for_reader(reader=None, ppp_config_dir=None):
+    """Generator of reader configuration files for one or more readers
+
+    Args:
+        reader (Optional[str]): Yield configs only for this reader
+        ppp_config_dir (Optional[str]): Additional configuration directory
+            to search for reader configuration files.
+
+    Returns: Generator of lists of configuration files
+
+    """
+    if reader is not None:
+        # given a config filename or reader name
+        if not reader.endswith(".yaml"):
+            reader += ".yaml"
+        config_files = [reader]
+    else:
+        reader_configs = glob_config(os.path.join("readers", "*.yaml"),
+                                     ppp_config_dir)
+        config_files = set(reader_configs)
+
+    for config_file in config_files:
+        config_basename = os.path.basename(config_file)
+        reader_configs = config_search_paths(
+            os.path.join("readers", config_basename), ppp_config_dir)
+
+        if not reader_configs:
+            LOG.warning("No reader configs found for '%s'", reader)
+            continue
+
+        yield reader_configs
+
+
+def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
+                           reader=None, sensor=None, ppp_config_dir=None,
+                           reader_kwargs=None):
+    """
+
+    Args:
+        start_time (datetime): Limit used files by starting time.
+        end_time (datetime): Limit used files by ending time.
+        base_dir (str): The directory to search for files containing the
+                        data to load.
+        reader: The name of the reader to use for loading the data.
+        sensor (list or str): Limit used files by provided sensors.
+        ppp_config_dir (str): The directory containing the configuration
+                              files for satpy.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader
+                              instances.
+
+    Returns: Dictionary mapping reader name string to list of filenames
+
+    """
+    reader_instances = {}
+    reader_kwargs = reader_kwargs or {}
+    sensor_supported = False
+
+    if reader is None and not base_dir:
+        # we weren't given anything to search through
+        LOG.info("Not enough information provided to find readers.")
+        return reader_instances
+
+    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+        try:
+            reader_instance = load_reader(reader_configs,
+                                          start_time=start_time,
+                                          end_time=end_time,
+                                          **reader_kwargs)
+        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+            LOG.info('Cannot use %s', str(reader_configs))
+            LOG.debug(str(err))
+            continue
+
+        if not reader_instance.supports_sensor(sensor):
+            continue
+        elif sensor is not None:
+            # sensor was specified and a reader supports it
+            sensor_supported = True
+        loadables = reader_instance.select_files_from_directory(base_dir)
+        if loadables:
+            reader_instances[reader_instance.name] = loadables
+
+    if sensor and not sensor_supported:
+        LOG.warning(
+            "Sensor '{}' not supported by any readers".format(sensor))
+
+    if not reader_instances:
+        raise ValueError("No supported files found")
+    return reader_instances
 
 
 class ReaderFinder(object):
@@ -283,7 +373,7 @@ class ReaderFinder(object):
         self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None, metadata=None):
+                 reader_kwargs=None):
         reader_instances = {}
         reader_kwargs = reader_kwargs or {}
 
@@ -292,33 +382,18 @@ class ReaderFinder(object):
             LOG.info("Not enough information provided to find readers.")
             return reader_instances
 
-        if reader is not None:
-            # given a config filename or reader name
-            if not reader.endswith(".yaml"):
-                reader += ".yaml"
-            config_files = [reader]
-        else:
-            config_files = set(self.config_files())
-        # FUTURE: Allow for a reader instance to be passed
-
         sensor_supported = False
         remaining_filenames = set(
             filenames) if filenames is not None else set()
-        for config_file in config_files:
-            config_basename = os.path.basename(config_file)
-            reader_configs = config_search_paths(
-                os.path.join("readers", config_basename), self.ppp_config_dir)
-
-            if not reader_configs:
-                LOG.warning("No reader configs found for '%s'", reader)
-                continue
-
+        if reader is None and isinstance(filenames, dict):
+            # filenames is a dictionary of reader_name -> filenames
+            reader = list(filenames.keys())
+        for reader_configs in configs_for_reader(reader, self.ppp_config_dir):
             try:
                 reader_instance = load_reader(reader_configs,
                                               start_time=self.start_time,
                                               end_time=self.end_time,
                                               area=self.area,
-                                              metadata=metadata,
                                               **reader_kwargs)
             except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
                 LOG.info('Cannot use %s', str(reader_configs))
@@ -356,7 +431,3 @@ class ReaderFinder(object):
         if not reader_instances:
             raise ValueError("No supported files found")
         return reader_instances
-
-    def config_files(self):
-        return glob_config(
-            os.path.join("readers", "*.yaml"), self.ppp_config_dir)

@@ -45,21 +45,15 @@ class TestScene(unittest.TestCase):
         import satpy.scene
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as cmfr:
             with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
-                test_mda = {'test1': 'value1', 'test2': 'value2'}
-                cmfr.return_value = test_mda
-                test_mda_2 = {'test3': 'value3', 'test4': 'value4'}
                 scene = satpy.scene.Scene(filenames='bla',
                                           base_dir='bli',
                                           reader='blo',
-                                          **test_mda_2)
+                                          )
                 cri.assert_called_once_with(filenames='bla',
                                             base_dir='bli',
                                             reader='blo',
                                             reader_kwargs=None,
-                                            metadata={'test3': 'value3',
-                                                      'test4': 'value4'})
-                self.assertDictContainsSubset(test_mda, scene.info)
-                self.assertDictContainsSubset(test_mda_2, scene.info)
+                                            )
 
     def test_init_with_sensor(self):
         import satpy.scene
@@ -108,7 +102,6 @@ class TestScene(unittest.TestCase):
     def test_create_reader_instances_with_filenames(self):
         import satpy.scene
         filenames = ["bla", "foo", "bar"]
-        sensors = None
         reader_name = None
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
             with mock.patch('satpy.scene.ReaderFinder') as findermock:
@@ -123,7 +116,6 @@ class TestScene(unittest.TestCase):
                     sensor=set(),
                     filenames=filenames,
                     reader_kwargs=None,
-                    metadata={}
                 )
 
     def test_init_with_empty_filenames(self):
@@ -149,7 +141,6 @@ class TestScene(unittest.TestCase):
                     sensor=sensors,
                     filenames=filenames,
                     reader_kwargs=None,
-                    metadata={}
                 )
 
     def test_create_reader_instances_with_sensor_and_filenames(self):
@@ -170,7 +161,6 @@ class TestScene(unittest.TestCase):
                     sensor=sensors,
                     filenames=filenames,
                     reader_kwargs=None,
-                    metadata={}
                 )
 
     def test_create_reader_instances_with_reader(self):
@@ -191,7 +181,6 @@ class TestScene(unittest.TestCase):
                     sensor=sensors,
                     filenames=filenames,
                     reader_kwargs=None,
-                    metadata={}
                 )
 
     def test_iter(self):

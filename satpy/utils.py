@@ -39,7 +39,7 @@ import numpy as np
 
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 
 
