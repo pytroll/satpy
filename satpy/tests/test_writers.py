@@ -25,9 +25,13 @@
 import unittest
 import numpy as np
 from satpy import dataset
-import mock
-import yaml
 from satpy.writers import to_image, show
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 
 class TestWritersModule(unittest.TestCase):
