@@ -2,6 +2,94 @@ Changelog
 =========
 
 
+v0.7.3 (2017-10-24)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.2 → 0.7.3. [davidh-ssec]
+- Merge branch 'develop' into new_release. [davidh-ssec]
+- Fix mock import in unittest. [davidh-ssec]
+
+  mock should come from the unittest package in python 3+
+
+- Merge pull request #90 from pytroll/bugfix-scmi-writer. [David Hoese]
+
+  Fix SCMI writer to use newest version of pyresample
+- Fix SCMI writer to use newest version of pyresample. [davidh-ssec]
+- Adjust extents to kilometers. [Panu Lahtinen]
+- Merge pull request #86 from pytroll/bugfix-resample-setitem. [David
+  Hoese]
+
+  Fix resampling when a dataset was added via setitem and a test for it
+- Fix resampling when a dataset was added via setitem and a test for it.
+  [davidh-ssec]
+
+  Includes removing python 3.3 from travis tests
+
+- Merge pull request #84 from eysteinn/composite-snowage-fix. [Martin
+  Raspaud]
+
+  Composite snowage fix
+- Expand the dynamic of the channels up to 255 before to combine them:
+  (0,1.6) => (0,255) [Eysteinn]
+- Merge pull request #2 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #85 from pytroll/feature-fullres-abi-tc. [David
+  Hoese]
+
+  Feature fullres abi tc
+- Fix geocat tests. [davidh-ssec]
+- Fix bug in geocat reader and SCMI writer. [davidh-ssec]
+
+  Caused incorrect H8 and GOES-16 geolocation
+
+- Fix reader metaclass with newer versions of six. [davidh-ssec]
+- Fix metadata in ABI true color. [davidh-ssec]
+- Fix ABI true color averaging. [davidh-ssec]
+- Fix DatasetID comparison in python 3 and add test for it. [davidh-
+  ssec]
+- Fix super call in ABI true color 2km class. [davidh-ssec]
+- Add writers yaml files to setup.py. [davidh-ssec]
+- Create sharpened full resolution ABI true color. [davidh-ssec]
+- Merge pull request #81 from loreclem/develop. [Martin Raspaud]
+
+  Develop
+- Added some doc. [lorenzo clementi]
+- Fixed missing import. [lorenzo clementi]
+- Bugfix (typo) [lorenzo clementi]
+- First working version of ninjo converter. [lorenzo clementi]
+- Improved generic reader, removed useles bitmap composite. [lorenzo
+  clementi]
+- Bugfix in the generic image reader. [lorenzo clementi]
+- Draft generic image reader. [lorenzo clementi]
+- Merge pull request #80 from pytroll/solar-pathlength-correction.
+  [Martin Raspaud]
+
+  Solar pathlength correction and Rayleigh correction interface
+- Fix anti pattern: Not using get() to return a default value from a
+  dict. [Adam.Dybbroe]
+- Introduce an alternative sun-zenith correction algorithm, and fix
+  rayleigh/aerosol correction so atmosphere and aerosol type can be
+  specified in the config files. [Adam.Dybbroe]
+- Merge branch 'develop' into solar-pathlength-correction.
+  [Adam.Dybbroe]
+- Maia reader (#79) [roquetp]
+
+  * not finalised version : problem with standard name
+  * Fix maia reader for simple loading
+  * working version with CM and CT
+  * add Datasets and fix the problem with end_time.
+  * Add a exemple for read MAIA files
+  * Add maia reader
+  * fix on maia name
+  * add reference on the test case
+  * autopep8 on the example polar_maia.py and add the reference of the data
+  test case
+  * maia-reader : clean and pep8
+  * add reference documentation
+
+
+
 v0.7.2 (2017-09-18)
 -------------------
 
@@ -2624,8 +2712,8 @@ Other
 - Merge pull request #10 from pnuu/pre-master. [Martin Raspaud]
 
   Fixed failed merging. Thanks Pnuu.
-- Fixed failed merging (removed "<<<<<<< HEAD" and ">>>>>>> upstream
-  /pre-master" lines) [Panu Lahtinen]
+- Fixed failed merging (removed "<<<<<<< HEAD" and ">>>>>>>
+  upstream/pre-master" lines) [Panu Lahtinen]
 - Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
   pre-master. [Adam Dybbroe]
 - Merge branch 'pre-master' of https://github.com/mraspaud/mpop into
