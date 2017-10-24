@@ -22,8 +22,12 @@
 """Utilities for various satpy tests.
 """
 
-import mock
 from datetime import datetime, timedelta
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 def test_datasets():
