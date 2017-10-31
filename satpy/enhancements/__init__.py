@@ -84,7 +84,7 @@ def _merge_colormaps(kwargs):
     full_cmap = None
 
     for itm in kwargs["palettes"]:
-        cmap = create_colormap(itm["filename"])
+        cmap = create_colormap(itm)
         cmap.set_range(itm["min_value"], itm["max_value"])
         if full_cmap is None:
             full_cmap = cmap
@@ -94,15 +94,35 @@ def _merge_colormaps(kwargs):
     return full_cmap
 
 
-def create_colormap(fname):
-    """Create colormap of the given numpy file."""
+def create_colormap(palette):
+    """Create colormap of the given numpy file, color vector or colormap template."""
 
     from trollimage.colormap import Colormap
-
-    data = np.load(fname)
-    cmap = []
-    num = 1.0 * data.shape[0]
-    for i in range(int(num)):
-        cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
+    fname = palette.get('filename', None)
+    if fname:
+        data = np.load(fname)
+        cmap = []
+        num = 1.0 * data.shape[0]
+        for i in range(int(num)):
+            cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
                                data[i, 2] / 255.)))
-    return Colormap(*cmap)
+        return Colormap(*cmap)
+
+    colors = palette.get('colors', None)
+    if isinstance(colors, list):
+        cmap = []
+        values = palette.get('values', None)
+        for idx, color in enumerate(colors):
+            if values:
+                value = values[idx]
+            else:
+                value = idx / float(len(colors)-1)
+            cmap.append( (value, tuple(color)) )
+        return Colormap(*cmap)
+
+    if isinstance(colors, basestring):
+        from trollimage import colormap
+        import copy
+        return copy.copy(getattr(colormap, colors))
+
+    return None
