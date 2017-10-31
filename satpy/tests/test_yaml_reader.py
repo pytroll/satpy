@@ -28,10 +28,15 @@ from datetime import datetime
 from tempfile import mkdtemp
 
 import numpy as np
-from mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DATASET_KEYS, DatasetID
+
+try:
+    from unittest.mock import MagicMock, patch
+except ImportError:
+    from mock import MagicMock, patch
+
 
 
 class FakeFH(object):

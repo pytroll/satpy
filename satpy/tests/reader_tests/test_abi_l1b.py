@@ -21,10 +21,7 @@
 """The abi_l1b reader tests package.
 """
 
-import os
 import sys
-
-import mock
 import numpy as np
 
 from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -33,6 +30,11 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
