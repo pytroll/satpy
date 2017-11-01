@@ -122,7 +122,7 @@ class TestSCMIWriter(unittest.TestCase):
                             tile_count=(3, 3))
         # `fn` is currently the last file created
         self.assertTrue(os.path.isfile(fn))
-        self.assertTrue('T009' in fn)
+        self.assertIn('T009', fn)
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid"""
