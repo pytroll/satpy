@@ -811,12 +811,11 @@ class SCMIWriter(Writer):
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
                       **kwargs):
-        dtype = np.dtype(np.uint16)
         if sector_id is None:
             raise TypeError("Keyword 'sector_id' is required")
 
         def _area_id(area_def):
-            return area_def.name + str(area_def.area_extent)
+            return area_def.name + str(area_def.area_extent) + str(area_def.shape)
         # get all of the datasets stored by area
         area_datasets = {}
         for x in datasets:
