@@ -36,12 +36,30 @@ logger = logging.getLogger(__name__)
 
 class InfoObject(object):
 
+    aliases = {
+        'attrs': 'info',
+    }
+
     def __init__(self, **attributes):
         self.info = attributes
 
     @property
     def id(self):
         return DatasetID.from_dict(self.info)
+
+    # PFE
+    # https://stackoverflow.com/questions/4017572/how-can-i-make-an-alias-to-a-non-function-member-attribute-in-a-python-class
+
+    def __setattr__(self, name, value):
+        name = self.aliases.get(name, name)
+        object.__setattr__(self, name, value)
+
+    def __getattr__(self, name):
+        if name == "aliases":
+            # http://nedbatchelder.com/blog/201010/surprising_getattr_recursion.html
+            raise AttributeError
+        name = self.aliases.get(name, name)
+        return object.__getattribute__(self, name)
 
 
 def combine_info(*info_objects):
@@ -562,7 +580,8 @@ class Dataset(np.ma.MaskedArray):
             elif key == "resolution":
                 res.append("{0}: {1} m".format(key, self.info[key]))
             elif key == "area":
-                res.append("{0}: {1}".format(key, getattr(self.info[key], 'name', '<no name>')))
+                res.append("{0}: {1}".format(key, getattr(
+                    self.info[key], 'name', '<no name>')))
             elif key in ["name", "sensor"]:
                 continue
             else:
