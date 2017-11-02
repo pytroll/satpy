@@ -37,8 +37,8 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
-                           combine_attrs, combine_info)
+from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
+                           combine_attrs, combine_metadata)
 from satpy.readers import DatasetDict
 from satpy.tools import atmospheric_path_length_correction, sunzen_corr_cos
 from satpy.writers import get_enhanced_image
@@ -212,7 +212,7 @@ class CompositorLoader(object):
                                                composite_type, sensor_id, composite_config, **kwargs)
 
 
-class CompositeBase(InfoObject):
+class CompositeBase(MetadataObject):
 
     def __init__(self,
                  name,
@@ -232,21 +232,21 @@ class CompositeBase(InfoObject):
 
     def __str__(self):
         from pprint import pformat
-        return pformat(self.info)
+        return pformat(self.attrs)
 
     def __repr__(self):
         from pprint import pformat
-        return pformat(self.info)
+        return pformat(self.attrs)
 
     def apply_modifier_info(self, origin, destination):
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
         for k in DATASET_KEYS:
             if k == 'modifiers':
-                d[k] = self.info[k]
+                d[k] = self.attrs[k]
             elif d.get(k) is None:
-                if self.info.get(k) is not None:
-                    d[k] = self.info[k]
+                if self.attrs.get(k) is not None:
+                    d[k] = self.attrs[k]
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
@@ -375,8 +375,8 @@ class PSPRayleighReflectance(CompositeBase):
         ssadiff = xu.minimum(ssadiff, 360 - ssadiff)
         del sata, suna
 
-        atmosphere = self.info.get('atmosphere', 'us-standard')
-        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
+        atmosphere = self.attrs.get('atmosphere', 'us-standard')
+        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
 
         corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                              atmosphere=atmosphere,
@@ -513,8 +513,8 @@ class DifferenceCompositor(CompositeBase):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-        info = combine_info(*projectables)
-        info['name'] = self.info['name']
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
 
         return Dataset(projectables[0] - projectables[1], **info)
 
@@ -554,7 +554,7 @@ class RGBCompositor(CompositeBase):
         attrs.update({key: val
                       for (key, val) in info.items()
                       if val is not None})
-        attrs.update(self.info)
+        attrs.update(self.attrs)
         # FIXME: should this be done here ?
         attrs["wavelength"] = None
         attrs.pop("units", None)
@@ -588,9 +588,9 @@ class BWCompositor(CompositeBase):
             raise ValueError("Expected 1 dataset, got %d" %
                              (len(projectables), ))
 
-        info = combine_info(*projectables)
-        info['name'] = self.info['name']
-        info['standard_name'] = self.info['standard_name']
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
+        info['standard_name'] = self.attrs['standard_name']
 
         return Dataset(projectables[0], **info)
 

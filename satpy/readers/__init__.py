@@ -189,9 +189,6 @@ class DatasetDict(dict):
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
             d = value.attrs
-        if hasattr(value, 'info'):
-            # SatPy InfoObjects
-            d = value.info
         # use value information to make a more complete DatasetID
         if not isinstance(key, DatasetID):
             if not isinstance(d, dict):
