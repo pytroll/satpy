@@ -71,11 +71,11 @@ class NCOLCIGeo(BaseFileHandler):
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
-class NCOLCI1B(BaseFileHandler):
+class NCOLCIBase(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(NCOLCI1B, self).__init__(filename, filename_info,
-                                       filetype_info)
+        super(NCOLCIBase, self).__init__(filename, filename_info,
+                                         filetype_info)
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
@@ -98,6 +98,17 @@ class NCOLCI1B(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
+
+    @property
+    def start_time(self):
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    @property
+    def end_time(self):
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+
+class NCOLCI1B(NCOLCIBase):
 
     def _get_solar_flux(self, band):
         from dask.base import tokenize
@@ -136,6 +147,9 @@ class NCOLCI1B(BaseFileHandler):
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
+        import ipdb
+        ipdb.set_trace()
+
         radiances = self.nc[self.channel + '_radiance']
 
         if key.calibration == 'reflectance':
@@ -152,13 +166,21 @@ class NCOLCI1B(BaseFileHandler):
         radiances.attrs.update(key.to_dict())
         return radiances
 
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+class NCOLCI2(NCOLCIBase):
+
+    def get_dataset(self, key, info):
+        """Load a dataset
+        """
+        if self.channel != key.name:
+            return
+        logger.debug('Reading %s.', key.name)
+        reflectances = self.nc[self.channel + '_reflectance'] * 100
+
+        reflectances.attrs['platform_name'] = self.platform_name
+        reflectances.attrs['sensor'] = self.sensor
+        reflectances.attrs.update(key.to_dict())
+        return reflectances
 
 
 class NCOLCIAngles(BaseFileHandler):
