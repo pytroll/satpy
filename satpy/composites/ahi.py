@@ -60,7 +60,7 @@ class Expander(CompositeBase):
 
     """
     def __call__(self, projectables, optional_datasets=None, **info):
-        factor = self.info.get('factor', 2)
+        factor = self.attrs.get('factor', 2)
 
         (band,) = projectables
 

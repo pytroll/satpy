@@ -34,39 +34,21 @@ import six
 logger = logging.getLogger(__name__)
 
 
-class InfoObject(object):
-
-    aliases = {
-        'attrs': 'info',
-    }
+class MetadataObject(object):
 
     def __init__(self, **attributes):
-        self.info = attributes
+        self.attrs = attributes
 
     @property
     def id(self):
-        return DatasetID.from_dict(self.info)
-
-    # PFE
-    # https://stackoverflow.com/questions/4017572/how-can-i-make-an-alias-to-a-non-function-member-attribute-in-a-python-class
-
-    def __setattr__(self, name, value):
-        name = self.aliases.get(name, name)
-        object.__setattr__(self, name, value)
-
-    def __getattr__(self, name):
-        if name == "aliases":
-            # http://nedbatchelder.com/blog/201010/surprising_getattr_recursion.html
-            raise AttributeError
-        name = self.aliases.get(name, name)
-        return object.__getattribute__(self, name)
+        return DatasetID.from_dict(self.attrs)
 
 
-def combine_info(*info_objects):
+def combine_metadata(*metadata_objects):
     """Combine the metadata of two or more Datasets
 
     Args:
-        *info_objects: InfoObject or dict objects to combine
+        *metadata_objects: MetadataObject or dict objects to combine
 
     Returns:
         the combined metadata
@@ -75,19 +57,19 @@ def combine_info(*info_objects):
     info_dicts = []
     # grab all of the dictionary objects provided and make a set of the shared
     # keys
-    for info_object in info_objects:
-        if isinstance(info_object, dict):
-            info_dict = info_object
-        elif hasattr(info_object, "info"):
-            info_dict = info_object.info
+    for metadata_object in metadata_objects:
+        if isinstance(metadata_object, dict):
+            metadata_dict = metadata_object
+        elif hasattr(metadata_object, "attrs"):
+            metadata_dict = metadata_object.attrs
         else:
             continue
-        info_dicts.append(info_dict)
+        info_dicts.append(metadata_dict)
 
         if shared_keys is None:
-            shared_keys = set(info_dict.keys())
+            shared_keys = set(metadata_dict.keys())
         else:
-            shared_keys &= set(info_dict.keys())
+            shared_keys &= set(metadata_dict.keys())
 
     # combine all of the dictionaries
     shared_info = {}
@@ -103,11 +85,11 @@ def combine_info(*info_objects):
     return shared_info
 
 
-def combine_attrs(*info_objects):
+def combine_attrs(*metadata_objects):
     """Combine the metadata of two or more Datasets
 
     Args:
-        *info_objects: InfoObject or dict objects to combine
+        *metadata_objects: MetadataObject or dict objects to combine
 
     Returns:
         the combined metadata
@@ -116,7 +98,7 @@ def combine_attrs(*info_objects):
     info_dicts = []
     # grab all of the dictionary objects provided and make a set of the shared
     # keys
-    for info_object in info_objects:
+    for info_object in metadata_objects:
         if isinstance(info_object, dict):
             info_dict = info_object
         elif hasattr(info_object, "attrs"):
@@ -156,7 +138,7 @@ def copy_info(func):
 
     def wrapper(self, other, *args, **kwargs):
         res = func(self, other, *args, **kwargs)
-        res.info = combine_info(self, other)
+        res.info = combine_metadata(self, other)
         return res
     return wrapper
 
@@ -335,7 +317,7 @@ class Dataset(np.ma.MaskedArray):
         Args:
             obj: another dataset
         """
-        self.info = combine_info(self, obj)
+        self.info = combine_metadata(self, obj)
 
     def _update_from(self, obj):
         """Copies some attributes of obj to self.
@@ -379,7 +361,7 @@ class Dataset(np.ma.MaskedArray):
 
     def __divmod__(self, other):
         res = super(Dataset, self).__divmod__(other)
-        new_info = combine_info(self, other)
+        new_info = combine_metadata(self, other)
         res[0].info = new_info
         res[1].info = new_info
         return res
@@ -438,7 +420,7 @@ class Dataset(np.ma.MaskedArray):
 
     def __rdivmod__(self, other):
         res = super(Dataset, self).__rdivmod__(other)
-        new_info = combine_info(self, other)
+        new_info = combine_metadata(self, other)
         res[0].info = new_info
         res[1].info = new_info
         return res

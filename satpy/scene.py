@@ -32,7 +32,7 @@ import yaml
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update, runtime_import)
-from satpy.dataset import Dataset, DatasetID, InfoObject
+from satpy.dataset import Dataset, DatasetID, MetadataObject
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, ReaderFinder
 from satpy.resample import resample_dataset
@@ -45,7 +45,7 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class Scene(InfoObject):
+class Scene(MetadataObject):
 
     """The almighty scene class."""
 
@@ -90,9 +90,9 @@ class Scene(InfoObject):
                                   instances.
             metadata: Other metadata to assign to the Scene's ``.info``.
         """
-        InfoObject.__init__(self, sensor=sensor or set(), area=area,
-                            start_time=start_time, end_time=end_time,
-                            **metadata)
+        MetadataObject.__init__(self, sensor=sensor or set(), area=area,
+                                start_time=start_time, end_time=end_time,
+                                **metadata)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
         # in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
@@ -103,10 +103,10 @@ class Scene(InfoObject):
                                                     reader=reader,
                                                     reader_kwargs=reader_kwargs,
                                                     metadata=metadata)
-        self.info.update(self._compute_metadata_from_readers())
+        self.attrs.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
-        comps, mods = self.cpl.load_compositors(self.info['sensor'])
+        comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
 
@@ -125,14 +125,14 @@ class Scene(InfoObject):
     def _get_sensor_names(self):
         # if the user didn't tell us what sensors to work with, let's figure it
         # out
-        if not self.info.get('sensor'):
+        if not self.attrs.get('sensor'):
             # reader finder could return multiple readers
             return set([sensor for reader_instance in self.readers.values()
                         for sensor in reader_instance.sensor_names])
-        elif not isinstance(self.info['sensor'], (set, tuple, list)):
-            return set([self.info['sensor']])
+        elif not isinstance(self.attrs['sensor'], (set, tuple, list)):
+            return set([self.attrs['sensor']])
         else:
-            return set(self.info['sensor'])
+            return set(self.attrs['sensor'])
 
     def create_reader_instances(self,
                                 filenames=None,
@@ -143,11 +143,11 @@ class Scene(InfoObject):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
-                              start_time=self.info.get('start_time'),
-                              end_time=self.info.get('end_time'),
-                              area=self.info.get('area'), )
+                              start_time=self.attrs.get('start_time'),
+                              end_time=self.attrs.get('end_time'),
+                              area=self.attrs.get('area'), )
         return finder(reader=reader,
-                      sensor=self.info.get("sensor"),
+                      sensor=self.attrs.get("sensor"),
                       filenames=filenames,
                       reader_kwargs=reader_kwargs,
                       metadata=metadata)
@@ -155,12 +155,12 @@ class Scene(InfoObject):
     @property
     def start_time(self):
         """Return the start time of the file."""
-        return self.info['start_time']
+        return self.attrs['start_time']
 
     @property
     def end_time(self):
         """Return the end time of the file."""
-        return self.info['end_time']
+        return self.attrs['end_time']
 
     @property
     def missing_datasets(self):
@@ -238,7 +238,7 @@ class Scene(InfoObject):
         all_comps = self.all_composite_ids()
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist
-        comps, mods = self.cpl.load_compositors(self.info['sensor'])
+        comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
         unknowns = dep_tree.find_dependencies(
             set(available_datasets + all_comps))
@@ -256,7 +256,7 @@ class Scene(InfoObject):
         :return: generator of configured composite names
         """
         if sensor_names is None:
-            sensor_names = self.info['sensor']
+            sensor_names = self.attrs['sensor']
         compositors = []
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
@@ -420,7 +420,7 @@ class Scene(InfoObject):
         try:
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
-                                   **self.info)
+                                   **self.attrs)
 
             cid = DatasetID.from_dict(composite.attrs)
 
@@ -548,7 +548,7 @@ class Scene(InfoObject):
         """Resample the datasets and return a new scene.
         """
         new_scn = Scene()
-        new_scn.info = self.info.copy()
+        new_scn.attrs = self.attrs.copy()
         # new_scn.cpl = self.cpl
         new_scn.dep_tree = self.dep_tree.copy()
         for ds_id, projectable in self.datasets.items():
