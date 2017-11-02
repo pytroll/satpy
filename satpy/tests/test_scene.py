@@ -58,8 +58,8 @@ class TestScene(unittest.TestCase):
                                             reader_kwargs=None,
                                             metadata={'test3': 'value3',
                                                       'test4': 'value4'})
-                self.assertDictContainsSubset(test_mda, scene.info)
-                self.assertDictContainsSubset(test_mda_2, scene.info)
+                self.assertDictContainsSubset(test_mda, scene.attrs)
+                self.assertDictContainsSubset(test_mda_2, scene.attrs)
 
     def test_init_with_sensor(self):
         import satpy.scene
@@ -71,11 +71,11 @@ class TestScene(unittest.TestCase):
             scene = satpy.scene.Scene(filenames='bla',
                                       base_dir='bli',
                                       sensor='fake_sensor')
-            self.assertIsInstance(scene.info['sensor'], set)
+            self.assertIsInstance(scene.attrs['sensor'], set)
             scene = satpy.scene.Scene(filenames='bla',
                                       base_dir='bli',
                                       sensor=['fake_sensor'])
-            self.assertIsInstance(scene.info['sensor'], set)
+            self.assertIsInstance(scene.attrs['sensor'], set)
 
     def test_start_end_times(self):
         import satpy.scene

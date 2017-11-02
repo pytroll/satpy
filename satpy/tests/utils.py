@@ -50,12 +50,12 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     import numpy as np
     from xarray import DataArray
     c = mock.MagicMock()
-    c.info = {
+    c.attrs = {
         'prerequisites': tuple(prereqs),
         'optional_prerequisites': tuple(opt_prereqs),
     }
     # special case
-    c.info.update(ds_id.to_dict())
+    c.attrs.update(ds_id.to_dict())
     c.id = ds_id
 
     se = mock.MagicMock()
@@ -84,7 +84,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
-                self.info = {}
+                self.attrs = {}
 
             def __call__(self, datasets, optional_datasets, **info):
                 resolution = DatasetID.from_dict(datasets[0].attrs).resolution
@@ -101,7 +101,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
 
         m = FakeMod()
-        m.info = {
+        m.attrs = {
             'prerequisites': tuple(prereqs),
             'optional_prerequisites': tuple(opt_prereqs)
         }

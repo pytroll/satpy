@@ -324,12 +324,12 @@ class DependencyTree(Node):
             dataset_key = compositor.id
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
-            compositor.info['prerequisites'])
+            compositor.attrs['prerequisites'])
         if unknowns:
             return None, unknowns
 
         optional_prereqs, _ = self._get_compositor_prereqs(
-            compositor.info['optional_prerequisites'],
+            compositor.attrs['optional_prerequisites'],
             skip=True)
 
         # Is this the right place for that?
