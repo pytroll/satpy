@@ -189,7 +189,7 @@ class ReflectanceCorrector(CompositeBase):
 
     def __call__(self, datasets, **info):
         refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
-        if refl_data.info.get("rayleigh_corrected"):
+        if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
 
         if os.path.isfile(self.dem_file):
@@ -204,16 +204,16 @@ class ReflectanceCorrector(CompositeBase):
 
         from satpy.composites.crefl_utils import run_crefl, get_coefficients
 
-        percent = refl_data.info["units"] == "%"
+        percent = refl_data.attrs["units"] == "%"
 
-        coefficients = get_coefficients(refl_data.info["sensor"],
-                                        refl_data.info["wavelength"],
-                                        refl_data.info["resolution"])
+        coefficients = get_coefficients(refl_data.attrs["sensor"],
+                                        refl_data.attrs["wavelength"],
+                                        refl_data.attrs["resolution"])
 
         results = run_crefl(refl_data,
                             coefficients,
-                            sensor_aa.info["area"].lons,
-                            sensor_aa.info["area"].lats,
+                            sensor_aa.attrs["area"].lons,
+                            sensor_aa.attrs["area"].lats,
                             sensor_aa,
                             sensor_za,
                             solar_aa,
@@ -221,7 +221,7 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent, )
 
-        info.update(refl_data.info)
+        info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
         proj = Dataset(data=results.data * factor,
@@ -1123,9 +1123,8 @@ class NCCZinke(CompositeBase):
         return gain
 
 
-
 class SnowAge(CompositeBase):
-    """Returns RGB snow product based on method presented at the second 
+    """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
     """
     # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
@@ -1154,11 +1153,11 @@ class SnowAge(CompositeBase):
         info["wavelength"] = None
         info["mode"] = self.info.get("mode", "RGB")
 
-        m07 = projectables[0]*255./160.
-        m08 = projectables[1]*255./160.
-        m09 = projectables[2]*255./160.
-        m10 = projectables[3]*255./160.
-        m11 = projectables[4]*255./160.
+        m07 = projectables[0] * 255. / 160.
+        m08 = projectables[1] * 255. / 160.
+        m09 = projectables[2] * 255. / 160.
+        m10 = projectables[3] * 255. / 160.
+        m11 = projectables[4] * 255. / 160.
         refcu = m11 - m10
         refcu[refcu < 0] = 0
 
@@ -1167,4 +1166,3 @@ class SnowAge(CompositeBase):
         ch3 = m11 + m09
 
         return Dataset(data=[ch1, ch2, ch3], **info)
-
