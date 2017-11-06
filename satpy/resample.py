@@ -41,7 +41,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import (XArrayResamplerNN, get_neighbour_info,
                                 get_sample_from_neighbour_info)
-from satpy.config import get_config, get_config_path
+from satpy.config import config_search_paths, get_config, get_config_path
 
 try:
     import configparser
@@ -54,18 +54,15 @@ CACHE_SIZE = 10
 
 
 def get_area_file():
-    conf, successes = get_config("satpy.cfg")
-    if conf is None or not successes:
-        LOG.warning(
-            "Couldn't find the satpy.cfg file. Do you have one ? is it in $PPP_CONFIG_DIR ?")
-        return None
+    """Find area file(s) to use.
 
-    try:
-        fn = os.path.join(conf.get("projector", "area_directory") or "",
-                          conf.get("projector", "area_file"))
-        return get_config_path(fn)
-    except configparser.NoSectionError:
-        LOG.warning("Couldn't find 'projector' section of 'satpy.cfg'")
+    The files are to be named `areas.yaml` or `areas.def`.
+    """
+    paths = config_search_paths('areas.yaml')
+    if paths:
+        return paths
+    else:
+        return get_config_path('areas.def')
 
 
 def get_area_def(area_name):
