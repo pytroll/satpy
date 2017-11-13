@@ -163,7 +163,7 @@ datasets:
       physical_element: 0.75 um
     viirs_m07:
       name: M07
-      physical_element: 0.87 um
+      physical_element: 0.86 um
     viirs_m08:
       name: M08
       physical_element: 1.24 um
