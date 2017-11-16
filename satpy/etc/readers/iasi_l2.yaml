@@ -92,7 +92,7 @@ datasets:
   sensing_time:
     name: sensing_time
     file_type: iasi_l2_hdf5
-    units: "degrees"
+    units: "ut_time"
     resolution: 12000
     coordinates: [longitude, latitude]
 
