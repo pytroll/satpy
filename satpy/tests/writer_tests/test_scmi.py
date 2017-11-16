@@ -157,12 +157,79 @@ class TestSCMIWriter(unittest.TestCase):
                             tile_count=(3, 3),
                             lettered_grid=True)
         # `fn` is currently the last file created
-        print(fn)
         self.assertTrue(os.path.isfile(fn))
 
+    def test_lettered_tiles_no_fit(self):
+        """Test creating a lettered grid with no data"""
+        from satpy.writers.scmi import SCMIWriter
+        from satpy import Dataset
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            x_size=1000,
+            y_size=2000,
+            area_extent=(4000000., 5000000., 5000000., 6000000.),
+        )
+        now = datetime.utcnow()
+        ds = Dataset(
+            np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
+            name='test_ds',
+            platform='PLAT',
+            sensor='SENSOR',
+            units='1',
+            area=area_def,
+            start_time=now,
+            end_time=now + timedelta(minutes=20),
+        )
+        fn = w.save_dataset(ds,
+                               sector_id='LCC',
+                               source_name="TESTS",
+                               tile_count=(3, 3),
+                               lettered_grid=True)
+        # `fn` is currently the last file created
+        # No files created
+        self.assertIsNone(fn)
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+    def test_lettered_tiles_bad_filename(self):
+        """Test creating a lettered grid with a bad filename"""
+        from satpy.writers.scmi import SCMIWriter
+        from satpy import Dataset
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        w = SCMIWriter(base_dir=self.base_dir, compress=True, file_pattern="{Bad Key}.nc")
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            x_size=1000,
+            y_size=2000,
+            area_extent=(-1000000., -1500000., 1000000., 1500000.),
+        )
+        now = datetime.utcnow()
+        ds = Dataset(
+            np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
+            name='test_ds',
+            platform='PLAT',
+            sensor='SENSOR',
+            units='1',
+            area=area_def,
+            start_time=now,
+            end_time=now + timedelta(minutes=20),
+        )
+        self.assertRaises(KeyError, w.save_dataset,
+                          ds,
+                          sector_id='LCC',
+                          source_name="TESTS",
+                          tile_count=(3, 3),
+                          lettered_grid=True)
+
+
 def suite():
     """The test suite for this writer's tests.
     """

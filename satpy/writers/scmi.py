@@ -831,6 +831,7 @@ class SCMIWriter(Writer):
             for dataset in ds_list:
                 pkwargs = {}
                 ds_info = dataset.info.copy()
+                LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
                 if isinstance(dataset, np.ma.MaskedArray):
                     data = dataset
                 else:
@@ -899,11 +900,6 @@ class SCMIWriter(Writer):
         area_def = ds_info['area']
         created_files = []
         try:
-            LOG.debug("Scaling %s data to fit in netcdf file...", ds_info["name"])
-            data = dataset
-
-            LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
-
             if filename is None:
                 # format the filename
                 of_kwargs = ds_info.copy()
@@ -1136,6 +1132,7 @@ def main():
         return
     else:
         raise NotImplementedError("Command line interface not implemented yet for SCMI writer")
+
 
 if __name__ == '__main__':
     sys.exit(main())
