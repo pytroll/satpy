@@ -25,8 +25,6 @@
 import logging
 from datetime import datetime
 
-import cf
-import numpy as np
 import xarray as xr
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
