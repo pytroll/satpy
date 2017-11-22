@@ -39,6 +39,7 @@ class FakeHDF5FileHandler(HDF5FileHandler):
         """
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
+
 class TestHDF5FileHandler(unittest.TestCase):
     """Test HDF5 File Handler Utility class"""
     def setUp(self):

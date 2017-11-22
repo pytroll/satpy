@@ -28,6 +28,7 @@
 import netCDF4
 import numpy as np
 import logging
+import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -115,9 +116,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         if isinstance(val, netCDF4.Variable):
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
-            v = netCDF4.Dataset(self.filename, 'r')
-            val = v[key]
-            val.set_auto_maskandscale(self.auto_maskandscale)
+            # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
+            parts = key.rsplit('/', 1)
+            if len(parts) == 2:
+                group, key = parts
+            else:
+                group = None
+            val = xr.open_dataset(self.filename, group=group, chunks=1000,
+                                  mask_and_scale=self.auto_maskandscale)[key]
         return val
 
     def __contains__(self, item):
