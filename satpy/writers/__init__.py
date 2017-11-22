@@ -59,7 +59,7 @@ def _determine_mode(dataset):
                            (dataset.id,))
 
 
-def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None):
+def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None, level_coast=1, level_borders=1):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -108,9 +108,9 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     from pycoast import ContourWriterAGG
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
-                       resolution=resolution, width=width)
+                       resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
-                    resolution=resolution, width=width)
+                    resolution=resolution, width=width, level=level_borders)
 
     arr = np.array(img)
 
