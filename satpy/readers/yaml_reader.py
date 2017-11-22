@@ -602,14 +602,11 @@ class FileYAMLReader(AbstractYAMLReader):
             [p.attrs for p in projectables])
         #cls = ds_info.get("container", Dataset)
         # return cls(np.ma.vstack(projectables), **combined_info)
-        if dim in projectables[0].dims:
-            res = xr.concat(projectables, dim=dim)
-            res.attrs = combined_info
-            return res
-        else:
-            logger.info("Can't concatenate %s, passing on first item",
-                        projectables[0].name)
-            return projectables[0]
+        if dim not in projectables[0].dims:
+            dim = projectables[0].dims[0]
+        res = xr.concat(projectables, dim=dim)
+        res.attrs = combined_info
+        return res
 
     def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice,
                              dim='y'):
@@ -660,6 +657,8 @@ class FileYAMLReader(AbstractYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
+        if dim not in slice_list[0].dims:
+            dim = slice_list[0].dims[0]
         res = xr.concat(slice_list, dim=dim)
         res.attrs = slice_list[-1].attrs
         return res
