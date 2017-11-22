@@ -233,7 +233,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             data = self._load_and_slice(var_path, shape, xslice, yslice)
 
         if valid_min is not None and valid_max is not None:
-            data = data.where((data < valid_min) | (data > valid_max))
+            data = data.where((data >= valid_min) & (data <= valid_max))
 
         factors = (scale_factor, scale_offset)
         factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))

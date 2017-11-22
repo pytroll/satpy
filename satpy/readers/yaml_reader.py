@@ -100,16 +100,18 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
-        for file_type in self.config['file_types'].values():
+        for file_type, filetype_info in self.config['file_types'].items():
+            # set this for filetype filtering later on
+            filetype_info.setdefault('file_type', file_type)
             # correct separator if needed
             file_patterns = [os.path.join(*pattern.split('/'))
-                             for pattern in file_type['file_patterns']]
+                             for pattern in filetype_info['file_patterns']]
             self.file_patterns.extend(file_patterns)
 
         if not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.sensor_names = self.info['sensors']
-        self.datasets = self.config['datasets']
+        self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
         self.ids = {}
         self.load_ds_ids_from_config()
