@@ -22,6 +22,7 @@
 """Interface to NUCAPS Retrieval NetCDF files
 """
 from datetime import datetime, timedelta
+import xarray as xr
 import numpy as np
 import logging
 from collections import defaultdict
@@ -54,6 +55,9 @@ ALL_PRESSURE_LEVELS = [
 class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
+    def __init__(self, *args, **kwargs):
+        self._attrs_cache = {}
+        super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
 
     def __contains__(self, item):
         return item in self.file_content
@@ -107,75 +111,81 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Return data array shape for item specified.
         """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
-        shape = self[var_path + "/shape"]
-        if "index" in ds_info:
-            shape = shape[1:]
-        if "pressure_index" in ds_info:
-            shape = shape[:-1]
-        return shape
-
-    def get_dataset(self, dataset_id, ds_info, out=None):
-        """Load data array and metadata for specified dataset"""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
-        dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
             # loading a scalar value
             shape = 1
         else:
-            shape = self.get_shape(dataset_id, ds_info)
+            shape = self[var_path + "/shape"]
+            if "index" in ds_info:
+                shape = shape[1:]
+            if "pressure_index" in ds_info:
+                shape = shape[:-1]
+        return shape
+
+    def get_metadata(self, dataset_id, ds_info):
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get('file_units',
                                  self.get(var_path + '/attr/units'))
-
-        if out is None:
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
-            out.info = {}
-
-        valid_min, valid_max = self[var_path + '/attr/valid_range']
-        fill_value = self.get(var_path + '/attr/_FillValue')
-
-        d_tmp = np.require(self[var_path][:], dtype=dtype)
-        if "index" in ds_info:
-            d_tmp = d_tmp[int(ds_info["index"])]
-        if "pressure_index" in ds_info:
-            d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
-            # this is a pressure based field
-            # include surface_pressure as metadata
-            sp = self['Surface_Pressure'][:]
-            if 'surface_pressure' in ds_info:
-                ds_info['surface_pressure'] = np.concatenate((ds_info['surface_pressure'], sp))
-            else:
-                ds_info['surface_pressure'] = sp
-            # include all the pressure levels
-            ds_info.setdefault('pressure_levels', self['Pressure'][0])
-        out.data[:] = d_tmp
-        del d_tmp
-
-        if valid_min is not None and valid_max is not None:
-            # the original .cfg/INI based reader only checked valid_max
-            out.mask[:] |= (out.data > valid_max)  # | (out < valid_min)
-        if fill_value is not None:
-            out.mask[:] |= out.data == fill_value
-
-        cls = ds_info.pop("container", Dataset)
-        i = getattr(out, 'info', {})
-        i.update(ds_info)
-        i.update(dataset_id.to_dict())
-        i.update({
+        ds_info.update(getattr(self[var_path], 'attrs', {}))
+        # don't overwrite information in the files attrs because the same
+        # `.attrs` is used for each separate Temperature pressure level dataset
+        # Plus, if someone gets metadata multiple times then we are screwed
+        info = ds_info
+        info.update(ds_info)
+        info.update(dataset_id.to_dict())
+        info.update({
+            "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        if 'standard_name' not in i:
+        if 'standard_name' not in info:
             sname_path = var_path + '/attr/standard_name'
-            i['standard_name'] = self.get(sname_path)
-        if 'quality_flag' in i:
-            i['quality_flag'] = np.concatenate((i['quality_flag'], self['Quality_Flag'][:]))
-        else:
-            i['quality_flag'] = self['Quality_Flag'][:]
-        return cls(out.data, mask=out.mask, copy=False, **i)
+            info['standard_name'] = self.get(sname_path)
+        if 'quality_flag' not in self._attrs_cache:
+            if 'quality_flag' in info:
+                quality_flag = xr.concat((info['quality_flag'], self['Quality_Flag']),
+                                         dim=info['quality_flag'].dims[0])
+            else:
+                quality_flag = self['Quality_Flag']
+            self._attrs_cache['quality_flag'] = quality_flag
+        info['quality_flag'] = self._attrs_cache['quality_flag']
+        return info
+
+    def get_dataset(self, dataset_id, ds_info):
+        """Load data array and metadata for specified dataset"""
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        metadata = self.get_metadata(dataset_id, ds_info)
+        valid_min, valid_max = self[var_path + '/attr/valid_range']
+        fill_value = self.get(var_path + '/attr/_FillValue')
+
+        d_tmp = self[var_path]
+        if "index" in ds_info:
+            d_tmp = d_tmp[int(ds_info["index"])]
+        if "pressure_index" in ds_info:
+            d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
+            # this is a pressure based field
+            # include surface_pressure as metadata
+            sp = self['Surface_Pressure']
+            if 'surface_pressure' in ds_info:
+                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
+            else:
+                ds_info['surface_pressure'] = sp
+            # include all the pressure levels
+            ds_info.setdefault('pressure_levels', self['Pressure'][0])
+        data = d_tmp
+
+        if valid_min is not None and valid_max is not None:
+            # the original .cfg/INI based reader only checked valid_max
+            data = data.where((data <= valid_max))  # | (data >= valid_min))
+        if fill_value is not None:
+            data = data.where(data != fill_value)
+
+        data.attrs.update(metadata)
+        return data
 
 
 class NUCAPSReader(FileYAMLReader):
@@ -274,36 +284,34 @@ class NUCAPSReader(FileYAMLReader):
             else:
                 plevels_ds = datasets_loaded[plevels_ds_id]
 
+            if pressure_levels is True:
+                cond = None
+            elif len(pressure_levels) == 2:
+                cond = (plevels_ds >= pressure_levels[0]) & (plevels_ds <= pressure_levels[1])
+            else:
+                cond = plevels_ds == pressure_levels
+            if cond is not None:
+                new_plevels = plevels_ds.where(cond, drop=True)
+            else:
+                new_plevels = plevels_ds
+
             for ds_id in datasets_loaded.keys():
                 ds_obj = datasets_loaded[ds_id]
-                if plevels_ds is None:
-                    LOG.debug("No 'pressure_levels' metadata included in dataset")
-                    continue
-                if plevels_ds.shape[0] != ds_obj.shape[-1]:
-                    # LOG.debug("Dataset '{}' doesn't contain multiple pressure levels".format(ds_id))
+                if plevels_ds.dims[0] not in ds_obj.dims:
                     continue
 
-                if pressure_levels is True:
-                    levels_mask = np.ones(plevels_ds.shape, dtype=np.bool)
-                elif len(pressure_levels) == 2:
-                    # given a min and a max pressure level
-                    levels_mask = (plevels_ds <= pressure_levels[1]) & (plevels_ds >= pressure_levels[0])
-                else:
-                    levels_mask = np.zeros(plevels_ds.shape, dtype=np.bool)
-                    for idx, ds_level in enumerate(plevels_ds):
-                        levels_mask[idx] = np.isclose(pressure_levels, ds_level).any()
-
-                datasets_loaded[ds_id] = ds_obj[..., levels_mask]
-                datasets_loaded[ds_id].info["pressure_levels"] = plevels_ds[levels_mask]
+                if cond is not None:
+                    datasets_loaded[ds_id] = ds_obj.where(cond, drop=True)
+                datasets_loaded[ds_id].attrs['pressure_levels'] = new_plevels
 
         if self.mask_surface:
             LOG.debug("Filtering pressure levels at or below the surface pressure")
             for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
-                if "surface_pressure" not in ds.info or "pressure_levels" not in ds.info:
+                if "surface_pressure" not in ds.attrs or "pressure_levels" not in ds.attrs:
                     continue
-                data_pressure = ds.info["pressure_levels"]
-                surface_pressure = ds.info["surface_pressure"]
+                data_pressure = ds.attrs["pressure_levels"]
+                surface_pressure = ds.attrs["surface_pressure"]
                 if isinstance(surface_pressure, float):
                     # scalar needs to become array for each record
                     surface_pressure = np.repeat(surface_pressure, ds.shape[0])
@@ -313,11 +321,11 @@ class NUCAPSReader(FileYAMLReader):
                     if ds.ndim == 2:
                         surface_pressure = np.repeat(surface_pressure[:, None], data_pressure.shape[0], axis=1)
                         data_pressure = np.repeat(data_pressure[None, :], surface_pressure.shape[0], axis=0)
-                        ds.mask[data_pressure >= surface_pressure] = True
+                        datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
                     else:
                         # entire dataset represents one pressure level
-                        data_pressure = ds.info["pressure_level"]
-                        ds.mask[data_pressure >= surface_pressure] = True
+                        data_pressure = ds.attrs["pressure_level"]
+                        datasets_loaded[ds_id] = ds.where(data_pressure < surface_pressure)
                 else:
                     LOG.warning("Not sure how to handle shape of 'surface_pressure' metadata")
 
@@ -325,11 +333,13 @@ class NUCAPSReader(FileYAMLReader):
             LOG.debug("Filtering data based on quality flags")
             for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
-                if "quality_flag" not in ds.info:
+                if "quality_flag" not in ds.attrs:
                     continue
-                quality_flag = ds.info["quality_flag"]
+                quality_flag = ds.attrs["quality_flag"]
+                if quality_flag.dims[0] not in datasets_loaded[ds_id].dims:
+                    continue
                 LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
-                ds.mask[quality_flag != 0, ...] = True
+                datasets_loaded[ds_id] = ds.where(quality_flag == 0)
 
         return datasets_loaded
 
