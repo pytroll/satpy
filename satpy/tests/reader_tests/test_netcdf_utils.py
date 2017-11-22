@@ -91,6 +91,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
     def test_all_basic(self):
         """Test everything about the NetCDF4 class"""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        import xarray as xr
         file_handler = NetCDF4FileHandler('test.nc', {}, {})
 
         self.assertEqual(file_handler['/dimension/rows'], 10)
@@ -108,7 +109,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
-        self.assertIsInstance(file_handler.get('ds2_f')[:], np.ndarray)
+        self.assertIsInstance(file_handler.get('ds2_f')[:], xr.DataArray)
         self.assertIsNone(file_handler.get('fake_ds'))
         self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
 
