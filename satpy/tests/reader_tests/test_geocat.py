@@ -16,7 +16,6 @@ except ImportError:
     import mock
 
 import numpy as np
-from datetime import datetime, timedelta
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -87,6 +86,20 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content['variable3/attr/flag_values'] = [0, 1, 2, 3, 4, 5]
         file_content['variable3/attr/units'] = '1'
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
+
+        # convert to xarrays
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                attrs = {}
+                for a in ['_FillValue', 'flag_meanings', 'flag_values', 'units']:
+                    if key + '/attr/' + a in file_content:
+                        attrs[a] = file_content[key + '/attr/' + a]
+                if val.ndim > 1:
+                    file_content[key] = DataArray(val, dims=('y', 'x'), attrs=attrs)
+                else:
+                    file_content[key] = DataArray(val, attrs=attrs)
+
         return file_content
 
 
@@ -123,8 +136,9 @@ class TestGEOCATReader(unittest.TestCase):
     def test_load_all_old_goes(self):
         """Test loading all test datasets"""
         from satpy.readers import load_reader
+        import xarray as xr
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.geocat.netCDF4.Variable', np.ndarray):
+        with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([
                 'geocatL2.GOES-13.2015143.234500.nc',
             ])
@@ -134,15 +148,16 @@ class TestGEOCATReader(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.info['calibration'], None)
-            self.assertEqual(v.info['units'], '1')
-        self.assertIsNotNone(datasets['variable3'].info.get('flag_meanings'))
+            self.assertIs(v.attrs['calibration'], None)
+            self.assertEqual(v.attrs['units'], '1')
+        self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
     def test_load_all_himawari8(self):
         """Test loading all test datasets"""
         from satpy.readers import load_reader
+        import xarray as xr
         r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.geocat.netCDF4.Variable', np.ndarray):
+        with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
             loadables = r.select_files_from_pathnames([
                 'geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc',
             ])
@@ -153,9 +168,9 @@ class TestGEOCATReader(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.info['calibration'], None)
-            self.assertEqual(v.info['units'], '1')
-        self.assertIsNotNone(datasets['variable3'].info.get('flag_meanings'))
+            self.assertIs(v.attrs['calibration'], None)
+            self.assertEqual(v.attrs['units'], '1')
+        self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
 def suite():
     """The test suite for test_viirs_l1b.

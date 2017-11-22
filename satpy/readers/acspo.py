@@ -152,14 +152,14 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             data = self[var_path][yslice]
         else:
             data = self[var_path]
-        data = data.where((data < valid_min) | (data > valid_max))
+        data = data.where((data >= valid_min) & (data <= valid_max))
         if scale_factor is not None:
             data = data * scale_factor + add_offset
 
         if ds_info.get('cloud_clear', False):
             # clear-sky if bit 15-16 are 00
             clear_sky_mask = (self['l2p_flags'][0] & 0b1100000000000000) != 0
-            data = data.where(clear_sky_mask)
+            data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
         return data
