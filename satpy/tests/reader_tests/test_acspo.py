@@ -80,6 +80,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
             dtype=np.uint16)
 
+        # convert to xarrays
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                if val.ndim > 1:
+                    file_content[key] = DataArray(val, dims=tuple(x for x in 'zyx'[3-val.ndim:]))
+                else:
+                    file_content[key] = DataArray(val)
+
         return file_content
 
 

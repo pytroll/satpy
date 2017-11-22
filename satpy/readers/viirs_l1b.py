@@ -238,7 +238,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         factors = (scale_factor, scale_offset)
         factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
-            data *= factors[0] + factors[1]
+            data = data * factors[0] + factors[1]
 
         data.attrs.update(metadata)
         return data
