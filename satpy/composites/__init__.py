@@ -275,10 +275,10 @@ class SunZenithCorrectorBase(CompositeBase):
             if coszen is None:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                lonlats = vis.attrs["area"].get_lonlats_dask()
+                lons, lats = vis.attrs["area"].get_lonlats_dask()
+
                 coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
-                                              lonlats[:, :, 0],
-                                              lonlats[:, :, 1]),
+                                              lons, lats),
                                       dims=['y', 'x'],
                                       coords=[vis['y'], vis['x']])
                 coszen = coszen.where((coszen > 0.035) & (coszen < 1))
@@ -449,9 +449,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lonslats = band.attrs['area'].get_lonlats_dask()
-            lons = lonslats[:, :, 0]
-            lats = lonslats[:, :, 1]
+            lons, lats = band.attrs['area'].get_lonlats_dask()
 
             try:
                 dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
