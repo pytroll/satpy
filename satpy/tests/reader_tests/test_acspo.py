@@ -9,7 +9,12 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-import mock
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 from datetime import datetime, timedelta
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler

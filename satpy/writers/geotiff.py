@@ -133,7 +133,7 @@ class GeoTIFFWriter(ImageWriter):
                 LOG.warning(
                     "Image with floats cannot be transparent, so setting fill_value to 0")
                 fill_value = 0
-            datasets = [img.datasets[0].astype(np.float64)]
+            datasets = [img.channels[0].astype(np.float64)]
             fill_value = img.fill_value or [0]
             gformat = gdal.GDT_Float64
             opacity = 0

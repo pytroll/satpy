@@ -9,7 +9,12 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-import mock
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 

@@ -199,6 +199,11 @@ class DependencyTree(Node):
         Node.add_child(parent, child)
         self._all_nodes[child.name] = child
 
+    def add_leaf(self, ds_id, parent=None):
+        if parent is None:
+            parent = self
+        self.add_child(parent, Node(ds_id))
+
     def copy(self):
         """Copy the this node tree
 

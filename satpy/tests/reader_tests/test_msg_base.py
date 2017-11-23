@@ -23,11 +23,8 @@
 """Test the MSG common (native and hrit format) functionionalities
 """
 
-import os
 import sys
-from datetime import datetime
 
-import mock
 import numpy as np
 
 from satpy.readers.msg_base import dec10216
@@ -36,6 +33,11 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class TestDec10216(unittest.TestCase):
