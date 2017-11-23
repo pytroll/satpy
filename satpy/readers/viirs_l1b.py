@@ -58,13 +58,13 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def platform_name(self):
-        # FIXME: If an attribute is added to the file, for now hardcode
-        # res = self['platform_short_name']
-        res = "NPP"
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        try:
+            res = self['/attr/platform']
+        except KeyError:
+            res = 'Suomi-NPP'
+        return {
+            'Suomi-NPP': 'NPP',
+        }.get(res, res)
 
     @property
     def sensor_name(self):
@@ -148,9 +148,9 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             out = np.ma.empty(shape, dtype=dtype)
             out.mask = np.zeros(shape, dtype=np.bool)
 
-        if dataset_id.calibration == 'radiance' and file_units is None:
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
-            if ds_info['units'] == 'W m-2 um-1 sr-1' and rad_units_path in self:
+            if rad_units_path in self:
                 # we are getting a reflectance band but we want the radiance values
                 # special scaling parameters
                 scale_factor = self[var_path + '/attr/radiance_scale_factor']
@@ -217,7 +217,10 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
             ds_info.setdefault('rows_per_scan', rows_per_scan)
 
-        ds_info.update({
+        i = getattr(out, 'info', {})
+        i.update(ds_info)
+        i.update(dataset_id.to_dict())
+        i.update({
             "units": ds_info.get("units", file_units),
             "platform": self.platform_name,
             "sensor": self.sensor_name,
@@ -226,4 +229,4 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         })
         ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)
-        return cls(out.data, mask=out.mask, copy=False, **ds_info)
+        return cls(out.data, mask=out.mask, copy=False, **i)

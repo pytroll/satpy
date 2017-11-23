@@ -35,6 +35,7 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 import logging
 import os.path
 from datetime import datetime, timedelta
+from glob import glob
 
 import numpy as np
 
@@ -289,31 +290,81 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
 
 class VIIRSSDRReader(FileYAMLReader):
-
-    def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
-        """Load the `nav_name` navigation.
-
-        For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
-        to figure out where it is.
+    """Custom file reader for finding VIIRS SDR geolocation at runtime."""
+    def __init__(self, config_files, use_tc=True, **kwargs):
+        """Initialize file reader and adjust geolocation preferences.
+        
+        Args:
+            config_files (iterable): yaml config files passed to base class
+            use_tc (boolean): If `True` (default) use the terrain corrected
+                              file types specified in the config files. If
+                              `False`, switch all terrain corrected file types
+                              to non-TC file types. If `None` 
+                                    
         """
-        nav_info = self.navigations[nav_name]
-        file_type = nav_info["file_type"]
+        super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
+        for ds_info in self.ids.values():
+            ft = ds_info.get('file_type')
+            if ft == 'gmtco':
+                nontc = 'gmodo'
+            elif ft == 'gitco':
+                nontc = 'gimgo'
+            else:
+                continue
 
-        if file_type not in self.file_readers:
-            LOG.debug("Geolocation files were not provided, will search band file header...")
-            if dep_file_type is None:
-                raise RuntimeError("Could not find geolocation files because the main dataset was not provided")
-            dataset_file_reader = self.file_readers[dep_file_type]
-            base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
-            geo_filenames = dataset_file_reader.geofilenames
-            geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
+            if use_tc is None:
+                # we want both TC and non-TC
+                ds_info['file_type'] = [ds_info['file_type'], nontc]
+            elif not use_tc:
+                # we want only non-TC
+                ds_info['file_type'] = nontc
 
-            file_types = self.identify_file_types(geo_filepaths)
-            if file_type not in file_types:
-                raise RuntimeError(
-                    "The geolocation files from the header (ex. {}) ".format(geo_filepaths[0]) +
-                    "do not match the configured geolocation ({})".format(file_type))
-            self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
+    def _load_from_geo_ref(self, dsid):
+        """Load filenames from the N_GEO_Ref attribute of a dataset's file"""
+        file_handlers = self._get_file_handlers(dsid)
+        if not file_handlers:
+            return None
 
-        return super(VIIRSINISDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
+        fns = []
+        for fh in file_handlers:
+            base_dir = os.path.dirname(fh.filename)
+            try:
+                # get the filename and remove the creation time
+                # which is often wrong
+                fn = fh['/attr/N_GEO_Ref'][:46] + '*.h5'
+                fns.extend(glob(os.path.join(base_dir, fn)))
 
+                # usually is non-terrain corrected file, add the terrain
+                # corrected file too
+                if fn[:5] == 'GIMGO':
+                    fn = 'GITCO' + fn[5:]
+                elif fn[:5] == 'GMODO':
+                    fn = 'GMTCO' + fn[5:]
+                else:
+                    continue
+                fns.extend(glob(os.path.join(base_dir, fn)))
+            except KeyError:
+                LOG.debug("Could not load geo-reference information from {}".format(fh.filename))
+
+        return fns
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for `dsid`.
+        
+        Wraps the base class method in order to load geolocation files
+        from the geo reference attribute in the datasets file.
+        """
+        coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
+        for c_id in coords:
+            c_file_type = self.ids[c_id]['file_type']
+            if self._preferred_filetype(c_file_type):
+                # coordinate has its file type loaded already
+                continue
+
+            # check the dataset file for the geolocation filename
+            geo_filenames = self._load_from_geo_ref(dsid)
+            if not geo_filenames:
+                continue
+
+            self.create_filehandlers(geo_filenames)
+        return coords

@@ -31,3 +31,8 @@ Feature: Simple and intuitive scene loading (sc. 1)
         Given data is available
         When user wants to know what data is available
         Then available datasets is returned
+
+    Scenario: Accessing datasets by name prefers less modified datasets
+        Given datasets with the same name
+        When a dataset is retrieved by name
+        Then the least modified version of the dataset is returned

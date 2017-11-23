@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2016
+# Copyright (c) 2010-2017
 #
 # Author(s):
 #
@@ -26,12 +26,13 @@
 
 import logging
 import os
+import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
-                          runtime_import)
+                          runtime_import, recursive_dict_update)
+from satpy.dataset import Dataset, DatasetID, InfoObject
 from satpy.node import DependencyTree
-from satpy.dataset import InfoObject, Dataset, DatasetID
 from satpy.readers import DatasetDict, ReaderFinder
 
 try:
@@ -43,6 +44,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Scene(InfoObject):
+
     """The almighty scene class."""
 
     def __init__(self,
@@ -97,7 +99,8 @@ class Scene(InfoObject):
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     base_dir=base_dir,
                                                     reader=reader,
-                                                    reader_kwargs=reader_kwargs)
+                                                    reader_kwargs=reader_kwargs,
+                                                    metadata=metadata)
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
@@ -133,7 +136,8 @@ class Scene(InfoObject):
                                 filenames=None,
                                 base_dir=None,
                                 reader=None,
-                                reader_kwargs=None):
+                                reader_kwargs=None,
+                                metadata=None):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
@@ -143,7 +147,8 @@ class Scene(InfoObject):
         return finder(reader=reader,
                       sensor=self.info.get("sensor"),
                       filenames=filenames,
-                      reader_kwargs=reader_kwargs)
+                      reader_kwargs=reader_kwargs,
+                      metadata=metadata)
 
     @property
     def start_time(self):
@@ -178,8 +183,8 @@ class Scene(InfoObject):
             raise KeyError("No reader '%s' found in scene" % reader_name)
 
         available_datasets = sorted([dataset_id
-                              for reader in readers
-                              for dataset_id in reader.available_dataset_ids])
+                                     for reader in readers
+                                     for dataset_id in reader.available_dataset_ids])
         if composites:
             available_datasets += sorted(self.available_composite_ids(
                 available_datasets))
@@ -229,10 +234,12 @@ class Scene(InfoObject):
                     "'available_datasets' must all be DatasetID objects")
 
         all_comps = self.all_composite_ids()
-        # recreate the dependency tree so it doesn't interfere with the user's wishlist
+        # recreate the dependency tree so it doesn't interfere with the user's
+        # wishlist
         comps, mods = self.cpl.load_compositors(self.info['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
-        unknowns = dep_tree.find_dependencies(set(available_datasets + all_comps))
+        unknowns = dep_tree.find_dependencies(
+            set(available_datasets + all_comps))
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
@@ -252,7 +259,8 @@ class Scene(InfoObject):
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
         for sensor_name in sensor_names:
-            compositors.extend(self.cpl.compositors.get(sensor_name, {}).keys())
+            compositors.extend(
+                self.cpl.compositors.get(sensor_name, {}).keys())
         return sorted(set(compositors))
 
     def all_composite_names(self, sensor_names=None):
@@ -287,6 +295,9 @@ class Scene(InfoObject):
         for area_name, (area_obj, ds_list) in datasets_by_area.items():
             yield area_obj, ds_list
 
+    def keys(self, **kwargs):
+        return self.datasets.keys(**kwargs)
+
     def __getitem__(self, key):
         """Get a dataset."""
         return self.datasets[key]
@@ -296,12 +307,14 @@ class Scene(InfoObject):
         if not isinstance(value, Dataset):
             raise ValueError("Only 'Dataset' objects can be assigned")
         self.datasets[key] = value
-        self.wishlist.add(self.datasets.get_key(key))
+        ds_id = self.datasets.get_key(key)
+        self.wishlist.add(ds_id)
+        self.dep_tree.add_leaf(ds_id)
 
     def __delitem__(self, key):
         """Remove the item from the scene."""
         k = self.datasets.get_key(key)
-        self.wishlist.remove(k)
+        self.wishlist.discard(k)
         del self.datasets[k]
 
     def __contains__(self, name):
@@ -312,6 +325,7 @@ class Scene(InfoObject):
         """Read the given datasets from file."""
         # Sort requested datasets by reader
         reader_datasets = {}
+
         for node in dataset_nodes:
             ds_id = node.name
             if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
@@ -320,7 +334,7 @@ class Scene(InfoObject):
             reader_datasets.setdefault(reader_name, set()).add(ds_id)
 
         # load all datasets for one reader at a time
-        loaded_datasets = {}
+        loaded_datasets = DatasetDict()
         for reader_name, ds_ids in reader_datasets.items():
             reader_instance = self.readers[reader_name]
             new_datasets = reader_instance.load(ds_ids, **kwargs)
@@ -410,11 +424,11 @@ class Scene(InfoObject):
                                    optional_datasets=optional_datasets,
                                    **self.info)
             self.datasets[composite.id] = composite
-            # update the node with the computed DatasetID
-            comp_node.name = composite.id
             if comp_node.name in self.wishlist:
                 self.wishlist.remove(comp_node.name)
                 self.wishlist.add(composite.id)
+            # update the node with the computed DatasetID
+            comp_node.name = composite.id
         except IncompatibleAreas:
             LOG.warning("Delaying generation of %s "
                         "because of incompatible areas",
@@ -437,19 +451,49 @@ class Scene(InfoObject):
         return keepables
 
     def read(self, nodes=None, **kwargs):
+        """Load datasets from the necessary reader.
+
+        Args:
+            nodes (iterable): DependencyTree Node objects
+            **kwargs: Keyword arguments to pass to the reader's `load` method.
+
+        Returns:
+            DatasetDict of loaded datasets
+
+        """
         if nodes is None:
-            nodes = self.dep_tree.leaves()
+            required_nodes = self.wishlist - set(self.datasets.keys())
+            nodes = self.dep_tree.leaves(nodes=required_nodes)
         return self.read_datasets(nodes, **kwargs)
 
     def compute(self, nodes=None):
         """Compute all the composites contained in `requirements`.
         """
         if nodes is None:
-            nodes = self.dep_tree.trunk()
+            required_nodes = self.wishlist - set(self.datasets.keys())
+            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
+                set(self.datasets.keys())
         return self.read_composites(nodes)
 
+    def _remove_failed_datasets(self, keepables):
+        keepables = keepables or set()
+        # remove reader datasets that couldn't be loaded so they aren't
+        # attempted again later
+        for n in self.missing_datasets:
+            if n not in keepables:
+                self.wishlist.discard(n)
+
     def unload(self, keepables=None):
-        """Unload all loaded composites.
+        """Unload all unneeded datasets.
+
+        Datasets are considered unneeded if they weren't directly requested
+        or added to the Scene by the user or they are no longer needed to
+        compute composites that have yet to be computed.
+
+        Args:
+            keepables (iterable): DatasetIDs to keep whether they are needed
+                                  or not.
+
         """
         to_del = [ds_id for ds_id, projectable in self.datasets.items()
                   if ds_id not in self.wishlist and (not keepables or ds_id
@@ -468,12 +512,13 @@ class Scene(InfoObject):
         """Read, compute and unload.
         """
         dataset_keys = set(wishlist)
-        self.wishlist |= dataset_keys
-
-        unknown = self.dep_tree.find_dependencies(self.wishlist,
+        needed_datasets = (self.wishlist | dataset_keys) - \
+            set(self.datasets.keys())
+        unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
                                                   resolution=resolution)
+        self.wishlist |= needed_datasets
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
             raise KeyError("Unknown datasets: {}".format(unknown_str))
@@ -482,8 +527,14 @@ class Scene(InfoObject):
         keepables = None
         if compute:
             keepables = self.compute()
-        missing_str = ", ".join(map(str, self.missing_datasets))
-        LOG.warning("The following datasets were not created: {}".format(missing_str))
+        if self.missing_datasets:
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = self.missing_datasets.copy()
+            self._remove_failed_datasets(keepables)
+            missing_str = ", ".join(str(x) for x in missing)
+            LOG.warning(
+                "The following datasets were not created: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -516,10 +567,17 @@ class Scene(InfoObject):
         # resolutions, etc.)
         keepables = None
         if compute:
-            nodes = [self.dep_tree[i] for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
+            nodes = [self.dep_tree[i]
+                     for i in new_scn.wishlist if not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
-        missing_str = ", ".join(map(str, new_scn.missing_datasets))
-        LOG.warning("The following datasets were not created: {}".format(missing_str))
+        if new_scn.missing_datasets:
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = new_scn.missing_datasets.copy()
+            new_scn._remove_failed_datasets(keepables)
+            missing_str = ", ".join(str(x) for x in missing)
+            LOG.warning(
+                "The following datasets were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 
@@ -540,21 +598,15 @@ class Scene(InfoObject):
                 yield projectable.to_image()
 
     def load_writer_config(self, config_files, **kwargs):
-        conf = configparser.RawConfigParser()
-        successes = conf.read(config_files)
-        if not successes:
-            raise IOError("Writer configuration files do not exist: %s" %
-                          (config_files, ))
-
-        for section_name in conf.sections():
-            if section_name.startswith("writer:"):
-                options = dict(conf.items(section_name))
-                writer_class_name = options["writer"]
-                writer_class = runtime_import(writer_class_name)
-                writer = writer_class(ppp_config_dir=self.ppp_config_dir,
-                                      config_files=config_files,
-                                      **kwargs)
-                return writer
+        conf = {}
+        for conf_fn in config_files:
+            with open(conf_fn) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
+        writer_class = conf['writer']['writer']
+        writer = writer_class(ppp_config_dir=self.ppp_config_dir,
+                              config_files=config_files,
+                              **kwargs)
+        return writer
 
     def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, **kwargs):
         """Save the *dataset_id* to file using *writer* (geotiff by default).
@@ -569,7 +621,7 @@ class Scene(InfoObject):
             writer = self.get_writer(writer, **kwargs)
         writer.save_dataset(self[dataset_id],
                             filename=filename,
-                            overlay=overlay)
+                            overlay=overlay, **kwargs)
 
     def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*.
@@ -582,7 +634,7 @@ class Scene(InfoObject):
         writer.save_datasets(datasets, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
-        config_fn = writer + ".cfg" if "." not in writer else writer
+        config_fn = writer + ".yaml" if "." not in writer else writer
         config_files = config_search_paths(
             os.path.join("writers", config_fn), self.ppp_config_dir)
         kwargs.setdefault("config_files", config_files)

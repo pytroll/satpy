@@ -24,7 +24,7 @@
 
 import os
 import sys
-from behave import *
+from behave import use_step_matcher, given, when, then
 
 if sys.version_info < (3, 0):
     from urllib2 import urlopen
@@ -91,3 +91,27 @@ def step_impl(context):
 @then(u'available datasets is returned')
 def step_impl(context):
     assert (len(context.available_dataset_ids) >= 5)
+
+@given("datasets with the same name")
+def step_impl(context):
+    """Datasets with the same name but different other ID parameters"""
+    from satpy.scene import Scene
+    from satpy.dataset import Dataset, DatasetID
+    scn = Scene()
+    scn[DatasetID('ds1', calibration='radiance')] = Dataset([[1, 2], [3, 4]])
+    scn[DatasetID('ds1', resolution=500, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=250, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=1000, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = Dataset([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))] = Dataset([[5, 6], [7, 8]])
+    context.scene = scn
+
+@when("a dataset is retrieved by name")
+def step_impl(context):
+    """Use the Scene's getitem method to get a dataset"""
+    context.returned_dataset = context.scene['ds1']
+
+@then("the least modified version of the dataset is returned")
+def step_impl(context):
+    """The dataset should be one of the least modified datasets"""
+    assert(len(context.returned_dataset.id.modifiers) == 0)

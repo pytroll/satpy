@@ -1,0 +1,551 @@
+enhancements:
+  default:
+    operations:
+    - name: stretch
+      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      kwargs: {stretch: linear}
+  true_color_default:
+    standard_name: true_color
+    operations:
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
+  true_color_ahi_default:
+    standard_name: true_color_ahi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  true_color_norayleigh_default:
+    standard_name: true_color_norayleigh
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  true_color_reducedsize_default:
+    standard_name: true_color_reducedsize
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  overview_default:
+    standard_name: overview
+    operations:
+    - name: inverse
+      method: &inversefun !!python/name:satpy.enhancements.invert ''
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: &gammafun !!python/name:satpy.enhancements.gamma ''
+      kwargs: {gamma: 1.6}
+  night_overview_default:
+    standard_name: night_overview
+    operations:
+    - name: inverse
+      method: *inversefun
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.6}
+  natural_default:
+    standard_name: natural
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 90}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.8}
+  airmass_default:
+    standard_name: airmass
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-25, -40, 243]
+        max_stretch: [0, 5, 208]
+  green_snow_default:
+    standard_name: green_snow
+    operations:
+    - name: inverse
+      method: *inversefun
+      args:
+      - [false, false, true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: crude}
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.6}
+  convection_default:
+    standard_name: convection
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-30, 0, -70]
+        max_stretch: [0, 55, 20]
+  dust_default:
+    standard_name: dust
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 261]
+        max_stretch: [2, 15, 289]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2.5, 1]
+  ash_default:
+    standard_name: ash
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, -4, 243]
+        max_stretch: [2, 5, 303]
+  fog_default:
+    standard_name: fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 6, 283]
+  night_fog_default:
+    standard_name: night_fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 6, 293]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2, 1]
+  day_microphysics_default:
+    standard_name: day_microphysics
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 203]
+        max_stretch: [100, 60, 323]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 2.5, 1]
+  cloudtop_default:
+    standard_name: cloudtop
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.005, 0.005]
+  reflectance:
+    standard_name: reflectance
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+  sar-ice:
+    standard_name: sar-ice
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.2, 0.02]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 1.2, 1]
+  natural_with_ir_night:
+    standard_name: natural_with_night_fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+
+  cloudtype:
+    standard_name: cloudtype
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloudmask:
+    standard_name: cloudmask
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+
+  cloud_top_height:
+    standard_name: cloud_top_height
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_pressure:
+    standard_name: cloud_top_pressure
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_temperature:
+    standard_name: cloud_top_temperature
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_top_phase:
+    standard_name: cloud_top_phase
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_drop_effective_radius:
+    standard_name: cloud_drop_effective_radius
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_optical_thickness:
+    standard_name: cloud_optical_thickness
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_liquid_water_path:
+    standard_name: cloud_liquid_water_path
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloud_ice_water_path:
+    standard_name: cloud_ice_water_path
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  precipitation_probability:
+    standard_name: precipitation_probability
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convective_rain_rate:
+    standard_name: convective_rain_rate
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convective_precipitation_hourly_accumulation:
+    standard_name: convective_precipitation_hourly_accumulation
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  total_precipitable_water:
+    standard_name: total_precipitable_water
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  showalter_index:
+    standard_name: showalter_index
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  lifted_index:
+    standard_name: lifted_index
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob30:
+    standard_name: convection_initiation_prob30
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob60:
+    standard_name: convection_initiation_prob60
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  convection_initiation_prob90:
+    standard_name: convection_initiation_prob90
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  day_microphysics_ahi:
+    standard_name: day_microphysics_ahi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 203]
+        max_stretch: [100, 70, 323]
+  cloud_phase_distinction_default:
+    standard_name: cloud_phase_distinction
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [280.67, 0, 1]
+        max_stretch: [219.62, 78, 59]
+  water_vapors1_default:
+    standard_name: water_vapors1
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [278.96, 242.67, 261.03]
+        max_stretch: [202.29, 214.66, 245.12]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [10, 5.5, 5.5]
+  water_vapors2_default:
+    standard_name: water_vapors2
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [30, 278.15, 243.9]
+        max_stretch: [-3, 213.15, 208.5]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [3.5, 2.5, 2.5]
+  ncc_default:
+    standard_name: ncc_radiance
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0]
+        max_stretch: [0.075]
+  realistic_colors:
+    standard_name: realistic_colors
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [110, 110, 110]
+      - name: gamma
+        method: *gammafun
+        kwargs:
+          gamma: [1.4, 1.4, 1.2]
+  snow_age_default:
+    standard_name: snow_age
+    operations:
+    - name: snow_age
+      method: !!python/name:satpy.enhancements.lookup
+      kwargs:
+       luts: [[0, 0, 0], [1, 2, 2], [3, 8, 5], [4, 12, 8], [6, 15, 10], [8, 18, 13], [9, 21, 16],
+                         [11, 24, 19], [13, 26, 21], [14, 28, 24], [
+                             16, 30, 27], [18, 32, 30], [19, 34, 32],
+                         [21, 36, 35], [22, 38, 38], [24, 40, 40], [
+                             26, 42, 43], [27, 43, 46], [29, 45, 49],
+                         [31, 47, 51], [32, 49, 54], [34, 50, 57], [
+                             36, 52, 60], [37, 54, 62], [39, 55, 65],
+                         [40, 57, 68], [42, 59, 70], [44, 60, 73], [
+                             45, 62, 76], [47, 64, 79], [49, 66, 81],
+                         [50, 67, 84], [52, 69, 87], [53, 71, 90], [
+                             55, 73, 92], [56, 75, 95], [58, 77, 98],
+                         [59, 79, 100], [61, 81, 103], [62, 83, 106], [
+                             64, 85, 109], [65, 86, 111], [67, 88, 114],
+                         [68, 90, 117], [70, 92, 119], [71, 94, 121], [
+                             73, 96, 124], [74, 98, 126], [76, 100, 129],
+                         [77, 102, 131], [79, 104, 134], [80, 106, 136], [
+                             82, 107, 139], [83, 109, 141], [85, 111, 144],
+                         [86, 113, 146], [88, 115, 149], [89, 117, 151], [
+                             91, 118, 154], [92, 120, 156], [94, 122, 159],
+                         [95, 124, 161], [97, 126, 162], [98, 128, 164], [
+                             100, 129, 166], [101, 131, 168],
+                         [103, 133, 170], [104, 135, 172], [106, 137, 173], [
+                             107, 138, 175], [109, 140, 177],
+                         [110, 142, 179], [112, 144, 181], [113, 145, 183], [
+                             114, 147, 184], [116, 149, 186],
+                         [117, 151, 188], [118, 152, 190], [120, 154, 192], [
+                             121, 156, 193], [123, 158, 194],
+                         [124, 159, 196], [125, 161, 197], [127, 163, 199], [
+                             128, 165, 200], [130, 166, 202],
+                         [131, 168, 203], [132, 170, 205], [134, 172, 206], [
+                             135, 173, 206], [136, 175, 207],
+                         [138, 177, 208], [139, 178, 209], [141, 180, 210], [
+                             142, 182, 211], [143, 184, 212],
+                         [145, 185, 213], [146, 187, 214], [148, 189, 215], [
+                             149, 191, 216], [150, 192, 217],
+                         [152, 194, 218], [153, 196, 219], [154, 198, 220], [
+                             156, 200, 220], [157, 201, 221],
+                         [159, 203, 221], [160, 205, 222], [161, 207, 223], [
+                             162, 209, 223], [163, 210, 224],
+                         [164, 212, 225], [166, 213, 225], [167, 214, 226], [
+                             168, 216, 227], [169, 217, 227],
+                         [171, 218, 228], [173, 220, 228], [174, 221, 228], [
+                             175, 222, 229], [176, 224, 229],
+                         [177, 225, 229], [178, 226, 230], [179, 227, 230], [
+                             181, 228, 230], [182, 229, 231],
+                         [183, 230, 231], [184, 231, 232], [185, 232, 232], [
+                             186, 233, 232], [187, 234, 233],
+                         [188, 235, 233], [190, 236, 233], [191, 237, 234], [
+                             192, 237, 234], [193, 238, 234],
+                         [194, 239, 235], [195, 240, 235], [196, 240, 236], [
+                             196, 241, 236], [197, 242, 236],
+                         [198, 243, 237], [199, 243, 237], [200, 244, 237], [
+                             201, 245, 238], [202, 245, 238],
+                         [203, 245, 238], [204, 246, 239], [205, 246, 239], [
+                             206, 246, 239], [207, 247, 239],
+                         [208, 247, 239], [209, 247, 239], [209, 248, 240], [
+                             210, 248, 240], [210, 248, 240],
+                         [211, 248, 240], [212, 248, 240], [212, 248, 241], [
+                             213, 248, 241], [214, 248, 241],
+                         [215, 248, 241], [216, 248, 241], [217, 248, 242], [
+                             217, 248, 242], [218, 248, 242],
+                         [219, 248, 242], [219, 248, 242], [220, 248, 243], [
+                             221, 248, 243], [221, 249, 243],
+                         [222, 249, 243], [223, 249, 243], [223, 249, 244], [
+                             223, 249, 244], [224, 249, 244],
+                         [224, 249, 244], [225, 249, 245], [225, 249, 245], [
+                             226, 249, 245], [226, 249, 245],
+                         [227, 249, 245], [227, 249, 246], [228, 249, 246], [
+                             228, 250, 246], [229, 250, 246],
+                         [229, 250, 246], [230, 250, 247], [230, 250, 247], [
+                             231, 250, 247], [231, 250, 247],
+                         [232, 250, 247], [233, 250, 248], [233, 250, 248], [
+                             233, 250, 248], [234, 250, 248],
+                         [234, 250, 248], [234, 250, 249], [235, 251, 249], [
+                             235, 251, 249], [235, 251, 249],
+                         [236, 251, 249], [236, 251, 250], [237, 251, 250], [
+                             237, 251, 250], [237, 251, 250],
+                         [238, 251, 250], [238, 251, 250], [238, 251, 250], [
+                             239, 251, 250], [239, 251, 250],
+                         [240, 251, 250], [240, 251, 250], [240, 252, 250], [
+                             241, 252, 250], [241, 252, 251],
+                         [241, 252, 251], [242, 252, 251], [242, 252, 251], [
+                             242, 252, 251], [243, 252, 251],
+                         [243, 252, 251], [244, 252, 251], [244, 252, 251], [
+                             244, 252, 251], [245, 252, 252],
+                         [245, 252, 252], [245, 253, 252], [246, 253, 252], [
+                             246, 253, 252], [247, 253, 252],
+                         [248, 253, 252], [248, 253, 252], [248, 253, 252], [
+                             249, 253, 252], [249, 253, 253],
+                         [249, 253, 253], [250, 253, 253], [250, 253, 253], [
+                             250, 253, 253], [250, 253, 253],
+                         [251, 254, 253], [251, 254, 253], [251, 254, 253], [
+                             252, 254, 253], [252, 254, 254],
+                         [252, 254, 254], [253, 254, 254], [253, 254, 254], [
+                             253, 254, 254], [253, 254, 254],
+                         [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
+  night_microphysics_default:
+    standard_name: night_microphysics
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-4, 0, 243]
+        max_stretch: [2, 10, 293]
+  ir_overview_default:
+    standard_name: ir_overview
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: histogram
+

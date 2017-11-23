@@ -22,20 +22,16 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Helpers for reading netcdf-based files.
+"""Helpers for reading hdf5-based files.
 
 """
 import logging
-from datetime import datetime, timedelta
-
 import h5py
 import numpy as np
 import six
 
 from satpy.readers.file_handlers import BaseFileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 
@@ -67,6 +63,7 @@ class HDF5FileHandler(BaseFileHandler):
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
             self.file_content[name] = obj
+            self.file_content[name + "/dtype"] = obj.dtype
             self.file_content[name + "/shape"] = obj.shape
         self._collect_attrs(name, obj.attrs)
 

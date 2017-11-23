@@ -21,10 +21,7 @@
 """The abi_l1b reader tests package.
 """
 
-import os
 import sys
-
-import mock
 import numpy as np
 
 from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -33,6 +30,11 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
@@ -136,7 +138,7 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
                       'semi_minor_axis': np.array(1.),
                       'perspective_point_height': np.array(1.),
                       'longitude_of_projection_origin': np.array(-90.),
-                      'sweep_angle_axis': ['x']
+                      'sweep_angle_axis': b'x'
                       }
         x__ = mock.MagicMock()
         x__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}

@@ -41,10 +41,6 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
-
-class CalibrationError(Exception):
-    pass
-
 logger = logging.getLogger('hrit_msg')
 
 
@@ -214,8 +210,10 @@ celestial_events = np.dtype([('CelestialBodiesPosition',
                                ('PeriodEndTime', time_cds_short),
                                ('RelatedOrbitFileTime', '|S15'),
                                ('RelatedAttitudeFileTime', '|S15'),
-                               ('EarthEphemeris', earth_moon_sun_coeff, (100, )),
-                               ('MoonEphemeris', earth_moon_sun_coeff, (100, )),
+                               ('EarthEphemeris',
+                                earth_moon_sun_coeff, (100, )),
+                               ('MoonEphemeris',
+                                earth_moon_sun_coeff, (100, )),
                                ('SunEphemeris', earth_moon_sun_coeff, (100, )),
                                ('StarEphemeris', star_coeff, (100, 20))]),
                              ('RelationToImage',
@@ -279,7 +277,8 @@ impf_cal_data = np.dtype([("ImageQualityFlag", "u1"),
 radiometric_processing = np.dtype([('RPSummary',
                                     [('RadianceLinearization', 'bool', (12, )),
                                      ('DetectorEqualization', 'bool', (12, )),
-                                     ('OnboardCalibrationResult', 'bool', (12, )),
+                                     ('OnboardCalibrationResult',
+                                      'bool', (12, )),
                                      ('MPEFCalFeedback', 'bool', (12, )),
                                      ('MTFAdaptation', 'bool', (12, )),
                                      ('StraylightCorrectionFlag', 'bool', (12, ))]),
@@ -296,7 +295,8 @@ radiometric_processing = np.dtype([('RPSummary',
                                        ('PUGain', '>u2', (42, )),
                                        ('PUOffset', '>u2', (27, )),
                                        ('PUBias', '>u2', (15, )),
-                                       ('DCRValues', 'u1', (63, )),  # 42x12bits
+                                       # 42x12bits
+                                       ('DCRValues', 'u1', (63, )),
                                        ('X_DeepSpaceWindowPosition', 'u1'),
                                        ('ColdFPTemperature',
                                         [('FCUNominalColdFocalPlaneTemp', '>u2'),
@@ -306,17 +306,25 @@ radiometric_processing = np.dtype([('RPSummary',
                                          ('FCURedundantWarmFocalPlaneVHROTemp', '>u2')]),
                                        ('ScanMirrorTemperature',
                                         [('FCUNominalScanMirrorSensor1Temp', '>u2'),
-                                         ('FCURedundantScanMirrorSensor1Temp', '>u2'),
-                                         ('FCUNominalScanMirrorSensor2Temp', '>u2'),
+                                         ('FCURedundantScanMirrorSensor1Temp',
+                                          '>u2'),
+                                         ('FCUNominalScanMirrorSensor2Temp',
+                                          '>u2'),
                                          ('FCURedundantScanMirrorSensor2Temp', '>u2')]),
                                        ('M1M2M3Temperature',
                                         [('FCUNominalM1MirrorSensor1Temp', '>u2'),
-                                         ('FCURedundantM1MirrorSensor1Temp', '>u2'),
-                                         ('FCUNominalM1MirrorSensor2Temp', '>u2'),
-                                         ('FCURedundantM1MirrorSensor2Temp', '>u2'),
-                                         ('FCUNominalM23AssemblySensor1Temp', '>u1'),
-                                         ('FCURedundantM23AssemblySensor1Temp', '>u1'),
-                                         ('FCUNominalM23AssemblySensor2Temp', '>u1'),
+                                         ('FCURedundantM1MirrorSensor1Temp',
+                                          '>u2'),
+                                         ('FCUNominalM1MirrorSensor2Temp',
+                                          '>u2'),
+                                         ('FCURedundantM1MirrorSensor2Temp',
+                                          '>u2'),
+                                         ('FCUNominalM23AssemblySensor1Temp',
+                                          '>u1'),
+                                         ('FCURedundantM23AssemblySensor1Temp',
+                                          '>u1'),
+                                         ('FCUNominalM23AssemblySensor2Temp',
+                                          '>u1'),
                                          ('FCURedundantM23AssemblySensor2Temp', '>u1')]),
                                        ('BaffleTemperature',
                                         [('FCUNominalM1BaffleTemp', '>u2'),
@@ -339,7 +347,8 @@ radiometric_processing = np.dtype([('RPSummary',
                                    ('RadTransform', '>f4', (42, 64)),
                                    ('RadProcMTFAdaptation',
                                     [('VIS_IRMTFCorrectionE_W', '>f4', (33, 16)),
-                                     ('VIS_IRMTFCorrectionN_S', '>f4', (33, 16)),
+                                     ('VIS_IRMTFCorrectionN_S',
+                                      '>f4', (33, 16)),
                                      ('HRVMTFCorrectionE_W', '>f4', (9, 16)),
                                      ('HRVMTFCorrectionN_S', '>f4', (9, 16)),
                                      ('StraylightCorrection', '>f4', (12, 8, 8))])])
@@ -454,6 +463,12 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
 
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
+
     def read_prologue(self):
         """Read the prologue metadata."""
         with open(self.filename, "rb") as fp_:
@@ -485,7 +500,8 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         pacqtime['TrueRepeatCycleStart'] = start
         pacqtime['PlannedForwardScanEnd'] = psend
-        pacqtime['TrueRepeatCycleStart'] = prend
+        pacqtime['PlannedRepeatCycleEnd'] = prend
+
 
 image_production_stats = np.dtype([('SatelliteId', '>u2'),
                                    ('ActualScanningSummary',
@@ -504,20 +520,24 @@ image_production_stats = np.dtype([('SatelliteId', '>u2'),
                                         ('IncorrectTemperature', 'bool'),
                                         ('InvalidBBData', 'bool'),
                                         ('InvalidAuxOrHKTMData', 'bool'),
-                                        ('RefocusingMechanismActuated', 'bool'),
+                                        ('RefocusingMechanismActuated',
+                                         'bool'),
                                         ('MirrorBackToReferencePos', 'bool')]),
                                    ('ReceptionSummaryStats',
                                     [('PlannedNumberOfL10Lines', '>u4', (12, )),
-                                     ('NumberOfMissingL10Lines', '>u4', (12, )),
-                                        ('NumberOfCorruptedL10Lines', '>u4', (12, )),
+                                     ('NumberOfMissingL10Lines',
+                                      '>u4', (12, )),
+                                        ('NumberOfCorruptedL10Lines',
+                                         '>u4', (12, )),
                                         ('NumberOfReplacedL10Lines', '>u4', (12, ))]),
                                    ('L15ImageValidity',
                                     [('NominalImage', 'bool'),
                                      ('NonNominalBecauseIncomplete', 'bool'),
-                                        ('NonNominalRadiometricQuality', 'bool'),
+                                        ('NonNominalRadiometricQuality',
+                                         'bool'),
                                         ('NonNominalGeometricQuality', 'bool'),
                                         ('NonNominalTimeliness', 'bool'),
-                                        ('IncompleteL15', 'bool')]),
+                                        ('IncompleteL15', 'bool')], (12, )),
                                    ('ActualL15CoverageVIS_IR',
                                     [('SouthernLineActual', '>i4'),
                                      ('NorthernLineActual', '>i4'),
@@ -553,6 +573,12 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         self.epilogue = {}
         self.read_epilogue()
 
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
+
     def read_epilogue(self):
         """Read the prologue metadata."""
         tic = datetime.now()
@@ -581,8 +607,8 @@ VIS006_F = 20.76
 VIS008_F = 23.30
 IR_016_F = 19.73
 
-SATNUM = {321: "08",
-          322: "09",
+SATNUM = {321: "8",
+          322: "9",
           323: "10",
           324: "11"}
 
@@ -773,9 +799,16 @@ class HRITMSGFileHandler(HRITFileHandler):
         ssp = self.prologue['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
         self.mda['projection_parameters']['SSP_longitude'] = ssp
+        self.mda['projection_parameters']['SSP_latitude'] = 0.0
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda['platform_name'] = self.platform_name
+        service = filename_info['service']
+        if service == '':
+            self.mda['service'] = '0DEG'
+        else:
+            self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
@@ -824,13 +857,90 @@ class HRITMSGFileHandler(HRITFileHandler):
         aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
-        if self.start_time < datetime(2037, 1, 24):
+        if (self.prologue['GeometricProcessing']['EarthModel']['TypeOfEarthModel'] < 2):
             xadj = 1500
             yadj = 1500
             aex = (aex[0] + xadj, aex[1] + yadj,
                    aex[2] + xadj, aex[3] + yadj)
 
         return aex
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        if dsid.name != 'HRV':
+            return super(HRITMSGFileHandler, self).get_area_def(dsid)
+
+        cfac = np.int32(self.mda['cfac'])
+        lfac = np.int32(self.mda['lfac'])
+        coff = np.float32(self.mda['coff'])
+        loff = np.float32(self.mda['loff'])
+
+        a = self.mda['projection_parameters']['a']
+        b = self.mda['projection_parameters']['b']
+        h = self.mda['projection_parameters']['h']
+        lon_0 = self.mda['projection_parameters']['SSP_longitude']
+
+        nlines = int(self.mda['number_of_lines'])
+        ncols = int(self.mda['number_of_columns'])
+
+        segment_number = self.mda['segment_sequence_number']
+        total_segments = (self.mda['planned_end_segment_number'] -
+                          self.mda['planned_start_segment_number'] + 1)
+
+        current_first_line = (segment_number -
+                              self.mda['planned_start_segment_number']) * nlines
+        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+
+        upper_south_line = bounds[
+            'LowerNorthLineActual'] - current_first_line - 1
+        upper_south_line = min(max(upper_south_line, 0), nlines)
+        lower_slice = slice(0, upper_south_line)
+        upper_slice = slice(upper_south_line, nlines)
+
+        lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
+        upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
+
+        lower_area_extent = self.get_area_extent((upper_south_line, ncols),
+                                                 (loff, lower_coff),
+                                                 (lfac, cfac),
+                                                 h)
+
+        upper_area_extent = self.get_area_extent((nlines - upper_south_line,
+                                                  ncols),
+                                                 (loff - upper_south_line,
+                                                  upper_coff),
+                                                 (lfac, cfac),
+                                                 h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        lower_area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            upper_south_line,
+            lower_area_extent)
+
+        upper_area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            nlines - upper_south_line,
+            upper_area_extent)
+
+        area = geometry.StackedAreaDefinition(lower_area, upper_area)
+
+        self.area = area.squeeze()
+        return area
 
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
@@ -840,10 +950,17 @@ class HRITMSGFileHandler(HRITFileHandler):
             out = res
 
         self.calibrate(out, key.calibration)
+
         out.info['units'] = info['units']
+        out.info['wavelength'] = info['wavelength']
         out.info['standard_name'] = info['standard_name']
         out.info['platform_name'] = self.platform_name
         out.info['sensor'] = 'seviri'
+        out.info['satellite_longitude'] = self.mda[
+            'projection_parameters']['SSP_longitude']
+        out.info['satellite_latitude'] = self.mda[
+            'projection_parameters']['SSP_latitude']
+        out.info['satellite_altitude'] = self.mda['projection_parameters']['h']
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""

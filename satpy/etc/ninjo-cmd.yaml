@@ -1,0 +1,9 @@
+# sample config file holding NinJo Tiff metadata
+# to be passed to the convert_to_ninjotif.py script
+# as an alternative to the command line input
+chan_id : 662626
+sat_id : 1622
+data_cat : GPRN
+data_src : EUMETCAST
+area : nrEURO1km_NPOL_COALeqc
+ph_unit : CELSIUS

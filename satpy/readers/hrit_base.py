@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
 
 # Author(s):
 
@@ -32,10 +32,6 @@ import numpy as np
 from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
-
-
-class CalibrationError(Exception):
-    pass
 
 logger = logging.getLogger('hrit_base')
 
@@ -146,17 +142,17 @@ class HRITFileHandler(BaseFileHandler):
                 hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
-                    field_length = (
-                        hdr_id['record_length'] - 3) / the_type.itemsize
+                    field_length = int((hdr_id['record_length'] - 3) /
+                                       the_type.itemsize)
                     current_hdr = np.fromfile(fp,
                                               dtype=the_type,
                                               count=field_length)
                     self.mda[variable_length_headers[
                         the_type]] = current_hdr
                 elif the_type in text_headers:
-                    field_length = (
-                        hdr_id['record_length'] - 3) / the_type.itemsize
-                    char = the_type.fields.values()[0][0].char
+                    field_length = int((hdr_id['record_length'] - 3) /
+                                       the_type.itemsize)
+                    char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
                     current_hdr = np.fromfile(fp,
                                               dtype=new_type,
@@ -172,13 +168,7 @@ class HRITFileHandler(BaseFileHandler):
                 total_header_length = self.mda['total_header_length']
 
             self._start_time = filename_info['start_time']
-            try:
-                self.mda['timestamp'] = make_time_cds_short(
-                    self.mda['timestamp'])
-
-                self._end_time = self.mda['timestamp']
-            except KeyError:
-                self._end_time = self._start_time + timedelta(minutes=15)
+            self._end_time = self._start_time + timedelta(minutes=15)
 
             self.mda.setdefault('number_of_bits_per_pixel', 10)
 
@@ -242,7 +232,7 @@ class HRITFileHandler(BaseFileHandler):
                 np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
     def get_area_def(self, dsid):
-
+        """Get the area definition of the band."""
         cfac = np.int32(self.mda['cfac'])
         lfac = np.int32(self.mda['lfac'])
         coff = np.float32(self.mda['coff'])
@@ -289,6 +279,7 @@ class HRITFileHandler(BaseFileHandler):
         """Read the data"""
         # TODO slicing !
         tic = datetime.now()
+
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             if self.mda['number_of_bits_per_pixel'] == 10:
@@ -299,7 +290,11 @@ class HRITFileHandler(BaseFileHandler):
             elif self.mda['number_of_bits_per_pixel'] == 16:
                 data = np.fromfile(fp_, dtype='>u2', count=int(np.ceil(
                     self.mda['data_field_length'] / 8.)))
-
+                out.data[:] = data.reshape((self.mda['number_of_lines'],
+                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
+            elif self.mda['number_of_bits_per_pixel'] == 8:
+                data = np.fromfile(fp_, dtype='>u1', count=int(np.ceil(
+                    self.mda['data_field_length'] / 8.)))
                 out.data[:] = data.reshape((self.mda['number_of_lines'],
                                             self.mda['number_of_columns']))[yslice, xslice] * 1.0
             out.mask[:] = out.data == 0

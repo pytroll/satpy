@@ -1,0 +1,153 @@
+reader:
+  description: NetCDF4 reader for the NWCSAF/PPS 2014 format
+  name: nc_nwcsaf
+  sensors: ['avhrr-3', 'viirs', 'modis']
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    nc_nwcsaf_cma:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_ct:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_ctth:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CTTH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_pc:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_PC_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+    nc_nwcsaf_cpp:
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
+        file_patterns: ['S_NWC_CPP_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+
+
+
+datasets:
+
+  lon:
+    name: lon
+    file_type: nc_nwcsaf_cma
+    units: "degrees"
+    standard_name: longitude
+  lat:
+    name: lat
+    file_type: nc_nwcsaf_cma
+    units: "degrees"
+    standard_name: latitude
+
+# ---- CMA products ------------
+
+  cma:
+    name: cma
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+
+  cma_pal:
+    name: cma_pal
+    file_type: nc_nwcsaf_cma
+
+  cma_extended:
+    name: cma_extended
+    file_type: nc_nwcsaf_cma
+    coordinates: [lon, lat]
+
+  cma_extended_pal:
+    name: cma_extended_pal
+    file_type: nc_nwcsaf_cma
+
+# ---- CT products ------------
+
+  ct:
+    name: ct
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+
+  ct_pal:
+    name: ct_pal
+    file_type: nc_nwcsaf_ct
+
+# ---- PC products ------------
+
+  pc_conditions:
+    name: pc_conditions
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+  pc_precip_intense:
+    name: pc_precip_intense
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+  pc_precip_moderate:
+    name: pc_precip_moderate
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+  pc_precip_light:
+    name: pc_precip_light
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+  pc_status_flag:
+    name: pc_status_flag
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+  pc_quality:
+    name: pc_quality
+    file_type: nc_nwcsaf_pc
+    coordinates: [lon, lat]
+
+# ---- CTTH products ------------
+
+  ctth_alti:
+    name: ctth_alti
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_alti_pal:
+    name: ctth_alti_pal
+    file_type: nc_nwcsaf_ctth
+
+  ctth_pres:
+    name: ctth_pres
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_pres_pal:
+    name: ctth_pres_pal
+    file_type: nc_nwcsaf_ctth
+
+  ctth_tempe:
+    name: ctth_tempe
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_tempe_pal:
+    name: ctth_tempe_pal
+    file_type: nc_nwcsaf_ctth
+
+
+# ---- CPP products ------------
+
+  cpp_phase:
+    name: cpp_phase
+    file_type: nc_nwcsaf_cpp
+
+  cmic_phase_pal:
+    name: cpp_phase_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_reff:
+    name: cpp_reff
+    file_type: nc_nwcsaf_cpp
+
+  cpp_reff_pal:
+    name: cpp_reff_pal
+    file_type: nc_nwcsaf_cpp

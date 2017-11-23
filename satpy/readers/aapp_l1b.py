@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013, 2014, 2015, 2016
+# Copyright (c) 2012, 2013, 2014, 2015, 2016, 2017
 
 # Author(s):
 
@@ -40,7 +40,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from pyresample.geometry import SwathDefinition
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 

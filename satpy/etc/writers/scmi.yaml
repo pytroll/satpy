@@ -1,0 +1,533 @@
+# Originally converted from the CSPP Polar2Grid SCMI Writer
+# Some datasets are named differently and have not been converted to
+# SatPy-style naming yet. These config entries are commented out.
+writer:
+  name: scmi
+  description: AWIPS-compatible Tiled NetCDF4 Writer
+  writer: !!python/name:satpy.writers.scmi.SCMIWriter
+  file_pattern: '{source_name}_AII_{platform}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+  compress: True
+sectors:
+  LCC:
+    lower_left_lonlat: [-135, 20]
+    upper_right_lonlat: [-60, 60]
+    resolution: [1300000, 1300000]  # y, x
+    projection: '+proj=lcc +datum=WGS84 +ellps=WGS84 +lat_0=25 +lat_1=25 +lon_0=-95 +units=m +no_defs'
+  Polar:
+    lower_left_lonlat: [-180, 33]
+    upper_right_lonlat: [-40.5, 78]
+    resolution: [1400000, 1400000]
+    projection: '+proj=stere +datum=WGS84 +ellps=WGS84 +lat_0=90 +lat_ts=60.0 +lon_0=-150 +units=m'
+  Mercator:
+    lower_left_lonlat: [-135, 0]
+    upper_right_lonlat: [-30, 50]
+    resolution: [2150000, 2150000]
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=-95 +lat_0=0 +units=m +no_defs'
+  Pacific:
+    lower_left_lonlat: [120, 0]
+    upper_right_lonlat: [-135, 50]
+    resolution: [2150000, 2150000]
+    projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=170 +lat_0=0 +units=m +no_defs'
+  GOESR_FLDK:
+    lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
+    upper_right_xy: [5433893.2095645051, 5433892.6923244298]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-89.5 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+datasets:
+    default:
+       physical_element: '{name}'
+
+    # ACSPO Products
+    acspo_sst:
+      reader: acspo
+      name: sst
+      physical_element: ACSPO SST
+
+    # CLAVR-x Products
+    default_clavrx:
+      reader: clavrx
+      physical_element: 'CLAVR-x {name}'
+    clavrx_cloud_type:
+      reader: clavrx
+      name: cloud_type
+      physical_element: CLAVR-x Cloud Type
+    clavrx_cld_temp_acha:
+      reader: clavrx
+      name: cld_temp_acha
+      physical_element: CLAVR-x Cloud Top Temperature (ACHA)
+    clavrx_cld_height_acha:
+      reader: clavrx
+      name: cld_height_acha
+      physical_element: CLAVR-x Cloud Top Height (ACHA)
+    clavrx_cloud_phase:
+      reader: clavrx
+      name: cloud_phase
+      physical_element: CLAVR-x Cloud Phase
+    clavrx_cld_opd_dcomp:
+      reader: clavrx
+      name: cld_opd_dcomp
+      physical_element: CLAVR-x Cloud Optical Depth (dcomp)
+    clavrx_clld_opd_nlcomp:
+      reader: clavrx
+      name: cloud_opd_nlcomp
+      physical_element: CLAVR-x Cloud Optical Depth (nlcomp)
+    clavrx_cld_reff_dcomp:
+      reader: clavrx
+      name: cld_reff_dcomp
+      physical_element: CLAVR-x Cloud Effective Radius (dcomp)
+    clavrx_cld_reff_nlcomp:
+      reader: clavrx
+      name: cld_reff_nlcomp
+      physical_element: CLAVR-x Cloud Effective Radius (nlcomp)
+    clavrx_cld_emiss_acha:
+      reader: clavrx
+      name: cld_emiss_acha
+      physical_element: CLAVR-x Cloud Emissivity (ACHA)
+    clavrx_refl_lunar_dnb_nom:
+      reader: clavrx
+      name: refl_lunar_dnb_nom
+      physical_element: CLAVR-x Cloud Lunar Reflectance
+    clavrx_rain_rate:
+      reader: clavrx
+      name: rain_rate
+      physical_element: CLAVR-x Rain Rate
+
+    # AVHRR L1B products
+    avhrr_band1_vis:
+      name: band1_vis
+      physical_element: 0.63 um
+    avhrr_band2_vis:
+      name: band2_vis
+      physical_element: 0.86 um
+    avhrr_band3a_vis:
+      name: band3a_vis
+      physical_element: 1.61 um
+    avhrr_band3b_bt:
+      name: band3b_bt
+      physical_element: 3.74 um
+    avhrr_band4_bt:
+      name: band4_bt
+      physical_element: 10.8 um
+    avhrr_band5_bt:
+      name: band5_bt
+      physical_element: 12.0 um
+
+    # VIIRS SDRs
+    viirs_i01:
+      name: I01
+      physical_element: 0.64 um
+    viirs_i02:
+      name: I02
+      physical_element: 0.86 um
+    viirs_i03:
+      name: I03
+      physical_element: 1.61 um
+    viirs_i04:
+      name: I04
+      physical_element: 3.74 um
+    viirs_i05:
+      name: I05
+      physical_element: 11.5 um
+    viirs_histogram_dnb:
+      name: histogram_dnb
+      physical_element: Histogram DNB
+    viirs_adaptive_dnb:
+      name: adaptive_dnb
+      physical_element: Adaptive DNB
+    viirs_dynamic_dnb:
+      name: dynamic_dnb
+      physical_element: Dynamic DNB
+    viirs_hncc_dnb:
+      name: hncc_dnb
+      physical_element: HNCC DNB
+    viirs_ifog:
+      name: ssec_fog
+      physical_element: Fog
+    viirs_m01:
+      name: M01
+      physical_element: 0.41 um
+    viirs_m02:
+      name: M02
+      physical_element: 0.45 um
+    viirs_m03:
+      name: M03
+      physical_element: 0.49 um
+    viirs_m04:
+      name: M04
+      physical_element: 0.56 um
+    viirs_m05:
+      name: M05
+      physical_element: 0.67 um
+    viirs_m06:
+      name: M06
+      physical_element: 0.75 um
+    viirs_m07:
+      name: M07
+      physical_element: 0.86 um
+    viirs_m08:
+      name: M08
+      physical_element: 1.24 um
+    viirs_m09:
+      name: M09
+      physical_element: 1.38 um
+    viirs_m10:
+      name: M10
+      physical_element: 1.61 um
+    viirs_m11:
+      name: M11
+      physical_element: 2.25 um
+    viirs_m12:
+      name: M12
+      physical_element: 3.70 um
+    viirs_m13:
+      name: M13
+      physical_element: 4.05 um
+    viirs_m14:
+      name: M14
+      physical_element: 8.6 um
+    viirs_m15:
+      name: M15
+      physical_element: 10.8 um
+    viirs_m16:
+      name: M16
+      physical_element: 12.0 um
+
+    # VIIRS Corrected Reflectance
+#    viirs_viirs_crefl01:
+#      name: viirs_crefl01
+#      physical_element: 0.67 um CR
+#    viirs_viirs_crefl02:
+#      name: viirs_crefl02
+#      physical_element: 0.87 um CR
+#    viirs_viirs_crefl03:
+#      name: viirs_crefl03
+#      physical_element: 0.49 um CR
+#    viirs_viirs_crefl04:
+#      name: viirs_crefl04
+#      physical_element: 0.56 um CR
+#    viirs_viirs_crefl05:
+#      name: viirs_crefl05
+#      physical_element: 1.24 um CR
+#    viirs_viirs_crefl06:
+#      name: viirs_crefl06
+#      physical_element: 1.61 um CR
+#    viirs_crefl07:
+#      name: viirs_crefl07
+#      physical_element: 2.25 um CR
+#    viirs_crefl08:
+#      name: viirs_crefl08
+#      physical_element: 0.64 um CR
+#    viirs_crefl09:
+#      name: viirs_crefl09
+#      physical_element: 0.87 um CR
+#    viirs_crefl10:
+#      name: viirs_crefl10
+#      physical_element: 1.61 um CR
+
+    # MODIS L1B Products
+#    modis_vis01:
+#      name: vis01
+#      physical_element: 0.65 um
+#    modis_vis02:
+#      name: vis02
+#      physical_element: 0.86 um
+#    modis_vis03:
+#      name: vis03
+#      physical_element: 0.47 um
+#    modis_vis04:
+#      name: vis04
+#      physical_element: 0.56 um
+#    modis_vis05:
+#      name: vis05
+#      physical_element: 1.24 um
+#    modis_vis06:
+#      name: vis06
+#      physical_element: 1.64 um
+#    modis_vis07:
+#      name: vis07
+#      physical_element: 2.13 um
+#    modis_vis26:
+#      name: vis26
+#      physical_element: 1.38 um
+#    modis_bt20:
+#      name: bt20
+#      physical_element: 3.75 um
+#    modis_bt21:
+#      name: bt21
+#      physical_element: Fire
+#    modis_bt22:
+#      name: bt22
+#      physical_element: 3.96 um
+#    modis_bt23:
+#      name: bt23
+#      physical_element: 4.05 um
+#    modis_bt24:
+#      name: bt24
+#      physical_element: 4.47 um
+#    modis_bt25:
+#      name: bt25
+#      physical_element: 4.52 um
+#    modis_bt27:
+#      name: bt27
+#      physical_element: 6.7 um
+#    modis_bt28:
+#      name: bt28
+#      physical_element: 7.3 um
+#    modis_bt29:
+#      name: bt29
+#      physical_element: 8.6 um
+#    modis_bt30:
+#      name: bt30
+#      physical_element: 9.7 um
+#    modis_bt31:
+#      name: bt31
+#      physical_element: 11.0 um
+#    modis_bt32:
+#      name: bt32
+#      physical_element: 12.0 um
+#    modis_bt33:
+#      name: bt33
+#      physical_element: 13.3 um
+#    modis_bt34:
+#      name: bt34
+#      physical_element: 13.6 um
+#    modis_bt35:
+#      name: bt35
+#      physical_element: 13.9 um
+#    modis_bt36:
+#      name: bt36
+#      physical_element: 14.2 um
+#    modis_sst:
+#      name: sst
+#      physical_element: SST
+#    modis_lst:
+#      name: lst
+#      physical_element: LST
+#    modis_slst:
+#      name: slst
+#      physical_element: LSTSUM
+#    modis_fog:
+#      name: ssec_fog
+#      physical_element: Fog
+#    modis_ctt:
+#      name: ctt
+#      physical_element: CTT
+#    modis_ndvi:
+#      name: ndvi
+#      physical_element: NDVI
+#    modis_tpw:
+#      name: tpw
+#      physical_element: TPW
+#    modis_ice_concentration:
+#      name: ice_concentration
+#      physical_element: Ice Concentration
+#    modis_ist:
+#      name: ist
+#      physical_element: Ice Surface Temperature
+
+    # MODIS L1B Corrected Reflectances
+#    modis_crefl01_250m:
+#      name: modis_crefl01_250m
+#      physical_element: 0.65 um CR
+#    modis_crefl01_500m:
+#      name: modis_crefl01_250m
+#      physical_element: 0.65 um CR
+#    modis_crefl01_1000m:
+#      name: modis_crefl01_1000m
+#      physical_element: 0.65 um CR
+#    modis_crefl02_250m:
+#      name: modis_crefl02_250m
+#      physical_element: 0.86 um CR
+#    modis_crefl02_500m:
+#      name: modis_crefl02_500m
+#      physical_element: 0.86 um CR
+#    modis_crefl02_1000m:
+#      name: modis_crefl02_1000m
+#      physical_element: 0.86 um CR
+#    modis_crefl03_250m:
+#      name: modis_crefl03_250m
+#      physical_element: 0.47 um CR
+#    modis_crefl03_500m:
+#      name: modis_crefl03_500m
+#      physical_element: 0.47 um CR
+#    modis_crefl03_1000m:
+#      name: modis_crefl03_1000m
+#      physical_element: 0.47 um CR
+#    modis_crefl04_250m:
+#      name: modis_crefl04_250m
+#      physical_element: 0.56 um CR
+#    modis_crefl04_500m:
+#      name: modis_crefl04_500m
+#      physical_element: 0.56 um CR
+#    modis_crefl04_1000m:
+#      name: modis_crefl04_1000m
+#      physical_element: 0.56 um CR
+#    modis_crefl05_500m:
+#      name: modis_crefl05_500m
+#      physical_element: 1.24 um CR
+#    modis_crefl05_1000m:
+#      name: modis_crefl05_1000m
+#      physical_element: 1.24 um CR
+#    modis_crefl06_500m:
+#      name: modis_crefl06_500m
+#      physical_element: 1.64 um CR
+#    modis_crefl06_1000m:
+#      name: modis_crefl06_1000m
+#      physical_element: 1.64 um CR
+#    modis_crefl07_500m:
+#      name: modis_crefl07_500m
+#      physical_element: 2.13 um CR
+#    modis_crefl07_1000m:
+#      name: modis_crefl07_1000m
+#      physical_element: 2.13 um CR
+
+    # MIRS Products
+#    mirs_btemp_23v:
+#      name: btemp_23v
+#      physical_element: MIRS 23 GHZ V
+#    mirs_btemp_31v:
+#      name: btemp_31v
+#      physical_element: MIRS 31 GHZ V
+#    mirs_btemp_50h:
+#      name: btemp_50h
+#      physical_element: MIRS 50 GHZ H
+#    mirs_btemp_51h:
+#      name: btemp_51h
+#      physical_element: MIRS 51 GHZ H
+#    mirs_btemp_52h:
+#      name: btemp_52h
+#      physical_element: MIRS 52 GHZ H
+#    mirs_btemp_53h:
+#      name: btemp_53h
+#      physical_element: MIRS 53 GHZ H
+#    mirs_btemp_54h1:
+#      name: btemp_54h1
+#      physical_element: MIRS 54 GHZ H-1
+#    mirs_btemp_54h2:
+#      name: btemp_54h2
+#      physical_element: MIRS 54 GHZ H-2
+#    mirs_btemp_55h:
+#      name: btemp_55h
+#      physical_element: MIRS 55 GHZ H
+#    mirs_btemp_57h1:
+#      name: btemp_57h1
+#      physical_element: MIRS 57 GHZ H-1
+#    mirs_btemp_57h2:
+#      name: btemp_57h2
+#      physical_element: MIRS 57 GHZ H-2
+#    mirs_btemp_57h3:
+#      name: btemp_57h3
+#      physical_element: MIRS 57 GHZ H-3
+#    mirs_btemp_57h4:
+#      name: btemp_57h4
+#      physical_element: MIRS 57 GHZ H-4
+#    mirs_btemp_57h5:
+#      name: btemp_57h5
+#      physical_element: MIRS 57 GHZ H-5
+#    mirs_btemp_57h6:
+#      name: btemp_57h6
+#      physical_element: MIRS 57 GHZ H-6
+#    mirs_btemp_88v:
+#      name: btemp_88v
+#      physical_element: MIRS 88 GHZ V
+#    mirs_btemp_165h:
+#      name: btemp_165h
+#      physical_element: MIRS 165 GHZ H
+#    mirs_btemp_183h1:
+#      name: btemp_183h1
+#      physical_element: MIRS 183 GHZ H-1
+#    mirs_btemp_183h2:
+#      name: btemp_183h2
+#      physical_element: MIRS 183 GHZ H-2
+#    mirs_btemp_183h3:
+#      name: btemp_183h3
+#      physical_element: MIRS 183 GHZ H-3
+#    mirs_btemp_183h4:
+#      name: btemp_183h4
+#      physical_element: MIRS 183 GHZ H-4
+#    mirs_btemp_183h5:
+#      name: btemp_183h5
+#      physical_element: MIRS 183 GHZ H-5
+    # MIRS BTs - NOAA-18 - AMSU-A MHS
+    # MIRS BTs - NOAA-19 - AMSU-A MHS
+    # MIRS BTs - M1 (metopb) - AMSU-A MHS
+    # MIRS BTs - M2 (metopa) - AMSU-A MHS
+#    mirs_btemp_50v:
+#      name: btemp_50v
+#      physical_element: MIRS 50 GHZ V
+#    mirs_btemp_52v:
+#      name: btemp_52v
+#      physical_element: MIRS 52 GHZ V
+#    mirs_btemp_54h:
+#      name: btemp_54h
+#      physical_element: MIRS 54 GHZ H
+#    mirs_btemp_54v:
+#      name: btemp_54v
+#      physical_element: MIRS 54 GHZ V
+#    mirs_btemp_89v1:
+#      name: btemp_89v1
+#      physical_element: MIRS 89 GHZ V-1
+#    mirs_btemp_89v2:
+#      name: btemp_89v2
+#      physical_element: MIRS 89 GHZ V-2
+    # 157h on OPSO NOAA site
+#    mirs_btemp_157v:
+#      name: btemp_157v
+#      physical_element: MIRS 157 GHZ V
+#    mirs_btemp_190v:
+#      name: btemp_190v
+#      physical_element: MIRS 190 GHZ V
+#    mirs_rain_rate:
+#      reader: mirs
+#      name: rain_rate
+#      physical_element: MIRS Rain Rate
+#    mirs_snow_cover:
+#      reader: mirs
+#      name: snow_cover
+#      physical_element: MIRS Snow Cover
+#    mirs_sea_ice:
+#      reader: mirs
+#      name: sea_ice
+#      physical_element: MIRS Sea Ice
+#    mirs_swe:
+#      reader: mirs
+#      name: swe
+#      physical_element: MIRS SWE
+#    mirs_clw:
+#      reader: mirs
+#      name: clw
+#      physical_element: MIRS CLW
+#    mirs_tpw:
+#      reader: mirs
+#      name: tpw
+#      physical_element: MIRS TPW
+#    mirs_tskin:
+#      reader: mirs
+#      name: tskin
+#      physical_element: MIRS Skin Temperature
+
+    # AMSR-2 L1B
+    amsr2_btemp_36.5h:
+      name: btemp_36.5h
+      physical_element: 36.5 GHz H
+    amsr2_btemp_36.5v:
+      name: btemp_36.5v
+      physical_element: 36.5 GHz V
+    amsr2_btemp_89.0ah:
+      name: btemp_89.0ah
+      physical_element: 89.0 GHz AH
+    amsr2_btemp_89.0av:
+      name: btemp_89.0av
+      physical_element: 89.0 GHz AV
+    amsr2_btemp_89.0bh:
+      name: btemp_89.0bh
+      physical_element: 89.0 GHz BH
+    amsr2_btemp_89.0bv:
+      name: btemp_89.0bv
+      physical_element: 89.0 GHz BV
+
+    # GEOCAT Level 1 Products
+    geocat_surface_type:
+      name: pixel_surface_type
+      physical_element: Surface Type
+    # GEOCAT Level 2 Products

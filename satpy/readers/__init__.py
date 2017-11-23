@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2016.
+# Copyright (c) 2015-2017.
 
 # Author(s):
 
@@ -20,22 +20,18 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Shared objects of the various reader classes.
-
-"""
+"""Shared objects of the various reader classes."""
 
 import logging
 import numbers
 import os
-from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import namedtuple
 
-import numpy as np
 import six
 import yaml
 
-from satpy.config import config_search_paths, glob_config, runtime_import
-from satpy.dataset import DatasetID, DATASET_KEYS
+from satpy.config import (config_search_paths, get_environ_config_dir,
+                          glob_config)
+from satpy.dataset import DATASET_KEYS, DatasetID
 
 try:
     import configparser
@@ -60,7 +56,8 @@ class DatasetDict(dict):
         super(DatasetDict, self).__init__(*args, **kwargs)
 
     def keys(self, names=False, wavelengths=False):
-        keys = super(DatasetDict, self).keys()
+        # sort keys so things are a little more deterministic (.keys() is not)
+        keys = sorted(super(DatasetDict, self).keys())
         if names:
             return (k.name for k in keys)
         elif wavelengths:
@@ -138,7 +135,8 @@ class DatasetDict(dict):
     def get_best_choice(self, key, choices):
         if key.modifiers is None and choices:
             num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-            choices = [c for c in choices if len(c.modifiers or tuple()) == num_modifiers]
+            choices = [c for c in choices if len(
+                c.modifiers or tuple()) == num_modifiers]
         if key.resolution is None and choices:
             low_res = [x.resolution for x in choices if x.resolution]
             if low_res:
@@ -152,9 +150,9 @@ class DatasetDict(dict):
             if getattr(did, key) is not None:
                 if key == "wavelength":
                     keys = [k for k in keys
-                            if getattr(k, key) is not None and DatasetID.wavelength_match(
-                                getattr(k, key), getattr(did, key))]
-
+                            if (getattr(k, key) is not None and
+                                DatasetID.wavelength_match(getattr(k, key),
+                                                           getattr(did, key)))]
                 else:
                     keys = [k for k in keys
                             if getattr(k, key) is not None and getattr(k, key)
@@ -202,7 +200,7 @@ class DatasetDict(dict):
                                 wavelength=d.get("wavelength"),
                                 polarization=d.get("polarization"),
                                 calibration=d.get("calibration"),
-                                modifiers=d.get("modifiers"))
+                                modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
                         "One of 'name' or 'wavelength' info values should be set.")
@@ -251,12 +249,13 @@ def read_reader_config(config_files):
     return reader_info
 
 
-def load_reader(reader_configs, **reader_kwargs):
+def load_reader(reader_configs, metadata=None, **reader_kwargs):
     """Import and setup the reader from *reader_info*
     """
     reader_info = read_reader_config(reader_configs)
     reader_instance = reader_info['reader'](
         config_files=reader_configs,
+        metadata=metadata,
         **reader_kwargs
     )
     return reader_instance
@@ -267,7 +266,7 @@ class ReaderFinder(object):
     """
 
     def __init__(self,
-                 ppp_config_dir=None,
+                 ppp_config_dir=get_environ_config_dir(),
                  base_dir=None,
                  start_time=None,
                  end_time=None,
@@ -284,7 +283,7 @@ class ReaderFinder(object):
         self.area = area
 
     def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None):
+                 reader_kwargs=None, metadata=None):
         reader_instances = {}
         reader_kwargs = reader_kwargs or {}
 
@@ -302,6 +301,7 @@ class ReaderFinder(object):
             config_files = set(self.config_files())
         # FUTURE: Allow for a reader instance to be passed
 
+        sensor_supported = False
         remaining_filenames = set(
             filenames) if filenames is not None else set()
         for config_file in config_files:
@@ -318,6 +318,7 @@ class ReaderFinder(object):
                                               start_time=self.start_time,
                                               end_time=self.end_time,
                                               area=self.area,
+                                              metadata=metadata,
                                               **reader_kwargs)
             except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
                 LOG.info('Cannot use %s', str(reader_configs))
@@ -326,6 +327,9 @@ class ReaderFinder(object):
 
             if not reader_instance.supports_sensor(sensor):
                 continue
+            elif sensor is not None:
+                # sensor was specified and a reader supports it
+                sensor_supported = True
             if remaining_filenames:
                 loadables = reader_instance.select_files_from_pathnames(
                     remaining_filenames)
@@ -340,6 +344,10 @@ class ReaderFinder(object):
                 # we were given filenames to look through and found a reader
                 # for all of them
                 break
+
+        if sensor and not sensor_supported:
+            LOG.warning(
+                "Sensor '{}' not supported by any readers".format(sensor))
 
         if remaining_filenames:
             LOG.warning(
