@@ -182,24 +182,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                     return Dataset(self.cache[pair[1]],
                                    copy=False, name=key.name, **self.mda)
 
-        # if key.name in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
-        #     if self.senazi is None or self.senzen is None:
-        #         self.senazi, self.senzen = self.angles("SatelliteAzimuthAngle",
-        #                                                "SatelliteZenithAngle")
-        #     if key.name == 'satellite_zenith_angle':
-        #         return Dataset(self.senzen, copy=False, name=key.name, **self.mda)
-        #     else:
-        #         return Dataset(self.senazi, copy=False, name=key.name, **self.mda)
-        #
-        # if key.name in ['solar_zenith_angle', 'solar_azimuth_angle']:
-        #     if self.solazi is None or self.solzen is None:
-        #         self.solazi, self.solzen = self.angles("SolarAzimuthAngle",
-        #                                                "SolarZenithAngle")
-        #     if key.name == 'solar_zenith_angle':
-        #         return Dataset(self.solzen, copy=False, name=key.name, **self.mda)
-        #     else:
-        # return Dataset(self.solazi, copy=False, name=key.name, **self.mda)
-
         if info.get('standard_name') in ['latitude', 'longitude']:
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.navigate()
@@ -227,13 +209,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         units = []
         arr_mask = np.ma.nomask
 
-        if channel.startswith('M'):
-            rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
-        elif channel == 'DNB':
-            import tables
-            h5ft = tables.open_file(self.filename, "r")
-            rads = h5ft.get_node("/All_Data/VIIRS-DNB-SDR_All").Radiance.read()
-            h5ft.close()
+        rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
 
         if channel in ("M9", ):
             arr = rads[:scans * 16, :].astype(np.float32)

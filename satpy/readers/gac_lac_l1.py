@@ -30,11 +30,11 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+from pyresample.geometry import SwathDefinition
 
 from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
-from pyresample.geometry import SwathDefinition
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 

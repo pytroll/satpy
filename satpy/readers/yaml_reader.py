@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016, 2017.
 
 # Author(s):
 
@@ -22,7 +22,6 @@
 
 # New stuff
 
-import copy
 import glob
 import itertools
 import logging
@@ -36,8 +35,7 @@ import numpy as np
 import six
 import yaml
 
-from pyresample.geometry import AreaDefinition
-from satpy.composites import IncompatibleAreas
+from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
 from satpy.readers import DatasetDict
@@ -83,7 +81,6 @@ def match_filenames(filenames, pattern):
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
-    __metaclass__ = ABCMeta
 
     def __init__(self,
                  config_files,
@@ -102,16 +99,17 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
-        for file_type in self.config['file_types'].values():
+        for file_type, filetype_info in self.config['file_types'].items():
+            filetype_info.setdefault('file_type', file_type)
             # correct separator if needed
             file_patterns = [os.path.join(*pattern.split('/'))
-                             for pattern in file_type['file_patterns']]
+                             for pattern in filetype_info['file_patterns']]
             self.file_patterns.extend(file_patterns)
 
         if not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.sensor_names = self.info['sensors']
-        self.datasets = self.config['datasets']
+        self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
         self.ids = {}
         self.load_ds_ids_from_config()
@@ -207,7 +205,9 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             ids = self.ids.keys()
         for key in DATASET_KEYS:
             value = getattr(dsid, key)
-            if value is None:
+            if value is None or (key == 'modifiers' and not value):
+                # filter everything else except modifiers if it isn't
+                # specified (None or tuple())
                 continue
             if key == "wavelength":
                 ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
@@ -236,8 +236,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             dfilter = {}
         else:
             dfilter = dfilter.copy()
-        for attr in ['calibration', 'polarization', 'resolution', 'modifiers']:
+        for attr in ['calibration', 'polarization', 'resolution']:
             dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
+        # modifiers default is an empty tuple so handle it specially
+        dfilter['modifiers'] = dfilter.get('modifiers',
+                                           getattr(key, 'modifiers', None) or None)
 
         for attr in ['calibration', 'polarization', 'resolution']:
             if (dfilter[attr] is not None
@@ -369,19 +372,27 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
+
     """Implementation of the YAML reader."""
 
     def __init__(self,
                  config_files,
                  start_time=None,
                  end_time=None,
-                 area=None, **kwargs):
+                 area=None,
+                 filter_filenames=True,
+                 metadata=None,
+                 **kwargs):
         super(FileYAMLReader, self).__init__(config_files,
                                              start_time=start_time,
                                              end_time=end_time,
                                              area=area)
 
         self.file_handlers = {}
+        self.filter_filenames = self.info.get('filter_filenames',
+                                              filter_filenames)
+        self.reader_kwargs = kwargs
+        self.metadata = metadata
 
     @property
     def available_dataset_ids(self):
@@ -434,6 +445,8 @@ class FileYAMLReader(AbstractYAMLReader):
         if requirements:
             for requirement in requirements:
                 for fhd in self.file_handlers[requirement]:
+                    # FIXME: Isn't this super wasteful? filename_info.items()
+                    # every iteration?
                     if (all(item in filename_info.items()
                             for item in fhd.filename_info.items())):
                         req_fh.append(fhd)
@@ -468,7 +481,12 @@ class FileYAMLReader(AbstractYAMLReader):
         """Iterator over the filenames matching *filetype_info*."""
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
-                filename_info = parse(pattern, get_filebase(filename, pattern))
+                try:
+                    filename_info = parse(
+                        pattern, get_filebase(filename, pattern))
+                except ValueError:
+                    logger.debug("Can't parse %s with %s.", filename, pattern)
+                    continue
 
                 yield filename, filename_info
 
@@ -498,21 +516,70 @@ class FileYAMLReader(AbstractYAMLReader):
                 continue
             yield filehandler
 
+    def filter_filenames_by_info(self, filename_items):
+        """Filter out file using metadata from the filenames.
+
+        Currently only uses start and end time. If only start time is available
+        from the filename, keep all the filename that have a start time before
+        the requested end time.
+        """
+        for filename, filename_info in filename_items:
+            fstart = filename_info.get('start_time')
+            fend = filename_info.get('end_time')
+            if fend and not fstart:
+                fstart = fend
+            if fend and fend < fstart:
+                # correct for filenames with 1 date and 2 times
+                fend = fend.replace(year=fstart.year,
+                                    month=fstart.month,
+                                    day=fstart.day)
+            if self._start_time and fend and fend < self._start_time:
+                continue
+            if self._end_time and fstart > self._end_time:
+                continue
+            yield filename, filename_info
+
     def filter_fh_by_area(self, filehandlers):
         """Filter out filehandlers outside the desired area."""
         for filehandler in filehandlers:
             if self.check_file_covers_area(filehandler):
                 yield filehandler
 
+    def filter_fh_by_metadata(self, filehandlers):
+        """Filter out filehandlers using provide metadata."""
+
+        for filehandler in filehandlers:
+            if self.metadata is None:
+                yield filehandler
+                continue
+            for key, val in self.metadata.items():
+                if (key in filehandler.metadata and
+                        val != filehandler.metadata[key]):
+                    break
+            else:
+                yield filehandler
+
+    @staticmethod
+    def apply_filters(iterator, *filters):
+        """Apply filters on an iterator."""
+        result = iterator
+        for filt in filters:
+            result = filt(result)
+        return result
+
     def new_filehandlers_for_filetype(self, filetype_info, filenames):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
+        if self.filter_filenames and self._start_time or self._end_time:
+            filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fhd
-                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
-                    filehandler_iter))]
+        filtered_iter = self.apply_filters(filehandler_iter,
+                                           self.filter_fh_by_metadata,
+                                           self.filter_fh_by_time,
+                                           self.filter_fh_by_area)
+        return list(filtered_iter)
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
@@ -575,13 +642,14 @@ class FileYAMLReader(AbstractYAMLReader):
                                                                 xslice,
                                                                 yslice)
 
-        out_info = {}
+        out_info = {'reader': self.name}
         data = np.empty(overall_shape,
                         dtype=ds_info.get('dtype', np.float32))
         mask = np.ma.make_mask_none(overall_shape)
 
         offset = 0
         out_offset = 0
+        failure = True
         for idx, fh in enumerate(file_handlers):
             segment_height = all_shapes[idx][0]
             # XXX: Does this work with masked arrays and subclasses of them?
@@ -608,11 +676,19 @@ class FileYAMLReader(AbstractYAMLReader):
 
             try:
                 fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
+                failure = False
             except KeyError:
-                continue
+                logger.warning(
+                    "Failed to load {} from {}".format(dsid, fh), exc_info=True)
+                mask[out_offset:out_offset + stop - start] = True
 
             out_offset += stop - start
             offset += segment_height
+
+        if failure:
+            raise KeyError(
+                "Could not load {} from any provided files".format(dsid))
+
         out_info.pop('area', None)
         return cls(data, mask=mask, copy=False, **out_info)
 
@@ -654,51 +730,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 return filetype
         return None
 
-    # TODO: move this out of here.
-    @staticmethod
-    def _combine_area_extents(area1, area2):
-        """Combine the area extents of areas 1 and 2."""
-        if (area1.area_extent[0] == area2.area_extent[0] and
-                area1.area_extent[2] == area2.area_extent[2]):
-            current_extent = list(area1.area_extent)
-            if np.isclose(area1.area_extent[1], area2.area_extent[3]):
-                current_extent[1] = area2.area_extent[1]
-            elif np.isclose(area1.area_extent[3], area2.area_extent[1]):
-                current_extent[3] = area2.area_extent[3]
-            else:
-                raise IncompatibleAreas(
-                    "Can't concatenate area definitions with "
-                    "incompatible area extents: "
-                    "{} and {}".format(area1, area2))
-            return current_extent
-
-    # TODO: move this out of here.
-    def _append_area_defs(self, area1, area2):
-        """Append *area2* to *area1* and return the results"""
-        different_items = (set(area1.proj_dict.items()) ^
-                           set(area2.proj_dict.items()))
-        if different_items:
-            raise IncompatibleAreas("Can't concatenate area definitions with "
-                                    "different projections: "
-                                    "{} and {}".format(area1, area2))
-
-        area_extent = self._combine_area_extents(area1, area2)
-        y_size = area1.y_size + area2.y_size
-        return AreaDefinition(area1.area_id, area1.name, area1.proj_id,
-                              area1.proj_dict, area1.x_size, y_size,
-                              area_extent)
-
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
         area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
         area_defs = [area_def for area_def in area_defs
                      if area_def is not None]
 
-        final_area = copy.deepcopy(area_defs[0])
-        for area_def in area_defs[1:]:
-            final_area = self._append_area_defs(final_area, area_def)
-
-        return final_area
+        final_area = StackedAreaDefinition(*area_defs)
+        return final_area.squeeze()
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
@@ -737,17 +776,21 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _make_area_from_coords(self, coords):
         """Create an apropriate area with the given *coords*."""
-        if (len(coords) == 2 and
-                coords[0].info.get('standard_name') == 'longitude' and
-                coords[1].info.get('standard_name') == 'latitude'):
-            from pyresample.geometry import SwathDefinition
-            sdef = SwathDefinition(*coords)
-            sensor_str = sdef.name = '_'.join(self.info['sensors'])
-            shape_str = '_'.join(map(str, coords[0].shape))
-            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                             coords[0].info['name'],
-                                             coords[1].info['name'])
-            return sdef
+        if len(coords) == 2:
+            lon_sn = coords[0].info.get('standard_name')
+            lat_sn = coords[1].info.get('standard_name')
+            if lon_sn == 'longitude' and lat_sn == 'latitude':
+                sdef = SwathDefinition(*coords)
+                sensor_str = sdef.name = '_'.join(self.info['sensors'])
+                shape_str = '_'.join(map(str, coords[0].shape))
+                sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                                 coords[0].info['name'],
+                                                 coords[1].info['name'])
+                return sdef
+            else:
+                raise ValueError(
+                    'Coordinates info object missing standard_name key: ' +
+                    str(coords))
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
@@ -757,6 +800,11 @@ class FileYAMLReader(AbstractYAMLReader):
         try:
             return self._load_area_def(dsid, file_handlers)
         except NotImplementedError:
+            if any(x is None for x in coords):
+                logger.warning(
+                    "Failed to load coordinates for '{}'".format(dsid))
+                return None
+
             area = self._make_area_from_coords(coords)
             if area is None:
                 logger.debug("No coordinates found for %s", str(dsid))
@@ -807,18 +855,21 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def load(self, dataset_keys):
         """Load *dataset_keys*."""
+        all_datasets = DatasetDict()
         datasets = DatasetDict()
 
         # Include coordinates in the list of datasets to load
         dsids = [self.get_dataset_key(ds_key) for ds_key in dataset_keys]
         coordinates = self._get_coordinates_for_dataset_keys(dsids)
-        dsids = list(set().union(*coordinates.values())) + dsids
+        all_dsids = list(set().union(*coordinates.values())) + dsids
 
-        for dsid in dsids:
-            coords = [datasets.get(cid, None)
+        for dsid in all_dsids:
+            coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
             if ds is not None:
-                datasets[dsid] = ds
+                all_datasets[dsid] = ds
+                if dsid in dsids:
+                    datasets[dsid] = ds
 
         return datasets

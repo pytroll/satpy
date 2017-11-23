@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2016.
+# Copyright (c) 2009-2017.
 
 # Author(s):
 
@@ -29,15 +29,15 @@ import os.path
 import sys
 from glob import glob
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 version = imp.load_source('satpy.version', 'satpy/version.py')
 
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample', 'trollsift', 'trollimage',
-            'pykdtree', 'six', 'pyyaml']
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
+            'trollimage', 'pykdtree', 'six', 'pyyaml']
 
 if sys.version < '2.7':
     requires.append('ordereddict')
@@ -87,27 +87,43 @@ setup(name=NAME,
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
       test_suite='satpy.tests.suite',
-      packages=['satpy', 'satpy.composites', 'satpy.readers',
-                'satpy.writers', 'satpy.tests'],
+      packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
                               os.path.join('etc', 'areas.def'),
                               os.path.join('etc', 'satpy.cfg'),
                               os.path.join('etc', 'himawari-8.cfg'),
                               os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
                               os.path.join('etc', 'readers', '*.yaml'),
-                              os.path.join('etc', 'writers', '*.cfg'),
+                              os.path.join('etc', 'writers', '*.yaml'),
                               os.path.join('etc', 'composites', '*.yaml'),
-                              os.path.join('etc', 'enhancements', '*.cfg')]},
+                              os.path.join('etc', 'enhancements', '*.cfg'),
+                              os.path.join('etc', 'enhancements', '*.yaml'),
+                              ]},
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
-      extras_require={'xRIT': ['mipp >= 0.6.0'],
-                      'hdf_eos': ['pyhdf'],
-                      'viirs': ['h5py'],
-                      'nc': ['netCDF4'],
-                      'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
-                      'proj': ['pyresample'],
-                      'pyspectral': ['pyspectral'],
-                      'pyorbital': ['pyorbital >= v0.2.3']}
-
+      extras_require={
+          # Readers:
+          'xRIT': ['mipp >= 0.6.0'],
+          'hdfeos_l1b': ['python-hdf4'],
+          'geocat': ['python-hdf4'],
+          'acspo': ['netCDF4 >= 1.1.8'],
+          'clavrx': ['netCDF4 >= 1.1.8'],
+          'viirs_l1b': ['netCDF4 >= 1.1.8'],
+          'viirs_sdr': ['h5py >= 2.7.0'],
+          'viirs_compact': ['h5py >= 2.7.0'],
+          'omps_edr': ['h5py >= 2.7.0'],
+          'amsr2_l1b': ['h5py >= 2.7.0'],
+          'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
+          'proj': ['pyresample'],
+          'pyspectral': ['pyspectral'],
+          'pyorbital': ['pyorbital >= v0.2.3'],
+          'hrit_msg': ['pytroll-schedule'],
+          'nc_nwcsaf_msg': ['h5netcdf'],
+          'sar_c': ['python-geotiepoints', 'gdal'],
+          'abi_l1b': ['h5netcdf'],
+          # Writers:
+          'scmi': ['netCDF4 >= 1.1.8'],
+          'geotiff': ['gdal'],
+          },
       )

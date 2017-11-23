@@ -24,10 +24,14 @@
 """Dataset objects.
 """
 
+import logging
+import numbers
+from collections import namedtuple
+
 import numpy as np
 import six
-from collections import namedtuple
-import numbers
+
+logger = logging.getLogger(__name__)
 
 
 class InfoObject(object):
@@ -117,10 +121,11 @@ def copy_info1(func):
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, None)
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, tuple())
 
 
 class DatasetID(DatasetID):
+
     """Identifier for all `Dataset` objects.
 
     DatasetID is a namedtuple that holds identifying and classifying
@@ -189,6 +194,27 @@ class DatasetID(DatasetID):
             return b[0] <= a <= b[2]
         else:
             raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+    def _comparable(self):
+        """Get a comparable version of the DatasetID.
+
+        Without this DatasetIDs often raise an exception when compared in
+        Python 3 due to None not being comparable with other types.
+        """
+        return self._replace(
+            name='' if self.name is None else self.name,
+            wavelength=tuple() if self.wavelength is None else self.wavelength,
+            resolution=0 if self.resolution is None else self.resolution,
+            polarization='' if self.polarization is None else self.polarization,
+            calibration='' if self.calibration is None else self.calibration,
+        )
+
+    def __lt__(self, other):
+        """Compare DatasetIDs with special handling of `None` values"""
+        # modifiers should never be None when sorted, should be tuples
+        if isinstance(other, DatasetID):
+            other = other._comparable()
+        return super(DatasetID, self._comparable()).__lt__(other)
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -495,7 +521,7 @@ class Dataset(np.ma.MaskedArray):
             elif key == "resolution":
                 res.append("{0}: {1} m".format(key, self.info[key]))
             elif key == "area":
-                res.append("{0}: {1}".format(key, self.info[key].name))
+                res.append("{0}: {1}".format(key, getattr(self.info[key], 'name', '<no name>')))
             elif key in ["name", "sensor"]:
                 continue
             else:
@@ -526,7 +552,13 @@ class Dataset(np.ma.MaskedArray):
         # avoid circular imports, this is just a convenience function anyway
         from satpy.resample import resample, get_area_def
         # call the projection stuff here
-        source_area = self.info["area"]
+        try:
+            source_area = self.info["area"]
+        except KeyError:
+            logger.info("Cannot reproject dataset %s, missing area info",
+                        self.info['name'])
+
+            return self
 
         if isinstance(source_area, (str, six.text_type)):
             source_area = get_area_def(source_area)

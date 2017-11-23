@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014.
+# Copyright (c) 2010-2014, 2017.
 
 # SMHI,
 # Folkborgsvägen 1,
@@ -40,7 +40,6 @@ import logging
 import math
 import multiprocessing
 import os.path
-from ConfigParser import ConfigParser
 from datetime import datetime
 from fnmatch import fnmatch
 
@@ -65,22 +64,22 @@ class HDFEOSFileReader(BaseFileHandler):
         except HDF4Error as err:
             raise ValueError("Could not load data from " + str(self.filename)
                              + ": " + str(err))
-        self.mda = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.mda.update(self.read_mda(
+        self.metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
+        self.metadata.update(self.read_mda(
             self.sd.attributes()['StructMetadata.0']))
-        self.mda.update(self.read_mda(
+        self.metadata.update(self.read_mda(
             self.sd.attributes()['ArchiveMetadata.0']))
 
     @property
     def start_time(self):
-        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
-                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
+                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
-        date = (self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
-                self.mda['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
+                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     def read_mda(self, attribute):
@@ -124,24 +123,41 @@ class HDFEOSGeoReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA'][
+        ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
             self.resolution = 1000
         else:
             self.resolution = 5000
         self.cache = {}
-        self.lons = None
-        self.lats = None
+        self.cache['lons'] = None
+        self.cache['lats'] = None
 
     def get_area_def(self, *args, **kwargs):
         raise NotImplementedError
 
-    def get_dataset(self, key, info):
+    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
+
+        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
+                        'satellite_zenith_angle', 'satellite_azimuth_angle']:
+
+            if key.name == 'solar_zenith_angle':
+                var = self.sd.select('SolarZenith')
+            if key.name == 'solar_azimuth_angle':
+                var = self.sd.select('SolarAzimuth')
+            if key.name == 'satellite_zenith_angle':
+                var = self.sd.select('SensorZenith')
+            if key.name == 'satellite_azimuth_angle':
+                var = self.sd.select('SensorAzimuth')
+
+            mask = var[:] == var._FillValue
+            data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
+            return Dataset(data, id=key, **info)
+
         if key.name not in ['longitude', 'latitude']:
             return
 
-        if self.lons is None or self.lats is None:
+        if self.cache['lons'] is None or self.cache['lats'] is None:
 
             lons_id = DatasetID('longitude',
                                 resolution=key.resolution)
@@ -151,13 +167,13 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             lons, lats = self.load(
                 [lons_id, lats_id], interpolate=False, raw=True)
             from geotiepoints.geointerpolator import GeoInterpolator
-            self.lons, self.lats = self._interpolate(
+            self.cache['lons'], self.cache['lats'] = self._interpolate(
                 [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
 
         if key.name == 'latitude':
-            return Dataset(self.lats, id=key, **info)
+            return Dataset(self.cache['lats'], id=key, **info)
         else:
-            return Dataset(self.lons, id=key, **info)
+            return Dataset(self.cache['lons'], id=key, **info)
 
     def load(self, keys, interpolate=True, raw=False):
         projectables = []
@@ -286,7 +302,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
 
-        ds = self.mda['INVENTORYMETADATA'][
+        ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         self.resolution = self.res[ds[-3]]
 
@@ -302,8 +318,11 @@ class HDFEOSBandReader(HDFEOSFileReader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
-        platform_name = self.mda['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+        platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
             'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+
+        info.update({'platform_name': 'EOS-' + platform_name})
+        info.update({'sensor': 'modis'})
 
         if self.resolution != key.resolution:
             return
@@ -325,124 +344,41 @@ class HDFEOSBandReader(HDFEOSFileReader):
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
 
-            projectable = Dataset(array[0], id=key, mask=array[0].mask)
+            projectable = Dataset(array[0], id=key, mask=array[0].mask, **info)
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape
             #     row_indices = projectable.mask.sum(1) == width
             #     if row_indices.sum() != height:
             #         projectable.mask[row_indices, :] = True
+
+            # Get the orbit number
+            # if not satscene.orbit:
+            #     mda = self.data.attributes()["CoreMetadata.0"]
+            #     orbit_idx = mda.index("ORBITNUMBER")
+            #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+            # Get the geolocation
+            # if resolution != 1000:
+            #    logger.warning("Cannot load geolocation at this resolution (yet).")
+            #    return
+
+            # Trimming out dead sensor lines (detectors) on terra:
+            # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
+            # if satscene.satname == "terra":
+            #     for band in ["29"]:
+            #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+            #             continue
+            #         width = satscene[band].data.shape[1]
+            #         height = satscene[band].data.shape[0]
+            #         indices = satscene[band].data.mask.sum(1) < width
+            #         if indices.sum() == height:
+            #             continue
+            #         satscene[band] = satscene[band].data[indices, :]
+            #         satscene[band].area = geometry.SwathDefinition(
+            #             lons=satscene[band].area.lons[indices, :],
+            #             lats=satscene[band].area.lats[indices, :])
             return projectable
-
-    def load(self, keys):
-        """Read data from file and return the corresponding projectables.
-        """
-        datadict = {
-            1000: ['EV_250_Aggr1km_RefSB',
-                   'EV_500_Aggr1km_RefSB',
-                   'EV_1KM_RefSB',
-                   'EV_1KM_Emissive'],
-            500: ['EV_250_Aggr500_RefSB',
-                  'EV_500_RefSB'],
-            250: ['EV_250_RefSB']}
-
-        projectables = []
-        platform_name = self.mda['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
-            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
-
-        keys = [key for key in keys if key.resolution == self.resolution]
-        if len(keys) == 0:
-            logger.debug("Nothing to read in %s.", self.filename)
-            return projectables
-        datasets = datadict[self.resolution]
-        key_names = [key.name for key in keys]
-        for dataset in datasets:
-            subdata = self.sd.select(dataset)
-            band_names = subdata.attributes()["band_names"].split(",")
-
-            if len(set(key_names) & set(band_names)) > 0:
-                # get the relative indices of the desired channels
-                indices = [i for i, band in enumerate(band_names)
-                           if band in key_names]
-                uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-                if dataset.endswith('Emissive'):
-                    array = calibrate_tb(
-                        subdata, uncertainty, indices, band_names)
-                else:
-                    array = calibrate_refl(subdata, uncertainty, indices)
-                for (i, idx) in enumerate(indices):
-                    dsid = [key for key in keys if key.name ==
-                            band_names[idx]][0]
-                    area = self.navigation_reader.get_lonlats(self.resolution)
-                    projectable = Dataset(array[i], id=dsid, area=area)
-                    if ((platform_name == 'Aqua' and dsid.name in ["6", "27", "36"]) or
-                            (platform_name == 'Terra' and dsid.name in ["29"])):
-                        height, width = projectable.shape
-                        row_indices = projectable.mask.sum(1) == width
-                        if row_indices.sum() == height:
-                            continue
-                        projectable.mask[indices, :] = True
-
-                    projectables.append(projectable)
-        return projectables
-
-        # Get the orbit number
-        if not satscene.orbit:
-            mda = self.data.attributes()["CoreMetadata.0"]
-            orbit_idx = mda.index("ORBITNUMBER")
-            satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-        # Get the geolocation
-        # if resolution != 1000:
-        #    logger.warning("Cannot load geolocation at this resolution (yet).")
-        #    return
-
-        for band_name in loaded_bands:
-            lon, lat = self.get_lonlat(satscene[band_name].resolution, cores)
-            area = geometry.SwathDefinition(lons=lon, lats=lat)
-            satscene[band_name].area = area
-
-        # Trimming out dead sensor lines (detectors) on aqua:
-        # (in addition channel 21 is noisy)
-        if satscene.satname == "aqua":
-            for band in ["6", "27", "36"]:
-                if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-                    continue
-                width = satscene[band].data.shape[1]
-                height = satscene[band].data.shape[0]
-                indices = satscene[band].data.mask.sum(1) < width
-                if indices.sum() == height:
-                    continue
-                satscene[band] = satscene[band].data[indices, :]
-                satscene[band].area = geometry.SwathDefinition(
-                    lons=satscene[band].area.lons[indices, :],
-                    lats=satscene[band].area.lats[indices, :])
-
-        # Trimming out dead sensor lines (detectors) on terra:
-        # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
-        if satscene.satname == "terra":
-            for band in ["29"]:
-                if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-                    continue
-                width = satscene[band].data.shape[1]
-                height = satscene[band].data.shape[0]
-                indices = satscene[band].data.mask.sum(1) < width
-                if indices.sum() == height:
-                    continue
-                satscene[band] = satscene[band].data[indices, :]
-                satscene[band].area = geometry.SwathDefinition(
-                    lons=satscene[band].area.lons[indices, :],
-                    lats=satscene[band].area.lats[indices, :])
-
-        for band_name in loaded_bands:
-            band_uid = hashlib.sha1(satscene[band_name].data.mask).hexdigest()
-            satscene[band_name].area.area_id = ("swath_" + satscene.fullname + "_"
-                                                + str(satscene.time_slot) + "_"
-                                                +
-                                                str(satscene[
-                                                    band_name].shape) + "_"
-                                                + str(band_uid))
-            satscene[band_name].area_id = satscene[band_name].area.area_id
 
     # These have to be interpolated...
     def get_height(self):

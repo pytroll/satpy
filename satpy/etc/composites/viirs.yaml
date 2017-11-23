@@ -15,6 +15,12 @@ modifiers:
     prerequisites:
     - solar_zenith_angle
 
+  effective_solar_pathlength_corrected:
+    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    prerequisites:
+    - solar_zenith_angle
+
+
 composites:
 
   true_color:
@@ -141,7 +147,7 @@ composites:
     - dnb_moon_illumination_fraction
     standard_name: equalized_radiance
     units: "1"
-  ncc_zinke:
+  hncc_dnb:
     compositor: !!python/name:satpy.composites.viirs.NCCZinke
     prerequisites:
     - DNB
@@ -150,3 +156,28 @@ composites:
     - dnb_moon_illumination_fraction
     standard_name: ncc_radiance
     units: "1"
+
+  night_overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - hncc_dnb
+    - hncc_dnb
+    - M15
+    standard_name: night_overview
+
+  snow_age:
+    compositor: !!python/name:satpy.composites.viirs.SnowAge
+    prerequisites:
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M08
+      modifiers: [sunz_corrected]
+    - name: M09
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M11
+      modifiers: [sunz_corrected]
+    standard_name: snow_age
+
+

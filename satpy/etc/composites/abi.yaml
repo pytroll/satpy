@@ -7,29 +7,76 @@ modifiers:
   reducer4:
     compositor: !!python/name:satpy.composites.ahi.Reducer4
 
+  expander2:
+    compositor: !!python/name:satpy.composites.ahi.Expander
+    factor: 2
+
 
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: midlatitude summer
+    aerosol_type: marine_tropical_aerosol
     prerequisites:
     - name: C01
-      modifiers: [reducer2, sunz_corrected]
+      modifiers: [reducer2, effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
     - solar_azimuth_angle
     - solar_zenith_angle
 
+  rayleigh_corrected_1km:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: midlatitude summer
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - name: C01
+      modifiers: [effective_solar_pathlength_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_500m:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: midlatitude summer
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - name: C01
+      modifiers: [expander2, effective_solar_pathlength_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
 
 composites:
-  true_color_abi:
+  true_color_2km:
+    compositor: !!python/name:satpy.composites.abi.TrueColor2km
+    prerequisites:
+    - name: C01
+      modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: C02
+      modifiers: [reducer4, effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: C03
+      modifiers: [reducer2, effective_solar_pathlength_corrected]
+    standard_name: true_color
+  true_color:
     compositor: !!python/name:satpy.composites.abi.TrueColor
     prerequisites:
     - name: C01
-      modifiers: [reducer2, sunz_corrected, rayleigh_corrected]
-      #modifiers: [reducer2, sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_1km]
     - name: C02
-      modifiers: [reducer4, sunz_corrected, rayleigh_corrected]
-      #modifiers: [reducer4, sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_500m]
     - name: C03
-      modifiers: [reducer2, sunz_corrected]
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
+
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 0.65
+    - 0.85
+    - 11.0
+    standard_name: overview

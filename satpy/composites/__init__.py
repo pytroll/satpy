@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2016
+# Copyright (c) 2015-2017
 
 # Author(s):
 
@@ -25,6 +25,7 @@
 
 import logging
 import os
+import time
 
 import numpy as np
 import six
@@ -32,9 +33,12 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import InfoObject, Dataset, DatasetID, DATASET_KEYS, combine_info
+from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
+                           combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.tools import atmospheric_path_length_correction
+from satpy.writers import get_enhanced_image
 
 try:
     import configparser
@@ -134,14 +138,18 @@ class CompositorLoader(object):
         except KeyError:
             if composite_name in compositors or composite_name in modifiers:
                 return conf
-            raise ValueError("'compositor' missing or empty in %s" %
-                             composite_config)
+            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
+                composite_config, str(options.keys())))
 
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
             prereqs = []
             for item in options.get(prereq_type, []):
                 if isinstance(item, dict):
+                    # we want this prerequisite to act as a query with
+                    # 'modifiers' being None otherwise it will be an empty
+                    # tuple
+                    item.setdefault('modifiers', None)
                     key = DatasetID.from_dict(item)
                     prereqs.append(key)
                 else:
@@ -197,15 +205,15 @@ class CompositeBase(InfoObject):
 
     def __init__(self,
                  name,
-                 prerequisites=[],
-                 optional_prerequisites=[],
-                 metadata_requirements=[],
+                 prerequisites=None,
+                 optional_prerequisites=None,
+                 metadata_requirements=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
-        kwargs["prerequisites"] = prerequisites
-        kwargs["optional_prerequisites"] = optional_prerequisites
-        kwargs["metadata_requirements"] = metadata_requirements
+        kwargs["prerequisites"] = prerequisites or []
+        kwargs["optional_prerequisites"] = optional_prerequisites or []
+        kwargs["metadata_requirements"] = metadata_requirements or []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -232,7 +240,10 @@ class CompositeBase(InfoObject):
                     d[k] = o[k]
 
 
-class SunZenithCorrector(CompositeBase):
+class SunZenithCorrectorBase(CompositeBase):
+
+    """Base class for sun zenith correction"""
+
     # FIXME: the cache should be cleaned up
     coszen = {}
 
@@ -245,8 +256,9 @@ class SunZenithCorrector(CompositeBase):
         if hasattr(vis.info["area"], 'name'):
             area_name = vis.info["area"].name
         else:
-            area_name = 'swath' + str(vis.info["area"].lons.shape)
+            area_name = 'swath' + str(vis.shape)
         key = (vis.info["start_time"], area_name)
+        tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
@@ -272,10 +284,36 @@ class SunZenithCorrector(CompositeBase):
 
         # sunz correction will be in place so we need a copy
         proj = vis.copy()
-        proj = sunzen_corr_cos(proj, coszen)
+        proj = self._apply_correction(proj, coszen)
         vis.mask[coszen < 0] = True
         self.apply_modifier_info(vis, proj)
+        LOG.debug(
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
+
+    def _apply_correction(self, proj, coszen):
+        raise NotImplementedError("Correction method shall be defined!")
+
+
+class SunZenithCorrector(SunZenithCorrectorBase):
+
+    """Standard sun zenith correction, 1/cos(sunz)"""
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
+        return sunzen_corr_cos(proj, coszen)
+
+
+class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
+
+    """Special sun zenith correction with the method proposed by Li and Shibata
+    (2006): https://doi.org/10.1175/JAS3682.1
+    """
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug(
+            "Apply the effective solar atmospheric path length correction method by Li and Shibata")
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 def show(data, filename=None):
@@ -319,14 +357,18 @@ class PSPRayleighReflectance(CompositeBase):
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
-        LOG.info('Removing Rayleigh scattering')
+        LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
         del sata, suna
 
+        atmosphere = self.info.get('atmosphere', 'us-standard')
+        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
+
         corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
-                             atmosphere='us-standard', rural_aerosol=False)
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         refl_cor_band = corrector.get_reflectance(
             sunz, satz, ssadiff, vis.id.wavelength[1], blue)
@@ -383,6 +425,49 @@ class NIRReflectance(CompositeBase):
         return proj
 
 
+class PSPAtmosphericalCorrection(CompositeBase):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the atmospherical correction. Uses pyspectral.
+        """
+        from pyspectral.atm_correction_ir import AtmosphericalCorrection
+
+        band = projectables[0]
+
+        if optional_datasets:
+            satz = optional_datasets[0]
+        else:
+            from pyorbital.orbital import get_observer_look
+            lons, lats = band.info['area'].get_lonlats()
+
+            try:
+                dummy, satel = get_observer_look(band.info['satellite_longitude'],
+                                                 band.info[
+                                                     'satellite_latitude'],
+                                                 band.info[
+                                                     'satellite_altitude'],
+                                                 band.info['start_time'],
+                                                 lons, lats, 0)
+            except KeyError:
+                raise KeyError(
+                    'Band info is missing some meta data!')
+            satz = 90 - satel
+            del satel
+
+        LOG.info('Correction for limb cooling')
+        corrector = AtmosphericalCorrection(band.info['platform_name'],
+                                            band.info['sensor'])
+
+        atm_corr = corrector.get_correction(satz, band.info['name'], band)
+
+        proj = Dataset(atm_corr,
+                       copy=False,
+                       **band.info)
+        self.apply_modifier_info(band, proj)
+
+        return proj
+
+
 class CO2Corrector(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -421,7 +506,7 @@ class DifferenceCompositor(CompositeBase):
         info = combine_info(*projectables)
         info['name'] = self.info['name']
 
-        return Projectable(projectables[0] - projectables[1], **info)
+        return Dataset(projectables[0] - projectables[1], **info)
 
 
 class RGBCompositor(CompositeBase):
@@ -430,15 +515,20 @@ class RGBCompositor(CompositeBase):
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
+
         try:
             the_data = np.rollaxis(
                 np.ma.dstack([projectable for projectable in projectables]),
                 axis=2)
         except ValueError:
             raise IncompatibleAreas
-        # info = projectables[0].info.copy()
-        # info.update(projectables[1].info)
-        # info.update(projectables[2].info)
+        else:
+            areas = [projectable.info.get('area', None)
+                     for projectable in projectables]
+            areas = [area for area in areas if area is not None]
+            if areas and areas.count(areas[0]) != len(areas):
+                raise IncompatibleAreas
+
         info = combine_info(*projectables)
         info.update(self.info)
         # FIXME: should this be done here ?
@@ -461,7 +551,77 @@ class RGBCompositor(CompositeBase):
         return Dataset(data=the_data, **info)
 
 
-class PaletteCompositor(RGBCompositor):
+class BWCompositor(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 1:
+            raise ValueError("Expected 1 dataset, got %d" %
+                             (len(projectables), ))
+
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
+
+        return Dataset(projectables[0], **info)
+
+
+class ColormapCompositor(RGBCompositor):
+
+    """A compositor that uses colormaps."""
+    @staticmethod
+    def build_colormap(palette, dtype, info):
+        """Create the colormap from the `raw_palette` and the valid_range."""
+
+        from trollimage.colormap import Colormap
+        if dtype == np.dtype('uint8'):
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
+
+        elif 'valid_range' in info:
+            tups = [(val, tuple(tup))
+                    for (val, tup) in enumerate(palette[:-1])]
+            colormap = Colormap(*tups)
+
+            sf = info['scale_factor']
+            colormap.set_range(
+                *info['valid_range'] * sf + info['add_offset'])
+
+        return colormap
+
+
+class ColorizeCompositor(ColormapCompositor):
+
+    """A compositor colorizing the data, interpolating the palette colors when
+    needed.
+    """
+
+    def __call__(self, projectables, **info):
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+
+        # TODO: support datasets with palette to delegate this to the image
+        # writer.
+
+        data, palette = projectables
+        colormap = self.build_colormap(palette / 255.0, data.dtype, data.info)
+
+        r, g, b = colormap.colorize(data)
+        r[data.mask] = palette[-1][0]
+        g[data.mask] = palette[-1][1]
+        b[data.mask] = palette[-1][2]
+        r = Dataset(r, copy=False, mask=data.mask, **data.info)
+        g = Dataset(g, copy=False, mask=data.mask, **data.info)
+        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+
+        return super(ColorizeCompositor, self).__call__((r, g, b), **data.info)
+
+
+class PaletteCompositor(ColormapCompositor):
+
+    """A compositor colorizing the data, not interpolating the palette colors.
+    """
 
     def __call__(self, projectables, **info):
         if len(projectables) != 2:
@@ -473,26 +633,75 @@ class PaletteCompositor(RGBCompositor):
 
         data, palette = projectables
         palette = palette / 255.0
+        colormap = self.build_colormap(palette, data.dtype, data.info)
 
-        from trollimage.colormap import Colormap
-        if data.dtype == np.dtype('uint8'):
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
-        elif 'valid_range' in data.info:
-            tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
-            colormap = Colormap(*tups)
-            colormap.set_range(*data.info['valid_range'])
-        r, g, b = colormap.colorize(data)
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.info)
-        g = Dataset(g, copy=False, mask=data.mask, **data.info)
-        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+        channels, colors = colormap.palettize(data)
+        channels = palette[channels]
+
+        r = Dataset(channels[:, :, 0], copy=False, mask=data.mask, **data.info)
+        g = Dataset(channels[:, :, 1], copy=False, mask=data.mask, **data.info)
+        b = Dataset(channels[:, :, 2], copy=False, mask=data.mask, **data.info)
 
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
+
+
+class DayNightCompositor(RGBCompositor):
+
+    """A compositor that takes one composite on the night side, another on day
+    side, and then blends them together."""
+
+    def __call__(self, projectables, lim_low=85., lim_high=95., *args,
+                 **kwargs):
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
+                             (len(projectables), ))
+        try:
+            day_data = projectables[0].copy()
+            night_data = projectables[1].copy()
+            coszen = np.cos(np.deg2rad(projectables[2]))
+
+            coszen -= min(np.cos(np.deg2rad(lim_high)),
+                          np.cos(np.deg2rad(lim_low)))
+            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
+                             np.cos(np.deg2rad(lim_high)))
+            coszen = np.clip(coszen, 0, 1)
+
+            full_data = []
+
+            # Apply enhancements
+            day_data = enhance2dataset(day_data)
+            night_data = enhance2dataset(night_data)
+
+            # Match dimensions to the data with more channels
+            # There are only 1-channel and 3-channel composites
+            if day_data.shape[0] > night_data.shape[0]:
+                night_data = np.ma.repeat(night_data, 3, 0)
+            elif day_data.shape[0] < night_data.shape[0]:
+                day_data = np.ma.repeat(day_data, 3, 0)
+
+            for i in range(day_data.shape[0]):
+                day = day_data[i, :, :]
+                night = night_data[i, :, :]
+
+                data = (1 - coszen) * np.ma.masked_invalid(night).filled(0) + \
+                    coszen * np.ma.masked_invalid(day).filled(0)
+                data = np.ma.array(data, mask=np.logical_and(night.mask,
+                                                             day.mask),
+                                   copy=False)
+                data = Dataset(np.ma.masked_invalid(data),
+                               copy=True,
+                               **projectables[0].info)
+                full_data.append(data)
+
+            res = RGBCompositor.__call__(self, (full_data[0],
+                                                full_data[1],
+                                                full_data[2]),
+                                         *args, **kwargs)
+
+        except ValueError:
+            raise IncompatibleAreas
+
+        return res
 
 
 class Airmass(RGBCompositor):
@@ -582,3 +791,54 @@ class Dust(RGBCompositor):
             raise IncompatibleAreas
 
         return res
+
+
+class RealisticColors(RGBCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        try:
+
+            vis06 = projectables[0]
+            vis08 = projectables[1]
+            hrv = projectables[2]
+
+            ndvi = (vis08 - vis06) / (vis08 + vis06)
+            ndvi = np.where(ndvi < 0, 0, ndvi)
+
+            # info = combine_info(*projectables)
+            # info['name'] = self.info['name']
+            # info['standard_name'] = self.info['standard_name']
+
+            ch1 = Dataset(ndvi * vis06 + (1 - ndvi) * vis08,
+                          copy=False,
+                          **vis06.info)
+            ch2 = Dataset(ndvi * vis08 + (1 - ndvi) * vis06,
+                          copy=False,
+                          **vis08.info)
+            ch3 = Dataset(3 * hrv - vis06 - vis08,
+                          copy=False,
+                          **hrv.info)
+
+            res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
+                                         *args, **kwargs)
+        except ValueError:
+            raise IncompatibleAreas
+        return res
+
+
+def enhance2dataset(dset):
+    """Apply enhancements to dataset *dset* and convert the image data
+    back to Dataset object."""
+    img = get_enhanced_image(dset)
+
+    data = np.rollaxis(np.dstack(img.channels), axis=2)
+    mask = dset.mask
+    if mask.ndim < data.ndim:
+        mask = np.expand_dims(mask, 0)
+        mask = np.repeat(mask, 3, 0)
+    elif mask.ndim > data.ndim:
+        mask = mask[0, :, :]
+    data = Dataset(np.ma.masked_array(data, mask=mask),
+                   copy=False,
+                   **dset.info)
+    return data

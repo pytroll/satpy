@@ -17,10 +17,34 @@ satpy.readers.aapp_l1b module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.acspo module
+--------------------------
+
+.. automodule:: satpy.readers.acspo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.eps_l1b module
 ----------------------------
 
 .. automodule:: satpy.readers.eps_l1b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.geocat module
+---------------------------
+
+.. automodule:: satpy.readers.geocat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.clavrx module
+---------------------------
+
+.. automodule:: satpy.readers.clavrx
     :members:
     :undoc-members:
     :show-inheritance:

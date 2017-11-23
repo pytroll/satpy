@@ -22,11 +22,16 @@
 """Utilities for various satpy tests.
 """
 
-import mock
 from datetime import datetime, timedelta
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 def test_datasets():
+    """Get list of various test datasets"""
     from satpy import DatasetID
     d = [
         DatasetID(name='ds1'),
@@ -54,17 +59,19 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         'optional_prerequisites': tuple(opt_prereqs),
     }
     # special case
-    if ds_id.name == 'comp14':
-        # used as a test when composites update the dataset id with
-        # information from prereqs
-        ds_id = ds_id._replace(resolution=555)
     c.info.update(ds_id.to_dict())
     c.id = ds_id
 
-    def se(datasets, optional_datasets=None, **kwargs):
+    se = mock.MagicMock()
+    def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
+        if ds_id.name == 'comp14':
+            # used as a test when composites update the dataset id with
+            # information from prereqs
+            ds_id = ds_id._replace(resolution=555)
         if len(datasets) != len(prereqs):
             raise ValueError("Not enough prerequisite datasets passed")
         return Dataset(data=np.arange(5), **ds_id.to_dict())
+    se.side_effect = _se
     c.side_effect = se
     return c
 
@@ -96,6 +103,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
             'prerequisites': tuple(prereqs),
             'optional_prerequisites': tuple(opt_prereqs)
         }
+        m._call_mock = mock.patch.object(FakeMod, '__call__', wraps=m.__call__).start()
         return m
 
     return _mod_loader, {}
@@ -104,7 +112,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 def test_composites(sensor_name):
     from satpy import DatasetID, DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
-    # TODO: Composites with DatasetIDs as prereqs
     comps = {
         DatasetID(name='comp1'): (['ds1'], []),
         DatasetID(name='comp2'): (['ds1', 'ds2'], []),
@@ -198,5 +205,5 @@ def create_fake_reader(reader_name, sensor_name='fake_sensor', datasets=None,
     r.get_dataset_key = partial(_get_dataset_key, r)
     r.all_dataset_ids = r.datasets
     r.available_dataset_ids = r.datasets
-    r.load = partial(_reader_load, r)
+    r.load.side_effect = partial(_reader_load, r)
     return r

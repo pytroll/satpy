@@ -42,6 +42,7 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAFMSG(BaseFileHandler):
+
     """NWCSAF MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -51,12 +52,18 @@ class NcNWCSAFMSG(BaseFileHandler):
         self.nc = h5netcdf.File(filename, 'r')
         self.sensor = 'seviri'
         sat_id = self.nc.attrs['satellite_identifier']
-        self.platform_name = PLATFORM_NAMES[sat_id]
+        try:
+            self.platform_name = PLATFORM_NAMES[sat_id]
+        except KeyError:
+            self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading %s.', key.name)
         variable = self.nc[key.name]
+
+        info = {'platform_name': self.platform_name,
+                'sensor': self.sensor}
 
         try:
             values = np.ma.masked_equal(variable[:],
@@ -65,11 +72,13 @@ class NcNWCSAFMSG(BaseFileHandler):
             values = np.ma.array(variable[:], copy=False)
         if 'scale_factor' in variable.attrs:
             values = values * variable.attrs['scale_factor']
+            info['scale_factor'] = variable.attrs['scale_factor']
         if 'add_offset' in variable.attrs:
             values = values + variable.attrs['add_offset']
+            info['add_offset'] = variable.attrs['add_offset']
 
-        info = {'platform_name': self.platform_name,
-                'sensor': self.sensor}
+#        info = {'platform_name': self.platform_name,
+#                'sensor': self.sensor}
 
         if 'valid_range' in variable.attrs:
             info['valid_range'] = variable.attrs['valid_range']
@@ -85,15 +94,17 @@ class NcNWCSAFMSG(BaseFileHandler):
         """Get the area definition of the datasets in the file."""
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
-
-        proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        try:
+            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
 
         nlines, ncols = self.nc[dsid.name].shape
 
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000)
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000.,
+                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000.,
+                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000.,
+                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000.)
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
@@ -107,8 +118,18 @@ class NcNWCSAFMSG(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                     '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
+                                     '%Y-%m-%dT%H:%M:%SZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
+        try:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                     '%Y-%m-%dT%H:%M:%SZ')
+        except TypeError:
+            return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
+                                     '%Y-%m-%dT%H:%M:%SZ')

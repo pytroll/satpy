@@ -57,3 +57,6 @@ nosetests.xml
 *~
 # PyCharm Settings
 .idea
+
+# vi / vim swp files
+*.swp

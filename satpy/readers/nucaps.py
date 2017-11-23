@@ -1,34 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2016.
-
+#
 # Author(s):
-
 #
 #   David Hoese <david.hoese@ssec.wisc.edu>
 #
-
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Interface to NUCAPS Retrieval NetCDF files
-
 """
-import os.path
 from datetime import datetime, timedelta
 import numpy as np
-import h5py
 import logging
 from collections import defaultdict
 
@@ -36,8 +30,6 @@ from satpy.dataset import Dataset
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
-NO_DATE = datetime(1958, 1, 1)
-EPSILON_TIME = timedelta(days=2)
 LOG = logging.getLogger(__name__)
 
 # It's difficult to do processing without knowing the pressure levels beforehand
@@ -122,33 +114,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             shape = shape[:-1]
         return shape
 
-    def adjust_scaling_factors(self, factors, file_units, output_units):
-        if factors is None or factors[0] is None:
-            factors = [1, 0]
-        if file_units == output_units:
-            LOG.debug("File units and output units are the same (%s)", file_units)
-            return factors
-        factors = np.array(factors)
-
-        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
-            return factors
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
-            return factors
-        else:
-            return factors
-
-    def combine_info(self, all_infos):
-        info = super(NUCAPSFileHandler, self).combine_info(all_infos)
-        info['Quality_Flag'] = np.concatenate(tuple(nfo['Quality_Flag'] for nfo in all_infos))
-        return info
-
     def get_dataset(self, dataset_id, ds_info, out=None):
+        """Load data array and metadata for specified dataset"""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
@@ -156,33 +123,16 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             shape = 1
         else:
             shape = self.get_shape(dataset_id, ds_info)
-        file_units = ds_info.get('file_units')
-        if file_units is None:
-            try:
-                file_units = self[var_path + '/attr/units']
-                # they were almost completely CF compliant...
-                if file_units == "none":
-                    file_units = "1"
-            except KeyError:
-                # no file units specified
-                file_units = None
+        file_units = ds_info.get('file_units',
+                                 self.get(var_path + '/attr/units'))
 
         if out is None:
             out = np.ma.empty(shape, dtype=dtype)
             out.mask = np.zeros(shape, dtype=np.bool)
+            out.info = {}
 
-        try:
-            valid_min, valid_max = self[var_path + '/attr/valid_range']
-        except KeyError:
-            try:
-                valid_min = self[var_path + '/attr/valid_min']
-                valid_max = self[var_path + '/attr/valid_max']
-            except KeyError:
-                valid_min = valid_max = None
-        if var_path + '/attr/_FillValue' in self:
-            fill_value = self[var_path + '/attr/_FillValue']
-        else:
-            fill_value = None
+        valid_min, valid_max = self[var_path + '/attr/valid_range']
+        fill_value = self.get(var_path + '/attr/_FillValue')
 
         d_tmp = np.require(self[var_path][:], dtype=dtype)
         if "index" in ds_info:
@@ -191,47 +141,41 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             d_tmp = d_tmp[..., int(ds_info["pressure_index"])]
             # this is a pressure based field
             # include surface_pressure as metadata
-            ds_info.setdefault('surface_pressure', self['Surface_Pressure'][:])
+            sp = self['Surface_Pressure'][:]
+            if 'surface_pressure' in ds_info:
+                ds_info['surface_pressure'] = np.concatenate((ds_info['surface_pressure'], sp))
+            else:
+                ds_info['surface_pressure'] = sp
             # include all the pressure levels
             ds_info.setdefault('pressure_levels', self['Pressure'][0])
         out.data[:] = d_tmp
         del d_tmp
 
-        scale_factor_path = var_path + '/attr/scale_factor'
-        if scale_factor_path in self:
-            scale_factor = self[scale_factor_path]
-            scale_offset = self[var_path + '/attr/add_offset']
-        else:
-            scale_factor = None
-            scale_offset = None
-
         if valid_min is not None and valid_max is not None:
             # the original .cfg/INI based reader only checked valid_max
-            out.mask[:] |= (out.data > valid_max) # | (out < valid_min)
+            out.mask[:] |= (out.data > valid_max)  # | (out < valid_min)
         if fill_value is not None:
             out.mask[:] |= out.data == fill_value
 
-        factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
-        if factors[0] != 1 or factors[1] != 0:
-            out.data[:] *= factors[0]
-            out.data[:] += factors[1]
-
-        ds_info.update({
+        cls = ds_info.pop("container", Dataset)
+        i = getattr(out, 'info', {})
+        i.update(ds_info)
+        i.update(dataset_id.to_dict())
+        i.update({
             "units": ds_info.get("units", file_units),
             "platform": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        ds_info.update(dataset_id.to_dict())
-        if 'standard_name' not in ds_info:
+        if 'standard_name' not in i:
             sname_path = var_path + '/attr/standard_name'
-            ds_info['standard_name'] = self.get(sname_path)
-        ds_info.update({'Quality_Flag': self['Quality_Flag'][:]})
-
-        cls = ds_info.pop("container", Dataset)
-        return cls(out, **ds_info)
+            i['standard_name'] = self.get(sname_path)
+        if 'quality_flag' in i:
+            i['quality_flag'] = np.concatenate((i['quality_flag'], self['Quality_Flag'][:]))
+        else:
+            i['quality_flag'] = self['Quality_Flag'][:]
+        return cls(out.data, mask=out.mask, copy=False, **i)
 
 
 class NUCAPSReader(FileYAMLReader):
@@ -255,6 +199,14 @@ class NUCAPSReader(FileYAMLReader):
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
     def load_ds_ids_from_config(self):
+        """Convert config dataset entries to DatasetIDs
+        
+        Special handling is done to provide level specific datasets
+        for any pressured based datasets. For example, a dataset is
+        added for each pressure level of 'Temperature' with each
+        new dataset being named 'Temperature_Xmb' where X is the
+        pressure level.
+        """
         super(NUCAPSReader, self).load_ds_ids_from_config()
         for ds_id in list(self.ids.keys()):
             ds_info = self.ids[ds_id]
@@ -283,6 +235,7 @@ class NUCAPSReader(FileYAMLReader):
                                 (min, max) for a range of pressure levels
                                 [...] list of levels to include
         """
+        dataset_keys = set(self.get_dataset_key(x) for x in dataset_keys)
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
             for ds_id in dataset_keys.copy():
@@ -345,7 +298,7 @@ class NUCAPSReader(FileYAMLReader):
 
         if self.mask_surface:
             LOG.debug("Filtering pressure levels at or below the surface pressure")
-            for ds_id in dataset_keys:
+            for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
                 if "surface_pressure" not in ds.info or "pressure_levels" not in ds.info:
                     continue
@@ -370,7 +323,7 @@ class NUCAPSReader(FileYAMLReader):
 
         if self.mask_quality:
             LOG.debug("Filtering data based on quality flags")
-            for ds_id in dataset_keys:
+            for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
                 if "quality_flag" not in ds.info:
                     continue

@@ -69,7 +69,7 @@ class LIFileHandler(BaseFileHandler):
     def end_time(self):
         return datetime.strptime(self.nc.attrs['end_time'], '%Y%m%d%H%M%S')
 
-    def get_dataset(self, key, info=None):
+    def get_dataset(self, key, info=None, out=None, xslice=None, yslice=None):
         """Load a dataset
         """
         if key in self.cache:
@@ -84,32 +84,41 @@ class LIFileHandler(BaseFileHandler):
 
         # Get lightning data out of NetCDF container
         logger.debug("Key: {}".format(key.name))
-
         # Create reference grid
         grid = np.full((self.nlines, self.ncols), np.NaN)
-        # Get product value
-        values = self.nc[typedict[key.name]][:]
-        rows = self.nc['row'][:]
-        cols = self.nc['column'][:]
-        # Convert xy coordinates to flattend indices
-        ids = np.ravel_multi_index([rows, cols], grid.shape)
-        # Replace NaN values with data
-        np.put(grid, ids, values)
-        # Correct for bottom left origin in LI row/column indices.
-        rotgrid = np.flipud(grid)
-        logger.debug('Data shape: {}'.format(str(rotgrid.shape)))
-        # Rotate the grid by 90 degree clockwise
-        logger.warning("LI data has been roteted to fit to reference grid. \
-                        Works only for test dataset")
-        rotgrid = np.rot90(rotgrid, 3)
-
+        # Set slices to full disc extent
+        if xslice is None:
+            xslice = slice(0, self.ncols, None)
+        if yslice is None:
+            yslice = slice(0, self.nlines, None)
+        logger.debug("Slices - x: {}, y: {}".format(xslice, yslice))
+        # Get product values
+        values = self.nc[typedict[key.name]]
+        rows = self.nc['row']
+        cols = self.nc['column']
         logger.debug('[ Number of values ] : {}'.format((len(values))))
         logger.debug('[Min/Max] : <{}> / <{}>'.format(np.min(values),
                                                       np.max(values)))
-        ds = (np.ma.masked_invalid(rotgrid[:]))
-        # Create projectable object
-        out = Dataset(ds, dtype=np.float32)
-        self.cache[key] = out
+        # Convert xy coordinates to flatten indices
+        ids = np.ravel_multi_index([rows, cols], grid.shape)
+        # Replace NaN values with data
+        np.put(grid, ids, values)
+
+        # Correct for bottom left origin in LI row/column indices.
+        rotgrid = np.flipud(grid)
+        logger.debug('Data shape: {}, {}'.format(yslice, xslice))
+        # Rotate the grid by 90 degree clockwise
+        rotgrid = np.rot90(rotgrid, 3)
+        logger.warning("LI data has been rotated to fit to reference grid. \
+                        Works only for test dataset")
+        # Slice the gridded lighting data
+        slicegrid = rotgrid[yslice, xslice]
+        # Mask invalid values
+        ds = np.ma.masked_where(np.isnan(slicegrid), slicegrid)
+        # Create dataset object
+        out.data[:] = np.ma.getdata(ds)
+        out.mask[:] = np.ma.getmask(ds)
+        out.info.update(key.to_dict())
 
         return(out)
 
@@ -123,9 +132,10 @@ class LIFileHandler(BaseFileHandler):
         h = 35785831.
         b = 6356583.8
         lon_0 = 0.
-        area_extent = (-5432229.9317116784, -5429229.5285458621,
-                       5429229.5285458621, 5432229.9317116784)
-
+        #area_extent = (-5432229.9317116784, -5429229.5285458621,
+        #               5429229.5285458621, 5432229.9317116784)
+        area_extent = (-5570248.4773392612, -5567248.074173444,
+                       5567248.074173444, 5570248.4773392612)
         proj_dict = {'a': float(a),
                      'b': float(b),
                      'lon_0': float(lon_0),
@@ -142,5 +152,8 @@ class LIFileHandler(BaseFileHandler):
             self.nlines,
             area_extent)
         self.area = area
-
+        logger.debug("Dataset area definition: \n {}".format(area))
         return area
+
+    def get_shape(self, dsid, ds_info):
+        return int(self.nlines), int(self.ncols)

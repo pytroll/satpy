@@ -1,0 +1,40 @@
+reader:
+  description: NOAA Level 2 Product (L2P) ACSPO SST File Reader
+  name: acspo
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs,modis,avhrr]
+  default_datasets:
+
+file_types:
+  acspo_sst:
+    file_reader: !!python/name:satpy.readers.acspo.ACSPOFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M%S}-{rdac:4s}-L2P_GHRSST-SSTskin-{sensor_id}-ACSPO_V{version}-v{gds_version}-fv{file_version}.nc']
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: acspo_sst
+    file_key: lon
+  latitude:
+    name: latitude
+    file_type: acspo_sst
+    file_key: lat
+  sst:
+    name: sst
+    coordinates: [longitude, latitude]
+    file_type: acspo_sst
+    file_key: sea_surface_temperature
+    cloud_clear: True
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    coordinates: [longitude, latitude]
+    file_type: acspo_sst
+  sea_ice_fraction:
+    name: sea_ice_fraction
+    coordinates: [longitude, latitude]
+    file_type: acspo_sst
+  wind_speed:
+    name: wind_speed
+    coordinates: [longitude, latitude]
+    file_type: acspo_sst
+

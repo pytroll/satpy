@@ -80,7 +80,7 @@ class RatioSharpenedRGB(CompositeBase):
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
-    def __call__(self, datasets, optional_datasets=[], **info):
+    def __call__(self, datasets, optional_datasets=None, **info):
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
 
@@ -89,23 +89,27 @@ class RatioSharpenedRGB(CompositeBase):
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
-            low_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
+            low_res = datasets[["red", "green", "blue"].index(
+                self.high_resolution_band)]
             if high_res.info["area"] != low_res.info["area"]:
                 if np.mod(high_res.shape[0], low_res.shape[0]) or \
-                    np.mod(high_res.shape[1], low_res.shape[1]):
+                        np.mod(high_res.shape[1], low_res.shape[1]):
                     raise IncompatibleAreas(
                         "High resolution band is not mapped the same area as the low resolution bands")
                 else:
                     f0 = high_res.shape[0] / low_res.shape[0]
                     f1 = high_res.shape[1] / low_res.shape[1]
                     if p1.shape != high_res.shape:
-                        p1 = np.ma.repeat(np.ma.repeat(p1, f0, axis=0), f1, axis=1)
+                        p1 = np.ma.repeat(np.ma.repeat(
+                            p1, f0, axis=0), f1, axis=1)
                         p1.info["area"] = high_res.info["area"]
                     if p2.shape != high_res.shape:
-                        p2 = np.ma.repeat(np.ma.repeat(p2, f0, axis=0), f1, axis=1)
+                        p2 = np.ma.repeat(np.ma.repeat(
+                            p2, f0, axis=0), f1, axis=1)
                         p2.info["area"] = high_res.info["area"]
                     if p3.shape != high_res.shape:
-                        p3 = np.ma.repeat(np.ma.repeat(p3, f0, axis=0), f1, axis=1)
+                        p3 = np.ma.repeat(np.ma.repeat(
+                            p3, f0, axis=0), f1, axis=1)
                         p3.info["area"] = high_res.info["area"]
                     area = high_res.info["area"]
             if 'rows_per_scan' in high_res.info:
@@ -1026,21 +1030,27 @@ def _linear_normalization_from_0to1(
         theoretical_max,
         theoretical_min=0,
         message="normalizing equalized data to fit in 0 to 1 range"):
-    #"    normalizing DNB data into 0 to 1 range") :
-    """
-    do a linear normalization so all data is in the 0 to 1 range. This is a sloppy but fast calculation that relies on parameters
-    giving it the correct theoretical current max and min so it can scale the data accordingly.
+    """Do a linear normalization so all data is in the 0 to 1 range.
+
+    This is a sloppy but fast calculation that relies on parameters giving it
+    the correct theoretical current max and min so it can scale the data
+    accordingly.
     """
 
     LOG.debug(message)
-    if (theoretical_min is not 0):
+    if theoretical_min is not 0:
         data[mask] = data[mask] - theoretical_min
         theoretical_max = theoretical_max - theoretical_min
     data[mask] = data[mask] / theoretical_max
 
 
 class NCCZinke(CompositeBase):
-    """Equalized DNB composite using the Zinke algorithm."""
+    """Equalized DNB composite using the Zinke algorithm.
+
+    http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
+    DOI: 10.1080/01431161.2017.1338838
+
+    """
 
     def __call__(self, datasets, **info):
         if len(datasets) != 4:
@@ -1066,9 +1076,9 @@ class NCCZinke(CompositeBase):
         # convert to decimal instead of %
         moon_illum_fraction = np.mean(datasets[3]) * 0.01
 
-        phi = np.rad2deg(np.arccos(2 * moon_illum_fraction - 1))
+        phi = np.rad2deg(np.arccos(2. * moon_illum_fraction - 1))
 
-        vfl = 0.026 * phi + 4e-9 * (phi ** 4)
+        vfl = 0.026 * phi + 4.0e-9 * (phi ** 4.)
 
         m_fullmoon = -12.74
         m_sun = -26.74
@@ -1076,14 +1086,14 @@ class NCCZinke(CompositeBase):
 
         gs_ = self.gain_factor(sza_data)
 
-        r_sun_moon = 10**((m_sun - m_moon) / -2.5)
+        r_sun_moon = 10.**((m_sun - m_moon) / -2.5)
         gl_ = r_sun_moon * self.gain_factor(lza_data)
-        gtot = 1 / (1 / gs_ + 1 / gl_)
+        gtot = 1. / (1. / gs_ + 1. / gl_)
 
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = 'ncc_zinke'
+        mda['name'] = self.info['name']
         mda.pop('calibration')
         mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
@@ -1108,6 +1118,53 @@ class NCCZinke(CompositeBase):
         gain[mask] = (123 * np.exp(1.06 * (101 - 89.589)) *
                       np.log(theta[mask] - (101 - np.e)) ** 2)
 
-        gain[theta > 103.49] = 6e7
+        gain[theta > 103.49] = 6.0e7
 
         return gain
+
+
+
+class SnowAge(CompositeBase):
+    """Returns RGB snow product based on method presented at the second 
+    CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
+    """
+    # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
+    # These Look-up Tables allow you to create the RGB snow product
+    # for SUOMI-NPP VIIRS Imager according to the algorithm
+    # presented at the second CSPP/IMAPP users' meeting at Eumetsat
+    # in Darmstadt on 14-16 April 2015
+    # The algorithm and the product are described in this
+    # presentation :
+    # http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+    # For further information you may contact
+    # Bernard Bellec at Bernard.Bellec@meteo.fr
+    # or
+    # Pascale Roquet at Pascale.Roquet@meteo.fr
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        if len(projectables) != 5:
+            raise ValueError("Expected 5 datasets, got %d" %
+                             (len(projectables), ))
+
+        # Collect information that is the same between the projectables
+        info = combine_info(*projectables)
+        # Update that information with configured information (including name)
+        info.update(self.info)
+        # Force certain pieces of metadata that we *know* to be true
+        info["wavelength"] = None
+        info["mode"] = self.info.get("mode", "RGB")
+
+        m07 = projectables[0]*255./160.
+        m08 = projectables[1]*255./160.
+        m09 = projectables[2]*255./160.
+        m10 = projectables[3]*255./160.
+        m11 = projectables[4]*255./160.
+        refcu = m11 - m10
+        refcu[refcu < 0] = 0
+
+        ch1 = m07 - refcu / 2. - m09 / 4.
+        ch2 = m08 + refcu / 4. + m09 / 4.
+        ch3 = m11 + m09
+
+        return Dataset(data=[ch1, ch2, ch3], **info)
+

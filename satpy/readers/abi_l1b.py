@@ -31,8 +31,8 @@ from datetime import datetime
 
 import h5netcdf
 import numpy as np
-from pyresample import geometry
 
+from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -94,12 +94,13 @@ class NC_ABI_L1B(BaseFileHandler):
         h = projection.attrs['perspective_point_height'][...]
         b = projection.attrs['semi_minor_axis'][...]
         lon_0 = projection.attrs['longitude_of_projection_origin'][...]
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
+        sweep_axis = projection.attrs['sweep_angle_axis'].decode()
 
-        scale_x = self.nc['x'].attrs["scale_factor"][0]
-        scale_y = self.nc['y'].attrs["scale_factor"][0]
-        offset_x = self.nc['x'].attrs["add_offset"][0]
-        offset_y = self.nc['y'].attrs["add_offset"][0]
+        # need 64-bit floats otherwise small shift
+        scale_x = np.float64(self.nc['x'].attrs["scale_factor"][0])
+        scale_y = np.float64(self.nc['y'].attrs["scale_factor"][0])
+        offset_x = np.float64(self.nc['x'].attrs["add_offset"][0])
+        offset_y = np.float64(self.nc['y'].attrs["add_offset"][0])
 
         # x and y extents in m
         h = float(h)
@@ -168,8 +169,8 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')

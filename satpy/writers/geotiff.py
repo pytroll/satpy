@@ -60,14 +60,14 @@ class GeoTIFFWriter(ImageWriter):
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
         ImageWriter.__init__(self,
-                             default_config_filename="writers/geotiff.cfg",
+                             default_config_filename="writers/geotiff.yaml",
                              **kwargs)
 
-        self.floating_point = bool(self.config_options.get(
+        self.floating_point = bool(self.info.get(
             "floating_point", None) if floating_point is None else
             floating_point)
-        self.tags = self.config_options.get("tags",
-                                            None) if tags is None else tags
+        self.tags = self.info.get("tags",
+                                  None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -77,8 +77,8 @@ class GeoTIFFWriter(ImageWriter):
         # GDAL specific settings
         self.gdal_options = {}
         for k in self.GDAL_OPTIONS:
-            if k in kwargs or k in self.config_options:
-                kwargs.get(k, self.config_options[k])
+            if k in kwargs or k in self.info:
+                self.gdal_options[k] = kwargs.get(k, self.info[k])
 
     def _gdal_write_datasets(self, dst_ds, datasets, opacity, fill_value):
         """Write *datasets* in a gdal raster structure *dts_ds*, using
@@ -133,7 +133,7 @@ class GeoTIFFWriter(ImageWriter):
                 LOG.warning(
                     "Image with floats cannot be transparent, so setting fill_value to 0")
                 fill_value = 0
-            datasets = [img.datasets[0].astype(np.float64)]
+            datasets = [img.channels[0].astype(np.float64)]
             fill_value = img.fill_value or [0]
             gformat = gdal.GDT_Float64
             opacity = 0
@@ -154,7 +154,7 @@ class GeoTIFFWriter(ImageWriter):
         LOG.debug("Saving to GeoTiff: %s", filename)
 
         g_opts = ["{0}={1}".format(k.upper(), str(v))
-                  for k, v in self.gdal_options.items()]
+                  for k, v in gdal_options.items()]
 
         ensure_dir(filename)
         if img.mode == "L":
@@ -233,5 +233,4 @@ class GeoTIFFWriter(ImageWriter):
         dst_ds.SetMetadata(tags, '')
 
         # Close the dataset
-
         dst_ds = None
