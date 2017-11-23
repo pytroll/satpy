@@ -367,8 +367,11 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    conf = recursive_dict_update(
-                        conf, yaml.load(fd)[self.prefix])
+                    enhancement_section = yaml.load(fd).get(self.prefix, {})
+                    if not enhancement_section:
+                        LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
+                        continue
+                    conf = recursive_dict_update(conf, enhancement_section)
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
             else:
@@ -440,8 +443,7 @@ class Enhancer(object):
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
         for config_file in self.get_sensor_enhancement_config(sensor):
-            if config_file not in self.sensor_enhancement_configs.append(
-                    config_file):
+            if config_file not in self.sensor_enhancement_configs:
                 self.sensor_enhancement_configs.append(config_file)
                 new_configs.append(config_file)
 
