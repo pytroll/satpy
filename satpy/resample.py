@@ -32,6 +32,7 @@ import json
 import os
 from copy import deepcopy
 from logging import getLogger
+from weakref import WeakValueDictionary
 
 import numpy as np
 import six
@@ -80,7 +81,7 @@ class BaseResampler(object):
     The base resampler class. Abstract.
     """
 
-    caches = OrderedDict()
+    caches = WeakValueDictionary()
 
     def __init__(self, source_geo_def, target_geo_def):
         """
@@ -192,32 +193,16 @@ class BaseResampler(object):
 
     def _read_params_from_cache(self, cache_dir, hash_str, filename):
         """Read resampling parameters from cache"""
-        try:
-            self.cache = self.caches[hash_str]
-            # trick to keep most used caches away from deletion
-            del self.caches[hash_str]
+        self.cache = self.caches.pop(hash_str, None)
+        if self.cache is not None and cache_dir:
+            self.dump(filename)
+        elif os.path.exists(filename):
+            self.cache = dict(np.load(filename))
             self.caches[hash_str] = self.cache
-
-            if cache_dir:
-                self.dump(filename)
-            return
-        except KeyError:
-            if os.path.exists(filename):
-                self.cache = dict(np.load(filename))
-                self.caches[hash_str] = self.cache
-                while len(self.caches) > CACHE_SIZE:
-                    self.caches.popitem(False)
-                if cache_dir:
-                    self.dump(filename)
-            else:
-                self.cache = None
 
     def _update_caches(self, hash_str, cache_dir, filename):
         """Update caches and dump new resampling parameters to disk"""
         self.caches[hash_str] = self.cache
-        while len(self.caches) > CACHE_SIZE:
-            self.caches.popitem(False)
-
         if cache_dir:
             # XXX: Look in to doing memmap-able files instead
             # `arr.tofile(filename)`
