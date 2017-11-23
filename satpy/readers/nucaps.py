@@ -56,7 +56,6 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
     def __init__(self, *args, **kwargs):
-        self._attrs_cache = {}
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
 
     def __contains__(self, item):
@@ -145,14 +144,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if 'standard_name' not in info:
             sname_path = var_path + '/attr/standard_name'
             info['standard_name'] = self.get(sname_path)
-        if 'quality_flag' not in self._attrs_cache:
-            if 'quality_flag' in info:
-                quality_flag = xr.concat((info['quality_flag'], self['Quality_Flag']),
-                                         dim=info['quality_flag'].dims[0])
-            else:
-                quality_flag = self['Quality_Flag']
-            self._attrs_cache['quality_flag'] = quality_flag
-        info['quality_flag'] = self._attrs_cache['quality_flag']
+        if dataset_id.name != 'Quality_Flag':
+            info.setdefault('ancillary_variables', ['Quality_Flag'])
         return info
 
     def get_dataset(self, dataset_id, ds_info):
@@ -196,7 +189,7 @@ class NUCAPSReader(FileYAMLReader):
         """Configure reader behavior.
 
         :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
-        :param mask_quality: mask anything where the `quality_flag` metadata is ``!= 1``.
+        :param mask_quality: mask anything where the `Quality_Flag` metadata is ``!= 1``.
 
         """
         self.pressure_dataset_names = defaultdict(list)
@@ -333,9 +326,9 @@ class NUCAPSReader(FileYAMLReader):
             LOG.debug("Filtering data based on quality flags")
             for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
-                if "quality_flag" not in ds.attrs:
+                if not any(x for x in ds.attrs['ancillary_variables'] if x.name == 'Quality_Flag'):
                     continue
-                quality_flag = ds.attrs["quality_flag"]
+                quality_flag = datasets_loaded['Quality_Flag']
                 if quality_flag.dims[0] not in datasets_loaded[ds_id].dims:
                     continue
                 LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
