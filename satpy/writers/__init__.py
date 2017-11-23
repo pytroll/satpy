@@ -121,14 +121,39 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
 
+def add_text(orig, area, text, cursor=[0,0], font=None, font_size=16, align={}, height=60, bg='white', bg_opacity=127, line='black'):
+
+    img = orig.pil_image()
+
+    if area is None:
+        raise ValueError("Area of image is None, can't add text.")
+
+    from satpy.resample import get_area_def
+    if isinstance(area, str):
+        area = get_area_def(area)
+    LOG.info("Add text to image.")
+
+    from pydecorate import DecoratorAGG
+
+    dc=DecoratorAGG(img)
+    dc.add_text(text, cursor=cursor, font=font, font_size=font_size, align=align, height=height, bg=bg, bg_opacity=bg_opacity, line=line)
+
+    arr = np.array(img)
+
+    if len(orig.channels) == 1:
+        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
+    else:
+        for idx in range(len(orig.channels)):
+            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+
 def get_enhanced_image(dataset,
                        enhancer=None,
                        fill_value=None,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
-                       overlay=None):
+                       overlay=None,
+                       text=None):
     mode = _determine_mode(dataset)
-
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -151,6 +176,11 @@ def get_enhanced_image(dataset,
 
     if overlay is not None:
         add_overlay(img, dataset.info['area'], **overlay)
+    if text is not None:
+        if type(text) not in (list,):
+            text=[text]
+        for txt in text:
+            add_text(img, dataset.info['area'], **txt)
     return img
 
 
@@ -261,12 +291,12 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, text_overlay=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
-            dataset, self.enhancer, fill_value, overlay=overlay)
+            dataset, self.enhancer, fill_value, overlay=overlay, text=text_overlay)
         self.save_image(img, filename=filename, **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
