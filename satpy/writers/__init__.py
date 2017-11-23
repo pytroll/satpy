@@ -174,13 +174,12 @@ def to_image(dataset, copy=False, **kwargs):
             kwargs.setdefault(key, dataset.attrs[key])
     dataset = dataset.squeeze()
 
-    if dataset.ndim < 2 or 'x' not in dataset.dims or 'y' not in dataset.dims:
-        raise ValueError("Need at least a 2D array to make an image.")
-
     if 'bands' in dataset.dims:
         return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
                       for band in dataset['bands']],
                      copy=copy, **kwargs)
+    elif dataset.ndim < 2:
+        raise ValueError("Need at least a 2D array to make an image.")
     else:
         return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
 

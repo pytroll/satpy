@@ -197,8 +197,8 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)), sensor='test_sensor2', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)), attrs=dict(sensor='test_sensor2', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhancer=e)
@@ -208,9 +208,9 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)),
-                     name='test1', sensor='test_sensor', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                     attrs=dict(name='test1', sensor='test_sensor', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
@@ -221,9 +221,9 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_entry2(self):
         """Test enhancing an image with a more detailed configuration section"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)),
-                     name='test1', units='kelvin', sensor='test_sensor', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                     attrs=dict(name='test1', units='kelvin', sensor='test_sensor', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
