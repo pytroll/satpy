@@ -15,6 +15,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         info = getattr(self[var_path], 'attrs', {})
         info.update(ds_info)
         info.update({
+            "shape": self.get_shape(ds_id, ds_info),
             "units": self[var_path + "/attr/UNIT"],
             "platform": self["/attr/PlatformShortName"].item(),
             "sensor": self["/attr/SensorShortName"].item(),
