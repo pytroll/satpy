@@ -819,8 +819,8 @@ class SCMIWriter(Writer):
         # get all of the datasets stored by area
         area_datasets = {}
         for x in datasets:
-            area_id = _area_id(x.info['area'])
-            area, ds_list = area_datasets.setdefault(area_id, (x.info['area'], []))
+            area_id = _area_id(x.attrs['area'])
+            area, ds_list = area_datasets.setdefault(area_id, (x.attrs['area'], []))
             ds_list.append(x)
 
         output_filenames = []
@@ -830,12 +830,13 @@ class SCMIWriter(Writer):
             tile_gen = self._get_tile_generator(area_def, lettered_grid, sector_id, num_subtiles, tile_size, tile_count)
             for dataset in ds_list:
                 pkwargs = {}
-                ds_info = dataset.info.copy()
+                ds_info = dataset.attrs.copy()
                 LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
                 if isinstance(dataset, np.ma.MaskedArray):
                     data = dataset
                 else:
-                    data = np.ma.masked_array(data, mask=np.isnan(data), copy=False)
+                    mask = dataset.isnull()
+                    data = np.ma.masked_array(dataset.values, mask=mask, copy=False)
 
                 pkwargs['awips_info'] = self._get_awips_info(ds_info, source_name=source_name)
                 pkwargs['attr_helper'] = AttributeHelper(ds_info)
@@ -896,7 +897,7 @@ class SCMIWriter(Writer):
                            awips_info, attr_helper,
                            fills, factor, offset, valid_min, valid_max, bit_depth, **kwargs):
         # Create the netcdf file
-        ds_info = dataset.info
+        ds_info = dataset.attrs
         area_def = ds_info['area']
         created_files = []
         try:
