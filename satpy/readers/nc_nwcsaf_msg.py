@@ -143,3 +143,20 @@ class NcNWCSAFMSG(BaseFileHandler):
             return datetime.strptime(
                 self.nc.attrs['time_coverage_end'].astype(str),
                                      '%Y-%m-%dT%H:%M:%SZ')
+
+
+def proj_units_to_meters(proj_str):
+    """Convert projection units from kilometers to meters."""
+    proj_parts = proj_str.split()
+    new_parts = []
+    for itm in proj_parts:
+        key, val = itm.split('=')
+        key = key.strip('+')
+        if key in ['a', 'b', 'h']:
+            val = float(val)
+            if val < 6e6:
+                val *= 1000.
+                val = '%.3f' % val
+        new_parts.append('+%s=%s' % (key, val))
+
+    return ' '.join(new_parts)
