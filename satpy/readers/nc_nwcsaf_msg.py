@@ -78,13 +78,17 @@ class NcNWCSAFMSG(BaseFileHandler):
             values = values + variable.attrs['add_offset']
             info['add_offset'] = variable.attrs['add_offset']
 
-#        info = {'platform_name': self.platform_name,
-#                'sensor': self.sensor}
-
         if 'valid_range' in variable.attrs:
             info['valid_range'] = variable.attrs['valid_range']
         if 'units' in variable.attrs:
             info['units'] = variable.attrs['units']
+
+        if 'flag_meanings' in variable.attrs:
+            info['flag_meanings'] = variable.attrs['flag_meanings'].split()
+        if 'flag_values' in variable.attrs:
+            info['flag_values'] = variable.attrs['flag_values']
+        if 'long_name' in variable.attrs:
+            info['long_name'] = variable.attrs['long_name']
 
         proj = Dataset(values,
                        copy=False,
