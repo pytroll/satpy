@@ -105,10 +105,10 @@ class NcNWCSAFMSG(BaseFileHandler):
 
         nlines, ncols = self.nc[dsid.name].shape
 
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000.,
-                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000.,
-                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000.,
-                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000.)
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']),
+                       float(self.nc.attrs['gdal_ygeo_low_right']),
+                       float(self.nc.attrs['gdal_xgeo_low_right']),
+                       float(self.nc.attrs['gdal_ygeo_up_left']))
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
