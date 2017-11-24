@@ -24,10 +24,12 @@ import unittest
 
 from numpy import sqrt
 
-from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
+from satpy.utils import (angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat,
+                         proj_units_to_meters)
 
 
 class TestUtils(unittest.TestCase):
+
     """Testing utils."""
 
     def test_lonlat2xyz(self):
@@ -175,6 +177,23 @@ class TestUtils(unittest.TestCase):
         azi, zen = xyz2angle(0, -1, 0)
         self.assertAlmostEqual(azi, 180)
         self.assertAlmostEqual(zen, 90)
+
+    def test_proj_units_to_meters(self):
+        prj = '+asd=123123123123'
+        res = proj_units_to_meters(prj)
+        self.assertEqual(res, prj)
+        prj = '+a=6378.137'
+        res = proj_units_to_meters(prj)
+        self.assertEqual(res, '+a=6378137.000')
+        prj = '+a=6378.137 +units=km'
+        res = proj_units_to_meters(prj)
+        self.assertEqual(res, '+a=6378137.000')
+        prj = '+a=6378.137 +b=6378.137'
+        res = proj_units_to_meters(prj)
+        self.assertEqual(res, '+a=6378137.000 +b=6378137.000')
+        prj = '+a=6378.137 +b=6378.137 +h=35785.863'
+        res = proj_units_to_meters(prj)
+        self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
 
 def suite():
