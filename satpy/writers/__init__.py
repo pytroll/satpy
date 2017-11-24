@@ -121,22 +121,10 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
 
-def add_text(orig, area, text, cursor=[0,0], font=None, font_size=16, align={}, height=60, bg='white', bg_opacity=127, line='black'):
-
-    img = orig.pil_image()
-
-    if area is None:
-        raise ValueError("Area of image is None, can't add text.")
-
-    from satpy.resample import get_area_def
-    if isinstance(area, str):
-        area = get_area_def(area)
+def add_text(orig, dc, img, text=None):
     LOG.info("Add text to image.")
 
-    from pydecorate import DecoratorAGG
-
-    dc=DecoratorAGG(img)
-    dc.add_text(text, cursor=cursor, font=font, font_size=font_size, align=align, height=height, bg=bg, bg_opacity=bg_opacity, line=line)
+    dc.add_text(**text)
 
     arr = np.array(img)
 
@@ -146,13 +134,44 @@ def add_text(orig, area, text, cursor=[0,0], font=None, font_size=16, align={}, 
         for idx in range(len(orig.channels)):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
+def add_logo(orig, dc, img, logo=None):
+    LOG.info("Add logo to image.")
+
+    dc.add_logo(**logo)
+
+    arr = np.array(img)
+
+    if len(orig.channels) == 1:
+        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
+    else:
+        for idx in range(len(orig.channels)):
+            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+
+def add_decorate(orig, **decorate):
+    LOG.info("Decorate image.")
+
+    #Need to create this here to possible keep the alignment
+    #when adding text and/or logo with pydecorate
+    img_orig = orig.pil_image()
+    from pydecorate import DecoratorAGG
+    dc=DecoratorAGG(img_orig)
+
+    #decorate need to be a list to maintain the alignment
+    #as ordered in the list
+    if 'decorate' in decorate:
+        for dec in decorate['decorate']:
+            if 'logo' in dec:
+                add_logo(orig, dc, img_orig, logo=dec['logo'])
+            elif 'text' in dec:
+                add_text(orig, dc, img_orig, text=dec['text'])
+
 def get_enhanced_image(dataset,
                        enhancer=None,
                        fill_value=None,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
-                       text=None):
+                       decorate=None):
     mode = _determine_mode(dataset)
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
@@ -176,11 +195,10 @@ def get_enhanced_image(dataset,
 
     if overlay is not None:
         add_overlay(img, dataset.info['area'], **overlay)
-    if text is not None:
-        if type(text) not in (list,):
-            text=[text]
-        for txt in text:
-            add_text(img, dataset.info['area'], **txt)
+
+    if decorate is not None:
+        add_decorate(img, **decorate)
+
     return img
 
 
@@ -291,12 +309,12 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, text_overlay=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, decorate=None, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
-            dataset, self.enhancer, fill_value, overlay=overlay, text=text_overlay)
+            dataset, self.enhancer, fill_value, overlay=overlay, decorate=decorate)
         self.save_image(img, filename=filename, **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
