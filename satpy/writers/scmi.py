@@ -399,8 +399,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
                 # theoretically we can precompute the X/Y now
                 # instead of taking the x/y data and mapping it
                 # to the tile
-                tmp_x = np.arange(x_left + cw / 2., x_right, cw, dtype=np.float32)
-                tmp_y = np.arange(y_top - ch / 2., y_bot, -ch, dtype=np.float32)
+                tmp_x = np.arange(x_left + cw / 2., x_right, cw)
+                tmp_y = np.arange(y_top - ch / 2., y_bot, -ch)
                 data_x_idx_min = np.nonzero(np.isclose(tmp_x, x[x_slice.start]))[0][0]
                 data_x_idx_max = np.nonzero(np.isclose(tmp_x, x[x_slice.stop - 1]))[0][0]
                 # I have a half pixel error some where
@@ -831,6 +831,7 @@ class SCMIWriter(Writer):
             for dataset in ds_list:
                 pkwargs = {}
                 ds_info = dataset.info.copy()
+                LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
                 if isinstance(dataset, np.ma.MaskedArray):
                     data = dataset
                 else:
@@ -880,7 +881,7 @@ class SCMIWriter(Writer):
                                 LOG.warning("Data did not fit in to any lettered tile")
                             raise RuntimeError("No SCMI tiles were created")
                         output_filenames.append(fn)
-                    except StandardError:
+                    except (RuntimeError, KeyError, AttributeError):
                         LOG.error("Could not create output for '%s'", ds_info['name'])
                         LOG.debug("Writer exception: ", exc_info=True)
                         raise
@@ -899,11 +900,6 @@ class SCMIWriter(Writer):
         area_def = ds_info['area']
         created_files = []
         try:
-            LOG.debug("Scaling %s data to fit in netcdf file...", ds_info["name"])
-            data = dataset
-
-            LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
-
             if filename is None:
                 # format the filename
                 of_kwargs = ds_info.copy()
@@ -1136,6 +1132,7 @@ def main():
         return
     else:
         raise NotImplementedError("Command line interface not implemented yet for SCMI writer")
+
 
 if __name__ == '__main__':
     sys.exit(main())
