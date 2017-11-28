@@ -28,11 +28,26 @@ sectors:
     upper_right_lonlat: [-135, 50]
     resolution: [2150000, 2150000]
     projection: '+proj=merc +datum=WGS84 +ellps=WGS84 +lon_0=170 +lat_0=0 +units=m +no_defs'
-  GOESR_FLDK:
+  GOES_TEST:
     lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
     upper_right_xy: [5433893.2095645051, 5433892.6923244298]
     resolution: [2500000, 2500000]
     projection: '+proj=geos +lon_0=-89.5 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_EAST:
+    lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
+    upper_right_xy: [5433893.2095645051, 5433892.6923244298]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-75.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_WEST:
+    lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
+    upper_right_xy: [5433893.2095645051, 5433892.6923244298]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-137.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
+  GOES_STORE:
+    lower_left_xy: [-5433892.6923244298, -5433893.2095645051]
+    upper_right_xy: [5433893.2095645051, 5433892.6923244298]
+    resolution: [2500000, 2500000]
+    projection: '+proj=geos +lon_0=-105.0 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs'
 datasets:
     default:
        physical_element: '{name}'
