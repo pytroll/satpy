@@ -77,6 +77,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
+    from pycoast import ContourWriterAGG
     from satpy.resample import get_area_def
     if isinstance(area, str):
         area = get_area_def(area)
@@ -105,7 +106,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution " + resolution)
 
-    from pycoast import ContourWriterAGG
+    if img.mode.endswith('A'):
+        img = img.convert('RGBA')
+    else:
+        img = img.convert('RGB')
+
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width)
@@ -114,8 +119,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
     arr = np.array(img)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
+    if orig.mode == 'L':
+        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
+    elif orig.mode == 'LA':
+        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
+        orig.channels[1] = np.ma.array(arr[:, :, -1] / 255.0)
     else:
         for idx in range(len(orig.channels)):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
