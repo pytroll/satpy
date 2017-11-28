@@ -122,6 +122,12 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
 
 def add_text(orig, dc, img, text=None):
+    """
+    Add text to an image using the pydecorate function add_text
+    All the features in pydecorate are available
+
+    See documentation of pydecorate
+    """
     LOG.info("Add text to image.")
 
     dc.add_text(**text)
@@ -135,6 +141,12 @@ def add_text(orig, dc, img, text=None):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
 def add_logo(orig, dc, img, logo=None):
+    """
+    Add logos or other images to an image using the pydecorate function add_logo
+    All the features in pydecorate are available
+
+    See documentation of pydecorate
+    """
     LOG.info("Add logo to image.")
 
     dc.add_logo(**logo)
@@ -148,6 +160,28 @@ def add_logo(orig, dc, img, logo=None):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
 def add_decorate(orig, **decorate):
+    """
+    Decorate an image with text and/or logos/images
+    This call add text/logo in order as given in the input to keep 
+    the alignment features available in pydecorate
+
+    An example of the decorate config:
+    decorate={'decorate':[{'logo':{'logo_path':<path to a logo>,'height':143,'bg':'white','bg_opacity':255}},
+                          {'text':{'txt': start_time_txt, 'align':{'top_bottom':'bottom', 'left_right':'right'},
+                                   'font':<path to ttf font>, 'font_size':22, 'height':30, 'bg':'black',
+                                   'bg_opacity':255, 'line':'white'}}
+                          ]
+             }
+
+    Any numbers of text/logo in any order can be added to the decorate list,
+    but the order of the list is kept as described above.
+
+    Note that a feature given in one element, eg. bg (which is the background color) will also apply on the next elements
+    unless a new value is given.
+
+    align is a special keyword telling where in the image to start adding features, top_bottom is either top or bottom
+    and left_right is either left or right.
+    """
     LOG.info("Decorate image.")
 
     #Need to create this here to possible keep the alignment
