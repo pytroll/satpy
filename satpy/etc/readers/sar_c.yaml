@@ -54,6 +54,7 @@ datasets:
     #   reflectance:
     #     standard_name: toa_bidirectional_reflectance
     #     units: "%"
+    coordinates: [longitude, latitude]
     file_type: safe_measurement
 
   noise:
