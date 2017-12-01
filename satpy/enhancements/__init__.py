@@ -141,4 +141,3 @@ def three_d_effect(img, **kwargs):
         img.channels[i] = np.ma.masked_where(mask,
                                              convolve2d(img.channels[i],
                                                         kernel, mode='same'))
->>>>>> > Add 3D effect enhancement
