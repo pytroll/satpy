@@ -133,7 +133,7 @@ class Scene(InfoObject):
                 'area': area,
             })
         if filter_parameters:
-            reader_kwargs.setdefault('metadata', {}).update(filter_parameters)
+            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     reader=reader,

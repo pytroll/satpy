@@ -272,13 +272,12 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
     """
     if reader is not None:
+        if not isinstance(reader, (list, tuple)):
+            reader = [reader]
         # given a config filename or reader name
-        if not reader.endswith(".yaml"):
-            reader += ".yaml"
-        config_files = [reader]
+        config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join("readers", "*.yaml"),
-                                     ppp_config_dir)
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'), ppp_config_dir)
         config_files = set(reader_configs)
 
     for config_file in config_files:
@@ -294,7 +293,7 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
-                           reader=None, sensor=None, ppp_config_dir=None,
+                           reader=None, sensor=None, ppp_config_dir=get_environ_config_dir(),
                            filter_parameters=None, reader_kwargs=None):
     """Find on-disk files matching the provided parameters.
 
@@ -334,10 +333,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         filter_parameters['start_time'] = start_time
         filter_parameters['end_time'] = end_time
     reader_kwargs['filter_parameters'] = filter_parameters
-
-    if reader is None and not base_dir:
-        # we weren't given anything to search through
-        raise ValueError("Either 'reader' or 'base_dir' must be provided.")
 
     for reader_configs in configs_for_reader(reader, ppp_config_dir):
         try:
@@ -384,14 +379,23 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
 
-    remaining_filenames = set(filenames or [])
-    if not remaining_filenames:
+    if not filenames:
         LOG.info("'filenames' required to create reader objects")
         return {}
+
     if reader is None and isinstance(filenames, dict):
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
-    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+        remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    else:
+        remaining_filenames = set(filenames or [])
+
+    for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
+        if isinstance(filenames, dict):
+            readers_files = set(filenames[reader[idx]])
+        else:
+            readers_files = remaining_filenames
+
         try:
             reader_instance = load_reader(reader_configs, **reader_kwargs)
         except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
@@ -399,9 +403,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             LOG.debug(str(err))
             continue
 
-        if remaining_filenames:
-            loadables = reader_instance.select_files_from_pathnames(
-                remaining_filenames)
+        if readers_files:
+            loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
             reader_instance.create_filehandlers(loadables)
             reader_instances[reader_instance.name] = reader_instance

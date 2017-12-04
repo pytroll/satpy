@@ -160,6 +160,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         for pattern in self.file_patterns:
             matching = glob.iglob(os.path.join(directory, globify(pattern)))
             filenames.extend(matching)
+            print(pattern, filenames)
         return filenames
 
     def select_files_from_pathnames(self, filenames):
@@ -365,7 +366,6 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
-
     """Implementation of the YAML reader."""
 
     def __init__(self,
@@ -379,6 +379,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
+        print(self.filter_parameters, kwargs)
         # subclasses are responsible for adding relevant keyword arguments
         # to the metadata
         self.metadata = metadata

@@ -52,12 +52,13 @@ def step_impl(context):
 
 @when(u'user loads the data without providing a config file')
 def step_impl(context):
-    from satpy.scene import Scene
+    from satpy import Scene, find_files_and_readers
     from datetime import datetime
     os.chdir("/tmp/")
-    scn = Scene(sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
+    readers_files = find_files_and_readers(sensor='viirs',
+                                           start_time=datetime(2015, 3, 11, 11, 20),
+                                           end_time=datetime(2015, 3, 11, 11, 26))
+    scn = Scene(filenames=readers_files)
     scn.load(["M02"])
     context.scene = scn
 
@@ -79,12 +80,13 @@ def step_impl(context):
 
 @when(u'user wants to know what data is available')
 def step_impl(context):
-    from satpy.scene import Scene
+    from satpy import Scene, find_files_and_readers
     from datetime import datetime
     os.chdir("/tmp/")
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
+    reader_files = find_files_and_readers(sensor="viirs",
+                                          start_time=datetime(2015, 3, 11, 11, 20),
+                                          end_time=datetime(2015, 3, 11, 11, 26))
+    scn = Scene(filenames=reader_files)
     context.available_dataset_ids = scn.available_dataset_ids()
 
 
@@ -92,10 +94,11 @@ def step_impl(context):
 def step_impl(context):
     assert (len(context.available_dataset_ids) >= 5)
 
+
 @given("datasets with the same name")
 def step_impl(context):
     """Datasets with the same name but different other ID parameters"""
-    from satpy.scene import Scene
+    from satpy import Scene
     from satpy.dataset import Dataset, DatasetID
     scn = Scene()
     scn[DatasetID('ds1', calibration='radiance')] = Dataset([[1, 2], [3, 4]])
@@ -106,10 +109,12 @@ def step_impl(context):
     scn[DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))] = Dataset([[5, 6], [7, 8]])
     context.scene = scn
 
+
 @when("a dataset is retrieved by name")
 def step_impl(context):
     """Use the Scene's getitem method to get a dataset"""
     context.returned_dataset = context.scene['ds1']
+
 
 @then("the least modified version of the dataset is returned")
 def step_impl(context):
