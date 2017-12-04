@@ -120,8 +120,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
         rec_up.return_value = res_dict
         self.config = res_dict
         self.reader = yr.FileYAMLReader([__file__],
-                                        start_time=datetime(2000, 1, 1),
-                                        end_time=datetime(2000, 1, 2))
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
@@ -218,7 +220,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         with patch.dict('sys.modules', modules):
 
-            self.reader._area = True
+            self.reader.filter_parameters['area'] = True
             bnd.return_value.contour_poly.intersection.return_value = True
             adb.return_value.contour_poly.intersection.return_value = True
             res = self.reader.check_file_covers_area(file_handler)
@@ -229,12 +231,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
             res = self.reader.check_file_covers_area(file_handler)
             self.assertFalse(res)
 
-            self.reader._area = False
+            self.reader.filter_parameters['area'] = False
             res = self.reader.check_file_covers_area(file_handler)
             self.assertTrue(res)
 
             file_handler.get_bounding_box.side_effect = NotImplementedError()
-            self.reader._area = True
+            self.reader.filter_parameters['area'] = True
             res = self.reader.check_file_covers_area(file_handler)
             self.assertTrue(res)
 

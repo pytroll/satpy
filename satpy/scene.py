@@ -115,7 +115,8 @@ class Scene(InfoObject):
                 "Deprecated: Use " + \
                 "'filter_parameters' to filter loaded files by 'start_time', " + \
                 "'end_time', or 'area'.")
-            reader_kwargs.update({
+            fp = filter_parameters if filter_parameters else {}
+            fp.update({
                 'start_time': start_time,
                 'end_time': end_time,
                 'area': area,
@@ -161,7 +162,7 @@ class Scene(InfoObject):
                                 filenames=None,
                                 reader=None,
                                 reader_kwargs=None):
-        """Find readers and return their instanciations."""
+        """Find readers and return their instantiations."""
         return load_readers(filenames=filenames,
                             reader=reader,
                             reader_kwargs=reader_kwargs,

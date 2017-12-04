@@ -32,7 +32,7 @@ from mipp import CalibrationError, ReaderError, xrit
 from satpy.dataset import Dataset
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import area_defs_to_extent
-from satpy.readers.yaml_reader import AbstractYAMLReader
+from satpy.readers.yaml_reader import FileYAMLReader
 from trollsift.parser import globify, parse
 
 LOGGER = logging.getLogger(__name__)
@@ -47,18 +47,12 @@ except ImportError:
     LOGGER.warning("pyresample missing. Can only work in satellite projection")
 
 
-class xRITFile(AbstractYAMLReader):
+class xRITFile(FileYAMLReader):
     '''Class for reading XRIT data.
     '''
 
-    def __init__(self, config_files,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
-        super(xRITFile, self).__init__(config_files,
-                                       start_time=start_time,
-                                       end_time=end_time,
-                                       area=area)
+    def __init__(self, config_files, **kwargs):
+        super(xRITFile, self).__init__(config_files, **kwargs)
         self.info['filenames'] = []
         self.file_patterns = []
         for file_type in self.config['file_types'].values():
@@ -72,7 +66,7 @@ class xRITFile(AbstractYAMLReader):
     def end_time(self):
         return self._end_time
 
-    def load(self, dataset_keys, area=None, start_time=None, end_time=None):
+    def load(self, dataset_keys):
         image_files = []
         pattern = self.file_patterns[0]
         prologue_file = None
@@ -108,7 +102,7 @@ class xRITFile(AbstractYAMLReader):
             if 'platform_name' in self.info:
                 kwargs['platform_name'] = self.info['platform_name']
             # Convert area definitions to maximal area_extent
-            if not area_converted_to_extent and area is not None:
+            if not area_converted_to_extent and self.filter_parameters.get('area') is not None:
                 metadata = xrit.sat.load_files(prologue_file,
                                                channel_files,
                                                epilogue_file,
@@ -117,7 +111,7 @@ class xRITFile(AbstractYAMLReader):
                 # otherwise use the default value (MSG3 extent at
                 # lon0=0.0), that is, do not pass default_extent=area_extent
                 area_extent = area_defs_to_extent(
-                    [area], metadata.proj4_params)
+                    [self.filter_parameters['area']], metadata.proj4_params)
                 area_converted_to_extent = True
 
             try:
@@ -200,21 +194,11 @@ class xRITFile(AbstractYAMLReader):
 
         return datasets
 
-    def select_files(self,
-                     base_dir=None,
-                     filenames=None,
-                     sensor=None):
-        file_set, info_filenames = super(xRITFile, self).select_files(
-            base_dir, filenames, sensor)
-
-        # for pattern in self.file_patterns:
-        #    for filename in filenames:
-        #        parse(pattern, os.path.basename(filename))
-
+    def create_filehandlers(self, filenames):
         matching_filenames = []
 
         # Organize filenames in to file types and create file handlers
-        remaining_filenames = set(self.info['filenames'])
+        remaining_filenames = set(filenames)
         start_times = []
         end_times = []
         for filetype, filetype_info in self.config['file_types'].items():
@@ -249,4 +233,3 @@ class xRITFile(AbstractYAMLReader):
             self._start_time = min(start_times)
             self._end_time = max(end_times)
         self.info['filenames'] = matching_filenames
-        return file_set, info_filenames

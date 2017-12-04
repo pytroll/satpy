@@ -82,15 +82,8 @@ def match_filenames(filenames, pattern):
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
-    def __init__(self,
-                 config_files,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
+    def __init__(self, config_files):
         self.config = {}
-        self._start_time = start_time
-        self._end_time = end_time
-        self._area = area
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
@@ -377,25 +370,20 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def __init__(self,
                  config_files,
-                 start_time=None,
-                 end_time=None,
-                 area=None,
+                 filter_parameters=None,
                  filter_filenames=True,
                  metadata=None,
                  **kwargs):
-        super(FileYAMLReader, self).__init__(config_files,
-                                             start_time=start_time,
-                                             end_time=end_time,
-                                             area=area)
+        super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
-        self.filter_filenames = self.info.get('filter_filenames',
-                                              filter_filenames)
+        self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
+        self.filter_parameters = filter_parameters or {}
         # subclasses are responsible for adding relevant keyword arguments
         # to the metadata
         self.metadata = metadata
         if kwargs:
-            logger.warning("Unrecognized/unused reader keyword argument(s) '{:r}'".format(kwargs))
+            logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
 
     @property
     def available_dataset_ids(self):
@@ -421,10 +409,10 @@ class FileYAMLReader(AbstractYAMLReader):
     def check_file_covers_area(self, file_handler):
         """Checks if the file covers the current area.
 
-        If the file doesn't provide any bounding box information or self._area
-        is None, the check returns True.
+        If the file doesn't provide any bounding box information or 'area'
+        was not provided in `filter_parameters`, the check returns True.
         """
-        if self._area:
+        if self.filter_parameters.get('area'):
             from trollsched.boundary import AreaDefBoundary, Boundary
             from satpy.resample import get_area_def
             try:
@@ -432,7 +420,8 @@ class FileYAMLReader(AbstractYAMLReader):
             except NotImplementedError:
                 pass
             else:
-                abb = AreaDefBoundary(get_area_def(self._area), frequency=1000)
+                abb = AreaDefBoundary(
+                    get_area_def(self.filter_parameters['area']), frequency=1000)
 
                 intersection = gbb.contour_poly.intersection(abb.contour_poly)
                 if not intersection:
@@ -512,10 +501,12 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def filter_fh_by_time(self, filehandlers):
         """Filter out filehandlers outside the desired time_range."""
+        start_time = self.filter_parameters.get('start_time')
+        end_time = self.filter_parameters.get('end_time')
         for filehandler in filehandlers:
-            if self._start_time and filehandler.end_time < self._start_time:
+            if start_time and filehandler.end_time < start_time:
                 continue
-            if self._end_time and filehandler.start_time > self._end_time:
+            if end_time and filehandler.start_time > end_time:
                 continue
             yield filehandler
 
@@ -526,8 +517,10 @@ class FileYAMLReader(AbstractYAMLReader):
         from the filename, keep all the filename that have a start time before
         the requested end time.
         """
+        start_time = self.filter_parameters.get('start_time')
+        end_time = self.filter_parameters.get('end_time')
         for filename, filename_info in filename_items:
-            if self._start_time is None and self._end_time is None:
+            if start_time is None and end_time is None:
                 # shortcut
                 yield filename, filename_info
                 continue
@@ -540,9 +533,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 fend = fend.replace(year=fstart.year,
                                     month=fstart.month,
                                     day=fstart.day)
-            if self._start_time and fend and fend < self._start_time:
+            if start_time and fend and fend < start_time:
                 continue
-            if self._end_time and fstart > self._end_time:
+            if end_time and fstart > end_time:
                 continue
             yield filename, filename_info
 
@@ -579,6 +572,8 @@ class FileYAMLReader(AbstractYAMLReader):
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
         if self.filter_filenames:
+            # preliminary filter of filenames based on start/end time
+            # to reduce the number of files to open
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
@@ -831,9 +826,9 @@ class FileYAMLReader(AbstractYAMLReader):
         """
         slice_kwargs = {}
 
-        if area is not None and self._area is not None:
+        if area is not None and self.filter_parameters.get('area') is not None:
             try:
-                slices = get_area_slices(area, self._area)
+                slices = get_area_slices(area, self.filter_parameters['area'])
                 area = get_sub_area(area, *slices)
                 slice_kwargs['xslice'], slice_kwargs['yslice'] = slices
             except (NotImplementedError, AttributeError):
