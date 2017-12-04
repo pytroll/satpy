@@ -295,7 +295,7 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
-                           reader_kwargs=None):
+                           filter_parameters=None, reader_kwargs=None):
     """
 
     Args:
@@ -307,6 +307,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         sensor (list or str): Limit used files by provided sensors.
         ppp_config_dir (str): The directory containing the configuration
                               files for satpy.
+        filter_parameters (dict): Filename pattern metadata to filter on.
+                                  `start_time` and `end_time` are
+                                  automatically added to this dictionary.
         reader_kwargs (dict): Keyword arguments to pass to specific reader
                               instances.
 
@@ -315,7 +318,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
     sensor_supported = False
+
+    if start_time or end_time:
+        filter_parameters['start_time'] = start_time
+        filter_parameters['end_time'] = end_time
+    reader_kwargs['filter_parameters'] = filter_parameters
 
     if reader is None and not base_dir:
         # we weren't given anything to search through
@@ -324,10 +333,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     for reader_configs in configs_for_reader(reader, ppp_config_dir):
         try:
-            reader_instance = load_reader(reader_configs,
-                                          start_time=start_time,
-                                          end_time=end_time,
-                                          **reader_kwargs)
+            reader_instance = load_reader(reader_configs, **reader_kwargs)
         except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
