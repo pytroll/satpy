@@ -351,83 +351,41 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     return reader_instances
 
 
-class ReaderFinder(object):
-    """Find readers given a scene, filenames, sensors, and/or a reader_name
-    """
+def load_readers(filenames=None, reader=None, reader_kwargs=None,
+                 ppp_config_dir=get_environ_config_dir()):
+    """Create specified readers and assign files to them."""
+    reader_instances = {}
+    reader_kwargs = reader_kwargs or {}
 
-    def __init__(self,
-                 ppp_config_dir=get_environ_config_dir(),
-                 base_dir=None,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
-        """Find readers.
-
-        If both *filenames* and *base_dir* are provided, only *filenames* is
-        used.
-        """
-        self.ppp_config_dir = ppp_config_dir
-        self.base_dir = base_dir
-        self.start_time = start_time
-        self.end_time = end_time
-        self.area = area
-
-    def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None):
-        reader_instances = {}
-        reader_kwargs = reader_kwargs or {}
-
-        if not filenames and reader is None and not self.base_dir:
-            # we weren't given anything to search through
-            LOG.info("Not enough information provided to find readers.")
-            return reader_instances
-
-        sensor_supported = False
-        remaining_filenames = set(
-            filenames) if filenames is not None else set()
-        if reader is None and isinstance(filenames, dict):
-            # filenames is a dictionary of reader_name -> filenames
-            reader = list(filenames.keys())
-        for reader_configs in configs_for_reader(reader, self.ppp_config_dir):
-            try:
-                reader_instance = load_reader(reader_configs,
-                                              start_time=self.start_time,
-                                              end_time=self.end_time,
-                                              area=self.area,
-                                              **reader_kwargs)
-            except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
-                LOG.info('Cannot use %s', str(reader_configs))
-                LOG.debug(str(err))
-                continue
-
-            if not reader_instance.supports_sensor(sensor):
-                continue
-            elif sensor is not None:
-                # sensor was specified and a reader supports it
-                sensor_supported = True
-            if remaining_filenames:
-                loadables = reader_instance.select_files_from_pathnames(
-                    remaining_filenames)
-            else:
-                loadables = reader_instance.select_files_from_directory(
-                    self.base_dir)
-            if loadables:
-                reader_instance.create_filehandlers(loadables)
-                reader_instances[reader_instance.name] = reader_instance
-                remaining_filenames -= set(loadables)
-            if filenames is not None and not remaining_filenames:
-                # we were given filenames to look through and found a reader
-                # for all of them
-                break
-
-        if sensor and not sensor_supported:
-            LOG.warning(
-                "Sensor '{}' not supported by any readers".format(sensor))
+    remaining_filenames = set(filenames or [])
+    if not remaining_filenames:
+        LOG.info("'filenames' required to create reader objects")
+        return {}
+    if reader is None and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        reader = list(filenames.keys())
+    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+        try:
+            reader_instance = load_reader(reader_configs, **reader_kwargs)
+        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+            LOG.info('Cannot use %s', str(reader_configs))
+            LOG.debug(str(err))
+            continue
 
         if remaining_filenames:
-            LOG.warning(
-                "Don't know how to open the following files: {}".format(str(
-                    remaining_filenames)))
-        if not reader_instances:
-            raise ValueError("No supported files found")
-        return reader_instances
+            loadables = reader_instance.select_files_from_pathnames(
+                remaining_filenames)
+        if loadables:
+            reader_instance.create_filehandlers(loadables)
+            reader_instances[reader_instance.name] = reader_instance
+            remaining_filenames -= set(loadables)
+        if not remaining_filenames:
+            break
+
+    if remaining_filenames:
+        LOG.warning(
+            "Don't know how to open the following files: {}".format(str(
+                remaining_filenames)))
+    if not reader_instances:
+        raise ValueError("No supported files found")
+    return reader_instances

@@ -33,7 +33,7 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
                           runtime_import, recursive_dict_update)
 from satpy.dataset import Dataset, DatasetID, InfoObject
 from satpy.node import DependencyTree
-from satpy.readers import DatasetDict, ReaderFinder
+from satpy.readers import DatasetDict, load_readers
 
 try:
     import configparser
@@ -44,8 +44,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Scene(InfoObject):
-
-    """The almighty scene class."""
+    """The almighty Scene class."""
 
     def __init__(self,
                  filenames=None,
@@ -56,6 +55,7 @@ class Scene(InfoObject):
                  start_time=None,
                  end_time=None,
                  area=None,
+                 filter_parameters=None,
                  reader_kwargs=None):
         """The Scene object constructor.
 
@@ -85,10 +85,10 @@ class Scene(InfoObject):
             end_time (datetime): Limit used files by ending time.
             reader_kwargs (dict): Keyword arguments to pass to specific reader
                                   instances.
-            metadata: Other metadata to assign to the Scene's ``.info``.
         """
-        InfoObject.__init__(self, sensor=sensor or set(), area=area,
-                            start_time=start_time, end_time=end_time)
+        super(Scene, self).__init__()
+        # InfoObject.__init__(self, sensor=sensor or set(), area=area,
+        #                     start_time=start_time, end_time=end_time)
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
         # in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
@@ -97,7 +97,7 @@ class Scene(InfoObject):
         if not filenames and (start_time or end_time or base_dir):
             import warnings
             warnings.warn(
-                "Deprecated: Please use " + \
+                "Deprecated: Use " + \
                 "'from satpy import find_files_and_readers' to find files")
             from satpy import find_files_and_readers
             filenames = find_files_and_readers(
@@ -109,12 +109,23 @@ class Scene(InfoObject):
                 ppp_config_dir=self.ppp_config_dir,
                 reader_kwargs=reader_kwargs,
             )
+        elif start_time or end_time or area:
+            import warnings
+            warnings.warn(
+                "Deprecated: Use " + \
+                "'filter_parameters' to filter loaded files by 'start_time', " + \
+                "'end_time', or 'area'.")
+            reader_kwargs.update({
+                'start_time': start_time,
+                'end_time': end_time,
+                'area': area,
+            })
+        if filter_parameters:
+            reader_kwargs.setdefault('metadata', {}).update(filter_parameters)
 
         self.readers = self.create_reader_instances(filenames=filenames,
-                                                    base_dir=base_dir,
                                                     reader=reader,
-                                                    reader_kwargs=reader_kwargs
-                                                    )
+                                                    reader_kwargs=reader_kwargs)
         self.info.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
@@ -148,19 +159,13 @@ class Scene(InfoObject):
 
     def create_reader_instances(self,
                                 filenames=None,
-                                base_dir=None,
                                 reader=None,
                                 reader_kwargs=None):
         """Find readers and return their instanciations."""
-        finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
-                              base_dir=base_dir,
-                              start_time=self.info.get('start_time'),
-                              end_time=self.info.get('end_time'),
-                              area=self.info.get('area'), )
-        return finder(reader=reader,
-                      sensor=self.info.get("sensor"),
-                      filenames=filenames,
-                      reader_kwargs=reader_kwargs)
+        return load_readers(filenames=filenames,
+                            reader=reader,
+                            reader_kwargs=reader_kwargs,
+                            ppp_config_dir=self.ppp_config_dir)
 
     @property
     def start_time(self):
