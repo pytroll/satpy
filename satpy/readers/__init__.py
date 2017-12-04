@@ -296,27 +296,36 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None):
-    """
+    """Find on-disk files matching the provided parameters.
+
+    Use `start_time` and/or `end_time` to limit found filenames by the times
+    in the filenames (not the internal file metadata). Files are matched if
+    they fall anywhere within the range specified by these parameters.
+
+    Searching is **NOT** recursive.
+
+    The returned dictionary can be passed directly to the `Scene` object
+    through the `filenames` keyword argument.
 
     Args:
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
         base_dir (str): The directory to search for files containing the
-                        data to load.
-        reader: The name of the reader to use for loading the data.
-        sensor (list or str): Limit used files by provided sensors.
+                        data to load. Defaults to the current directory.
+        reader (str or list): The name of the reader to use for loading the data or a list of names.
+        sensor (str or list): Limit used files by provided sensors.
         ppp_config_dir (str): The directory containing the configuration
-                              files for satpy.
-        filter_parameters (dict): Filename pattern metadata to filter on.
-                                  `start_time` and `end_time` are
-                                  automatically added to this dictionary.
+                              files for SatPy.
+        filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
+                                  automatically added to this dictionary. Shortcut for
+                                  `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader
-                              instances.
+                              instances to further configure file searching.
 
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
-    reader_instances = {}
+    reader_files= {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
     sensor_supported = False
@@ -328,8 +337,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     if reader is None and not base_dir:
         # we weren't given anything to search through
-        LOG.info("Not enough information provided to find readers.")
-        return reader_instances
+        raise ValueError("Either 'reader' or 'base_dir' must be provided.")
 
     for reader_configs in configs_for_reader(reader, ppp_config_dir):
         try:
@@ -346,20 +354,33 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
             sensor_supported = True
         loadables = reader_instance.select_files_from_directory(base_dir)
         if loadables:
-            reader_instances[reader_instance.name] = loadables
+            reader_files[reader_instance.name] = loadables
 
     if sensor and not sensor_supported:
         LOG.warning(
             "Sensor '{}' not supported by any readers".format(sensor))
 
-    if not reader_instances:
+    if not reader_files:
         raise ValueError("No supported files found")
-    return reader_instances
+    return reader_files
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None,
                  ppp_config_dir=get_environ_config_dir()):
-    """Create specified readers and assign files to them."""
+    """Create specified readers and assign files to them.
+
+    Args:
+        filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+                                      should map reader names to a list of filenames for that reader.
+        reader (str or list): The name of the reader to use for loading the data or a list of names.
+        filter_parameters (dict): Specify loaded file filtering parameters.
+                                  Shortcut for `reader_kwargs['filter_parameters']`.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+        ppp_config_dir (str): The directory containing the configuration files for satpy.
+
+    Returns: Dictionary mapping reader name to reader instance
+
+    """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
 
