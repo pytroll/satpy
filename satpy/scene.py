@@ -44,53 +44,64 @@ LOG = logging.getLogger(__name__)
 
 
 class Scene(InfoObject):
-    """The almighty Scene class."""
+    """The Almighty Scene Class.
 
-    def __init__(self,
-                 filenames=None,
+    Example usage::
+
+        from satpy import Scene
+        from glob import glob
+
+        # create readers and open files
+        scn = Scene(filenames=glob('/path/to/files/*'), reader='viirs_sdr')
+
+        # load datasets from input files
+        scn.load(['I01', 'I02'])
+
+        # resample from satellite native geolocation to builtin 'eurol' Area
+        new_scn = scn.resample('eurol')
+
+        # save all resampled datasets to geotiff files in the current directory
+        new_scn.save_datasets()
+
+    """
+
+    def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
                  ppp_config_dir=get_environ_config_dir(),
-                 reader=None,
                  base_dir=None,
                  sensor=None,
                  start_time=None,
                  end_time=None,
-                 area=None,
-                 filter_parameters=None,
-                 reader_kwargs=None):
-        """The Scene object constructor.
+                 area=None):
+        """Initialize Scene with Reader and Compositor objects.
 
-        Note to load data either `filenames`, `reader`, or a 'base_dir' must
-        be specified. If `filenames` is not specified then `reader` must be
-        specified to search the current directory or `base_dir` if specified.
-        If neither `filenames` nor `reader` is specified then `base_dir` will
-        be used to find any files matching the file patterns for any
-        configured readers. Otherwise the Scene is created with no Readers
-        available meaning Datasets must be added manually:
+        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
+        then the available readers will be searched for a Reader that can support the provided files. This can take
+        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
+        the Scene is created with no Readers available requiring Datasets to be added manually::
 
-            scn = Scene(sensor='viirs', start_time=start_time)
+            scn = Scene()
             scn['my_dataset'] = Dataset(my_data_array, **my_info)
 
         Args:
-            filenames (iterable): A sequence of files that will be used to load
-                                  data from.
-            ppp_config_dir (str): The directory containing the configuration
-                                  files for satpy.
-            reader: The name of the reader to use for loading the data.
-            base_dir (str): The directory to search for files containing the
+            filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+                                          should map reader names to a list of filenames for that reader.
+            reader (str or list): The name of the reader to use for loading the data or a list of names.
+            filter_parameters (dict): Specify loaded file filtering parameters.
+                                      Shortcut for `reader_kwargs['filter_parameters']`.
+            reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+            ppp_config_dir (str): The directory containing the configuration files for satpy.
+            base_dir (str): (DEPRECATED) The directory to search for files containing the
                             data to load. If *filenames* is also provided,
                             this is ignored.
-            sensor (list or str): Limit used files by provided sensors.
-            area (AreaDefinition): Limit used files by geographic area.
-            start_time (datetime): Limit used files by starting time.
-            end_time (datetime): Limit used files by ending time.
-            reader_kwargs (dict): Keyword arguments to pass to specific reader
-                                  instances.
+            sensor (list or str): (DEPRECATED: Use `find_files_and_readers` function) Limit used files by provided
+                                  sensors.
+            area (AreaDefinition): (DEPRECATED: Use `filter_parameters`) Limit used files by geographic area.
+            start_time (datetime): (DEPRECATED: Use `filter_parameters`) Limit used files by starting time.
+            end_time (datetime): (DEPRECATED: Use `filter_parameters`) Limit used files by ending time.
+
         """
         super(Scene, self).__init__()
-        # InfoObject.__init__(self, sensor=sensor or set(), area=area,
-        #                     start_time=start_time, end_time=end_time)
-        # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere
-        # in pytroll
+        # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir = ppp_config_dir
 
@@ -135,6 +146,7 @@ class Scene(InfoObject):
         self.dep_tree = DependencyTree(self.readers, comps, mods)
 
     def _compute_metadata_from_readers(self):
+        """Determine pieces of metadata from the readers loaded."""
         mda = {}
         mda['sensor'] = self._get_sensor_names()
 
@@ -147,6 +159,7 @@ class Scene(InfoObject):
         return mda
 
     def _get_sensor_names(self):
+        """Join the sensors from all loaded readers."""
         # if the user didn't tell us what sensors to work with, let's figure it
         # out
         if not self.info.get('sensor'):
@@ -162,7 +175,7 @@ class Scene(InfoObject):
                                 filenames=None,
                                 reader=None,
                                 reader_kwargs=None):
-        """Find readers and return their instantiations."""
+        """Find readers and return their instances."""
         return load_readers(filenames=filenames,
                             reader=reader,
                             reader_kwargs=reader_kwargs,
