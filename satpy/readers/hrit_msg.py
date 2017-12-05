@@ -34,13 +34,14 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
-import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
+
+import satpy.readers.msg_base as mb
 
 logger = logging.getLogger('hrit_msg')
 
@@ -987,35 +988,28 @@ class HRITMSGFileHandler(HRITFileHandler):
         gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
         offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
 
-        res = (data * gain) + offset
-        res = res.clip(0, None)
-        return res
+        return mb.convert_to_radiance(data, gain, offset)
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
         solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        return data * 100.0 / solar_irradiance
-
-    def _tl15(self, data):
-        """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
-        return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1))
+        return mb.vis_calibrate(data, solar_irradiance)
 
     def _erads2bt(self, data):
         """computation based on effective radiance."""
         cal_info = CALIB[self.platform_id][self.channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
+        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
 
-        return (self._tl15(data) - beta) / alpha
+        return mb.erads2bt(data, wavenumber, alpha, beta)
 
     def _srads2bt(self, data):
         """computation based on spectral radiance."""
         coef_a, coef_b, coef_c = BTFIT[self.channel_name]
+        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
 
-        res = self._tl15(data)
-        return coef_a * res ** 2 + coef_b * res + coef_c
+        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
 
     def _ir_calibrate(self, data):
         """IR calibration."""
