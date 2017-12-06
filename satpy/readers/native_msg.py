@@ -34,17 +34,11 @@ from datetime import datetime
 import numpy as np
 
 import xarray as xr
-import xarray.ufuncs as xu
 
-from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_msg import (CALIB, SATNUM, C1, C2, BTFIT)
+from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
 
 from pyresample import geometry
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import get_cds_time
@@ -203,8 +197,8 @@ class NativeMSGFileHandler(BaseFileHandler):
         # FIXME!
         if abs(int(numlines_visir / 4.) - numlines_visir / 4.) > 0.001:
             msgstr = (
-                "Number of pixels in east-west direction needs to be a multiple of 4!" +
-                "\nPlease get the full disk!")
+                "Number of pixels in east-west direction needs to be a" +
+                " multiple of 4!\nPlease get the full disk!")
             raise NotImplementedError(msgstr)
 
         # Data are stored in 10 bits!
@@ -214,8 +208,8 @@ class NativeMSGFileHandler(BaseFileHandler):
         else:
             self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
 
-        #'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
-        #'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
+        # 'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
+        # 'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
