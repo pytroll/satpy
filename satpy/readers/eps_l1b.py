@@ -310,7 +310,7 @@ class EPSAVHRRFile(BaseFileHandler):
                 if key.calibration == 'reflectance':
                     array = np.ma.array(
                         radiance_to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                                         self["CH1_SOLAR_FILTERED_IRRADIANCE"]))
+                                         self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
                 else:
                     array = np.ma.array(
                         self["SCENE_RADIANCES"][:, 1, :])
@@ -319,7 +319,7 @@ class EPSAVHRRFile(BaseFileHandler):
                 if key.calibration == 'reflectance':
                     array = np.ma.array(
                         radiance_to_refl(self["SCENE_RADIANCES"][:, 2, :],
-                                         self["CH2_SOLAR_FILTERED_IRRADIANCE"]))
+                                         self["CH3A_SOLAR_FILTERED_IRRADIANCE"]))
                 else:
                     array = np.ma.array(self["SCENE_RADIANCES"][:, 2, :])
 
