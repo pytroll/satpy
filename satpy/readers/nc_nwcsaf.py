@@ -74,7 +74,10 @@ class NcNWCSAF(BaseFileHandler):
         try:
             # MSG:
             sat_id = self.nc.attrs['satellite_identifier']
-            self.platform_name = PLATFORM_NAMES[sat_id]
+            try:
+                self.platform_name = PLATFORM_NAMES[sat_id]
+            except KeyError:
+                self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
         except KeyError:
             # PPS:
             self.platform_name = self.nc.attrs['platform']
@@ -140,7 +143,10 @@ class NcNWCSAF(BaseFileHandler):
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
 
-        proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        try:
+            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
 
         nlines, ncols = self.nc[dsid.name].shape
 
@@ -163,16 +169,28 @@ class NcNWCSAF(BaseFileHandler):
     def start_time(self):
         try:
             # MSG:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
+            try:
+                return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                         '%Y-%m-%dT%H:%M:%SZ')
+            except TypeError:
+                return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
+                                         '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%dT%H%M%S%fZ')
+            return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                     '%Y%m%dT%H%M%S%fZ')
 
     @property
     def end_time(self):
         try:
             # MSG:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
+            try:
+                return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                         '%Y-%m-%dT%H:%M:%SZ')
+            except TypeError:
+                return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
+                                         '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%dT%H%M%S%fZ')
+            return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                     '%Y%m%dT%H%M%S%fZ')
