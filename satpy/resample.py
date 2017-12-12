@@ -23,31 +23,21 @@
 """Shortcuts to resampling stuff.
 """
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 import hashlib
 import json
 import os
-from copy import deepcopy
 from logging import getLogger
 from weakref import WeakValueDictionary
 
 import numpy as np
+import xarray.ufuncs as xu
 import six
 
 from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
-from pyresample.kd_tree import (XArrayResamplerNN, get_neighbour_info,
-                                get_sample_from_neighbour_info)
-from satpy.config import config_search_paths, get_config, get_config_path
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
+from pyresample.kd_tree import XArrayResamplerNN
+from satpy.config import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
 
@@ -97,7 +87,8 @@ class BaseResampler(object):
     def hash_area(area):
         """Get (and set) the hash for the *area*.
         """
-        return str(id(area))
+        return str(area.__hash__())
+        #return str(id(area))
         #
         # try:
         #     return area.kdtree_hash
@@ -166,11 +157,17 @@ class BaseResampler(object):
 
         :param mask_area: Provide data mask to `precompute` method to mask invalid data values in geolocation.
         """
-        if mask_area and hasattr(data, "mask") or hasattr(data, 'isnull'):
+        if mask_area:
+            mask = kwargs.get('mask', np.zeros_like(data, dtype=np.bool))
+            if data.attrs.get('_FillValue'):
+                mask = xu.logical_and(data, data == data.attrs['_FillValue'])
             if hasattr(data, 'mask'):
-                kwargs.setdefault('mask', data.mask)
+                mask = xu.logical_and(data, data.mask)
             elif hasattr(data, 'isnull'):
-                kwargs.setdefault("mask", data)
+                mask = xu.logical_and(data, data.isnull())
+            summing_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
+            mask = mask.sum(dim=summing_dims).astype(bool)
+            kwargs['mask'] = mask
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
@@ -215,17 +212,21 @@ class KDTreeResampler(BaseResampler):
     Resample using nearest neighbour.
     """
 
+    def __init__(self, source_geo_def, target_geo_def):
+        super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
+        self.resampler = None
+
     def precompute(
             self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
             cache_dir=False, **kwargs):
         """Create a KDTree structure and store it for later use.
 
-        Note: The `mask` keyword should be provided if geolocation may be valid where data points are invalid.
-        This defaults to the `mask` attribute of the `data` numpy masked array passed to the `resample` method.
+        Note: The `mask` keyword should be provided if geolocation may be valid
+        where data points are invalid. This defaults to the `mask` attribute of
+        the `data` numpy masked array passed to the `resample` method.
         """
 
         del kwargs
-
         source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
         kd_hash = self.get_hash(source_geo_def=source_geo_def,
@@ -235,47 +236,49 @@ class KDTreeResampler(BaseResampler):
         filename = self._create_cache_filename(cache_dir, kd_hash)
         self._read_params_from_cache(cache_dir, kd_hash, filename)
 
-        if self.cache is not None:
-            LOG.debug("Loaded kd-tree parameters")
-            return self.cache
-        else:
+
+        if self.resampler is None:
+            if self.cache is not None:
+                LOG.debug("Loaded kd-tree parameters")
+                return self.cache
+
             LOG.debug("Computing kd-tree parameters")
 
-        self.resampler = XArrayResamplerNN(source_geo_def,
-                                           self.target_geo_def,
-                                           radius_of_influence,
-                                           neighbours=1,
-                                           epsilon=epsilon,
-                                           reduce_data=reduce_data,
-                                           nprocs=nprocs,
-                                           segments=segments)
+            self.resampler = XArrayResamplerNN(source_geo_def,
+                                               self.target_geo_def,
+                                               radius_of_influence,
+                                               neighbours=1,
+                                               epsilon=epsilon,
+                                               reduce_data=reduce_data,
+                                               nprocs=nprocs,
+                                               segments=segments)
 
-        valid_input_index, valid_output_index, index_array, distance_array = \
-            self.resampler.get_neighbour_info()
-        # vii, voi, ia, da = get_neighbour_info(source_geo_def,
-        #                                       self.target_geo_def,
-        #                                       radius_of_influence,
-        #                                       neighbours=1,
-        #                                       epsilon=epsilon,
-        #                                       reduce_data=reduce_data,
-        #                                       nprocs=nprocs,
-        #                                       segments=segments)
+            valid_input_index, valid_output_index, index_array, distance_array = \
+                self.resampler.get_neighbour_info()
+            # vii, voi, ia, da = get_neighbour_info(source_geo_def,
+            #                                       self.target_geo_def,
+            #                                       radius_of_influence,
+            #                                       neighbours=1,
+            #                                       epsilon=epsilon,
+            #                                       reduce_data=reduce_data,
+            #                                       nprocs=nprocs,
+            #                                       segments=segments)
 
-        # it's important here not to modify the existing cache dictionary.
-        if cache_dir:
-            self.cache = {"valid_input_index": valid_input_index,
-                          "valid_output_index": valid_output_index,
-                          "index_array": index_array,
-                          "distance_array": distance_array,
-                          "source_geo_def": source_geo_def,
-                          }
+            # it's important here not to modify the existing cache dictionary.
+            if cache_dir:
+                self.cache = {"valid_input_index": valid_input_index,
+                              "valid_output_index": valid_output_index,
+                              "index_array": index_array,
+                              "distance_array": distance_array,
+                              "source_geo_def": source_geo_def,
+                              }
 
-            self._update_caches(kd_hash, cache_dir, filename)
+                self._update_caches(kd_hash, cache_dir, filename)
 
-            return self.cache
+                return self.cache
 
-    def compute(self, data, weight_funcs=None, fill_value=None, with_uncert=False, **kwargs):
-
+    def compute(self, data, weight_funcs=None, fill_value=None,
+                with_uncert=False, **kwargs):
         del kwargs
         LOG.debug("Resampling " + str(data.name))
         if fill_value is None:
@@ -538,16 +541,25 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "bilinear": BilinearResampler,
               }
 
+RESAMPLER_CACHE = WeakValueDictionary()
 
-def resample(source_area, data, destination_area, resampler=KDTreeResampler,
-             **kwargs):
+
+def resample(source_area, data, destination_area,
+             resampler_class=KDTreeResampler, **kwargs):
     """Do the resampling
     """
-    try:
-        resampler_class = RESAMPLERS[resampler]
-    except KeyError:
-        resampler_class = resampler
-    resampler = resampler_class(source_area, destination_area)
+    key = (source_area, destination_area)
+
+    resampler = RESAMPLER_CACHE.get(key)
+
+    if resampler is None:
+        try:
+            resampler_class = RESAMPLERS[resampler_class]
+        except KeyError:
+            pass
+        resampler = resampler_class(source_area, destination_area)
+        RESAMPLER_CACHE[key] = resampler
+
     if isinstance(data, list):
         return [resampler.resample(ds, **kwargs) for ds in data]
     else:
@@ -586,10 +598,9 @@ def resample_dataset(dataset, destination_area, **kwargs):
         pass
 
     datasets = [dataset] + dataset.attrs.get('ancillary_variables', [])
-
     new_datasets = [resample(ds.attrs['area'], ds, destination_area, **kwargs)
                     if 'area' in ds.attrs else ds for ds in datasets]
-    #new_datasets = resample(source_area, datasets, destination_area, **kwargs)
+    # new_datasets = resample(source_area, datasets, destination_area, **kwargs)
     for nds, ds in zip(new_datasets, datasets):
         nds.attrs.update(ds.attrs)
         if 'area' in ds.attrs:
@@ -624,8 +635,8 @@ def mask_source_lonlats(source_def, mask):
             # use the same data, but make a new mask (i.e. don't affect the original masked array)
             # the ma.array function combines the undelying mask with the new
             # one (OR)
-            source_geo_def.lons = source_geo_def.lons.where(mask)
-            source_geo_def.lats = source_geo_def.lats.where(mask)
+            source_geo_def.lons = source_geo_def.lons.where(~mask)
+            source_geo_def.lats = source_geo_def.lats.where(~mask)
             # source_geo_def.lons = np.ma.array(lons, mask=mask)
             # source_geo_def.lats = np.ma.array(lats, mask=mask)
         else:
