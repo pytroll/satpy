@@ -28,14 +28,15 @@ import logging
 import os
 
 import yaml
+import six
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update, runtime_import)
-from satpy.dataset import Dataset, DatasetID, MetadataObject
+                          recursive_dict_update)
+from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, ReaderFinder
-from satpy.resample import resample_dataset
+from satpy.resample import resample_dataset, get_frozen_area
 
 try:
     import configparser
@@ -46,7 +47,6 @@ LOG = logging.getLogger(__name__)
 
 
 class Scene(MetadataObject):
-
     """The almighty scene class."""
 
     def __init__(self,
@@ -547,18 +547,36 @@ class Scene(MetadataObject):
                  compute=True,
                  unload=True,
                  **resample_kwargs):
-        """Resample the datasets and return a new scene.
-        """
+        """Resample the datasets and return a new scene."""
         new_scn = Scene()
         new_scn.attrs = self.attrs.copy()
         # new_scn.cpl = self.cpl
         new_scn.dep_tree = self.dep_tree.copy()
-        for ds_id, projectable in self.datasets.items():
-            LOG.debug("Resampling %s", ds_id)
-            if datasets and ds_id not in datasets:
+
+
+        to_resample = [dataset for (dsid, dataset) in self.datasets.items()
+                       if (not datasets) or dsid in datasets]
+
+        new_datasets = {}
+        destination_area = None
+        for dataset, parent_dataset in dataset_walker(to_resample):
+            ds_id = DatasetID.from_dict(dataset.attrs)
+            if ds_id in new_datasets:
+                replace_anc(dataset, parent_dataset)
                 continue
-            new_scn[ds_id] = resample_dataset(projectable, destination,
+            if dataset.attrs.get('area') is None:
+                if parent_dataset is None:
+                    new_scn[ds_id] = dataset
+                else:
+                    replace_anc(dataset, parent_dataset)
+                continue
+            if destination_area is None:
+                destination_area = get_frozen_area(destination,
+                                                   dataset.attrs['area'])
+            LOG.debug("Resampling %s", ds_id)
+            new_scn[ds_id] = resample_dataset(dataset, destination_area,
                                               **resample_kwargs)
+
         # MUST set this after assigning the resampled datasets otherwise
         # composite prereqs that were resampled will be considered "wishlisted"
         if datasets is None:
@@ -567,12 +585,13 @@ class Scene(MetadataObject):
             new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
                                     for ds in new_scn])
 
-        # recompute anything from the wishlist that needs it (combining multiple
-        # resolutions, etc.)
+        # recompute anything from the wishlist that needs it (combining
+        # multiple resolutions, etc.)
         keepables = None
         if compute:
             nodes = [self.dep_tree[i]
-                     for i in new_scn.wishlist if i in self.dep_tree and not self.dep_tree[i].is_leaf]
+                     for i in new_scn.wishlist
+                     if i in self.dep_tree and not self.dep_tree[i].is_leaf]
             keepables = new_scn.compute(nodes=nodes)
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
@@ -581,29 +600,28 @@ class Scene(MetadataObject):
             new_scn._remove_failed_datasets(keepables)
             missing_str = ", ".join(str(x) for x in missing)
             LOG.warning(
-                "The following datasets were not created: {}".format(missing_str))
+                "The following datasets "
+                "were not created: {}".format(missing_str))
         if unload:
             new_scn.unload(keepables)
 
         return new_scn
 
     def show(self, dataset_id, overlay=None):
-        """Show the *dataset* on screen as an image.
-        """
-
+        """Show the *dataset* on screen as an image."""
         from satpy.writers import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         img.show()
         return img
 
     def images(self):
-        """Generate images for all the datasets from the scene.
-        """
+        """Generate images for all the datasets from the scene."""
         for ds_id, projectable in self.datasets.items():
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
     def load_writer_config(self, config_files, **kwargs):
+        """Load the writer config for *config_files*."""
         conf = {}
         for conf_fn in config_files:
             with open(conf_fn) as fd:
@@ -614,9 +632,9 @@ class Scene(MetadataObject):
                               **kwargs)
         return writer
 
-    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, **kwargs):
-        """Save the *dataset_id* to file using *writer* (geotiff by default).
-        """
+    def save_dataset(self, dataset_id, filename=None, writer=None,
+                     overlay=None, **kwargs):
+        """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None:
             if filename is None:
                 writer = self.get_writer("geotiff", **kwargs)
@@ -630,8 +648,7 @@ class Scene(MetadataObject):
                             overlay=overlay, **kwargs)
 
     def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
-        """Save all the datasets present in a scene to disk using *writer*.
-        """
+        """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
         else:
@@ -640,6 +657,7 @@ class Scene(MetadataObject):
         writer.save_datasets(datasets, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
+        """Get the writer instance."""
         config_fn = writer + ".yaml" if "." not in writer else writer
         config_files = config_search_paths(
             os.path.join("writers", config_fn), self.ppp_config_dir)
@@ -647,6 +665,7 @@ class Scene(MetadataObject):
         return self.load_writer_config(**kwargs)
 
     def get_writer_by_ext(self, extension, **kwargs):
+        """Find the writer matching the *extension*."""
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
         return self.get_writer(
             mapping.get(extension.lower(), "simple_image"), **kwargs)
