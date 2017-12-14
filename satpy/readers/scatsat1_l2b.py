@@ -36,6 +36,8 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         h5data=self.h5f['science_data']
 
         self.filename_info['start_time'] = datetime.strptime(h5data.attrs['Range Beginning Date'],'%Y-%jT%H:%M:%S.%f')
+        self.filename_info['end_time'] = datetime.strptime(h5data.attrs['Range Ending Date'],'%Y-%jT%H:%M:%S.%f')
+
         self.lons = None
         self.lats = None
 
