@@ -57,12 +57,26 @@ def get_area_file():
 
 
 def get_area_def(area_name):
-    """Get the definition of *area_name* from file. The file is defined to use
-    is to be placed in the $PPP_CONFIG_DIR directory, and its name is defined
-    in satpy's configuration file.
+    """Get the definition of *area_name* from file.
+
+    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    directory, and its name is defined in satpy's configuration file.
     """
     from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
+
+
+def get_frozen_area(to_freeze, ref):
+    """Freeze the *to_freeze* area according to *ref* if applicable, otherwise
+    return *to_freeze* as an area definition instance.
+    """
+    if isinstance(to_freeze, (str, six.text_type)):
+        to_freeze = get_area_def(to_freeze)
+
+    try:
+        return to_freeze.freeze(ref)
+    except AttributeError:
+        return to_freeze
 
 
 class BaseResampler(object):
@@ -236,7 +250,6 @@ class KDTreeResampler(BaseResampler):
         filename = self._create_cache_filename(cache_dir, kd_hash)
         self._read_params_from_cache(cache_dir, kd_hash, filename)
 
-
         if self.resampler is None:
             if self.cache is not None:
                 LOG.debug("Loaded kd-tree parameters")
@@ -255,6 +268,7 @@ class KDTreeResampler(BaseResampler):
 
             valid_input_index, valid_output_index, index_array, distance_array = \
                 self.resampler.get_neighbour_info()
+            # reference call to pristine pyresample
             # vii, voi, ia, da = get_neighbour_info(source_geo_def,
             #                                       self.target_geo_def,
             #                                       radius_of_influence,
@@ -286,52 +300,11 @@ class KDTreeResampler(BaseResampler):
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
         return res
 
-        # # TODO: index directly the xarray (performance is the issue atm)
-        # try:
-        #     stacked = data.stack(z=('time', 'bands'))
-        #     stacked = stacked.transpose('y', 'x', 'z')
-        #     unstack = True
-        # except KeyError:
-        #     try:
-        #         stacked = data.transpose('y', 'x', 'time')
-        #     except ValueError as err:
-        #         LOG.warning("Cannot resample data: %s", str(err))
-        #         return data
-        #     unstack = False
-        #
-        # res = get_sample_from_neighbour_info('nn',
-        #                                      self.target_geo_def.shape,
-        #                                      data.values,
-        #                                      self.resampler.valid_input_index.compute().ravel(),
-        #                                      self.resampler.valid_output_index.compute().ravel(),
-        #                                      self.resampler.index_array.compute().ravel(),
-        #                                      distance_array=self.resampler.distance_array.compute().ravel(),
-        #                                      weight_funcs=weight_funcs,
-        #                                      fill_value=fill_value,
-        #                                      with_uncert=with_uncert)
-        # import xarray as xr
-        #
-        # res = xr.DataArray(res.filled(np.nan),
-        #                    name=data.name,
-        #                    dims=stacked.dims)
-        #
-        # res.coords.update({'x': self.target_geo_def.proj_x_coords,
-        #                    'y': self.target_geo_def.proj_y_coords})
-        # units = self.target_geo_def.proj_dict.get('units', 'm')
-        # res.coords['x'].attrs['units'] = units
-        # res.coords['y'].attrs['units'] = units
-        # if unstack:
-        #     res = res.unstack('z')
-        #     res.coords.update({'z': stacked.coords['z']})
-        # else:
-        #     res.coords.update({'time': stacked.coords['time']})
-        #
-        # return res
-
 
 class EWAResampler(BaseResampler):
 
-    def __init__(self, source_geo_def, target_geo_def, swath_usage=0, grid_coverage=0, **kwargs):
+    def __init__(self, source_geo_def, target_geo_def, swath_usage=0,
+                 grid_coverage=0, **kwargs):
         """
 
         :param source_geo_def: See `BaseResampler` for details
@@ -546,8 +519,7 @@ RESAMPLER_CACHE = WeakValueDictionary()
 
 def resample(source_area, data, destination_area,
              resampler_class=KDTreeResampler, **kwargs):
-    """Do the resampling
-    """
+    """Do the resampling."""
     key = (source_area, destination_area)
 
     resampler = RESAMPLER_CACHE.get(key)
@@ -576,7 +548,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
         **kwargs: The extra parameters to pass to the resampling functions.
 
     Returns:
-        A resampled projectable, with updated .info["area"] field
+        A resampled projectable, with updated .info["area"] field.
+
     """
     # call the projection stuff here
     try:
@@ -587,27 +560,13 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
         return dataset
 
-    if isinstance(source_area, (str, six.text_type)):
-        source_area = get_area_def(source_area)
-    if isinstance(destination_area, (str, six.text_type)):
-        destination_area = get_area_def(destination_area)
-
-    try:
-        destination_area = destination_area.freeze(source_area)
-    except AttributeError:
-        pass
-
-    datasets = [dataset] + dataset.attrs.get('ancillary_variables', [])
-    new_datasets = [resample(ds.attrs['area'], ds, destination_area, **kwargs)
-                    if 'area' in ds.attrs else ds for ds in datasets]
-    # new_datasets = resample(source_area, datasets, destination_area, **kwargs)
-    for nds, ds in zip(new_datasets, datasets):
-        nds.attrs.update(ds.attrs)
-        if 'area' in ds.attrs:
-            nds.attrs["area"] = destination_area
-
-    new_data = new_datasets[0]
-    new_data.attrs['ancillary_variables'] = new_datasets[1:]
+    if 'area' in dataset.attrs:
+        new_data = resample(source_area, dataset, destination_area, **kwargs)
+        new_data.attrs = dataset.attrs.copy()
+        new_data.attrs['area'] = destination_area
+    else:
+        new_data = dataset
+        new_data.attrs = dataset.attrs.copy()
 
     return new_data
 

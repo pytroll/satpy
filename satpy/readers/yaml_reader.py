@@ -31,14 +31,14 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, namedtuple
 from fnmatch import fnmatch
 
-import numpy as np
 import six
 import xarray as xr
 import yaml
+from weakref import WeakValueDictionary
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
+from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
@@ -391,6 +391,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.file_handlers = {}
         self.filter_filenames = self.info.get(
             'filter_filenames', filter_filenames)
+        self.coords_cache = WeakValueDictionary()
 
     @property
     def available_dataset_ids(self):
@@ -751,8 +752,17 @@ class FileYAMLReader(AbstractYAMLReader):
             lon_sn = coords[0].attrs.get('standard_name')
             lat_sn = coords[1].attrs.get('standard_name')
             if lon_sn == 'longitude' and lat_sn == 'latitude':
-                sdef = SwathDefinition(*coords)
-                sensor_str = sdef.name = '_'.join(self.info['sensors'])
+                key = None
+                try:
+                    key = (coords[0].data.name, coords[1].data.name)
+                    sdef = self.coords_cache.get(key)
+                except AttributeError:
+                    sdef = None
+                if sdef is None:
+                    sdef = SwathDefinition(*coords)
+                    if key is not None:
+                        self.coords_cache[key] = sdef
+                sensor_str = '_'.join(self.info['sensors'])
                 shape_str = '_'.join(map(str, coords[0].shape))
                 sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
                                                  coords[0].attrs['name'],
@@ -870,7 +880,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         for dsid in all_dsids:
             if dsid in all_datasets:
-                pass
+                continue
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
