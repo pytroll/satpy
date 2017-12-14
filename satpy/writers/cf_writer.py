@@ -97,6 +97,7 @@ def create_grid_mapping(area):
 
 
 def get_extra_ds(dataset):
+    """Get the extra datasets associated to *dataset*."""
     ds_collection = {}
     for ds in dataset.attrs.get('ancillary_variables', []):
         ds_collection.update(get_extra_ds(ds))
@@ -106,6 +107,7 @@ def get_extra_ds(dataset):
 
 
 def area2lonlat(dataarray):
+    """Convert an area to longitudes and latitudes."""
     area = dataarray.attrs['area']
     lonlats = area.get_lonlats_dask(blocksize=1000)
     lons = xr.DataArray(lonlats[:, :, 0], dims=['y', 'x'],
@@ -147,7 +149,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def da2cf(dataarray):
-        """Convert the dataarray to something cf-compatible"""
+        """Convert the dataarray to something cf-compatible."""
         new_data = dataarray.copy()
         # TODO: make these boundaries of the time dimension
         new_data.attrs.pop('start_time', None)
@@ -170,8 +172,7 @@ class CFWriter(Writer):
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
-        """Saves the *dataset* to a given *filename*."""
-        # self.da2cf(dataset).to_netcdf(filename)
+        """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
     def save_datasets(self, datasets, filename, **kwargs):
