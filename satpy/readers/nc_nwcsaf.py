@@ -31,7 +31,6 @@ import numpy as np
 import xarray as xr
 
 from pyresample.utils import get_area_def
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ class NcNWCSAF(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   engine='h5netcdf',
-                                  chunks={'nx': 1000, 'ny': 1000, 'time': 10})
+                                  chunks=1000)
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
 
@@ -124,6 +123,10 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'standard_name' in info:
+            import h5py
+            if isinstance(variable.attrs.get('standard_name'),
+                          h5py._hl.base.Empty):
+                variable.attrs.pop('standard_name')
             variable.attrs.setdefault('standard_name', info['standard_name'])
 
         if self.pps and dsid.name == 'ctth_alti':
@@ -135,7 +138,9 @@ class NcNWCSAF(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.
-        Only applicable for MSG products!"""
+
+        Only applicable for MSG products!
+        """
         if self.pps:
             # PPS:
             raise NotImplementedError
