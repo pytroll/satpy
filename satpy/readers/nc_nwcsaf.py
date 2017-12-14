@@ -90,6 +90,8 @@ class NcNWCSAF(BaseFileHandler):
         logger.debug('Reading %s.', dsid.name)
         variable = self.nc[dsid.name]
 
+        variable = remove_empties(variable)
+
         if 'scale_factor' in variable.attrs or 'add_offset' in variable.attrs:
             scale = variable.attrs.get('scale_factor', 1)
             offset = variable.attrs.get('add_offset', 0)
@@ -123,10 +125,6 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'standard_name' in info:
-            import h5py
-            if isinstance(variable.attrs.get('standard_name'),
-                          h5py._hl.base.Empty):
-                variable.attrs.pop('standard_name')
             variable.attrs.setdefault('standard_name', info['standard_name'])
 
         if self.pps and dsid.name == 'ctth_alti':
@@ -199,3 +197,13 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y%m%dT%H%M%S%fZ')
+
+
+def remove_empties(variable):
+    """Remove empty objects from the *variable*'s attrs."""
+    import h5py
+    for key, val in variable.attrs.items():
+        if isinstance(val, h5py._hl.base.Empty):
+            variable.attrs.pop(key)
+
+    return variable
