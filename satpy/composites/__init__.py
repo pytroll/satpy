@@ -36,8 +36,7 @@ from satpy.config import (CONFIG_PATH, config_search_paths,
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_info)
 from satpy.readers import DatasetDict
-from satpy.tools import sunzen_corr_cos
-from satpy.tools import atmospheric_path_length_correction
+from satpy.tools import atmospheric_path_length_correction, sunzen_corr_cos
 from satpy.writers import get_enhanced_image
 
 try:
@@ -563,6 +562,25 @@ class BWCompositor(CompositeBase):
         info['standard_name'] = self.info['standard_name']
 
         return Dataset(projectables[0].copy(), **info.copy())
+
+
+class SunZenithComputer(CompositeBase):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        lons, lats = projectables
+
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
+        dummy, satel = get_observer_look(lons.info['satellite_longitude'],
+                                         lons.info[
+                                             'satellite_latitude'],
+                                         lons.info[
+                                             'satellite_altitude'],
+                                         lons.info['start_time'],
+                                         lons, lats, 0)
+
+        return Dataset(projectables[0], **info)
 
 
 class ColormapCompositor(RGBCompositor):

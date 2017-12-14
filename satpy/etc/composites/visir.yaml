@@ -42,6 +42,13 @@ modifiers:
     - solar_zenith_angle
 
 composites:
+  solar_zenith_angle:
+    compositor: !!python/name:satpy.composites.SunZenithComputer
+    prerequitisites:
+      - longitude
+      - latitude
+    standard_name: solar_zenith_angle
+    
   airmass_corr:
     compositor: !!python/name:satpy.composites.Airmass
     prerequisites:
