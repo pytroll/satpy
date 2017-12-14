@@ -53,11 +53,10 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAF(BaseFileHandler):
-
     """NWCSAF PPS&MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Init method"""
+        """Init method."""
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
         self.nc = xr.open_dataset(filename,
@@ -86,7 +85,6 @@ class NcNWCSAF(BaseFileHandler):
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
-
         logger.debug('Reading %s.', dsid.name)
         variable = self.nc[dsid.name]
 
@@ -170,6 +168,7 @@ class NcNWCSAF(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Return the start time of the object."""
         try:
             # MSG:
             try:
@@ -185,6 +184,7 @@ class NcNWCSAF(BaseFileHandler):
 
     @property
     def end_time(self):
+        """Return the end time of the object."""
         try:
             # MSG:
             try:

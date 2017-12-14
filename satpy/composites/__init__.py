@@ -28,7 +28,6 @@ import os
 import time
 from weakref import WeakValueDictionary
 
-import dask.array as da
 import numpy as np
 import six
 import xarray as xr
@@ -45,7 +44,7 @@ from satpy.writers import get_enhanced_image
 
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 
 LOG = logging.getLogger(__name__)

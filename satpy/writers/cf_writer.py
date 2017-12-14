@@ -87,7 +87,6 @@ mappings = {'omerc': omerc2cf,
 
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
-
     try:
         grid_mapping = mappings[area.proj_dict['proj']](area.proj_dict)
         grid_mapping['name'] = area.proj_dict['proj']
@@ -160,7 +159,7 @@ class CFWriter(Writer):
         if anc:
             new_data.attrs['ancillary_variables'] = ' '.join(anc)
         # TODO: make this a grid mapping or lon/lats
-        #new_data.attrs['area'] = str(new_data.attrs.get('area'))
+        # new_data.attrs['area'] = str(new_data.attrs.get('area'))
         for key, val in new_data.attrs.copy().items():
             if val is None:
                 new_data.attrs.pop(key)
