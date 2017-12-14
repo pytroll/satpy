@@ -138,7 +138,6 @@ def area2cf(dataarray, strict=False):
     if isinstance(dataarray.attrs['area'], AreaDefinition):
         res.extend(area2gridmapping(dataarray))
 
-    dataarray.attrs.pop('area')
     res.append(dataarray)
     return res
 
@@ -153,6 +152,9 @@ class CFWriter(Writer):
         # TODO: make these boundaries of the time dimension
         new_data.attrs.pop('start_time', None)
         new_data.attrs.pop('end_time', None)
+
+        # Remove the area
+        new_data.attrs.pop('area', None)
 
         anc = [ds.attrs['name']
                for ds in new_data.attrs.get('ancillary_variables', [])]
