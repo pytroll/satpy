@@ -14,9 +14,8 @@ enhancements:
   true_color_ahi_default:
     standard_name: true_color_ahi
     operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs: {stretch: linear}
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
   true_color_norayleigh_default:
     standard_name: true_color_norayleigh
     operations:
