@@ -541,25 +541,14 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def resample(self,
-                 destination,
-                 datasets=None,
-                 compute=True,
-                 unload=True,
-                 **resample_kwargs):
-        """Resample the datasets and return a new scene."""
-        new_scn = Scene()
-        new_scn.attrs = self.attrs.copy()
-        # new_scn.cpl = self.cpl
-        new_scn.dep_tree = self.dep_tree.copy()
-
-
-        to_resample = [dataset for (dsid, dataset) in self.datasets.items()
-                       if (not datasets) or dsid in datasets]
+    @classmethod
+    def _resampled_scene(cls, datasets, destination, **resample_kwargs):
+        """Generate a new scene with resampled *datasets*."""
+        new_scn = cls()
 
         new_datasets = {}
         destination_area = None
-        for dataset, parent_dataset in dataset_walker(to_resample):
+        for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
             if parent_dataset is not None:
@@ -584,7 +573,25 @@ class Scene(MetadataObject):
                 new_scn[ds_id] = res
             else:
                 replace_anc(res, pres)
-        del new_datasets
+
+        return new_scn
+
+
+    def resample(self,
+                 destination,
+                 datasets=None,
+                 compute=True,
+                 unload=True,
+                 **resample_kwargs):
+        """Resample the datasets and return a new scene."""
+        to_resample = [dataset for (dsid, dataset) in self.datasets.items()
+                       if (not datasets) or dsid in datasets]
+
+        new_scn = self._resampled_scene(to_resample, destination,
+                                        **resample_kwargs)
+
+        new_scn.attrs = self.attrs.copy()
+        new_scn.dep_tree = self.dep_tree.copy()
 
         # MUST set this after assigning the resampled datasets otherwise
         # composite prereqs that were resampled will be considered "wishlisted"
