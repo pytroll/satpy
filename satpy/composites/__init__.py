@@ -469,7 +469,8 @@ class PSPAtmosphericalCorrection(CompositeBase):
                                             band.attrs['sensor'])
 
         atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
-        atm_corr.attrs = band.attrs
+        proj = band - atm_corr
+        proj.attrs = band.attrs
         self.apply_modifier_info(band, proj)
 
         return proj
