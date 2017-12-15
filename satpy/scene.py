@@ -144,6 +144,7 @@ class Scene(InfoObject):
                               start_time=self.info.get('start_time'),
                               end_time=self.info.get('end_time'),
                               area=self.info.get('area'), )
+
         return finder(reader=reader,
                       sensor=self.info.get("sensor"),
                       filenames=filenames,
