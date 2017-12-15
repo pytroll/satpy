@@ -24,8 +24,7 @@
 
 """A reader for the EUMETSAT MSG native format
 
-https://www.google.se/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwi_pcrm1vjSAhUMS5oKHc3QADgQFggcMAA&url=http%3A%2F%2Fwww.eumetsat.int%2Fwebsite%2Fwcm%2Fidc%2Fidcplg%3FIdcService%3DGET_FILE%26dDocName%3DPDF_FG15_MSG-NATIVE-FORMAT-15%26RevisionSelectionMethod%3DLatestReleased%26Rendition%3DWeb&usg=AFQjCNE9YWoECpgBhGGSkPZkHBWB37pgUA&sig2=4TXWtAj-yFA6XCaTmhFN9w
-
+https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
 
