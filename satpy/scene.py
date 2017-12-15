@@ -561,21 +561,30 @@ class Scene(MetadataObject):
         destination_area = None
         for dataset, parent_dataset in dataset_walker(to_resample):
             ds_id = DatasetID.from_dict(dataset.attrs)
+            pres = None
+            if parent_dataset is not None:
+                pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
-                replace_anc(dataset, parent_dataset)
+                replace_anc(dataset, pres)
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
                     new_scn[ds_id] = dataset
                 else:
-                    replace_anc(dataset, parent_dataset)
+                    replace_anc(dataset, pres)
                 continue
             if destination_area is None:
                 destination_area = get_frozen_area(destination,
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
-            new_scn[ds_id] = resample_dataset(dataset, destination_area,
-                                              **resample_kwargs)
+            res = resample_dataset(dataset, destination_area,
+                                   **resample_kwargs)
+            new_datasets[ds_id] = res
+            if parent_dataset is None:
+                new_scn[ds_id] = res
+            else:
+                replace_anc(res, pres)
+        del new_datasets
 
         # MUST set this after assigning the resampled datasets otherwise
         # composite prereqs that were resampled will be considered "wishlisted"
