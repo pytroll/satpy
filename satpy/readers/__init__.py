@@ -324,7 +324,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
-    reader_files= {}
+    reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
     sensor_supported = False
@@ -349,11 +349,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
             sensor_supported = True
         loadables = reader_instance.select_files_from_directory(base_dir)
         if loadables:
-            reader_files[reader_instance.name] = loadables
+            loadables = list(
+                reader_instance.filter_selected_filenames(loadables))
+        if loadables:
+            reader_files[reader_instance.name] = list(loadables)
 
     if sensor and not sensor_supported:
-        LOG.warning(
-            "Sensor '{}' not supported by any readers".format(sensor))
+        raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
 
     if not reader_files:
         raise ValueError("No supported files found")

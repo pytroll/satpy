@@ -157,7 +157,6 @@ class TestSCMIWriter(unittest.TestCase):
                             tile_count=(3, 3),
                             lettered_grid=True)
         # `fn` is currently the last file created
-        print(fn)
         self.assertTrue(os.path.isfile(fn))
 
 
