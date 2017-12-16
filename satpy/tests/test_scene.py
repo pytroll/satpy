@@ -25,12 +25,15 @@
 import os
 import sys
 
-import mock
-
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)

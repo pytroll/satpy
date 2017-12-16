@@ -113,7 +113,7 @@ The easiest way to generate composites is to `load` them::
 
 To get a list of all available composites for the current scene::
 
-    >>> global_scene.available_composites()
+    >>> global_scene.available_composite_names()
 
     [u'overview_sun',
      u'airmass',
