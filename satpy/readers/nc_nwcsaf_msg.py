@@ -32,6 +32,7 @@ import numpy as np
 from pyresample.utils import get_area_def
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import proj_units_to_meters
 
 logger = logging.getLogger(__name__)
 
@@ -77,13 +78,17 @@ class NcNWCSAFMSG(BaseFileHandler):
             values = values + variable.attrs['add_offset']
             info['add_offset'] = variable.attrs['add_offset']
 
-#        info = {'platform_name': self.platform_name,
-#                'sensor': self.sensor}
-
         if 'valid_range' in variable.attrs:
             info['valid_range'] = variable.attrs['valid_range']
         if 'units' in variable.attrs:
             info['units'] = variable.attrs['units']
+
+        if 'flag_meanings' in variable.attrs:
+            info['flag_meanings'] = variable.attrs['flag_meanings'].split()
+        if 'flag_values' in variable.attrs:
+            info['flag_values'] = variable.attrs['flag_values']
+        if 'long_name' in variable.attrs:
+            info['long_name'] = variable.attrs['long_name']
 
         proj = Dataset(values,
                        copy=False,
@@ -95,16 +100,19 @@ class NcNWCSAFMSG(BaseFileHandler):
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
         try:
-            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+            proj_str = self.nc.attrs['gdal_projection']
         except TypeError:
-            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
+            proj_str = self.nc.attrs['gdal_projection'].decode()
+
+        # Convert proj_str from km to m
+        proj_str = proj_units_to_meters(proj_str)
 
         nlines, ncols = self.nc[dsid.name].shape
 
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000.,
-                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000.,
-                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000.,
-                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000.)
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']),
+                       float(self.nc.attrs['gdal_ygeo_low_right']),
+                       float(self.nc.attrs['gdal_xgeo_low_right']),
+                       float(self.nc.attrs['gdal_ygeo_up_left']))
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
@@ -122,7 +130,8 @@ class NcNWCSAFMSG(BaseFileHandler):
             return datetime.strptime(self.nc.attrs['time_coverage_start'],
                                      '%Y-%m-%dT%H:%M:%SZ')
         except TypeError:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
+            return datetime.strptime(
+                self.nc.attrs['time_coverage_start'].astype(str),
                                      '%Y-%m-%dT%H:%M:%SZ')
 
     @property
@@ -131,5 +140,6 @@ class NcNWCSAFMSG(BaseFileHandler):
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y-%m-%dT%H:%M:%SZ')
         except TypeError:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
+            return datetime.strptime(
+                self.nc.attrs['time_coverage_end'].astype(str),
                                      '%Y-%m-%dT%H:%M:%SZ')

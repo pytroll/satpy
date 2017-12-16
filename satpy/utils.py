@@ -39,7 +39,7 @@ import numpy as np
 
 try:
     import configparser
-except ImportError:
+except:
     from six.moves import configparser
 
 
@@ -146,6 +146,7 @@ def get_logger(name):
 
 # Spherical conversions
 
+
 def lonlat2xyz(lon, lat):
     """Convert lon lat to cartesian."""
     lat = np.deg2rad(lat)
@@ -178,3 +179,27 @@ def xyz2angle(x, y, z):
     azi = np.rad2deg(np.arctan2(x, y))
     zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x**2 + y**2)))
     return azi, zen
+
+
+# Projection string conversion from kilometers to meters
+
+
+def proj_units_to_meters(proj_str):
+    """Convert projection units from kilometers to meters."""
+    proj_parts = proj_str.split()
+    new_parts = []
+    for itm in proj_parts:
+        key, val = itm.split('=')
+        key = key.strip('+')
+        if key in ['a', 'b', 'h']:
+            val = float(val)
+            if val < 6e6:
+                val *= 1000.
+                val = '%.3f' % val
+
+        if key == 'units' and val == 'km':
+            continue
+
+        new_parts.append('+%s=%s' % (key, val))
+
+    return ' '.join(new_parts)
