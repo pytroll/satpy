@@ -29,6 +29,8 @@
 """SatPy Package initializer.
 """
 
+CHUNKSIZE = 5000
+
 from satpy.version import __version__
 from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
 from satpy.readers import DatasetDict
