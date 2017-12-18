@@ -386,7 +386,8 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.attrs['wavelength'][1], blue)
+            sunz.load(), satz.load(), ssadiff.load(),
+            vis.attrs['wavelength'][1], blue.load())
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
