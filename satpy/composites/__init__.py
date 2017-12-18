@@ -343,8 +343,9 @@ def show(data, filename=None):
 class PSPRayleighReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the corrected reflectance when removing Rayleigh scattering. Uses
-        pyspectral.
+        """Get the corrected reflectance when removing Rayleigh scattering.
+
+        Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
 

@@ -143,13 +143,10 @@ class NCOLCI1B(NCOLCIBase):
         return res
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-        import ipdb
-        ipdb.set_trace()
 
         radiances = self.nc[self.channel + '_radiance']
 
@@ -207,9 +204,9 @@ class NCOLCIAngles(BaseFileHandler):
         variable = self.nc[name]
 
         values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs['_FillValue'], copy=False) *
-                  variable.attrs.get('scale_factor', 1) +
-                  variable.attrs.get('add_offset', 0))
+                                     variable.attrs['_FillValue'], copy=False)
+                  * variable.attrs.get('scale_factor', 1)
+                  + variable.attrs.get('add_offset', 0))
         return values, variable.attrs
 
     def get_dataset(self, key, info):
