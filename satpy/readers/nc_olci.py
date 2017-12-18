@@ -33,7 +33,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
+from satpy.utils import angle2xyz, xyz2angle
 from satpy import CHUNKSIZE
 
 logger = logging.getLogger(__name__)
