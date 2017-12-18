@@ -600,7 +600,10 @@ def mask_source_lonlats(source_def, mask):
             # source_geo_def.lats = np.ma.array(lats, mask=mask)
         else:
             import xarray.ufuncs as xu
-            source_geo_def.lons = source_geo_def.lons.where(~xu.isnan(mask))
-            source_geo_def.lats = source_geo_def.lats.where(~xu.isnan(mask))
+            return SwathDefinition(source_geo_def.lons.where(~xu.isnan(mask)),
+                                   source_geo_def.lats.where(~xu.isnan(mask)))
+            # This was evil
+            # source_geo_def.lons = source_geo_def.lons.where(~xu.isnan(mask))
+            # source_geo_def.lats = source_geo_def.lats.where(~xu.isnan(mask))
 
     return source_geo_def
