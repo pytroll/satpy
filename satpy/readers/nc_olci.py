@@ -32,9 +32,9 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
+from satpy import CHUNKSIZE
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,8 @@ class NCOLCIBase(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine='h5netcdf',
-                                  chunks={'columns': 1000, 'rows': 1000})
+                                  chunks={'columns': CHUNKSIZE,
+                                          'rows': CHUNKSIZE})
 
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
 
@@ -113,7 +114,7 @@ class NCOLCI1B(NCOLCIBase):
     def _get_solar_flux(self, band):
         from dask.base import tokenize
         from dask.array import Array
-        blocksize = 1000
+        blocksize = CHUNKSIZE
 
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
@@ -221,8 +222,8 @@ class NCOLCIAngles(BaseFileHandler):
                                       decode_cf=True,
                                       mask_and_scale=True,
                                       engine='h5netcdf',
-                                      chunks={'tie_columns': 1000,
-                                              'tie_rows': 1000})
+                                      chunks={'tie_columns': CHUNKSIZE,
+                                              'tie_rows': CHUNKSIZE})
 
             self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
         logger.debug('Reading %s.', key.name)
@@ -263,11 +264,11 @@ class NCOLCIAngles(BaseFileHandler):
                                   cross_track_order)
             (x, y, z, ) = satint.interpolate()
             del satint
-            x = xr.DataArray(da.from_array(x, chunks=(1000, 1000)),
+            x = xr.DataArray(da.from_array(x, chunks=(CHUNKSIZE, CHUNKSIZE)),
                              dims=['y', 'x'])
-            y = xr.DataArray(da.from_array(y, chunks=(1000, 1000)),
+            y = xr.DataArray(da.from_array(y, chunks=(CHUNKSIZE, CHUNKSIZE)),
                              dims=['y', 'x'])
-            z = xr.DataArray(da.from_array(z, chunks=(1000, 1000)),
+            z = xr.DataArray(da.from_array(z, chunks=(CHUNKSIZE, CHUNKSIZE)),
                              dims=['y', 'x'])
 
             azi, zen = xyz2angle(x, y, z)
