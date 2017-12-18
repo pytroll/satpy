@@ -42,34 +42,6 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 
-class NCOLCIGeo(BaseFileHandler):
-
-    def __init__(self, filename, filename_info, filetype_info):
-        super(NCOLCIGeo, self).__init__(filename, filename_info,
-                                        filetype_info)
-        self.nc = xr.open_dataset(filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  engine='h5netcdf',
-                                  chunks={'columns': 1000, 'rows': 1000})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-
-    def get_dataset(self, key, info):
-        """Load a dataset."""
-
-        logger.debug('Reading %s.', key.name)
-        variable = self.nc[key.name]
-
-        return variable
-
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
 
 class NCOLCIBase(BaseFileHandler):
 
@@ -85,33 +57,44 @@ class NCOLCIBase(BaseFileHandler):
 
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
 
-        self.channel = filename_info['dataset_name']
-        cal_file = os.path.join(os.path.dirname(
-            filename), 'instrument_data.nc')
-        self.cal = xr.open_dataset(cal_file,
-                                   decode_cf=True,
-                                   mask_and_scale=True,
-                                   engine='h5netcdf',
-                                   chunks={'columns': 1000, 'rows': 1000})
-
-        self.cal = self.cal.rename({'columns': 'x', 'rows': 'y'})
-
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['start_time'],
+                                 '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['stop_time'],
+                                 '%Y-%m-%dT%H:%M:%S.%fZ')
 
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug('Reading %s.', key.name)
+        variable = self.nc[key.name]
+
+        return variable
+
+
+class NCOLCICal(NCOLCIBase):
+    pass
+
+class NCOLCIGeo(NCOLCIBase):
+    pass
 
 class NCOLCI1B(NCOLCIBase):
 
+    def __init__(self, filename, filename_info, filetype_info, cal):
+        super(NCOLCI1B, self).__init__(filename, filename_info,
+                                         filetype_info)
+        self.channel = filename_info['dataset_name']
+        self.cal = cal.nc
+
     def _get_solar_flux(self, band):
+        # TODO: this could be replaced with vectorized indexing in the future.
         from dask.base import tokenize
         from dask.array import Array
         blocksize = CHUNKSIZE
