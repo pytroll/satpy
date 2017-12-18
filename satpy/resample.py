@@ -548,7 +548,7 @@ def resample_dataset(dataset, destination_area, **kwargs):
         **kwargs: The extra parameters to pass to the resampling functions.
 
     Returns:
-        A resampled projectable, with updated .info["area"] field.
+        A resampled projectable, with updated .attrs["area"] field.
 
     """
     # call the projection stuff here
