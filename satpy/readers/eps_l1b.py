@@ -365,6 +365,7 @@ class EPSAVHRRFile(BaseFileHandler):
         dataset.attrs.update(key.to_dict())
         return dataset
 
+
     def get_lonlats(self):
         if self.area is None:
             if self.lons is None or self.lats is None:

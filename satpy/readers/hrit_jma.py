@@ -201,9 +201,7 @@ class HRITJMAFileHandler(HRITFileHandler):
             out = res
 
         self.calibrate(out, key.calibration)
-        out.info['units'] = info['units']
-        out.info['standard_name'] = info['standard_name']
-        #out.info['platform_name'] = self.platform_name
+        out.info.update(info)
         out.info['platform_name'] = 'Himawari-8'
         out.info['sensor'] = 'ahi'
 

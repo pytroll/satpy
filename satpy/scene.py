@@ -143,9 +143,11 @@ class Scene(MetadataObject):
         """Find readers and return their instanciations."""
         finder = ReaderFinder(ppp_config_dir=self.ppp_config_dir,
                               base_dir=base_dir,
+
                               start_time=self.attrs.get('start_time'),
                               end_time=self.attrs.get('end_time'),
                               area=self.attrs.get('area'), )
+
         return finder(reader=reader,
                       sensor=self.attrs.get("sensor"),
                       filenames=filenames,

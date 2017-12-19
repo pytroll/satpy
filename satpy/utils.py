@@ -146,9 +146,6 @@ def get_logger(name):
     return log
 
 
-###
-
-
 def strftime(utctime, format_string):
     """Like datetime.strftime, except it works with string formatting
     conversion specifier items on windows, making the assumption that all
@@ -201,3 +198,27 @@ def xyz2angle(x, y, z):
     azi = xu.rad2deg(xu.arctan2(x, y))
     zen = 90 - xu.rad2deg(xu.arctan2(z, xu.sqrt(x**2 + y**2)))
     return azi, zen
+
+
+# Projection string conversion from kilometers to meters
+
+
+def proj_units_to_meters(proj_str):
+    """Convert projection units from kilometers to meters."""
+    proj_parts = proj_str.split()
+    new_parts = []
+    for itm in proj_parts:
+        key, val = itm.split('=')
+        key = key.strip('+')
+        if key in ['a', 'b', 'h']:
+            val = float(val)
+            if val < 6e6:
+                val *= 1000.
+                val = '%.3f' % val
+
+        if key == 'units' and val == 'km':
+            continue
+
+        new_parts.append('+%s=%s' % (key, val))
+
+    return ' '.join(new_parts)
