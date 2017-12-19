@@ -39,6 +39,9 @@ distribution, we provide support for the following readers:
     * - GOES 16 imager data in netcdf format
       - `abi_l1b`
       - Nominal
+    * - GOES 11 to 15 imager data in HRIT format
+      - `hrit_goes`
+      - Nominal
     * - Electro-L N2 MSU-GS data in HRIT format
       - `hrit_electrol`
       - Nominal
