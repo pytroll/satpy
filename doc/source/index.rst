@@ -40,7 +40,7 @@ distribution, we provide support for the following readers:
       - `abi_l1b`
       - Nominal
     * - GOES 11 to 15 imager data in HRIT format
-      - `mipp_xrit`
+      - `hrit_goes`
       - Nominal
     * - Electro-L N2 MSU-GS data in HRIT format
       - `hrit_electrol`

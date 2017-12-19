@@ -1,3 +1,5 @@
+3d_filter: &3d_filter !!python/name:satpy.enhancements.three_d_effect ''
+
 enhancements:
   default:
     operations:
@@ -18,15 +20,13 @@ enhancements:
   true_color_norayleigh_default:
     standard_name: true_color_norayleigh
     operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs: {stretch: linear}
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
   true_color_reducedsize_default:
     standard_name: true_color_reducedsize
     operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs: {stretch: linear}
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
   overview_default:
     standard_name: overview
     operations:
@@ -548,4 +548,16 @@ enhancements:
       method: *stretchfun
       kwargs:
         stretch: histogram
+
+  ir108_3d:
+    standard_name: ir108_3d
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: 3d_filter
+      method: *3d_filter
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
 

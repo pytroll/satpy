@@ -2,6 +2,173 @@ Changelog
 =========
 
 
+v0.7.5 (2017-12-11)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.4 → 0.7.5. [davidh-ssec]
+- Remove unused legacy .cfg files. [davidh-ssec]
+- Merge branch 'master' into develop. [davidh-ssec]
+- Merge pull request #118 from mitkin/master. [Martin Raspaud]
+
+  Add file pattern for MODIS L1B from LAADS WEB
+- Add file pattern for MODIS L1B from LAADS WEB. [Mikhail Itkin]
+
+  NASA's LAADS WEB pattern is slightly different
+
+- Remove old and unused mipp_xrit reader. [davidh-ssec]
+- Fix SCMI writer not overwriting data from previous tiles. [davidh-
+  ssec]
+- Merge pull request #121 from pytroll/fix-ir-modifiers. [Martin
+  Raspaud]
+
+  Remove VIIRS SDR IR modifiers
+- Remove sun zenith angle correction from IR channels. [Panu Lahtinen]
+- Add github templates for issues and PRs. [Martin Raspaud]
+- Bugfix epsl1b reader. [Martin Raspaud]
+- Merge pull request #107 from pytroll/fix-nwcsaf-proj4. [David Hoese]
+
+  Convert NWC SAF MSG projection string to meters
+- Merge branch 'fix-nwcsaf-proj4' of https://github.com/pytroll/satpy
+  into fix-nwcsaf-proj4. [Panu Lahtinen]
+- Merge branch 'fix-nwcsaf-proj4' of https://github.com/pytroll/satpy
+  into fix-nwcsaf-proj4. [Panu Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Merge pull request #111 from eysteinn/sentinel1-reproject. [David
+  Hoese]
+
+  Fixed area information to safe_sar_c reader to allow for resampling
+- Added coordinates to sar_c.yaml to allow for reprojection. [Eysteinn]
+- Merge pull request #108 from TAlonglong/feature-decorate. [Martin
+  Raspaud]
+
+  Feature decorate
+- __init__.py docstring in a few add pydecorate features. [Trygve
+  Aspenes]
+- Satpy/writers/__init__.py implement more general way of handling
+  pydecorate calls from satpy save_dataset. Instead of logo and text
+  separate, use decorate. This needs to be a list to keep the order of
+  alignment available in pydecorate. Since the argument to add_decorate
+  needs to be a mapping it may look like this:
+  decorate={'decorate':[{'logo':{...}},{'text':{...}},...]} [Trygve
+  Aspenes]
+- Merge branch 'develop' into develop-fork. [Trygve Aspenes]
+- Satpy/writers/__init__.py added add_text function. This is meant to be
+  used when calling save_dataset to add text to an image using
+  pydecorate. eg save_dataset(...., text_overlay={'text': 'THIS IS THE
+  TEXT TO BE ADDED', 'align':{'top_bottom':'bottom',
+  'left_right':'right'},
+  'font':'/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+  'font_size':25, 'height':30, 'bg':'black', 'bg_opacity':255,
+  'line':'white'}). Not all options available as style in pydecorate are
+  implemented. This is left TODO. This PR is dependent on
+  https://github.com/pytroll/pydecorate/pull/3 to be completed. [Trygve
+  Aspenes]
+- Adding to more options to add_overlay. This to better control which
+  levels of coast(GSHHS) and borders (WDB_II) are put on the plot.
+  [Trygve Aspenes]
+- Merge pull request #88 from pytroll/feature-3d-enhancement. [Panu
+  Lahtinen]
+
+  Add 3D enhancement, fix BWCompositor
+- Merge branch 'feature-3d-enhancement' of
+  https://github.com/pytroll/satpy into feature-3d-enhancement. [Panu
+  Lahtinen]
+- Add example of composite with 3D effect. [Panu Lahtinen]
+- Fix BWCompositor to handle info correctly. [Panu Lahtinen]
+- Add 3D effect enhancement. [Panu Lahtinen]
+- Remove rebase comments. [Panu Lahtinen]
+- Add example of composite with 3D effect. [Panu Lahtinen]
+- Fix BWCompositor to handle info correctly. [Panu Lahtinen]
+- Add 3D effect enhancement. [Panu Lahtinen]
+- Merge pull request #87 from pytroll/feature-IASI-L2-reader. [Panu
+  Lahtinen]
+
+  Add IASI L2 reader
+- Merge branch 'feature-IASI-L2-reader' of
+  https://github.com/pytroll/satpy into feature-IASI-L2-reader. [Panu
+  Lahtinen]
+- Merge branch 'feature-IASI-L2-reader' of
+  https://github.com/pytroll/satpy into feature-IASI-L2-reader. [Panu
+  Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Merge branch 'develop' into feature-IASI-L2-reader. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Merge pull request #96 from eysteinn/create_colormap. [David Hoese]
+
+  Create colormap
+- Make colorizing/palettizing more flexible. [Eysteinn]
+- Merge pull request #4 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #3 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #109 from pytroll/bugfix-scmi. [David Hoese]
+
+  Fix SCMI writer and add more tiled grids
+- Fix SCMI writer writing masked geolocation to netcdf files. [davidh-
+  ssec]
+- Add additional GOES SCMI grids. [davidh-ssec]
+- Allow adding overlay for L and LA images. [Martin Raspaud]
+- Merge pull request #101 from pytroll/bugfix-scmi3. [David Hoese]
+
+  Fix python 3 compatibility in scmi writer
+- Add more SCMI writer tests for expected failures. [davidh-ssec]
+- Fix python 3 compatibility in scmi writer. [davidh-ssec]
+
+  Includes fix for X/Y coordinate precision which affects GOES-16 data
+
+- Merge pull request #105 from howff/doc-fix. [Martin Raspaud]
+
+  fix available_composite_names in doc
+- Fix available_composite_names in doc. [Andrew Brooks]
+
+
 v0.7.4 (2017-11-13)
 -------------------
 - Update changelog. [davidh-ssec]

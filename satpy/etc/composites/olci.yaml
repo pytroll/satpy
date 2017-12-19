@@ -5,9 +5,42 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: 'Oa08'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: 'Oa06'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: 'Oa03'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_desert:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: 'Oa08'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+    - name: 'Oa06'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+    - name: 'Oa03'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_desert]
+    standard_name: true_color
+
+  true_color_marine_tropical:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: 'Oa08'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+    - name: 'Oa06'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+    - name: 'Oa03'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
+    standard_name: true_color
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: 'Oa08'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'Oa06'
+      modifiers: [effective_solar_pathlength_corrected]
+    - name: 'Oa03'
+      modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
