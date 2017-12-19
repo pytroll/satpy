@@ -423,11 +423,13 @@ file_types:
     - 'M{platform_indicator:1s}D02{resolution:1s}km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D02{resolution:1s}km.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.h5'
     - 'M{platform_indicator:1s}D02{resolution:1s}KM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02{resolution:1s}KM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.{resolution:s}.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader ''
   hdf_eos_geo:
     file_patterns:
     - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSGeoReader ''
