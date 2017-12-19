@@ -52,12 +52,12 @@ datasets:
     resolution: 3000
     wavelength: [0.55, 0.7, 0.75]
     calibration:
-    #   reflectance:
-    #     standard_name: toa_bidirectional_reflectance
-    #     units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # radiance:
+      #   standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #   units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
     file_type: HRIT_00_7
