@@ -492,6 +492,8 @@ class HRITGOESFileHandler(HRITFileHandler):
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
 
+        loff = nlines - loff
+
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
                                            (lfac, cfac),
