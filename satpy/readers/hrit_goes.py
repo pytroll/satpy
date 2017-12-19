@@ -112,6 +112,41 @@ def make_time_cds_expanded(tcds_array):
                       microseconds=float(tcds_array['microseconds'] +
                                          tcds_array['nanoseconds'] / 1000.)))
 
+sgs_time = np.dtype([('century', 'u1'),
+                     ('year', 'u1'),
+                     ('doy1', 'u1'),
+                     ('doy_hours', 'u1'),
+                     ('hours_mins', 'u1'),
+                     ('mins_secs', 'u1'),
+                     ('secs_msecs', 'u1'),
+                     ('msecs', 'u1')])
+
+def make_sgs_time(sgs_time_array):
+    year = ((sgs_time_array['century'] >> 4) * 1000 +
+            (sgs_time_array['century'] & 15) * 100 +
+            (sgs_time_array['year'] >> 4) * 10 +
+            (sgs_time_array['year'] & 15))
+    doy = ((sgs_time_array['doy1'] >> 4) * 100 +
+           (sgs_time_array['doy1'] & 15) * 10 +
+           (sgs_time_array['doy_hours'] >> 4))
+    hours = ((sgs_time_array['doy_hours'] & 15) * 10 +
+             (sgs_time_array['hours_mins'] >> 4))
+    mins = ((sgs_time_array['hours_mins'] & 15) * 10 +
+            (sgs_time_array['mins_secs'] >> 4))
+    secs = ((sgs_time_array['mins_secs'] & 15) * 10 +
+            (sgs_time_array['secs_msecs'] >> 4))
+    msecs = ((sgs_time_array['secs_msecs'] & 15) * 100 +
+             (sgs_time_array['msecs'] >> 4) * 10 +
+             (sgs_time_array['msecs'] &15))
+    return (datetime(year, 1, 1) +
+            timedelta(days=doy - 1,
+                      hours=hours,
+                      minutes=mins,
+                      seconds=secs,
+                      milliseconds=msecs))
+
+
+
 satellite_status = np.dtype([("TagType", "<u4"),
                              ("TagLength", "<u4"),
                              ("SatelliteID", "<u8"),
@@ -125,6 +160,22 @@ image_acquisition = np.dtype([("TagType", "<u4"),
                               ("Status", "<u4"),
                               ("StartDelay", "<i4"),
                               ("Cel", "<f8")])
+
+
+gvar_float = '>i4'
+
+def make_gvar_float(float_val):
+    sign = 0
+    if float_val < 0:
+        float_val = -float_val
+        sign = -1
+
+    exp = (float_val >> 24) - 64
+    mant = float_val & ((1 << 24) - 1)
+    if mant == 0:
+        return 0.
+    res = sign * mant * 2.0**(-24 + exp * 4)
+    return res
 
 
 # XXX arb
@@ -145,17 +196,49 @@ prologue = np.dtype([
   # product header
   ("ImageProductHeaderVersion", "u1"),
   ("Junk2", "u1", 3),
-  ("ImageProductHeaderLength", "<u4"),
+  ("ImageProductHeaderLength", ">u4"),
   ("ImageProductVersion", "u1"),
   # first block-0
   ("SatelliteID", "u1"),
-  ("Junk3", "u1", 173), # move to "word" 175
-  ("SubSatLatitude",     ">f4"),
-  ("SubSatLongitude",    ">f4"), # ">f4" seems better than "<f4". still wrong though. 
-  ("Junk4", "u1", 112), # move to "word" 295
-  ("ReferenceLongitude", ">f4"),
-  ("ReferenceDistance",  ">f4"),
-  ("ReferenceLatitude",  ">f4")
+  ("SPSID", "u1"),
+  ("IScan", "u1", 4),
+  ("IDSub", "u1", 16),
+  ("TCurr", sgs_time),
+  ("TCHED", sgs_time),
+  ("TCTRL", sgs_time),
+  ("TLHED", sgs_time),
+  ("TLTRL", sgs_time),
+  ("TIPFS", sgs_time),
+  ("TINFS", sgs_time),
+  ("TISPC", sgs_time),
+  ("TIECL", sgs_time),
+  ("TIBBC", sgs_time),
+  ("TISTR", sgs_time),
+  ("TLRAN", sgs_time),
+  ("TIIRT", sgs_time),
+  ("TIVIT", sgs_time),
+  ("TCLMT", sgs_time),
+  ("TIONA", sgs_time),
+  ("RelativeScanCount", '>u2'),
+  ("AbsoluteScanCount", '>u2'),
+  ("NorthernmostScanLine", '>u2'),
+  ("WesternmostPixel", '>u2'),
+  ("EasternmostPixel", '>u2'),
+  ("NorthernmostFrameLine", '>u2'),
+  ("SouthernmostFrameLine", '>u2'),
+  ("0Pixel", '>u2'),
+  ("0ScanLine", '>u2'),
+  ("0Scan", '>u2'),
+  ("SubSatScan", '>u2'),
+  ("SubSatPixel", '>u2'),
+  ("SubSatLatitude", gvar_float),
+  ("SubSatLongitude", gvar_float), # ">f4" seems better than "<f4". still wrong though.
+  ("Junk4", "u1", 96), # move to "word" 295
+  ("IMCIdentifier", "S4"),
+  ("Zeros", "u1", 12),
+  ("ReferenceLongitude", gvar_float),
+  ("ReferenceDistance",  gvar_float),
+  ("ReferenceLatitude",  gvar_float)
   ])
 
 
@@ -185,7 +268,6 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
                                                           (goes_hdr_map,
                                                            goms_variable_length_headers,
                                                            goms_text_headers))
-
         self.prologue = {}
         self.read_prologue()
 
@@ -201,7 +283,19 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-        pass
+
+        for key in ['TCurr', 'TCHED', 'TCTRL', 'TLHED', 'TLTRL', 'TIPFS',
+                    'TINFS', 'TISPC', 'TIECL', 'TIBBC', 'TISTR', 'TLRAN',
+                    'TIIRT', 'TIVIT', 'TCLMT', 'TIONA']:
+            try:
+                self.prologue[key] = make_sgs_time(self.prologue[key])
+            except ValueError:
+                self.prologue.pop(key, None)
+                logger.debug("Invalid data for %s", key)
+
+        for key in ['SubSatLatitude', "SubSatLongitude", "ReferenceLongitude",
+                    "ReferenceDistance", "ReferenceLatitude"]:
+            self.prologue[key] = make_gvar_float(self.prologue[key])
 
 
 radiometric_processing = np.dtype([("TagType", "<u4"),
@@ -303,7 +397,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         sublon = self.prologue['SubSatLongitude'];
         #sublon = -75.0 # XXX arb hard-coded since extraction returns -0.0883789
         self.mda['projection_parameters']['SSP_longitude'] = sublon # degrees, so no need to np.rad2deg(sublon)
-        
+
         #satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         #self.platform_name = SPACECRAFTS[satellite_id]
         satellite_id = self.prologue['SatelliteID']
@@ -327,11 +421,32 @@ class HRITGOESFileHandler(HRITFileHandler):
             out = res
 
         logger.debug("hrit_goes/get_dataset res")
+        self.mda['calibration_parameters'] = self._get_calibration_params()
         self.calibrate(out, key.calibration)
         out.info['units'] = info['units']
         out.info['standard_name'] = info['standard_name']
         out.info['platform_name'] = self.platform_name
         out.info['sensor'] = 'goes_imager'
+
+    def _get_calibration_params(self):
+        """Get the calibration parameters from the metadata."""
+        params = {}
+        idx_table = []
+        val_table = []
+        for elt in self.mda['image_data_function'].split('\r\n'):
+            try:
+                key, val = elt.split(':=')
+                try:
+                    idx_table.append(int(key))
+                    val_table.append(float(val))
+                except ValueError:
+                    params[key] = val
+            except ValueError:
+                pass
+        params['indices'] = np.array(idx_table)
+        params['values'] = np.array(val_table, dtype=np.float32)
+        return params
+
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -341,28 +456,66 @@ class HRITGOESFileHandler(HRITFileHandler):
         if calibration == 'counts':
             return
 
-        if calibration == 'radiance':
-            self._vis_calibrate(data)
+        if calibration == 'reflectance':
+            self._calibrate(data)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data)
+            self._calibrate(data)
         else:
             raise NotImplementedError("Don't know how to calibrate to " +
                                       str(calibration))
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
 
-    def _vis_calibrate(self, data):
-        """Visible channel calibration only."""
-        lut = self.prologue['ImageCalibration'][self.chid] / 1000.0
+    def _calibrate(self, data):
+        """Calibrate *data*."""
+        idx = self.mda['calibration_parameters']['indices']
+        val = self.mda['calibration_parameters']['values']
+        data.mask[:] = data.data == 0
+        data.data[:] = np.interp(data.data, idx, val)
+        data.info['units'] = self.mda['calibration_parameters']['_UNIT']
 
-        data.data[:] = lut[data.data.astype(np.uint16)]
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        cfac = np.int32(self.mda['cfac'])
+        lfac = np.int32(self.mda['lfac'])
+        coff = np.float32(self.mda['coff'])
+        loff = np.float32(self.mda['loff'])
 
-    def _ir_calibrate(self, data):
-        """IR calibration."""
 
-        lut = self.prologue['ImageCalibration'][self.chid] / 1000.0
+        a = 6378169.00
+        b = 6356583.80
+        h = 35785831.00
 
-        data.data[:] = lut[data.data.astype(np.uint16)]
+        lon_0 = self.prologue['SubSatLongitude']
+        lat_0 = self.prologue['SubSatLatitude']
+
+        nlines = int(self.mda['number_of_lines'])
+        ncols = int(self.mda['number_of_columns'])
+
+        area_extent = self.get_area_extent((nlines, ncols),
+                                           (loff, coff),
+                                           (lfac, cfac),
+                                           h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            nlines,
+            area_extent)
+
+        self.area = area
+
+        return area
 
 
 def show(data, negate=False):
