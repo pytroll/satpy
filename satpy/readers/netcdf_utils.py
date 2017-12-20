@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016-2017.
 
 # Author(s):
 
@@ -67,7 +67,12 @@ class NetCDF4FileHandler(BaseFileHandler):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
-        file_handle = netCDF4.Dataset(self.filename, 'r')
+        try:
+            file_handle = netCDF4.Dataset(self.filename, 'r')
+        except IOError:
+            LOG.exception(
+                'Failed reading file %s. Possibly corrupted file', self.filename)
+            raise
 
         self.auto_maskandscale = auto_maskandscale
         if hasattr(file_handle, "set_auto_maskandscale"):
