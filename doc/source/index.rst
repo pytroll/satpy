@@ -66,7 +66,7 @@ distribution, we provide support for the following readers:
     * - Callipso Caliop data in EOS-hdf4 format
       - `hdf4_caliopv3`
       - Nominal
-    * - Terra and Aqua MODIS data in EOS-hdf4 format
+    * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
     * - NWCSAF MSG 2016 products in netCDF4 format
