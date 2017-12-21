@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011 SMHI
+# Copyright (c) 2011-2017 PyTroll
 
 # Author(s):
 
@@ -37,6 +37,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Plugin(object):
+
     """The base plugin class. It is not to be used as is, it has to be
     inherited by other classes.
     """

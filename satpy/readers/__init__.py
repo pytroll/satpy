@@ -46,6 +46,7 @@ class MalformedConfigError(Exception):
 
 
 class DatasetDict(dict):
+
     """Special dictionary object that can handle dict operations based on
     dataset name, wavelength, or DatasetID.
 
@@ -262,6 +263,7 @@ def load_reader(reader_configs, metadata=None, **reader_kwargs):
 
 
 class ReaderFinder(object):
+
     """Find readers given a scene, filenames, sensors, and/or a reader_name
     """
 
