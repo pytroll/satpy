@@ -43,7 +43,8 @@ from pyhdf.SD import SD
 
 import dask.array as da
 import xarray as xr
-from satpy.dataset import Dataset, DatasetID
+from satpy import CHUNKSIZE
+from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -153,7 +154,8 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             mask = var[:] == var._FillValue
             data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
             data = data.filled(np.nan)
-            return xr.DataArray(da.from_array(data, chunks=(1000, 1000)),
+            return xr.DataArray(da.from_array(data, chunks=(CHUNKSIZE,
+                                                            CHUNKSIZE)),
                                 dims=['y', 'x'])
         if key.name not in ['longitude', 'latitude']:
             return
@@ -184,7 +186,8 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             data = self.cache[key.resolution]['lons'].filled(np.nan)
 
-        data = xr.DataArray(da.from_array(data, chunks=(1000, 1000)),
+        data = xr.DataArray(da.from_array(data, chunks=(CHUNKSIZE,
+                                                        CHUNKSIZE)),
                             dims=['y', 'x'])
         data.attrs = info
         return data
@@ -208,7 +211,8 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 data = self._interpolate(data, self.resolution, key.resolution)
             if not raw:
                 data = data.filled(np.nan)
-                data = xr.DataArray(da.from_array(data, chunks=(1000, 1000)),
+                data = xr.DataArray(da.from_array(data, chunks=(CHUNKSIZE,
+                                                                CHUNKSIZE)),
                                     dims=['y', 'x'])
             projectables.append(data)
 
@@ -318,7 +322,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
             projectable = xr.DataArray(da.from_array(array[0].filled(np.nan),
-                                                     chunks=(1000, 1000)),
+                                                     chunks=(CHUNKSIZE,
+                                                             CHUNKSIZE)),
                                        dims=['y', 'x'])
             projectable.attrs = info
 
