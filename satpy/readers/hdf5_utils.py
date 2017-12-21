@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016-2017.
 
 # Author(s):
 
@@ -42,9 +42,16 @@ class HDF5FileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(HDF5FileHandler, self).__init__(
+            filename, filename_info, filetype_info)
         self.file_content = {}
-        file_handle = h5py.File(self.filename, 'r')
+        try:
+            file_handle = h5py.File(self.filename, 'r')
+        except IOError:
+            LOG.exception(
+                'Failed reading file %s. Possibly corrupted file', self.filename)
+            raise
+
         file_handle.visititems(self.collect_metadata)
         self._collect_attrs('', file_handle.attrs)
         file_handle.close()
