@@ -383,19 +383,20 @@ datasets:
     standard_name: latitude
     units: degree
 
-#  longitude5k:
-#    file_type: hdf_eos_data
-#    name: longitude
-#    resolution: 5000
-#    standard_name: longitude
-#    units: degree
-#
-#  latitude5k:
-#    file_type: hdf_eos_data
-#    name: latitude
-#    resolution: 5000
-#    standard_name: latitude
-#    units: degree
+  # For EUM reduced (thinned) files
+  longitude5k:
+    file_type: hdf_eos_data_1000m
+    name: longitude
+    resolution: 5000
+    standard_name: longitude
+    units: degree
+
+  latitude5k:
+    file_type: hdf_eos_data_1000m
+    name: latitude
+    resolution: 5000
+    standard_name: latitude
+    units: degree
 
   solar_zenith_angle:
     name: solar_zenith_angle
@@ -431,6 +432,7 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D02Qkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02QKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.250m.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
@@ -438,6 +440,7 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D02Hkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02HKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.500m.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
@@ -445,6 +448,8 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D021km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'thin_M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D021KM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
@@ -452,6 +457,7 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
     file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSGeoReader ''
