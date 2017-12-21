@@ -42,6 +42,7 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.helper_functions import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
+from satpy import CHUNKSIZE
 
 logger = logging.getLogger(__name__)
 
@@ -834,9 +835,10 @@ class FileYAMLReader(AbstractYAMLReader):
             ds.attrs['area'] = area
             if (('x' not in ds.coords) or('y' not in ds.coords)) and \
                     hasattr(area, 'get_proj_coords_dask'):
-                proj_coords = area.get_proj_coords_dask(1000)
-                ds['x'] = proj_coords[0, :, 1].compute()
-                ds['y'] = proj_coords[:, 0, 0].compute()
+                #proj_coords = area.get_proj_coords_dask(CHUNKSIZE)
+                ds['x'], ds['y'] = area.get_proj_vectors(CHUNKSIZE)
+                #ds['x'] = proj_coords[0, :, 1].compute()
+                #ds['y'] = proj_coords[:, 0, 0].compute()
         return ds
 
     def _load_ancillary_variables(self, datasets):
