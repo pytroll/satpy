@@ -49,14 +49,6 @@ satpy.readers.clavrx module
     :undoc-members:
     :show-inheritance:
 
-satpy.readers.mipp_xrit module
-------------------------------
-
-.. automodule:: satpy.readers.mipp_xrit
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy.readers.viirs_l1b module
 ------------------------------
 

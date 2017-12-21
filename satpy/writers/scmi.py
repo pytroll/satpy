@@ -248,7 +248,7 @@ class NumberedTileGenerator(object):
         ts = self.tile_shape
         tmp_tile = np.ma.zeros(ts, dtype=np.float32)
         tmp_tile.set_fill_value(fill_value)
-        tmp_tile[:] = fill_value
+        tmp_tile[:] = np.ma.masked
 
         if self._tile_cache:
             tile_infos = self._tile_cache
@@ -262,6 +262,7 @@ class NumberedTileGenerator(object):
                 continue
 
             yield tile_info[:-2], tmp_tile
+            tmp_tile[:] = np.ma.masked
 
 
 class LetteredTileGenerator(NumberedTileGenerator):
