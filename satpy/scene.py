@@ -193,6 +193,7 @@ class Scene(InfoObject):
 
     @property
     def missing_datasets(self):
+        """DatasetIDs that have not been loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
 
     def available_dataset_ids(self, reader_name=None, composites=False):
