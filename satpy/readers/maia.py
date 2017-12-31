@@ -20,10 +20,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for NWPSAF AAPP MAIA Cloud product.
-   https://nwpsaf.eu/site/software/aapp/
-   Documentation reference:
-     [NWPSAF-MF-UD-003] DATA Formats
-     [NWPSAF-MF-UD-009] MAIA version 4 Scientific User Manual
+
+https://nwpsaf.eu/site/software/aapp/
+
+Documentation reference:
+
+    [NWPSAF-MF-UD-003] DATA Formats
+    [NWPSAF-MF-UD-009] MAIA version 4 Scientific User Manual
+
 """
 import logging
 from collections import defaultdict

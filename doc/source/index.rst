@@ -27,10 +27,17 @@ installation.
 .. toctree::
     :maxdepth: 2
 
+    overview
     install
     quickstart
-    satpy
+    readers
+    composites
+    resample
+    writers
+    SatPy API <api/satpy>
 
+
+.. _reader_table:
 
 .. list-table:: SatPy Readers
     :header-rows: 1
