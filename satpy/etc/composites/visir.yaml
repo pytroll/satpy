@@ -124,14 +124,28 @@ composites:
     - 7.3
     - 10.8
     standard_name: convection
+    
+  snow:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
+    standard_name: snow
+    
   day_microphysics:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 0.85
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
     - wavelength: 3.7
       modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
+    
   dust:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
