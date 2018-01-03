@@ -15,6 +15,20 @@ modifiers:
     prerequisites:
     - solar_zenith_angle
 
+  nir_reflectance_lowres:
+    compositor: !!python/name:satpy.composites.NIRReflectance
+    prerequisites:
+    - M15
+    optional_prerequisites:
+    - solar_zenith_angle
+
+  nir_reflectance_hires:
+    compositor: !!python/name:satpy.composites.NIRReflectance
+    prerequisites:
+    - I05
+    optional_prerequisites:
+    - solar_zenith_angle
+
 
 composites:
 
@@ -146,6 +160,29 @@ composites:
     - I05
     - I04
     standard_name: temperature_difference
+
+  snow_lowres:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M12
+      modifiers: [nir_reflectance_lowres]
+    standard_name: snow
+
+  snow_hires:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I02
+      modifiers: [sunz_corrected]
+    - name: I03
+      modifiers: [sunz_corrected]
+    - name: I04
+      modifiers: [nir_reflectance_hires]
+    standard_name: snow
+
   histogram_dnb:
     compositor: !!python/name:satpy.composites.viirs.HistogramDNB
     prerequisites:
