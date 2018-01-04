@@ -13,21 +13,29 @@ modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
-    - solar_zenith_angle
+    - name: solar_zenith_angle
+      resolution: 742
+
+  sunz_corrected_iband:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    prerequisites:
+    - name: solar_zenith_angle
+      resolution: 371
 
   nir_reflectance_lowres:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
     - M15
     optional_prerequisites:
-    - solar_zenith_angle
-
+    - name: solar_zenith_angle
+      resolution: 742
   nir_reflectance_hires:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
     - I05
     optional_prerequisites:
-    - solar_zenith_angle
+    - name: solar_zenith_angle
+      resolution: 371
 
 
 composites:
@@ -43,7 +51,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected]
     standard_name: true_color
     high_resolution_band: red
 
@@ -91,7 +99,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected]
     standard_name: natural_color
     high_resolution_band: blue
 
@@ -176,9 +184,9 @@ composites:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: I02
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected_iband]
     - name: I03
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected_iband]
     - name: I04
       modifiers: [nir_reflectance_hires]
     standard_name: snow
