@@ -416,7 +416,7 @@ class NIRReflectance(CompositeBase):
         refl39 = Calculator(nir.info['platform_name'], nir.info['sensor'], nir.id.name)
         # nir.info['sensor'], nir.id.wavelength[1])
 
-        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir, tb11, tb13_4) * 100, **nir.info)
+        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir, tb11, tb_ir_co2=tb13_4) * 100, **nir.info)
         proj.info['units'] = '%'
         self.apply_modifier_info(nir, proj)
 
