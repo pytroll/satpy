@@ -22,6 +22,14 @@ modifiers:
     - solar_zenith_angle
     - 13.4
 
+  nir_emissive:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - 11
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+
   atm_correction:
     compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
     optional_prerequisites:

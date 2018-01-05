@@ -387,6 +387,16 @@ class NIRReflectance(CompositeBase):
         """Get the reflectance part of an NIR channel. Not supposed to be used
         for wavelength outside [3, 4] µm.
         """
+        nir, dummy = projectables
+        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **nir.info)
+
+        proj.info['units'] = '%'
+        self.apply_modifier_info(nir, proj)
+
+        return proj
+
+    def _get_reflectance(self, projectables, optional_datasets):
+        """Calculate 3.x reflectance with pyspectral"""
         try:
             from pyspectral.near_infrared_reflectance import Calculator
         except ImportError:
@@ -413,11 +423,21 @@ class NIRReflectance(CompositeBase):
             lons, lats = nir.info["area"].get_lonlats()
             sun_zenith = sza(nir.info['start_time'], lons, lats)
 
-        refl39 = Calculator(nir.info['platform_name'], nir.info['sensor'], nir.id.name)
-        # nir.info['sensor'], nir.id.wavelength[1])
+        self._refl3x = Calculator(nir.info['platform_name'], nir.info['sensor'], nir.id.name)
+        return self._refl3x.reflectance_from_tbs(sun_zenith, nir, tb11, tb_ir_co2=tb13_4)
 
-        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir, tb11, tb_ir_co2=tb13_4) * 100, **nir.info)
-        proj.info['units'] = '%'
+
+class NIREmissivePartFromReflectance(NIRReflectance):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the emissive part an NIR channel after having derived the reflectance. 
+        Not supposed to be used for wavelength outside [3, 4] µm.
+        """
+        nir, dummy = projectables
+        dummy = self._get_reflectance(projectables, optional_datasets)
+        proj = Dataset(self._refl3x.emissive_part_3x(), **nir.info)
+
+        proj.info['units'] = 'K'
         self.apply_modifier_info(nir, proj)
 
         return proj
