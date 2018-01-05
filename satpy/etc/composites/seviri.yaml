@@ -22,6 +22,15 @@ composites:
     - 12.0
     standard_name: cloudtop
 
+  cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 3.7
+      modifiers: [nir_emissive]
+    - 10.8
+    - 12.0
+    standard_name: cloudtop
+
   convection:
     compositor: !!python/name:satpy.composites.Convection
     prerequisites:
