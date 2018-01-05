@@ -387,7 +387,7 @@ class NIRReflectance(CompositeBase):
         """Get the reflectance part of an NIR channel. Not supposed to be used
         for wavelength outside [3, 4] µm.
         """
-        nir, dummy = projectables
+        nir, _ = projectables
         proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **nir.info)
 
         proj.info['units'] = '%'
@@ -433,8 +433,8 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         """Get the emissive part an NIR channel after having derived the reflectance. 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        nir, dummy = projectables
-        dummy = self._get_reflectance(projectables, optional_datasets)
+        nir, _ = projectables
+        _ = self._get_reflectance(projectables, optional_datasets)
         proj = Dataset(self._refl3x.emissive_part_3x(), **nir.info)
 
         proj.info['units'] = 'K'
