@@ -22,6 +22,22 @@ modifiers:
     - name: solar_zenith_angle
       resolution: 371
 
+  nir_emissive_lowres:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - M15
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 742
+      
+  nir_emissive_hires:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - I05
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 371
+      
   nir_reflectance_lowres:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
@@ -29,6 +45,7 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 742
+
   nir_reflectance_hires:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
@@ -36,7 +53,6 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 371
-
 
 composites:
 
@@ -168,6 +184,24 @@ composites:
     - I05
     - I04
     standard_name: temperature_difference
+
+  cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M12
+      modifiers: [nir_emissive_lowres]
+    - name: M15
+    - name: M16
+    standard_name: cloudtop
+
+  hr_cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I04
+      modifiers: [nir_emissive_hires]
+    - name: I05
+    - name: I05
+    standard_name: cloudtop
 
   snow_lowres:
     compositor: !!python/name:satpy.composites.RGBCompositor
