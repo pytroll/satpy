@@ -387,15 +387,16 @@ class NIRReflectance(CompositeBase):
         """Get the reflectance part of an NIR channel. Not supposed to be used
         for wavelength outside [3, 4] µm.
         """
-        self._init_refl3x(projectables, optional_datasets)
-        proj = Dataset(self._get_reflectance(optional_datasets) * 100, **self._nir.info)
+        self._init_refl3x(projectables)
+        _nir, _ = projectables
+        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
 
         proj.info['units'] = '%'
-        self.apply_modifier_info(self._nir, proj)
+        self.apply_modifier_info(_nir, proj)
 
         return proj
 
-    def _init_refl3x(self, projectables, optional_datasets):
+    def _init_refl3x(self, projectables):
         """Initiate the 3.x reflectance derivations
         """
         try:
@@ -404,12 +405,13 @@ class NIRReflectance(CompositeBase):
             LOG.info("Couldn't load pyspectral")
             raise
 
-        self._nir, self._tb11 = projectables
-        self._refl3x = Calculator(self._nir.info['platform_name'], self._nir.info['sensor'], self._nir.id.name)
+        _nir, _tb11 = projectables
+        self._refl3x = Calculator(_nir.info['platform_name'], _nir.info['sensor'], _nir.id.name)
 
-    def _get_reflectance(self, optional_datasets):
+    def _get_reflectance(self, projectables, optional_datasets):
         """Calculate 3.x reflectance with pyspectral"""
-        LOG.info('Getting reflective part of %s', self._nir.info['name'])
+        _nir, _tb11 = projectables
+        LOG.info('Getting reflective part of %s', _nir.info['name'])
 
         sun_zenith = None
         tb13_4 = None
@@ -424,10 +426,10 @@ class NIRReflectance(CompositeBase):
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = self._nir.info["area"].get_lonlats()
-            sun_zenith = sza(self._nir.info['start_time'], lons, lats)
+            lons, lats = _nir.info["area"].get_lonlats()
+            sun_zenith = sza(_nir.info['start_time'], lons, lats)
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, self._nir, self._tb11, tb_ir_co2=tb13_4)
+        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
@@ -436,12 +438,13 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         """Get the emissive part an NIR channel after having derived the reflectance. 
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
-        self._init_refl3x(projectables, optional_datasets)
-        _ = self._get_reflectance(optional_datasets)
-        proj = Dataset(self._refl3x.emissive_part_3x(), **self._nir.info)
+        self._init_refl3x(projectables)
+        _ = self._get_reflectance(projectables, optional_datasets)
+        _nir, _ = projectables
+        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.info)
 
         proj.info['units'] = 'K'
-        self.apply_modifier_info(self._nir, proj)
+        self.apply_modifier_info(_nir, proj)
 
         return proj
 
