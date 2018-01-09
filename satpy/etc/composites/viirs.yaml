@@ -1,7 +1,7 @@
 sensor_name: visir/viirs
 
 modifiers:
-  rayleigh_corrected:
+  rayleigh_corrected_crefl:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     prerequisites:
@@ -13,13 +13,46 @@ modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
-    - solar_zenith_angle
+    - name: solar_zenith_angle
+      resolution: 742
 
-  effective_solar_pathlength_corrected:
-    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+  sunz_corrected_iband:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
-    - solar_zenith_angle
+    - name: solar_zenith_angle
+      resolution: 371
 
+  nir_emissive_lowres:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - M15
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 742
+      
+  nir_emissive_hires:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - I05
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 371
+      
+  nir_reflectance_lowres:
+    compositor: !!python/name:satpy.composites.NIRReflectance
+    prerequisites:
+    - M15
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 742
+
+  nir_reflectance_hires:
+    compositor: !!python/name:satpy.composites.NIRReflectance
+    prerequisites:
+    - I05
+    optional_prerequisites:
+    - name: solar_zenith_angle
+      resolution: 371
 
 composites:
 
@@ -34,7 +67,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected]
     standard_name: true_color
     high_resolution_band: red
 
@@ -49,18 +82,40 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
+  true_color_lowres_crefl:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: M04
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: M03
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: true_color
+
+  true_color_lowres_land:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
+    - name: M04
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
+    - name: M03
+      modifiers: [sunz_corrected, rayleigh_corrected_land]
+    standard_name: true_color
+
   natural_color:
     compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
     prerequisites:
     - name: M11
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - name: M07
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected]
     standard_name: natural_color
     high_resolution_band: blue
 
@@ -91,10 +146,18 @@ composites:
     - M15
     standard_name: overview
 
+  hr_overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - I01
+    - I02
+    - I05
+    standard_name: overview
+
   night_microphysics:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - DNB
+    - hncc_dnb
     - M12
     - M15
     standard_name: night_microphysics
@@ -121,6 +184,47 @@ composites:
     - I05
     - I04
     standard_name: temperature_difference
+
+  cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M12
+      modifiers: [nir_emissive_lowres]
+    - name: M15
+    - name: M16
+    standard_name: cloudtop
+
+  hr_cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I04
+      modifiers: [nir_emissive_hires]
+    - name: I05
+    - name: I05
+    standard_name: cloudtop
+
+  snow_lowres:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M12
+      modifiers: [nir_reflectance_lowres]
+    standard_name: snow
+
+  snow_hires:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I02
+      modifiers: [sunz_corrected_iband]
+    - name: I03
+      modifiers: [sunz_corrected_iband]
+    - name: I04
+      modifiers: [nir_reflectance_hires]
+    standard_name: snow
+
   histogram_dnb:
     compositor: !!python/name:satpy.composites.viirs.HistogramDNB
     prerequisites:

@@ -44,19 +44,21 @@ def invert(img, *args):
 
 
 def cira_stretch(img, **kwargs):
-    """Logarithmic stretch adapted to human vision."""
+    """Logarithmic stretch adapted to human vision.
+
+    Applicable only for visible channels.
+    """
     LOG.debug("Applying the cira-stretch")
     for chn in img.channels:
         chn /= 100
         np.log10(chn.data, out=chn.data)
-        # chn[:] = np.ma.masked_invalid(chn)
         chn -= np.log10(0.0223)
         chn /= 1.0 - np.log10(0.0223)
         chn /= 0.75
 
 
 def lookup(img, **kwargs):
-    """Assigns values to channels based on a table"""
+    """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
 
     for idx, ch in enumerate(img.channels):
@@ -67,14 +69,12 @@ def lookup(img, **kwargs):
 
 def colorize(img, **kwargs):
     """Colorize the given image."""
-
     full_cmap = _merge_colormaps(kwargs)
     img.colorize(full_cmap)
 
 
 def palettize(img, **kwargs):
     """Palettize the given image (no color interpolation)."""
-
     full_cmap = _merge_colormaps(kwargs)
     img.palettize(full_cmap)
 
@@ -95,8 +95,7 @@ def _merge_colormaps(kwargs):
 
 
 def create_colormap(palette):
-    """Create colormap of the given numpy file, color vector or colormap template."""
-
+    """Create colormap of the given numpy file, color vector or colormap."""
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     if fname:

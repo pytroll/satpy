@@ -145,6 +145,9 @@ class Scene(InfoObject):
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
 
+    def _ipython_key_completions_(self):
+        return [x.name for x in self.datasets.keys()]
+
     def _compute_metadata_from_readers(self):
         """Determine pieces of metadata from the readers loaded."""
         mda = {}
