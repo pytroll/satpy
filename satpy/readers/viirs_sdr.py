@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
+# Copyright (c) 2011-2017.
 
 # Author(s):
 
@@ -84,6 +84,7 @@ def _get_invalid_info(granule_data):
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
+
     """VIIRS HDF5 File Reader
     """
 
@@ -154,7 +155,11 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         default = '/attr/Platform_Short_Name'
         platform_path = self.filetype_info.get(
             'platform_name', default).format(**self.filetype_info)
-        platform_dict = {'NPP': 'Suomi-NPP'}
+        platform_dict = {'NPP': 'Suomi-NPP',
+                         'JPSS-1': 'NOAA-20',
+                         'J01': 'NOAA-20',
+                         'JPSS-2': 'NOAA-21',
+                         'J02': 'NOAA-21'}
         return platform_dict.get(self[platform_path], self[platform_path])
 
     @property
@@ -290,17 +295,19 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
 
 class VIIRSSDRReader(FileYAMLReader):
+
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
+
     def __init__(self, config_files, use_tc=True, **kwargs):
         """Initialize file reader and adjust geolocation preferences.
-        
+
         Args:
             config_files (iterable): yaml config files passed to base class
             use_tc (boolean): If `True` (default) use the terrain corrected
                               file types specified in the config files. If
                               `False`, switch all terrain corrected file types
                               to non-TC file types. If `None` 
-                                    
+
         """
         super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
         for ds_info in self.ids.values():
@@ -350,7 +357,7 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for `dsid`.
-        
+
         Wraps the base class method in order to load geolocation files
         from the geo reference attribute in the datasets file.
         """
