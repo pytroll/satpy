@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016-2017.
 
 # Author(s):
 
@@ -36,13 +36,21 @@ LOG = logging.getLogger(__name__)
 
 
 class HDF5FileHandler(BaseFileHandler):
+
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(HDF5FileHandler, self).__init__(
+            filename, filename_info, filetype_info)
         self.file_content = {}
-        file_handle = h5py.File(self.filename, 'r')
+        try:
+            file_handle = h5py.File(self.filename, 'r')
+        except IOError:
+            LOG.exception(
+                'Failed reading file %s. Possibly corrupted file', self.filename)
+            raise
+
         file_handle.visititems(self.collect_metadata)
         self._collect_attrs('', file_handle.attrs)
         file_handle.close()
@@ -70,7 +78,8 @@ class HDF5FileHandler(BaseFileHandler):
     def __getitem__(self, key):
         val = self.file_content[key]
         if isinstance(val, h5py.Dataset):
-            # these datasets are closed and inaccessible when the file is closed, need to reopen
+            # these datasets are closed and inaccessible when the file is
+            # closed, need to reopen
             return h5py.File(self.filename, 'r')[key].value
         return val
 

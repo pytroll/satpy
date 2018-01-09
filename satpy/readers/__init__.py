@@ -46,6 +46,7 @@ class MalformedConfigError(Exception):
 
 
 class DatasetDict(dict):
+
     """Special dictionary object that can handle dict operations based on
     dataset name, wavelength, or DatasetID.
 

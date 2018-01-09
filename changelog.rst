@@ -2,6 +2,118 @@ Changelog
 =========
 
 
+v0.7.7 (2017-12-21)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.6 → 0.7.7. [davidh-ssec]
+- Merge pull request #140 from pytroll/bugfix-scmi-signed. [David Hoese]
+
+  Bugfix scmi signed integer data variables
+- Add ipython tab completion for scene keys. [davidh-ssec]
+- Fix SCMI writer because AWIPS doesn't like unsigned integers. [davidh-
+  ssec]
+
+  Using the entire 16-bit unsigned integer space displays fine in AWIPS
+  but it doesn't handle them correctly when adding derived parameters.
+  Meaning once the data goes in to a python script and gets converted to
+  a signed interger...yeah. This change makes it so data is a signed
+  16-bit integer that only uses the positive half of the bit space.
+
+- Merge pull request #138 from pytroll/bugfix-modis-reader. [David
+  Hoese]
+- Add more file patterns to hdfeos_l1b reader. [davidh-ssec]
+- Fix requesting a specific resolution from a reader. [davidh-ssec]
+- Merge remote-tracking branch 'origin/fix-resolution' into bugfix-
+  modis-reader. [davidh-ssec]
+- Allow providing resolution when loading a composite. [Martin Raspaud]
+- Fix hdfeos_l1b reader not knowing what resolution of datasets it had.
+  [davidh-ssec]
+- Fix interpolation problem at 250m resolution. [Martin Raspaud]
+- Fix readers not returning the highest resolution dataset IDs. [davidh-
+  ssec]
+- Merge pull request #139 from pytroll/bugfix-viirs-l1b. [David Hoese]
+
+  Fix VIIRS L1B to work with JPSS-1 and new NASA filenames
+- Fix VIIRS L1B to work with JPSS-1 and new NASA filenames. [davidh-
+  ssec]
+- Clean up style. [Martin Raspaud]
+- Fix lon/lat caching in hdfeos_l1b for different resolutions. [Martin
+  Raspaud]
+
+  Fixes #132
+- Merge pull request #137 from pytroll/logging_corrupted_file. [Martin
+  Raspaud]
+
+  When opening/reading a nc or hdf file fails, be verbose telling which file it is that fails
+- When opening/reading a file fails, be verbose telling which file it is
+  that fails. [Adam.Dybbroe]
+- Merge pull request #134 from howff/hdfeos_l1b_ipopp_filenames. [Martin
+  Raspaud]
+
+  Added IPOPP-style MODIS-L1b filenames
+- Update doc re. IMAPP and IPOPP. [Andrew Brooks]
+- Added IPOPP-style MODIS-L1b filenames. [Andrew Brooks]
+
+
+v0.7.6 (2017-12-19)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.5 → 0.7.6. [Martin Raspaud]
+- Merge pull request #135 from pytroll/viirs_truecolor_config_error.
+  [Martin Raspaud]
+
+  Replace effective_solar_pathlength_corrected with the standard sunz-corrected
+- Replace effective_solar_pathlength_corrected witn the standard sunz-
+  correction. VIIRS data are already sun-zenith corrected.
+  [Adam.Dybbroe]
+- Update documentation to add hrit_goes. [Martin Raspaud]
+- Fix GOES navigation. [Martin Raspaud]
+- Finalize GOES LRIT reader. [Martin Raspaud]
+- Merge pull request #39 from howff/develop. [Martin Raspaud]
+
+  Reader for GOES HRIT, WIP
+- Fix available_composite_names in doc. [Andrew Brooks]
+- Merge branch 'develop' of https://github.com/pytroll/satpy into
+  develop. [Andrew Brooks]
+- Start of reader for GOES HRIT. [howff]
+- Update PULL_REQUEST_TEMPLATE.md. [Martin Raspaud]
+
+  This hides the comments when the PR is previewed and reminds user to provide a description for the PR.
+- Merge pull request #122 from eysteinn/scatsat1. [Martin Raspaud]
+
+  Add reader for ScatSat1 Level 2B wind speed data, HDF5 format
+- Read end_time info correctly. [Eysteinn]
+- Add reader for ScatSat1 Level 2B wind speed data. [Eysteinn]
+- Merge pull request #129 from pytroll/viirs_rgbs. [Martin Raspaud]
+
+  Use the Pyspectral atm correction as the default.
+- Use the Pyspectral atm correction as the default. Add a high-res
+  overview RGB, use the hncc-dnb in the night-microphysics and use the
+  effective_solar_pathlength_corrected for all true color RGBs.
+  [Adam.Dybbroe]
+- Merge pull request #128 from pytroll/atm_corrections. [Martin Raspaud]
+
+  Atm corrections
+- Pep8 cosmetics. [Adam.Dybbroe]
+- Pep8 cosmetics. [Adam.Dybbroe]
+- Pep8 editorial, and fixing copyright. [Adam.Dybbroe]
+- Add some pre-defined atm/rayleigh corrections to appply over land and
+  sea. [Adam.Dybbroe]
+- Merge pull request #131 from pytroll/bugfix-hrit-jma. [Martin Raspaud]
+
+  Bugfix hrit_jma
+- Bugfix hrit_jma. [Martin Raspaud]
+- Use a more appropriate and shorter link to the MSG native format pdf
+  doc. [Adam.Dybbroe]
+- Merge pull request #126 from pytroll/feature_ahi_stretch. [Martin
+  Raspaud]
+
+  Improvemements to AHI True color imagery
+- Use marine_clean and us-standard for atm correction, and improve
+  stretch at low sun elevation. [Adam.Dybbroe]
+- Use the CIRA stretch for True color imagery. [Adam.Dybbroe]
+
+
 v0.7.5 (2017-12-11)
 -------------------
 - Update changelog. [davidh-ssec]

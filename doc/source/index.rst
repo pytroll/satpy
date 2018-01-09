@@ -61,6 +61,9 @@ installation.
     * - GOES 16 imager data in netcdf format
       - `abi_l1b`
       - Nominal
+    * - GOES 11 to 15 imager data in HRIT format
+      - `hrit_goes`
+      - Nominal
     * - Electro-L N2 MSU-GS data in HRIT format
       - `hrit_electrol`
       - Nominal
@@ -85,7 +88,7 @@ installation.
     * - Callipso Caliop data in EOS-hdf4 format
       - `hdf4_caliopv3`
       - Nominal
-    * - Terra and Aqua MODIS data in EOS-hdf4 format
+    * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
     * - NWCSAF MSG 2016 products in netCDF4 format

@@ -34,21 +34,13 @@ http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
 w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 
-import glob
-import hashlib
 import logging
-import math
-import multiprocessing
-import os.path
 from datetime import datetime
-from fnmatch import fnmatch
 
 import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from pyresample import geometry
-from satpy.config import CONFIG_PATH
 from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -130,14 +122,20 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             self.resolution = 5000
         self.cache = {}
-        self.cache['lons'] = None
-        self.cache['lats'] = None
+        self.cache[250] = {}
+        self.cache[250]['lons'] = None
+        self.cache[250]['lats'] = None
 
-    def get_area_def(self, *args, **kwargs):
-        raise NotImplementedError
+        self.cache[500] = {}
+        self.cache[500]['lons'] = None
+        self.cache[500]['lats'] = None
+
+        self.cache[1000] = {}
+        self.cache[1000]['lons'] = None
+        self.cache[1000]['lats'] = None
 
     def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
-
+        """Get the dataset designated by *key*."""
         if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
                         'satellite_zenith_angle', 'satellite_azimuth_angle']:
 
@@ -157,7 +155,8 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         if key.name not in ['longitude', 'latitude']:
             return
 
-        if self.cache['lons'] is None or self.cache['lats'] is None:
+        if (self.cache[key.resolution]['lons'] is None or
+                self.cache[key.resolution]['lats'] is None):
 
             lons_id = DatasetID('longitude',
                                 resolution=key.resolution)
@@ -166,16 +165,24 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
             lons, lats = self.load(
                 [lons_id, lats_id], interpolate=False, raw=True)
-            from geotiepoints.geointerpolator import GeoInterpolator
-            self.cache['lons'], self.cache['lats'] = self._interpolate(
-                [lons, lats], self.resolution, lons_id.resolution, GeoInterpolator)
+            if key.resolution != self.resolution:
+                from geotiepoints.geointerpolator import GeoInterpolator
+                lons, lats = self._interpolate([lons, lats],
+                                               self.resolution,
+                                               lons_id.resolution,
+                                               GeoInterpolator)
+                lons = np.ma.masked_invalid(np.ascontiguousarray(lons))
+                lats = np.ma.masked_invalid(np.ascontiguousarray(lats))
+            self.cache[key.resolution]['lons'] = lons
+            self.cache[key.resolution]['lats'] = lats
 
         if key.name == 'latitude':
-            return Dataset(self.cache['lats'], id=key, **info)
+            return Dataset(self.cache[key.resolution]['lats'], id=key, **info)
         else:
-            return Dataset(self.cache['lons'], id=key, **info)
+            return Dataset(self.cache[key.resolution]['lons'], id=key, **info)
 
     def load(self, keys, interpolate=True, raw=False):
+        """Load the data."""
         projectables = []
         for key in keys:
             dataset = self.sd.select(key.name.capitalize())
@@ -187,7 +194,9 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             data = np.ma.masked_equal(dataset.get(), fill_value) * scale_factor
 
             # TODO: interpolate if needed
-            if key.resolution is not None and key.resolution < self.resolution and interpolate:
+            if (key.resolution is not None and
+                    key.resolution < self.resolution and
+                    interpolate):
                 data = self._interpolate(data, self.resolution, key.resolution)
             if raw:
                 projectables.append(data)
@@ -232,7 +241,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             chunk_size = 20
         elif resolution == 250:
             fine_cols = np.arange(1354 * 4) / 4.0
-            fine_rows = (np.arange(lines * 4) + 1.5) / 4.0
+            fine_rows = (np.arange(lines * 4) - 1.5) / 4.0
             chunk_size = 40
 
         along_track_order = 1
@@ -247,50 +256,6 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
         satint.fill_borders("y", "x")
         return satint.interpolate()
-
-    def get_lonlat(self, resolution, cores=1):
-        """Read lat and lon.
-        """
-        if resolution in self.areas:
-            return self.areas[resolution]
-        logger.debug("generating lon, lat at %d", resolution)
-        if self.geofile is not None:
-            coarse_resolution = 1000
-            filename = self.geofile
-        else:
-            coarse_resolution = 5000
-            logger.info("Using 5km geolocation and interpolating")
-            filename = (self.datafiles.get(1000) or
-                        self.datafiles.get(500) or
-                        self.datafiles.get(250))
-
-        logger.debug("Loading geolocation from file: " + str(filename)
-                     + " at resolution " + str(coarse_resolution))
-
-        data = SD(str(filename))
-        lat = data.select("Latitude")
-        fill_value = lat.attributes()["_FillValue"]
-        lat = np.ma.masked_equal(lat.get(), fill_value)
-        lon = data.select("Longitude")
-        fill_value = lon.attributes()["_FillValue"]
-        lon = np.ma.masked_equal(lon.get(), fill_value)
-
-        if resolution == coarse_resolution:
-            self.areas[resolution] = lon, lat
-            return lon, lat
-
-        from geotiepoints import modis5kmto1km, modis1kmto500m, modis1kmto250m
-        logger.debug("Interpolating from " + str(coarse_resolution)
-                     + " to " + str(resolution))
-        if coarse_resolution == 5000:
-            lon, lat = modis5kmto1km(lon, lat)
-        if resolution == 500:
-            lon, lat = modis1kmto500m(lon, lat, cores)
-        if resolution == 250:
-            lon, lat = modis1kmto250m(lon, lat, cores)
-
-        self.areas[resolution] = lon, lat
-        return lon, lat
 
 
 class HDFEOSBandReader(HDFEOSFileReader):

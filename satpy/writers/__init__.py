@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015.
+# Copyright (c) 2015-2017.
 
 # Author(s):
 
@@ -25,8 +25,6 @@
 For now, this includes enhancement configuration utilities.
 """
 
-import glob
-import json
 import logging
 import os
 
@@ -148,6 +146,7 @@ def add_text(orig, dc, img, text=None):
         for idx in range(len(orig.channels)):
             orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
 
+
 def add_logo(orig, dc, img, logo=None):
     """
     Add logos or other images to an image using the pydecorate function add_logo
@@ -201,20 +200,21 @@ def add_decorate(orig, **decorate):
     """
     LOG.info("Decorate image.")
 
-    #Need to create this here to possible keep the alignment
-    #when adding text and/or logo with pydecorate
+    # Need to create this here to possible keep the alignment
+    # when adding text and/or logo with pydecorate
     img_orig = orig.pil_image()
     from pydecorate import DecoratorAGG
-    dc=DecoratorAGG(img_orig)
+    dc = DecoratorAGG(img_orig)
 
-    #decorate need to be a list to maintain the alignment
-    #as ordered in the list
+    # decorate need to be a list to maintain the alignment
+    # as ordered in the list
     if 'decorate' in decorate:
         for dec in decorate['decorate']:
             if 'logo' in dec:
                 add_logo(orig, dc, img_orig, logo=dec['logo'])
             elif 'text' in dec:
                 add_text(orig, dc, img_orig, text=dec['text'])
+
 
 def get_enhanced_image(dataset,
                        enhancer=None,
@@ -280,6 +280,7 @@ def to_image(dataset, copy=True, **kwargs):
 
 
 class Writer(Plugin):
+
     """Writer plugins. They must implement the *save_image* method. This is an
     abstract class to be inherited.
     """
@@ -445,6 +446,7 @@ class DecisionTree(object):
 
 
 class EnhancementDecisionTree(DecisionTree):
+
     def __init__(self, *decision_dicts, **kwargs):
         attrs = kwargs.pop("attrs", ("name",
                                      "platform",
@@ -485,6 +487,7 @@ class EnhancementDecisionTree(DecisionTree):
 
 
 class Enhancer(object):
+
     """Helper class to get enhancement information for images."""
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
