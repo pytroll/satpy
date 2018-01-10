@@ -336,8 +336,8 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
 
-        (vis, blue) = projectables
-        if vis.shape != blue.shape:
+        (vis, red) = projectables
+        if vis.shape != red.shape:
             raise IncompatibleAreas
         try:
             (sata, satz, suna, sunz) = optional_datasets
@@ -371,12 +371,12 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff, vis.id.name, blue)
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff, vis.id.name, red)
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.id.wavelength[1], blue)
+                                                      vis.id.wavelength[1], red)
 
         proj = Dataset(vis - refl_cor_band,
                        copy=False,

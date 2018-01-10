@@ -23,8 +23,47 @@ modifiers:
     atmosphere: us-standard
     aerosol_type: marine_clean_aerosol
     prerequisites:
-    - wavelength: 0.46
+    - wavelength: 0.65
       modifiers: [reducer2, sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_reducedsize:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer4, sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_reducedsize_land:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_average_aerosol
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer4, sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_reducedsize_marine_tropical:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer4, sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -49,18 +88,50 @@ composites:
       modifiers: [vegetation_corrected, effective_solar_pathlength_corrected, rayleigh_corrected]
     - wavelength: 0.46
       modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
-    standard_name: true_color_ahi
+    standard_name: true_color
 
   true_color_reducedsize:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - wavelength: 0.65
-      modifiers: [reducer4, effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [reducer4, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize]
     - wavelength: 0.51
-      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected, rayleigh_corrected]
+      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize]
     - wavelength: 0.46
-      modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected]
-    standard_name: true_color_reducedsize
+      modifiers: [reducer2, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize]
+    standard_name: true_color
+
+  true_color_reducedsize_land:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer4, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_land]
+    - wavelength: 0.51
+      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_land]
+    - wavelength: 0.46
+      modifiers: [reducer2, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_land]
+    standard_name: true_color
+
+  true_color_reducedsize_marine_tropical:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [reducer4, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_marine_tropical]
+    - wavelength: 0.51
+      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_marine_tropical]
+    - wavelength: 0.46
+      modifiers: [reducer2, effective_solar_pathlength_corrected,
+                  rayleigh_corrected_reducedsize_marine_tropical]
+    standard_name: true_color
+
 
   true_color_norayleigh:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -71,7 +142,7 @@ composites:
       modifiers: [vegetation_corrected, effective_solar_pathlength_corrected]
     - wavelength: 0.46
       modifiers: [effective_solar_pathlength_corrected]
-    standard_name: true_color_norayleigh
+    standard_name: true_color
 
   day_microphysics_eum:
     compositor: !!python/name:satpy.composites.RGBCompositor
