@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2017
+# Copyright (c) 2015-2018
 
 # Author(s):
 
@@ -385,9 +385,20 @@ class PSPRayleighReflectance(CompositeBase):
                              atmosphere=atmosphere,
                              aerosol_type=aerosol_type)
 
-        refl_cor_band = corrector.get_reflectance(
-            sunz.load(), satz.load(), ssadiff.load(),
-            vis.attrs['wavelength'][1], blue.load())
+        try:
+            refl_cor_band = corrector.get_reflectance(sunz.load(), 
+                                                      satz.load(), 
+                                                      ssadiff, 
+                                                      vis.attrs['name'], 
+						      blue.load())
+        except KeyError:
+            LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
+            LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
+            refl_cor_band = corrector.get_reflectance(sunz.load(), 
+						      satz.load(), 
+                                                      ssadiff,
+                                                      vis.attrs['wavelength'][1], 
+                                                      blue.load())
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
@@ -402,14 +413,31 @@ class NIRReflectance(CompositeBase):
         """Get the reflectance part of an NIR channel. Not supposed to be used
         for wavelength outside [3, 4] µm.
         """
+        self._init_refl3x(projectables)
+        _nir, _ = projectables
+        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
+
+        proj.info['units'] = '%'
+        self.apply_modifier_info(_nir, proj)
+
+        return proj
+
+    def _init_refl3x(self, projectables):
+        """Initiate the 3.x reflectance derivations
+        """
         try:
             from pyspectral.near_infrared_reflectance import Calculator
         except ImportError:
             LOG.info("Couldn't load pyspectral")
             raise
 
-        nir, tb11 = projectables
-        LOG.info('Getting reflective part of %s', nir.attrs['name'])
+        _nir, _tb11 = projectables
+        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
+
+    def _get_reflectance(self, projectables, optional_datasets):
+        """Calculate 3.x reflectance with pyspectral"""
+        _nir, _tb11 = projectables
+        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
 
         sun_zenith = None
         tb13_4 = None
@@ -428,14 +456,26 @@ class NIRReflectance(CompositeBase):
             lons, lats = nir.attrs["area"].get_lonlats_dask(CHUNKSIZE)
             sun_zenith = sza(nir.attrs['start_time'], lons, lats)
 
-        refl39 = Calculator(nir.attrs['platform_name'],
-                            nir.attrs['sensor'], nir.id.wavelength[1])
+        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
-        proj = refl39.reflectance_from_tbs(sun_zenith, nir,
-                                           tb11, tb13_4) * 100
-        proj.attrs = nir.attrs
-        proj.attrs['units'] = '%'
-        self.apply_modifier_info(nir, proj)
+
+class NIREmissivePartFromReflectance(NIRReflectance):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the emissive part an NIR channel after having derived the reflectance. 
+        Not supposed to be used for wavelength outside [3, 4] µm.
+        """
+        self._init_refl3x(projectables)
+        # Derive the sun-zenith angles, and use the nir and thermal ir
+        # brightness tempertures and derive the reflectance using
+        # PySpectral. The reflectance is stored internally in PySpectral and
+        # needs to be derived first in order to get the emissive part.
+        _ = self._get_reflectance(projectables, optional_datasets)
+        _nir, _ = projectables
+        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.attrs)
+
+        proj.attrs['units'] = 'K'
+        self.apply_modifier_info(_nir, proj)
 
         return proj
 

@@ -59,11 +59,16 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     @property
     def platform_name(self):
         try:
-            res = self['/attr/platform']
+            res = self.get('/attr/platform',
+                           self.filename_info['platform_shortname'])
         except KeyError:
             res = 'Suomi-NPP'
+
         return {
             'Suomi-NPP': 'NPP',
+            'JPSS-1': 'J01',
+            'NP': 'NPP',
+            'J1': 'J01',
         }.get(res, res)
 
     @property
