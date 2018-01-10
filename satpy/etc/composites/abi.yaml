@@ -89,7 +89,7 @@ composites:
     standard_name: true_color
 
   true_color_2km_marine_tropical:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.abi.TrueColor2km
     prerequisites:
     - name: C01
       modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
@@ -100,7 +100,7 @@ composites:
     standard_name: true_color
 
   true_color_2km_land:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.abi.TrueColor2km
     prerequisites:
     - name: C01
       modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected_land]
