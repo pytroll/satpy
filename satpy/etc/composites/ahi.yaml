@@ -132,7 +132,6 @@ composites:
                   rayleigh_corrected_reducedsize_marine_tropical]
     standard_name: true_color
 
-
   true_color_norayleigh:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -164,7 +163,7 @@ composites:
       modifiers: [reducer2]
     - wavelength: 10.4
       modifiers: [reducer2, ]
-    standard_name: day_microphysics_ahi
+    standard_name: day_microphysics
 
   cloud_phase_distinction:
     compositor: !!python/name:satpy.composites.RGBCompositor

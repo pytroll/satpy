@@ -28,9 +28,6 @@ http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
 
 """
 
-AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
-                     "6", "7", "8", "9", "10",
-                     "11", "12", "13", "14", "15", "16")
 import logging
 from datetime import datetime, timedelta
 
@@ -39,7 +36,12 @@ import numpy as np
 from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.helper_functions import get_geostationary_angle_extent
+from satpy.readers.helper_functions import (get_geostationary_angle_extent,
+                                            np2str)
+
+AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
+                     "6", "7", "8", "9", "10",
+                     "11", "12", "13", "14", "15", "16")
 
 
 class CalibrationError(Exception):
@@ -243,7 +245,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             self.nav_info = np.fromfile(fd,
                                         dtype=_NAV_INFO_TYPE,
                                         count=1)[0]
-        self.platform_name = self.basic_info['satellite'][0]
+        self.platform_name = np2str(self.basic_info['satellite'])
         self.sensor = 'ahi'
 
     def get_shape(self, dsid, ds_info):
