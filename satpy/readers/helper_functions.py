@@ -32,6 +32,17 @@ from pyresample.geometry import AreaDefinition
 LOGGER = logging.getLogger(__name__)
 
 
+def np2str(value):
+    """Convert an np.string_ to str."""
+    if issubclass(value.dtype.type, np.string_) and not value.shape:
+        value = np.asscalar(value)
+        if not isinstance(value, str):
+            # python 3 - was scalar numpy array of bytes
+            # otherwise python 2 - scalar numpy array of 'str'
+            value = value.decode()
+    return value
+
+
 def get_geostationary_angle_extent(geos_area):
     """Get the max earth (vs space) viewing angles in x and y."""
     # TODO: take into account sweep_axis_angle parameter
