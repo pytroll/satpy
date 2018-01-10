@@ -17,8 +17,8 @@ modifiers:
     atmosphere: midlatitude summer
     aerosol_type: marine_tropical_aerosol
     prerequisites:
-    - name: C01
-      modifiers: [reducer2, effective_solar_pathlength_corrected]
+    - name: C02
+      modifiers: [reducer4, effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -30,8 +30,8 @@ modifiers:
     atmosphere: midlatitude summer
     aerosol_type: marine_tropical_aerosol
     prerequisites:
-    - name: C01
-      modifiers: [effective_solar_pathlength_corrected]
+    - name: C02
+      modifiers: [reducer2, effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
@@ -43,8 +43,8 @@ modifiers:
     atmosphere: midlatitude summer
     aerosol_type: marine_tropical_aerosol
     prerequisites:
-    - name: C01
-      modifiers: [expander2, effective_solar_pathlength_corrected]
+    - name: C02
+      modifiers: [effective_solar_pathlength_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
