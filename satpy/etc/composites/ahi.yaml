@@ -62,7 +62,7 @@ composites:
       modifiers: [vegetation_corrected, effective_solar_pathlength_corrected, rayleigh_corrected]
     - wavelength: 0.46
       modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
-    standard_name: true_color_ahi
+    standard_name: true_color
 
   true_color_reducedsize:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -76,7 +76,7 @@ composites:
     - wavelength: 0.46
       modifiers: [reducer2, effective_solar_pathlength_corrected,
                   rayleigh_corrected_reducedsize]
-    standard_name: true_color_reducedsize
+    standard_name: true_color
 
   true_color_norayleigh:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -87,7 +87,7 @@ composites:
       modifiers: [vegetation_corrected, effective_solar_pathlength_corrected]
     - wavelength: 0.46
       modifiers: [effective_solar_pathlength_corrected]
-    standard_name: true_color_norayleigh
+    standard_name: true_color
 
   day_microphysics_eum:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -109,7 +109,7 @@ composites:
       modifiers: [reducer2]
     - wavelength: 10.4
       modifiers: [reducer2, ]
-    standard_name: day_microphysics_ahi
+    standard_name: day_microphysics
 
   cloud_phase_distinction:
     compositor: !!python/name:satpy.composites.RGBCompositor
