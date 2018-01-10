@@ -293,6 +293,9 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     def filter_ds_ids(self, dataset_ids, dfilter):
         """Filter *dataset_ids* based on *dfilter*."""
+        # sort by resolution, highest resolution first (lowest number)
+        dataset_ids = sorted(dataset_ids, key=lambda x: x.resolution or -1)
+
         for attr in ['resolution', 'polarization']:
             if dfilter.get(attr) is not None:
                 dataset_ids = [ds_id for ds_id in dataset_ids

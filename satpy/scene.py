@@ -110,6 +110,9 @@ class Scene(MetadataObject):
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
 
+    def _ipython_key_completions_(self):
+        return [x.name for x in self.datasets.keys()]
+
     def _compute_metadata_from_readers(self):
         mda = {}
         mda['sensor'] = self._get_sensor_names()
