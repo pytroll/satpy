@@ -5,10 +5,14 @@ modifiers:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     prerequisites:
-    - satellite_azimuth_angle
-    - satellite_zenith_angle
-    - solar_azimuth_angle
-    - solar_zenith_angle
+    - name: satellite_azimuth_angle
+      resolution: 742    
+    - name: satellite_zenith_angle
+      resolution: 742
+    - name: solar_azimuth_angle
+      resolution: 742
+    - name: solar_zenith_angle
+      resolution: 742
 
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
@@ -16,12 +20,17 @@ modifiers:
     aerosol_type: marine_clean_aerosol
     prerequisites:
     - name: M05
+      resolution: 742
       modifiers: [sunz_corrected]
     optional_prerequisites:
-    - satellite_azimuth_angle
-    - satellite_zenith_angle
-    - solar_azimuth_angle
-    - solar_zenith_angle
+    - name: satellite_azimuth_angle
+      resolution: 742    
+    - name: satellite_zenith_angle
+      resolution: 742
+    - name: solar_azimuth_angle
+      resolution: 742
+    - name: solar_zenith_angle
+      resolution: 742
 
   rayleigh_corrected_marine_tropical:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
@@ -29,12 +38,17 @@ modifiers:
     aerosol_type: marine_tropical_aerosol
     prerequisites:
     - name: M05
+      resolution: 742
       modifiers: [sunz_corrected]
     optional_prerequisites:
-    - satellite_azimuth_angle
-    - satellite_zenith_angle
-    - solar_azimuth_angle
-    - solar_zenith_angle
+    - name: satellite_azimuth_angle
+      resolution: 742    
+    - name: satellite_zenith_angle
+      resolution: 742
+    - name: solar_azimuth_angle
+      resolution: 742
+    - name: solar_zenith_angle
+      resolution: 742
 
   rayleigh_corrected_land:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
@@ -42,12 +56,17 @@ modifiers:
     aerosol_type: continental_average_aerosol
     prerequisites:
     - name: M05
+      resolution: 742
       modifiers: [sunz_corrected]
     optional_prerequisites:
-    - satellite_azimuth_angle
-    - satellite_zenith_angle
-    - solar_azimuth_angle
-    - solar_zenith_angle
+    - name: satellite_azimuth_angle
+      resolution: 742    
+    - name: satellite_zenith_angle
+      resolution: 742
+    - name: solar_azimuth_angle
+      resolution: 742
+    - name: solar_zenith_angle
+      resolution: 742
 
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
