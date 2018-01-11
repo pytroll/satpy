@@ -250,115 +250,175 @@ def read_reader_config(config_files):
     return reader_info
 
 
-def load_reader(reader_configs, metadata=None, **reader_kwargs):
+def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*
     """
     reader_info = read_reader_config(reader_configs)
     reader_instance = reader_info['reader'](
         config_files=reader_configs,
-        metadata=metadata,
         **reader_kwargs
     )
     return reader_instance
 
 
-class ReaderFinder(object):
+def configs_for_reader(reader=None, ppp_config_dir=None):
+    """Generator of reader configuration files for one or more readers
 
-    """Find readers given a scene, filenames, sensors, and/or a reader_name
+    Args:
+        reader (Optional[str]): Yield configs only for this reader
+        ppp_config_dir (Optional[str]): Additional configuration directory
+            to search for reader configuration files.
+
+    Returns: Generator of lists of configuration files
+
     """
+    if reader is not None:
+        if not isinstance(reader, (list, tuple)):
+            reader = [reader]
+        # given a config filename or reader name
+        config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
+    else:
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'), ppp_config_dir)
+        config_files = set(reader_configs)
 
-    def __init__(self,
-                 ppp_config_dir=get_environ_config_dir(),
-                 base_dir=None,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
-        """Find readers.
+    for config_file in config_files:
+        config_basename = os.path.basename(config_file)
+        reader_configs = config_search_paths(
+            os.path.join("readers", config_basename), ppp_config_dir)
 
-        If both *filenames* and *base_dir* are provided, only *filenames* is
-        used.
-        """
-        self.ppp_config_dir = ppp_config_dir
-        self.base_dir = base_dir
-        self.start_time = start_time
-        self.end_time = end_time
-        self.area = area
+        if not reader_configs:
+            LOG.warning("No reader configs found for '%s'", reader)
+            continue
 
-    def __call__(self, filenames=None, sensor=None, reader=None,
-                 reader_kwargs=None, metadata=None):
-        reader_instances = {}
-        reader_kwargs = reader_kwargs or {}
+        yield reader_configs
 
-        if not filenames and reader is None and not self.base_dir:
-            # we weren't given anything to search through
-            LOG.info("Not enough information provided to find readers.")
-            return reader_instances
 
-        if reader is not None:
-            # given a config filename or reader name
-            if not reader.endswith(".yaml"):
-                reader += ".yaml"
-            config_files = [reader]
+def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
+                           reader=None, sensor=None, ppp_config_dir=get_environ_config_dir(),
+                           filter_parameters=None, reader_kwargs=None):
+    """Find on-disk files matching the provided parameters.
+
+    Use `start_time` and/or `end_time` to limit found filenames by the times
+    in the filenames (not the internal file metadata). Files are matched if
+    they fall anywhere within the range specified by these parameters.
+
+    Searching is **NOT** recursive.
+
+    The returned dictionary can be passed directly to the `Scene` object
+    through the `filenames` keyword argument.
+
+    Args:
+        start_time (datetime): Limit used files by starting time.
+        end_time (datetime): Limit used files by ending time.
+        base_dir (str): The directory to search for files containing the
+                        data to load. Defaults to the current directory.
+        reader (str or list): The name of the reader to use for loading the data or a list of names.
+        sensor (str or list): Limit used files by provided sensors.
+        ppp_config_dir (str): The directory containing the configuration
+                              files for SatPy.
+        filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
+                                  automatically added to this dictionary. Shortcut for
+                                  `reader_kwargs['filter_parameters']`.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader
+                              instances to further configure file searching.
+
+    Returns: Dictionary mapping reader name string to list of filenames
+
+    """
+    reader_files = {}
+    reader_kwargs = reader_kwargs or {}
+    filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
+    sensor_supported = False
+
+    if start_time or end_time:
+        filter_parameters['start_time'] = start_time
+        filter_parameters['end_time'] = end_time
+    reader_kwargs['filter_parameters'] = filter_parameters
+
+    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+        try:
+            reader_instance = load_reader(reader_configs, **reader_kwargs)
+        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+            LOG.info('Cannot use %s', str(reader_configs))
+            LOG.debug(str(err))
+            continue
+
+        if not reader_instance.supports_sensor(sensor):
+            continue
+        elif sensor is not None:
+            # sensor was specified and a reader supports it
+            sensor_supported = True
+        loadables = reader_instance.select_files_from_directory(base_dir)
+        if loadables:
+            loadables = list(
+                reader_instance.filter_selected_filenames(loadables))
+        if loadables:
+            reader_files[reader_instance.name] = list(loadables)
+
+    if sensor and not sensor_supported:
+        raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
+
+    if not reader_files:
+        raise ValueError("No supported files found")
+    return reader_files
+
+
+def load_readers(filenames=None, reader=None, reader_kwargs=None,
+                 ppp_config_dir=get_environ_config_dir()):
+    """Create specified readers and assign files to them.
+
+    Args:
+        filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
+                                      should map reader names to a list of filenames for that reader.
+        reader (str or list): The name of the reader to use for loading the data or a list of names.
+        filter_parameters (dict): Specify loaded file filtering parameters.
+                                  Shortcut for `reader_kwargs['filter_parameters']`.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+        ppp_config_dir (str): The directory containing the configuration files for satpy.
+
+    Returns: Dictionary mapping reader name to reader instance
+
+    """
+    reader_instances = {}
+    reader_kwargs = reader_kwargs or {}
+
+    if not filenames:
+        LOG.info("'filenames' required to create reader objects")
+        return {}
+
+    if reader is None and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        reader = list(filenames.keys())
+        remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    else:
+        remaining_filenames = set(filenames or [])
+
+    for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
+        if isinstance(filenames, dict):
+            readers_files = set(filenames[reader[idx]])
         else:
-            config_files = set(self.config_files())
-        # FUTURE: Allow for a reader instance to be passed
+            readers_files = remaining_filenames
 
-        sensor_supported = False
-        remaining_filenames = set(
-            filenames) if filenames is not None else set()
-        for config_file in config_files:
-            config_basename = os.path.basename(config_file)
-            reader_configs = config_search_paths(
-                os.path.join("readers", config_basename), self.ppp_config_dir)
+        try:
+            reader_instance = load_reader(reader_configs, **reader_kwargs)
+        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+            LOG.info('Cannot use %s', str(reader_configs))
+            LOG.debug(str(err))
+            continue
 
-            if not reader_configs:
-                LOG.warning("No reader configs found for '%s'", reader)
-                continue
+        if readers_files:
+            loadables = reader_instance.select_files_from_pathnames(readers_files)
+        if loadables:
+            reader_instance.create_filehandlers(loadables)
+            reader_instances[reader_instance.name] = reader_instance
+            remaining_filenames -= set(loadables)
+        if not remaining_filenames:
+            break
 
-            try:
-                reader_instance = load_reader(reader_configs,
-                                              start_time=self.start_time,
-                                              end_time=self.end_time,
-                                              area=self.area,
-                                              metadata=metadata,
-                                              **reader_kwargs)
-            except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
-                LOG.info('Cannot use %s', str(reader_configs))
-                LOG.debug(str(err))
-                continue
-
-            if not reader_instance.supports_sensor(sensor):
-                continue
-            elif sensor is not None:
-                # sensor was specified and a reader supports it
-                sensor_supported = True
-            if remaining_filenames:
-                loadables = reader_instance.select_files_from_pathnames(
-                    remaining_filenames)
-            else:
-                loadables = reader_instance.select_files_from_directory(
-                    self.base_dir)
-            if loadables:
-                reader_instance.create_filehandlers(loadables)
-                reader_instances[reader_instance.name] = reader_instance
-                remaining_filenames -= set(loadables)
-            if filenames is not None and not remaining_filenames:
-                # we were given filenames to look through and found a reader
-                # for all of them
-                break
-
-        if sensor and not sensor_supported:
-            LOG.warning(
-                "Sensor '{}' not supported by any readers".format(sensor))
-
-        if remaining_filenames:
-            LOG.warning(
-                "Don't know how to open the following files: {}".format(str(
-                    remaining_filenames)))
-        if not reader_instances:
-            raise ValueError("No supported files found")
-        return reader_instances
-
-    def config_files(self):
-        return glob_config(
-            os.path.join("readers", "*.yaml"), self.ppp_config_dir)
+    if remaining_filenames:
+        LOG.warning(
+            "Don't know how to open the following files: {}".format(str(
+                remaining_filenames)))
+    if not reader_instances:
+        raise ValueError("No supported files found")
+    return reader_instances
