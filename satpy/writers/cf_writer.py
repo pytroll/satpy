@@ -32,6 +32,8 @@ from satpy.writers import Writer
 
 LOG = logging.getLogger(__name__)
 
+EPOCH = "seconds since 1970-01-01 00:00:00 +00:00"
+
 
 def omerc2cf(proj_dict):
     """Return the cf grid mapping for the omerc projection."""
@@ -148,7 +150,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray):
+    def da2cf(dataarray, epoch=EPOCH):
         """Convert the dataarray to something cf-compatible."""
         new_data = dataarray.copy()
         # TODO: make these boundaries of the time dimension
@@ -167,6 +169,9 @@ class CFWriter(Writer):
         for key, val in new_data.attrs.copy().items():
             if val is None:
                 new_data.attrs.pop(key)
+
+        if 'time' in new_data.coords:
+            new_data['time'].encoding['units'] = epoch
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         return new_data
@@ -190,7 +195,9 @@ class CFWriter(Writer):
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
-                datas[new_ds.attrs['name']] = self.da2cf(new_ds)
+                datas[new_ds.attrs['name']] = self.da2cf(new_ds,
+                                                         kwargs.get('epoch',
+                                                                    EPOCH))
 
         dataset = xr.Dataset(datas)
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
