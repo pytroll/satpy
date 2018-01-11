@@ -51,7 +51,7 @@ datasets:
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi01
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -65,7 +65,7 @@ datasets:
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi02
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -79,7 +79,7 @@ datasets:
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi03
     resolution: 371
     coordinates: [i_longitude, i_latitude]
