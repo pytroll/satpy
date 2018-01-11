@@ -10,6 +10,45 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_marine_tropical:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_land:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_average_aerosol
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     prerequisites:
@@ -29,7 +68,7 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 742
-      
+
   nir_emissive_hires:
     compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
     prerequisites:
@@ -37,7 +76,7 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 371
-      
+
   nir_reflectance_lowres:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
@@ -102,6 +141,17 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected_land]
     - name: M03
       modifiers: [sunz_corrected, rayleigh_corrected_land]
+    standard_name: true_color
+
+  true_color_lowres_marine_tropical:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
+    - name: M04
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
+    - name: M03
+      modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     standard_name: true_color
 
   natural_color:
@@ -283,5 +333,3 @@ composites:
     - name: M11
       modifiers: [sunz_corrected]
     standard_name: snow_age
-
-
