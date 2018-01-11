@@ -68,7 +68,7 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 742
-      
+
   nir_emissive_hires:
     compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
     prerequisites:
@@ -76,7 +76,7 @@ modifiers:
     optional_prerequisites:
     - name: solar_zenith_angle
       resolution: 371
-      
+
   nir_reflectance_lowres:
     compositor: !!python/name:satpy.composites.NIRReflectance
     prerequisites:
@@ -143,7 +143,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected_land]
     standard_name: true_color
 
-true_color_lowres_marine_tropical:
+  true_color_lowres_marine_tropical:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: M05
@@ -333,5 +333,3 @@ true_color_lowres_marine_tropical:
     - name: M11
       modifiers: [sunz_corrected]
     standard_name: snow_age
-
-
