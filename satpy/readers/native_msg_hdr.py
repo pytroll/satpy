@@ -21,11 +21,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''Definition of Header Records for the MSG Level 1.5 data (hrit or native)
+"""Definition of Header Records for the MSG Level 1.5 data (hrit or native)
 
-NOTE: impf_configuration in L15HeaderRecord-class needs to be fixed!
+.. warning::
 
-'''
+    `impf_configuration` in `L15DataHeaderRecord` class needs to be fixed!
+
+"""
 
 
 import numpy as np
@@ -33,10 +35,11 @@ import numpy as np
 
 class GSDTRecords(object):
 
-    '''MSG Ground Segment Data Type records.
-    Reference Document:
-            MSG Ground Segment Design Specification (GSDS)
-    '''
+    """MSG Ground Segment Data Type records.
+
+    Reference Document: MSG Ground Segment Design Specification (GSDS)
+
+    """
 
     @property
     def gp_cpu_address(self):

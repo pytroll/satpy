@@ -6,6 +6,7 @@
 import numpy as np
 
 from satpy.dataset import Dataset
+HDF5FileHandler = None
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 

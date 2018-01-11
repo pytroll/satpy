@@ -168,18 +168,26 @@ def add_logo(orig, dc, img, logo=None):
 
 
 def add_decorate(orig, **decorate):
-    """
-    Decorate an image with text and/or logos/images
-    This call add text/logo in order as given in the input to keep 
-    the alignment features available in pydecorate
+    """Decorate an image with text and/or logos/images.
 
-    An example of the decorate config:
-    decorate={'decorate':[{'logo':{'logo_path':<path to a logo>,'height':143,'bg':'white','bg_opacity':255}},
-                          {'text':{'txt': start_time_txt, 'align':{'top_bottom':'bottom', 'left_right':'right'},
-                                   'font':<path to ttf font>, 'font_size':22, 'height':30, 'bg':'black',
-                                   'bg_opacity':255, 'line':'white'}}
-                          ]
-             }
+    This call adds text/logos in order as given in the input to keep the
+    alignment features available in pydecorate.
+
+    An example of the decorate config::
+
+        decorate = {
+            'decorate': [
+                {'logo': {'logo_path': <path to a logo>, 'height': 143, 'bg': 'white', 'bg_opacity': 255}},
+                {'text': {'txt': start_time_txt,
+                          'align': {'top_bottom': 'bottom', 'left_right': 'right'},
+                          'font': <path to ttf font>,
+                          'font_size': 22,
+                          'height': 30,
+                          'bg': 'black',
+                          'bg_opacity': 255,
+                          'line': 'white'}}
+            ]
+        }
 
     Any numbers of text/logo in any order can be added to the decorate list,
     but the order of the list is kept as described above.
