@@ -2,6 +2,77 @@ Changelog
 =========
 
 
+v0.8.0 (2018-01-11)
+-------------------
+
+Fix
+~~~
+- Bugfix: Explicitly set the resolution for sun-satellite geometry for
+  the Rayleigh correction modifiers needed for True Color imagery.
+  [Adam.Dybbroe]
+
+Other
+~~~~~
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.8 → 0.8.0. [Martin Raspaud]
+- Merge pull request #152 from pytroll/bugfix-truecolor-viirs. [Martin
+  Raspaud]
+
+  Bugfix: Explicitly set the resolution for sun-satellite geometry
+- Bugfix viirs_sdr reader: Use correct sunz corrector for ibands.
+  [Adam.Dybbroe]
+- Merge pull request #91 from pytroll/feature-discover-utility. [Martin
+  Raspaud]
+
+  Separate find files utility
+- Merge branch 'develop' into feature-discover-utility. [David Hoese]
+- Refactor all of the documentation and fix various docstrings. [davidh-
+  ssec]
+- Update documentation index and installation instructions. [davidh-
+  ssec]
+- Merge branch 'develop' into feature-discover-utility. [davidh-ssec]
+
+  # Conflicts:
+  #	satpy/readers/mipp_xrit.py
+  #	satpy/tests/test_readers.py
+  #	satpy/utils.py
+
+- Add filename filtering and tests for find_files_and_readers. [davidh-
+  ssec]
+- Remove unused strftime function. [davidh-ssec]
+- Fix behavior tests and other necessary changes to fix file discovery.
+  [davidh-ssec]
+- Update Scene and reader loading docstrings. [davidh-ssec]
+- Move reader start_time and end_time to filter_parameters. [davidh-
+  ssec]
+
+  Includes a first attempt at updating mipp_xrit to work with this
+
+- Fix `load_readers` tests after changing from ReaderFinder. [davidh-
+  ssec]
+- Remove 'sensor' functionality from Scene init and clean reader
+  loading. [davidh-ssec]
+- Fix behavior tests. [davidh-ssec]
+- Move file finding functionality to a separate utility function.
+  [davidh-ssec]
+- Move ABI simulated green calculation to a separate function. [davidh-
+  ssec]
+- Merge pull request #149 from pytroll/truecolor-red-channel-corr.
+  [Martin Raspaud]
+
+  Truecolor uses red channel as base for rayleigh correction
+- Fix indentation error in viirs.yaml. [Martin Raspaud]
+- Merge branch 'develop' into truecolor-red-channel-corr. [Martin
+  Raspaud]
+- Remove marine-clean true color recipe, as it was the same as the
+  standard recipe. [Adam.Dybbroe]
+- Bugfix abi true color recipes. [Adam.Dybbroe]
+- Apply consistency in true color imagery across sensors. Adding for
+  land and sea variants. [Adam.Dybbroe]
+- Use the red band in the damping of the atm correction over reflective
+  targets. [Adam.Dybbroe]
+
+
 v0.7.8 (2018-01-11)
 -------------------
 - Update changelog. [Martin Raspaud]
