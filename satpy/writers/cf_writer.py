@@ -203,4 +203,4 @@ class CFWriter(Writer):
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
-        dataset.to_netcdf(filename)
+        dataset.to_netcdf(filename, **kwargs)
