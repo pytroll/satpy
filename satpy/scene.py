@@ -33,7 +33,7 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
 from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
-from satpy.readers import DatasetDict, ReaderFinder
+from satpy.readers import DatasetDict, load_readers
 from satpy.resample import resample_dataset, get_frozen_area
 
 try:
