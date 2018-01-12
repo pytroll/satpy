@@ -14,6 +14,24 @@ modifiers:
     - name: solar_zenith_angle
       resolution: 742
 
+  rayleigh_corrected_iband:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
+    prerequisites:
+    - name: I01
+      resolution: 371
+      modifiers: [sunz_corrected_iband]
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+      resolution: 371    
+    - name: satellite_zenith_angle
+      resolution: 371
+    - name: solar_azimuth_angle
+      resolution: 371
+    - name: solar_zenith_angle
+      resolution: 371
+
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
@@ -125,7 +143,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected_iband, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: true_color
     high_resolution_band: red
 
@@ -184,7 +202,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     optional_prerequisites:
     - name: I01
-      modifiers: [sunz_corrected_iband, rayleigh_corrected]
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: natural_color
     high_resolution_band: blue
 
