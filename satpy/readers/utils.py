@@ -33,7 +33,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def np2str(value):
-    """Convert an np.string_ to str.
+    """Convert an `numpy.string_` to str.
 
     Args:
         value (ndarray): scalar or 1-element numpy array to convert
