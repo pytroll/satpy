@@ -46,23 +46,11 @@ class TestScene(unittest.TestCase):
 
     def test_init(self):
         import satpy.scene
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as cmfr:
-            with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
-                test_mda = {'test1': 'value1', 'test2': 'value2'}
-                cmfr.return_value = test_mda
-                test_mda_2 = {'test3': 'value3', 'test4': 'value4'}
-                scene = satpy.scene.Scene(filenames='bla',
-                                          base_dir='bli',
-                                          reader='blo',
-                                          **test_mda_2)
-                cri.assert_called_once_with(filenames='bla',
-                                            base_dir='bli',
-                                            reader='blo',
-                                            reader_kwargs=None,
-                                            metadata={'test3': 'value3',
-                                                      'test4': 'value4'})
-                self.assertDictContainsSubset(test_mda, scene.attrs)
-                self.assertDictContainsSubset(test_mda_2, scene.attrs)
+        with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
+            cri.return_value = {}
+            scene = satpy.scene.Scene(filenames='bla', reader='blo')
+            cri.assert_called_once_with(filenames='bla', reader='blo',
+                                        reader_kwargs=None)
 
     def test_init_with_sensor(self):
         import satpy.scene
@@ -111,22 +99,16 @@ class TestScene(unittest.TestCase):
     def test_create_reader_instances_with_filenames(self):
         import satpy.scene
         filenames = ["bla", "foo", "bar"]
-        sensors = None
         reader_name = None
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
-            with mock.patch('satpy.scene.ReaderFinder') as findermock:
+        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as md:
+            md.return_value = {'sensor': {'sensor'}}
+            with mock.patch('satpy.scene.load_readers') as findermock:
                 scene = satpy.scene.Scene(filenames=filenames)
-                findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
-                                                   base_dir=None,
-                                                   area=None,
-                                                   end_time=None,
-                                                   start_time=None)
-                findermock.return_value.assert_called_once_with(
-                    reader=reader_name,
-                    sensor=set(),
+                findermock.assert_called_once_with(
                     filenames=filenames,
+                    reader=reader_name,
                     reader_kwargs=None,
-                    metadata={}
+                    ppp_config_dir=mock.ANY
                 )
 
     def test_init_with_empty_filenames(self):
@@ -134,68 +116,51 @@ class TestScene(unittest.TestCase):
         filenames = []
         Scene(filenames=filenames)
 
-    def test_create_reader_instances_with_sensor(self):
-        import satpy.scene
-        sensors = ["bla", "foo", "bar"]
-        filenames = None
-        reader_name = None
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
-            with mock.patch('satpy.scene.ReaderFinder') as findermock:
-                scene = satpy.scene.Scene(sensor=sensors)
-                findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
-                                                   base_dir=None,
-                                                   area=None,
-                                                   end_time=None,
-                                                   start_time=None)
-                findermock.return_value.assert_called_once_with(
-                    reader=reader_name,
-                    sensor=sensors,
-                    filenames=filenames,
-                    reader_kwargs=None,
-                    metadata={}
-                )
+    # TODO: Rewrite this test for the 'find_files_and_readers' function
+    # def test_create_reader_instances_with_sensor(self):
+    #     import satpy.scene
+    #     sensors = ["bla", "foo", "bar"]
+    #     filenames = None
+    #     reader_name = None
+    #     with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
+    #         with mock.patch('satpy.scene.load_readers') as findermock:
+    #             scene = satpy.scene.Scene(sensor=sensors)
+    #             findermock.assert_called_once_with(
+    #                 ppp_config_dir=mock.ANY,
+    #                 reader=reader_name,
+    #                 filenames=filenames,
+    #                 reader_kwargs=None,
+    #             )
 
-    def test_create_reader_instances_with_sensor_and_filenames(self):
-        import satpy.scene
-        sensors = ["bla", "foo", "bar"]
-        filenames = ["1", "2", "3"]
-        reader_name = None
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
-            with mock.patch('satpy.scene.ReaderFinder') as findermock:
-                scene = satpy.scene.Scene(sensor=sensors, filenames=filenames)
-                findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
-                                                   base_dir=None,
-                                                   area=None,
-                                                   end_time=None,
-                                                   start_time=None)
-                findermock.return_value.assert_called_once_with(
-                    reader=reader_name,
-                    sensor=sensors,
-                    filenames=filenames,
-                    reader_kwargs=None,
-                    metadata={}
-                )
+    # def test_create_reader_instances_with_sensor_and_filenames(self):
+    #     import satpy.scene
+    #     sensors = ["bla", "foo", "bar"]
+    #     filenames = ["1", "2", "3"]
+    #     reader_name = None
+    #     with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
+    #         with mock.patch('satpy.scene.load_readers') as findermock:
+    #             scene = satpy.scene.Scene(sensor=sensors, filenames=filenames)
+    #             findermock.assert_called_once_with(
+    #                 ppp_config_dir=mock.ANY,
+    #                 reader=reader_name,
+    #                 sensor=sensors,
+    #                 filenames=filenames,
+    #                 reader_kwargs=None,
+    #             )
 
     def test_create_reader_instances_with_reader(self):
         from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
         sensors = set()
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers'):
-            with mock.patch('satpy.scene.ReaderFinder') as findermock:
-                scene = Scene(reader=reader, filenames=filenames)
-                findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
-                                                   base_dir=None,
-                                                   area=None,
-                                                   end_time=None,
-                                                   start_time=None)
-                findermock.return_value.assert_called_once_with(
-                    reader=reader,
-                    sensor=sensors,
-                    filenames=filenames,
-                    reader_kwargs=None,
-                    metadata={}
-                )
+        with mock.patch('satpy.scene.load_readers') as findermock:
+            findermock.return_value = {}
+            scene = Scene(reader=reader, filenames=filenames)
+            findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
+                                               reader=reader,
+                                               filenames=filenames,
+                                               reader_kwargs=None,
+                                               )
 
     def test_iter(self):
         from satpy import Scene
