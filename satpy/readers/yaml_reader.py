@@ -84,15 +84,8 @@ def match_filenames(filenames, pattern):
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
-    def __init__(self,
-                 config_files,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
+    def __init__(self, config_files):
         self.config = {}
-        self._start_time = start_time
-        self._end_time = end_time
-        self._area = area
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
@@ -102,7 +95,6 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.name = self.info['name']
         self.file_patterns = []
         for file_type, filetype_info in self.config['file_types'].items():
-            # set this for filetype filtering later on
             filetype_info.setdefault('file_type', file_type)
             # correct separator if needed
             file_patterns = [os.path.join(*pattern.split('/'))
@@ -143,6 +135,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     @abstractproperty
     def end_time(self):
         """End time of the reader."""
+
+    @abstractmethod
+    def filter_selected_filenames(self, filenames):
+        """Filter provided filenames by parameters in reader configuration.
+
+        Returns: iterable of usable files
+
+        """
 
     @abstractmethod
     def load(self, dataset_keys):
@@ -378,23 +378,20 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
-
     """Implementation of the YAML reader."""
 
     def __init__(self,
                  config_files,
-                 start_time=None,
-                 end_time=None,
-                 area=None,
-                 filter_filenames=True, **kwargs):
-        super(FileYAMLReader, self).__init__(config_files,
-                                             start_time=start_time,
-                                             end_time=end_time,
-                                             area=area)
+                 filter_parameters=None,
+                 filter_filenames=True,
+                 **kwargs):
+        super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
-        self.filter_filenames = self.info.get(
-            'filter_filenames', filter_filenames)
+        self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
+        self.filter_parameters = filter_parameters or {}
+        if kwargs:
+            logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
         self.coords_cache = WeakValueDictionary()
 
     @property
@@ -418,25 +415,25 @@ class FileYAMLReader(AbstractYAMLReader):
             raise RuntimeError("End time unknown until files are selected")
         return max(x[-1].end_time for x in self.file_handlers.values())
 
-    def check_file_covers_area(self, file_handler):
+    @staticmethod
+    def check_file_covers_area(file_handler, check_area):
         """Checks if the file covers the current area.
 
-        If the file doesn't provide any bounding box information or self._area
-        is None, the check returns True.
+        If the file doesn't provide any bounding box information or 'area'
+        was not provided in `filter_parameters`, the check returns True.
         """
-        if self._area:
-            from trollsched.boundary import AreaDefBoundary, Boundary
-            from satpy.resample import get_area_def
-            try:
-                gbb = Boundary(*file_handler.get_bounding_box())
-            except NotImplementedError:
-                pass
-            else:
-                abb = AreaDefBoundary(get_area_def(self._area), frequency=1000)
+        from trollsched.boundary import AreaDefBoundary, Boundary
+        from satpy.resample import get_area_def
+        try:
+            gbb = Boundary(*file_handler.get_bounding_box())
+        except NotImplementedError:
+            pass
+        else:
+            abb = AreaDefBoundary(get_area_def(check_area), frequency=1000)
 
-                intersection = gbb.contour_poly.intersection(abb.contour_poly)
-                if not intersection:
-                    return False
+            intersection = gbb.contour_poly.intersection(abb.contour_poly)
+            if not intersection:
+                return False
         return True
 
     def find_required_filehandlers(self, requirements, filename_info):
@@ -510,52 +507,88 @@ class FileYAMLReader(AbstractYAMLReader):
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
 
-    def filter_fh_by_time(self, filehandlers):
-        """Filter out filehandlers outside the desired time_range."""
-        for filehandler in filehandlers:
-            if self._start_time and filehandler.end_time < self._start_time:
+    def time_matches(self, fstart, fend):
+        start_time = self.filter_parameters.get('start_time')
+        end_time = self.filter_parameters.get('end_time')
+        if start_time and fend and fend < start_time:
+            return False
+        if end_time and fstart and fstart > end_time:
+            return False
+        return True
+
+    def metadata_matches(self, sample_dict, file_handler=None):
+        # special handling of start/end times
+        if not self.time_matches(
+                sample_dict.get('start_time'), sample_dict.get('end_time')):
+            return False
+
+        for key, val in self.filter_parameters.items():
+            if key not in sample_dict:
                 continue
-            if self._end_time and filehandler.start_time > self._end_time:
+
+            fval = sample_dict[key]
+            if key in ['start_time', 'end_time']:
                 continue
-            yield filehandler
+            elif key == 'area' and file_handler and \
+                    not self.check_file_covers_area(file_handler, val):
+                break
+            elif val != fval:
+                # don't use this file
+                break
+        else:
+            # all the metadata keys are equal
+            return True
+        return False
 
     def filter_filenames_by_info(self, filename_items):
         """Filter out file using metadata from the filenames.
 
-        Currently only uses start and end time.
+        Currently only uses start and end time. If only start time is available
+        from the filename, keep all the filename that have a start time before
+        the requested end time.
         """
         for filename, filename_info in filename_items:
-            s = filename_info.get('start_time')
-            e = filename_info.get('end_time', s)
-            if e and not s:
-                s = e
-
-            if e < s:
+            fend = filename_info.get('end_time')
+            fstart = filename_info.setdefault('start_time', fend)
+            if fend and fend < fstart:
                 # correct for filenames with 1 date and 2 times
-                e = e.replace(year=s.year, month=s.month, day=s.day)
-            if self._start_time and e < self._start_time:
-                continue
-            if self._end_time and s > self._end_time:
-                continue
-            yield filename, filename_info
+                fend = fend.replace(year=fstart.year,
+                                    month=fstart.month,
+                                    day=fstart.day)
+                filename_info['end_time'] = fend
+            if self.metadata_matches(filename_info):
+                yield filename, filename_info
 
-    def filter_fh_by_area(self, filehandlers):
-        """Filter out filehandlers outside the desired area."""
+    def filter_fh_by_metadata(self, filehandlers):
+        """Filter out filehandlers using provide filter parameters."""
         for filehandler in filehandlers:
-            if self.check_file_covers_area(filehandler):
+            filehandler.metadata['start_time'] = filehandler.start_time
+            filehandler.metadata['end_time'] = filehandler.end_time
+            if self.metadata_matches(filehandler.metadata, filehandler):
                 yield filehandler
+
+    def filter_selected_filenames(self, filenames):
+        for filetype, filetype_info in self.sorted_filetype_items():
+            filename_iter = self.filename_items_for_filetype(filenames,
+                                                             filetype_info)
+            if self.filter_filenames:
+                filename_iter = self.filter_filenames_by_info(filename_iter)
+
+            for fn, _ in filename_iter:
+                yield fn
 
     def new_filehandlers_for_filetype(self, filetype_info, filenames):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
-        if self.filter_filenames and self._start_time or self._end_time:
+        if self.filter_filenames:
+            # preliminary filter of filenames based on start/end time
+            # to reduce the number of files to open
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter)
-        return [fhd
-                for fhd in self.filter_fh_by_area(self.filter_fh_by_time(
-                    filehandler_iter))]
+        filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
+        return list(filtered_iter)
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
@@ -617,6 +650,7 @@ class FileYAMLReader(AbstractYAMLReader):
                              dim='y'):
         """Load only a piece of the dataset."""
         # we can optimize
+        # cls = ds_info.get("container", Dataset)
         all_shapes = [list(fhd.get_shape(dsid, ds_info))
                       for fhd in file_handlers]
         overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
@@ -809,9 +843,9 @@ class FileYAMLReader(AbstractYAMLReader):
         """
         slice_kwargs = {}
 
-        if area is not None and self._area is not None:
+        if area is not None and self.filter_parameters.get('area') is not None:
             try:
-                slices = get_area_slices(area, self._area)
+                slices = get_area_slices(area, self.filter_parameters['area'])
                 area = get_sub_area(area, *slices)
                 slice_kwargs['xslice'], slice_kwargs['yslice'] = slices
             except (NotImplementedError, AttributeError):

@@ -33,6 +33,7 @@ import xarray as xr
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.helper_functions import np2str
 
 LOG = logging.getLogger(__name__)
 
@@ -59,15 +60,7 @@ class HDF5FileHandler(BaseFileHandler):
     def _collect_attrs(self, name, attrs):
         for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
-            if issubclass(value.dtype.type, np.string_) and not value.shape:
-                value = np.asscalar(value)
-                if not isinstance(value, str):
-                    # python 3 - was scalar numpy array of bytes
-                    # otherwise python 2 - scalar numpy array of 'str'
-                    value = value.decode()
-                self.file_content["{}/attr/{}".format(name, key)] = value
-            else:
-                self.file_content["{}/attr/{}".format(name, key)] = value
+            self.file_content["{}/attr/{}".format(name, key)] = np2str(value)
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):

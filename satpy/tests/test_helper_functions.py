@@ -337,6 +337,11 @@ class TestHelpers(unittest.TestCase):
                                      3, 3,
                                      (0.75, -3.75, 5.25, 0.75))
 
+    def test_np2str(self):
+        """Test the np2str function."""
+        npstring = np.string_('hej')
+        self.assertEquals(hf.np2str(npstring), 'hej')
+
 
 def suite():
     """The test suite for test_satin_helpers.

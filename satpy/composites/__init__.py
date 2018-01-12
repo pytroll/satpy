@@ -39,7 +39,8 @@ from satpy.config import (CONFIG_PATH, config_search_paths,
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
                            combine_attrs, combine_metadata)
 from satpy.readers import DatasetDict
-from satpy.tools import atmospheric_path_length_correction, sunzen_corr_cos
+from satpy.tools import sunzen_corr_cos
+from satpy.tools import atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNKSIZE
 
@@ -349,8 +350,8 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
 
-        (vis, blue) = projectables
-        if vis.shape != blue.shape:
+        (vis, red) = projectables
+        if vis.shape != red.shape:
             raise IncompatibleAreas
         try:
             (sata, satz, suna, sunz) = optional_datasets
@@ -390,7 +391,7 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load(), 
                                                       ssadiff, 
                                                       vis.attrs['name'], 
-						      blue.load())
+						      red.load())
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
@@ -398,7 +399,7 @@ class PSPRayleighReflectance(CompositeBase):
 						      satz.load(), 
                                                       ssadiff,
                                                       vis.attrs['wavelength'][1], 
-                                                      blue.load())
+                                                      red.load())
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
@@ -441,7 +442,6 @@ class NIRReflectance(CompositeBase):
 
         sun_zenith = None
         tb13_4 = None
-
         for dataset in optional_datasets:
             if (dataset.attrs['units'] == 'K' and
                     "wavelengh" in dataset.attrs and
@@ -453,8 +453,8 @@ class NIRReflectance(CompositeBase):
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = nir.attrs["area"].get_lonlats_dask(CHUNKSIZE)
-            sun_zenith = sza(nir.attrs['start_time'], lons, lats)
+            lons, lats = _nir.attrs["area"].get_lonlats()
+            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
