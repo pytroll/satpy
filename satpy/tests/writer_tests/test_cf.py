@@ -40,7 +40,23 @@ else:
 class TestCFWriter(unittest.TestCase):
     def test_init(self):
         from satpy.writers.cf_writer import CFWriter
-        w = CFWriter()
+        import satpy.config
+        w = CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH, 
+                                                'writers', 'cf.yaml')])
+        
+
+    def test_save_array(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        scn['test-array'] = xr.DataArray([1,2,3])
+        handle, filename = tempfile.mkstemp()
+        scn.save_datasets(filename=filename, writer='cf')
+        import h5netcdf as nc4
+        f = nc4.File(filename)
+        self.assertTrue(all(f['test-array'][:] == [1,2,3]))
+        os.remove(filename)
 
 
 def suite():
@@ -50,3 +66,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestCFWriter))
     return mysuite
+
+if __name__ == "__main__":
+    unittest.main()
