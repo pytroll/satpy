@@ -869,7 +869,7 @@ class FileYAMLReader(AbstractYAMLReader):
         if area is not None:
             ds.attrs['area'] = area
             if (('x' not in ds.coords) or('y' not in ds.coords)) and \
-                    hasattr(area, 'get_proj_coords_dask'):
+                    hasattr(area, 'get_proj_vectors_dask'):
                 #proj_coords = area.get_proj_coords_dask(CHUNKSIZE)
                 ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNKSIZE)
                 #ds['x'] = proj_coords[0, :, 1].compute()
