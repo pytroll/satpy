@@ -55,9 +55,6 @@ ALL_PRESSURE_LEVELS = [
 class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
-    def __init__(self, *args, **kwargs):
-        super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
-
     def __contains__(self, item):
         return item in self.file_content
 
@@ -184,26 +181,23 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files.
     """
-    def __init__(self, config_files, mask_surface=True, mask_quality=True,
-                 start_time=None, end_time=None, area=None, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
         """Configure reader behavior.
 
-        :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
-        :param mask_quality: mask anything where the `Quality_Flag` metadata is ``!= 1``.
+        Args:
+            mask_surface (boolean): mask anything below the surface pressure
+            mask_quality (boolean): mask anything where the `Quality_Flag` metadata is ``!= 1``.
 
         """
         self.pressure_dataset_names = defaultdict(list)
         super(NUCAPSReader, self).__init__(config_files,
-                                           start_time=start_time,
-                                           end_time=end_time,
-                                           area=area,
                                            **kwargs)
         self.mask_surface = self.info.get('mask_surface', mask_surface)
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
     def load_ds_ids_from_config(self):
         """Convert config dataset entries to DatasetIDs
-        
+
         Special handling is done to provide level specific datasets
         for any pressured based datasets. For example, a dataset is
         added for each pressure level of 'Temperature' with each
@@ -335,5 +329,3 @@ class NUCAPSReader(FileYAMLReader):
                 datasets_loaded[ds_id] = ds.where(quality_flag == 0)
 
         return datasets_loaded
-
-

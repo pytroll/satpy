@@ -2,7 +2,7 @@
 SatPy's Documentation
 =====================
 
-The SatPy package is a python library for reading and manipulating
+SatPy is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and
 data file formats. SatPy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
@@ -13,9 +13,31 @@ to resample data to different uniform areas or grids.
 Get to the project_ page for source code and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
-by the creation of plugins (readers, compositors, writers, etc). In the base
-distribution, we provide support for the following readers:
+by the creation of plugins (readers, compositors, writers, etc). The table at
+the bottom of this page shows the input formats supported by the base SatPy
+installation.
 
+.. note::
+
+    SatPy's interfaces are not guaranteed stable and may change until version
+    1.0 when backwards compatibility will be a main focus.
+
+.. _project: http://github.com/pytroll/satpy
+
+.. toctree::
+    :maxdepth: 2
+
+    overview
+    install
+    quickstart
+    readers
+    composites
+    resample
+    writers
+    SatPy API <api/satpy>
+
+
+.. _reader_table:
 
 .. list-table:: SatPy Readers
     :header-rows: 1
@@ -116,17 +138,6 @@ distribution, we provide support for the following readers:
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
-
-Reprojection of data is also available through the use of pyresample_.
-
-.. _project: http://github.com/pytroll/satpy
-
-.. toctree::
-    :maxdepth: 2
-
-    install
-    quickstart
-    satpy
 
 Indices and tables
 ==================

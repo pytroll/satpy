@@ -32,7 +32,7 @@ from satpy.writers import Writer
 
 LOG = logging.getLogger(__name__)
 
-EPOCH = "seconds since 1970-01-01 00:00:00 +00:00"
+EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
 
 
 def omerc2cf(proj_dict):
@@ -132,7 +132,7 @@ def area2gridmapping(dataarray):
     attrs = create_grid_mapping(area)
     name = attrs['name']
     dataarray.attrs['grid_mapping'] = name
-    return [dataarray, xr.DataArray([], attrs=attrs, name=name)]
+    return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
 
 
 def area2cf(dataarray, strict=False):
@@ -172,6 +172,8 @@ class CFWriter(Writer):
 
         if 'time' in new_data.coords:
             new_data['time'].encoding['units'] = epoch
+            new_data['time'].attrs['standard_name'] = 'time'
+            new_data['time'].attrs.pop('bounds', None)
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         return new_data
@@ -208,4 +210,5 @@ class CFWriter(Writer):
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
-        dataset.to_netcdf(filename, **kwargs)
+        dataset.to_netcdf(filename, engine='h5netcdf', **kwargs)
+

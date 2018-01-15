@@ -349,8 +349,8 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
 
-        (vis, blue) = projectables
-        if vis.shape != blue.shape:
+        (vis, red) = projectables
+        if vis.shape != red.shape:
             raise IncompatibleAreas
         try:
             (sata, satz, suna, sunz) = optional_datasets
@@ -386,19 +386,19 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = corrector.get_reflectance(sunz.load(), 
-                                                      satz.load(), 
-                                                      ssadiff, 
-                                                      vis.attrs['name'], 
-						      blue.load())
+            refl_cor_band = corrector.get_reflectance(sunz.load(),
+                                                      satz.load(),
+                                                      ssadiff,
+                                                      vis.attrs['name'],
+						      red.load())
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = corrector.get_reflectance(sunz.load(), 
-						      satz.load(), 
+            refl_cor_band = corrector.get_reflectance(sunz.load(),
+						      satz.load(),
                                                       ssadiff,
-                                                      vis.attrs['wavelength'][1], 
-                                                      blue.load())
+                                                      vis.attrs['wavelength'][1],
+                                                      red.load())
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
@@ -453,8 +453,8 @@ class NIRReflectance(CompositeBase):
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = nir.attrs["area"].get_lonlats_dask(CHUNKSIZE)
-            sun_zenith = sza(nir.attrs['start_time'], lons, lats)
+            lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNKSIZE)
+            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
@@ -462,7 +462,7 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the emissive part an NIR channel after having derived the reflectance. 
+        """Get the emissive part an NIR channel after having derived the reflectance.
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
         self._init_refl3x(projectables)
