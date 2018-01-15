@@ -1011,63 +1011,6 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEquals(len(loaded_ids), 2)
 
 
-class TestSceneResample(unittest.TestCase):
-    """Test the `.resample` method of Scene
-
-    Note this does not actually run the resampling algorithms. It only tests
-    how the Scene handles dependencies and delayed composites surrounding
-    resampling.
-    """
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_comp1(self, cri, cl):
-        """Test loading and resampling a single dataset"""
-        import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        from satpy import DatasetID, Dataset
-        cri.return_value = {'fake_reader': create_fake_reader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames='bla',
-                                  base_dir='bli',
-                                  reader='fake_reader')
-        scene.load(['ds1'])
-        with mock.patch.object(Dataset, 'resample', autospec=True) as r:
-            r.side_effect = lambda self, x, **kwargs: self
-            # None is our fake Area destination
-            new_scene = scene.resample(None)
-        loaded_ids = list(new_scene.datasets.keys())
-        self.assertEquals(len(loaded_ids), 1)
-        self.assertTupleEqual(
-            tuple(loaded_ids[0]), tuple(DatasetID(name='ds1')))
-
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_added_ds(self, cri, cl):
-        """Test loading and resampling a single dataset"""
-        import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        from satpy import DatasetID, Dataset
-        cri.return_value = {'fake_reader': create_fake_reader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames='bla',
-                                  base_dir='bli',
-                                  reader='fake_reader')
-        scene.load(['ds1'])
-        scene['new_ds'] = scene['ds1'] + 1.
-        with mock.patch.object(Dataset, 'resample', autospec=True) as r:
-            r.side_effect = lambda self, x, **kwargs: self
-            # None is our fake Area destination
-            new_scene = scene.resample(None)
-        loaded_ids = list(new_scene.datasets.keys())
-        self.assertEquals(len(loaded_ids), 2)
-        self.assertSetEqual(
-            set(loaded_ids), set([DatasetID(name='ds1'), DatasetID(name='new_ds')]))
-
-
 def suite():
     """The test suite for test_scene.
     """
@@ -1075,7 +1018,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResample))
 
     return mysuite
 

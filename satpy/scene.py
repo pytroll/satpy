@@ -139,7 +139,7 @@ class Scene(MetadataObject):
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     reader=reader,
                                                     reader_kwargs=reader_kwargs)
-        self.info.update(self._compute_metadata_from_readers())
+        self.attrs.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])

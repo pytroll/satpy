@@ -231,7 +231,13 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             # .flatten() currently not supported, workaround: https://github.com/pydata/xarray/issues/1029
             data = self[var_path][yslice, xslice]
             data = data.stack(name=data.dims).astype(np.int)
-            data = self[lut_var_path][data].rename({'dim_0': 'name'}).assign_coords(**data.coords).unstack('name')
+            coords = data.coords
+            data = self[lut_var_path][data]
+            if 'dim_0' in data:
+                # seems like older versions of xarray take the dims from
+                # 'lut_var_path'. newer versions take 'data' dims
+                data = data.rename({'dim_0': 'name'})
+            data = data.assign_coords(**coords).unstack('name')
         elif shape == 1:
             data = self[var_path]
         else:
