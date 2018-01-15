@@ -148,7 +148,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
         from satpy.readers import load_reader
         from datetime import datetime
         r = load_reader(self.reader_configs,
-                        start_time=datetime(2012, 2, 26))
+                        filter_parameters={
+                            'start_time': datetime(2012, 2, 26)
+                        })
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
@@ -159,7 +161,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
         from satpy.readers import load_reader
         from datetime import datetime
         r = load_reader(self.reader_configs,
-                        end_time=datetime(2012, 2, 24))
+                        filter_parameters={
+                            'end_time': datetime(2012, 2, 24)
+                        })
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
@@ -170,8 +174,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
         from satpy.readers import load_reader
         from datetime import datetime
         r = load_reader(self.reader_configs,
-                        start_time=datetime(2012, 2, 24),
-                        end_time=datetime(2012, 2, 26))
+                        filter_parameters={
+                            'start_time': datetime(2012, 2, 24),
+                            'end_time': datetime(2012, 2, 26)
+                        })
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])

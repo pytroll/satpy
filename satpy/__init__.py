@@ -33,5 +33,5 @@ CHUNKSIZE = 5000
 
 from satpy.version import __version__
 from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
-from satpy.readers import DatasetDict
+from satpy.readers import DatasetDict, find_files_and_readers
 from satpy.scene import Scene
