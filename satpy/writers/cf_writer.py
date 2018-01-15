@@ -111,13 +111,13 @@ def get_extra_ds(dataset):
 def area2lonlat(dataarray):
     """Convert an area to longitudes and latitudes."""
     area = dataarray.attrs['area']
-    lonlats = area.get_lonlats_dask(blocksize=1000)
-    lons = xr.DataArray(lonlats[:, :, 0], dims=['y', 'x'],
+    lons, lats = area.get_lonlats_dask()
+    lons = xr.DataArray(lons, dims=['y', 'x'],
                         attrs={'name': "longitude",
                                'standard_name': "longitude",
                                'units': 'degrees_east'},
                         name='longitude')
-    lats = xr.DataArray(lonlats[:, :, 1], dims=['y', 'x'],
+    lats = xr.DataArray(lats, dims=['y', 'x'],
                         attrs={'name': "latitude",
                                'standard_name': "latitude",
                                'units': 'degrees_north'},
