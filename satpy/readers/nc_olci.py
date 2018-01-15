@@ -85,12 +85,18 @@ class NCOLCICal(NCOLCIBase):
 class NCOLCIGeo(NCOLCIBase):
     pass
 
-class NCOLCI1B(NCOLCIBase):
+class NCOLCIChannelBase(NCOLCIBase):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCOLCIChannelBase, self).__init__(filename, filename_info,
+                                         filetype_info)
+        self.channel = filename_info['dataset_name']
+
+class NCOLCI1B(NCOLCIChannelBase):
 
     def __init__(self, filename, filename_info, filetype_info, cal):
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.channel = filename_info['dataset_name']
         self.cal = cal.nc
 
     def _get_solar_flux(self, band):
@@ -148,7 +154,7 @@ class NCOLCI1B(NCOLCIBase):
         return radiances
 
 
-class NCOLCI2(NCOLCIBase):
+class NCOLCI2(NCOLCIChannelBase):
 
     def get_dataset(self, key, info):
         """Load a dataset
