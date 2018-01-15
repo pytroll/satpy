@@ -945,13 +945,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.area = area.squeeze()
         return area
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
-        res = super(HRITMSGFileHandler, self).get_dataset(key, info, out,
-                                                          xslice, yslice)
-        if res is not None:
-            out = res
-
+    def get_dataset(self, key, info):
+        res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key.calibration)
         res.attrs['units'] = info['units']
         res.attrs['wavelength'] = info['wavelength']
