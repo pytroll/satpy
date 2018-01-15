@@ -638,7 +638,6 @@ class FileYAMLReader(AbstractYAMLReader):
         # Join them all together
         combined_info = file_handlers[0].combine_info(
             [p.attrs for p in projectables])
-        #cls = ds_info.get("container", Dataset)
         # return cls(np.ma.vstack(projectables), **combined_info)
         if dim not in projectables[0].dims:
             dim = projectables[0].dims[0]
@@ -650,7 +649,6 @@ class FileYAMLReader(AbstractYAMLReader):
                              dim='y'):
         """Load only a piece of the dataset."""
         # we can optimize
-        # cls = ds_info.get("container", Dataset)
         all_shapes = [list(fhd.get_shape(dsid, ds_info))
                       for fhd in file_handlers]
         overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
@@ -871,7 +869,7 @@ class FileYAMLReader(AbstractYAMLReader):
         if area is not None:
             ds.attrs['area'] = area
             if (('x' not in ds.coords) or('y' not in ds.coords)) and \
-                    hasattr(area, 'get_proj_coords_dask'):
+                    hasattr(area, 'get_proj_vectors_dask'):
                 #proj_coords = area.get_proj_coords_dask(CHUNKSIZE)
                 ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNKSIZE)
                 #ds['x'] = proj_coords[0, :, 1].compute()
