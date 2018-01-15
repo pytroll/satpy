@@ -180,7 +180,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def save_datasets(self, datasets, filename, **kwargs):
+    def save_datasets(self, datasets, filename, header_attrs=None, **kwargs):
         """Save all datasets to one or more files."""
         LOG.info('Saving datasets to NetCDF4/CF.')
 
@@ -200,6 +200,11 @@ class CFWriter(Writer):
                                                                     EPOCH))
 
         dataset = xr.Dataset(datas)
+        if header_attrs is not None:
+            for attribute in header_attrs.keys():
+                print attribute, header_attrs[attribute]
+                if header_attrs[attribute] is not None:
+                    dataset.attrs[attribute] = header_attrs[attribute]
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
