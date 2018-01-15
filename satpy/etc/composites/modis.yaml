@@ -46,3 +46,10 @@ composites:
     - wavelength: 10.8
       modifiers: [atm_correction]
     standard_name: airmass
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural
+      - night_fog

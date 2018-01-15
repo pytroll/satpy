@@ -208,3 +208,10 @@ composites:
     - 7.3
     - 10.4
     standard_name: convection
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural
+      - night_fog

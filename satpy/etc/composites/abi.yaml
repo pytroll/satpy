@@ -128,3 +128,10 @@ composites:
     - 0.85
     - 11.0
     standard_name: overview
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural
+      - night_fog

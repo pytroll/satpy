@@ -352,3 +352,11 @@ composites:
     - name: M11
       modifiers: [sunz_corrected]
     standard_name: snow_age
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural_color
+      - night_fog
+      - solar_zenith_angle
