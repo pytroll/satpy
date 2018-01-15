@@ -127,8 +127,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
         rec_up.return_value = res_dict
         self.config = res_dict
         self.reader = yr.FileYAMLReader([__file__],
-                                        start_time=datetime(2000, 1, 1),
-                                        end_time=datetime(2000, 1, 2))
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
@@ -200,15 +202,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
         fh5 = FakeFH(datetime(1999, 12, 31, 10, 0),
                      datetime(2000, 1, 3, 12, 30))
 
-        res = self.reader.filter_fh_by_time([fh0, fh1, fh2, fh3, fh4, fh5])
-        self.assertSetEqual(set(res), set([fh1, fh2, fh3, fh5]))
-
-    def test_filter_fh_by_area(self):
-        """Check filtering filehandlers by area."""
-        with patch.object(self.reader, 'check_file_covers_area',
-                          side_effect=[True, False, True]):
-            res = self.reader.filter_fh_by_area([1, 2, 3])
-            self.assertSetEqual(set(res), set([1, 3]))
+        for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
+            res = self.reader.time_matches(fh.start_time, fh.end_time)
+            # only the first one should be false
+            self.assertEqual(res, idx not in [0, 4])
 
     @patch('satpy.resample.get_area_def')
     def test_file_covers_area(self, gad):
@@ -224,25 +221,20 @@ class TestFileFileYAMLReader(unittest.TestCase):
                    'trollsched.boundary': trollsched.boundary}
 
         with patch.dict('sys.modules', modules):
-
-            self.reader._area = True
+            self.reader.filter_parameters['area'] = True
             bnd.return_value.contour_poly.intersection.return_value = True
             adb.return_value.contour_poly.intersection.return_value = True
-            res = self.reader.check_file_covers_area(file_handler)
+            res = self.reader.check_file_covers_area(file_handler, True)
             self.assertTrue(res)
 
             bnd.return_value.contour_poly.intersection.return_value = False
             adb.return_value.contour_poly.intersection.return_value = False
-            res = self.reader.check_file_covers_area(file_handler)
+            res = self.reader.check_file_covers_area(file_handler, True)
             self.assertFalse(res)
 
-            self.reader._area = False
-            res = self.reader.check_file_covers_area(file_handler)
-            self.assertTrue(res)
-
             file_handler.get_bounding_box.side_effect = NotImplementedError()
-            self.reader._area = True
-            res = self.reader.check_file_covers_area(file_handler)
+            self.reader.filter_parameters['area'] = True
+            res = self.reader.check_file_covers_area(file_handler, True)
             self.assertTrue(res)
 
     def test_start_end_time(self):
