@@ -55,9 +55,6 @@ ALL_PRESSURE_LEVELS = [
 class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
-    def __init__(self, *args, **kwargs):
-        super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
-
     def __contains__(self, item):
         return item in self.file_content
 
