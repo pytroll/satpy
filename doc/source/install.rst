@@ -1,25 +1,22 @@
-===========================
-Installation instructions
-===========================
+=========================
+Installation Instructions
+=========================
 
-Pip based installation
+Pip-based Installation
 ======================
 
-`satpy` is available from pypi.
-A sandbox environment for `satpy` can be created using `Virtualenv <http://pypi.python.org/pypi/virtualenv>`_.
+SatPy is available from the Python Packaging Index (PyPI). A sandbox
+environment for `satpy` can be created using
+`Virtualenv <http://pypi.python.org/pypi/virtualenv>`_.
 
-Installation using pip:
+To install the `satpy` package and all of its python dependencies from PyPI:
 
 .. code-block:: bash
 
     $ pip install satpy
 
-This will install `satpy` and all it's python dependendencies from pypi.
-However you have to asure, that all non python dependencies are installed
-on your machine.
-
-Installation based on conda
-===========================
+Conda-based Installation
+========================
 
 The `satpy repository <https://github.com/pytroll/satpy>`_ contains an environment file
 to install `satpy` and all its dependencies (including non python dependencies) via 

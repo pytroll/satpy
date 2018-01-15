@@ -183,6 +183,7 @@ class BaseResampler(object):
             mask = mask.sum(dim=summing_dims).astype(bool)
             kwargs['mask'] = mask
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
+        data.attrs['_last_resampler'] = self
         return self.compute(data, cache_id=cache_id, **kwargs)
 
     # FIXME: there should be only one obvious way to resample
