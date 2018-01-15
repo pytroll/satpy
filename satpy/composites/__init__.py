@@ -440,7 +440,7 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the emissive part an NIR channel after having derived the reflectance. 
+        """Get the emissive part an NIR channel after having derived the reflectance.
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
         self._init_refl3x(projectables)
@@ -685,20 +685,24 @@ class DayNightCompositor(RGBCompositor):
 
     def __call__(self, projectables, lim_low=85., lim_high=95., *args,
                  **kwargs):
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables), ))
+
+        day_data = projectables[0].copy()
+        night_data = projectables[1].copy()
         try:
-            day_data = projectables[0].copy()
-            night_data = projectables[1].copy()
-            coszen = np.cos(np.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(optional_datasets[2]))
+        except IndexError:
+            from pyorbital.astronomy import cos_zen
+            LOG.debug("Computing sun zenith angles.")
+            coszen = cos_zen(day_data.info["start_time"],
+                             *day_data.info["area"].get_lonlats())
 
-            coszen -= min(np.cos(np.deg2rad(lim_high)),
-                          np.cos(np.deg2rad(lim_low)))
-            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
-                             np.cos(np.deg2rad(lim_high)))
-            coszen = np.clip(coszen, 0, 1)
+        coszen -= min(np.cos(np.deg2rad(lim_high)),
+                      np.cos(np.deg2rad(lim_low)))
+        coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
+                         np.cos(np.deg2rad(lim_high)))
+        coszen = np.clip(coszen, 0, 1)
 
+        try:
             full_data = []
 
             # Apply enhancements
@@ -730,7 +734,6 @@ class DayNightCompositor(RGBCompositor):
                                                 full_data[1],
                                                 full_data[2]),
                                          *args, **kwargs)
-
         except ValueError:
             raise IncompatibleAreas
 
