@@ -197,7 +197,7 @@ class NUCAPSReader(FileYAMLReader):
 
     def load_ds_ids_from_config(self):
         """Convert config dataset entries to DatasetIDs
-        
+
         Special handling is done to provide level specific datasets
         for any pressured based datasets. For example, a dataset is
         added for each pressure level of 'Temperature' with each
@@ -329,5 +329,3 @@ class NUCAPSReader(FileYAMLReader):
                 datasets_loaded[ds_id] = ds.where(quality_flag == 0)
 
         return datasets_loaded
-
-

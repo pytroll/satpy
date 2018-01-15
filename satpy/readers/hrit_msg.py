@@ -1036,26 +1036,3 @@ def show(data, negate=False):
         data = 255 - data
     img = pil.fromarray(data)
     img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()
