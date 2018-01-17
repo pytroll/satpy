@@ -204,7 +204,6 @@ class CFWriter(Writer):
         dataset = xr.Dataset(datas)
         if header_attrs is not None:
             for attribute in header_attrs.keys():
-                print attribute, header_attrs[attribute]
                 if header_attrs[attribute] is not None:
                     dataset.attrs[attribute] = header_attrs[attribute]
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
