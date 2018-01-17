@@ -37,7 +37,7 @@ else:
 def suite():
     """Test suite for all writer tests"""
     mysuite = unittest.TestSuite()
-    # mysuite.addTests(test_cf.suite())
+    mysuite.addTests(test_cf.suite())
     mysuite.addTests(test_geotiff.suite())
     # mysuite.addTests(test_ninjotiff.suite())
     mysuite.addTests(test_simple_image.suite())
