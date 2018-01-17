@@ -37,8 +37,6 @@ EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
 
 def omerc2cf(proj_dict):
     """Return the cf grid mapping for the omerc projection."""
-    grid_mapping_name = 'oblique_mercator'
-
     if "no_rot" in proj_dict:
         no_rotation = " "
     else:
@@ -47,6 +45,7 @@ def omerc2cf(proj_dict):
     args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lonc'),
+                grid_mapping_name='oblique_mercator',
                 # longitude_of_projection_origin=0.,
                 no_rotation=no_rotation,
                 # reference_ellipsoid_name=proj_dict.get('ellps'),
@@ -60,11 +59,10 @@ def omerc2cf(proj_dict):
 
 def geos2cf(proj_dict):
     """Return the cf grid mapping for the geos projection."""
-    grid_mapping_name = 'geostationary'
-
     args = dict(perspective_point_height=proj_dict.get('h'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
+                grid_mapping_name='geostationary',
                 semi_major_axis=proj_dict.get('a'),
                 semi_minor_axis=proj_dict.get('b'),
                 sweep_axis=proj_dict.get('sweep'),
@@ -74,10 +72,9 @@ def geos2cf(proj_dict):
 
 def laea2cf(proj_dict):
     """Return the cf grid mapping for the laea projection."""
-    grid_mapping_name = 'lambert_azimuthal_equal_area'
-
     args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
+                grid_mapping_name='lambert_azimuthal_equal_area',
                 )
     return args
 
@@ -174,6 +171,14 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
+
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
+            new_data['x'].attrs['units'] = 'm'
+
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
+            new_data['y'].attrs['units'] = 'm'
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         return new_data
