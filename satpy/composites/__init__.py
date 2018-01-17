@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018
+# Copyright (c) 2015-2018 PyTroll developers
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -344,12 +345,10 @@ class PSPRayleighReflectance(CompositeBase):
         except ValueError:
             from pyorbital.astronomy import get_alt_az, sun_zenith_angle
             from pyorbital.orbital import get_observer_look
-            sunalt, suna = get_alt_az(
-                vis.info['start_time'], *vis.info['area'].get_lonlats())
-            suna = np.rad2deg(suna)
-            sunz = sun_zenith_angle(
-                vis.info['start_time'], *vis.info['area'].get_lonlats())
             lons, lats = vis.info['area'].get_lonlats()
+            sunalt, suna = get_alt_az(vis.info['start_time'], lons, lats)
+            suna = np.rad2deg(suna)
+            sunz = sun_zenith_angle(vis.info['start_time'], lons, lats)
             sata, satel = get_observer_look(vis.info['satellite_longitude'],
                                             vis.info['satellite_latitude'],
                                             vis.info['satellite_altitude'],
@@ -359,6 +358,9 @@ class PSPRayleighReflectance(CompositeBase):
             del satel
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
+        # First make sure the two azimuth angles are in the range 0-360:
+        sata = np.mod(sata, 360.)
+        suna = np.mod(suna, 360.)
         ssadiff = np.abs(suna - sata)
         ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
         del sata, suna

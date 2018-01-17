@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014, 2016, 2017
+# Copyright (c) 2014-2018 PyTroll developers
 #
 # Author(s):
 #
