@@ -166,6 +166,7 @@ class CFWriter(Writer):
         for key, val in new_data.attrs.copy().items():
             if val is None:
                 new_data.attrs.pop(key)
+        new_data.attrs.pop('_last_resampler', None)
 
         if 'time' in new_data.coords:
             new_data['time'].encoding['units'] = epoch
