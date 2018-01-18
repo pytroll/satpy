@@ -181,19 +181,16 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 class NUCAPSReader(FileYAMLReader):
     """Reader for NUCAPS NetCDF4 files.
     """
-    def __init__(self, config_files, mask_surface=True, mask_quality=True,
-                 start_time=None, end_time=None, area=None, **kwargs):
+    def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
         """Configure reader behavior.
 
-        :param mask_surface: mask anything below the surface pressure (surface_pressure metadata required)
-        :param mask_quality: mask anything where the `quality_flag` metadata is ``!= 1``.
+        Args:
+            mask_surface (boolean): mask anything below the surface pressure
+            mask_quality (boolean): mask anything where the `quality_flag` metadata is ``!= 1``.
 
         """
         self.pressure_dataset_names = defaultdict(list)
         super(NUCAPSReader, self).__init__(config_files,
-                                           start_time=start_time,
-                                           end_time=end_time,
-                                           area=area,
                                            **kwargs)
         self.mask_surface = self.info.get('mask_surface', mask_surface)
         self.mask_quality = self.info.get('mask_quality', mask_quality)
