@@ -60,9 +60,6 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def get_bounding_box(self):
         raise NotImplementedError
 
-    def get_lonlats(self, nav_id, nav_info, lon_out=None, lat_out=None):
-        raise NotImplementedError
-
     def combine_info(self, all_infos):
         """Combine metadata for multiple datasets.
 

@@ -113,7 +113,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: hrit_b04
+    file_type: hrit_b03
 
   B04:
     name: B04

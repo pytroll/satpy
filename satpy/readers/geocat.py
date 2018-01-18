@@ -52,7 +52,7 @@ CF_UNITS = {
 
 # GEOCAT currently doesn't include projection information in it's files
 GEO_PROJS = {
-    'GOES-16': '+proj=geos +lon_0=-89.5 +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
+    'GOES-16': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
     'HIMAWARI-8': '+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs',
 }
 
@@ -93,6 +93,13 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             if k in platform:
                 return v
         return platform
+
+    def _get_proj(self, platform, ref_lon):
+        if platform == 'GOES-16' and -76. < ref_lon < -74.:
+            # geocat file holds the *actual* subsatellite point, not the
+            # projection (-75.2 actual versus -75 projection)
+            ref_lon = -75.
+        return GEO_PROJS[platform].format(lon_0=ref_lon)
 
     @property
     def start_time(self):
@@ -168,7 +175,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         platform = self.get_platform(self['/attr/Platform_Name'])
         res = dsid.resolution
-        proj = GEO_PROJS[platform]
+        proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
         area_name = '{} {} Area at {}m'.format(
             platform,
             self.metadata.get('sector_id', ''),

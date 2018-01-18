@@ -26,7 +26,8 @@
 
 The reader is based on preliminary test data provided by EUMETSAT.
 The data description is described in the
-    "LI L2 Product User Guide [LIL2PUG] Draft version" documentation
+"LI L2 Product User Guide [LIL2PUG] Draft version" documentation.
+
 """
 import h5netcdf
 import logging
