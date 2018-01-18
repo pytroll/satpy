@@ -51,7 +51,7 @@ datasets:
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi01
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -65,7 +65,7 @@ datasets:
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi02
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -79,7 +79,7 @@ datasets:
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
-    modifiers: [sunz_corrected]
+    modifiers: [sunz_corrected_iband]
     file_type: svi03
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -93,7 +93,6 @@ datasets:
   I04:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
-    modifiers: [sunz_corrected]
     file_type: svi04
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -107,7 +106,6 @@ datasets:
   I05:
     name: I05
     wavelength: [10.500, 11.450, 12.300]
-    modifiers: [sunz_corrected]
     file_type: svi05
     resolution: 371
     coordinates: [i_longitude, i_latitude]
@@ -275,7 +273,6 @@ datasets:
   M12:
     name: M12
     wavelength: [3.610, 3.700, 3.790]
-    modifiers: [sunz_corrected]
     file_type: svm12
     resolution: 742
     coordinates: [m_longitude, m_latitude]
@@ -289,7 +286,6 @@ datasets:
   M13:
     name: M13
     wavelength: [3.973, 4.050, 4.128]
-    modifiers: [sunz_corrected]
     file_type: svm13
     resolution: 742
     coordinates: [m_longitude, m_latitude]
@@ -303,7 +299,6 @@ datasets:
   M14:
     name: M14
     wavelength: [8.400, 8.550, 8.700]
-    modifiers: [sunz_corrected]
     file_type: svm14
     resolution: 742
     coordinates: [m_longitude, m_latitude]
@@ -317,7 +312,6 @@ datasets:
   M15:
     name: M15
     wavelength: [10.263, 10.763, 11.263]
-    modifiers: [sunz_corrected]
     file_type: svm15
     resolution: 742
     coordinates: [m_longitude, m_latitude]
@@ -331,7 +325,6 @@ datasets:
   M16:
     name: M16
     wavelength: [11.538, 12.013, 12.489]
-    modifiers: [sunz_corrected]
     file_type: svm16
     resolution: 742
     coordinates: [m_longitude, m_latitude]
@@ -343,6 +336,38 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
 
+  I_SOLZ:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 371
+    coordinates: [i_longitude, i_latitude]
+    units: degrees
+    file_type: [gitco, gimgo]
+    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+  I_SOLA:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 371
+    coordinates: [i_longitude, i_latitude]
+    units: degrees
+    file_type: [gitco, gimgo]
+    file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
+  I_SENZ:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 371
+    coordinates: [i_longitude, i_latitude]
+    units: degrees
+    file_type: [gitco, gimgo]
+    file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
+  I_SENA:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 371
+    coordinates: [i_longitude, i_latitude]
+    units: degrees
+    file_type: [gitco, gimgo]
+    file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
   M_SOLZ:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle

@@ -1,5 +1,10 @@
 from behave import *
-from mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 
 use_step_matcher("re")
 
@@ -9,12 +14,9 @@ def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy.scene import Scene
-    from datetime import datetime
+    from satpy import Scene
     from satpy.dataset import Dataset
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
+    scn = Scene()
     scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
     context.scene = scn
 
@@ -61,16 +63,12 @@ def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy.scene import Scene
-    from datetime import datetime
+    from satpy import Scene
     from satpy.dataset import Dataset
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
+    scn = Scene()
     scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
     scn["MyDataset2"] = Dataset([[5, 6], [7, 8]])
     context.scene = scn
-
 
 
 @when("the save_datasets command is called")
@@ -79,7 +77,6 @@ def step_impl(context):
     :type context: behave.runner.Context
     """
     context.scene.save_datasets(writer="simple_image", file_pattern="{name}.png")
-
 
 
 @then("a bunch of files should be saved on disk")

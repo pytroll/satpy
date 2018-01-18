@@ -2,6 +2,525 @@ Changelog
 =========
 
 
+v0.8.0 (2018-01-11)
+-------------------
+
+Fix
+~~~
+- Bugfix: Explicitly set the resolution for sun-satellite geometry for
+  the Rayleigh correction modifiers needed for True Color imagery.
+  [Adam.Dybbroe]
+
+Other
+~~~~~
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.8 → 0.8.0. [Martin Raspaud]
+- Merge pull request #152 from pytroll/bugfix-truecolor-viirs. [Martin
+  Raspaud]
+
+  Bugfix: Explicitly set the resolution for sun-satellite geometry
+- Bugfix viirs_sdr reader: Use correct sunz corrector for ibands.
+  [Adam.Dybbroe]
+- Merge pull request #91 from pytroll/feature-discover-utility. [Martin
+  Raspaud]
+
+  Separate find files utility
+- Merge branch 'develop' into feature-discover-utility. [David Hoese]
+- Refactor all of the documentation and fix various docstrings. [davidh-
+  ssec]
+- Update documentation index and installation instructions. [davidh-
+  ssec]
+- Merge branch 'develop' into feature-discover-utility. [davidh-ssec]
+
+  # Conflicts:
+  #	satpy/readers/mipp_xrit.py
+  #	satpy/tests/test_readers.py
+  #	satpy/utils.py
+
+- Add filename filtering and tests for find_files_and_readers. [davidh-
+  ssec]
+- Remove unused strftime function. [davidh-ssec]
+- Fix behavior tests and other necessary changes to fix file discovery.
+  [davidh-ssec]
+- Update Scene and reader loading docstrings. [davidh-ssec]
+- Move reader start_time and end_time to filter_parameters. [davidh-
+  ssec]
+
+  Includes a first attempt at updating mipp_xrit to work with this
+
+- Fix `load_readers` tests after changing from ReaderFinder. [davidh-
+  ssec]
+- Remove 'sensor' functionality from Scene init and clean reader
+  loading. [davidh-ssec]
+- Fix behavior tests. [davidh-ssec]
+- Move file finding functionality to a separate utility function.
+  [davidh-ssec]
+- Move ABI simulated green calculation to a separate function. [davidh-
+  ssec]
+- Merge pull request #149 from pytroll/truecolor-red-channel-corr.
+  [Martin Raspaud]
+
+  Truecolor uses red channel as base for rayleigh correction
+- Fix indentation error in viirs.yaml. [Martin Raspaud]
+- Merge branch 'develop' into truecolor-red-channel-corr. [Martin
+  Raspaud]
+- Remove marine-clean true color recipe, as it was the same as the
+  standard recipe. [Adam.Dybbroe]
+- Bugfix abi true color recipes. [Adam.Dybbroe]
+- Apply consistency in true color imagery across sensors. Adding for
+  land and sea variants. [Adam.Dybbroe]
+- Use the red band in the damping of the atm correction over reflective
+  targets. [Adam.Dybbroe]
+
+
+v0.7.8 (2018-01-11)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.7 → 0.7.8. [Martin Raspaud]
+- Merge pull request #148 from pytroll/feature-utils. [Martin Raspaud]
+
+   Fix platform name reading for ahi hsd reader in py3
+- Fix platform name reading for ahi hsd reader in py3. [Martin Raspaud]
+
+  This patch also factorizes some code to a np2str function that takes care of converting np.string_ to str
+- Merge pull request #130 from pytroll/ahi_truecolor. [Martin Raspaud]
+
+  Use the cira stretch also for the true_color_ahi_default
+- Use consistent standard_name naming. [Adam.Dybbroe]
+- Fix for Himawari true colors at different resolutions. [Adam.Dybbroe]
+- Use the cira stretch also for the true_color_ahi_default.
+  [Adam.Dybbroe]
+- Merge pull request #141 from pytroll/pep8. [Martin Raspaud]
+
+  Remove unused imports and use pep8-ify
+- Remove unused imports and use pep8-ify. [Adam.Dybbroe]
+- Merge pull request #145 from pytroll/fix-refl37-rgbs. [Martin Raspaud]
+
+  Add snow RGB, add r37-based and natural RGB recipes specific to SEVIRI, and fix sun-zenith correction
+- When doing atm correction with pass the band name rather than the
+  wavelength to Pyspectral, as the latter may be ambigous.
+  [Adam.Dybbroe]
+- Explain how the 3.x reflectance needs to be derived before getting the
+  emissive part. [Adam.Dybbroe]
+- Removing the two protected internal variables: self._nir and
+  self._tb11. [Adam.Dybbroe]
+- Add new recipes for daytime-cloudtop RGBs using Pyspectral to remove
+  the reflective part of the 3.x signal. [Adam.Dybbroe]
+- Add method initiating the reflectance/emissive calculations.
+  [Adam.Dybbroe]
+- Update __init__.py. [Adam Dybbroe]
+
+  Replaced "dummy" with "_"
+- Add a NIR (3.x micron band) emissive RGB provided by new pyspectral.
+  [Adam.Dybbroe]
+- Adapt method call to latest pyspectral. [Adam.Dybbroe]
+- Fix so it is possible to derive 3.7 micron reflective RGBs from both
+  VIIRS I- and M-bands. [Adam.Dybbroe]
+- Add snow RGBs for VIIRS for both M- and I-bands. [Adam.Dybbroe]
+- Add snow RGB, add r37-based and natural RGB recipes specific to
+  SEVIRI, and fix sun-zenith correction. [Adam.Dybbroe]
+- Merge pull request #143 from pytroll/noaa-20-platform-naming. [Martin
+  Raspaud]
+
+  Fix platform_name for NOAA-20 and -21
+- Fix platform_name for NOAA-20 and -21. [Adam.Dybbroe]
+
+
+v0.7.7 (2017-12-21)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.6 → 0.7.7. [davidh-ssec]
+- Merge pull request #140 from pytroll/bugfix-scmi-signed. [David Hoese]
+
+  Bugfix scmi signed integer data variables
+- Add ipython tab completion for scene keys. [davidh-ssec]
+- Fix SCMI writer because AWIPS doesn't like unsigned integers. [davidh-
+  ssec]
+
+  Using the entire 16-bit unsigned integer space displays fine in AWIPS
+  but it doesn't handle them correctly when adding derived parameters.
+  Meaning once the data goes in to a python script and gets converted to
+  a signed interger...yeah. This change makes it so data is a signed
+  16-bit integer that only uses the positive half of the bit space.
+
+- Merge pull request #138 from pytroll/bugfix-modis-reader. [David
+  Hoese]
+
+  WIP: Fix readers not returning the highest resolution dataset IDs
+- Add more file patterns to hdfeos_l1b reader. [davidh-ssec]
+- Fix requesting a specific resolution from a reader. [davidh-ssec]
+- Merge remote-tracking branch 'origin/fix-resolution' into bugfix-
+  modis-reader. [davidh-ssec]
+- Allow providing resolution when loading a composite. [Martin Raspaud]
+- Fix hdfeos_l1b reader not knowing what resolution of datasets it had.
+  [davidh-ssec]
+- Fix interpolation problem at 250m resolution. [Martin Raspaud]
+- Fix readers not returning the highest resolution dataset IDs. [davidh-
+  ssec]
+- Merge pull request #139 from pytroll/bugfix-viirs-l1b. [David Hoese]
+
+  Fix VIIRS L1B to work with JPSS-1 and new NASA filenames
+- Fix VIIRS L1B to work with JPSS-1 and new NASA filenames. [davidh-
+  ssec]
+- Clean up style. [Martin Raspaud]
+- Fix lon/lat caching in hdfeos_l1b for different resolutions. [Martin
+  Raspaud]
+
+  Fixes #132
+- Merge pull request #137 from pytroll/logging_corrupted_file. [Martin
+  Raspaud]
+
+  When opening/reading a nc or hdf file fails, be verbose telling which file it is that fails
+- When opening/reading a file fails, be verbose telling which file it is
+  that fails. [Adam.Dybbroe]
+- Merge pull request #134 from howff/hdfeos_l1b_ipopp_filenames. [Martin
+  Raspaud]
+
+  Added IPOPP-style MODIS-L1b filenames
+- Update doc re. IMAPP and IPOPP. [Andrew Brooks]
+- Added IPOPP-style MODIS-L1b filenames. [Andrew Brooks]
+
+
+v0.7.6 (2017-12-19)
+-------------------
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.7.5 → 0.7.6. [Martin Raspaud]
+- Merge pull request #135 from pytroll/viirs_truecolor_config_error.
+  [Martin Raspaud]
+
+  Replace effective_solar_pathlength_corrected with the standard sunz-corrected
+- Replace effective_solar_pathlength_corrected witn the standard sunz-
+  correction. VIIRS data are already sun-zenith corrected.
+  [Adam.Dybbroe]
+- Update documentation to add hrit_goes. [Martin Raspaud]
+- Fix GOES navigation. [Martin Raspaud]
+- Finalize GOES LRIT reader. [Martin Raspaud]
+- Merge pull request #39 from howff/develop. [Martin Raspaud]
+
+  Reader for GOES HRIT, WIP
+- Fix available_composite_names in doc. [Andrew Brooks]
+- Merge branch 'develop' of https://github.com/pytroll/satpy into
+  develop. [Andrew Brooks]
+- Start of reader for GOES HRIT. [howff]
+- Update PULL_REQUEST_TEMPLATE.md. [Martin Raspaud]
+
+  This hides the comments when the PR is previewed and reminds user to provide a description for the PR.
+- Merge pull request #122 from eysteinn/scatsat1. [Martin Raspaud]
+
+  Add reader for ScatSat1 Level 2B wind speed data, HDF5 format
+- Read end_time info correctly. [Eysteinn]
+- Add reader for ScatSat1 Level 2B wind speed data. [Eysteinn]
+- Merge pull request #129 from pytroll/viirs_rgbs. [Martin Raspaud]
+
+  Use the Pyspectral atm correction as the default.
+- Use the Pyspectral atm correction as the default. Add a high-res
+  overview RGB, use the hncc-dnb in the night-microphysics and use the
+  effective_solar_pathlength_corrected for all true color RGBs.
+  [Adam.Dybbroe]
+- Merge pull request #128 from pytroll/atm_corrections. [Martin Raspaud]
+
+  Atm corrections
+- Pep8 cosmetics. [Adam.Dybbroe]
+- Pep8 cosmetics. [Adam.Dybbroe]
+- Pep8 editorial, and fixing copyright. [Adam.Dybbroe]
+- Add some pre-defined atm/rayleigh corrections to appply over land and
+  sea. [Adam.Dybbroe]
+- Merge pull request #131 from pytroll/bugfix-hrit-jma. [Martin Raspaud]
+
+  Bugfix hrit_jma
+- Bugfix hrit_jma. [Martin Raspaud]
+- Use a more appropriate and shorter link to the MSG native format pdf
+  doc. [Adam.Dybbroe]
+- Merge pull request #126 from pytroll/feature_ahi_stretch. [Martin
+  Raspaud]
+
+  Improvemements to AHI True color imagery
+- Use marine_clean and us-standard for atm correction, and improve
+  stretch at low sun elevation. [Adam.Dybbroe]
+- Use the CIRA stretch for True color imagery. [Adam.Dybbroe]
+
+
+v0.7.5 (2017-12-11)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.4 → 0.7.5. [davidh-ssec]
+- Remove unused legacy .cfg files. [davidh-ssec]
+- Merge branch 'master' into develop. [davidh-ssec]
+- Merge pull request #118 from mitkin/master. [Martin Raspaud]
+
+  Add file pattern for MODIS L1B from LAADS WEB
+- Add file pattern for MODIS L1B from LAADS WEB. [Mikhail Itkin]
+
+  NASA's LAADS WEB pattern is slightly different
+
+- Remove old and unused mipp_xrit reader. [davidh-ssec]
+- Fix SCMI writer not overwriting data from previous tiles. [davidh-
+  ssec]
+- Merge pull request #121 from pytroll/fix-ir-modifiers. [Martin
+  Raspaud]
+
+  Remove VIIRS SDR IR modifiers
+- Remove sun zenith angle correction from IR channels. [Panu Lahtinen]
+- Add github templates for issues and PRs. [Martin Raspaud]
+- Bugfix epsl1b reader. [Martin Raspaud]
+- Merge pull request #107 from pytroll/fix-nwcsaf-proj4. [David Hoese]
+
+  Convert NWC SAF MSG projection string to meters
+- Merge branch 'fix-nwcsaf-proj4' of https://github.com/pytroll/satpy
+  into fix-nwcsaf-proj4. [Panu Lahtinen]
+- Merge branch 'fix-nwcsaf-proj4' of https://github.com/pytroll/satpy
+  into fix-nwcsaf-proj4. [Panu Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Read attributes "flag_meanings", "flag_values" and "long_name" [Panu
+  Lahtinen]
+- Configure more datasets. [Panu Lahtinen]
+- Fix also area extents. [Panu Lahtinen]
+- Add unit tests for utils.proj_units_to_meters() [Panu Lahtinen]
+- Move proj_units_to_meters() to satpy.utils. [Panu Lahtinen]
+- Convert projection parameters from kilometers to meters. [Panu
+  Lahtinen]
+- Merge pull request #111 from eysteinn/sentinel1-reproject. [David
+  Hoese]
+
+  Fixed area information to safe_sar_c reader to allow for resampling
+- Added coordinates to sar_c.yaml to allow for reprojection. [Eysteinn]
+- Merge pull request #108 from TAlonglong/feature-decorate. [Martin
+  Raspaud]
+
+  Feature decorate
+- __init__.py docstring in a few add pydecorate features. [Trygve
+  Aspenes]
+- Satpy/writers/__init__.py implement more general way of handling
+  pydecorate calls from satpy save_dataset. Instead of logo and text
+  separate, use decorate. This needs to be a list to keep the order of
+  alignment available in pydecorate. Since the argument to add_decorate
+  needs to be a mapping it may look like this:
+  decorate={'decorate':[{'logo':{...}},{'text':{...}},...]} [Trygve
+  Aspenes]
+- Merge branch 'develop' into develop-fork. [Trygve Aspenes]
+- Satpy/writers/__init__.py added add_text function. This is meant to be
+  used when calling save_dataset to add text to an image using
+  pydecorate. eg save_dataset(...., text_overlay={'text': 'THIS IS THE
+  TEXT TO BE ADDED', 'align':{'top_bottom':'bottom',
+  'left_right':'right'},
+  'font':'/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+  'font_size':25, 'height':30, 'bg':'black', 'bg_opacity':255,
+  'line':'white'}). Not all options available as style in pydecorate are
+  implemented. This is left TODO. This PR is dependent on
+  https://github.com/pytroll/pydecorate/pull/3 to be completed. [Trygve
+  Aspenes]
+- Adding to more options to add_overlay. This to better control which
+  levels of coast(GSHHS) and borders (WDB_II) are put on the plot.
+  [Trygve Aspenes]
+- Merge pull request #88 from pytroll/feature-3d-enhancement. [Panu
+  Lahtinen]
+
+  Add 3D enhancement, fix BWCompositor
+- Merge branch 'feature-3d-enhancement' of
+  https://github.com/pytroll/satpy into feature-3d-enhancement. [Panu
+  Lahtinen]
+- Add example of composite with 3D effect. [Panu Lahtinen]
+- Fix BWCompositor to handle info correctly. [Panu Lahtinen]
+- Add 3D effect enhancement. [Panu Lahtinen]
+- Remove rebase comments. [Panu Lahtinen]
+- Add example of composite with 3D effect. [Panu Lahtinen]
+- Fix BWCompositor to handle info correctly. [Panu Lahtinen]
+- Add 3D effect enhancement. [Panu Lahtinen]
+- Merge pull request #87 from pytroll/feature-IASI-L2-reader. [Panu
+  Lahtinen]
+
+  Add IASI L2 reader
+- Merge branch 'feature-IASI-L2-reader' of
+  https://github.com/pytroll/satpy into feature-IASI-L2-reader. [Panu
+  Lahtinen]
+- Merge branch 'feature-IASI-L2-reader' of
+  https://github.com/pytroll/satpy into feature-IASI-L2-reader. [Panu
+  Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Merge branch 'develop' into feature-IASI-L2-reader. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Fix unit of time. [Panu Lahtinen]
+- Remove un-needed '' from the reader init line. [Panu Lahtinen]
+- Add mapping from M03 to Metop-C. [Panu Lahtinen]
+- Add subsatellite resolution to datasets. [Panu Lahtinen]
+- Fix typos, make read_dataset() and read_geo() functions instead of
+  methods. [Panu Lahtinen]
+- Add initial version of IASI L2 reader. [Panu Lahtinen]
+- Merge pull request #96 from eysteinn/create_colormap. [David Hoese]
+
+  Create colormap
+- Make colorizing/palettizing more flexible. [Eysteinn]
+- Merge pull request #4 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #3 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #109 from pytroll/bugfix-scmi. [David Hoese]
+
+  Fix SCMI writer and add more tiled grids
+- Fix SCMI writer writing masked geolocation to netcdf files. [davidh-
+  ssec]
+- Add additional GOES SCMI grids. [davidh-ssec]
+- Allow adding overlay for L and LA images. [Martin Raspaud]
+- Merge pull request #101 from pytroll/bugfix-scmi3. [David Hoese]
+
+  Fix python 3 compatibility in scmi writer
+- Add more SCMI writer tests for expected failures. [davidh-ssec]
+- Fix python 3 compatibility in scmi writer. [davidh-ssec]
+
+  Includes fix for X/Y coordinate precision which affects GOES-16 data
+
+- Merge pull request #105 from howff/doc-fix. [Martin Raspaud]
+
+  fix available_composite_names in doc
+- Fix available_composite_names in doc. [Andrew Brooks]
+
+
+v0.7.4 (2017-11-13)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.3 → 0.7.4. [davidh-ssec]
+- Update changelog. [davidh-ssec]
+- Fix physical_element for VIIRS M07 in SCMI writer. [davidh-ssec]
+- Merge pull request #97 from pytroll/feature-optimize-scmi. [David
+  Hoese]
+
+  Optimize SCMI writer to reuse results of tile calculations
+- Fix area id in SCMI writer to be more specific. [davidh-ssec]
+- Optimize SCMI writer to reuse results of tile calculations. [davidh-
+  ssec]
+
+  It uses a little bit more memory, but speeds up the processing by quite
+  a bit when tested under the Polar2Grid equivalent.
+
+- Fix floating point saving for geotiff. [Martin Raspaud]
+- Merge pull request #93 from pytroll/bugfix-user-enhancements. [David
+  Hoese]
+
+  Fix enhancement config loading when user configs are present
+- Fix enhancement config loading when user configs are present. [davidh-
+  ssec]
+
+
+v0.7.3 (2017-10-24)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.7.2 → 0.7.3. [davidh-ssec]
+- Merge branch 'develop' into new_release. [davidh-ssec]
+- Fix mock import in unittest. [davidh-ssec]
+
+  mock should come from the unittest package in python 3+
+
+- Merge pull request #90 from pytroll/bugfix-scmi-writer. [David Hoese]
+
+  Fix SCMI writer to use newest version of pyresample
+- Fix SCMI writer to use newest version of pyresample. [davidh-ssec]
+- Adjust extents to kilometers. [Panu Lahtinen]
+- Merge pull request #86 from pytroll/bugfix-resample-setitem. [David
+  Hoese]
+
+  Fix resampling when a dataset was added via setitem and a test for it
+- Fix resampling when a dataset was added via setitem and a test for it.
+  [davidh-ssec]
+
+  Includes removing python 3.3 from travis tests
+
+- Merge pull request #84 from eysteinn/composite-snowage-fix. [Martin
+  Raspaud]
+
+  Composite snowage fix
+- Expand the dynamic of the channels up to 255 before to combine them:
+  (0,1.6) => (0,255) [Eysteinn]
+- Merge pull request #2 from pytroll/develop. [Eysteinn Sigurðsson]
+
+  Develop
+- Merge pull request #85 from pytroll/feature-fullres-abi-tc. [David
+  Hoese]
+
+  Feature fullres abi tc
+- Fix geocat tests. [davidh-ssec]
+- Fix bug in geocat reader and SCMI writer. [davidh-ssec]
+
+  Caused incorrect H8 and GOES-16 geolocation
+
+- Fix reader metaclass with newer versions of six. [davidh-ssec]
+- Fix metadata in ABI true color. [davidh-ssec]
+- Fix ABI true color averaging. [davidh-ssec]
+- Fix DatasetID comparison in python 3 and add test for it. [davidh-
+  ssec]
+- Fix super call in ABI true color 2km class. [davidh-ssec]
+- Add writers yaml files to setup.py. [davidh-ssec]
+- Create sharpened full resolution ABI true color. [davidh-ssec]
+- Merge pull request #81 from loreclem/develop. [Martin Raspaud]
+
+  Develop
+- Added some doc. [lorenzo clementi]
+- Fixed missing import. [lorenzo clementi]
+- Bugfix (typo) [lorenzo clementi]
+- First working version of ninjo converter. [lorenzo clementi]
+- Improved generic reader, removed useles bitmap composite. [lorenzo
+  clementi]
+- Bugfix in the generic image reader. [lorenzo clementi]
+- Draft generic image reader. [lorenzo clementi]
+- Merge pull request #80 from pytroll/solar-pathlength-correction.
+  [Martin Raspaud]
+
+  Solar pathlength correction and Rayleigh correction interface
+- Fix anti pattern: Not using get() to return a default value from a
+  dict. [Adam.Dybbroe]
+- Introduce an alternative sun-zenith correction algorithm, and fix
+  rayleigh/aerosol correction so atmosphere and aerosol type can be
+  specified in the config files. [Adam.Dybbroe]
+- Merge branch 'develop' into solar-pathlength-correction.
+  [Adam.Dybbroe]
+- Maia reader (#79) [roquetp]
+
+  * not finalised version : problem with standard name
+  * Fix maia reader for simple loading
+  * working version with CM and CT
+  * add Datasets and fix the problem with end_time.
+  * Add a exemple for read MAIA files
+  * Add maia reader
+  * fix on maia name
+  * add reference on the test case
+  * autopep8 on the example polar_maia.py and add the reference of the data
+  test case
+  * maia-reader : clean and pep8
+  * add reference documentation
+
+
+
 v0.7.2 (2017-09-18)
 -------------------
 
@@ -26,6 +545,9 @@ Other
 - Fix SCMI writer for lettered grids. [davidh-ssec]
 - Fix numbered tile counts for SCMI writer. [davidh-ssec]
 - Add initial SCMI writer. [davidh-ssec]
+
+  WIP: Multiple tiles, lettered tiles, debug images
+
 - Separate EnhancementDecisionTree in to base DecisionTree and subclass.
   [davidh-ssec]
 - Add 'goesr' as possible platform in geocat reader. [davidh-ssec]
@@ -478,7 +1000,6 @@ Other
   Conflicts:
   	satpy/readers/__init__.py
   	satpy/readers/hrit_msg.py
-
 - Fix IR and VIS calibration. [Adam.Dybbroe]
 - Pep8 and editorial (header) updates. [Adam.Dybbroe]
 - Adding the native msg header record definitions. [Adam.Dybbroe]
@@ -817,11 +1338,12 @@ v0.3.1 (2017-01-16)
   and make the `safe_sar_c.py` reader compute coordinate arrays from
   a collection of GCPs provided in the measurement files.
 
+  NB: each polarization has it's set of longitudes and latitudes.
+
 - Restore reducers to their original values. [Martin Raspaud]
 - Add alternatives for true color on ahi. [Martin Raspaud]
 
   Thanks balt
-
 - Add name to the dataset attributes when writing nc files. [Martin
   Raspaud]
 - Improve documentation. [Martin Raspaud]
@@ -849,13 +1371,11 @@ v0.3.1 (2017-01-16)
 - Implement a mipp-free HRIT reader. [Martin Raspaud]
 
   WIP, supports only MSG, no calibration yet.
-
 - Concatenate area_def through making new AreaDefinition. [Martin
   Raspaud]
 
   This makes the concatenation independent of the AreaDefinition
   implementation.
-
 - Allow stacking area_def from bottom-up. [Martin Raspaud]
 - Fix yaml_reader testing. [Martin Raspaud]
 - Add support for filetype requirements. [Martin Raspaud]
@@ -922,12 +1442,10 @@ v0.3.0 (2016-12-13)
 
   Conflicts:
   	satpy/readers/yaml_reader.py
-
 - Merge branch 'develop' into feature-lonlat-datasets. [Martin Raspaud]
 
   Conflicts:
   	satpy/readers/yaml_reader.py
-
 - Pass down the calibration, polarization and resolution from main load.
   [Martin Raspaud]
 - Fix typo in sunzenith correction description. Default is 88 deg, not
@@ -944,7 +1462,6 @@ v0.3.0 (2016-12-13)
   Here we make longitude and latitudes usual datasets, and the keyword
   called 'coordinates' in the config specifies the coordinates to use for
   the dataset at hand.
-
 
 
 v0.2.1 (2016-12-08)
@@ -1047,7 +1564,6 @@ Fix
 
   Prior to h5py 3.0, the h5 files open with h5py are not closed upon
   deletion, so we have to do it ourselves...
-
 - Bugfix: area.id doesn't exist, use area.area_id. [Martin Raspaud]
 - Bugfix: return when each file has been loaded independently. [Martin
   Raspaud]
@@ -1283,12 +1799,10 @@ Other
 
   This was triggering a `Too many open files` error since the memmap was
   called for every scanline.
-
 - Fix loading for datasets with no navigation. [Martin Raspaud]
 - Read start and end time from filename for eps_l1b. [Martin Raspaud]
 
   This avoids opening every file just for time checks.
-
 - Rename file handler's get_area to get_lonlats. [davidh-ssec]
 
   There is now a get_area_def and get_lonlats method on individual file handlers
@@ -1347,7 +1861,6 @@ Other
 - Add mipp config file for MSG3. [Martin Raspaud]
 
   This is needed by mipp when the mipp_hrit reader is used.
-
 - Remove `if True` from viirs sharp true color. [davidh-ssec]
 - Fix small bug in scene when dataset isn't found in a reader. [davidh-
   ssec]
@@ -1362,11 +1875,9 @@ Other
 - Put AHI HSD reflectances in % [Martin Raspaud]
 
   They were between 0 and 1 by default
-
 - Fix AHI HSD nav dtype. [Martin Raspaud]
 
   lon ssp and lat ssp where swaped
-
 - Adjust correct standard names for seviri calibration. [Martin Raspaud]
 - Fix Seviri CO2 correction buggy yaml def. [Martin Raspaud]
 - Fix sunz corrector with different resolutions. [davidh-ssec]
@@ -1424,7 +1935,6 @@ Other
   	etc/composites/visir.yaml
   	satpy/composites/__init__.py
   	satpy/scene.py
-
 - Add support for new prerequisite syntax. [Martin Raspaud]
 - Got VIIRS L1B True color working. [davidh-ssec]
 
@@ -1438,7 +1948,6 @@ Other
   Conflicts:
   	etc/composites/viirs.yaml
   	satpy/readers/yaml_reader.py
-
 - Add viirs composites. [Martin Raspaud]
 - Fix the area_def concatenation. [Martin Raspaud]
 - Mask nan in ir calibration for ahi hsd. [Martin Raspaud]
@@ -1449,11 +1958,9 @@ Other
 
   This is enabled by implementing the `get_area_def` method in the file
   handler.
-
 - Optimize AHI reading using inplace loading. [Martin Raspaud]
 
   Navigation is switched off for now.
-
 - Allow area loading for the data file handlers. [Martin Raspaud]
 - Use a named tuple to pass both data, mask and info dict for inplace
   loading. [Martin Raspaud]
@@ -1499,7 +2006,6 @@ Other
 - Avoid raising an error when no files are found. [Martin Raspaud]
 
   Instead, a warning is logged.
-
 - Remove unused code from readers/__init__.py. [Martin Raspaud]
 - Cleanup style. [Martin Raspaud]
 - Fix unittests. [Martin Raspaud]
@@ -1521,7 +2027,6 @@ Other
 - Add modifiers feature. [Martin Raspaud]
 
   Now modifiers can be added to the prerequisites as dictionnaries.
-
 - Add standard_names to channels in mipp_xrit. [Martin Raspaud]
 - Add a NC4/CF writer. [Martin Raspaud]
 - Use YAML instead of CFG for composites. [Martin Raspaud]
@@ -1562,7 +2067,6 @@ Other
   not covered by the YAMLBasedReader. Some parts of the class being still
   valid in this situation, we split the class to avoid code duplication,
   using subclassing instead.
-
 - Add hrpt reader. [Martin Raspaud]
 - Change AMSR2 L1B reader config to be 2 spaces instead of 4. [davidh-
   ssec]
@@ -1653,7 +2157,6 @@ Other
 
   The multiscene class adds the possibility to blend different datasets
   together, given a blend function.
-
 - Add a test yaml-based reader for aapp1b. [Martin Raspaud]
 - Fix manually added datasets not being resampled. [davidh-ssec]
 - Merge pull request #8 from davidh-ssec/feature-ewa-resampling. [David
@@ -1693,18 +2196,15 @@ Other
 
   No matching of file was done, resulting in assigning all found files to all
   readers.
-
 - Fix reader_info reference in yaml base reader. [davidh-ssec]
 - Keep channels in the wishlist when necessary. [Martin Raspaud]
 
   Due to the creation of a DatasetID for each dataset key, the wishlist
   wasn't matching the actual ids of the datasets.
-
 - Adapt reading to yaml reader way. [Martin Raspaud]
 
   Since there is more delegating of tasks to the reader, the reading has to
   be adapted.
-
 - Cleanup using pep8. [Martin Raspaud]
 - Allow yaml files as config files. [Martin Raspaud]
 - Add the dependency tree based reading. [Martin Raspaud]
@@ -1715,7 +2215,6 @@ Other
 
   The multiscene class adds the possibility to blend different datasets
   together, given a blend function.
-
 - Add a test yaml-based reader for aapp1b. [Martin Raspaud]
 - Fix netcdf dimension use to work with older versions of netcdf-python
   library. [davidh-ssec]
@@ -1814,7 +2313,6 @@ Other
   In the case of true color with crefl corrected channels for example, the
   true color needs to depend on 3 corrected channels, which in turn can now
   be composites.
-
 - Add Scene import to __init__ for convience. [davidh-ssec]
 - Add composites to 'available_datasets' [davidh-ssec]
 
@@ -1861,7 +2359,6 @@ Other
 
   In order to merge or keep metadata for Dataset during arithmetic operations
   we need to implement the numeric type methods.
-
 - Cleanup unused arguments in base reader. [davidh-ssec]
 
   Also makes _load_navigation by renaming it to load_navigation to resolve some quantifiedcode code checks.
@@ -1906,12 +2403,10 @@ Other
 
   3d array masks were not precomputed correctly, so we now make a workaround.
   A better solution is yet to be found.
-
 - Fix kd3 precomputation for AreaDefinitions. [Martin Raspaud]
 
   The lons and lats attributes aren't defined by default in AreaDefs, so we
   now make sure to call the get_lonlats method.
-
 - Set default format for dataset saving to geotiff. [Martin Raspaud]
 - Move `save_datasets` logic from Scene to base Writer. [davidh-ssec]
 - Fix bug in resample when geolocation is 2D. [davidh-ssec]
@@ -1946,12 +2441,10 @@ Other
 
   the dict `keys` method return views in py3. We now convert to list for
   consistency.
-
 - Add a test case for resample caching. [Martin Raspaud]
 - Revert resample cache changes. [Martin Raspaud]
 
   They didn't seem necessary in the way resampling is called.
-
 - Rename to satpy. [Martin Raspaud]
 - Remove the world_map.ascii file. [Martin Raspaud]
 - Allow compressed files to be checked by hrit reader. [Martin Raspaud]
@@ -1978,35 +2471,29 @@ Other
 
   We add the .bumpversion.cfg and .gitchangelog.rc for easy version bumping
   and changelog updates.
-
 - Remove v from version string. [Martin Raspaud]
 - Add str and repr methods for composites. [Martin Raspaud]
 
   This add simple repl and str methods for compositors.
-
 - Restructure the documentation for mpop2. [Martin Raspaud]
 
   This is an attempt to reorganize the documentation to prepare for mpop2.
   Old stuff has been take away, and a fresh quickstart and api are now
   provided.
-
 - Improve the ReaderFinder ImportError message to include original
   error. [Martin Raspaud]
 
   To make the ImportError more useful in ReaderFinder, the original error
   string is now provided.
-
 - Fix save_dataset to allow both empty filename and writer. [Martin
   Raspaud]
 
   When saving a dataset without a filename and writer, save_dataset would
   crash. Instead, we are now putting writer to "simple_image" in that case.
-
 - Rename projectable when assigning it through setitem. [Martin Raspaud]
 
   When a new dataset is added to a scene, it's name should match the string
   key provided by the user.
-
 - Remove references to deprecated mpop.projector. [Martin Raspaud]
 - Allow resample to receive strings as area identifiers. [Martin
   Raspaud]
@@ -2016,13 +2503,11 @@ Other
   area by name, than to get the area definition object from the file. This
   patch allows the `resample` projectable method to work with string ids
   also.
-
 - Add a dataset to whishlish when added with setitem. [Martin Raspaud]
 
   When adding a dataset to a scene via the datasetdict.__setitem__ method,
   it is likely that the user case about this dataset. As such, it should be
   added to the wishlist in order not to get removed accidently.
-
 - Move composite loading out of Scene to mpop.composites. [Martin
   Raspaud]
 
@@ -2031,7 +2516,6 @@ Other
   place to have it is the mpop.composites modules.
   As a conterpart, we now provide the `available_composites` method to the
   Scene to be able to figure out what we have possibility to generate.
-
 - Fix the travis file to allow python 2.6 to fail. [Martin Raspaud]
 - Allow travis to fail on python 2.6. [Martin Raspaud]
 - Install importlib for travis tests on python 2.6. [Martin Raspaud]
@@ -2041,34 +2525,28 @@ Other
 
   Three scenarios were added, testing showing a dataset, saving a dataset,
   and bulk saving datasets (`save_datasets`).
-
 - Fix loading behaviour tests. [Martin Raspaud]
 
   A little cleanup, and using builtin functions for getting the dataset_names
-
 - Fix DatasetDict's setitem to allow empty md in value. [Martin Raspaud]
 
   Sometimes a dataset/projectable doesn't have any info attached to it, eg
   because the dataset is synthetic. In these cases, setitem would crash.
   This is now fixed, and if a string is provided as a key in setitem it is
   used as a name if no better name is already there.
-
 - Simplify dataset saving to disk. [Martin Raspaud]
 
   saving datasets can now be done one by one. If a writer is not provided,
   it is guessed from the filename extension.
-
 - Add a show method to the Scene class. [Martin Raspaud]
 
   That allows the user to interactively vizualize the data
-
 - Add a default areas.def file. [Martin Raspaud]
 - Fix the manifest file to include the config files. [Martin Raspaud]
 - Add missing config files to setup.py. [Martin Raspaud]
 - Fix setup.py to add cfg files. [Martin Raspaud]
 
   This is in order to make mpop work out of the box after a pip install.
-
 - Add a behaviour test to find out the available dataset. [Martin
   Raspaud]
 - Prevent crashing when a load requirement is not available. [Martin
@@ -2076,11 +2554,9 @@ Other
 
   When requiring a band which isn't available, mpop would crash. This is now
   fixed and replaced by a warning in the log.
-
 - Use behave to do higher level tests. [Martin Raspaud]
 
   Two small scenarios for testing the loading of the data are implemented now.
-
 - Fix import error in scene. [davidh-ssec]
 
   A small refactor was done and then undone to move DatasetDict and DatasetID. This little import change wasn't properly cleaned up.
@@ -2102,7 +2578,6 @@ Other
   config changing on the fly, but also more resilience for multiple sensor
   cases, like one sensor is loaded after another, and the composites wouldn't
   get updated.
-
 - Fix the name issue in sensor-specific composite requests. [Martin
   Raspaud]
 
@@ -2110,7 +2585,6 @@ Other
   should be empty or None, making it not read the sensor config file at all.
   In turn that meant that generic composites were used instead of sensor-
   specific ones.
-
 - Got metadata requests working for composites. [davidh-ssec]
 - Use DatasetID in composite requirements instead of names and
   wavelengths only. [davidh-ssec]
@@ -2194,7 +2668,6 @@ Other
   Raspaud]
 
   The class ReaderFinder was created for this purpose.
-
 - Cleanup. [Martin Raspaud]
 - Fix overview and natural composites. [Martin Raspaud]
 - Make read and load argument lists consistent. [Martin Raspaud]
@@ -2214,7 +2687,6 @@ Other
             "natural", "true_color"])
 
   BandIDs are now used internally as key for the scene's projectables dict.
-
 - Add file keys to metop's getitem. [Martin Raspaud]
 - Rename metop calibration functions. [Martin Raspaud]
 - Add file keys for start and end times for metop. [Martin Raspaud]
@@ -2288,7 +2760,6 @@ Other
   - we can now provide "nearest" or "kdtree" instead of a resampler class.
   - The precompute/dump kwarg is now a directory where to save the proj info,
     defaulting to '.' if precompute=True.
-
 - Switch to containers in travis. [Martin Raspaud]
 - Fix repo in .travis. [Martin Raspaud]
 - Add OrderedDict for python < 2.7. [Martin Raspaud]
@@ -2299,7 +2770,6 @@ Other
   - OO architecture allowing other resampling methods to be implemented.
   - resampling is divided between pre- and actual computation.
   - hashing of areas is implemented, resampler-specific.
-
 - Fixed bad patch on new scene test. [davidh-ssec]
 - First try at more scene tests. [davidh-ssec]
 - Move image generation methods to Dataset and move enh. application to
@@ -2329,7 +2799,6 @@ Other
   	mpop/satellites/__init__.py
   	mpop/satin/helper_functions.py
   	mpop/satin/mipp_xrit.py
-
 - Add algorithm version in output cloud products. [Martin Raspaud]
 - Minor PEP8 tweaks. [Panu Lahtinen]
 - Script to generate external calibration files for AVHRR instruments.
@@ -2424,7 +2893,6 @@ Other
   * Product dependencies
   * loading from viirs
   * generating images
-
 - WIP: successfully loaded the first viirs granule with newscene!
   [Martin Raspaud]
 - Rewriting scene. [Martin Raspaud]
@@ -2458,7 +2926,6 @@ Other
 
    - Fallback to pre-launch if not available.
    - load(..., pre_launch_coeffs=True) to force using pre-launch coeffs)
-
 - Correct npp name in h5 files. [Martin Raspaud]
 - Add the pps v2014 h5 reader. [Martin Raspaud]
 - Use h5py for lonlat reading also. [Martin Raspaud]
@@ -2539,7 +3006,6 @@ Other
 - Fix name matching in hdfeos_l1b. [Martin Raspaud]
 
   The full name didn't work with fnmatch, take basename instead.
-
 - Allows hdfeos_l1b to read a batch of files. [Martin Raspaud]
 - Add delitem, and code cleanup. [Martin Raspaud]
 - Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
@@ -2570,7 +3036,6 @@ Other
 - Allow loading a file directly for aapp1b and eps_l1b. [Martin Raspaud]
 
   Just run global_data.load(..., filename="/path/to/myfile.1b")
-
 - Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Martin Raspaud]
 - Viirs_sdr can now load depending on an area. [Martin Raspaud]
@@ -2792,7 +3257,6 @@ Other
 
   Conflicts:
   	mpop/imageo/geo_image.py
-
 - Night_color (should had beed called night_overview) is the same as
   cloudtop. [Lars Orum Rasmussen]
 - Bug fix from Bocheng. [Lars Orum Rasmussen]
@@ -2835,7 +3299,6 @@ Other
   channels 3a and 3b each time, one of them being entirely masked. This of
   course created some problem further down. Fixed by setting the not loadable
   channel to None.
-
 - Merge branch 'unstable' of /data/proj/SAF/GIT/mpop into unstable.
   [Martin Raspaud]
 - Bugfix in npp.cfg template. [Adam Dybbroe]
@@ -2858,7 +3321,6 @@ Other
   an allclose. This was inefficient, and the programming team decided that it
   was the user's task to know before projection if the source and target area
   were the same. In other words, the user should be at least a little smart.
-
 - Remove dummy test to boost projection performance. [Martin Raspaud]
 
   Mpop was checking in 2 different places if the source and target areas were
@@ -2867,7 +3329,6 @@ Other
   an allclose. This was inefficient, and the programming team decided that it
   was the user's task to know before projection if the source and target area
   were the same. In other words, the user should be at least a little smart.
-
 - Update channel list for modis lvl2. [Martin Raspaud]
 - Bump up version number: 1.0.0. [Martin Raspaud]
 - Merge branch 'pre-master' into unstable. [Martin Raspaud]
@@ -3048,7 +3509,6 @@ Other
 
   This fixes a bug in windows that prevents running strftime on string that
   contain mapping keys conversion specifiers.
-
 - Catch the error if there is no file to load from. [Martin Raspaud]
 - Add a proper logger in hdfeos reader. [Martin Raspaud]
 - Get resolution from filename for eos data. [Martin Raspaud]
@@ -3062,7 +3522,6 @@ Other
 - Fix the loading of BT for VIIRS M13 channel. [Martin Raspaud]
 
   Has no scale and offset
-
 - Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 - Refactor the unsigned netcdf packing code. [Martin Raspaud]
@@ -3072,7 +3531,6 @@ Other
 - Replace auto mask and scale from netcdf4. [Martin Raspaud]
 
   Eats up too much memory.
-
 - Merge branch 'pre-master' of github.com:mraspaud/mpop into pre-master.
   [Lars Orum Rasmussen]
 - Feature: Added template for electro-l satellite. [Martin Raspaud]
@@ -3889,5 +4347,6 @@ Other
 - Modified image inversion unit test to reflect new behaviour. [Martin
   Raspaud]
 - New rebase. [Martin Raspaud]
+
 
 

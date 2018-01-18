@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2017
+# Copyright (c) 2015-2018
 
 # Author(s):
 
@@ -25,6 +25,7 @@
 
 import logging
 import os
+import time
 
 import numpy as np
 import six
@@ -36,6 +37,7 @@ from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
                            combine_info)
 from satpy.readers import DatasetDict
 from satpy.tools import sunzen_corr_cos
+from satpy.tools import atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 
 try:
@@ -238,7 +240,10 @@ class CompositeBase(InfoObject):
                     d[k] = o[k]
 
 
-class SunZenithCorrector(CompositeBase):
+class SunZenithCorrectorBase(CompositeBase):
+
+    """Base class for sun zenith correction"""
+
     # FIXME: the cache should be cleaned up
     coszen = {}
 
@@ -253,6 +258,7 @@ class SunZenithCorrector(CompositeBase):
         else:
             area_name = 'swath' + str(vis.shape)
         key = (vis.info["start_time"], area_name)
+        tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
             if key not in self.coszen:
@@ -278,10 +284,36 @@ class SunZenithCorrector(CompositeBase):
 
         # sunz correction will be in place so we need a copy
         proj = vis.copy()
-        proj = sunzen_corr_cos(proj, coszen)
+        proj = self._apply_correction(proj, coszen)
         vis.mask[coszen < 0] = True
         self.apply_modifier_info(vis, proj)
+        LOG.debug(
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
+
+    def _apply_correction(self, proj, coszen):
+        raise NotImplementedError("Correction method shall be defined!")
+
+
+class SunZenithCorrector(SunZenithCorrectorBase):
+
+    """Standard sun zenith correction, 1/cos(sunz)"""
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
+        return sunzen_corr_cos(proj, coszen)
+
+
+class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
+
+    """Special sun zenith correction with the method proposed by Li and Shibata
+    (2006): https://doi.org/10.1175/JAS3682.1
+    """
+
+    def _apply_correction(self, proj, coszen):
+        LOG.debug(
+            "Apply the effective solar atmospheric path length correction method by Li and Shibata")
+        return atmospheric_path_length_correction(proj, coszen)
 
 
 def show(data, filename=None):
@@ -304,8 +336,8 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
 
-        (vis, blue) = projectables
-        if vis.shape != blue.shape:
+        (vis, red) = projectables
+        if vis.shape != red.shape:
             raise IncompatibleAreas
         try:
             (sata, satz, suna, sunz) = optional_datasets
@@ -325,17 +357,26 @@ class PSPRayleighReflectance(CompositeBase):
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
-        LOG.info('Removing Rayleigh scattering')
+        LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(np.greater(ssadiff, 180), 360 - ssadiff, ssadiff)
+        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
         del sata, suna
 
-        corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
-                             atmosphere='us-standard', rural_aerosol=False)
+        atmosphere = self.info.get('atmosphere', 'us-standard')
+        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
 
-        refl_cor_band = corrector.get_reflectance(
-            sunz, satz, ssadiff, vis.id.wavelength[1], blue)
+        corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
+
+        try:
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff, vis.id.name, red)
+        except KeyError:
+            LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
+            LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
+                                                      vis.id.wavelength[1], red)
 
         proj = Dataset(vis - refl_cor_band,
                        copy=False,
@@ -351,18 +392,34 @@ class NIRReflectance(CompositeBase):
         """Get the reflectance part of an NIR channel. Not supposed to be used
         for wavelength outside [3, 4] µm.
         """
+        self._init_refl3x(projectables)
+        _nir, _ = projectables
+        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
+
+        proj.info['units'] = '%'
+        self.apply_modifier_info(_nir, proj)
+
+        return proj
+
+    def _init_refl3x(self, projectables):
+        """Initiate the 3.x reflectance derivations
+        """
         try:
             from pyspectral.near_infrared_reflectance import Calculator
         except ImportError:
             LOG.info("Couldn't load pyspectral")
             raise
 
-        nir, tb11 = projectables
-        LOG.info('Getting reflective part of %s', nir.info['name'])
+        _nir, _tb11 = projectables
+        self._refl3x = Calculator(_nir.info['platform_name'], _nir.info['sensor'], _nir.id.name)
+
+    def _get_reflectance(self, projectables, optional_datasets):
+        """Calculate 3.x reflectance with pyspectral"""
+        _nir, _tb11 = projectables
+        LOG.info('Getting reflective part of %s', _nir.info['name'])
 
         sun_zenith = None
         tb13_4 = None
-
         for dataset in optional_datasets:
             if (dataset.info['units'] == 'K' and
                     "wavelengh" in dataset.info and
@@ -374,17 +431,29 @@ class NIRReflectance(CompositeBase):
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = nir.info["area"].get_lonlats()
-            sun_zenith = sza(nir.info['start_time'], lons, lats)
+            lons, lats = _nir.info["area"].get_lonlats()
+            sun_zenith = sza(_nir.info['start_time'], lons, lats)
 
-        refl39 = Calculator(nir.info['platform_name'],
-                            nir.info['sensor'], nir.id.wavelength[1])
+        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
-        proj = Dataset(refl39.reflectance_from_tbs(sun_zenith, nir,
-                                                   tb11, tb13_4) * 100,
-                       **nir.info)
-        proj.info['units'] = '%'
-        self.apply_modifier_info(nir, proj)
+
+class NIREmissivePartFromReflectance(NIRReflectance):
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the emissive part an NIR channel after having derived the reflectance. 
+        Not supposed to be used for wavelength outside [3, 4] µm.
+        """
+        self._init_refl3x(projectables)
+        # Derive the sun-zenith angles, and use the nir and thermal ir
+        # brightness tempertures and derive the reflectance using
+        # PySpectral. The reflectance is stored internally in PySpectral and
+        # needs to be derived first in order to get the emissive part.
+        _ = self._get_reflectance(projectables, optional_datasets)
+        _nir, _ = projectables
+        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.info)
+
+        proj.info['units'] = 'K'
+        self.apply_modifier_info(_nir, proj)
 
         return proj
 
@@ -526,7 +595,7 @@ class BWCompositor(CompositeBase):
         info['name'] = self.info['name']
         info['standard_name'] = self.info['standard_name']
 
-        return Dataset(projectables[0], **info)
+        return Dataset(projectables[0].copy(), **info.copy())
 
 
 class ColormapCompositor(RGBCompositor):
@@ -788,6 +857,7 @@ class RealisticColors(RGBCompositor):
         except ValueError:
             raise IncompatibleAreas
         return res
+
 
 def enhance2dataset(dset):
     """Apply enhancements to dataset *dset* and convert the image data

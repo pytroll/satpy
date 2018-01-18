@@ -1,45 +1,27 @@
-============
- Quickstart
-============
+==========
+Quickstart
+==========
 
 Loading data
 ============
-
-.. versionchanged:: 2.0.0-alpha.1
-   New syntax
 
 .. testsetup:: *
     >>> import sys
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
-To work with weather satellite data, one has to create an instance of the :class:`Scene` class. In order for satpy to
-get access to the data, either the current wording directory has to be set to the directory containing the data
-files, or the `base_dir` keyword argument has to be provided on scene creation::
+To work with weather satellite data you must create a :class:`~satpy.scene.Scene` object. In order for SatPy to
+get access to the data it must be told what files to read and what :ref:`SatPy Reader <reader_table>` should read them::
 
-    >>> import os
-    >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
     >>> from satpy import Scene
-    >>> from datetime import datetime
-    >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", reader="hrit_msg", start_time=datetime(2015, 4, 20, 10, 0))
+    >>> from glob import glob
+    >>> filenames = glob("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT/*201504201000*")
+    >>> global_scene = Scene(reader="hrit_msg", filenames=filenames)
 
-or::
-
-    >>> from satpy.scene import Scene
-    >>> from datetime import datetime
-    >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", reader="hrit_msg", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
-    >>>
-
-For some platforms, it might be necessary to also specify an `end_time`::
-
-    >>> Scene(platform_name="SNPP", sensor="viirs", start_time=datetime(2015, 3, 11, 11, 20), end_time=datetime(2015, 3, 11, 11, 26)) # doctest: +SKIP
-
-Loading weather satellite data with satpy is as simple as calling the  :meth:`Scene.load` method::
+To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>` method::
 
     >>> global_scene.load([0.6, 0.8, 10.8])
-    >>> print global_scene
+    >>> print(global_scene)
 
     seviri/IR_108:
             area: On-the-fly area
@@ -60,210 +42,119 @@ Loading weather satellite data with satpy is as simple as calling the  :meth:`Sc
             wavelength_range: (0.74, 0.81, 0.88) μm
             shape: (3712, 3712)
 
-As you can see, this loads the visible and IR channels provided as argument to the :meth:`load` method as a
-list of wavelengths in micrometers. Another way to load the channels is to provide the names instead::
+SatPy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
 
     >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
-    >>> print global_scene
 
-To have a look at the available bands you should be able to load with your `Scene` object, you can call the
-:meth:`available_datasets` method::
+To have a look at the available channels for loading from your :class:`~satpy.scene.Scene` object use the
+:meth:`available_datasets <satpy.scene.Scene.available_dataset_names>` method::
 
     >>> global_scene.available_dataset_names()
 
-    [u'HRV',
-     u'IR_108',
-     u'IR_120',
-     u'VIS006',
-     u'WV_062',
-     u'IR_039',
-     u'IR_134',
-     u'IR_097',
-     u'IR_087',
-     u'VIS008',
-     u'IR_016',
-     u'WV_073']
+    ['HRV',
+     'IR_108',
+     'IR_120',
+     'VIS006',
+     'WV_062',
+     'IR_039',
+     'IR_134',
+     'IR_097',
+     'IR_087',
+     'VIS008',
+     'IR_016',
+     'WV_073']
 
 
-To access the loaded data::
+To access the loaded data use the wavelength or name::
 
-    >>> print global_scene[0.6]
+    >>> print(global_scene[0.6])
 
-or::
-
-    >>> print global_scene["VIS006"]
-
-To visualize it::
+To visualize loaded data in a pop-up window::
 
     >>> global_scene.show(0.6)
 
-To combine them::
+To make combine datasets and make a new dataset::
 
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
 
+For more information on loading datasets by resolution, calibration, or other
+advanced loading methods see the :doc:`readers` documentation.
 
 Generating composites
 =====================
 
-The easiest way to generate composites is to `load` them::
+SatPy comes with many composite recipes built-in and makes them loadable like any other dataset::
 
     >>> global_scene.load(['overview'])
-    >>> global_scene.show('overview')
 
 To get a list of all available composites for the current scene::
 
-    >>> global_scene.available_composites()
+    >>> global_scene.available_composite_names()
 
-    [u'overview_sun',
-     u'airmass',
-     u'natural',
-     u'night_fog',
-     u'overview',
-     u'green_snow',
-     u'dust',
-     u'fog',
-     u'natural_sun',
-     u'cloudtop',
-     u'convection',
-     u'ash']
+    ['overview_sun',
+     'airmass',
+     'natural',
+     'night_fog',
+     'overview',
+     'green_snow',
+     'dust',
+     'fog',
+     'natural_sun',
+     'cloudtop',
+     'convection',
+     'ash']
 
-To save a composite to disk::
+Loading composites will load all necessary dependencies to make that composite and unload them after the composite
+has been generated.
 
-    >>> global_scene.save_dataset('overview', 'my_nice_overview.png')
+.. note::
 
-One can also specify which writer to use for filenames with non-standard extensions ::
-
-    >>> global_scene.save_dataset('overview', 'my_nice_overview.stupidextension', writer='geotiff')
-
+    Some composite require datasets to be at the same resolution or shape. When this is the case the Scene object must
+    be resampled before the composite can be generated (see below).
 
 Resampling
 ==========
 
 .. todo::
+
    Explain where and how to define new areas
 
-Until now, we have used the channels directly as provided by the satellite,
-that is in satellite projection. Generating composites thus produces views in
-satellite projection, *i.e.* as viewed by the satellite.
-
-Most often however, we will want to resample the data onto a specific area so
-that only the area of interest is depicted in the RGB composites.
-
-Here is how we do that::
+In certain cases it may be necessary to resample datasets whether they come
+from a file or are generated composites. Resampling is useful for mapping data
+to a uniform grid, limiting input data to an area of interest, changing from
+one projection to another, or for preparing datasets to be combined in a
+composite (see above). For more details on resampling, different resampling
+algorithms, and creating your own area of interest see the
+:doc:`resample` documentation. To resample a SatPy Scene::
 
     >>> local_scene = global_scene.resample("eurol")
-    >>>
 
-Now we have resampled channel data and composites onto the "eurol" area in the `local_scene` variable
-and we can operate as before to display and save RGB composites::
+This creates a copy of the original ``global_scene`` with all loaded datasets
+resampled to the built-in "eurol" area. Any composites that were requested,
+but could not be generated are automatically generated after resampling. The
+new ``local_scene`` can now be used like the original ``global_scene`` for
+working with datasets, saving them to disk or showing them on screen::
 
     >>> local_scene.show('overview')
     >>> local_scene.save_dataset('overview', './local_overview.tif')
 
-The image is automatically saved here in GeoTiff_ format.
+Saving to disk
+==============
 
-.. _GeoTiff: http://trac.osgeo.org/geotiff/
+To save all loaded datasets to disk as geotiff images::
 
-The default resampling method is nearest neighbour. Also bilinear interpolation
-is available, which can be used by adding `resampler="bilinear"` keyword:
+    >>> global_scene.save_datasets()
 
-    >>> local_scene = global_scene.resample("euro4", resampler="bilinear")
-    >>>
+To save all loaded datasets to disk as PNG images::
 
-To make resampling faster next time (when resampling geostationary satellite
-data), it is possible to save the resampling coefficients and use more CPUs
-when calculating the coefficients on the first go:
+    >>> global_scene.save_datasets(writer='simple_image')
 
-    >>> local_scene = global_scene.resample("euro4", resampler="bilinear",
-    ...                                     nprocs=4, cache_dir="/var/tmp")
-    >>>
+Or to save an individual dataset::
 
-Making custom composites
-========================
+    >>> global_scene.save_dataset('VIS006', 'my_nice_image.png')
 
-Building custom composites makes use of the :class:`RGBCompositor` class. For example,
-building an overview composite can be done manually with::
-
-    >>> from satpy.composites import RGBCompositor
-    >>> compositor = RGBCompositor("myoverview", "bla", "")
-    >>> composite = compositor([local_scene[0.6],
-    ...                         local_scene[0.8],
-    ...                         local_scene[10.8]])
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
-    >>> img.invert([False, False, True])
-    >>> img.stretch("linear")
-    >>> img.gamma(1.7)
-    >>> img.show()
-
-
-One important thing to notice is that there is an internal difference between a composite and an image. A composite
-is defined as a special dataset which may have several bands (like R, G, B bands). However, the data isn't stretched,
-or clipped or gamma filtered until an image is generated.
-
-
-To save the custom composite, the following procedure can be used:
-
-1. Create a custom directory for your custom configs.
-2. Set it in the environment variable called PPP_CONFIG_DIR.
-3. Write config files with your changes only (look at eg satpy/etc/composites/seviri.yaml for inspiration), pointing to the custom module containing your composites. Don't forget to add changes to the enhancement/generic.cfg file too.
-4. Put your composites module on the python path.
-
-With that, you should be able to load your new composite directly.
-
-
-Colorizing and Palettizing using user-supplied colormaps
-========================================================
-
-It is possible to create single channel "composites" that are then colorized 
-using users' own colormaps.  The colormaps are Numpy arrays with shape 
-(num, 3), see the example below how to create the mapping file(s).
-
-This example creates a 2-color colormap, and we interpolate the colors between 
-the defined temperature ranges.  Beyond those limits the image clipped to 
-the specified colors.
-
-    >>> import numpy as np
-    >>> from satpy.composites import BWCompositor
-    >>> from satpy.enhancements import colorize
-    >>> from satpy.writers import to_image
-    >>> arr = np.array([[0, 0, 0], [255, 255, 255]])
-    >>> np.save("/tmp/binary_colormap.npy", arr)
-    >>> compositor = BWCompositor("test", standard_name="colorized_ir_clouds")
-    >>> composite = compositor((local_scene[10.8], ))
-    >>> img = to_image(composite)
-    >>> kwargs = {"palettes": [{"filename": "/tmp/binary_colormap.npy",
-    ...           "min_value": 223.15, "max_value": 303.15}]}
-    >>> colorize(img, **kwargs)
-    >>> img.show()
-
-Similarly it is possible to use discreet values without color interpolation 
-using `palettize()` instead of `colorize()`
-
-You can define several colormaps and ranges in the `palettes` list and they 
-are merged together.  See trollimage_ documentation for more information how 
-colormaps and color ranges are merged.
-
-The above example can be used in enhancements YAML config like this:
-
-.. code-block:: yaml
-
-  hot_or_cold:
-    standard_name: hot_or_cold
-    operations:
-      - name: colorize
-        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
-        kwargs:
-          palettes:
-            - {filename: /tmp/binary_colormap.npy, min_value: 223.15, max_value: 303.15}
-
-
-.. _trollimage: http://trollimage.readthedocs.io/en/latest/
-
-
-.. todo::
-   How to save custom-made composites
-
-.. todo::
-   How to read cloud products from NWCSAF software.
+Datasets are automatically scaled or "enhanced" to be compatible with the
+output format and to provide the best looking image. For more information
+on saving datasets and customizing enhancements see the documentation on
+:doc:`writers`.

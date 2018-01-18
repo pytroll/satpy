@@ -26,7 +26,11 @@
 import sys
 import unittest
 
-import mock
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 import numpy as np
 
 from satpy import dataset
@@ -439,11 +443,24 @@ class TestDataset(unittest.TestCase):
         np.testing.assert_array_equal(res.data, data)
 
 
+class TestDatasetID(unittest.TestCase):
+    def test_compare_no_wl(self):
+        """Compare fully qualified wavelength ID to no wavelength ID"""
+        from satpy.dataset import DatasetID
+        d1 = DatasetID(name="a", wavelength=(0.1, 0.2, 0.3))
+        d2 = DatasetID(name="a", wavelength=None)
+
+        # this happens when sorting IDs during dependency checks
+        self.assertFalse(d1 < d2)
+        self.assertTrue(d2 < d1)
+
+
 def suite():
     """The test suite for test_projector.
     """
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestDataset))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestDatasetID))
 
     return my_suite

@@ -26,8 +26,19 @@
 import sys
 from datetime import datetime
 
-import mock
 import numpy as np
+from satpy.readers.native_msg import NativeMSGFileHandler
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 CAL_DTYPE = np.array([[(0.0208876,  -1.06526761), (0.0278805,  -1.42190546),
                        (0.0235881,  -1.20299312), (0.00365867,  -0.18659201),
@@ -76,13 +87,6 @@ for item in CHANNEL_ORDER_LIST:
 # Calibration type = Effective radiances
 CALIBRATION_TYPE = np.array(
     [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
-
-from satpy.readers.native_msg import NativeMSGFileHandler
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 def assertNumpyArraysEqual(self, other):

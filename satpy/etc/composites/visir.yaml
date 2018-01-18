@@ -4,6 +4,10 @@ modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
 
+  effective_solar_pathlength_corrected:
+    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+
+
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
@@ -18,6 +22,14 @@ modifiers:
     - solar_zenith_angle
     - 13.4
 
+  nir_emissive:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - 11
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+
   atm_correction:
     compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
     optional_prerequisites:
@@ -25,8 +37,49 @@ modifiers:
 
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
     prerequisites:
-    - wavelength: 0.44
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_marine_tropical:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: tropical
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_desert:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: tropical
+    aerosol_type: desert_aerosol
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_land:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_average_aerosol
+    prerequisites:
+    - wavelength: 0.67
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
@@ -79,14 +132,28 @@ composites:
     - 7.3
     - 10.8
     standard_name: convection
+    
+  snow:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
+    standard_name: snow
+    
   day_microphysics:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - 0.85
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
     - wavelength: 3.7
       modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
+    
   dust:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
@@ -228,3 +295,9 @@ composites:
     - 10.8
     - 12.0
     standard_name: night_microphysics
+
+  ir108_3d:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir108_3d
+    prerequisites:
+      - name: IR_108

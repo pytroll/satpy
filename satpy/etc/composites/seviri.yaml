@@ -1,6 +1,9 @@
 sensor_name: visir/seviri
 
 modifiers:
+  sunz_corrected:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
+
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     sensor: [seviri]
@@ -15,6 +18,15 @@ composites:
     prerequisites:
     - wavelength: 3.75
       modifiers: [co2_corrected]
+    - 10.8
+    - 12.0
+    standard_name: cloudtop
+
+  cloudtop_daytime:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 3.7
+      modifiers: [nir_emissive]
     - 10.8
     - 12.0
     standard_name: cloudtop
@@ -39,6 +51,56 @@ composites:
     - 10.8
     - 12.0
     standard_name: night_fog
+
+  snow:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
+    standard_name: snow
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
+    - 10.8
+    standard_name: day_microphysics
+
+  day_microphysics_winter:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - wavelength: 3.7
+      modifiers: [nir_reflectance]
+    - 10.8
+    standard_name: day_microphysics_winter
+
+  natural:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 1.63
+    - name: VIS008
+    - name: VIS006
+    standard_name: natural
+
+  natural_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    standard_name: natural
 
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor

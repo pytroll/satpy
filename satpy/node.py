@@ -199,6 +199,11 @@ class DependencyTree(Node):
         Node.add_child(parent, child)
         self._all_nodes[child.name] = child
 
+    def add_leaf(self, ds_id, parent=None):
+        if parent is None:
+            parent = self
+        self.add_child(parent, Node(ds_id))
+
     def copy(self):
         """Copy the this node tree
 
@@ -274,7 +279,8 @@ class DependencyTree(Node):
                 # LOG.debug("Found {} in reader {}".format(str(ds_id), reader_name))
                 return Node(ds_id, {'reader_name': reader_name})
 
-    def _get_compositor_prereqs(self, prereq_names, skip=False):
+    def _get_compositor_prereqs(self, prereq_names, skip=False,
+                                calibration=None, polarization=None, resolution=None):
         """Determine prerequisite Nodes for a composite.
 
         Args:
@@ -291,7 +297,7 @@ class DependencyTree(Node):
         prereq_ids = []
         unknowns = set()
         for prereq in prereq_names:
-            n, u = self._find_dependencies(prereq)
+            n, u = self._find_dependencies(prereq, calibration, polarization, resolution)
             if u:
                 unknowns.update(u)
                 if skip:
@@ -302,7 +308,7 @@ class DependencyTree(Node):
                 prereq_ids.append(n)
         return prereq_ids, unknowns
 
-    def _find_compositor(self, dataset_key):
+    def _find_compositor(self, dataset_key, calibration=None, polarization=None, resolution=None):
         """Find the compositor object for the given dataset_key."""
         # NOTE: This function can not find a modifier that performs one or more modifications
         # if it has modifiers see if we can find the unmodified version first
@@ -310,7 +316,7 @@ class DependencyTree(Node):
         if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
             new_prereq = DatasetID(
                 *dataset_key[:-1] + (dataset_key.modifiers[:-1],))
-            src_node, u = self._find_dependencies(new_prereq)
+            src_node, u = self._find_dependencies(new_prereq, calibration, polarization, resolution)
             if u:
                 return None, u
 
@@ -319,17 +325,22 @@ class DependencyTree(Node):
         except KeyError:
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
-
+        if resolution:
+            compositor.info['resolution'] = resolution
+        if calibration:
+            compositor.info['calibration'] = calibration
+        if polarization:
+            compositor.info['polarization'] = polarization
         dataset_key = compositor.id
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
-            compositor.info['prerequisites'])
+            compositor.info['prerequisites'], calibration=calibration, polarization=polarization, resolution=resolution)
         if unknowns:
             return None, unknowns
 
         optional_prereqs, _ = self._get_compositor_prereqs(
             compositor.info['optional_prerequisites'],
-            skip=True)
+            skip=True, calibration=calibration, polarization=polarization, resolution=resolution)
 
         # Is this the right place for that?
         if src_node is not None:
@@ -385,7 +396,10 @@ class DependencyTree(Node):
 
         # 2 try to find a composite that matches
         try:
-            node, unknowns = self._find_compositor(dataset_key)
+            node, unknowns = self._find_compositor(dataset_key,
+                                                   calibration=calibration,
+                                                   polarization=polarization,
+                                                   resolution=resolution)
         except KeyError:
             node = None
             unknowns = set([dataset_key])

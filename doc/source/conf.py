@@ -11,6 +11,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+# To generate apidoc modules:
+#     sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
+
 import os
 import sys
 
@@ -18,6 +21,7 @@ import sys
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.append(os.path.abspath('../../'))
+
 
 class Mock(object):
     def __init__(self, *args, **kwargs):
@@ -39,14 +43,12 @@ class Mock(object):
         else:
             return Mock()
 
-MOCK_MODULES = ['Image', 'pyhdf.SD', 'pyhdf.error', 'numpy', 'numpy.core',
-                'numpy.core.multiarray', 'pyresample', 'pyresample.utils', 'pyresample.ewa',
-                'pyresample.geometry', 'pyresample.kd_tree', 'h5py',
-                'trollsift', 'trollsift.parser', 'trollimage', 'trollimage.image', 'netCDF4',
-                'pyproj', 'scipy', 'scipy.special', 'mipp', 'osgeo']
+# https://github.com/sphinx-doc/sphinx/issues/3920
+MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
+autodoc_mock_imports = ['h5netcdf', 'pyninjotiff', 'pygac', 'cf', 'glymur', 'pyhdf', 'osgeo', 'mipp']
 
 # -- General configuration -----------------------------------------------------
 
@@ -229,4 +231,10 @@ latex_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {
+    'https://docs.python.org/3.6': None,
+    'https://docs.scipy.org/doc/numpy': None,
+    'https://docs.scipy.org/doc/scipy/reference': None,
+    'http://xarray.pydata.org/en/stable/': None,
+    'http://pyresample.readthedocs.io/en/stable': None,
+}
