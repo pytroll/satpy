@@ -99,10 +99,9 @@ class NCOLCI1B(NCOLCIChannelBase):
                                          filetype_info)
         self.cal = cal.nc
 
-    def _get_solar_flux(self, band):
+    def _get_solar_flux_old(self, band):
         # TODO: this could be replaced with vectorized indexing in the future.
         from dask.base import tokenize
-        from dask.array import Array
         blocksize = CHUNKSIZE
 
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
@@ -131,6 +130,17 @@ class NCOLCI1B(NCOLCIChannelBase):
                        dtype=solar_flux.dtype)
         return res
 
+
+    def _get_solar_flux(self, band):
+
+        solar_flux = self.cal['solar_flux'].isel(bands=band).values
+        d_index = self.cal['detector_index'].fillna(0).astype(int)
+
+        def get_items(idx):
+            return solar_flux[idx.compute()]
+
+        return da.map_blocks(get_items, d_index, dtype=solar_flux.dtype)
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel != key.name:
@@ -140,9 +150,6 @@ class NCOLCI1B(NCOLCIChannelBase):
         radiances = self.nc[self.channel + '_radiance']
 
         if key.calibration == 'reflectance':
-            solar_flux = self.cal['solar_flux']
-            d_index = self.cal['detector_index']
-
             idx = int(key.name[2:]) - 1
             sflux = self._get_solar_flux(idx)
             radiances = radiances / sflux * np.pi * 100
@@ -184,19 +191,9 @@ class NCOLCIAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.cache = WeakValueDictionary()
+        self.cache = {}
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
-
-    def _get_scaled_variable(self, name):
-        """Get a scaled variable."""
-        variable = self.nc[name]
-
-        values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs['_FillValue'], copy=False)
-                  * variable.attrs.get('scale_factor', 1)
-                  + variable.attrs.get('add_offset', 0))
-        return values, variable.attrs
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -278,7 +275,7 @@ class NCOLCIAngles(BaseFileHandler):
         elif key.name in self.cache:
             values = self.cache[key.name]
         else:
-            values = self._get_scaled_variable(self.datasets[key.name])
+            values = self.nc[self.datasets[key.name]]
 
         values.attrs['platform_name'] = self.platform_name
         values.attrs['sensor'] = self.sensor
