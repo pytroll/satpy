@@ -608,96 +608,36 @@ class FileYAMLReader(AbstractYAMLReader):
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
     @staticmethod
-    def get_shape_n_slices(all_shapes, xslice=slice(None), yslice=slice(None)):
-        """Get the shape and slices to use."""
-        # rows accumlate, columns stay the same
-        overall_shape = [sum([x[0]
-                              for x in all_shapes]), ] + all_shapes[0][1:]
-        if xslice.start is not None and yslice.start is not None:
-            slice_shape = [yslice.stop - yslice.start,
-                           xslice.stop - xslice.start]
-            overall_shape[0] = min(overall_shape[0], slice_shape[0])
-            overall_shape[1] = min(overall_shape[1], slice_shape[1])
-        elif len(overall_shape) == 1:
-            yslice = slice(0, overall_shape[0])
-        else:
-            xslice = slice(0, overall_shape[1])
-            yslice = slice(0, overall_shape[0])
-        return overall_shape, xslice, yslice
-
-    @staticmethod
-    def _load_entire_dataset(dsid, ds_info, file_handlers, dim='y'):
-        """Load the entire dataset as inplace loading isn't an option."""
-        # can't optimize by using inplace loading
-        projectables = []
-        for fh in file_handlers:
-            projectable = fh.get_dataset(dsid, ds_info)
-            if projectable is not None:
-                projectables.append(projectable)
-
-        # Join them all together
-        combined_info = file_handlers[0].combine_info(
-            [p.attrs for p in projectables])
-        # return cls(np.ma.vstack(projectables), **combined_info)
-        if dim not in projectables[0].dims:
-            dim = projectables[0].dims[0]
-        res = xr.concat(projectables, dim=dim)
-        res.attrs = combined_info
-        return res
-
-    def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice,
-                             dim='y'):
+    @profile
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load only a piece of the dataset."""
-        # we can optimize
-        all_shapes = [list(fhd.get_shape(dsid, ds_info))
-                      for fhd in file_handlers]
-        overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
-                                                                xslice,
-                                                                yslice)
-
         slice_list = []
-
-        offset = 0
-        out_offset = 0
         failure = True
-        for idx, fh in enumerate(file_handlers):
-            segment_height = all_shapes[idx][0]
-            # XXX: Does this work with masked arrays and subclasses of them?
-            # Otherwise, have to send in separate data, mask, and info parameters to be filled in
-            # TODO: Combine info in a sane way
 
-            if (yslice.start >= offset + segment_height or
-                    yslice.stop <= offset):
-                offset += segment_height
-                continue
-            start = max(yslice.start - offset, 0)
-            stop = min(yslice.stop - offset, segment_height)
 
-            kwargs = {}
-            if stop - start != segment_height:
-                kwargs['yslice'] = slice(start, stop)
-            if (xslice.start is not None and
-                    xslice.stop - xslice.start != all_shapes[idx][1]):
-                kwargs['xslice'] = xslice
-
+        for fh in file_handlers:
             try:
-                slice_list.append(fh.get_dataset(dsid, ds_info, **kwargs))
-                failure = False
+                projectable = fh.get_dataset(dsid, ds_info)
+                if projectable is not None:
+                    slice_list.append(projectable)
+                    failure = False
             except KeyError:
-                logger.warning(
-                    "Failed to load {} from {}".format(dsid, fh), exc_info=True)
-
-            out_offset += stop - start
-            offset += segment_height
+                logger.warning("Failed to load {} from {}".format(dsid, fh),
+                               exc_info=True)
 
         if failure:
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
+
         if dim not in slice_list[0].dims:
             dim = slice_list[0].dims[0]
         res = xr.concat(slice_list, dim=dim)
-        res.attrs = slice_list[-1].attrs
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
         return res
 
     def _load_dataset_data(self,
@@ -706,16 +646,7 @@ class FileYAMLReader(AbstractYAMLReader):
                            xslice=slice(None),
                            yslice=slice(None)):
         ds_info = self.ids[dsid]
-        try:
-            # Can we allow the file handlers to do inplace data writes?
-            [list(fhd.get_shape(dsid, ds_info)) for fhd in file_handlers]
-        except NotImplementedError:
-            # FIXME: Is NotImplementedError included in Exception for all
-            # versions of Python?
-            proj = self._load_entire_dataset(dsid, ds_info, file_handlers)
-        else:
-            proj = self._load_sliced_dataset(dsid, ds_info, file_handlers,
-                                             xslice, yslice)
+        proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
