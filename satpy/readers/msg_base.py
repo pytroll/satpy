@@ -58,7 +58,7 @@ def dec10216(data):
 
 def convert_to_radiance(data, gain, offset):
     """Calibrate to radiance."""
-    return (data * gain + offset).clip(0, None)
+    return (data * gain + offset).clip(0.0, None)
 
 
 def vis_calibrate(data, solar_irradiance):
@@ -68,7 +68,7 @@ def vis_calibrate(data, solar_irradiance):
 def tl15(data, wavenumber):
     """Compute the L15 temperature."""
     return ((C2 * wavenumber) /
-            xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1))
+            xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
 
 def erads2bt(data, wavenumber, alpha, beta):
@@ -77,4 +77,4 @@ def erads2bt(data, wavenumber, alpha, beta):
 
 def srads2bt(data, wavenumber, a__, b__, c__):
     res = tl15(data, wavenumber)
-    return a__ * res ** 2 + b__ * res + c__
+    return a__ * res * res + b__ * res + c__
