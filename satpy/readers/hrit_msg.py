@@ -995,7 +995,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         cal_info = CALIB[self.platform_id][self.channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
-        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
+        wavenumber = cal_info["VC"]
 
         return mb.erads2bt(data, wavenumber, alpha, beta)
 

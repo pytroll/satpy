@@ -32,7 +32,7 @@ import xarray as xr
 
 import dask.array as da
 from pyresample import geometry
-from satpy.dataset import Dataset
+from satpy import CHUNKSIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('hrit_base')
@@ -95,10 +95,7 @@ base_hdr_map = {0: primary_header,
 
 
 def dec10216(inbuf):
-    arr10 = inbuf.astype(np.uint16)
-    arr16_len = int(len(arr10) * 4 / 5)
-    arr10_len = int((arr16_len * 5) / 4)
-    arr10 = arr10[:arr10_len]  # adjust size
+
     """
     /*
      * pack 4 10-bit words in 5 bytes into 4 16-bit words
@@ -115,13 +112,22 @@ def dec10216(inbuf):
     op[3] = (ip[3] & 0x03)*256 +ip[4];
     """
 
-    arr16_0 = np.left_shift(arr10[::5], 2) + np.right_shift((arr10[1::5]), 6)
-    arr16_1 = np.left_shift((arr10[1::5] & 63), 4) + \
-        np.right_shift((arr10[2::5]), 4)
-    arr16_2 = np.left_shift(arr10[2::5] & 15, 6) + \
-        np.right_shift((arr10[3::5]), 2)
-    arr16_3 = np.left_shift(arr10[3::5] & 3, 8) + \
-        arr10[4::5]
+    arr10 = inbuf.astype(np.uint16)
+    arr16_len = int(len(arr10) * 4 / 5)
+    arr10_len = int((arr16_len * 5) / 4)
+    arr10 = arr10[:arr10_len]  # adjust size
+
+    # dask is slow with indexing
+    arr10_0 = arr10[::5]
+    arr10_1 = arr10[1::5]
+    arr10_2 = arr10[2::5]
+    arr10_3 = arr10[3::5]
+    arr10_4 = arr10[4::5]
+
+    arr16_0 = (arr10_0 << 2) + (arr10_1 >> 6)
+    arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
+    arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
+    arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
     arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
 
     return arr16
@@ -196,11 +202,11 @@ class HRITFileHandler(BaseFileHandler):
     def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
         """Load a dataset."""
         # Read bands
-        data = self.read_band(key, info, out, xslice, yslice)
+        data = self.read_band(key, info)
         # Convert to xarray
         xdata = xr.DataArray(data, dims=['y', 'x'])
         # Mask invalid values
-        return xdata.where(xdata > 0)
+        return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -274,8 +280,7 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def read_band(self, key, info,
-                  out=None, xslice=slice(None), yslice=slice(None)):
+    def read_band(self, key, info):
         """Read the data"""
         # TODO slicing !
         tic = datetime.now()
@@ -285,16 +290,16 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (int(np.ceil(self.mda['data_field_length'] / 8.)),)
+
+
         data = np.memmap(self.filename, mode='r',
-                         offset=self.mda['total_header_length'],
-                         dtype=np.uint8,
-                         shape=shape)
-        data = da.from_array(data, chunks=1000000)
+                           offset=self.mda['total_header_length'],
+                           dtype=dtype,
+                           shape=shape)
+        data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
-
-        outdata = data.reshape((self.mda['number_of_lines'],
-                                self.mda['number_of_columns']))
-        outdata = outdata[yslice, xslice].astype(np.float64)
+        data = data.reshape((self.mda['number_of_lines'],
+                             self.mda['number_of_columns'])).astype(np.float32)
         logger.debug("Reading time " + str(datetime.now() - tic))
-        return outdata
+        return data
