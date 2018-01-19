@@ -357,14 +357,10 @@ class PSPRayleighReflectance(CompositeBase):
         except ValueError:
             from pyorbital.astronomy import get_alt_az, sun_zenith_angle
             from pyorbital.orbital import get_observer_look
-            sunalt, suna = get_alt_az(
-                vis.attrs['start_time'],
-                *vis.attrs['area'].get_lonlats_dask(CHUNKSIZE))
-            suna = np.rad2deg(suna)
-            sunz = sun_zenith_angle(
-                vis.attrs['start_time'],
-                *vis.attrs['area'].get_lonlats_dask(CHUNKSIZE))
             lons, lats = vis.attrs['area'].get_lonlats_dask(CHUNKSIZE)
+            sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
+            suna = np.rad2deg(suna)
+            sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
             sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
                                             vis.attrs['satellite_latitude'],
                                             vis.attrs['satellite_altitude'],
@@ -374,6 +370,9 @@ class PSPRayleighReflectance(CompositeBase):
             del satel
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
+        # First make sure the two azimuth angles are in the range 0-360:
+        sata = sata % 360.
+        suna = suna % 360.
         ssadiff = abs(suna - sata)
         ssadiff = xu.minimum(ssadiff, 360 - ssadiff)
         del sata, suna
@@ -631,9 +630,9 @@ class BWCompositor(CompositeBase):
             raise ValueError("Expected 1 dataset, got %d" %
                              (len(projectables), ))
 
-        info = combine_metadata(*projectables)
-        info['name'] = self.attrs['name']
-        info['standard_name'] = self.attrs['standard_name']
+        info = combine_info(*projectables)
+        info['name'] = self.info['name']
+        info['standard_name'] = self.info['standard_name']
 
         return Dataset(projectables[0].copy(), **info.copy())
 
