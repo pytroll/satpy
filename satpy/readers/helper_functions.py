@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014, 2015.
+# Copyright (c) 2014-2018 PyTroll developers
 #
 # Author(s):
 #
@@ -34,7 +34,7 @@ LOGGER = logging.getLogger(__name__)
 
 def np2str(value):
     """Convert an np.string_ to str."""
-    if issubclass(value.dtype.type, np.string_) and not value.shape:
+    if issubclass(value.dtype.type, np.string_):
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
