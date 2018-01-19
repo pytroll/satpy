@@ -133,7 +133,10 @@ class Scene(MetadataObject):
                 'end_time': end_time,
                 'area': area,
             })
+            filter_parameters = fp
         if filter_parameters:
+            if reader_kwargs is None:
+                reader_kwargs = {}
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         self.readers = self.create_reader_instances(filenames=filenames,
