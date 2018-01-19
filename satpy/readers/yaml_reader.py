@@ -608,7 +608,6 @@ class FileYAMLReader(AbstractYAMLReader):
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
     @staticmethod
-    @profile
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load only a piece of the dataset."""
         slice_list = []
