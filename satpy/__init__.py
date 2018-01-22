@@ -31,7 +31,7 @@
 
 import os
 
-CHUNK_SIZE = os.getenv('PYTROLL_CHUNK_SIZE', 4096)
+CHUNK_SIZE = os.getenv('PYTROLL_CHUNK_SIZE', 4096 * 2)
 
 from satpy.version import __version__
 from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
