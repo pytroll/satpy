@@ -33,7 +33,7 @@ import xarray as xr
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.helper_functions import np2str
+from satpy.readers.utils import np2str
 from satpy import CHUNK_SIZE
 
 LOG = logging.getLogger(__name__)

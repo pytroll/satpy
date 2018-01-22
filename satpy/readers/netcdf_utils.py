@@ -26,13 +26,12 @@
 
 """
 import netCDF4
-import numpy as np
 import logging
 import xarray as xr
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.helper_functions import np2str
+from satpy.readers.utils import np2str
 
 LOG = logging.getLogger(__name__)
 
