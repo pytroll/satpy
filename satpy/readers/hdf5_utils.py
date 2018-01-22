@@ -61,7 +61,11 @@ class HDF5FileHandler(BaseFileHandler):
     def _collect_attrs(self, name, attrs):
         for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
-            self.file_content["{}/attr/{}".format(name, key)] = np2str(value)
+            fc_key = "{}/attr/{}".format(name, key)
+            try:
+                self.file_content[fc_key] = np2str(value)
+            except ValueError:
+                self.file_content[fc_key] = value
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
@@ -75,8 +79,7 @@ class HDF5FileHandler(BaseFileHandler):
         if isinstance(val, h5py.Dataset):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             dset = h5py.File(self.filename, 'r')[key]
-            chunks = (CHUNK_SIZE,) * dset.ndim
-            dset = da.from_array(dset, chunks=chunks)
+            dset = da.from_array(dset, chunks=CHUNK_SIZE)
             if dset.ndim > 1:
                 return xr.DataArray(dset, dims=['y', 'x'])
             else:

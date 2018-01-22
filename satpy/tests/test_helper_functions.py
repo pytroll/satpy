@@ -339,8 +339,25 @@ class TestHelpers(unittest.TestCase):
 
     def test_np2str(self):
         """Test the np2str function."""
+        # byte object
         npstring = np.string_('hej')
         self.assertEquals(hf.np2str(npstring), 'hej')
+
+        # single element numpy array
+        np_arr = np.array([npstring])
+        self.assertEquals(hf.np2str(np_arr), 'hej')
+
+        # scalar numpy array
+        np_arr = np.array(npstring)
+        self.assertEquals(hf.np2str(np_arr), 'hej')
+
+        # multi-element array
+        npstring = np.array([npstring, npstring])
+        self.assertRaises(ValueError, hf.np2str, npstring)
+
+        # non-array
+        self.assertRaises(ValueError, hf.np2str, 5)
+
 
 
 def suite():
