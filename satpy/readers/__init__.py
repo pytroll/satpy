@@ -388,11 +388,13 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
 
-    if not filenames:
-        LOG.info("'filenames' required to create reader objects")
+    if not filenames and not reader:
+        # used for an empty Scene
         return {}
-
-    if reader is None and isinstance(filenames, dict):
+    elif not filenames:
+        LOG.warning("'filenames' required to create readers and load data")
+        return {}
+    elif reader is None and isinstance(filenames, dict):
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)
