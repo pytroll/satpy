@@ -39,7 +39,7 @@ from satpy.config import (CONFIG_PATH, config_search_paths,
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
                            combine_attrs, combine_metadata)
 from satpy.readers import DatasetDict
-from satpy.tools import atmospheric_path_length_correction, sunzen_corr_cos
+from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
 

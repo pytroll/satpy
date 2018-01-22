@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
-from satpy.readers.helper_functions import get_area_slices, get_sub_area
+from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE
 
