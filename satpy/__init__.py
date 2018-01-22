@@ -29,7 +29,9 @@
 """SatPy Package initializer.
 """
 
-CHUNKSIZE = 5000
+import os
+
+CHUNK_SIZE = os.getenv('PYTROLL_CHUNK_SIZE', 4096)
 
 from satpy.version import __version__
 from satpy.dataset import Dataset, DatasetID, DATASET_KEYS

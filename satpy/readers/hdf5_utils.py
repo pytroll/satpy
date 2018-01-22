@@ -34,7 +34,7 @@ import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.helper_functions import np2str
-from satpy import CHUNKSIZE
+from satpy import CHUNK_SIZE
 
 LOG = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class HDF5FileHandler(BaseFileHandler):
         if isinstance(val, h5py.Dataset):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             dset = h5py.File(self.filename, 'r')[key]
-            chunks = (CHUNKSIZE,) * dset.ndim
+            chunks = (CHUNK_SIZE,) * dset.ndim
             dset = da.from_array(dset, chunks=chunks)
             if dset.ndim > 1:
                 return xr.DataArray(dset, dims=['y', 'x'])
