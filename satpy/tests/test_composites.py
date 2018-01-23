@@ -21,11 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Test compositors."""
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+import unittest
 import datetime as dt
 
 import numpy as np
@@ -44,10 +40,14 @@ class TestDayNightCompositor(unittest.TestCase):
     """
 
     shp = (3, AREA.shape[0], AREA.shape[1])
-    day_data = Dataset(255 * np.ones(shp, dtype=np.uint8),
+    # Create day and night data. Adjust half of the image so that the
+    # linear stretching doesn't remove all the data
+    day_data = Dataset(100 * np.ones(shp, dtype=np.uint8),
                        start_time=dt.datetime(2018, 1, 23, 8, 0),
                        area=AREA)
+    day_data[:, int(AREA.shape[0] / 2):, :] += 10
     night_data = Dataset(np.zeros(shp, dtype=np.uint8))
+    night_data[:, :, int(AREA.shape[0] / 2):] += 10
 
     # Add day/night division to
     day_sun_zen = 80.
@@ -55,19 +55,34 @@ class TestDayNightCompositor(unittest.TestCase):
     sun_zen = night_sun_zen * np.ones(AREA.shape)
     sun_zen[:, int(AREA.shape[1] / 2):] = day_sun_zen
 
-    def test_with_coszen(self):
+    def test_with_sunzen(self):
         comp = DayNightCompositor('foo')
-        img = comp([self.day_data, self.night_data, self.sun_zen])
-        # Do something to test that the left half of the image is
-        # zeros and right half is ones.  There should be 131072 of
-        # both values.
+        img = comp([self.day_data.copy(), self.night_data.copy(),
+                    self.sun_zen.copy()])
+        # With this test data, only bottom-right corner should be ones
+        for i in range(3):
+            bottom_right = img[i,
+                               int(AREA.shape[0] / 2):,
+                               int(AREA.shape[1] / 2):]
+        self.assertTrue(np.all(bottom_right == 1))
+        num_ones = (img == 1).sum()
+        self.assertEqual(num_ones, 3 * bottom_right.size)
+        # All the other quadrants should be zeros
+        num_zeros = (img == 0).sum()
+        self.assertTrue(num_ones + num_zeros == img.size)
 
-    def test_without_coszen(self):
+    def test_without_sunzen(self):
         comp = DayNightCompositor('foo')
-        img = comp([self.day_data, self.night_data])
-        # Do something to test that zenith angles are computed and
-        # that in the northern part the image is zeros / southern part
-        # is full of ones.
+        img = comp([self.day_data.copy(), self.night_data.copy()])
+        for i in range(3):
+            # With this test data, top-left corner should be zeros
+            self.assertTrue(np.all(img[i,
+                                       :int(AREA.shape[0] / 2),
+                                       :int(AREA.shape[1] / 2)] == 0))
+            # And bottom-right corner should be ones
+            self.assertTrue(np.all(img[i,
+                                       int(AREA.shape[0] / 2):,
+                                       int(AREA.shape[1] / 2):] == 1))
 
 
 def suite():
