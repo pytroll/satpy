@@ -689,7 +689,7 @@ class DayNightCompositor(RGBCompositor):
         day_data = projectables[0].copy()
         night_data = projectables[1].copy()
         try:
-            coszen = np.cos(np.deg2rad(optional_datasets[2]))
+            coszen = np.cos(np.deg2rad(projectables[2]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
