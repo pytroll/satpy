@@ -869,7 +869,10 @@ def enhance2dataset(dset):
 
     data = np.rollaxis(np.dstack(img.channels), axis=2)
     mask = dset.mask
-    if mask.ndim < data.ndim:
+
+    if mask in [False, True]:
+        pass
+    elif mask.ndim < data.ndim:
         mask = np.expand_dims(mask, 0)
         mask = np.repeat(mask, 3, 0)
     elif mask.ndim > data.ndim:
