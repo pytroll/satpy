@@ -33,7 +33,6 @@ import numpy as np
 from satpy.dataset import Dataset
 from satpy.composites import DayNightCompositor
 from satpy.resample import get_area_def
-from satpy.writers import get_enhanced_image
 
 AREA = get_area_def("scan")
 
@@ -44,10 +43,11 @@ class TestDayNightCompositor(unittest.TestCase):
     Test DayNightCompositor
     """
 
-    day_data = Dataset(np.ones(AREA.shape, dtype=np.uint8),
+    shp = (3, AREA.shape[0], AREA.shape[1])
+    day_data = Dataset(255 * np.ones(shp, dtype=np.uint8),
                        start_time=dt.datetime(2018, 1, 23, 8, 0),
                        area=AREA)
-    night_data = Dataset(np.zeros(AREA.shape, dtype=np.uint8))
+    night_data = Dataset(np.zeros(shp, dtype=np.uint8))
 
     # Add day/night division to
     day_sun_zen = 80.
@@ -56,13 +56,15 @@ class TestDayNightCompositor(unittest.TestCase):
     sun_zen[:, int(AREA.shape[1] / 2):] = day_sun_zen
 
     def test_with_coszen(self):
-        res = DayNightCompositor([self.day_data, self.night_data, self.sun_zen])
+        comp = DayNightCompositor('foo')
+        img = comp([self.day_data, self.night_data, self.sun_zen])
         # Do something to test that the left half of the image is
         # zeros and right half is ones.  There should be 131072 of
         # both values.
 
     def test_without_coszen(self):
-        res = DayNightCompositor([self.day_data, self.night_data])
+        comp = DayNightCompositor('foo')
+        img = comp([self.day_data, self.night_data])
         # Do something to test that zenith angles are computed and
         # that in the northern part the image is zeros / southern part
         # is full of ones.
