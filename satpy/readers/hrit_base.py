@@ -32,7 +32,7 @@ import xarray as xr
 
 import dask.array as da
 from pyresample import geometry
-from satpy import CHUNKSIZE
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('hrit_base')

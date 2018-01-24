@@ -68,9 +68,11 @@ class TestHDF5FileHandler(unittest.TestCase):
                                  data=np.arange(10 * 100).reshape((10, 100)))
 
         # Add attributes
+        # shows up as a scalar array of bytes (shape=(), size=1)
         h.attrs['test_attr_str'] = 'test_string'
         h.attrs['test_attr_int'] = 0
         h.attrs['test_attr_float'] = 1.2
+        # shows up as a numpy bytes object
         h.attrs['test_attr_str_arr'] = np.array(b"test_string2")
         g1.attrs['test_attr_str'] = 'test_string'
         g1.attrs['test_attr_int'] = 0

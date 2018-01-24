@@ -33,14 +33,26 @@ LOGGER = logging.getLogger(__name__)
 
 
 def np2str(value):
-    """Convert an np.string_ to str."""
-    if issubclass(value.dtype.type, np.string_):
+    """Convert an np.string_ to str.
+
+    Args:
+        value (ndarray): scalar or 1-element numpy array to convert
+
+    Raises:
+        ValueError: if value is array larger than 1-element or it is not of
+                    type np.string_ or it is not a numpy array
+
+    """
+    if hasattr(value, 'dtype') and \
+            issubclass(value.dtype.type, np.string_) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
             # otherwise python 2 - scalar numpy array of 'str'
             value = value.decode()
-    return value
+        return value
+    else:
+        raise ValueError("Array is not a string type or is larger than 1")
 
 
 def get_geostationary_angle_extent(geos_area):

@@ -36,8 +36,7 @@ import numpy as np
 from pyresample import geometry
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.helper_functions import (get_geostationary_angle_extent,
-                                            np2str)
+from satpy.readers.utils import get_geostationary_angle_extent, np2str
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",

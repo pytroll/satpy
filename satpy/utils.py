@@ -1,30 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009, 2012.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
-
+# Copyright (c) 2009-2018 PyTroll developers
+#
 # Author(s):
-
+#
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Esben S. Nielsen <esn@dmi.dk>
-
+#   Panu Lahtinen <pnuu+git@iki.fi>
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # satpy is distributed in the hope that it will be useful, but
 # WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -183,9 +179,6 @@ def xyz2angle(x, y, z):
     return azi, zen
 
 
-# Projection string conversion from kilometers to meters
-
-
 def proj_units_to_meters(proj_str):
     """Convert projection units from kilometers to meters."""
     proj_parts = proj_str.split()
@@ -205,3 +198,59 @@ def proj_units_to_meters(proj_str):
         new_parts.append('+%s=%s' % (key, val))
 
     return ' '.join(new_parts)
+
+
+def _get_sunz_corr_li_and_shibata(cos_zen):
+
+    return 24.35 / (2. * cos_zen +
+                    np.sqrt(498.5225 * cos_zen**2 + 1))
+
+
+def sunzen_corr_cos(data, cos_zen, limit=88.):
+    """Perform Sun zenith angle correction.
+
+    The correction is based on the provided cosine of the zenith
+    angle (*cos_zen*).  The correction is limited
+    to *limit* degrees (default: 88.0 degrees).  For larger zenith
+    angles, the correction is the same as at the *limit*.  Both *data*
+    and *cos_zen* are given as 2-dimensional Numpy arrays or Numpy
+    MaskedArrays, and they should have equal shapes.
+
+    """
+
+    # Convert the zenith angle limit to cosine of zenith angle
+    limit = np.cos(np.deg2rad(limit))
+
+    # Cosine correction
+    corr = 1. / cos_zen
+    # Use constant value (the limit) for larger zenith
+    # angles
+    corr = corr.where(cos_zen > limit).fillna(1 / limit)
+
+    return data * corr
+
+
+def atmospheric_path_length_correction(data, cos_zen, limit=88.):
+    """Perform Sun zenith angle correction.
+
+    This function uses the correction method proposed by
+    Li and Shibata (2006): https://doi.org/10.1175/JAS3682.1
+
+    The correction is limited to *limit* degrees (default: 88.0 degrees). For
+    larger zenith angles, the correction is the same as at the *limit*. Both
+    *data* and *cos_zen* are given as 2-dimensional Numpy arrays or Numpy
+    MaskedArrays, and they should have equal shapes.
+
+    """
+
+    # Convert the zenith angle limit to cosine of zenith angle
+    limit = np.cos(np.radians(limit))
+
+    # Cosine correction
+    corr = _get_sunz_corr_li_and_shibata(cos_zen)
+    # Use constant value (the limit) for larger zenith
+    # angles
+    corr_lim = _get_sunz_corr_li_and_shibata(limit)
+    corr = corr.where(cos_zen > limit).fillna(corr_lim)
+
+    return data * corr
