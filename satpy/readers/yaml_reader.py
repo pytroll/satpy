@@ -40,9 +40,9 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
-from satpy.readers.helper_functions import get_area_slices, get_sub_area
+from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
-from satpy import CHUNKSIZE
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -800,10 +800,7 @@ class FileYAMLReader(AbstractYAMLReader):
             ds.attrs['area'] = area
             if (('x' not in ds.coords) or('y' not in ds.coords)) and \
                     hasattr(area, 'get_proj_vectors_dask'):
-                #proj_coords = area.get_proj_coords_dask(CHUNKSIZE)
-                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNKSIZE)
-                #ds['x'] = proj_coords[0, :, 1].compute()
-                #ds['y'] = proj_coords[:, 0, 0].compute()
+                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
         return ds
 
     def _load_ancillary_variables(self, datasets):
