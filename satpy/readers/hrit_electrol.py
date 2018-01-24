@@ -33,6 +33,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
@@ -279,54 +280,99 @@ class HRITGOMSFileHandler(HRITFileHandler):
         sublon = self.epilogue['GeometricProcessing']['TGeomNormInfo']['SubLon']
         sublon = sublon[self.chid]
         self.mda['projection_parameters']['SSP_longitude'] = np.rad2deg(sublon)
-
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
 
     def get_dataset(self, key, info, out=None,
                     xslice=slice(None), yslice=slice(None)):
         """Get the data  from the files."""
-        res = super(HRITGOMSFileHandler, self).get_dataset(key, info, out,
-                                                           xslice, yslice)
+        res = super(HRITGOMSFileHandler, self).get_dataset(key, info)
 
-        if res is not None:
-            out = res
+        res = self.calibrate(res, key.calibration)
+        res.attrs['units'] = info['units']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'msu-gs'
+        res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
+        res.attrs['satellite_latitude'] = 0
+        res.attrs['satellite_altitude'] = 35785831.00
 
-        self.calibrate(out, key.calibration)
-        out.info['units'] = info['units']
-        out.info['standard_name'] = info['standard_name']
-        out.info['platform_name'] = self.platform_name
-        out.info['sensor'] = 'msu-gs'
+        return res
+
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
 
         if calibration == 'counts':
-            return
+            res = data
 
-        if calibration == 'radiance':
-            self._vis_calibrate(data)
-        elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data)
+        if calibration in ['radiance', 'brightness_temperature']:
+            res = self._calibrate(data)
         else:
             raise NotImplementedError("Don't know how to calibrate to " +
                                       str(calibration))
 
+        res.attrs['standard_name'] = calibration
+        res.attrs['calibration'] = calibration
+
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
-    def _vis_calibrate(self, data):
-        """Visible channel calibration only."""
+    def _calibrate(self, data):
+        """Visible/IR channel calibration"""
         lut = self.prologue['ImageCalibration'][self.chid] / 1000.0
+        lut[0] = np.nan
+        xlut = xr.DataArray(lut, dims='counts')
+        res = xlut[data.astype(np.uint16).load()]
+        res.attrs = data.attrs.copy()
 
-        data.data[:] = lut[data.data.astype(np.uint16)]
+        return xlut[data.astype(np.uint16).load()]
 
-    def _ir_calibrate(self, data):
-        """IR calibration."""
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        cfac = np.int32(self.mda['cfac'])
+        lfac = np.int32(self.mda['lfac'])
+        coff = np.float32(self.mda['coff'])
+        loff = np.float32(self.mda['loff'])
 
-        lut = self.prologue['ImageCalibration'][self.chid] / 1000.0
 
-        data.data[:] = lut[data.data.astype(np.uint16)]
+        a = 6378169.00
+        b = 6356583.80
+        h = 35785831.00
+
+        lon_0 = self.mda['projection_parameters']['SSP_longitude']
+        lat_0 = 0
+
+        nlines = int(self.mda['number_of_lines'])
+        ncols = int(self.mda['number_of_columns'])
+
+        loff = nlines - loff
+
+        area_extent = self.get_area_extent((nlines, ncols),
+                                           (loff, coff),
+                                           (lfac, cfac),
+                                           h)
+
+        proj_dict = {'a': float(a),
+                     'b': float(b),
+                     'lon_0': float(lon_0),
+                     'h': float(h),
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        area = geometry.AreaDefinition(
+            'some_area_name',
+            "On-the-fly area",
+            'geosmsg',
+            proj_dict,
+            ncols,
+            nlines,
+            area_extent)
+
+        self.area = area
+
+        return area
 
 
 def show(data, negate=False):
