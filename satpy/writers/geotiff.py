@@ -35,6 +35,20 @@ LOG = logging.getLogger(__name__)
 
 
 class GeoTIFFWriter(ImageWriter):
+
+    """Writer to save GeoTIFF images.
+
+    Basic example from Scene:
+
+        scn.save_datasets(writer='geotiff')
+
+    Un-enhanced float geotiff with NaN for fill values:
+
+        scn.save_datasets(writer='geotiff', floating_point=True,
+                          enhancement_config=False, fill_value=np.nan)
+
+    """
+
     GDAL_OPTIONS = ("tfw",
                     "rpb",
                     "rpctxt",
