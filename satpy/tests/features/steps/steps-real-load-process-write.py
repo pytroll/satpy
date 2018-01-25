@@ -19,7 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-"""
+"""Step for the real load-process-write tests.
 """
 
 import os
@@ -28,9 +28,6 @@ from glob import glob
 
 from behave import use_step_matcher, given, when, then
 
-
-
-import os
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
@@ -64,14 +61,6 @@ def fft_proj_rms(a1, a2):
     rms = np.sqrt(ms)
 
     return rms
-
-
-def fft_metric(data1, data2, max_value=0.1):
-    """Execute FFT metric
-    """
-
-    rms = fft_proj_rms(data1, data2)
-    return rms <= max_value
 
 
 def assert_images_match(image1, image2, threshold=0.1):
@@ -115,9 +104,10 @@ def step_impl(context):
 def step_impl(context):
     ref_filename = context.composite + "_" + context.area + ".png"
     ref_filename = os.path.join(context.data_path, "ref", ref_filename)
-    assert(os.path.exists(ref_filename), "Missing reference file.")
+    assert os.path.exists(ref_filename), "Missing reference file."
     assert_images_match(ref_filename, context.new_filename)
 
 def after_scenario(context, scenario):
+    del scenario
     if hasattr(context, 'new_filename'):
         os.remove(context.new_filename)
