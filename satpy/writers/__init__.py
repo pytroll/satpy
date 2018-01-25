@@ -235,17 +235,16 @@ def get_enhanced_image(dataset,
     if enhancer is None:
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
-    if enhancer.enhancement_tree is None:
-        raise RuntimeError(
-            "No enhancement configuration files found or specified, cannot"
-            " automatically enhance dataset")
-
-    if dataset.attrs.get("sensor", None):
-        enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
-
     # Create an image for enhancement
     img = to_image(dataset, mode=mode, fill_value=fill_value)
-    enhancer.apply(img, **dataset.attrs)
+
+    if enhancer.enhancement_tree is None:
+        LOG.debug("No enhancement being applied to dataset")
+    else:
+        if dataset.attrs.get("sensor", None):
+            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
+
+        enhancer.apply(img, **dataset.attrs)
 
     img.info.update(dataset.attrs)
 
