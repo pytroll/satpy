@@ -326,20 +326,20 @@ class DependencyTree(Node):
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
         if resolution:
-            compositor.info['resolution'] = resolution
+            compositor.attrs['resolution'] = resolution
         if calibration:
-            compositor.info['calibration'] = calibration
+            compositor.attrs['calibration'] = calibration
         if polarization:
-            compositor.info['polarization'] = polarization
+            compositor.attrs['polarization'] = polarization
         dataset_key = compositor.id
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
-            compositor.info['prerequisites'], calibration=calibration, polarization=polarization, resolution=resolution)
+            compositor.attrs['prerequisites'], calibration=calibration, polarization=polarization, resolution=resolution)
         if unknowns:
             return None, unknowns
 
         optional_prereqs, _ = self._get_compositor_prereqs(
-            compositor.info['optional_prerequisites'],
+            compositor.attrs['optional_prerequisites'],
             skip=True, calibration=calibration, polarization=polarization, resolution=resolution)
 
         # Is this the right place for that?

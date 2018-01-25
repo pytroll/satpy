@@ -38,8 +38,8 @@ from datetime import datetime, timedelta
 from glob import glob
 
 import numpy as np
+import xarray as xr
 
-from satpy.dataset import Dataset
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
 
@@ -190,42 +190,34 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return file_units
 
-    def scale_swath_data(self, data, mask, scaling_factors):
+    def scale_swath_data(self, data, scaling_factors):
         """Scale swath data using scaling factors and offsets.
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
         num_grans = len(scaling_factors) // 2
         gran_size = data.shape[0] // num_grans
-        for i in range(num_grans):
-            start_idx = i * gran_size
-            end_idx = start_idx + gran_size
-            m = scaling_factors[i * 2]
-            b = scaling_factors[i * 2 + 1]
-            # in rare cases the scaling factors are actually fill values
-            if m <= -999 or b <= -999:
-                mask[start_idx:end_idx] = 1
-            else:
-                data[start_idx:end_idx] *= m
-                data[start_idx:end_idx] += b
+        factors = scaling_factors.where(scaling_factors > -999)
+        factors = xr.DataArray(np.repeat(factors.values[None, :], gran_size, axis=0),
+                               dims=(data.dims[0], 'factors'))
+        data = data * factors[:, 0] + factors[:, 1]
+        return data
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = [1, 0]
-        factors = np.array(factors)
+            factors = xr.DataArray([1, 0])
+        factors = factors.where(factors != -999.)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
+            factors = factors * 10000.
             return factors
         elif file_units == "1" and output_units == "%":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
+            factors = factors * 100.
             return factors
         else:
             return factors
@@ -244,30 +236,20 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
-    def get_dataset(self, dataset_id, ds_info, out=None):
+    def get_dataset(self, dataset_id, ds_info):
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
         data = self[var_path]
-        dtype = ds_info.get("dtype", np.float32)
         is_floating = np.issubdtype(data.dtype, np.floating)
-        if out is not None:
-            # This assumes that we are promoting the dtypes (ex. float file data -> int array)
-            # and that it happens automatically when assigning to the existing
-            # out array
-            out.data[:] = data
-        else:
-            shape = self.get_shape(dataset_id, ds_info)
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
             fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            out.mask[:] |= out.data <= fill_max
+            data = data.where(data > fill_max)
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(ds_info.pop("fill_min_int", 65528))
-            out.mask[:] |= out.data >= fill_min
+            data = data.where(data < fill_min)
 
         factors = self.get(factor_var_path)
         if factors is None:
@@ -278,9 +260,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
 
         if factors is not None:
-            self.scale_swath_data(out.data, out.mask, factors)
+            data = self.scale_swath_data(data, factors)
 
-        i = getattr(out, 'info', {})
+        i = getattr(data, 'attrs', {})
         i.update(ds_info)
         i.update({
             "units": ds_info.get("units", file_units),
@@ -290,8 +272,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "end_orbit": self.end_orbit_number,
         })
         i.update(dataset_id.to_dict())
-        cls = ds_info.pop("container", Dataset)
-        return cls(out.data, mask=out.mask, copy=False, **i)
+        data.attrs.update(i)
+        return data
 
 
 class VIIRSSDRReader(FileYAMLReader):

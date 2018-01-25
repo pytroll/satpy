@@ -41,8 +41,8 @@ LOG = logging.getLogger(__name__)
 
 
 def _determine_mode(dataset):
-    if "mode" in dataset.info:
-        return dataset.info["mode"]
+    if "mode" in dataset.attrs:
+        return dataset.attrs["mode"]
 
     if dataset.ndim == 2:
         return "L"
@@ -54,7 +54,7 @@ def _determine_mode(dataset):
         return "RGBA"
     else:
         raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           (dataset.id,))
+                           str(dataset))
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None, level_coast=1, level_borders=1):
@@ -70,6 +70,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
+    if orig.mode.startswith('L'):
+        orig.channels = [orig.channels[0].copy(),
+                         orig.channels[0].copy(),
+                         orig.channels[0]] + orig.channels[1:]
+        orig.mode = 'RGB' + orig.mode[1:]
     img = orig.pil_image()
 
     if area is None:
@@ -235,17 +240,17 @@ def get_enhanced_image(dataset,
             "No enhancement configuration files found or specified, cannot"
             " automatically enhance dataset")
 
-    if dataset.info.get("sensor", None):
-        enhancer.add_sensor_enhancements(dataset.info["sensor"])
+    if dataset.attrs.get("sensor", None):
+        enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
 
     # Create an image for enhancement
     img = to_image(dataset, mode=mode, fill_value=fill_value)
-    enhancer.apply(img, **dataset.info)
+    enhancer.apply(img, **dataset.attrs)
 
-    img.info.update(dataset.info)
+    img.info.update(dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.info['area'], **overlay)
+        add_overlay(img, dataset.attrs['area'], **overlay)
 
     if decorate is not None:
         add_decorate(img, **decorate)
@@ -256,27 +261,26 @@ def get_enhanced_image(dataset,
 def show(dataset, **kwargs):
     """Display the dataset as an image.
     """
-    if not dataset.is_loaded():
-        raise ValueError("Dataset not loaded, cannot display.")
-
-    img = get_enhanced_image(dataset, **kwargs)
+    img = get_enhanced_image(dataset.squeeze(), **kwargs)
     img.show()
+    return img
 
 
-def to_image(dataset, copy=True, **kwargs):
+def to_image(dataset, copy=False, **kwargs):
     # Only add keywords if they are present
     for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.info:
-            kwargs.setdefault(key, dataset.info[key])
+        if key in dataset.attrs:
+            kwargs.setdefault(key, dataset.attrs[key])
+    dataset = dataset.squeeze()
 
-    if dataset.ndim == 2:
-        return Image([dataset], copy=copy, **kwargs)
-    elif dataset.ndim == 3:
-        return Image([band for band in dataset], copy=copy, **kwargs)
+    if 'bands' in dataset.dims:
+        return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
+                      for band in dataset['bands']],
+                     copy=copy, **kwargs)
+    elif dataset.ndim < 2:
+        raise ValueError("Need at least a 2D array to make an image.")
     else:
-        raise ValueError(
-            "Don't know how to convert array with ndim %d to image" %
-            dataset.ndim)
+        return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
 
 
 class Writer(Plugin):
@@ -366,7 +370,7 @@ class ImageWriter(Writer):
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
-            dataset, self.enhancer, fill_value, overlay=overlay, decorate=decorate)
+            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay, decorate=decorate)
         self.save_image(img, filename=filename, **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
@@ -454,7 +458,8 @@ class EnhancementDecisionTree(DecisionTree):
                                      "standard_name",
                                      "units",))
         self.prefix = kwargs.pop("config_section", "enhancements")
-        super(EnhancementDecisionTree, self).__init__(decision_dicts, attrs, **kwargs)
+        super(EnhancementDecisionTree, self).__init__(
+            decision_dicts, attrs, **kwargs)
 
     def add_config_to_tree(self, *decision_dict):
         conf = {}
@@ -472,7 +477,8 @@ class EnhancementDecisionTree(DecisionTree):
                 LOG.debug("Loading enhancement config string")
                 d = yaml.load(config_file)
                 if not isinstance(d, dict):
-                    raise ValueError("YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
+                    raise ValueError(
+                        "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
                 conf = recursive_dict_update(conf, d)
 
         self._build_tree(conf)
