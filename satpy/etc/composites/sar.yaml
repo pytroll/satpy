@@ -9,3 +9,12 @@ composites:
     - name: measurement
       polarization: hv
     standard_name: sar-ice
+
+  sar-ice-iw:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: vv
+    - name: measurement
+      polarization: vh
+    standard_name: sar-ice

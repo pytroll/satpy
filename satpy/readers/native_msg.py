@@ -32,20 +32,17 @@ import logging
 from datetime import datetime
 import numpy as np
 
-from satpy.dataset import Dataset, DatasetID
+import xarray as xr
+
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_msg import (CALIB, SATNUM, C1, C2, BTFIT)
+from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
 
 from pyresample import geometry
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import get_cds_time
 from satpy.readers.msg_base import dec10216
-#from satpy.readers.hrit_base import dec10216
+import satpy.readers.msg_base as mb
 
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -54,6 +51,7 @@ CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
 
 class CalibrationError(Exception):
     pass
+
 
 logger = logging.getLogger('native_msg')
 
@@ -76,7 +74,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self._get_header()
 
         for item in CHANNEL_LIST:
-            if item in self.available_channels and self.available_channels[item]:
+            if self.available_channels.get(item):
                 self.channel_order_list.append(item)
 
         self.memmap = self._get_memmap()
@@ -104,8 +102,8 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             # Lazy reading:
             hdr_size = self.header.dtype.itemsize
-            return np.memmap(
-                fp_, dtype=dt, shape=(self.data_len, ), offset=hdr_size, mode="r")
+            return np.memmap(fp_, dtype=dt, shape=(self.data_len,),
+                             offset=hdr_size, mode="r")
 
     def _get_filedtype(self):
         """Get the dtype of the file based on the actual available channels"""
@@ -198,8 +196,8 @@ class NativeMSGFileHandler(BaseFileHandler):
         # FIXME!
         if abs(int(numlines_visir / 4.) - numlines_visir / 4.) > 0.001:
             msgstr = (
-                "Number of pixels in east-west direction needs to be a multiple of 4!" +
-                "\nPlease get the full disk!")
+                "Number of pixels in east-west direction needs to be a" +
+                " multiple of 4!\nPlease get the full disk!")
             raise NotImplementedError(msgstr)
 
         # Data are stored in 10 bits!
@@ -209,8 +207,8 @@ class NativeMSGFileHandler(BaseFileHandler):
         else:
             self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
 
-        #'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
-        #'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
+        # 'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
+        # 'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
@@ -254,7 +252,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def get_dataset(self, key, info, out=None,
+    def get_dataset(self, key, info,
                     xslice=slice(None), yslice=slice(None)):
 
         if key.name not in self.channel_order_list:
@@ -263,9 +261,6 @@ class NativeMSGFileHandler(BaseFileHandler):
             ch_idn = self.channel_order_list.index(key.name)
             data = dec10216(
                 self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
-
-            data = np.ma.masked_array(data, mask=(data == 0))
-            res = Dataset(data, dtype=np.float32)
         else:
             data2 = dec10216(
                 self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
@@ -283,8 +278,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             idx = range(2, shape[0], 3)
             data[idx, :] = data0
 
-            data = np.ma.masked_array(data, mask=(data == 0))
-            res = Dataset(data, dtype=np.float32)
+        res = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
         if res is not None:
             out = res
@@ -292,11 +286,11 @@ class NativeMSGFileHandler(BaseFileHandler):
             return None
 
         self.calibrate(out, key)
-        out.info['units'] = info['units']
-        out.info['wavelength'] = info['wavelength']
-        out.info['standard_name'] = info['standard_name']
-        out.info['platform_name'] = self.platform_name
-        out.info['sensor'] = 'seviri'
+        out.attrs['units'] = info['units']
+        out.attrs['wavelength'] = info['wavelength']
+        out.attrs['standard_name'] = info['standard_name']
+        out.attrs['platform_name'] = self.platform_name
+        out.attrs['sensor'] = 'seviri'
 
         return out
 
@@ -309,13 +303,15 @@ class NativeMSGFileHandler(BaseFileHandler):
             return
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            self.convert_to_radiance(data, key.name)
+            res = self.convert_to_radiance(data, key.name)
         if calibration == 'reflectance':
-            self._vis_calibrate(data, key.name)
+            res = self._vis_calibrate(res, key.name)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data, key.name)
+            res = self._ir_calibrate(res, key.name)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+
+        return res
 
     def convert_to_radiance(self, data, key_name):
         """Calibrate to radiance."""
@@ -328,45 +324,28 @@ class NativeMSGFileHandler(BaseFileHandler):
         gain = coeffs['CalSlope'][0][channel_index]
         offset = coeffs['CalOffset'][0][channel_index]
 
-        data.data[:] *= gain
-        data.data[:] += offset
-        data.data[data.data < 0] = 0
+        return mb.convert_to_radiance(data, gain, offset)
 
     def _vis_calibrate(self, data, key_name):
         """Visible channel calibration only."""
         solar_irradiance = CALIB[self.platform_id][key_name]["F"]
-        data.data[:] *= 100 / solar_irradiance
-
-    def _tl15(self, data, key_name):
-        """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][key_name]["VC"]
-        data.data[:] **= -1
-        data.data[:] *= C1 * wavenumber ** 3
-        data.data[:] += 1
-        np.log(data.data, out=data.data)
-        data.data[:] **= -1
-        data.data[:] *= C2 * wavenumber
+        return mb.vis_calibrate(data, solar_irradiance)
 
     def _erads2bt(self, data, key_name):
         """computation based on effective radiance."""
         cal_info = CALIB[self.platform_id][key_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
+        wavenumber = CALIB[self.platform_id][key_name]["VC"]
 
-        self._tl15(data, key_name)
-
-        data.data[:] -= beta
-        data.data[:] /= alpha
+        return mb.erads2bt(data, wavenumber, alpha, beta)
 
     def _srads2bt(self, data, key_name):
         """computation based on spectral radiance."""
         coef_a, coef_b, coef_c = BTFIT[key_name]
+        wavenumber = CALIB[self.platform_id][key_name]["VC"]
 
-        self._tl15(data, key_name)
-
-        data.data[:] = (coef_a * data.data[:] ** 2 +
-                        coef_b * data.data[:] +
-                        coef_c)
+        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
 
     def _ir_calibrate(self, data, key_name):
         """IR calibration."""
@@ -378,9 +357,9 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         if cal_type == 1:
             # spectral radiances
-            self._srads2bt(data, key_name)
+            return self._srads2bt(data, key_name)
         elif cal_type == 2:
             # effective radiances
-            self._erads2bt(data, key_name)
+            return self._erads2bt(data, key_name)
         else:
             raise NotImplementedError('Unknown calibration type')

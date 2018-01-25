@@ -25,7 +25,10 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+import xarray.ufuncs as xu
 
+C1 = 1.19104273e-5
+C2 = 1.43877523
 
 def get_cds_time(days, msecs):
     """Get the datetime object of the time since epoch given in days and
@@ -51,3 +54,27 @@ def dec10216(data):
     arr16.flat[3::4] = np.left_shift(arr10[3::5] & 3, 8) + \
         arr10[4::5]
     return arr16
+
+
+def convert_to_radiance(data, gain, offset):
+    """Calibrate to radiance."""
+    return (data * gain + offset).clip(0.0, None)
+
+
+def vis_calibrate(data, solar_irradiance):
+    return data * 100.0 / solar_irradiance
+
+
+def tl15(data, wavenumber):
+    """Compute the L15 temperature."""
+    return ((C2 * wavenumber) /
+            xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+
+
+def erads2bt(data, wavenumber, alpha, beta):
+    return (tl15(data, wavenumber) - beta) / alpha
+
+
+def srads2bt(data, wavenumber, a__, b__, c__):
+    res = tl15(data, wavenumber)
+    return a__ * res * res + b__ * res + c__

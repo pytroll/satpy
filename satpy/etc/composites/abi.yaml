@@ -128,3 +128,13 @@ composites:
     - 0.85
     - 11.0
     standard_name: overview
+
+  overview_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [sunz_corrected]
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
+    - 11.0
+    standard_name: overview

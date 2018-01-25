@@ -30,7 +30,7 @@ import numpy as np
 
 from satpy.composites import CompositeBase, IncompatibleAreas
 from satpy.config import get_environ_ancpath
-from satpy.dataset import Dataset, combine_info
+from satpy.dataset import Dataset, combine_metadata
 
 LOG = logging.getLogger(__name__)
 
@@ -44,11 +44,11 @@ class VIIRSFog(CompositeBase):
 
         p1, p2 = projectables
         fog = p1 - p2
-        fog.info.update(self.info)
+        fog.info.update(self.attrs)
         fog.info["area"] = p1.info["area"]
         fog.info["start_time"] = p1.info["start_time"]
         fog.info["end_time"] = p1.info["end_time"]
-        fog.info["name"] = self.info["name"]
+        fog.info["name"] = self.attrs["name"]
         fog.info["wavelength"] = None
         fog.info.setdefault("mode", "L")
         return fog
@@ -62,12 +62,12 @@ class VIIRSTrueColor(CompositeBase):
                              (len(projectables), ))
 
         # Collect information that is the same between the projectables
-        info = combine_info(*projectables)
+        info = combine_metadata(*projectables)
         # Update that information with configured information (including name)
-        info.update(self.info)
+        info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
-        info["mode"] = self.info.get("mode", "RGB")
+        info["mode"] = self.attrs.get("mode", "RGB")
         return Dataset(data=np.rollaxis(
             np.ma.dstack([projectable for projectable in projectables]),
             axis=2),
@@ -144,14 +144,14 @@ class RatioSharpenedRGB(CompositeBase):
             mask = p1.mask | p2.mask | p3.mask
 
         # Collect information that is the same between the projectables
-        info = combine_info(*datasets)
+        info = combine_metadata(*datasets)
         info.update(n)
         # Update that information with configured information (including name)
-        info.update(self.info)
+        info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
         info.setdefault("standard_name", "true_color")
-        info["mode"] = self.info.get("mode", "RGB")
+        info["mode"] = self.attrs.get("mode", "RGB")
         if area is not None:
             info['area'] = area
         return Dataset(data=np.concatenate(
@@ -189,7 +189,7 @@ class ReflectanceCorrector(CompositeBase):
 
     def __call__(self, datasets, **info):
         refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
-        if refl_data.info.get("rayleigh_corrected"):
+        if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
 
         if os.path.isfile(self.dem_file):
@@ -204,16 +204,16 @@ class ReflectanceCorrector(CompositeBase):
 
         from satpy.composites.crefl_utils import run_crefl, get_coefficients
 
-        percent = refl_data.info["units"] == "%"
+        percent = refl_data.attrs["units"] == "%"
 
-        coefficients = get_coefficients(refl_data.info["sensor"],
-                                        refl_data.info["wavelength"],
-                                        refl_data.info["resolution"])
+        coefficients = get_coefficients(refl_data.attrs["sensor"],
+                                        refl_data.attrs["wavelength"],
+                                        refl_data.attrs["resolution"])
 
         results = run_crefl(refl_data,
                             coefficients,
-                            sensor_aa.info["area"].lons,
-                            sensor_aa.info["area"].lats,
+                            sensor_aa.attrs["area"].lons,
+                            sensor_aa.attrs["area"].lats,
                             sensor_aa,
                             sensor_za,
                             solar_aa,
@@ -221,7 +221,7 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent, )
 
-        info.update(refl_data.info)
+        info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
         proj = Dataset(data=results.data * factor,
@@ -304,7 +304,7 @@ class HistogramDNB(CompositeBase):
             raise RuntimeError("No valid data found to histogram equalize")
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -424,7 +424,7 @@ class AdaptiveDNB(HistogramDNB):
             raise RuntimeError("No valid data found to histogram equalize")
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -515,7 +515,7 @@ class ERFDNB(CompositeBase):
         np.sqrt(inner_sqrt, out=output_dataset)
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -1093,7 +1093,7 @@ class NCCZinke(CompositeBase):
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = self.info['name']
+        mda['name'] = self.attrs['name']
         mda.pop('calibration')
         mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
@@ -1123,9 +1123,8 @@ class NCCZinke(CompositeBase):
         return gain
 
 
-
 class SnowAge(CompositeBase):
-    """Returns RGB snow product based on method presented at the second 
+    """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
     """
     # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
@@ -1147,18 +1146,18 @@ class SnowAge(CompositeBase):
                              (len(projectables), ))
 
         # Collect information that is the same between the projectables
-        info = combine_info(*projectables)
+        info = combine_metadata(*projectables)
         # Update that information with configured information (including name)
-        info.update(self.info)
+        info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
-        info["mode"] = self.info.get("mode", "RGB")
+        info["mode"] = self.attrs.get("mode", "RGB")
 
-        m07 = projectables[0]*255./160.
-        m08 = projectables[1]*255./160.
-        m09 = projectables[2]*255./160.
-        m10 = projectables[3]*255./160.
-        m11 = projectables[4]*255./160.
+        m07 = projectables[0] * 255. / 160.
+        m08 = projectables[1] * 255. / 160.
+        m09 = projectables[2] * 255. / 160.
+        m10 = projectables[3] * 255. / 160.
+        m11 = projectables[4] * 255. / 160.
         refcu = m11 - m10
         refcu[refcu < 0] = 0
 
@@ -1167,4 +1166,3 @@ class SnowAge(CompositeBase):
         ch3 = m11 + m09
 
         return Dataset(data=[ch1, ch2, ch3], **info)
-
