@@ -321,13 +321,18 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
     def _calibrate(self, data):
         """Visible/IR channel calibration"""
-        lut = self.prologue['ImageCalibration'][self.chid] / 1000.0
+        lut = self.prologue['ImageCalibration'][self.chid]
+        if abs(lut).max() > 16777216:
+            lut = lut.astype(np.float64)
+        else:
+            lut = lut.astype(np.float32)
+        lut /= 1000
         lut[0] = np.nan
-        xlut = xr.DataArray(lut, dims='counts')
-        res = xlut[data.astype(np.uint16).load()]
-        res.attrs = data.attrs.copy()
-
-        return xlut[data.astype(np.uint16).load()]
+        # Dask/XArray don't support indexing in 2D (yet).
+        res = data.data.map_blocks(lambda block: lut[block], dtype=lut.dtype)
+        res = xr.DataArray(res, dims=data.dims,
+                           attrs=data.attrs, coords=data.coords)
+        return res
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
