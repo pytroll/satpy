@@ -129,6 +129,7 @@ def dec10216(inbuf):
     arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
     arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
     arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
+    arr16 = da.rechunk(arr16, arr16.shape[0])
 
     return arr16
 
@@ -300,6 +301,6 @@ class HRITFileHandler(BaseFileHandler):
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],
-                             self.mda['number_of_columns'])).astype(np.float32)
+                             self.mda['number_of_columns']))
         logger.debug("Reading time " + str(datetime.now() - tic))
         return data
