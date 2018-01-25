@@ -967,7 +967,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         if calibration == 'counts':
             res = data
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self.convert_to_radiance(data)
+            res = self.convert_to_radiance(data.astype(np.float32))
         if calibration == 'reflectance':
             res = self._vis_calibrate(res)
         elif calibration == 'brightness_temperature':
