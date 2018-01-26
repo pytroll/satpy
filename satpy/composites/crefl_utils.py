@@ -305,7 +305,7 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
     sphalb0 = csalbr(tau_step)
 
     air_mass = 1.0 / mus + 1 / muv
-    air_mass = air_mass.where(air_mass > MAXAIRMASS, -1.0)
+    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
 
     taur = tau * xu.exp(-height / SCALEHEIGHT)
 
