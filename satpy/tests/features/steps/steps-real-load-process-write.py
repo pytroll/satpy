@@ -71,6 +71,12 @@ def assert_images_match(image1, image2, threshold=0.1):
         image1, image2, rms)
 
 
+def before_all(context):
+    if not context.config.log_capture:
+        from satpy.utils import debug_on
+        debug_on()
+
+
 @given(u'{dformat} data is available')
 def step_impl(context, dformat):
     data_path = os.path.join('test_data', dformat)
