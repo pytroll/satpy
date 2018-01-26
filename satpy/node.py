@@ -258,7 +258,7 @@ class DependencyTree(Node):
             compositors[comp_id] = mloader(**moptions)
             return compositors[comp_id]
 
-        return KeyError("Could not find modifier '{}'".format(modifier))
+        raise KeyError("Could not find modifier '{}'".format(modifier))
 
     def _find_reader_dataset(self,
                              dataset_key,
