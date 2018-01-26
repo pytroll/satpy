@@ -225,8 +225,8 @@ class ReflectanceCorrector(CompositeBase):
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
-        results.attrs = info
         results = results * factor
+        results.attrs = info
 
         self.apply_modifier_info(refl_data, results)
         return results
