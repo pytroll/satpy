@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015
+# Copyright (c) 2015-2018 PyTroll developers
 
 # Author(s):
 
@@ -161,6 +161,7 @@ class RatioSharpenedRGB(CompositeBase):
 
 
 class ReflectanceCorrector(CompositeBase):
+
     """CREFL modifier
 
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
@@ -224,17 +225,14 @@ class ReflectanceCorrector(CompositeBase):
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
-        proj = Dataset(data=results.data * factor,
-                       mask=results.mask,
-                       dtype=results.dtype,
-                       **info)
+        results.attrs = info
 
-        self.apply_modifier_info(refl_data, proj)
-
-        return proj
+        self.apply_modifier_info(refl_data, results)
+        return results
 
 
 class HistogramDNB(CompositeBase):
+
     """Histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -312,6 +310,7 @@ class HistogramDNB(CompositeBase):
 
 
 class AdaptiveDNB(HistogramDNB):
+
     """Adaptive histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -432,6 +431,7 @@ class AdaptiveDNB(HistogramDNB):
 
 
 class ERFDNB(CompositeBase):
+
     """Equalized DNB composite using the error function (erf).
 
     The logic for this code was taken from Polar2Grid and was originally developed by Curtis Seaman and Steve Miller.
@@ -817,7 +817,9 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
                             temp_sum += (temp_equalized_data *
                                          tmp_tile_weights)
 
-                        else:  # if the tile we're processing doesn't exist, hang onto the weight we would have used for it so we can correct that later
+                        # if the tile we're processing doesn't exist, hang onto the weight we
+                        # would have used for it so we can correct that later
+                        else:
                             unused_weight -= tmp_tile_weights
 
                 # if we have unused weights, scale our values to correct for
@@ -1045,6 +1047,7 @@ def _linear_normalization_from_0to1(
 
 
 class NCCZinke(CompositeBase):
+
     """Equalized DNB composite using the Zinke algorithm.
 
     http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
@@ -1124,6 +1127,7 @@ class NCCZinke(CompositeBase):
 
 
 class SnowAge(CompositeBase):
+
     """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
     """
