@@ -158,3 +158,12 @@ Datasets are automatically scaled or "enhanced" to be compatible with the
 output format and to provide the best looking image. For more information
 on saving datasets and customizing enhancements see the documentation on
 :doc:`writers`.
+
+Troubleshooting
+===============
+
+The error messages from Python are not always helpful so please turn on debugging output as a first step when troubleshooting:
+
+    >>> from satpy.utils import debug_on
+    debug_on()
+
