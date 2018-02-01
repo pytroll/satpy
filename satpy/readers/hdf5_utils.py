@@ -59,7 +59,11 @@ class HDF5FileHandler(BaseFileHandler):
     def _collect_attrs(self, name, attrs):
         for key, value in six.iteritems(attrs):
             value = np.squeeze(value)
-            self.file_content["{}/attr/{}".format(name, key)] = np2str(value)
+            fc_key = "{}/attr/{}".format(name, key)
+            try:
+                self.file_content[fc_key] = np2str(value)
+            except ValueError:
+                self.file_content[fc_key] = value
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
