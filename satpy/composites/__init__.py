@@ -650,7 +650,7 @@ class GenericCompositor(CompositeBase):
         return Dataset(data=data, **info)
 
 
-class ColormapCompositor(RGBCompositor):
+class ColormapCompositor(GenericCompositor):
 
     """A compositor that uses colormaps."""
     @staticmethod
@@ -730,7 +730,7 @@ class PaletteCompositor(ColormapCompositor):
         return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
 
 
-class DayNightCompositor(RGBCompositor):
+class DayNightCompositor(GenericCompositor):
 
     """A compositor that takes one composite on the night side, another on day
     side, and then blends them together."""
@@ -778,10 +778,10 @@ class DayNightCompositor(RGBCompositor):
                                **projectables[0].info)
                 full_data.append(data)
 
-            res = RGBCompositor.__call__(self, (full_data[0],
-                                                full_data[1],
-                                                full_data[2]),
-                                         *args, **kwargs)
+            res = GenericCompositor.__call__(self, (full_data[0],
+                                                    full_data[1],
+                                                    full_data[2]),
+                                             *args, **kwargs)
 
         except ValueError:
             raise IncompatibleAreas
@@ -789,7 +789,7 @@ class DayNightCompositor(RGBCompositor):
         return res
 
 
-class Airmass(RGBCompositor):
+class Airmass(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
@@ -805,16 +805,17 @@ class Airmass(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
-                                                projectables[2] -
-                                                projectables[3],
-                                                projectables[0]), *args, **kwargs)
+            res = GenericCompositor.__call__(self,
+                                             (projectables[0] - projectables[1],
+                                              projectables[2] -
+                                              projectables[3],
+                                              projectables[0]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
 
 
-class Convection(RGBCompositor):
+class Convection(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
@@ -830,17 +831,18 @@ class Convection(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
-                                                projectables[2] -
-                                                projectables[5],
-                                                projectables[1] - projectables[0]),
-                                         *args, **kwargs)
+            res = GenericCompositor.__call__(self,
+                                             (projectables[3] - projectables[4],
+                                              projectables[2] -
+                                              projectables[5],
+                                              projectables[1] - projectables[0]),
+                                             *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
 
 
-class Dust(RGBCompositor):
+class Dust(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make a dust (or fog or night_fog) RGB image composite.
@@ -868,17 +870,18 @@ class Dust(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
-                                                projectables[1] -
-                                                projectables[0],
-                                                projectables[1]), *args, **kwargs)
+            res = GenericCompositor.__call__(self,
+                                             (projectables[2] - projectables[1],
+                                              projectables[1] -
+                                              projectables[0],
+                                              projectables[1]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
 
         return res
 
 
-class RealisticColors(RGBCompositor):
+class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         try:
@@ -904,8 +907,8 @@ class RealisticColors(RGBCompositor):
                           copy=False,
                           **hrv.info)
 
-            res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
-                                         *args, **kwargs)
+            res = GenericCompositor.__call__(self, (ch1, ch2, ch3),
+                                             *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
