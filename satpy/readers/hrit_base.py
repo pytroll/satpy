@@ -208,9 +208,6 @@ class HRITFileHandler(BaseFileHandler):
         # Convert to xarray
         xdata = xr.DataArray(data, dims=['y', 'x'])
 
-        # Mask invalid values
-        xdata = xdata.where(xdata > 0)
-
         return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):

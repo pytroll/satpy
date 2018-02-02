@@ -453,7 +453,6 @@ class HRITGOESFileHandler(HRITFileHandler):
 
         if calibration == 'counts':
             return
-
         if calibration == 'reflectance':
             res = self._calibrate(data)
         elif calibration == 'brightness_temperature':
@@ -472,6 +471,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         # TODO use dask's map_blocks for this
         res = xr.DataArray(np.interp(data, idx, val),
                            dims=data.dims, attrs=data.attrs)
+        res = res.where(data > 0)
         res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
         return data
 

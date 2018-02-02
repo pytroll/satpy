@@ -332,6 +332,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res = data.data.map_blocks(lambda block: lut[block], dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
+        res = res.where(data > 0)
         return res
 
     def get_area_def(self, dsid):

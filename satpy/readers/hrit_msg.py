@@ -982,7 +982,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         coeffs = coeffs["Level1_5ImageCalibration"]
         gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
         offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
-
+        data = data.where(data > 0)
         return mb.convert_to_radiance(data, gain, offset)
 
     def _vis_calibrate(self, data):
