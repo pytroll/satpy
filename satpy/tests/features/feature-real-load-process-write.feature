@@ -193,6 +193,11 @@ Feature: Loading real data in many formats with the same command
         | viirs_l1b      | true_color | eurol   |
 
     Examples: VIIRS SDR data
-        | format         | composite  | area    |
-        | viirs_sdr      | overview   | eurol   |
-        | viirs_sdr      | true_color | eurol   |
+        | format         | composite          | area    |
+        | viirs_sdr      | overview           | eurol   |
+        | viirs_sdr      | true_color_lowres  | eurol   |
+        | viirs_sdr      | fog                | eurol   |
+        | viirs_sdr      | dust               | eurol   |
+        | viirs_sdr      | ash                | eurol   |
+        | viirs_sdr      | natural_sun_lowres | eurol   |
+        | viirs_sdr      | snow_age           | eurol   |
