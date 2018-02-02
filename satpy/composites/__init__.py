@@ -560,6 +560,7 @@ class DifferenceCompositor(CompositeBase):
 class RGBCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
@@ -621,6 +622,7 @@ class RGBCompositor(CompositeBase):
 class BWCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
         if len(projectables) != 1:
             raise ValueError("Expected 1 dataset, got %d" %
                              (len(projectables), ))
@@ -630,6 +632,49 @@ class BWCompositor(CompositeBase):
         info['standard_name'] = self.info['standard_name']
 
         return Dataset(projectables[0].copy(), **info.copy())
+
+
+class GenericCompositor(CompositeBase):
+
+    modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+
+        num = len(projectables)
+        mode = self.modes[num]
+
+        try:
+            data = np.rollaxis(np.ma.dstack([projectable for projectable
+                                             in projectables]), axis=2)
+        except ValueError:
+            raise IncompatibleAreas
+        else:
+            areas = [projectable.info.get('area', None)
+                     for projectable in projectables]
+            areas = [area for area in areas if area is not None]
+            if areas and areas.count(areas[0]) != len(areas):
+                raise IncompatibleAreas
+
+        info = combine_info(*projectables)
+        info.update(self.info)
+        # FIXME: should this be done here ?
+        info["wavelength"] = None
+        info.pop("units", None)
+        sensor = set()
+        for projectable in projectables:
+            current_sensor = projectable.info.get("sensor", None)
+            if current_sensor:
+                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                    sensor.add(current_sensor)
+                else:
+                    sensor |= current_sensor
+        if len(sensor) == 0:
+            sensor = None
+        elif len(sensor) == 1:
+            sensor = list(sensor)[0]
+        info["sensor"] = sensor
+        info["mode"] = mode
+        return Dataset(data=data, **info)
 
 
 class ColormapCompositor(RGBCompositor):
