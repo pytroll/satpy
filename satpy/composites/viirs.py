@@ -28,9 +28,9 @@ import os
 
 import numpy as np
 
-from satpy.composites import CompositeBase, IncompatibleAreas
+from satpy.composites import CompositeBase, RGBCompositor, IncompatibleAreas
 from satpy.config import get_environ_ancpath
-from satpy.dataset import Dataset, combine_metadata
+from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
 
@@ -1127,7 +1127,7 @@ class NCCZinke(CompositeBase):
         return gain
 
 
-class SnowAge(CompositeBase):
+class SnowAge(RGBCompositor):
 
     """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
@@ -1146,6 +1146,17 @@ class SnowAge(CompositeBase):
     # Pascale Roquet at Pascale.Roquet@meteo.fr
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate a SnowAge RGB composite.
+
+        The algorithm and the product are described in this
+        presentation :
+        http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        For further information you may contact
+        Bernard Bellec at Bernard.Bellec@meteo.fr
+        or
+        Pascale Roquet at Pascale.Roquet@meteo.fr
+        
+        """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
                              (len(projectables), ))
@@ -1156,7 +1167,6 @@ class SnowAge(CompositeBase):
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
-        info["mode"] = self.attrs.get("mode", "RGB")
 
         m07 = projectables[0] * 255. / 160.
         m08 = projectables[1] * 255. / 160.
@@ -1164,10 +1174,10 @@ class SnowAge(CompositeBase):
         m10 = projectables[3] * 255. / 160.
         m11 = projectables[4] * 255. / 160.
         refcu = m11 - m10
-        refcu[refcu < 0] = 0
+        refcu = refcu.clip(min=0)
 
         ch1 = m07 - refcu / 2. - m09 / 4.
         ch2 = m08 + refcu / 4. + m09 / 4.
         ch3 = m11 + m09
 
-        return Dataset(data=[ch1, ch2, ch3], **info)
+        return RGBCompositor.__call__(self, [ch1, ch2, ch3], **info)
