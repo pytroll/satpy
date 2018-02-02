@@ -32,6 +32,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
@@ -192,18 +193,15 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         return area
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Get the dataset designated by *key*."""
-        res = super(HRITJMAFileHandler, self).get_dataset(key, info, out,
-                                                          xslice, yslice)
-        if res is not None:
-            out = res
+        res = super(HRITJMAFileHandler, self).get_dataset(key, info)
 
-        self.calibrate(out, key.calibration)
-        out.info.update(info)
-        out.info['platform_name'] = 'Himawari-8'
-        out.info['sensor'] = 'ahi'
+        res = self.calibrate(res, key.calibration)
+        res.attrs.update(info)
+        res.attrs['platform_name'] = 'Himawari-8'
+        res.attrs['sensor'] = 'ahi'
+        return res
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -216,10 +214,18 @@ class HRITJMAFileHandler(HRITFileHandler):
         else:
             cal = self.calibration_table
 
-            data.data[:] = np.interp(data.data.ravel(),
-                                     cal[:, 0], cal[:, 1]).reshape(data.data.shape)
-        logger.debug("Calibration time " + str(datetime.now() - tic))
+            def interp(arr):
+                return np.interp(arr.ravel(),
+                                 cal[:, 0], cal[:, 1]).reshape(arr.shape)
 
+            res = data.data.map_blocks(interp, dtype=cal[:, 0].dtype)
+
+            res = xr.DataArray(res,
+                               dims=data.dims, attrs=data.attrs,
+                               coords=data.coords)
+        res = res.where(data > 0)
+        logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
 def show(data, negate=False):
     """Show the stretched data.
