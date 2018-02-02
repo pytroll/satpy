@@ -34,6 +34,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
@@ -409,24 +410,22 @@ class HRITGOESFileHandler(HRITFileHandler):
         #logger.debug("SSP_latitude  "+str(self.prologue['SubSatLatitude']))
 
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Get the data  from the files."""
         logger.debug("hrit_goes/get_dataset pre")
-        res = super(HRITGOESFileHandler, self).get_dataset(key, info, out,
-                                                           xslice, yslice)
+        res = super(HRITGOESFileHandler, self).get_dataset(key, info)
 
         logger.debug("hrit_goes/get_dataset post")
-        if res is not None:
-            out = res
 
         logger.debug("hrit_goes/get_dataset res")
         self.mda['calibration_parameters'] = self._get_calibration_params()
-        self.calibrate(out, key.calibration)
-        out.info['units'] = info['units']
-        out.info['standard_name'] = info['standard_name']
-        out.info['platform_name'] = self.platform_name
-        out.info['sensor'] = 'goes_imager'
+        self.calibrate(res, key.calibration)
+        res.attrs['units'] = info['units']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'goes_imager'
+
+        return res
 
     def _get_calibration_params(self):
         """Get the calibration parameters from the metadata."""
@@ -447,7 +446,6 @@ class HRITGOESFileHandler(HRITFileHandler):
         params['values'] = np.array(val_table, dtype=np.float32)
         return params
 
-
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         logger.debug("hrit_goes/calibrate")
@@ -457,22 +455,25 @@ class HRITGOESFileHandler(HRITFileHandler):
             return
 
         if calibration == 'reflectance':
-            self._calibrate(data)
+            res = self._calibrate(data)
         elif calibration == 'brightness_temperature':
-            self._calibrate(data)
+            res = self._calibrate(data)
         else:
             raise NotImplementedError("Don't know how to calibrate to " +
                                       str(calibration))
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
     def _calibrate(self, data):
         """Calibrate *data*."""
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
-        data.mask[:] = data.data == 0
-        data.data[:] = np.interp(data.data, idx, val)
-        data.info['units'] = self.mda['calibration_parameters']['_UNIT']
+        # TODO use dask's map_blocks for this
+        res = xr.DataArray(np.interp(data, idx, val),
+                           dims=data.dims, attrs=data.attrs)
+        res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
+        return data
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
