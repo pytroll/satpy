@@ -200,13 +200,17 @@ class HRITFileHandler(BaseFileHandler):
     def end_time(self):
         return self._end_time
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Load a dataset."""
         # Read bands
         data = self.read_band(key, info)
+
         # Convert to xarray
         xdata = xr.DataArray(data, dims=['y', 'x'])
+
         # Mask invalid values
+        xdata = xdata.where(xdata > 0)
+
         return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
