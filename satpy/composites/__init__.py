@@ -385,19 +385,19 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = corrector.get_reflectance(sunz.load(),
-                                                      satz.load(),
-                                                      ssadiff,
+            refl_cor_band = corrector.get_reflectance(sunz.load().values,
+                                                      satz.load().values,
+                                                      ssadiff.load().values,
                                                       vis.attrs['name'],
-                                                      red.load())
+                                                      red.load().values)
         except KeyError:
-            LOG.warning("Could not get the reflectance correction using band name: %s", DatasetID.from_dict(vis.attrs))
+            LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = corrector.get_reflectance(sunz.load(),
-                                                      satz.load(),
-                                                      ssadiff,
+            refl_cor_band = corrector.get_reflectance(sunz.load().values,
+                                                      satz.load().values,
+                                                      ssadiff.load().values,
                                                       vis.attrs['wavelength'][1],
-                                                      red.load())
+                                                      red.load().values)
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
