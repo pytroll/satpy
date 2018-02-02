@@ -419,7 +419,7 @@ class HRITGOESFileHandler(HRITFileHandler):
 
         logger.debug("hrit_goes/get_dataset res")
         self.mda['calibration_parameters'] = self._get_calibration_params()
-        self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key.calibration)
         res.attrs['units'] = info['units']
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
@@ -470,7 +470,8 @@ class HRITGOESFileHandler(HRITFileHandler):
         val = self.mda['calibration_parameters']['values']
         # TODO use dask's map_blocks for this
         res = xr.DataArray(np.interp(data, idx, val),
-                           dims=data.dims, attrs=data.attrs)
+                           dims=data.dims, attrs=data.attrs,
+                           coords=data.coords)
         res = res.where(data > 0)
         res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
         return data
