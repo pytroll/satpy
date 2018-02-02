@@ -116,7 +116,7 @@ composites:
     - 12.0
     standard_name: ash
   cloudtop:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 3.75
     - 10.8
@@ -134,7 +134,7 @@ composites:
     standard_name: convection
     
   snow:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.8
       modifiers: [sunz_corrected]
@@ -145,7 +145,7 @@ composites:
     standard_name: snow
     
   day_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.85
       modifiers: [sunz_corrected]
@@ -169,21 +169,21 @@ composites:
     - 12.0
     standard_name: fog
   green_snow:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
     - 0.635
     - 10.8
     standard_name: green_snow
   natural:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
     - 0.85
     - 0.635
     standard_name: natural
   natural_sun:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
       modifiers: [sunz_corrected]
@@ -200,14 +200,14 @@ composites:
     - 12.0
     standard_name: night_fog
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.6
     - 0.8
     - 10.8
     standard_name: overview
   overview_sun:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.6
       modifiers: [sunz_corrected]
@@ -217,7 +217,7 @@ composites:
     standard_name: overview
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.65
     - 0.5
@@ -297,7 +297,7 @@ composites:
     standard_name: night_microphysics
 
   ir108_3d:
-    compositor: !!python/name:satpy.composites.BWCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: ir108_3d
     prerequisites:
       - name: IR_108
