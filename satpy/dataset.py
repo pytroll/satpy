@@ -90,24 +90,6 @@ def combine_metadata(*metadata_objects):
     return shared_info
 
 
-def combine_attrs(*metadata_objects):
-    """Combine the metadata of two or more Datasets.
-
-    Args:
-        *metadata_objects: MetadataObject or dict objects to combine
-
-    Returns:
-        the combined metadata
-
-    """
-    warnings.warn(
-            "combine_attrs is deprecated, please user combine_metadata.",
-            DeprecationWarning
-        )
-
-    return combine_metadata(*metadata_objects)
-
-
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
