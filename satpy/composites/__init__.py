@@ -778,6 +778,17 @@ class DayNightCompositor(RGBCompositor):
         return res
 
 
+def sub_arrays(proj1, proj2):
+    """Substract two DataArrays and combine their attrs."""
+    res = proj1 - proj2
+    res.attrs = combine_attrs(proj1.attrs, proj2.attrs)
+    if (res.attrs.get('area') is None and
+            proj1.attrs.get('area') is not None and
+            proj2.attrs.get('area') is not None):
+        raise IncompatibleAreas
+    return res
+
+
 class Airmass(RGBCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -794,10 +805,11 @@ class Airmass(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
-                                                projectables[2] -
-                                                projectables[3],
-                                                projectables[0]), *args, **kwargs)
+            ch1 = sub_arrays(projectables[0], projectables[1])
+            ch2 = sub_arrays(projectables[2], projectables[3])
+            res = RGBCompositor.__call__(self, (ch1, ch2,
+                                                projectables[0]),
+                                         *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
@@ -857,9 +869,10 @@ class Dust(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
-                                                projectables[1] -
-                                                projectables[0],
+
+            ch1 = sub_arrays(projectables[2], projectables[1])
+            ch2 = sub_arrays(projectables[1], projectables[0])
+            res = RGBCompositor.__call__(self, (ch1, ch2,
                                                 projectables[1]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
