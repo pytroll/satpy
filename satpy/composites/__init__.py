@@ -547,6 +547,7 @@ class DifferenceCompositor(CompositeBase):
 class RGBCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+                      "instead.", DeprecationWarning)
 
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" %
@@ -590,6 +591,10 @@ class RGBCompositor(CompositeBase):
 class BWCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
+        import warnings
+        warnings.warn("RGBCompositor is deprecated, use GenericCompositor "
+                      "instead.", DeprecationWarning)
 
         if len(projectables) != 1:
             raise ValueError("Expected 1 dataset, got %d" %
