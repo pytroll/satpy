@@ -257,6 +257,22 @@ composites:
     - M16
     standard_name: fog
 
+  dust:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: dust
+
+  ash:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: ash
+
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
