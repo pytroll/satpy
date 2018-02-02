@@ -561,6 +561,9 @@ class DifferenceCompositor(CompositeBase):
 class RGBCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
+        import warnings
+        warnings.warn("RGBCompositor is deprecated, use GenericCompositor "
                       "instead.", DeprecationWarning)
 
         if len(projectables) != 3:
