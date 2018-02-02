@@ -37,7 +37,7 @@ import yaml
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
-                           combine_attrs, combine_metadata)
+                           combine_metadata)
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
@@ -389,12 +389,12 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load(),
                                                       ssadiff,
                                                       vis.attrs['name'],
-						      red.load())
+                                                      red.load())
         except KeyError:
-            LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
+            LOG.warning("Could not get the reflectance correction using band name: %s", DatasetID.from_dict(vis.attrs))
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz.load(),
-						      satz.load(),
+                                                      satz.load(),
                                                       ssadiff,
                                                       vis.attrs['wavelength'][1],
                                                       red.load())
@@ -588,7 +588,7 @@ class RGBCompositor(CompositeBase):
         except ValueError:
             raise IncompatibleAreas
 
-        attrs = combine_attrs(*projectables)
+        attrs = combine_metadata(*projectables)
         attrs.update({key: val
                       for (key, val) in info.items()
                       if val is not None})
@@ -781,7 +781,7 @@ class DayNightCompositor(RGBCompositor):
 def sub_arrays(proj1, proj2):
     """Substract two DataArrays and combine their attrs."""
     res = proj1 - proj2
-    res.attrs = combine_attrs(proj1.attrs, proj2.attrs)
+    res.attrs = combine_metadata(proj1.attrs, proj2.attrs)
     if (res.attrs.get('area') is None and
             proj1.attrs.get('area') is not None and
             proj2.attrs.get('area') is not None):
