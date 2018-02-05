@@ -1,0 +1,53 @@
+reader:
+  description: Generic Eumetsat / KNMI Ascat Metop Wind field Reader
+  name: ascat_metop
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [scatterometer]
+  default_datasets:
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: ascat_wind
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    file_type: ascat_wind
+    standard_name: latitude
+    units: degree
+
+  wind_speed:
+    name: wind_speed
+    sensor: Scatterometer
+    coordinates: [longitude, latitude]
+    file_type: ascat_wind
+    standard_name: wind_speed
+
+  wind_direction:
+    name: wind_direction
+    sensor: Scatterometer
+    coordinates: [longitude, latitude]
+    file_type: ascat_wind
+    standard_name: wind_direction
+
+  ice_prob:
+    name: ice_prob
+    sensor: Scatterometer
+    coordinates: [longitude, latitude]
+    file_type: ascat_wind
+    standard_name: ice_prob
+
+  ice_age:
+    name: ice_age
+    sensor: Scatterometer
+    coordinates: [longitude, latitude]
+    file_type: ascat_wind
+    standard_name: ice_age
+
+
+file_types:
+  ascat_wind:
+    file_reader: !!python/name:satpy.readers.ascat_metop.ASCATMETOPFileHandler ''
+    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc']
