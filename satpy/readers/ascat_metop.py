@@ -39,12 +39,12 @@ class ASCATMETOPFileHandler(BaseFileHandler):
 
         self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date')
                                                         +' '+ds.getncattr('start_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['stop_time'] = datetime.strptime(ds.getncattr('stop_date')
+        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date')
                                                         +' '+ds.getncattr('stop_time'),'%Y-%m-%d %H:%M:%S')
         self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
                                                         +' '+ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
         self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
-
+        print(filename_info)
         self.lons = None
         self.lats = None
 
