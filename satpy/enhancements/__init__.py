@@ -131,7 +131,7 @@ def three_d_effect(img, **kwargs):
     """Create 3D effect using convolution"""
     from scipy.signal import convolve2d
     w = kwargs.get('weight', 1)
-    LOG.debug("Applying 3D effect with weight %f.2", w)
+    LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
                        [-w, 1, w],
                        [-w, 0, w]])
