@@ -611,7 +611,6 @@ class RGBCompositor(CompositeBase):
         attrs["sensor"] = sensor
         attrs["mode"] = "RGB"
         the_data.attrs.update(attrs)
-        the_data.attrs.pop('resolution', None)
         the_data.attrs.pop('calibration', None)
         the_data.attrs.pop('modifiers', None)
         the_data.name = the_data.attrs['name']

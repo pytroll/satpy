@@ -191,7 +191,7 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
   reflectance:
-    standard_name: reflectance
+    standard_name: toa_bidirectional_reflectance
     operations:
     - name: stretch
       method: *stretchfun
