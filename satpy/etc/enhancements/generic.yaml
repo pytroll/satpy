@@ -590,3 +590,18 @@ enhancements:
       method: *stretchfun
       kwargs: {stretch: linear}
 
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    operations:
+      - name: inverse
+        method: *inversefun
+        args:
+          - [True, false]
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: linear
+      - name: 3d
+        method: *3d_filter
+        kwargs:
+          weight: 1.0
