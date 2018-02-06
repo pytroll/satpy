@@ -117,10 +117,4 @@ def step_impl(context):
     ref_filename = os.path.join(context.data_path, "ref", ref_filename)
     assert os.path.exists(ref_filename), "Missing reference file."
     assert_images_match(ref_filename, context.new_filename)
-
-
-def after_scenario(context, scenario):
-    """Run after each scenario."""
-    del scenario
-    if hasattr(context, 'new_filename'):
-        os.remove(context.new_filename)
+    os.remove(context.new_filename)
