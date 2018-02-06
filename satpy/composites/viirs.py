@@ -28,9 +28,9 @@ import os
 
 import numpy as np
 
-from satpy.composites import CompositeBase, IncompatibleAreas
+from satpy.composites import CompositeBase, RGBCompositor, IncompatibleAreas
 from satpy.config import get_environ_ancpath
-from satpy.dataset import Dataset, combine_metadata
+from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
 
@@ -44,37 +44,17 @@ class VIIRSFog(CompositeBase):
 
         p1, p2 = projectables
         fog = p1 - p2
-        fog.info.update(self.attrs)
-        fog.info["area"] = p1.info["area"]
-        fog.info["start_time"] = p1.info["start_time"]
-        fog.info["end_time"] = p1.info["end_time"]
-        fog.info["name"] = self.attrs["name"]
-        fog.info["wavelength"] = None
-        fog.info.setdefault("mode", "L")
+        fog.attrs.update(self.attrs)
+        fog.attrs["area"] = p1.attrs["area"]
+        fog.attrs["start_time"] = p1.attrs["start_time"]
+        fog.attrs["end_time"] = p1.attrs["end_time"]
+        fog.attrs["name"] = self.attrs["name"]
+        fog.attrs["wavelength"] = None
+        fog.attrs.setdefault("mode", "L")
         return fog
 
 
-class VIIRSTrueColor(CompositeBase):
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables), ))
-
-        # Collect information that is the same between the projectables
-        info = combine_metadata(*projectables)
-        # Update that information with configured information (including name)
-        info.update(self.attrs)
-        # Force certain pieces of metadata that we *know* to be true
-        info["wavelength"] = None
-        info["mode"] = self.attrs.get("mode", "RGB")
-        return Dataset(data=np.rollaxis(
-            np.ma.dstack([projectable for projectable in projectables]),
-            axis=2),
-            **info)
-
-
-class RatioSharpenedRGB(CompositeBase):
+class RatioSharpenedRGB(RGBCompositor):
 
     def __init__(self, *args, **kwargs):
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
@@ -84,80 +64,63 @@ class RatioSharpenedRGB(CompositeBase):
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
 
-        area = None
-        n = {}
+        new_attrs = {}
         p1, p2, p3 = datasets
         if optional_datasets:
             high_res = optional_datasets[0]
             low_res = datasets[["red", "green", "blue"].index(
                 self.high_resolution_band)]
-            if high_res.info["area"] != low_res.info["area"]:
-                if np.mod(high_res.shape[0], low_res.shape[0]) or \
-                        np.mod(high_res.shape[1], low_res.shape[1]):
-                    raise IncompatibleAreas(
-                        "High resolution band is not mapped the same area as the low resolution bands")
-                else:
-                    f0 = high_res.shape[0] / low_res.shape[0]
-                    f1 = high_res.shape[1] / low_res.shape[1]
-                    if p1.shape != high_res.shape:
-                        p1 = np.ma.repeat(np.ma.repeat(
-                            p1, f0, axis=0), f1, axis=1)
-                        p1.info["area"] = high_res.info["area"]
-                    if p2.shape != high_res.shape:
-                        p2 = np.ma.repeat(np.ma.repeat(
-                            p2, f0, axis=0), f1, axis=1)
-                        p2.info["area"] = high_res.info["area"]
-                    if p3.shape != high_res.shape:
-                        p3 = np.ma.repeat(np.ma.repeat(
-                            p3, f0, axis=0), f1, axis=1)
-                        p3.info["area"] = high_res.info["area"]
-                    area = high_res.info["area"]
-            if 'rows_per_scan' in high_res.info:
-                n.setdefault('rows_per_scan', high_res.info['rows_per_scan'])
-            n.setdefault('resolution', high_res.info['resolution'])
+            if high_res.attrs["area"] != low_res.attrs["area"]:
+                    raise IncompatibleAreas("High resolution band is not "
+                                            "mapped to the same area as the "
+                                            "low resolution bands. Must "
+                                            "resample first.")
+            if 'rows_per_scan' in high_res.attrs:
+                new_attrs.setdefault('rows_per_scan',
+                                     high_res.attrs['rows_per_scan'])
+            new_attrs.setdefault('resolution', high_res.attrs['resolution'])
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
-                ratio = high_res.data / p1.data
-                r = high_res.data
-                g = p2.data * ratio
-                b = p3.data * ratio
+                ratio = high_res / p1
+                r = high_res
+                g = p2 * ratio
+                b = p3 * ratio
             elif self.high_resolution_band == "green":
                 LOG.debug("Sharpening image with high resolution green band")
-                ratio = high_res.data / p2.data
-                r = p1.data * ratio
-                g = high_res.data
-                b = p3.data * ratio
+                ratio = high_res / p2
+                r = p1 * ratio
+                g = high_res
+                b = p3 * ratio
             elif self.high_resolution_band == "blue":
                 LOG.debug("Sharpening image with high resolution blue band")
-                ratio = high_res.data / p3.data
-                r = p1.data * ratio
-                g = p2.data * ratio
-                b = high_res.data
+                ratio = high_res / p3
+                r = p1 * ratio
+                g = p2 * ratio
+                b = high_res
             else:
                 # no sharpening
-                r = p1.data
-                g = p2.data
-                b = p3.data
-            mask = p1.mask | p2.mask | p3.mask | high_res.mask
+                r = p1
+                g = p2
+                b = p3
         else:
-            r, g, b = p1.data, p2.data, p3.data
-            mask = p1.mask | p2.mask | p3.mask
+            r, g, b = p1, p2, p3
+        # combine the masks
+        mask = ~(r.isnull() | g.isnull() | b.isnull())
+        r = r.where(mask)
+        g = g.where(mask)
+        b = b.where(mask)
 
         # Collect information that is the same between the projectables
+        # we want to use the metadata from the original datasets since the
+        # new r, g, b arrays may have lost their metadata during calculations
         info = combine_metadata(*datasets)
-        info.update(n)
+        info.update(new_attrs)
         # Update that information with configured information (including name)
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
-        info["wavelength"] = None
         info.setdefault("standard_name", "true_color")
         info["mode"] = self.attrs.get("mode", "RGB")
-        if area is not None:
-            info['area'] = area
-        return Dataset(data=np.concatenate(
-            ([r], [g], [b]), axis=0),
-            mask=np.array([[mask, mask, mask]]),
-            **info)
+        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
 
 
 class ReflectanceCorrector(CompositeBase):
@@ -1127,7 +1090,7 @@ class NCCZinke(CompositeBase):
         return gain
 
 
-class SnowAge(CompositeBase):
+class SnowAge(RGBCompositor):
 
     """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
@@ -1146,6 +1109,17 @@ class SnowAge(CompositeBase):
     # Pascale Roquet at Pascale.Roquet@meteo.fr
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate a SnowAge RGB composite.
+
+        The algorithm and the product are described in this
+        presentation :
+        http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        For further information you may contact
+        Bernard Bellec at Bernard.Bellec@meteo.fr
+        or
+        Pascale Roquet at Pascale.Roquet@meteo.fr
+        
+        """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
                              (len(projectables), ))
@@ -1156,7 +1130,6 @@ class SnowAge(CompositeBase):
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
-        info["mode"] = self.attrs.get("mode", "RGB")
 
         m07 = projectables[0] * 255. / 160.
         m08 = projectables[1] * 255. / 160.
@@ -1164,10 +1137,10 @@ class SnowAge(CompositeBase):
         m10 = projectables[3] * 255. / 160.
         m11 = projectables[4] * 255. / 160.
         refcu = m11 - m10
-        refcu[refcu < 0] = 0
+        refcu = refcu.clip(min=0)
 
         ch1 = m07 - refcu / 2. - m09 / 4.
         ch2 = m08 + refcu / 4. + m09 / 4.
         ch3 = m11 + m09
 
-        return Dataset(data=[ch1, ch2, ch3], **info)
+        return RGBCompositor.__call__(self, [ch1, ch2, ch3], **info)

@@ -27,6 +27,7 @@
 import logging
 import numbers
 from collections import namedtuple
+import warnings
 
 import numpy as np
 import six
@@ -74,48 +75,6 @@ def combine_metadata(*metadata_objects):
             shared_keys = set(metadata_dict.keys())
         else:
             shared_keys &= set(metadata_dict.keys())
-
-    # combine all of the dictionaries
-    shared_info = {}
-    for k in shared_keys:
-        values = [nfo[k] for nfo in info_dicts]
-        any_arrays = any([isinstance(val, np.ndarray) for val in values])
-        if any_arrays:
-            if all(np.all(val == values[0]) for val in values[1:]):
-                shared_info[k] = values[0]
-        elif all(val == values[0] for val in values[1:]):
-            shared_info[k] = values[0]
-
-    return shared_info
-
-
-def combine_attrs(*metadata_objects):
-    """Combine the metadata of two or more Datasets.
-
-    Args:
-        *metadata_objects: MetadataObject or dict objects to combine
-
-    Returns:
-        the combined metadata
-
-    """
-    shared_keys = None
-    info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared
-    # keys
-    for info_object in metadata_objects:
-        if isinstance(info_object, dict):
-            info_dict = info_object
-        elif hasattr(info_object, "attrs"):
-            info_dict = info_object.attrs
-        else:
-            continue
-        info_dicts.append(info_dict)
-
-        if shared_keys is None:
-            shared_keys = set(info_dict.keys())
-        else:
-            shared_keys &= set(info_dict.keys())
 
     # combine all of the dictionaries
     shared_info = {}
