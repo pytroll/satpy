@@ -106,13 +106,6 @@ time_cds_expanded = np.dtype([('days', '>u2'),
                               ('nanoseconds', '>u2')])
 
 
-def make_time_cds_expanded(tcds_array):
-    return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['days']),
-                      milliseconds=int(tcds_array['milliseconds']),
-                      microseconds=float(tcds_array['microseconds'] +
-                                         tcds_array['nanoseconds'] / 1000.)))
-
 sgs_time = np.dtype([('century', 'u1'),
                      ('year', 'u1'),
                      ('doy1', 'u1'),
