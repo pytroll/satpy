@@ -10,7 +10,7 @@ before_install:
 - source travis/linux_install.sh
 install:
 - pip install -U pip
-- pip install -U setuptools
+- pip install -U setuptools==38.4.0
 - pip install .
 - pip install h5py
 - pip install coveralls
