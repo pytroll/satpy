@@ -192,7 +192,6 @@ class TestFindFilesAndReaders(unittest.TestCase):
         finally:
             os.remove(fn)
 
-
     def test_reader_other_name(self):
         """Test with default base_dir and reader specified"""
         from satpy.readers import find_files_and_readers
