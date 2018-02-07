@@ -192,6 +192,20 @@ class TestFindFilesAndReaders(unittest.TestCase):
         finally:
             os.remove(fn)
 
+
+    def test_reader_other_name(self):
+        """Test with default base_dir and reader specified"""
+        from satpy.readers import find_files_and_readers
+        fn = 'S_NWC_CPP_npp_32505_20180204T1114116Z_20180204T1128227Z.nc'
+        # touch the file so it exists on disk
+        open(fn, 'w')
+        try:
+            ri = find_files_and_readers(reader='nc_nwcsaf_pps')
+            self.assertListEqual(list(ri.keys()), ['nc_nwcsaf_pps'])
+            self.assertListEqual(ri['nc_nwcsaf_pps'], [fn])
+        finally:
+            os.remove(fn)
+
     def test_reader_name_matched_start_end_time(self):
         """Test with start and end time matching the filename"""
         from satpy.readers import find_files_and_readers
