@@ -100,8 +100,10 @@ class GeoTIFFWriter(ImageWriter):
         """
         if fill_value is not None:
             for i, chan in enumerate(datasets):
-                ds = chan.filled(fill_value[i])
-                dst_ds.GetRasterBand(i + 1).WriteArray(ds)
+                chn = chan.filled(fill_value[i])
+                bnd = dst_ds.GetRasterBand(i + 1)
+                bnd.SetNoDataValue(fill_value[i])
+                bnd.WriteArray(chn)
         else:
             mask = np.zeros(datasets[0].shape, dtype=np.bool)
             i = 0
