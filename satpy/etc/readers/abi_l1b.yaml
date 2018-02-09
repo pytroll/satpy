@@ -8,7 +8,8 @@ reader:
 file_types:
     c01:
         file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc',
+                        '{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc']
     c02:
         file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
         file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{dataset_name:3s}{area_code:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc',
