@@ -236,7 +236,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__delitem__(key)
 
 
-def read_reader_config(config_files):
+def read_reader_config(config_files, loader=yaml.Loader):
     """Read the reader *config_files* and return the info extracted.
     """
 
@@ -244,7 +244,7 @@ def read_reader_config(config_files):
     LOG.debug('Reading ' + str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
-            conf.update(yaml.load(fd.read()))
+            conf.update(yaml.load(fd.read(), loader))
 
     try:
         reader_info = conf['reader']
