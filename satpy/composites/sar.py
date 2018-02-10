@@ -25,8 +25,7 @@
 import logging
 
 import xarray.ufuncs as xu
-
-from satpy.composites import RGBCompositor
+from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +43,7 @@ def overlay(top, bottom):
     return res
 
 
-class SARIce(RGBCompositor):
+class SARIce(GenericCompositor):
     """The SAR Ice composite."""
 
     def __call__(self, projectables, *args, **kwargs):

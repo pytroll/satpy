@@ -25,7 +25,7 @@
 import logging
 import numpy as np
 
-from satpy.composites import RGBCompositor
+from satpy.composites import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def simulated_green(c01, c02, c03):
     return (c01 + c02) / 2 * 0.93 + 0.07 * c03
 
 
-class TrueColor2km(RGBCompositor):
+class TrueColor2km(GenericCompositor):
     """True Color ABI compositor assuming all bands are the same resolution"""
 
     def __call__(self, projectables, **info):
@@ -70,7 +70,7 @@ class TrueColor2km(RGBCompositor):
         return super(TrueColor2km, self).__call__((r, g, b), **info)
 
 
-class TrueColor(RGBCompositor):
+class TrueColor(GenericCompositor):
     """Ratio sharpened full resolution true color"""
 
     def __call__(self, projectables, **info):
