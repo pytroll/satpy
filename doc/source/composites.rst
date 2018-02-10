@@ -14,11 +14,11 @@ Making custom composites
 
     These features will be added to the ``Scene`` object in the future.
 
-Building custom composites makes use of the :class:`RGBCompositor` class. For example,
+Building custom composites makes use of the :class:`GenericCompositor` class. For example,
 building an overview composite can be done manually with::
 
-    >>> from satpy.composites import RGBCompositor
-    >>> compositor = RGBCompositor("myoverview", "bla", "")
+    >>> from satpy.composites import GenericCompositor
+    >>> compositor = GenericCompositor("myoverview", "bla", "")
     >>> composite = compositor([local_scene[0.6],
     ...                         local_scene[0.8],
     ...                         local_scene[10.8]])
