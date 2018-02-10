@@ -27,10 +27,10 @@
 import logging
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
+import xarray as xr
 
-from satpy.dataset import Dataset
+from pyresample.utils import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -53,20 +53,29 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAF(BaseFileHandler):
-
     """NWCSAF PPS&MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Init method"""
+        """Init method."""
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=False,
+                                  engine='h5netcdf',
+                                  chunks=1000)
+
+        self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
+
         self.pps = False
 
         try:
             # MSG:
             sat_id = self.nc.attrs['satellite_identifier']
-            self.platform_name = PLATFORM_NAMES[sat_id]
+            try:
+                self.platform_name = PLATFORM_NAMES[sat_id]
+            except KeyError:
+                self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
         except KeyError:
             # PPS:
             self.platform_name = self.nc.attrs['platform']
@@ -74,51 +83,60 @@ class NcNWCSAF(BaseFileHandler):
 
         self.sensor = SENSOR.get(self.platform_name, 'seviri')
 
-    # def get_shape(self, dsid, ds_info):
-    #     """Get the shape of the data."""
-    #     raise NotImplementedError
-    #     #     return self.nc[dsid.name].shape
-
-    def get_dataset(self, dsid, info, out=None):
+    def get_dataset(self, dsid, info):
         """Load a dataset."""
-
         logger.debug('Reading %s.', dsid.name)
         variable = self.nc[dsid.name]
 
-        info = {'platform_name': self.platform_name,
-                'sensor': self.sensor}
+        variable = remove_empties(variable)
 
+        if 'scale_factor' in variable.attrs or 'add_offset' in variable.attrs:
+            scale = variable.attrs.get('scale_factor', 1)
+            offset = variable.attrs.get('add_offset', 0)
+            if np.issubdtype((scale + offset).dtype, np.floating):
+                if '_FillValue' in variable.attrs:
+                    variable = variable.where(
+                        variable != variable.attrs['_FillValue'])
+                if 'valid_range' in variable.attrs:
+                    variable = variable.where(
+                        variable <= variable.attrs['valid_range'][1])
+                    variable = variable.where(
+                        variable >= variable.attrs['valid_range'][0])
+                if 'valid_max' in variable.attrs:
+                    variable = variable.where(
+                        variable <= variable.attrs['valid_max'])
+                if 'valid_min' in variable.attrs:
+                    variable = variable.where(
+                        variable >= variable.attrs['valid_min'])
+
+            variable = variable * scale + offset
+
+        variable.attrs.update({'platform_name': self.platform_name,
+                               'sensor': self.sensor})
+
+        variable.attrs.setdefault('units', '1')
+
+        ancillary_names = variable.attrs.get('ancillary_variables', '')
         try:
-            values = np.ma.masked_equal(variable[:],
-                                        variable.attrs['_FillValue'], copy=False)
-        except KeyError:
-            values = np.ma.array(variable[:], copy=False)
-        if 'scale_factor' in variable.attrs:
-            values = values * variable.attrs['scale_factor']
-            info['scale_factor'] = variable.attrs['scale_factor']
-        if 'add_offset' in variable.attrs:
-            values = values + variable.attrs['add_offset']
-            info['add_offset'] = variable.attrs['add_offset']
-        if 'valid_range' in variable.attrs:
-            info['valid_range'] = variable.attrs['valid_range']
-        if 'units' in variable.attrs:
-            info['units'] = variable.attrs['units']
-        if 'standard_name' in variable.attrs:
-            info['standard_name'] = variable.attrs['standard_name']
+            variable.attrs['ancillary_variables'] = ancillary_names.split()
+        except AttributeError:
+            pass
+
+        if 'standard_name' in info:
+            variable.attrs.setdefault('standard_name', info['standard_name'])
 
         if self.pps and dsid.name == 'ctth_alti':
-            info['valid_range'] = (0., 8500.)
+            variable.attrs['valid_range'] = (0., 8500.)
         if self.pps and dsid.name == 'ctth_alti_pal':
-            values = values[1:, :]
+            variable = variable[1:, :]
 
-        proj = Dataset(np.squeeze(values),
-                       copy=False,
-                       **info)
-        return proj
+        return variable
 
     def get_area_def(self, dsid):
-        """Get the area definition of the datasets in the file. 
-        Only applicable for MSG products!"""
+        """Get the area definition of the datasets in the file.
+
+        Only applicable for MSG products!
+        """
         if self.pps:
             # PPS:
             raise NotImplementedError
@@ -126,7 +144,10 @@ class NcNWCSAF(BaseFileHandler):
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
 
-        proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        try:
+            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
 
         nlines, ncols = self.nc[dsid.name].shape
 
@@ -147,18 +168,42 @@ class NcNWCSAF(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Return the start time of the object."""
         try:
             # MSG:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
+            try:
+                return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                         '%Y-%m-%dT%H:%M:%SZ')
+            except TypeError:
+                return datetime.strptime(self.nc.attrs['time_coverage_start'].astype(str),
+                                         '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%dT%H%M%S%fZ')
+            return datetime.strptime(self.nc.attrs['time_coverage_start'],
+                                     '%Y%m%dT%H%M%S%fZ')
 
     @property
     def end_time(self):
+        """Return the end time of the object."""
         try:
             # MSG:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
+            try:
+                return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                         '%Y-%m-%dT%H:%M:%SZ')
+            except TypeError:
+                return datetime.strptime(self.nc.attrs['time_coverage_end'].astype(str),
+                                         '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             # PPS:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%dT%H%M%S%fZ')
+            return datetime.strptime(self.nc.attrs['time_coverage_end'],
+                                     '%Y%m%dT%H%M%S%fZ')
+
+
+def remove_empties(variable):
+    """Remove empty objects from the *variable*'s attrs."""
+    import h5py
+    for key, val in variable.attrs.items():
+        if isinstance(val, h5py._hl.base.Empty):
+            variable.attrs.pop(key)
+
+    return variable

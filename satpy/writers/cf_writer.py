@@ -25,18 +25,18 @@
 import logging
 from datetime import datetime
 
-import cf
-import numpy as np
+import xarray as xr
 
+from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 
 LOG = logging.getLogger(__name__)
 
+EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
+
 
 def omerc2cf(proj_dict):
     """Return the cf grid mapping for the omerc projection."""
-    grid_mapping_name = 'oblique_mercator'
-
     if "no_rot" in proj_dict:
         no_rotation = " "
     else:
@@ -45,6 +45,7 @@ def omerc2cf(proj_dict):
     args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lonc'),
+                grid_mapping_name='oblique_mercator',
                 # longitude_of_projection_origin=0.,
                 no_rotation=no_rotation,
                 # reference_ellipsoid_name=proj_dict.get('ellps'),
@@ -52,35 +53,30 @@ def omerc2cf(proj_dict):
                 semi_minor_axis=6356752.3142,
                 false_easting=0.,
                 false_northing=0.,
-                crtype='grid_mapping',
-                coords=['projection_x_coordinate', 'projection_y_coordinate'])
-    return cf.CoordinateReference(grid_mapping_name, **args)
+                )
+    return args
 
 
 def geos2cf(proj_dict):
     """Return the cf grid mapping for the geos projection."""
-    grid_mapping_name = 'geostationary'
-
     args = dict(perspective_point_height=proj_dict.get('h'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
+                grid_mapping_name='geostationary',
                 semi_major_axis=proj_dict.get('a'),
                 semi_minor_axis=proj_dict.get('b'),
                 sweep_axis=proj_dict.get('sweep'),
-                crtype='grid_mapping',
-                coords=['projection_x_coordinate', 'projection_y_coordinate'])
-    return cf.CoordinateReference(grid_mapping_name, **args)
+                )
+    return args
 
 
 def laea2cf(proj_dict):
     """Return the cf grid mapping for the laea projection."""
-    grid_mapping_name = 'lambert_azimuthal_equal_area'
-
     args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
-                crtype='grid_mapping',
-                coords=['projection_x_coordinate', 'projection_y_coordinate'])
-    return cf.CoordinateReference(grid_mapping_name, **args)
+                grid_mapping_name='lambert_azimuthal_equal_area',
+                )
+    return args
 
 
 mappings = {'omerc': omerc2cf,
@@ -90,118 +86,129 @@ mappings = {'omerc': omerc2cf,
 
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
-
     try:
         grid_mapping = mappings[area.proj_dict['proj']](area.proj_dict)
+        grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
         raise NotImplementedError
 
     return grid_mapping
 
 
+def get_extra_ds(dataset):
+    """Get the extra datasets associated to *dataset*."""
+    ds_collection = {}
+    for ds in dataset.attrs.get('ancillary_variables', []):
+        ds_collection.update(get_extra_ds(ds))
+    ds_collection[dataset.attrs['name']] = dataset
+
+    return ds_collection
+
+
+def area2lonlat(dataarray):
+    """Convert an area to longitudes and latitudes."""
+    area = dataarray.attrs['area']
+    lons, lats = area.get_lonlats_dask()
+    lons = xr.DataArray(lons, dims=['y', 'x'],
+                        attrs={'name': "longitude",
+                               'standard_name': "longitude",
+                               'units': 'degrees_east'},
+                        name='longitude')
+    lats = xr.DataArray(lats, dims=['y', 'x'],
+                        attrs={'name': "latitude",
+                               'standard_name': "latitude",
+                               'units': 'degrees_north'},
+                        name='latitude')
+    dataarray.attrs['coordinates'] = 'longitude latitude'
+
+    return [dataarray, lons, lats]
+
+
+def area2gridmapping(dataarray):
+    area = dataarray.attrs['area']
+    attrs = create_grid_mapping(area)
+    name = attrs['name']
+    dataarray.attrs['grid_mapping'] = name
+    return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
+
+
+def area2cf(dataarray, strict=False):
+    res = []
+    if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
+        res = area2lonlat(dataarray)
+    if isinstance(dataarray.attrs['area'], AreaDefinition):
+        res.extend(area2gridmapping(dataarray))
+
+    res.append(dataarray)
+    return res
+
+
 class CFWriter(Writer):
+    """Writer producing NetCDF/CF compatible datasets."""
+
+    @staticmethod
+    def da2cf(dataarray, epoch=EPOCH):
+        """Convert the dataarray to something cf-compatible."""
+        new_data = dataarray.copy()
+        # TODO: make these boundaries of the time dimension
+        new_data.attrs.pop('start_time', None)
+        new_data.attrs.pop('end_time', None)
+
+        # Remove the area
+        new_data.attrs.pop('area', None)
+
+        anc = [ds.attrs['name']
+               for ds in new_data.attrs.get('ancillary_variables', [])]
+        if anc:
+            new_data.attrs['ancillary_variables'] = ' '.join(anc)
+        # TODO: make this a grid mapping or lon/lats
+        # new_data.attrs['area'] = str(new_data.attrs.get('area'))
+        for key, val in new_data.attrs.copy().items():
+            if val is None:
+                new_data.attrs.pop(key)
+        new_data.attrs.pop('_last_resampler', None)
+
+        if 'time' in new_data.coords:
+            new_data['time'].encoding['units'] = epoch
+            new_data['time'].attrs['standard_name'] = 'time'
+            new_data['time'].attrs.pop('bounds', None)
+
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
+            new_data['x'].attrs['units'] = 'm'
+
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
+            new_data['y'].attrs['units'] = 'm'
+
+        new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        return new_data
+
+    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+        """Save the *dataset* to a given *filename*."""
+        return self.save_datasets([dataset], filename, **kwargs)
 
     def save_datasets(self, datasets, filename, **kwargs):
         """Save all datasets to one or more files."""
         LOG.info('Saving datasets to NetCDF4/CF.')
-        fields = []
-        shapes = {}
-        for dataset in datasets:
-            if dataset.shape in shapes:
-                domain = shapes[dataset.shape]
-            else:
-                lines, pixels = dataset.shape
 
-                area = dataset.info.get('area')
-                add_time = False
-                try:
-                    # Create a longitude auxiliary coordinate
-                    lat = cf.AuxiliaryCoordinate(data=cf.Data(area.lats,
-                                                              'degrees_north'))
-                    lat.standard_name = 'latitude'
+        ds_collection = {}
+        for ds in datasets:
+            ds_collection.update(get_extra_ds(ds))
 
-                    # Create a latitude auxiliary coordinate
-                    lon = cf.AuxiliaryCoordinate(data=cf.Data(area.lons,
-                                                              'degrees_east'))
-                    lon.standard_name = 'longitude'
-                    aux = [lat, lon]
-                    add_time = True
-                except AttributeError:
-                    LOG.info('No longitude and latitude data to save.')
-                    aux = None
-
-                try:
-                    grid_mapping = create_grid_mapping(area)
-                    units = area.proj_dict.get('units', 'm')
-
-                    line_coord = cf.DimensionCoordinate(
-                        data=cf.Data(area.proj_y_coords, units))
-                    line_coord.standard_name = "projection_y_coordinate"
-                    pixel_coord = cf.DimensionCoordinate(
-                        data=cf.Data(area.proj_x_coords, units))
-                    pixel_coord.standard_name = "projection_x_coordinate"
-                    add_time = True
-
-                except (AttributeError, NotImplementedError):
-                    LOG.info('No grid mapping to save.')
-                    grid_mapping = None
-                    line_coord = cf.DimensionCoordinate(
-                        data=cf.Data(np.arange(lines), '1'))
-                    line_coord.standard_name = "line"
-                    pixel_coord = cf.DimensionCoordinate(
-                        data=cf.Data(np.arange(pixels), '1'))
-                    pixel_coord.standard_name = "pixel"
-
-                start_time = cf.dt(dataset.info['start_time'])
-                end_time = cf.dt(dataset.info['end_time'])
-                middle_time = cf.dt((dataset.info['end_time'] -
-                                     dataset.info['start_time']) / 2 +
-                                    dataset.info['start_time'])
-                # import ipdb
-                # ipdb.set_trace()
-                if add_time:
-                    info = dataset.info
-                    dataset = dataset[np.newaxis, :, :]
-                    dataset.info = info
-
-                    bounds = cf.CoordinateBounds(
-                        data=cf.Data([start_time, end_time],
-                                     cf.Units('days since 1970-1-1')))
-                    time_coord = cf.DimensionCoordinate(properties=dict(standard_name='time'),
-                                                        data=cf.Data(middle_time,
-                                                                     cf.Units('days since 1970-1-1')),
-                                                        bounds=bounds)
-                    coords = [time_coord, line_coord, pixel_coord]
-                else:
-                    coords = [line_coord, pixel_coord]
-
-                domain = cf.Domain(dim=coords,
-                                   aux=aux,
-                                   ref=grid_mapping)
-                shapes[dataset.shape] = domain
-            data = cf.Data(dataset, dataset.info.get('units', 'm'))
-
-            # import ipdb
-            # ipdb.set_trace()
-
-            wanted_keys = ['standard_name', 'long_name']
-            properties = {k: dataset.info[k]
-                          for k in set(wanted_keys) & set(dataset.info.keys())}
-            new_field = cf.Field(properties=properties,
-                                 data=data,
-                                 domain=domain)
-
-            new_field._FillValue = dataset.fill_value
+        datas = {}
+        for ds in ds_collection.values():
             try:
-                new_field.valid_range = dataset.info['valid_range']
+                new_datasets = area2cf(ds)
             except KeyError:
-                new_field.valid_range = new_field.min(), new_field.max()
-            new_field.Conventions = 'CF-1.7'
-            fields.append(new_field)
+                new_datasets = [ds]
+            for new_ds in new_datasets:
+                datas[new_ds.attrs['name']] = self.da2cf(new_ds,
+                                                         kwargs.get('epoch',
+                                                                    EPOCH))
 
-        fields[0].history = ("Created by pytroll/satpy on " +
-                             str(datetime.utcnow()))
-
-        flist = cf.FieldList(fields)
-
-        cf.write(flist, filename, fmt='NETCDF4', compress=6)
+        dataset = xr.Dataset(datas)
+        dataset.attrs['history'] = ("Created by pytroll/satpy on " +
+                                    str(datetime.utcnow()))
+        dataset.attrs['conventions'] = 'CF-1.7'
+        dataset.to_netcdf(filename, engine='h5netcdf')

@@ -41,7 +41,10 @@ import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy.dataset import Dataset, DatasetID
+import dask.array as da
+import xarray as xr
+from satpy import CHUNK_SIZE
+from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -150,8 +153,10 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
             mask = var[:] == var._FillValue
             data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
-            return Dataset(data, id=key, **info)
-
+            data = data.filled(np.nan)
+            return xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                            CHUNK_SIZE)),
+                                dims=['y', 'x'])
         if key.name not in ['longitude', 'latitude']:
             return
 
@@ -177,9 +182,15 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             self.cache[key.resolution]['lats'] = lats
 
         if key.name == 'latitude':
-            return Dataset(self.cache[key.resolution]['lats'], id=key, **info)
+            data = self.cache[key.resolution]['lats'].filled(np.nan)
         else:
-            return Dataset(self.cache[key.resolution]['lons'], id=key, **info)
+            data = self.cache[key.resolution]['lons'].filled(np.nan)
+
+        data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                        CHUNK_SIZE)),
+                            dims=['y', 'x'])
+        data.attrs = info
+        return data
 
     def load(self, keys, interpolate=True, raw=False):
         """Load the data."""
@@ -198,10 +209,12 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                     key.resolution < self.resolution and
                     interpolate):
                 data = self._interpolate(data, self.resolution, key.resolution)
-            if raw:
-                projectables.append(data)
-            else:
-                projectables.append(Dataset(data, id=key))
+            if not raw:
+                data = data.filled(np.nan)
+                data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                                CHUNK_SIZE)),
+                                    dims=['y', 'x'])
+            projectables.append(data)
 
         return projectables
 
@@ -308,8 +321,12 @@ class HDFEOSBandReader(HDFEOSFileReader):
                 array = calibrate_tb(subdata, uncertainty, [index], band_names)
             else:
                 array = calibrate_refl(subdata, uncertainty, [index])
+            projectable = xr.DataArray(da.from_array(array[0].filled(np.nan),
+                                                     chunks=(CHUNK_SIZE,
+                                                             CHUNK_SIZE)),
+                                       dims=['y', 'x'])
+            projectable.attrs = info
 
-            projectable = Dataset(array[0], id=key, mask=array[0].mask, **info)
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape

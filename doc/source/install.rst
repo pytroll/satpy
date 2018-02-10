@@ -37,4 +37,3 @@ To activate this environment use
 .. code-block:: bash
 
     $ source activate satpy-env 
-

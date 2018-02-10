@@ -15,9 +15,9 @@ def step_impl(context):
     :type context: behave.runner.Context
     """
     from satpy import Scene
-    from satpy.dataset import Dataset
+    from xarray import DataArray
     scn = Scene()
-    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]])
     context.scene = scn
 
 
@@ -64,10 +64,10 @@ def step_impl(context):
     :type context: behave.runner.Context
     """
     from satpy import Scene
-    from satpy.dataset import Dataset
+    from xarray import DataArray
     scn = Scene()
-    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
-    scn["MyDataset2"] = Dataset([[5, 6], [7, 8]])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]])
+    scn["MyDataset2"] = DataArray([[5, 6], [7, 8]])
     context.scene = scn
 
 

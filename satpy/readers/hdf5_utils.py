@@ -29,15 +29,17 @@ import logging
 import h5py
 import numpy as np
 import six
+import xarray as xr
+import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.helper_functions import np2str
+from satpy.readers.utils import np2str
+from satpy import CHUNK_SIZE
 
 LOG = logging.getLogger(__name__)
 
 
 class HDF5FileHandler(BaseFileHandler):
-
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
 
@@ -75,9 +77,14 @@ class HDF5FileHandler(BaseFileHandler):
     def __getitem__(self, key):
         val = self.file_content[key]
         if isinstance(val, h5py.Dataset):
-            # these datasets are closed and inaccessible when the file is
-            # closed, need to reopen
-            return h5py.File(self.filename, 'r')[key].value
+            # these datasets are closed and inaccessible when the file is closed, need to reopen
+            dset = h5py.File(self.filename, 'r')[key]
+            dset = da.from_array(dset, chunks=CHUNK_SIZE)
+            if dset.ndim > 1:
+                return xr.DataArray(dset, dims=['y', 'x'])
+            else:
+                return xr.DataArray(dset)
+
         return val
 
     def __contains__(self, item):
