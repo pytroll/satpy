@@ -591,10 +591,7 @@ class GenericCompositor(CompositeBase):
                 raise IncompatibleTimes
             else:
                 mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
-            projectables[0]['time'] = [mid_time]
-            projectables[1]['time'] = [mid_time]
-            projectables[2]['time'] = [mid_time]
-        return times
+            return mid_time
 
     def __call__(self, projectables, nonprojectables=None, **attrs):
 
@@ -605,25 +602,26 @@ class GenericCompositor(CompositeBase):
         else:
             data = projectables[0]
 
-        # TODO: How should we handle times?
+        # if inputs have a time coordinate that may differ slightly between
+        # themselves then find the mid time and use that as the single
+        # time coordinate value
+        time = self._get_times(projectables)
+        if time is not None:
+            data['time'] = [time]
 
         new_attrs = combine_metadata(*projectables)
-        # FIXME: in what situations are the vals None?
-        # In what situations do we not want those?
-        # What if the user is forcing it?
+        # remove metadata that shouldn't make sense in a composite
+        new_attrs["wavelength"] = None
+        new_attrs.pop("units", None)
+        new_attrs.pop('calibration', None)
+        new_attrs.pop('modifiers', None)
+
         new_attrs.update({key: val
                           for (key, val) in attrs.items()
                           if val is not None})
         new_attrs.update(self.attrs)
         new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
-        # TODO: Should these always be removed?
-        # TODO: What if the user specifies them?
-        if len(projectables) > 1:
-            new_attrs["wavelength"] = None
-            new_attrs.pop("units", None)
-            new_attrs.pop('calibration', None)
-            new_attrs.pop('modifiers', None)
         return xr.DataArray(data=data, **new_attrs)
 
 
