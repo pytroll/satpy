@@ -72,7 +72,7 @@ modifiers:
 
 composites:
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.65
     - 0.85
@@ -80,7 +80,7 @@ composites:
     standard_name: overview
 
   true_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected]
@@ -91,7 +91,7 @@ composites:
     standard_name: true_color
 
   true_color_reducedsize:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [reducer4, effective_solar_pathlength_corrected,
@@ -105,7 +105,7 @@ composites:
     standard_name: true_color
 
   true_color_reducedsize_land:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [reducer4, effective_solar_pathlength_corrected,
@@ -119,7 +119,7 @@ composites:
     standard_name: true_color
 
   true_color_reducedsize_marine_tropical:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [reducer4, effective_solar_pathlength_corrected,
@@ -133,7 +133,7 @@ composites:
     standard_name: true_color
 
   true_color_norayleigh:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.65
       modifiers: [reducer2, effective_solar_pathlength_corrected]
@@ -144,7 +144,7 @@ composites:
     standard_name: true_color
 
   day_microphysics_eum:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.86
       modifiers: [reducer4, ]
@@ -155,7 +155,7 @@ composites:
     standard_name: day_microphysics
 
   day_microphysics_ahi:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.86
       modifiers: [reducer4, ]
@@ -166,7 +166,7 @@ composites:
     standard_name: day_microphysics
 
   cloud_phase_distinction:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 10.4
     - wavelength: 0.64
@@ -175,7 +175,7 @@ composites:
     standard_name: cloud_phase_distinction
 
   water_vapors1:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 10.4
     - wavelength: 6.2
@@ -190,7 +190,7 @@ composites:
     standard_name: mid_vapor
 
   water_vapors2:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: mid_vapor
     - wavelength: 7.3
