@@ -14,7 +14,7 @@ modifiers:
 composites:
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 3.75
       modifiers: [co2_corrected]
@@ -23,7 +23,7 @@ composites:
     standard_name: cloudtop
 
   cloudtop_daytime:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 3.7
       modifiers: [nir_emissive]
@@ -53,7 +53,7 @@ composites:
     standard_name: night_fog
 
   snow:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
@@ -64,7 +64,7 @@ composites:
     standard_name: snow
 
   day_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
@@ -74,7 +74,7 @@ composites:
     standard_name: day_microphysics
 
   day_microphysics_winter:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
@@ -84,7 +84,7 @@ composites:
     standard_name: day_microphysics_winter
 
   natural:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
     - name: VIS008
@@ -92,7 +92,7 @@ composites:
     standard_name: natural
 
   natural_sun:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
       modifiers: [sunz_corrected]
@@ -247,7 +247,7 @@ composites:
         modifiers: [sunz_corrected]
 
   ir_overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 3.75
       modifiers: [co2_corrected]
