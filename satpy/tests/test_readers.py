@@ -326,6 +326,30 @@ class TestFindFilesAndReaders(unittest.TestCase):
                           sensor='viirs')
 
 
+class TestYAMLFiles(unittest.TestCase):
+    """Test and analyze the reader configuration files."""
+
+    def test_filename_matches_reader_name(self):
+        """Test that every reader filename matches the name in the YAML."""
+        import yaml
+
+        class IgnoreLoader(yaml.SafeLoader):
+            def _ignore_all_tags(self, tag_suffix, node):
+                return tag_suffix + ' ' + node.value
+        IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
+
+        from satpy.config import glob_config
+        from satpy.readers import read_reader_config
+        for reader_config in glob_config('readers/*.yaml'):
+            reader_fn = os.path.basename(reader_config)
+            reader_fn_name = os.path.splitext(reader_fn)[0]
+            reader_info = read_reader_config([reader_config],
+                                             loader=IgnoreLoader)
+            self.assertEqual(reader_fn_name, reader_info['name'],
+                             "Reader YAML filename doesn't match reader "
+                             "name in the YAML file.")
+
+
 def suite():
     """The test suite for test_scene.
     """
@@ -334,6 +358,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
 
     return mysuite
 

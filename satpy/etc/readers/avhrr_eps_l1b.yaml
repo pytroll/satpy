@@ -1,5 +1,5 @@
 reader:
-    name: avhrr_eps
+    name: avhrr_eps_l1b
     description: EPS Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
     sensors: [avhrr-3]
