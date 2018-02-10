@@ -29,8 +29,9 @@ import logging
 import os
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
+import xarray as xr
+import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
@@ -45,8 +46,12 @@ class NC_ABI_L1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
-
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine='h5netcdf',
+                                  chunks={'x': 1000, 'y': 1000})
+        self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
@@ -56,58 +61,45 @@ class NC_ABI_L1B(BaseFileHandler):
         """Get the shape of the data."""
         return self.nlines, self.ncols
 
-    def get_dataset(self, key, info, out=None,
+    def get_dataset(self, key, info,
                     xslice=slice(None), yslice=slice(None)):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
 
-        variable = self.nc["Rad"]
+        radiances = self.nc["Rad"][xslice, yslice].expand_dims('time')
 
-        radiances = (np.ma.masked_equal(variable[yslice, xslice],
-                                        variable.attrs['_FillValue'], copy=False) *
-                     variable.attrs['scale_factor'] +
-                     variable.attrs['add_offset'])
-        # units = variable.attrs['units']
-        units = self.calibrate(radiances)
+        res = self.calibrate(radiances)
 
         # convert to satpy standard units
-        if units == '1':
-            radiances[:] *= 100.
-            units = '%'
+        if res.attrs['units'] == '1':
+            res = res * 100
+            res.attrs['units'] = '%'
 
-        out.data[:] = radiances
-        out.mask[:] = np.ma.getmask(radiances)
-        out.info.update({'units': units,
-                         'platform_name': self.platform_name,
-                         'sensor': self.sensor,
-                         'satellite_latitude': self.nc['nominal_satellite_subpoint_lat'][()],
-                         'satellite_longitude': self.nc['nominal_satellite_subpoint_lon'][()],
-                         'satellite_altitude': self.nc['nominal_satellite_height'][()]})
-        out.info.update(key.to_dict())
+        res.attrs.update({'platform_name': self.platform_name,
+                          'sensor': self.sensor,
+                          'satellite_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
+                          'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
+                          'satellite_altitude': float(self.nc['nominal_satellite_height'])})
+        res.attrs.update(key.to_dict())
 
-        return out
+        return res
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
         projection = self.nc["goes_imager_projection"]
-        a = projection.attrs['semi_major_axis'][...]
-        h = projection.attrs['perspective_point_height'][...]
-        b = projection.attrs['semi_minor_axis'][...]
-        lon_0 = projection.attrs['longitude_of_projection_origin'][...]
-        sweep_axis = projection.attrs['sweep_angle_axis'].decode()
+        a = projection.attrs['semi_major_axis']
+        h = projection.attrs['perspective_point_height']
+        b = projection.attrs['semi_minor_axis']
 
-        # need 64-bit floats otherwise small shift
-        scale_x = np.float64(self.nc['x'].attrs["scale_factor"][0])
-        scale_y = np.float64(self.nc['y'].attrs["scale_factor"][0])
-        offset_x = np.float64(self.nc['x'].attrs["add_offset"][0])
-        offset_y = np.float64(self.nc['y'].attrs["add_offset"][0])
+        lon_0 = projection.attrs['longitude_of_projection_origin']
+        sweep_axis = projection.attrs['sweep_angle_axis'][0]
 
         # x and y extents in m
         h = float(h)
-        x_l = h * (self.nc['x'][0] * scale_x + offset_x)
-        x_r = h * (self.nc['x'][-1] * scale_x + offset_x)
-        y_l = h * (self.nc['y'][-1] * scale_y + offset_y)
-        y_u = h * (self.nc['y'][0] * scale_y + offset_y)
+        x_l = h * self.nc['x'][0]
+        x_r = h * self.nc['x'][-1]
+        y_l = h * self.nc['y'][-1]
+        y_u = h * self.nc['y'][0]
         x_half = (x_r - x_l) / (self.ncols - 1) / 2.
         y_half = (y_u - y_l) / (self.nlines - 1) / 2.
         area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
@@ -127,41 +119,42 @@ class NC_ABI_L1B(BaseFileHandler):
             proj_dict,
             self.ncols,
             self.nlines,
-            area_extent)
+            np.asarray(area_extent))
 
         return area
 
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
-        solar_irradiance = self.nc['esun'][()]
-        esd = self.nc["earth_sun_distance_anomaly_in_AU"][()]
+        solar_irradiance = self.nc['esun']
+        esd = self.nc["earth_sun_distance_anomaly_in_AU"].astype(float)
 
         factor = np.pi * esd * esd / solar_irradiance
-        data.data[:] *= factor
 
-        return '1'
+        res = data * factor
+        res.attrs = data.attrs
+        res.attrs['units'] = '1'
+
+        return res
 
     def _ir_calibrate(self, data):
         """Calibrate IR channels to BT."""
-        fk1 = self.nc["planck_fk1"][()]
-        fk2 = self.nc["planck_fk2"][()]
-        bc1 = self.nc["planck_bc1"][()]
-        bc2 = self.nc["planck_bc2"][()]
+        fk1 = float(self.nc["planck_fk1"])
+        fk2 = float(self.nc["planck_fk2"])
+        bc1 = float(self.nc["planck_bc1"])
+        bc2 = float(self.nc["planck_bc2"])
 
-        np.divide(fk1, data, out=data.data)
-        data.data[:] += 1
-        np.log(data, out=data.data)
-        np.divide(fk2, data, out=data.data)
-        data.data[:] -= bc1
-        data.data[:] /= bc2
+        res = (fk2 / xu.log(fk1 / data + 1) - bc1) / bc2
+        res.attrs = data.attrs
+        res.attrs['units'] = 'K'
 
-        return 'K'
+        return res
 
     def calibrate(self, data):
         """Calibrate the data."""
         logger.debug("Calibrate")
 
-        ch = self.nc["band_id"][()]
+        ch = int(self.nc["band_id"])
+
         if ch < 7:
             return self._vis_calibrate(data)
         else:
@@ -169,8 +162,8 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')

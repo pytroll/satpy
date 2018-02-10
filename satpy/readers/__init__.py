@@ -186,8 +186,14 @@ class DatasetDict(dict):
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
-        d = value.info if hasattr(value, 'info') else value
+        d = value
+        if hasattr(value, 'attrs'):
+            # xarray.DataArray objects
+            d = value.attrs
+        # use value information to make a more complete DatasetID
         if not isinstance(key, DatasetID):
+            if not isinstance(d, dict):
+                raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
             old_key = key
             key = self.get_key(key)
             if key is None:
@@ -204,10 +210,10 @@ class DatasetDict(dict):
                                 modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
                     raise ValueError(
-                        "One of 'name' or 'wavelength' info values should be set.")
+                        "One of 'name' or 'wavelength' attrs values should be set.")
 
         # update the 'value' with the information contained in the key
-        if hasattr(d, '__setitem__'):
+        if isinstance(d, dict):
             d["name"] = key.name
             # XXX: What should users be allowed to modify?
             d["resolution"] = key.resolution
@@ -382,11 +388,13 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
 
-    if not filenames:
-        LOG.info("'filenames' required to create reader objects")
+    if not filenames and not reader:
+        # used for an empty Scene
         return {}
-
-    if reader is None and isinstance(filenames, dict):
+    elif not filenames:
+        LOG.warning("'filenames' required to create readers and load data")
+        return {}
+    elif reader is None and isinstance(filenames, dict):
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)

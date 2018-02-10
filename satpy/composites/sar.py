@@ -25,7 +25,7 @@
 import logging
 
 from satpy.composites import GenericCompositor
-from satpy.dataset import combine_info
+from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
 
@@ -55,6 +55,6 @@ class SARIce(GenericCompositor):
         """Create the SAR Ice composite."""
         (mhh, mhv) = projectables
         green = overlay(mhh, mhv)
-        green.info = combine_info(mhh, mhv)
+        green.info = combine_metadata(mhh, mhv)
 
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)

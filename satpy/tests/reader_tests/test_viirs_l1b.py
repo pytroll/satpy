@@ -119,6 +119,16 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content[k + '/attr/_FillValue'] = 65535
             file_content[k + '/attr/scale_factor'] = 1.1
             file_content[k + '/attr/add_offset'] = 0.1
+
+        # convert to xarrays
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                if val.ndim > 1:
+                    file_content[key] = DataArray(val, dims=('y', 'x'))
+                else:
+                    file_content[key] = DataArray(val)
+
         return file_content
 
 
@@ -168,8 +178,8 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            'M16'])
         self.assertEqual(len(datasets), 5)
         for v in datasets.values():
-            self.assertEqual(v.info['calibration'], 'brightness_temperature')
-            self.assertEqual(v.info['units'], 'K')
+            self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
+            self.assertEqual(v.attrs['units'], 'K')
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances"""
@@ -193,8 +203,8 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            'M11'])
         self.assertEqual(len(datasets), 11)
         for v in datasets.values():
-            self.assertEqual(v.info['calibration'], 'reflectance')
-            self.assertEqual(v.info['units'], '%')
+            self.assertEqual(v.attrs['calibration'], 'reflectance')
+            self.assertEqual(v.attrs['units'], '%')
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances"""
@@ -224,8 +234,8 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            DatasetID('M16', calibration='radiance')])
         self.assertEqual(len(datasets), 16)
         for v in datasets.values():
-            self.assertEqual(v.info['calibration'], 'radiance')
-            self.assertEqual(v.info['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(v.attrs['calibration'], 'radiance')
+            self.assertEqual(v.attrs['units'], 'W m-2 um-1 sr-1')
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset"""
@@ -239,8 +249,8 @@ class TestVIIRSL1BReader(unittest.TestCase):
         datasets = r.load(['DNB'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.info['calibration'], 'radiance')
-            self.assertEqual(v.info['units'], 'W m-2 sr-1')
+            self.assertEqual(v.attrs['calibration'], 'radiance')
+            self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
 
 
 def suite():

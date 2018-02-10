@@ -3,6 +3,8 @@ sensor_name: visir
 modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
+    optional_prerequisites:
+    - satellite_zenith_angle
 
   effective_solar_pathlength_corrected:
     compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector

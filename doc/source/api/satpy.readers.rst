@@ -164,6 +164,14 @@ satpy\.readers\.hrit\_electrol module
     :undoc-members:
     :show-inheritance:
 
+satpy\.readers\.hrit\_goes module
+---------------------------------
+
+.. automodule:: satpy.readers.hrit_goes
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy\.readers\.hrit\_jma module
 --------------------------------
 
@@ -304,6 +312,14 @@ satpy\.readers\.safe\_sar\_c module
 -----------------------------------
 
 .. automodule:: satpy.readers.safe_sar_c
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy\.readers\.scatsat1\_l2b module
+------------------------------------
+
+.. automodule:: satpy.readers.scatsat1_l2b
     :members:
     :undoc-members:
     :show-inheritance:

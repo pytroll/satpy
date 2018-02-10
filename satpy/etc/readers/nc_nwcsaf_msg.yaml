@@ -7,35 +7,35 @@ reader:
 
 file_types:
     nc_nwcsaf_cma:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CMA_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_ct:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CT_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_ctth:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CTTH_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_cmic:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CMIC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_pc:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_PC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_crr:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CRR_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_ishai:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_iSHAI_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_ci:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_CI_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
 datasets:
@@ -404,4 +404,3 @@ datasets:
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_ci
-
