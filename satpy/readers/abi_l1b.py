@@ -66,7 +66,7 @@ class NC_ABI_L1B(BaseFileHandler):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
 
-        radiances = self.nc["Rad"][xslice, yslice].expand_dims('time')
+        radiances = self.nc["Rad"][yslice, xslice].expand_dims('time')
 
         res = self.calibrate(radiances)
 
