@@ -24,6 +24,8 @@
 
 import logging
 
+import xarray.ufuncs as xu
+
 from satpy.composites import RGBCompositor
 from satpy.dataset import combine_metadata
 
@@ -35,15 +37,9 @@ def overlay(top, bottom):
 
     from: https://docs.gimp.org/en/gimp-concepts-layer-modes.html
     """
-    maxval = max(top.max(), bottom.max())
+    maxval = xu.maximum(top.max(), bottom.max())
 
-    res = 2 * top
-    res /= maxval
-    res -= 1
-    res *= bottom
-    res += 2 * top
-    res *= bottom
-    res /= maxval
+    res = ((2 * top / maxval - 1) * bottom + 2 * top) * bottom / maxval
 
     return res
 
@@ -55,6 +51,6 @@ class SARIce(RGBCompositor):
         """Create the SAR Ice composite."""
         (mhh, mhv) = projectables
         green = overlay(mhh, mhv)
-        green.info = combine_metadata(mhh, mhv)
+        green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
