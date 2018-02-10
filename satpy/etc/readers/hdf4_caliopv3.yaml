@@ -1,7 +1,7 @@
 reader:
   default_datasets: []
   description: CALIOP v3 HDF4 reader 
-  name: hdf4_caliop
+  name: hdf4_caliopv3
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
   sensors: [caliop]
 
