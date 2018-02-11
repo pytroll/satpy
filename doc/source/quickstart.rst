@@ -162,8 +162,10 @@ on saving datasets and customizing enhancements see the documentation on
 Troubleshooting
 ===============
 
-The error messages from Python are not always helpful so please turn on debugging output as a first step when troubleshooting:
+Due to the way SatPy works, producing as many datasets as possible, there are
+times that behavior can be unexpected but with no exceptions raised. To help
+troubleshoot these situations log messages can be turned on. To do this run
+the following code before running any other SatPy code::
 
     >>> from satpy.utils import debug_on
-    debug_on()
-
+    >>> debug_on()
