@@ -150,7 +150,7 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
                        blocksize=CHUNK_SIZE):
     """Interpolate, generating a dask array."""
     vchunks = range(0, shape[0], blocksize)
-    hchunks = range(0, shape[1] + 1, blocksize)
+    hchunks = range(0, shape[1], blocksize)
 
     token = tokenize(blocksize, xpoints, ypoints, values, kind, shape)
     name = 'interpolate-' + token
@@ -176,7 +176,7 @@ def interpolate_xarray_linear(xpoints, ypoints, values, shape,
                               blocksize=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
     vchunks = range(0, shape[0], blocksize)
-    hchunks = range(0, shape[1] + 1, blocksize)
+    hchunks = range(0, shape[1], blocksize)
 
     from scipy.interpolate.interpnd import (LinearNDInterpolator,
                                             _ndim_coords_from_arrays)
