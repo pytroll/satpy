@@ -15,6 +15,23 @@ To install the `satpy` package and all of its python dependencies from PyPI:
 
     $ pip install satpy
 
+To install with optional packages:
+
+.. code-block:: bash
+
+    $ pip install satpy pyorbital pyproj pycoast pyspectral pygac aggdraw h5netcdf python-hdf4 dask xarray toolz numexpr
+
+Example for Ubuntu using virtualenv:
+
+.. code-block:: bash
+
+    $ sudo apt-get install python-pip python-gdal
+    $ sudo pip install virtualenv
+    $ virtualenv /path/to/pytroll
+    $ source /path/to/pytroll/bin/activate
+    $ pip install [--upgrade] as above
+
+
 Conda-based Installation
 ========================
 
