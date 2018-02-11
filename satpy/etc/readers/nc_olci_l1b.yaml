@@ -1,6 +1,6 @@
 reader:
   description: NC Reader for OLCI data
-  name: nc_olci
+  name: nc_olci_l1b
   sensors: [olci]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
