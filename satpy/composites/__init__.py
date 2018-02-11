@@ -44,11 +44,6 @@ from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
 
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
-
 LOG = logging.getLogger(__name__)
 
 
@@ -219,13 +214,11 @@ class CompositeBase(MetadataObject):
                  name,
                  prerequisites=None,
                  optional_prerequisites=None,
-                 metadata_requirements=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
         kwargs["optional_prerequisites"] = optional_prerequisites or []
-        kwargs["metadata_requirements"] = metadata_requirements or []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -378,7 +371,7 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load().values,
                                                       ssadiff.load().values,
                                                       vis.attrs['name'],
-                                                      red.load().values)
+                                                      red.values)
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
@@ -386,12 +379,11 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load().values,
                                                       ssadiff.load().values,
                                                       vis.attrs['wavelength'][1],
-                                                      red.load().values)
+                                                      red.values)
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
-
         return proj
 
 
@@ -622,7 +614,7 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
-        return xr.DataArray(data=data, **new_attrs)
+        return xr.DataArray(data=data, attrs=new_attrs)
 
 
 class RGBCompositor(GenericCompositor):
