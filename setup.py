@@ -39,13 +39,40 @@ BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
 requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
             'trollimage', 'pykdtree', 'six', 'pyyaml', 'xarray', 'dask[array]']
 
-if sys.version < '2.7':
-    requires.append('ordereddict')
-
 test_requires = ['behave']
 
 if sys.version < '3.0':
     test_requires.append('mock')
+
+
+extras_require = {
+    # Readers:
+    'xRIT': ['mipp >= 0.6.0'],
+    'hdfeos_l1b': ['python-hdf4'],
+    'geocat': ['python-hdf4'],
+    'acspo': ['netCDF4 >= 1.1.8'],
+    'clavrx': ['netCDF4 >= 1.1.8'],
+    'viirs_l1b': ['netCDF4 >= 1.1.8'],
+    'viirs_sdr': ['h5py >= 2.7.0'],
+    'viirs_compact': ['h5py >= 2.7.0'],
+    'omps_edr': ['h5py >= 2.7.0'],
+    'amsr2_l1b': ['h5py >= 2.7.0'],
+    'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
+    'proj': ['pyresample'],
+    'pyspectral': ['pyspectral'],
+    'pyorbital': ['pyorbital >= v0.2.3'],
+    'hrit_msg': ['pytroll-schedule'],
+    'nc_nwcsaf_msg': ['h5netcdf'],
+    'sar_c': ['python-geotiepoints', 'gdal'],
+    'abi_l1b': ['h5netcdf'],
+    # Writers:
+    'scmi': ['netCDF4 >= 1.1.8'],
+    'geotiff': ['gdal'],
+}
+all_extras = []
+for extra_deps in extras_require.values():
+    all_extras.extend(extra_deps)
+extras_require['all'] = list(set(all_extras))
 
 
 def _config_data_files(base_dirs, extensions=(".cfg", )):
@@ -102,28 +129,5 @@ setup(name=NAME,
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
-      extras_require={
-          # Readers:
-          'xRIT': ['mipp >= 0.6.0'],
-          'hdfeos_l1b': ['python-hdf4'],
-          'geocat': ['python-hdf4'],
-          'acspo': ['netCDF4 >= 1.1.8'],
-          'clavrx': ['netCDF4 >= 1.1.8'],
-          'viirs_l1b': ['netCDF4 >= 1.1.8'],
-          'viirs_sdr': ['h5py >= 2.7.0'],
-          'viirs_compact': ['h5py >= 2.7.0'],
-          'omps_edr': ['h5py >= 2.7.0'],
-          'amsr2_l1b': ['h5py >= 2.7.0'],
-          'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
-          'proj': ['pyresample'],
-          'pyspectral': ['pyspectral'],
-          'pyorbital': ['pyorbital >= v0.2.3'],
-          'hrit_msg': ['pytroll-schedule'],
-          'nc_nwcsaf_msg': ['h5netcdf'],
-          'sar_c': ['python-geotiepoints', 'gdal'],
-          'abi_l1b': ['h5netcdf'],
-          # Writers:
-          'scmi': ['netCDF4 >= 1.1.8'],
-          'geotiff': ['gdal'],
-      },
+      extras_require=extras_require,
       )
