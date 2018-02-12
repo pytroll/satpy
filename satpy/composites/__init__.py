@@ -614,7 +614,9 @@ class GenericCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
-        return xr.DataArray(data=data, attrs=new_attrs)
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
 
 
 class RGBCompositor(GenericCompositor):
