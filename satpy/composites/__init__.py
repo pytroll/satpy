@@ -928,11 +928,7 @@ class CloudCompositor(GenericCompositor):
                  transition_max=None,
                  transition_gamma=None, *args, **kwargs):
 
-        data = projectables[0].copy()
-        mask = data.mask.copy()
-        alpha = Dataset(np.ma.masked_array(np.zeros(data.shape),
-                                           mask=mask), copy=True,
-                        **data.info)
+        data = projectables[0]
 
         # Default to rough IR thresholds
         # Values below or equal to this are clouds -> opaque white
@@ -942,23 +938,18 @@ class CloudCompositor(GenericCompositor):
         # Gamma correction
         gamma = transition_gamma or 3.0
 
-        cloud_idxs = data <= tr_min
-        clear_idxs = data > tr_max
-        trans_idxs = (data > tr_min) & (data <= tr_max)
-
         slope = 1 / (tr_min - tr_max)
         offset = 1 - slope * tr_min
 
-        alpha[cloud_idxs] = 1.0
-        alpha[clear_idxs] = 0.0
-        alpha[trans_idxs] = slope * data[trans_idxs] + offset
+        alpha = data.where(data > tr_min, 1.)
+        alpha = alpha.where(data <= tr_max, 0.)
+        alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
 
         # gamma adjustment
         alpha **= gamma
 
-        res = GenericCompositor.__call__(self, (data,
-                                                alpha),
-                                         *args, **kwargs)
+        res = super(CloudCompositor, self).__call__((data, alpha),
+                                                      *args, **kwargs)
 
         return res
 
