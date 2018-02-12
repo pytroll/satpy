@@ -70,14 +70,6 @@ satpy\.scene module
     :undoc-members:
     :show-inheritance:
 
-satpy\.tools module
--------------------
-
-.. automodule:: satpy.tools
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy\.utils module
 -------------------
 

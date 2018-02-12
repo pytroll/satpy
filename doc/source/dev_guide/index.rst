@@ -5,7 +5,14 @@ Developer's Guide
 The below sections will walk through how to set up a development environment,
 make changes to the code, and test that they work. See the
 :doc:`CONTRIBUTING` section for more information on getting started and
-contributor expectations.
+contributor expectations. Additional information for developer's can be found
+at the pages listed below.
+
+.. toctree::
+    :maxdepth: 1
+
+    CONTRIBUTING
+    xarray_migration
 
 Coding guidelines
 =================
@@ -24,7 +31,7 @@ be compatible with these versions.
 Development installation
 ========================
 
-See the :doc:`install` section for basic installation instructions. When
+See the :doc:`../install` section for basic installation instructions. When
 it comes time to install SatPy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
