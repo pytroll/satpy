@@ -40,7 +40,7 @@ def np2str(value):
 
     Raises:
         ValueError: if value is array larger than 1-element or it is not of
-                    type np.string_ or it is not a numpy array
+                    type `numpy.string_` or it is not a numpy array
 
     """
     if hasattr(value, 'dtype') and \
