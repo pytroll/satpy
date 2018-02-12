@@ -546,13 +546,15 @@ class GenericCompositor(CompositeBase):
         try:
             data = xr.concat(projectables, 'bands')
             data['bands'] = list(mode)
-        except ValueError:
+        except ValueError as e:
+            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
             raise IncompatibleAreas
         else:
             areas = [projectable.attrs.get('area', None)
                      for projectable in projectables]
             areas = [area for area in areas if area is not None]
             if areas and areas.count(areas[0]) != len(areas):
+                LOG.debug("Not all areas are the same in '{}'".format(self.attrs['name']))
                 raise IncompatibleAreas
 
         return data
