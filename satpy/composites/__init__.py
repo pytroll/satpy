@@ -573,10 +573,16 @@ class GenericCompositor(CompositeBase):
         return sensor
 
     def _get_times(self, projectables):
-        try:
-            times = [proj['time'][0].values for proj in projectables]
-        except KeyError:
-            pass
+        times = []
+        for proj in projectables:
+            try:
+                times.append(proj['time'][0])
+            except KeyError:
+                # the datasets don't have times
+                break
+            except IndexError:
+                # time is a scalar
+                times.append(proj['time'])
         else:
             # Is there a more gracious way to handle this ?
             if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
