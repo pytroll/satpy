@@ -208,6 +208,44 @@ class CompositorLoader(object):
                                                composite_type, sensor_id, composite_config, **kwargs)
 
 
+def check_times(projectables):
+    times = []
+    for proj in projectables:
+        try:
+            if proj['time'].size and proj['time'][0] != 0:
+                times.append(proj['time'][0].values)
+            else:
+                break  # right?
+        except KeyError:
+            # the datasets don't have times
+            break
+        except IndexError:
+            # time is a scalar
+            if proj['time'].values != 0:
+                times.append(proj['time'].values)
+            else:
+                break
+    else:
+        # Is there a more gracious way to handle this ?
+        if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
+            raise IncompatibleTimes
+        else:
+            mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+        return mid_time
+
+
+def sub_arrays(proj1, proj2):
+    """Substract two DataArrays and combine their attrs."""
+    attrs = combine_metadata(proj1.attrs, proj2.attrs)
+    if (attrs.get('area') is None and
+            proj1.attrs.get('area') is not None and
+            proj2.attrs.get('area') is not None):
+        raise IncompatibleAreas
+    res = proj1 - proj2
+    res.attrs = attrs
+    return res
+
+
 class CompositeBase(MetadataObject):
 
     def __init__(self,
@@ -544,7 +582,8 @@ class GenericCompositor(CompositeBase):
 
     def _concat_datasets(self, projectables, mode):
         try:
-            data = xr.concat(projectables, 'bands')
+            projs = [p.drop('time') if 'time' in p.coords else p for p in projectables]
+            data = xr.concat(projs, 'bands')
             data['bands'] = list(mode)
         except ValueError as e:
             LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
@@ -574,29 +613,13 @@ class GenericCompositor(CompositeBase):
             sensor = list(sensor)[0]
         return sensor
 
-    def _get_times(self, projectables):
-        times = []
-        for proj in projectables:
-            try:
-                times.append(proj['time'][0])
-            except KeyError:
-                # the datasets don't have times
-                break
-            except IndexError:
-                # time is a scalar
-                times.append(proj['time'])
-        else:
-            # Is there a more gracious way to handle this ?
-            if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
-                raise IncompatibleTimes
-            else:
-                mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
-            return mid_time
-
     def __call__(self, projectables, nonprojectables=None, **attrs):
 
         num = len(projectables)
-        mode = self.modes[num]
+        mode = attrs.get('mode')
+        if mode is None:
+            # num may not be in `self.modes` so only check if we need to
+            mode = self.modes[num]
         if len(projectables) > 1:
             data = self._concat_datasets(projectables, mode)
         else:
@@ -605,9 +628,10 @@ class GenericCompositor(CompositeBase):
         # if inputs have a time coordinate that may differ slightly between
         # themselves then find the mid time and use that as the single
         # time coordinate value
-        time = self._get_times(projectables)
-        if time is not None:
-            data['time'] = [time]
+        if len(projectables) > 1:
+            time = check_times(projectables)
+            if time is not None:
+                data['time'] = [time]
 
         new_attrs = combine_metadata(*projectables)
         # remove metadata that shouldn't make sense in a composite
@@ -797,17 +821,6 @@ class DayNightCompositor(GenericCompositor):
         return res
 
 
-def sub_arrays(proj1, proj2):
-    """Substract two DataArrays and combine their attrs."""
-    res = proj1 - proj2
-    res.attrs = combine_metadata(proj1.attrs, proj2.attrs)
-    if (res.attrs.get('area') is None and
-            proj1.attrs.get('area') is not None and
-            proj2.attrs.get('area') is not None):
-        raise IncompatibleAreas
-    return res
-
-
 class Airmass(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -823,14 +836,11 @@ class Airmass(GenericCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-            ch1 = sub_arrays(projectables[0], projectables[1])
-            ch2 = sub_arrays(projectables[2], projectables[3])
-            res = super(Airmass, self).__call__((ch1, ch2,
-                                                projectables[0]),
-                                                *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
+        ch1 = sub_arrays(projectables[0], projectables[1])
+        ch2 = sub_arrays(projectables[2], projectables[3])
+        res = super(Airmass, self).__call__((ch1, ch2,
+                                            projectables[0]),
+                                            *args, **kwargs)
         return res
 
 
@@ -849,14 +859,11 @@ class Convection(GenericCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-            ch1 = sub_arrays(projectables[3], projectables[4])
-            ch2 = sub_arrays(projectables[2], projectables[5])
-            ch3 = sub_arrays(projectables[1], projectables[0])
-            res = super(Convection, self).__call__((ch1, ch2, ch3),
-                                                   *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
+        ch1 = sub_arrays(projectables[3], projectables[4])
+        ch2 = sub_arrays(projectables[2], projectables[5])
+        ch3 = sub_arrays(projectables[1], projectables[0])
+        res = super(Convection, self).__call__((ch1, ch2, ch3),
+                                               *args, **kwargs)
         return res
 
 
@@ -887,46 +894,37 @@ class Dust(GenericCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-
-            ch1 = sub_arrays(projectables[2], projectables[1])
-            ch2 = sub_arrays(projectables[1], projectables[0])
-            res = super(Dust, self).__call__((ch1, ch2,
-                                              projectables[1]),
-                                             *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
-
+        ch1 = sub_arrays(projectables[2], projectables[1])
+        ch2 = sub_arrays(projectables[1], projectables[0])
+        res = super(Dust, self).__call__((ch1, ch2,
+                                          projectables[1]),
+                                         *args, **kwargs)
         return res
 
 
 class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        vis06 = projectables[0]
+        vis08 = projectables[1]
+        hrv = projectables[2]
+
         try:
-
-            vis06 = projectables[0]
-            vis08 = projectables[1]
-            hrv = projectables[2]
-
-            try:
-                ch3 = 3 * hrv - vis06 - vis08
-                ch3.attrs = hrv.attrs
-            except ValueError as err:
-                raise IncompatibleAreas
-
-            ndvi = (vis08 - vis06) / (vis08 + vis06)
-            ndvi = np.where(ndvi < 0, 0, ndvi)
-
-            ch1 = ndvi * vis06 + (1 - ndvi) * vis08
-            ch1.attrs = vis06.attrs
-            ch2 = ndvi * vis08 + (1 - ndvi) * vis06
-            ch2.attrs = vis08.attrs
-
-            res = super(RealisticColors, self).__call__((ch1, ch2, ch3),
-                                                        *args, **kwargs)
+            ch3 = 3 * hrv - vis06 - vis08
+            ch3.attrs = hrv.attrs
         except ValueError:
             raise IncompatibleAreas
+
+        ndvi = (vis08 - vis06) / (vis08 + vis06)
+        ndvi = np.where(ndvi < 0, 0, ndvi)
+
+        ch1 = ndvi * vis06 + (1 - ndvi) * vis08
+        ch1.attrs = vis06.attrs
+        ch2 = ndvi * vis08 + (1 - ndvi) * vis06
+        ch2.attrs = vis08.attrs
+
+        res = super(RealisticColors, self).__call__((ch1, ch2, ch3),
+                                                    *args, **kwargs)
         return res
 
 
