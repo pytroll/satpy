@@ -31,16 +31,18 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, namedtuple
 from fnmatch import fnmatch
 
-import numpy as np
 import six
+import xarray as xr
 import yaml
+from weakref import WeakValueDictionary
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
+from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
-from satpy.readers.helper_functions import get_area_slices, get_sub_area
+from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -390,6 +392,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.filter_parameters = filter_parameters or {}
         if kwargs:
             logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
+        self.coords_cache = WeakValueDictionary()
 
     @property
     def available_dataset_ids(self):
@@ -605,98 +608,36 @@ class FileYAMLReader(AbstractYAMLReader):
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
     @staticmethod
-    def get_shape_n_slices(all_shapes, xslice=slice(None), yslice=slice(None)):
-        """Get the shape and slices to use."""
-        # rows accumlate, columns stay the same
-        overall_shape = [sum([x[0]
-                              for x in all_shapes]), ] + all_shapes[0][1:]
-        if xslice.start is not None and yslice.start is not None:
-            slice_shape = [yslice.stop - yslice.start,
-                           xslice.stop - xslice.start]
-            overall_shape[0] = min(overall_shape[0], slice_shape[0])
-            overall_shape[1] = min(overall_shape[1], slice_shape[1])
-        elif len(overall_shape) == 1:
-            yslice = slice(0, overall_shape[0])
-        else:
-            xslice = slice(0, overall_shape[1])
-            yslice = slice(0, overall_shape[0])
-        return overall_shape, xslice, yslice
-
-    @staticmethod
-    def _load_entire_dataset(dsid, ds_info, file_handlers):
-        """Load the entire dataset as inplace loading isn't an option."""
-        # can't optimize by using inplace loading
-        projectables = []
-        for fh in file_handlers:
-            projectable = fh.get_dataset(dsid, ds_info)
-            if projectable is not None:
-                projectables.append(projectable)
-
-        # Join them all together
-        combined_info = file_handlers[0].combine_info(
-            [p.info for p in projectables])
-        cls = ds_info.get("container", Dataset)
-        return cls(np.ma.vstack(projectables), **combined_info)
-
-    def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load only a piece of the dataset."""
-        # we can optimize
-        cls = ds_info.get("container", Dataset)
-        all_shapes = [list(fhd.get_shape(dsid, ds_info))
-                      for fhd in file_handlers]
-        overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
-                                                                xslice,
-                                                                yslice)
-
-        out_info = {'reader': self.name}
-        data = np.empty(overall_shape,
-                        dtype=ds_info.get('dtype', np.float32))
-        mask = np.ma.make_mask_none(overall_shape)
-
-        offset = 0
-        out_offset = 0
+        slice_list = []
         failure = True
-        for idx, fh in enumerate(file_handlers):
-            segment_height = all_shapes[idx][0]
-            # XXX: Does this work with masked arrays and subclasses of them?
-            # Otherwise, have to send in separate data, mask, and info parameters to be filled in
-            # TODO: Combine info in a sane way
 
-            if (yslice.start >= offset + segment_height or
-                    yslice.stop <= offset):
-                offset += segment_height
-                continue
-            start = max(yslice.start - offset, 0)
-            stop = min(yslice.stop - offset, segment_height)
 
-            shuttle = Shuttle(data[out_offset:out_offset + stop - start],
-                              mask[out_offset:out_offset + stop - start],
-                              out_info)
-
-            kwargs = {}
-            if stop - start != segment_height:
-                kwargs['yslice'] = slice(start, stop)
-            if (xslice.start is not None and
-                    xslice.stop - xslice.start != all_shapes[idx][1]):
-                kwargs['xslice'] = xslice
-
+        for fh in file_handlers:
             try:
-                fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
-                failure = False
+                projectable = fh.get_dataset(dsid, ds_info)
+                if projectable is not None:
+                    slice_list.append(projectable)
+                    failure = False
             except KeyError:
-                logger.warning(
-                    "Failed to load {} from {}".format(dsid, fh), exc_info=True)
-                mask[out_offset:out_offset + stop - start] = True
-
-            out_offset += stop - start
-            offset += segment_height
+                logger.warning("Failed to load {} from {}".format(dsid, fh),
+                               exc_info=True)
 
         if failure:
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        out_info.pop('area', None)
-        return cls(data, mask=mask, copy=False, **out_info)
+
+        if dim not in slice_list[0].dims:
+            dim = slice_list[0].dims[0]
+        res = xr.concat(slice_list, dim=dim)
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
+        return res
 
     def _load_dataset_data(self,
                            file_handlers,
@@ -704,20 +645,11 @@ class FileYAMLReader(AbstractYAMLReader):
                            xslice=slice(None),
                            yslice=slice(None)):
         ds_info = self.ids[dsid]
-        try:
-            # Can we allow the file handlers to do inplace data writes?
-            [list(fhd.get_shape(dsid, ds_info)) for fhd in file_handlers]
-        except NotImplementedError:
-            # FIXME: Is NotImplementedError included in Exception for all
-            # versions of Python?
-            proj = self._load_entire_dataset(dsid, ds_info, file_handlers)
-        else:
-            proj = self._load_sliced_dataset(dsid, ds_info, file_handlers,
-                                             xslice, yslice)
+        proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
         # Update the metadata
-        proj.info['start_time'] = file_handlers[0].start_time
-        proj.info['end_time'] = file_handlers[-1].end_time
+        proj.attrs['start_time'] = file_handlers[0].start_time
+        proj.attrs['end_time'] = file_handlers[-1].end_time
 
         return proj
 
@@ -781,17 +713,26 @@ class FileYAMLReader(AbstractYAMLReader):
             return self.file_handlers[filetype]
 
     def _make_area_from_coords(self, coords):
-        """Create an apropriate area with the given *coords*."""
+        """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].info.get('standard_name')
-            lat_sn = coords[1].info.get('standard_name')
+            lon_sn = coords[0].attrs.get('standard_name')
+            lat_sn = coords[1].attrs.get('standard_name')
             if lon_sn == 'longitude' and lat_sn == 'latitude':
-                sdef = SwathDefinition(*coords)
-                sensor_str = sdef.name = '_'.join(self.info['sensors'])
+                key = None
+                try:
+                    key = (coords[0].data.name, coords[1].data.name)
+                    sdef = self.coords_cache.get(key)
+                except AttributeError:
+                    sdef = None
+                if sdef is None:
+                    sdef = SwathDefinition(*coords)
+                    if key is not None:
+                        self.coords_cache[key] = sdef
+                sensor_str = '_'.join(self.info['sensors'])
                 shape_str = '_'.join(map(str, coords[0].shape))
                 sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                 coords[0].info['name'],
-                                                 coords[1].info['name'])
+                                                 coords[0].attrs['name'],
+                                                 coords[1].attrs['name'])
                 return sdef
             else:
                 raise ValueError(
@@ -856,12 +797,44 @@ class FileYAMLReader(AbstractYAMLReader):
             return None
 
         if area is not None:
-            ds.info['area'] = area
+            ds.attrs['area'] = area
+            if (('x' not in ds.coords) or('y' not in ds.coords)) and \
+                    hasattr(area, 'get_proj_vectors_dask'):
+                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
         return ds
 
-    def load(self, dataset_keys):
-        """Load *dataset_keys*."""
-        all_datasets = DatasetDict()
+    def _load_ancillary_variables(self, datasets):
+        """Load the ancillary variables of `datasets`."""
+        all_av_ids = set()
+        for dataset in datasets.values():
+            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            if not isinstance(ancillary_variables, (list, tuple, set)):
+                ancillary_variables = ancillary_variables.split(',')
+            av_ids = []
+            for key in ancillary_variables:
+                try:
+                    av_ids.append(self.get_dataset_key(key))
+                except KeyError:
+                    logger.warning("Can't load ancillary dataset %s", str(key))
+
+            all_av_ids |= set(av_ids)
+            dataset.attrs['ancillary_variables'] = av_ids
+        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        if not all_av_ids:
+            return
+        av_ds = self.load(all_av_ids, datasets)
+        for dataset in datasets.values():
+            new_vars = []
+            for av_id in dataset.attrs.get('ancillary_variables', []):
+                new_vars.append(av_ds.get(av_id, datasets.get(av_id, av_id)))
+            dataset.attrs['ancillary_variables'] = new_vars
+        datasets.update(av_ds)
+
+    def load(self, dataset_keys, previous_datasets=None):
+        """Load `dataset_keys`.
+
+        If `previous_datasets` is provided, do not reload those."""
+        all_datasets = previous_datasets or DatasetDict()
         datasets = DatasetDict()
 
         # Include coordinates in the list of datasets to load
@@ -870,6 +843,8 @@ class FileYAMLReader(AbstractYAMLReader):
         all_dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in all_dsids:
+            if dsid in all_datasets:
+                continue
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
@@ -877,5 +852,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
+        self._load_ancillary_variables(all_datasets)
 
         return datasets

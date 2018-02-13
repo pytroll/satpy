@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2018
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   David Hoese <david.hoese@ssec.wisc.edu>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,23 +26,26 @@
 import logging
 import os
 import time
+from weakref import WeakValueDictionary
 
 import numpy as np
 import six
+import xarray as xr
+import xarray.ufuncs as xu
 import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, InfoObject,
-                           combine_info)
+from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
+                           combine_metadata)
 from satpy.readers import DatasetDict
-from satpy.tools import sunzen_corr_cos
-from satpy.tools import atmospheric_path_length_correction
+from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
+from satpy import CHUNK_SIZE
 
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
@@ -53,6 +55,14 @@ class IncompatibleAreas(Exception):
 
     """
     Error raised upon compositing things of different shapes.
+    """
+    pass
+
+
+class IncompatibleTimes(Exception):
+
+    """
+    Error raised upon compositing things from different times.
     """
     pass
 
@@ -202,7 +212,7 @@ class CompositorLoader(object):
                                                composite_type, sensor_id, composite_config, **kwargs)
 
 
-class CompositeBase(InfoObject):
+class CompositeBase(MetadataObject):
 
     def __init__(self,
                  name,
@@ -222,21 +232,21 @@ class CompositeBase(InfoObject):
 
     def __str__(self):
         from pprint import pformat
-        return pformat(self.info)
+        return pformat(self.attrs)
 
     def __repr__(self):
         from pprint import pformat
-        return pformat(self.info)
+        return pformat(self.attrs)
 
     def apply_modifier_info(self, origin, destination):
-        o = getattr(origin, 'info', origin)
-        d = getattr(destination, 'info', destination)
+        o = getattr(origin, 'attrs', origin)
+        d = getattr(destination, 'attrs', destination)
         for k in DATASET_KEYS:
             if k == 'modifiers':
-                d[k] = self.info[k]
+                d[k] = self.attrs[k]
             elif d.get(k) is None:
-                if self.info.get(k) is not None:
-                    d[k] = self.info[k]
+                if self.attrs.get(k) is not None:
+                    d[k] = self.attrs[k]
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
@@ -245,35 +255,37 @@ class SunZenithCorrectorBase(CompositeBase):
 
     """Base class for sun zenith correction"""
 
-    # FIXME: the cache should be cleaned up
-    coszen = {}
+    coszen = WeakValueDictionary()
 
     def __call__(self, projectables, **info):
         vis = projectables[0]
-        if vis.info.get("sunz_corrected"):
+        if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.info["area"], 'name'):
-            area_name = vis.info["area"].name
+        if hasattr(vis.attrs["area"], 'name'):
+            area_name = vis.attrs["area"].name
         else:
             area_name = 'swath' + str(vis.shape)
-        key = (vis.info["start_time"], area_name)
+        key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         if len(projectables) == 1:
-            if key not in self.coszen:
+            coszen = self.coszen.get(key)
+            if coszen is None:
                 from pyorbital.astronomy import cos_zen
                 LOG.debug("Computing sun zenith angles.")
-                self.coszen[key] = np.ma.masked_outside(cos_zen(vis.info["start_time"],
-                                                                *vis.info["area"].get_lonlats()),
-                                                        # about 88 degrees.
-                                                        0.035,
-                                                        1,
-                                                        copy=False)
-            coszen = self.coszen[key]
+                lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+
+                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
+                                              lons, lats),
+                                      dims=['y', 'x'],
+                                      coords=[vis['y'], vis['x']])
+                coszen = coszen.where((coszen > 0.035) & (coszen < 1))
+                self.coszen[key] = coszen
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
+            self.coszen[key] = coszen
 
         if vis.shape != coszen.shape:
             # assume we were given lower resolution szen data than band data
@@ -283,13 +295,12 @@ class SunZenithCorrectorBase(CompositeBase):
             coszen = np.repeat(
                 np.repeat(coszen, factor, axis=0), factor, axis=1)
 
-        # sunz correction will be in place so we need a copy
-        proj = vis.copy()
-        proj = self._apply_correction(proj, coszen)
-        vis.mask[coszen < 0] = True
+        proj = self._apply_correction(vis, coszen)
+        proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
         LOG.debug(
-            "Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
+            "Sun-zenith correction applied. Computation time: %5.1f (sec)",
+            time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -332,8 +343,9 @@ def show(data, filename=None):
 class PSPRayleighReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the corrected reflectance when removing Rayleigh scattering. Uses
-        pyspectral.
+        """Get the corrected reflectance when removing Rayleigh scattering.
+
+        Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
 
@@ -345,44 +357,50 @@ class PSPRayleighReflectance(CompositeBase):
         except ValueError:
             from pyorbital.astronomy import get_alt_az, sun_zenith_angle
             from pyorbital.orbital import get_observer_look
-            lons, lats = vis.info['area'].get_lonlats()
-            sunalt, suna = get_alt_az(vis.info['start_time'], lons, lats)
+            lons, lats = vis.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
+            sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
             suna = np.rad2deg(suna)
-            sunz = sun_zenith_angle(vis.info['start_time'], lons, lats)
-            sata, satel = get_observer_look(vis.info['satellite_longitude'],
-                                            vis.info['satellite_latitude'],
-                                            vis.info['satellite_altitude'],
-                                            vis.info['start_time'],
+            sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+            sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
+                                            vis.attrs['satellite_latitude'],
+                                            vis.attrs['satellite_altitude'],
+                                            vis.attrs['start_time'],
                                             lons, lats, 0)
             satz = 90 - satel
             del satel
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         # First make sure the two azimuth angles are in the range 0-360:
-        sata = np.mod(sata, 360.)
-        suna = np.mod(suna, 360.)
-        ssadiff = np.abs(suna - sata)
-        ssadiff = np.where(ssadiff > 180, 360 - ssadiff, ssadiff)
+        sata = sata % 360.
+        suna = suna % 360.
+        ssadiff = abs(suna - sata)
+        ssadiff = xu.minimum(ssadiff, 360 - ssadiff)
         del sata, suna
 
-        atmosphere = self.info.get('atmosphere', 'us-standard')
-        aerosol_type = self.info.get('aerosol_type', 'marine_clean_aerosol')
+        atmosphere = self.attrs.get('atmosphere', 'us-standard')
+        aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
 
-        corrector = Rayleigh(vis.info['platform_name'], vis.info['sensor'],
+        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                              atmosphere=atmosphere,
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff, vis.id.name, red)
+            refl_cor_band = corrector.get_reflectance(sunz.load().values,
+                                                      satz.load().values,
+                                                      ssadiff.load().values,
+                                                      vis.attrs['name'],
+                                                      red.load().values)
         except KeyError:
-            LOG.warning("Could not get the reflectance correction using band name: %s", vis.id.name)
+            LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
-                                                      vis.id.wavelength[1], red)
+            refl_cor_band = corrector.get_reflectance(sunz.load().values,
+                                                      satz.load().values,
+                                                      ssadiff.load().values,
+                                                      vis.attrs['wavelength'][1],
+                                                      red.load().values)
 
-        proj = Dataset(vis - refl_cor_band,
-                       copy=False,
-                       **vis.info)
+        proj = vis - refl_cor_band
+        proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
 
         return proj
@@ -413,28 +431,29 @@ class NIRReflectance(CompositeBase):
             raise
 
         _nir, _tb11 = projectables
-        self._refl3x = Calculator(_nir.info['platform_name'], _nir.info['sensor'], _nir.id.name)
+        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
 
     def _get_reflectance(self, projectables, optional_datasets):
         """Calculate 3.x reflectance with pyspectral"""
         _nir, _tb11 = projectables
-        LOG.info('Getting reflective part of %s', _nir.info['name'])
+        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
 
         sun_zenith = None
         tb13_4 = None
+
         for dataset in optional_datasets:
-            if (dataset.info['units'] == 'K' and
-                    "wavelengh" in dataset.info and
-                    dataset.info["wavelength"][0] <= 13.4 <= dataset.info["wavelength"][2]):
+            if (dataset.attrs['units'] == 'K' and
+                    "wavelengh" in dataset.attrs and
+                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
                 tb13_4 = dataset
-            elif dataset.info["standard_name"] == "solar_zenith_angle":
+            elif dataset.attrs["standard_name"] == "solar_zenith_angle":
                 sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             from pyorbital.astronomy import sun_zenith_angle as sza
-            lons, lats = _nir.info["area"].get_lonlats()
-            sun_zenith = sza(_nir.info['start_time'], lons, lats)
+            lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
@@ -442,7 +461,7 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the emissive part an NIR channel after having derived the reflectance. 
+        """Get the emissive part an NIR channel after having derived the reflectance.
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
         self._init_refl3x(projectables)
@@ -452,9 +471,9 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.info)
+        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.attrs)
 
-        proj.info['units'] = 'K'
+        proj.attrs['units'] = 'K'
         self.apply_modifier_info(_nir, proj)
 
         return proj
@@ -473,15 +492,15 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.info['area'].get_lonlats()
+            lons, lats = band.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
 
             try:
-                dummy, satel = get_observer_look(band.info['satellite_longitude'],
-                                                 band.info[
+                dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
+                                                 band.attrs[
                                                      'satellite_latitude'],
-                                                 band.info[
+                                                 band.attrs[
                                                      'satellite_altitude'],
-                                                 band.info['start_time'],
+                                                 band.attrs['start_time'],
                                                  lons, lats, 0)
             except KeyError:
                 raise KeyError(
@@ -490,14 +509,12 @@ class PSPAtmosphericalCorrection(CompositeBase):
             del satel
 
         LOG.info('Correction for limb cooling')
-        corrector = AtmosphericalCorrection(band.info['platform_name'],
-                                            band.info['sensor'])
+        corrector = AtmosphericalCorrection(band.attrs['platform_name'],
+                                            band.attrs['sensor'])
 
-        atm_corr = corrector.get_correction(satz, band.info['name'], band)
-
-        proj = Dataset(atm_corr,
-                       copy=False,
-                       **band.info)
+        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
+        proj = band - atm_corr
+        proj.attrs = band.attrs
         self.apply_modifier_info(band, proj)
 
         return proj
@@ -519,17 +536,13 @@ class CO2Corrector(CompositeBase):
         LOG.info('Applying CO2 correction')
         dt_co2 = (ir_108 - ir_134) / 4.0
         rcorr = ir_108**4 - (ir_108 - dt_co2)**4
-        t4_co2corr = ir_039**4 + rcorr
-        t4_co2corr = np.ma.where(t4_co2corr > 0.0, t4_co2corr, 0)
-        t4_co2corr = t4_co2corr**0.25
+        t4_co2corr = (ir_039**4 + rcorr).clip(0.0) ** 0.25
 
-        info = ir_039.info.copy()
+        t4_co2corr.attrs = ir_039.attrs.copy()
 
-        proj = Dataset(t4_co2corr, mask=t4_co2corr.mask, **info)
+        self.apply_modifier_info(ir_039, t4_co2corr)
 
-        self.apply_modifier_info(ir_039, proj)
-
-        return proj
+        return t4_co2corr
 
 
 class DifferenceCompositor(CompositeBase):
@@ -538,8 +551,8 @@ class DifferenceCompositor(CompositeBase):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-        info = combine_info(*projectables)
-        info['name'] = self.info['name']
+        info = combine_metadata(*projectables)
+        info['name'] = self.attrs['name']
 
         return Dataset(projectables[0] - projectables[1], **info)
 
@@ -551,27 +564,41 @@ class RGBCompositor(CompositeBase):
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
 
+        areas = [projectable.attrs.get('area', None)
+                 for projectable in projectables]
+        areas = [area for area in areas if area is not None]
+        if areas and areas.count(areas[0]) != len(areas):
+            raise IncompatibleAreas
         try:
-            the_data = np.rollaxis(
-                np.ma.dstack([projectable for projectable in projectables]),
-                axis=2)
+            times = [proj['time'][0].values for proj in projectables]
+        except KeyError:
+            pass
+        else:
+            # Is there a more gracious way to handle this ?
+            if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
+                raise IncompatibleTimes
+            else:
+                mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+            projectables[0]['time'] = [mid_time]
+            projectables[1]['time'] = [mid_time]
+            projectables[2]['time'] = [mid_time]
+        try:
+            the_data = xr.concat(projectables, 'bands')
+            the_data['bands'] = ['R', 'G', 'B']
         except ValueError:
             raise IncompatibleAreas
-        else:
-            areas = [projectable.info.get('area', None)
-                     for projectable in projectables]
-            areas = [area for area in areas if area is not None]
-            if areas and areas.count(areas[0]) != len(areas):
-                raise IncompatibleAreas
 
-        info = combine_info(*projectables)
-        info.update(self.info)
+        attrs = combine_metadata(*projectables)
+        attrs.update({key: val
+                      for (key, val) in info.items()
+                      if val is not None})
+        attrs.update(self.attrs)
         # FIXME: should this be done here ?
-        info["wavelength"] = None
-        info.pop("units", None)
+        attrs["wavelength"] = None
+        attrs.pop("units", None)
         sensor = set()
         for projectable in projectables:
-            current_sensor = projectable.info.get("sensor", None)
+            current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
                 if isinstance(current_sensor, (str, bytes, six.text_type)):
                     sensor.add(current_sensor)
@@ -581,9 +608,14 @@ class RGBCompositor(CompositeBase):
             sensor = None
         elif len(sensor) == 1:
             sensor = list(sensor)[0]
-        info["sensor"] = sensor
-        info["mode"] = "RGB"
-        return Dataset(data=the_data, **info)
+        attrs["sensor"] = sensor
+        attrs["mode"] = "RGB"
+        the_data.attrs.update(attrs)
+        the_data.attrs.pop('calibration', None)
+        the_data.attrs.pop('modifiers', None)
+        the_data.name = the_data.attrs['name']
+
+        return the_data
 
 
 class BWCompositor(CompositeBase):
@@ -608,6 +640,8 @@ class ColormapCompositor(RGBCompositor):
         """Create the colormap from the `raw_palette` and the valid_range."""
 
         from trollimage.colormap import Colormap
+
+        palette = np.asanyarray(palette).squeeze()
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
                     for (val, tup) in enumerate(palette[:-1])]
@@ -640,17 +674,18 @@ class ColorizeCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        colormap = self.build_colormap(palette / 255.0, data.dtype, data.info)
+        palette = np.asanyarray(palette).squeeze()
+        colormap = self.build_colormap(palette / 255.0, data.dtype, data.attrs)
 
-        r, g, b = colormap.colorize(data)
+        r, g, b = colormap.colorize(np.asanyarray(data))
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.info)
-        g = Dataset(g, copy=False, mask=data.mask, **data.info)
-        b = Dataset(b, copy=False, mask=data.mask, **data.info)
+        r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
+        g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
+        b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
 
-        return super(ColorizeCompositor, self).__call__((r, g, b), **data.info)
+        return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -667,17 +702,20 @@ class PaletteCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = palette / 255.0
-        colormap = self.build_colormap(palette, data.dtype, data.info)
+        palette = np.asanyarray(palette).squeeze() / 255.0
+        colormap = self.build_colormap(palette, data.dtype, data.attrs)
 
-        channels, colors = colormap.palettize(data)
+        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
 
-        r = Dataset(channels[:, :, 0], copy=False, mask=data.mask, **data.info)
-        g = Dataset(channels[:, :, 1], copy=False, mask=data.mask, **data.info)
-        b = Dataset(channels[:, :, 2], copy=False, mask=data.mask, **data.info)
+        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
+        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
+        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
+                         dims=data.dims, coords=data.coords)
 
-        return super(PaletteCompositor, self).__call__((r, g, b), **data.info)
+        return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class DayNightCompositor(RGBCompositor):
@@ -739,6 +777,17 @@ class DayNightCompositor(RGBCompositor):
         return res
 
 
+def sub_arrays(proj1, proj2):
+    """Substract two DataArrays and combine their attrs."""
+    res = proj1 - proj2
+    res.attrs = combine_metadata(proj1.attrs, proj2.attrs)
+    if (res.attrs.get('area') is None and
+            proj1.attrs.get('area') is not None and
+            proj2.attrs.get('area') is not None):
+        raise IncompatibleAreas
+    return res
+
+
 class Airmass(RGBCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -755,10 +804,11 @@ class Airmass(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[0] - projectables[1],
-                                                projectables[2] -
-                                                projectables[3],
-                                                projectables[0]), *args, **kwargs)
+            ch1 = sub_arrays(projectables[0], projectables[1])
+            ch2 = sub_arrays(projectables[2], projectables[3])
+            res = RGBCompositor.__call__(self, (ch1, ch2,
+                                                projectables[0]),
+                                         *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
         return res
@@ -818,9 +868,10 @@ class Dust(RGBCompositor):
         +--------------------+--------------------+--------------------+
         """
         try:
-            res = RGBCompositor.__call__(self, (projectables[2] - projectables[1],
-                                                projectables[1] -
-                                                projectables[0],
+
+            ch1 = sub_arrays(projectables[2], projectables[1])
+            ch2 = sub_arrays(projectables[1], projectables[0])
+            res = RGBCompositor.__call__(self, (ch1, ch2,
                                                 projectables[1]), *args, **kwargs)
         except ValueError:
             raise IncompatibleAreas
@@ -837,22 +888,19 @@ class RealisticColors(RGBCompositor):
             vis08 = projectables[1]
             hrv = projectables[2]
 
+            try:
+                ch3 = 3 * hrv - vis06 - vis08
+                ch3.attrs = hrv.attrs
+            except ValueError as err:
+                raise IncompatibleAreas
+
             ndvi = (vis08 - vis06) / (vis08 + vis06)
             ndvi = np.where(ndvi < 0, 0, ndvi)
 
-            # info = combine_info(*projectables)
-            # info['name'] = self.info['name']
-            # info['standard_name'] = self.info['standard_name']
-
-            ch1 = Dataset(ndvi * vis06 + (1 - ndvi) * vis08,
-                          copy=False,
-                          **vis06.info)
-            ch2 = Dataset(ndvi * vis08 + (1 - ndvi) * vis06,
-                          copy=False,
-                          **vis08.info)
-            ch3 = Dataset(3 * hrv - vis06 - vis08,
-                          copy=False,
-                          **hrv.info)
+            ch1 = ndvi * vis06 + (1 - ndvi) * vis08
+            ch1.attrs = vis06.attrs
+            ch2 = ndvi * vis08 + (1 - ndvi) * vis06
+            ch2.attrs = vis08.attrs
 
             res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
                                          *args, **kwargs)

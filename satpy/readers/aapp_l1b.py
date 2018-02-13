@@ -39,8 +39,9 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
-from satpy.dataset import Dataset
+import dask.array as da
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,14 @@ CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
 ANGLES = {'sensor_zenith_angle': 'satz',
           'solar_zenith_angle': 'sunz',
           'sun_sensor_azimuth_difference_angle': 'azidiff'}
+
+
+def create_xarray(arr):
+    res = da.from_array(arr, chunks=(1000, 1000))
+    res = xr.DataArray(res, dims=['y', 'x'],
+                       coords=[np.arange(res.shape[0]),
+                               np.arange(res.shape[1])])
+    return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
@@ -92,20 +101,18 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate([key])[0]
-            # dataset.info.update(info)
         elif key.name in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
             if key.name == 'longitude':
-                return Dataset(self.lons, id=key, **info)
+                dataset = create_xarray(self.lons)
             else:
-                return Dataset(self.lats, id=key, **info)
+                dataset = create_xarray(self.lats)
+            dataset.attrs = info
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = Dataset(
-                        getattr(self, ANGLES[key.name]),
-                        copy=False)
+                    dataset = getattr(self, ANGLES[key.name])
                 else:
                     dataset = self.get_angles(key.name)
             else:
@@ -166,7 +173,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             logger.debug("Interpolate sun-sat angles: time %s",
                          str(datetime.now() - tic))
 
-        return Dataset(getattr(self, ANGLES[angle_id]), copy=False)
+        return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
         """Return the longitudes and latitudes of the scene.
@@ -230,30 +237,30 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             if name in chns:
                 coeffs = calib_coeffs.get('ch' + name)
                 # FIXME data should be masked before calibration
-                ds = Dataset(
+                ds = create_xarray(
                     _vis_calibrate(self._data,
                                    idx,
                                    chns[name].calibration,
                                    pre_launch_coeffs,
                                    coeffs,
-                                   mask=(name == '3a' and self._is3b)),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
+                                   mask=(name == '3a' and self._is3b)).filled(np.nan))
+
+                ds.attrs['units'] = units[chns[name].calibration]
+                ds.attrs.update(chns[name]._asdict())
                 res.append(ds)
 
         for idx, name in enumerate(['3b', '4', '5']):
             if name in chns:
-                ds = Dataset(
+                ds = create_xarray(
                     _ir_calibrate(self._header,
                                   self._data,
                                   idx,
                                   chns[name].calibration,
                                   mask=(name == '3b' and
-                                        (np.logical_not(self._is3b)))),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
+                                        (np.logical_not(self._is3b)))).filled(np.nan))
+
+                ds.attrs['units'] = units[chns[name].calibration]
+                ds.attrs.update(chns[name]._asdict())
                 res.append(ds)
 
         logger.debug("Calibration time %s", str(datetime.now() - tic))

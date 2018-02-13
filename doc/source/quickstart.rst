@@ -158,3 +158,14 @@ Datasets are automatically scaled or "enhanced" to be compatible with the
 output format and to provide the best looking image. For more information
 on saving datasets and customizing enhancements see the documentation on
 :doc:`writers`.
+
+Troubleshooting
+===============
+
+Due to the way SatPy works, producing as many datasets as possible, there are
+times that behavior can be unexpected but with no exceptions raised. To help
+troubleshoot these situations log messages can be turned on. To do this run
+the following code before running any other SatPy code::
+
+    >>> from satpy.utils import debug_on
+    >>> debug_on()

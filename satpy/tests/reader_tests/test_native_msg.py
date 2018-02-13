@@ -134,7 +134,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         data = np.ma.ones((3, 5)) * 700 + np.arange(0, 45, 3).reshape(3, 5)
         key_name = 'IR_108'
-        self.reader.convert_to_radiance(data, key_name)
+        data = self.reader.convert_to_radiance(data, key_name)
         assertNumpyArraysEqual(data.data, IR_108_RADIANCES.data)
 
     def test_vis_calibrate(self):
@@ -142,7 +142,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         key_name = 'VIS006'
         data = VIS006_RADIANCES[:]
-        self.reader._vis_calibrate(data, key_name)
+        data = self.reader._vis_calibrate(data, key_name)
         assertNumpyArraysEqual(data.data, VIS006_REFLECTANCES)
 
     def test_ir_calibrate(self):
@@ -150,7 +150,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         key_name = 'IR_108'
         data = IR_108_RADIANCES[:]
-        self.reader._ir_calibrate(data, key_name)
+        data = self.reader._ir_calibrate(data, key_name)
         assertNumpyArraysEqual(data.data, IR_108_TBS)
 
     def tearDown(self):

@@ -17,7 +17,7 @@ modifiers:
   rayleigh_corrected_iband:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: I01
       resolution: 371
@@ -35,7 +35,7 @@ modifiers:
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: M05
       resolution: 742
@@ -206,6 +206,28 @@ composites:
     standard_name: natural_color
     high_resolution_band: blue
 
+  natural_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I03
+      modifiers: [sunz_corrected_iband]
+    - name: I02
+      modifiers: [sunz_corrected_iband]
+    - name: I01
+      modifiers: [sunz_corrected_iband]
+    standard_name: natural
+
+  natural_sun_lowres:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M05
+      modifiers: [sunz_corrected]
+    standard_name: natural
+
   true_color_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -256,6 +278,22 @@ composites:
     - M15
     - M16
     standard_name: fog
+
+  dust:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: dust
+
+  ash:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: ash
 
   night_fog:
     compositor: !!python/name:satpy.composites.Dust

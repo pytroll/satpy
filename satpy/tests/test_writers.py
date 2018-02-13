@@ -26,9 +26,11 @@ import os
 import errno
 import shutil
 import unittest
+
 import numpy as np
-from satpy import dataset
-from satpy.writers import to_image, show
+import xarray as xr
+
+from satpy.writers import show, to_image
 
 try:
     from unittest import mock
@@ -59,7 +61,7 @@ class TestWritersModule(unittest.TestCase):
         Conversion to image
         """
         # 1D
-        p = dataset.Dataset(np.arange(25))
+        p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.Image')
@@ -69,9 +71,13 @@ class TestWritersModule(unittest.TestCase):
         """
         # 2D
         data = np.arange(25).reshape((5, 5))
-        p = dataset.Dataset(data, mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5])
+        p = xr.DataArray(data, attrs=dict(
+            mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5]),
+            dims=['y', 'x'])
         to_image(p)
-        np.testing.assert_array_equal(data, mock_geoimage.call_args[0][0][0])
+
+        np.testing.assert_array_equal(
+            data, mock_geoimage.call_args[0][0][0])
         mock_geoimage.reset_mock()
 
     @mock.patch('satpy.writers.Image')
@@ -81,7 +87,8 @@ class TestWritersModule(unittest.TestCase):
         """
         # 3D
         data = np.arange(75).reshape((3, 5, 5))
-        p = dataset.Dataset(data)
+        p = xr.DataArray(data, dims=['bands', 'y', 'x'])
+        p['bands'] = ['R', 'G', 'B']
         to_image(p)
         np.testing.assert_array_equal(data[0], mock_geoimage.call_args[0][0][0])
         np.testing.assert_array_equal(data[1], mock_geoimage.call_args[0][0][1])
@@ -90,16 +97,13 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         data = np.arange(25).reshape((5, 5))
-        p = dataset.Dataset(data)
+        p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
         self.assertTrue(mock_get_image.return_value.show.called)
 
-    def test_show_unloaded(self):
-        p = dataset.Dataset([])
-        self.assertRaises(ValueError, show, p)
-
 
 class TestEnhancer(unittest.TestCase):
+
     """Test basic `Enhancer` functionality with builtin configs"""
     def test_basic_init_no_args(self):
         """Test Enhancer init with no arguments passed"""
@@ -129,7 +133,8 @@ class TestEnhancer(unittest.TestCase):
     def test_init_nonexistent_enh_file(self):
         """Test Enhancer init with a nonexistent enhancement configuration file"""
         from satpy.writers import Enhancer
-        self.assertRaises(ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
+        self.assertRaises(
+            ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
 class TestEnhancerUserConfigs(unittest.TestCase):
@@ -192,8 +197,8 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)), sensor='test_sensor2', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)), attrs=dict(sensor='test_sensor2', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhancer=e)
@@ -203,9 +208,9 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)),
-                     name='test1', sensor='test_sensor', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                     attrs=dict(name='test1', sensor='test_sensor', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
@@ -216,9 +221,9 @@ sensor_name: visir/test_sensor2
     def test_enhance_with_sensor_entry2(self):
         """Test enhancing an image with a more detailed configuration section"""
         from satpy.writers import Enhancer, get_enhanced_image
-        from satpy import Dataset
-        ds = Dataset(np.arange(1, 11.).reshape((2, 5)),
-                     name='test1', units='kelvin', sensor='test_sensor', mode='L')
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                     attrs=dict(name='test1', units='kelvin', sensor='test_sensor', mode='L'))
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)

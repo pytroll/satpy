@@ -192,6 +192,19 @@ class TestFindFilesAndReaders(unittest.TestCase):
         finally:
             os.remove(fn)
 
+    def test_reader_other_name(self):
+        """Test with default base_dir and reader specified"""
+        from satpy.readers import find_files_and_readers
+        fn = 'S_NWC_CPP_npp_32505_20180204T1114116Z_20180204T1128227Z.nc'
+        # touch the file so it exists on disk
+        open(fn, 'w')
+        try:
+            ri = find_files_and_readers(reader='nc_nwcsaf_pps')
+            self.assertListEqual(list(ri.keys()), ['nc_nwcsaf_pps'])
+            self.assertListEqual(ri['nc_nwcsaf_pps'], [fn])
+        finally:
+            os.remove(fn)
+
     def test_reader_name_matched_start_end_time(self):
         """Test with start and end time matching the filename"""
         from satpy.readers import find_files_and_readers
@@ -313,6 +326,30 @@ class TestFindFilesAndReaders(unittest.TestCase):
                           sensor='viirs')
 
 
+class TestYAMLFiles(unittest.TestCase):
+    """Test and analyze the reader configuration files."""
+
+    def test_filename_matches_reader_name(self):
+        """Test that every reader filename matches the name in the YAML."""
+        import yaml
+
+        class IgnoreLoader(yaml.SafeLoader):
+            def _ignore_all_tags(self, tag_suffix, node):
+                return tag_suffix + ' ' + node.value
+        IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
+
+        from satpy.config import glob_config
+        from satpy.readers import read_reader_config
+        for reader_config in glob_config('readers/*.yaml'):
+            reader_fn = os.path.basename(reader_config)
+            reader_fn_name = os.path.splitext(reader_fn)[0]
+            reader_info = read_reader_config([reader_config],
+                                             loader=IgnoreLoader)
+            self.assertEqual(reader_fn_name, reader_info['name'],
+                             "Reader YAML filename doesn't match reader "
+                             "name in the YAML file.")
+
+
 def suite():
     """The test suite for test_scene.
     """
@@ -321,6 +358,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
 
     return mysuite
 

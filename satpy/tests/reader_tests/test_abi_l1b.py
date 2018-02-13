@@ -25,6 +25,7 @@ import sys
 import numpy as np
 
 from satpy.readers.abi_l1b import NC_ABI_L1B
+import xarray as xr
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -36,13 +37,23 @@ try:
 except ImportError:
     import mock
 
+class FakeDataArray(object):
+    def __init__(self, info):
+        self.info = info
+
+    def __getitem__(self, key):
+        return self.info[key]
+
+    def rename(self, *args, **kwargs):
+        return self
+
 
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
-    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
-    def setUp(self, h5netcdf):
+    @mock.patch('satpy.readers.abi_l1b.xr')
+    def setUp(self, xr):
         """Setup for test."""
-        h5netcdf.File.return_value = {
+        xr.open_dataset.return_value = FakeDataArray({
             'band_id': np.array(8),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -50,7 +61,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "planck_bc1": np.array(0.09102),
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
-            "earth_sun_distance_anomaly_in_AU": np.array(0.99)}
+            "earth_sun_distance_anomaly_in_AU": np.array(0.99)})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
@@ -58,27 +69,15 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 50
+        data = xr.DataArray((np.arange(10.).reshape((2, 5)) + 1) * 50)
 
-        self.reader._ir_calibrate(data)
+        res = self.reader._ir_calibrate(data)
 
-        expected = np.ma.array([[267.55572248, 305.15576503, 332.37383249,
+        expected = np.array([[267.55572248, 305.15576503, 332.37383249,
                                  354.73895301, 374.19710115],
                                 [391.68679226, 407.74064808, 422.69329105,
                                  436.77021913, 450.13141732]])
-        self.assertTrue(np.allclose(data, expected))
-
-    def test_vis_calibrate(self):
-        """Test VIS calibration."""
-        data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 100
-
-        self.reader._vis_calibrate(data)
-
-        expected = np.ma.array([[0.15265617, 0.30531234, 0.45796851,
-                                 0.61062468, 0.76328085],
-                                [0.91593702, 1.06859319, 1.22124936,
-                                 1.37390553, 1.52656171]])
-        self.assertTrue(np.allclose(data, expected))
+        self.assertTrue(np.allclose(res.data, expected))
 
     @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._ir_calibrate')
     def test_calibrate(self, cal):
@@ -91,10 +90,10 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
 
-    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
-    def setUp(self, h5netcdf):
+    @mock.patch('satpy.readers.abi_l1b.xr')
+    def setUp(self, xr):
         """Setup for test."""
-        h5netcdf.File.return_value = {
+        xr.open_dataset.return_value = FakeDataArray({
             'band_id': np.array(5),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -102,7 +101,7 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             "planck_bc1": np.array(0.09102),
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
-            "earth_sun_distance_anomaly_in_AU": np.array(0.99)}
+            "earth_sun_distance_anomaly_in_AU": np.array(0.99)})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
@@ -110,15 +109,15 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
 
     def test_vis_calibrate(self):
         """Test VIS calibration."""
-        data = (np.ma.arange(10.).reshape((2, 5)) + 1) * 100
+        data = xr.DataArray((np.arange(10.).reshape((2, 5)) + 1) * 100)
 
-        self.reader._vis_calibrate(data)
+        res = self.reader._vis_calibrate(data)
 
-        expected = np.ma.array([[0.15265617, 0.30531234, 0.45796851,
+        expected = np.array([[0.15265617, 0.30531234, 0.45796851,
                                  0.61062468, 0.76328085],
                                 [0.91593702, 1.06859319, 1.22124936,
                                  1.37390553, 1.52656171]])
-        self.assertTrue(np.allclose(data, expected))
+        self.assertTrue(np.allclose(res.data, expected))
 
     @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._vis_calibrate')
     def test_calibrate(self, cal):
@@ -130,15 +129,15 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
-    @mock.patch('satpy.readers.abi_l1b.h5netcdf')
-    def setUp(self, h5netcdf):
+    @mock.patch('satpy.readers.abi_l1b.xr')
+    def setUp(self, xr):
         """Setup for test."""
         proj = mock.MagicMock()
         proj.attrs = {'semi_major_axis': np.array(1.),
                       'semi_minor_axis': np.array(1.),
                       'perspective_point_height': np.array(1.),
                       'longitude_of_projection_origin': np.array(-90.),
-                      'sweep_angle_axis': b'x'
+                      'sweep_angle_axis': u'x'
                       }
         x__ = mock.MagicMock()
         x__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
@@ -150,11 +149,11 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
         y__[0] = -1.
         y__[-1] = 1.
         y__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
-        h5netcdf.File.return_value = {
+        xr.open_dataset.return_value = FakeDataArray({
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'Rad': np.ma.ones((10, 10))}
+            'Rad': np.ma.ones((10, 10))})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
@@ -165,16 +164,17 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
-        adef.assert_called_once_with('some_area_name',
-                                     'On-the-fly area',
-                                     'geosabii',
-                                     {'a': 1.0, 'b': 1.0, 'h': 1.0,
+        self.assertEqual(adef.call_count, 1)
+        call_args = tuple(adef.call_args)[0]
+        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0,
                                       'lon_0': -90.0, 'proj': 'geos',
-                                      'sweep': 'x', 'units': 'm'},
-                                     self.reader.ncols,
-                                     self.reader.nlines,
-                                     (-1.1111111111111112, -1.1111111111111112,
-                                      1.1111111111111112, 1.1111111111111112))
+                                      'sweep': 'x', 'units': 'm'})
+        self.assertEqual(call_args[4], self.reader.ncols)
+        self.assertEqual(call_args[5], self.reader.nlines)
+        np.testing.assert_allclose(call_args[6], (-1.1111111111111112,
+                                                  -1.1111111111111112,
+                                                  1.1111111111111112,
+                                                  1.1111111111111112))
 
 
 def suite():
