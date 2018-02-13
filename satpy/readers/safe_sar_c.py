@@ -19,8 +19,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR-C format.
-"""
+"""SAFE SAR-C format."""
 
 import logging
 import os
@@ -28,10 +27,13 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 from osgeo import gdal
+from dask.array import Array
+from xarray import DataArray
+import xarray.ufuncs as xu
+from dask.base import tokenize
 
-from geotiepoints.geointerpolator import GeoInterpolator
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +61,11 @@ def dictify(r, root=True):
 
 
 class SAFEXML(BaseFileHandler):
+    """XML file reader for the SAFE format."""
 
-    def __init__(self, filename, filename_info, filetype_info, header_file=None):
-        super(SAFEXML, self).__init__(filename, filename_info,
-                                      filetype_info)
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        super(SAFEXML, self).__init__(filename, filename_info, filetype_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -92,16 +95,11 @@ class SAFEXML(BaseFileHandler):
         return np.asarray(data), (x, y)
 
     @staticmethod
-    def interpolate_xml_array(data, low_res_coords, full_res_size):
+    def interpolate_xml_array(data, low_res_coords, shape):
         """Interpolate arbitrary size dataset to a full sized grid."""
-        from scipy.interpolate import griddata
-        grid_x, grid_y = np.mgrid[0:full_res_size[0], 0:full_res_size[1]]
-        x, y = low_res_coords
+        xpoints, ypoints = low_res_coords
 
-        return griddata(np.vstack((np.asarray(y), np.asarray(x))).T,
-                        data,
-                        (grid_x, grid_y),
-                        method='linear')
+        return interpolate_xarray_linear(xpoints, ypoints, data, shape)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -117,11 +115,13 @@ class SAFEXML(BaseFileHandler):
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
     def get_noise_correction(self, shape):
+        """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
         data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
         return self.interpolate_xml_array(data, low_res_coords, shape)
 
     def get_calibration(self, name, shape):
+        """Get the calibration array."""
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, name)
         return self.interpolate_xml_array(data ** 2, low_res_coords, shape)
@@ -139,7 +139,76 @@ class SAFEXML(BaseFileHandler):
         return self._end_time
 
 
+def interpolate_slice(slice_rows, slice_cols, interpolator):
+    """Interpolate the given slice of the larger array."""
+    fine_rows = np.arange(slice_rows.start, slice_rows.stop, slice_rows.step)
+    fine_cols = np.arange(slice_cols.start, slice_cols.stop, slice_cols.step)
+    return interpolator(fine_cols, fine_rows)
+
+
+def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
+                       blocksize=CHUNK_SIZE):
+    """Interpolate, generating a dask array."""
+    vchunks = range(0, shape[0], blocksize)
+    hchunks = range(0, shape[1], blocksize)
+
+    token = tokenize(blocksize, xpoints, ypoints, values, kind, shape)
+    name = 'interpolate-' + token
+
+    from scipy.interpolate import interp2d
+    interpolator = interp2d(xpoints, ypoints, values, kind=kind)
+
+    dskx = {(name, i, j): (interpolate_slice,
+                           slice(vcs, min(vcs + blocksize, shape[0])),
+                           slice(hcs, min(hcs + blocksize, shape[1])),
+                           interpolator)
+            for i, vcs in enumerate(vchunks)
+            for j, hcs in enumerate(hchunks)
+            }
+
+    res = Array(dskx, name, shape=list(shape),
+                chunks=(blocksize, blocksize),
+                dtype=values.dtype)
+    return DataArray(res, dims=('y', 'x'))
+
+
+def interpolate_xarray_linear(xpoints, ypoints, values, shape,
+                              blocksize=CHUNK_SIZE):
+    """Interpolate linearly, generating a dask array."""
+    vchunks = range(0, shape[0], blocksize)
+    hchunks = range(0, shape[1], blocksize)
+
+    from scipy.interpolate.interpnd import (LinearNDInterpolator,
+                                            _ndim_coords_from_arrays)
+
+    points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints),
+                                                 np.asarray(xpoints))).T)
+
+    token = tokenize(blocksize, points, values, shape)
+    name = 'interpolate2-' + token
+
+    interpolator = LinearNDInterpolator(points, values)
+
+    def intp(slice_rows, slice_cols, interpolator):
+        grid_x, grid_y = np.mgrid[slice_rows, slice_cols]
+        return interpolator((grid_x, grid_y))
+
+    dskx = {(name, i, j): (intp,
+                           slice(vcs, min(vcs + blocksize, shape[0])),
+                           slice(hcs, min(hcs + blocksize, shape[1])),
+                           interpolator)
+            for i, vcs in enumerate(vchunks)
+            for j, hcs in enumerate(hchunks)
+            }
+
+    res = Array(dskx, name, shape=list(shape),
+                chunks=(blocksize, blocksize),
+                dtype=values.dtype)
+    return DataArray(res, dims=('y', 'x'))
+
+
 class SAFEGRD(BaseFileHandler):
+    """Measurement file reader."""
 
     def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
         super(SAFEGRD, self).__init__(filename, filename_info,
@@ -160,6 +229,7 @@ class SAFEGRD(BaseFileHandler):
         self.get_gdal_filehandle()
 
     def get_gdal_filehandle(self):
+        """Try to create the filehandle using gdal."""
         if os.path.exists(self.filename):
             self.filehandle = gdal.Open(self.filename)
             logger.debug("Loading dataset {}".format(self.filename))
@@ -173,8 +243,6 @@ class SAFEGRD(BaseFileHandler):
 
         logger.debug('Reading %s.', key.name)
 
-        band = self.filehandle
-
         if key.name in ['longitude', 'latitude']:
             logger.debug('Constructing coordinate arrays.')
 
@@ -182,12 +250,12 @@ class SAFEGRD(BaseFileHandler):
                 self.lons, self.lats = self.get_lonlats()
 
             if key.name == 'latitude':
-                proj = Dataset(self.lats, id=key, **info)
+                data = self.lats
             else:
-                proj = Dataset(self.lons, id=key, **info)
+                data = self.lons
 
         else:
-            data = band.GetRasterBand(1).ReadAsArray().astype(np.float)
+            data = self.read_band()
             logger.debug('Reading noise data.')
 
             noise = self.noise.get_noise_correction(data.shape)
@@ -199,17 +267,40 @@ class SAFEGRD(BaseFileHandler):
 
             logger.debug('Calibrating.')
 
-            data **= 2
-            data += cal_constant - noise
-            data /= cal
-            data[data < 0] = 0
+            data = data.astype(np.float64)
+            data = (data * data + cal_constant - noise) / cal
+
+            data = xu.sqrt(data.clip(min=0))
+
             del noise, cal
 
-            proj = Dataset(np.sqrt(data),
-                           copy=False,
-                           units='sigma')
-        del band
-        return proj
+            data.attrs['units'] = 'sigma'
+
+        return data
+
+    def read_band(self, blocksize=CHUNK_SIZE):
+        """Read the band in blocks."""
+        band = self.filehandle
+
+        shape = band.RasterYSize, band.RasterXSize
+        vchunks = range(0, shape[0], blocksize)
+        hchunks = range(0, shape[1], blocksize)
+
+        token = tokenize(blocksize, band)
+        name = 'read_band-' + token
+
+        dskx = {(name, i, j): (band.GetRasterBand(1).ReadAsArray,
+                               hcs, vcs,
+                               min(blocksize,  shape[1] - hcs),
+                               min(blocksize,  shape[0] - vcs))
+                for i, vcs in enumerate(vchunks)
+                for j, hcs in enumerate(hchunks)
+                }
+
+        res = Array(dskx, name, shape=list(shape),
+                    chunks=(blocksize, blocksize),
+                    dtype=np.uint16)
+        return DataArray(res, dims=('y', 'x'))
 
     def get_lonlats(self):
         """Obtain GCPs and construct latitude and longitude arrays.
@@ -222,25 +313,15 @@ class SAFEGRD(BaseFileHandler):
         """
         band = self.filehandle
 
-        band_x_size = band.RasterXSize
-        band_y_size = band.RasterYSize
+        shape = band.RasterYSize, band.RasterXSize
 
         (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps()
-        fine_cols = np.arange(band_x_size)
-        fine_rows = np.arange(band_y_size)
 
-        satint = GeoInterpolator((gcp_lons, gcp_lats),
-                                 (ypoints, xpoints),
-                                 (fine_rows, fine_cols), 2, 2)
+        # FIXME: do interpolation on cartesion coordinates if the area is
+        # problematic.
 
-        longitudes, latitudes = satint.interpolate()
-
-        # FIXME: check if the array is C-contigious, and make it such if it
-        # isn't
-        if longitudes.flags['CONTIGUOUS'] is False:
-            longitudes = np.ascontiguousarray(longitudes)
-        if latitudes.flags['CONTIGUOUS'] is False:
-            latitudes = np.ascontiguousarray(latitudes)
+        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, shape)
+        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, shape)
 
         return longitudes, latitudes
 
@@ -254,6 +335,7 @@ class SAFEGRD(BaseFileHandler):
         Returns:
            points (tuple): Pixel and Line indices 1d arrays
            gcp_coords (tuple): longitude and latitude 1d arrays
+
         """
         gcps = self.filehandle.GetGCPs()
 

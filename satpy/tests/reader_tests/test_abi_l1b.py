@@ -79,13 +79,6 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
                                  436.77021913, 450.13141732]])
         self.assertTrue(np.allclose(res.data, expected))
 
-    @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._ir_calibrate')
-    def test_calibrate(self, cal):
-        """Test the calibration."""
-        data = np.ma.arange(15.)
-        self.reader.calibrate(data)
-        cal.assert_called_once_with(data)
-
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
@@ -118,13 +111,6 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                                 [0.91593702, 1.06859319, 1.22124936,
                                  1.37390553, 1.52656171]])
         self.assertTrue(np.allclose(res.data, expected))
-
-    @mock.patch('satpy.readers.abi_l1b.NC_ABI_L1B._vis_calibrate')
-    def test_calibrate(self, cal):
-        """Test the calibration."""
-        data = np.ma.arange(15.)
-        self.reader.calibrate(data)
-        cal.assert_called_once_with(data)
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):

@@ -27,6 +27,7 @@ import logging
 import os
 
 import numpy as np
+import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, RGBCompositor, IncompatibleAreas
 from satpy.config import get_environ_ancpath
@@ -82,18 +83,23 @@ class RatioSharpenedRGB(RGBCompositor):
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
                 ratio = high_res / p1
+                # make ratio a no-op (multiply by 1) where the ratio is NaN or
+                # infinity or it is negative.
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
                 r = high_res
                 g = p2 * ratio
                 b = p3 * ratio
             elif self.high_resolution_band == "green":
                 LOG.debug("Sharpening image with high resolution green band")
                 ratio = high_res / p2
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
                 r = p1 * ratio
                 g = high_res
                 b = p3 * ratio
             elif self.high_resolution_band == "blue":
                 LOG.debug("Sharpening image with high resolution blue band")
                 ratio = high_res / p3
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
                 r = p1 * ratio
                 g = p2 * ratio
                 b = high_res

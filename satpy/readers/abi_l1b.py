@@ -66,9 +66,16 @@ class NC_ABI_L1B(BaseFileHandler):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
 
-        radiances = self.nc["Rad"][xslice, yslice].expand_dims('time')
+        radiances = self.nc["Rad"][yslice, xslice]  # .expand_dims('time')
 
-        res = self.calibrate(radiances)
+        if key.calibration == 'reflectance':
+            logger.debug("Calibrating to reflectances")
+            res = self._vis_calibrate(radiances)
+        elif key.calibration == 'brightness_temperature':
+            logger.debug("Calibrating to brightness temperatures")
+            res = self._ir_calibrate(radiances)
+        elif key.calibration != 'radiance':
+            raise ValueError("Unknown calibration '{}'".format(key.calibration))
 
         # convert to satpy standard units
         if res.attrs['units'] == '1':
@@ -148,17 +155,6 @@ class NC_ABI_L1B(BaseFileHandler):
         res.attrs['units'] = 'K'
 
         return res
-
-    def calibrate(self, data):
-        """Calibrate the data."""
-        logger.debug("Calibrate")
-
-        ch = int(self.nc["band_id"])
-
-        if ch < 7:
-            return self._vis_calibrate(data)
-        else:
-            return self._ir_calibrate(data)
 
     @property
     def start_time(self):
