@@ -139,6 +139,9 @@ class Scene(MetadataObject):
                 reader_kwargs = {}
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
+        if filenames and isinstance(filenames, str):
+            raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
+
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     reader=reader,
                                                     reader_kwargs=reader_kwargs)
