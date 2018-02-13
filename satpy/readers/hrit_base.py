@@ -176,6 +176,7 @@ class HRITFileHandler(BaseFileHandler):
 
             self.mda.setdefault('number_of_bits_per_pixel', 10)
 
+
             self.mda['projection_parameters'] = {'a': 6378169.00,
                                                  'b': 6356583.80,
                                                  'h': 35785831.00,
@@ -198,7 +199,9 @@ class HRITFileHandler(BaseFileHandler):
         # Read bands
         data = self.read_band(key, info, out, xslice, yslice)
         # Convert to xarray
-        xdata = xr.DataArray(data, dims=['y', 'x'])
+        xdata = xr.DataArray(data[np.newaxis,:,:], dims=['time', 'y', 'x'])
+        xdata.coords['time'] = ([
+            self._start_time + (self._end_time - self._start_time) / 2])
         # Mask invalid values
         return xdata.where(xdata > 0)
 
