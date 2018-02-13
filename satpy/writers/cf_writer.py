@@ -145,6 +145,18 @@ def area2cf(dataarray, strict=False):
     res.append(dataarray)
     return res
 
+def make_time_bounds(dataarray, start_times, end_times):
+    import numpy as np
+    start_time = min(start_time for start_time in start_times 
+                      if start_time is not None)
+    end_time = min(end_time for end_time in end_times 
+                     if end_time is not None)
+    dtnp64 = dataarray['time'].data[0]
+    time_bnds = [(np.datetime64(start_time) - dtnp64),
+                 (np.datetime64(end_time) - dtnp64)]
+    return  xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'), 
+                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
+    
 
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
@@ -153,9 +165,6 @@ class CFWriter(Writer):
     def da2cf(dataarray, epoch=EPOCH):
         """Convert the dataarray to something cf-compatible."""
         new_data = dataarray.copy()
-        # TODO: make these boundaries of the time dimension
-        new_data.attrs.pop('start_time', None)
-        new_data.attrs.pop('end_time', None)
 
         # Remove the area
         new_data.attrs.pop('area', None)
@@ -196,12 +205,21 @@ class CFWriter(Writer):
                 new_datasets = area2cf(ds)
             except KeyError:
                 new_datasets = [ds]
+            start_times = []
+            end_times = []
             for new_ds in new_datasets:
+                start_times.append(new_ds.attrs.pop("start_time", None))
+                end_times.append(new_ds.attrs.pop("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
                                                          kwargs.get('epoch',
                                                                     EPOCH))
+ 
+        dataset = xr.Dataset(datas)                                           
+        dataset['time_bnds'] = make_time_bounds(dataset, 
+                                                start_times,
+                                                end_times)
+        dataset['time'].attrs['bounds'] = "time_bnds"
 
-        dataset = xr.Dataset(datas)
         if header_attrs is not None:
             for attribute in header_attrs.keys():
                 if header_attrs[attribute] is not None:
