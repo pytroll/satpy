@@ -62,9 +62,9 @@ class NativeMSGFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
-	"""Initialize the reader."""	
-        super(NativeMSGFileHandler,self).__init__(filename, 
-	                                         filename_info, 
+	"""Initialize the reader."""
+        super(NativeMSGFileHandler,self).__init__(filename,
+	                                         filename_info,
 	                                         filetype_info)
         
 	self.filename = filename
