@@ -62,12 +62,12 @@ class NativeMSGFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
+	"""Initialize the reader."""	
         super(NativeMSGFileHandler,self).__init__(filename, 
 	                                         filename_info, 
 	                                         filetype_info)
-        """Initialize the reader."""
-
-        self.filename = filename
+        
+	self.filename = filename
         self.platform_name = None
         self.available_channels = {}
         self.channel_order_list = []
