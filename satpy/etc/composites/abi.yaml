@@ -138,3 +138,12 @@ composites:
       modifiers: [sunz_corrected]
     - 11.0
     standard_name: overview
+
+  airmass:
+    compositor: !!python/name:satpy.composites.Airmass
+    prerequisites:
+    - 6.8
+    - 7.3
+    - 9.7
+    - 10.8
+    standard_name: airmass
