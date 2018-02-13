@@ -36,7 +36,7 @@ What can I do?
   `good first issue <https://github.com/pytroll/satpy/labels/good%20first%20issue>`_
   or `help wanted <https://github.com/pytroll/satpy/labels/help%20wanted>`_
   can be good issues to start with.
-- Read the :doc:`dev_guide` for more details on contributing code.
+- Read the :doc:`index` for more details on contributing code.
 - `Fork <https://help.github.com/articles/fork-a-repo/>`_ the repository on
   GitHub and install the package in development mode.
 - Update the SatPy documentation to make it clearer and more detailed.

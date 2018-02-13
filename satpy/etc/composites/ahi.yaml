@@ -208,3 +208,9 @@ composites:
     - 7.3
     - 10.4
     standard_name: convection
+
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    compositor: !!python/name:satpy.composites.CloudCompositor
+    prerequisites:
+      - name: B14

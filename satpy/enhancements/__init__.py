@@ -130,10 +130,11 @@ def create_colormap(palette):
 def three_d_effect(img, **kwargs):
     """Create 3D effect using convolution"""
     from scipy.signal import convolve2d
-    LOG.debug("Applying 3D effect")
-    kernel = np.array([[-1, 0, 1],
-                       [-1, 1, 1],
-                       [-1, 0, 1]])
+    w = kwargs.get('weight', 1)
+    LOG.debug("Applying 3D effect with weight %.2f", w)
+    kernel = np.array([[-w, 0, w],
+                       [-w, 1, w],
+                       [-w, 0, w]])
 
     for i in range(len(img.channels)):
         mask = img.channels[i].mask
