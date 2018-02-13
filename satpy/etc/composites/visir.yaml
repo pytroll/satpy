@@ -303,3 +303,12 @@ composites:
     standard_name: ir108_3d
     prerequisites:
       - name: IR_108
+
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    compositor: !!python/name:satpy.composites.CloudCompositor
+    prerequisites:
+      - 10.8
+    transition_min: 258.15
+    transition_max: 298.15
+    transition_gamma: 3.0

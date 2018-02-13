@@ -928,6 +928,53 @@ class RealisticColors(GenericCompositor):
         return res
 
 
+class CloudCompositor(GenericCompositor):
+
+    def __init__(self, transition_min=258.15, transition_max=298.15,
+                 transition_gamma=3.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transition_min (float): Values below or equal to this are
+                                    clouds -> opaque white
+            transition_max (float): Values above this are
+                                    cloud free -> transparent
+            transition_gamma (float): Gamma correction to apply at the end
+
+        """
+        self.transition_min = transition_min
+        self.transition_max = transition_max
+        self.transition_gamma = transition_gamma
+        super(CloudCompositor, self).__init__(**kwargs)
+
+    def __call__(self, projectables, **kwargs):
+
+        data = projectables[0]
+
+        # Default to rough IR thresholds
+        # Values below or equal to this are clouds -> opaque white
+        tr_min = self.transition_min
+        # Values above this are cloud free -> transparent
+        tr_max = self.transition_max
+        # Gamma correction
+        gamma = self.transition_gamma
+
+        slope = 1 / (tr_min - tr_max)
+        offset = 1 - slope * tr_min
+
+        alpha = data.where(data > tr_min, 1.)
+        alpha = alpha.where(data <= tr_max, 0.)
+        alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
+
+        # gamma adjustment
+        alpha **= gamma
+
+        res = super(CloudCompositor, self).__call__((data, alpha),
+                                                    **kwargs)
+
+        return res
+
+
 def enhance2dataset(dset):
     """Apply enhancements to dataset *dset* and convert the image data
     back to Dataset object."""

@@ -34,8 +34,7 @@ installation.
     composites
     resample
     writers
-    CONTRIBUTING
-    dev_guide
+    dev_guide/index
     SatPy API <api/satpy>
 
 

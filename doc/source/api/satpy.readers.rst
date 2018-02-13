@@ -140,14 +140,6 @@ satpy\.readers\.hdfeos\_l1b module
     :undoc-members:
     :show-inheritance:
 
-satpy\.readers\.helper\_functions module
-----------------------------------------
-
-.. automodule:: satpy.readers.helper_functions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy\.readers\.hrit\_base module
 ---------------------------------
 
@@ -320,6 +312,14 @@ satpy\.readers\.scatsat1\_l2b module
 ------------------------------------
 
 .. automodule:: satpy.readers.scatsat1_l2b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy\.readers\.utils module
+----------------------------
+
+.. automodule:: satpy.readers.utils
     :members:
     :undoc-members:
     :show-inheritance:
