@@ -24,6 +24,7 @@ file_types:
 
 
 datasets:
+
   latitude:
     name: latitude
     resolution: 80

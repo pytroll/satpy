@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018
+# Copyright (c) 2015-2018 PyTroll developers
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,11 +43,6 @@ from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
 
@@ -212,19 +208,55 @@ class CompositorLoader(object):
                                                composite_type, sensor_id, composite_config, **kwargs)
 
 
+def check_times(projectables):
+    times = []
+    for proj in projectables:
+        try:
+            if proj['time'].size and proj['time'][0] != 0:
+                times.append(proj['time'][0].values)
+            else:
+                break  # right?
+        except KeyError:
+            # the datasets don't have times
+            break
+        except IndexError:
+            # time is a scalar
+            if proj['time'].values != 0:
+                times.append(proj['time'].values)
+            else:
+                break
+    else:
+        # Is there a more gracious way to handle this ?
+        if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
+            raise IncompatibleTimes
+        else:
+            mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+        return mid_time
+
+
+def sub_arrays(proj1, proj2):
+    """Substract two DataArrays and combine their attrs."""
+    attrs = combine_metadata(proj1.attrs, proj2.attrs)
+    if (attrs.get('area') is None and
+            proj1.attrs.get('area') is not None and
+            proj2.attrs.get('area') is not None):
+        raise IncompatibleAreas
+    res = proj1 - proj2
+    res.attrs = attrs
+    return res
+
+
 class CompositeBase(MetadataObject):
 
     def __init__(self,
                  name,
                  prerequisites=None,
                  optional_prerequisites=None,
-                 metadata_requirements=None,
                  **kwargs):
         # Required info
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
         kwargs["optional_prerequisites"] = optional_prerequisites or []
-        kwargs["metadata_requirements"] = metadata_requirements or []
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
@@ -328,18 +360,6 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         return atmospheric_path_length_correction(proj, coszen)
 
 
-def show(data, filename=None):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    img = pil.fromarray(((data - data.min()) * 255.0 /
-                         (data.max() - data.min())).astype(np.uint8))
-    if filename is None:
-        img.show()
-    else:
-        img.save(filename)
-
-
 class PSPRayleighReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -389,7 +409,7 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load().values,
                                                       ssadiff.load().values,
                                                       vis.attrs['name'],
-                                                      red.load().values)
+                                                      red.values)
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
@@ -397,12 +417,11 @@ class PSPRayleighReflectance(CompositeBase):
                                                       satz.load().values,
                                                       ssadiff.load().values,
                                                       vis.attrs['wavelength'][1],
-                                                      red.load().values)
+                                                      red.values)
 
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
-
         return proj
 
 
@@ -557,45 +576,29 @@ class DifferenceCompositor(CompositeBase):
         return Dataset(projectables[0] - projectables[1], **info)
 
 
-class RGBCompositor(CompositeBase):
+class GenericCompositor(CompositeBase):
 
-    def __call__(self, projectables, nonprojectables=None, **info):
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables), ))
+    modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-        areas = [projectable.attrs.get('area', None)
-                 for projectable in projectables]
-        areas = [area for area in areas if area is not None]
-        if areas and areas.count(areas[0]) != len(areas):
-            raise IncompatibleAreas
+    def _concat_datasets(self, projectables, mode):
         try:
-            times = [proj['time'][0].values for proj in projectables]
-        except KeyError:
-            pass
+            projs = [p.drop('time') if 'time' in p.coords else p for p in projectables]
+            data = xr.concat(projs, 'bands')
+            data['bands'] = list(mode)
+        except ValueError as e:
+            LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
+            raise IncompatibleAreas
         else:
-            # Is there a more gracious way to handle this ?
-            if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
-                raise IncompatibleTimes
-            else:
-                mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
-            projectables[0]['time'] = [mid_time]
-            projectables[1]['time'] = [mid_time]
-            projectables[2]['time'] = [mid_time]
-        try:
-            the_data = xr.concat(projectables, 'bands')
-            the_data['bands'] = ['R', 'G', 'B']
-        except ValueError:
-            raise IncompatibleAreas
+            areas = [projectable.attrs.get('area', None)
+                     for projectable in projectables]
+            areas = [area for area in areas if area is not None]
+            if areas and areas.count(areas[0]) != len(areas):
+                LOG.debug("Not all areas are the same in '{}'".format(self.attrs['name']))
+                raise IncompatibleAreas
 
-        attrs = combine_metadata(*projectables)
-        attrs.update({key: val
-                      for (key, val) in info.items()
-                      if val is not None})
-        attrs.update(self.attrs)
-        # FIXME: should this be done here ?
-        attrs["wavelength"] = None
-        attrs.pop("units", None)
+        return data
+
+    def _get_sensors(self, projectables):
         sensor = set()
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
@@ -608,31 +611,72 @@ class RGBCompositor(CompositeBase):
             sensor = None
         elif len(sensor) == 1:
             sensor = list(sensor)[0]
-        attrs["sensor"] = sensor
-        attrs["mode"] = "RGB"
-        the_data.attrs.update(attrs)
-        the_data.attrs.pop('calibration', None)
-        the_data.attrs.pop('modifiers', None)
-        the_data.name = the_data.attrs['name']
+        return sensor
 
-        return the_data
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+
+        num = len(projectables)
+        mode = attrs.get('mode')
+        if mode is None:
+            # num may not be in `self.modes` so only check if we need to
+            mode = self.modes[num]
+        if len(projectables) > 1:
+            data = self._concat_datasets(projectables, mode)
+        else:
+            data = projectables[0]
+
+        # if inputs have a time coordinate that may differ slightly between
+        # themselves then find the mid time and use that as the single
+        # time coordinate value
+        if len(projectables) > 1:
+            time = check_times(projectables)
+            if time is not None:
+                data['time'] = [time]
+
+        new_attrs = combine_metadata(*projectables)
+        # remove metadata that shouldn't make sense in a composite
+        new_attrs["wavelength"] = None
+        new_attrs.pop("units", None)
+        new_attrs.pop('calibration', None)
+        new_attrs.pop('modifiers', None)
+
+        new_attrs.update({key: val
+                          for (key, val) in attrs.items()
+                          if val is not None})
+        new_attrs.update(self.attrs)
+        new_attrs["sensor"] = self._get_sensors(projectables)
+        new_attrs["mode"] = mode
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
 
 
-class BWCompositor(CompositeBase):
+class RGBCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
-        if len(projectables) != 1:
-            raise ValueError("Expected 1 dataset, got %d" %
+
+        import warnings
+        warnings.warn("RGBCompositor is deprecated, use GenericCompositor "
+                      "instead.", DeprecationWarning)
+
+        if len(projectables) != 3:
+            raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
-
-        info = combine_info(*projectables)
-        info['name'] = self.info['name']
-        info['standard_name'] = self.info['standard_name']
-
-        return Dataset(projectables[0].copy(), **info.copy())
+        return super(RGBCompositor, self).__call__(projectables, **info)
 
 
-class ColormapCompositor(RGBCompositor):
+class BWCompositor(GenericCompositor):
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+
+        import warnings
+        warnings.warn("BWCompositor is deprecated, use GenericCompositor "
+                      "instead.", DeprecationWarning)
+
+        return super(BWCompositor, self).__call__(projectables, **info)
+
+
+class ColormapCompositor(GenericCompositor):
 
     """A compositor that uses colormaps."""
     @staticmethod
@@ -718,7 +762,7 @@ class PaletteCompositor(ColormapCompositor):
         return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
 
 
-class DayNightCompositor(RGBCompositor):
+class DayNightCompositor(GenericCompositor):
 
     """A compositor that takes one composite on the night side, another on day
     side, and then blends them together."""
@@ -766,10 +810,10 @@ class DayNightCompositor(RGBCompositor):
                                **projectables[0].info)
                 full_data.append(data)
 
-            res = RGBCompositor.__call__(self, (full_data[0],
-                                                full_data[1],
-                                                full_data[2]),
-                                         *args, **kwargs)
+            res = super(DayNightCompositor, self).__call__((full_data[0],
+                                                            full_data[1],
+                                                            full_data[2]),
+                                                           *args, **kwargs)
 
         except ValueError:
             raise IncompatibleAreas
@@ -777,18 +821,7 @@ class DayNightCompositor(RGBCompositor):
         return res
 
 
-def sub_arrays(proj1, proj2):
-    """Substract two DataArrays and combine their attrs."""
-    res = proj1 - proj2
-    res.attrs = combine_metadata(proj1.attrs, proj2.attrs)
-    if (res.attrs.get('area') is None and
-            proj1.attrs.get('area') is not None and
-            proj2.attrs.get('area') is not None):
-        raise IncompatibleAreas
-    return res
-
-
-class Airmass(RGBCompositor):
+class Airmass(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make an airmass RGB image composite.
@@ -803,18 +836,15 @@ class Airmass(RGBCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-            ch1 = sub_arrays(projectables[0], projectables[1])
-            ch2 = sub_arrays(projectables[2], projectables[3])
-            res = RGBCompositor.__call__(self, (ch1, ch2,
-                                                projectables[0]),
-                                         *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
+        ch1 = sub_arrays(projectables[0], projectables[1])
+        ch2 = sub_arrays(projectables[2], projectables[3])
+        res = super(Airmass, self).__call__((ch1, ch2,
+                                            projectables[0]),
+                                            *args, **kwargs)
         return res
 
 
-class Convection(RGBCompositor):
+class Convection(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make a Severe Convection RGB image composite.
@@ -829,18 +859,15 @@ class Convection(RGBCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-            res = RGBCompositor.__call__(self, (projectables[3] - projectables[4],
-                                                projectables[2] -
-                                                projectables[5],
-                                                projectables[1] - projectables[0]),
-                                         *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
+        ch1 = sub_arrays(projectables[3], projectables[4])
+        ch2 = sub_arrays(projectables[2], projectables[5])
+        ch3 = sub_arrays(projectables[1], projectables[0])
+        res = super(Convection, self).__call__((ch1, ch2, ch3),
+                                               *args, **kwargs)
         return res
 
 
-class Dust(RGBCompositor):
+class Dust(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make a dust (or fog or night_fog) RGB image composite.
@@ -867,45 +894,84 @@ class Dust(RGBCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
-        try:
-
-            ch1 = sub_arrays(projectables[2], projectables[1])
-            ch2 = sub_arrays(projectables[1], projectables[0])
-            res = RGBCompositor.__call__(self, (ch1, ch2,
-                                                projectables[1]), *args, **kwargs)
-        except ValueError:
-            raise IncompatibleAreas
-
+        ch1 = sub_arrays(projectables[2], projectables[1])
+        ch2 = sub_arrays(projectables[1], projectables[0])
+        res = super(Dust, self).__call__((ch1, ch2,
+                                          projectables[1]),
+                                         *args, **kwargs)
         return res
 
 
-class RealisticColors(RGBCompositor):
+class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        vis06 = projectables[0]
+        vis08 = projectables[1]
+        hrv = projectables[2]
+
         try:
-
-            vis06 = projectables[0]
-            vis08 = projectables[1]
-            hrv = projectables[2]
-
-            try:
-                ch3 = 3 * hrv - vis06 - vis08
-                ch3.attrs = hrv.attrs
-            except ValueError as err:
-                raise IncompatibleAreas
-
-            ndvi = (vis08 - vis06) / (vis08 + vis06)
-            ndvi = np.where(ndvi < 0, 0, ndvi)
-
-            ch1 = ndvi * vis06 + (1 - ndvi) * vis08
-            ch1.attrs = vis06.attrs
-            ch2 = ndvi * vis08 + (1 - ndvi) * vis06
-            ch2.attrs = vis08.attrs
-
-            res = RGBCompositor.__call__(self, (ch1, ch2, ch3),
-                                         *args, **kwargs)
+            ch3 = 3 * hrv - vis06 - vis08
+            ch3.attrs = hrv.attrs
         except ValueError:
             raise IncompatibleAreas
+
+        ndvi = (vis08 - vis06) / (vis08 + vis06)
+        ndvi = np.where(ndvi < 0, 0, ndvi)
+
+        ch1 = ndvi * vis06 + (1 - ndvi) * vis08
+        ch1.attrs = vis06.attrs
+        ch2 = ndvi * vis08 + (1 - ndvi) * vis06
+        ch2.attrs = vis08.attrs
+
+        res = super(RealisticColors, self).__call__((ch1, ch2, ch3),
+                                                    *args, **kwargs)
+        return res
+
+
+class CloudCompositor(GenericCompositor):
+
+    def __init__(self, transition_min=258.15, transition_max=298.15,
+                 transition_gamma=3.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transition_min (float): Values below or equal to this are
+                                    clouds -> opaque white
+            transition_max (float): Values above this are
+                                    cloud free -> transparent
+            transition_gamma (float): Gamma correction to apply at the end
+
+        """
+        self.transition_min = transition_min
+        self.transition_max = transition_max
+        self.transition_gamma = transition_gamma
+        super(CloudCompositor, self).__init__(**kwargs)
+
+    def __call__(self, projectables, **kwargs):
+
+        data = projectables[0]
+
+        # Default to rough IR thresholds
+        # Values below or equal to this are clouds -> opaque white
+        tr_min = self.transition_min
+        # Values above this are cloud free -> transparent
+        tr_max = self.transition_max
+        # Gamma correction
+        gamma = self.transition_gamma
+
+        slope = 1 / (tr_min - tr_max)
+        offset = 1 - slope * tr_min
+
+        alpha = data.where(data > tr_min, 1.)
+        alpha = alpha.where(data <= tr_max, 0.)
+        alpha = alpha.where((data <= tr_min) | (data > tr_max), slope * data + offset)
+
+        # gamma adjustment
+        alpha **= gamma
+
+        res = super(CloudCompositor, self).__call__((data, alpha),
+                                                    **kwargs)
+
         return res
 
 

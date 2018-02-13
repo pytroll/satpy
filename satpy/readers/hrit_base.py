@@ -97,19 +97,23 @@ base_hdr_map = {0: primary_header,
 def dec10216(inbuf):
 
     """
-    /*
-     * pack 4 10-bit words in 5 bytes into 4 16-bit words
-     *
-     * 0       1       2       3       4       5
-     * 01234567890123456789012345678901234567890
-     * 0         1         2         3         4
-     */
-    ip = &in_buffer[i];
-    op = &out_buffer[j];
-    op[0] = ip[0]*4 + ip[1]/64;
-    op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
-    op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
-    op[3] = (ip[3] & 0x03)*256 +ip[4];
+
+    ::
+
+        /*
+         * pack 4 10-bit words in 5 bytes into 4 16-bit words
+         *
+         * 0       1       2       3       4       5
+         * 01234567890123456789012345678901234567890
+         * 0         1         2         3         4
+         */
+        ip = &in_buffer[i];
+        op = &out_buffer[j];
+        op[0] = ip[0]*4 + ip[1]/64;
+        op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
+        op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
+        op[3] = (ip[3] & 0x03)*256 +ip[4];
+
     """
 
     arr10 = inbuf.astype(np.uint16)
