@@ -41,6 +41,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
+import satpy.readers.msg_base as mb
+
 logger = logging.getLogger('hrit_msg')
 
 
@@ -791,6 +793,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.epilogue = epilogue.epilogue
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
+        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 1
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         self.mda['projection_parameters'][
@@ -857,7 +860,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
-        if (self.prologue['GeometricProcessing']['EarthModel']['TypeOfEarthModel'] < 2):
+        if not self.mda['offset_corrected']:
             xadj = 1500
             yadj = 1500
             aex = (aex[0] + xadj, aex[1] + yadj,
@@ -942,41 +945,36 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.area = area.squeeze()
         return area
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
-        res = super(HRITMSGFileHandler, self).get_dataset(key, info, out,
-                                                          xslice, yslice)
-        if res is not None:
-            out = res
-
-        self.calibrate(out, key.calibration)
-
-        out.info['units'] = info['units']
-        out.info['wavelength'] = info['wavelength']
-        out.info['standard_name'] = info['standard_name']
-        out.info['platform_name'] = self.platform_name
-        out.info['sensor'] = 'seviri'
-        out.info['satellite_longitude'] = self.mda[
+    def get_dataset(self, key, info):
+        res = super(HRITMSGFileHandler, self).get_dataset(key, info)
+        res = self.calibrate(res, key.calibration)
+        res.attrs['units'] = info['units']
+        res.attrs['wavelength'] = info['wavelength']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'seviri'
+        res.attrs['satellite_longitude'] = self.mda[
             'projection_parameters']['SSP_longitude']
-        out.info['satellite_latitude'] = self.mda[
+        res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
-        out.info['satellite_altitude'] = self.mda['projection_parameters']['h']
+        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+
+        return res
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-
         if calibration == 'counts':
-            return
-
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            self.convert_to_radiance(data)
+            res = data
+        elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            res = self.convert_to_radiance(data.astype(np.float32))
         if calibration == 'reflectance':
-            self._vis_calibrate(data)
+            res = self._vis_calibrate(res)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data)
+            res = self._ir_calibrate(res)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
@@ -984,46 +982,29 @@ class HRITMSGFileHandler(HRITFileHandler):
         coeffs = coeffs["Level1_5ImageCalibration"]
         gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
         offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
-
-        data.data[:] *= gain
-        data.data[:] += offset
-        data.data[data.data < 0] = 0
+        data = data.where(data > 0)
+        return mb.convert_to_radiance(data, gain, offset)
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
         solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        data.data[:] *= 100 / solar_irradiance
-
-    def _tl15(self, data):
-        """Compute the L15 temperature."""
-        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
-        data.data[:] **= -1
-        data.data[:] *= C1 * wavenumber ** 3
-        data.data[:] += 1
-        np.log(data.data, out=data.data)
-        data.data[:] **= -1
-        data.data[:] *= C2 * wavenumber
+        return mb.vis_calibrate(data, solar_irradiance)
 
     def _erads2bt(self, data):
         """computation based on effective radiance."""
         cal_info = CALIB[self.platform_id][self.channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
+        wavenumber = cal_info["VC"]
 
-        self._tl15(data)
-
-        data.data[:] -= beta
-        data.data[:] /= alpha
+        return mb.erads2bt(data, wavenumber, alpha, beta)
 
     def _srads2bt(self, data):
         """computation based on spectral radiance."""
         coef_a, coef_b, coef_c = BTFIT[self.channel_name]
+        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
 
-        self._tl15(data)
-
-        data.data[:] = (coef_a * data.data[:] ** 2 +
-                        coef_b * data.data[:] +
-                        coef_c)
+        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
 
     def _ir_calibrate(self, data):
         """IR calibration."""
@@ -1032,10 +1013,10 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         if cal_type == 1:
             # spectral radiances
-            self._srads2bt(data)
+            return self._srads2bt(data)
         elif cal_type == 2:
             # effective radiances
-            self._erads2bt(data)
+            return self._erads2bt(data)
         else:
             raise NotImplemented('Unknown calibration type')
 
@@ -1050,26 +1031,3 @@ def show(data, negate=False):
         data = 255 - data
     img = pil.fromarray(data)
     img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()

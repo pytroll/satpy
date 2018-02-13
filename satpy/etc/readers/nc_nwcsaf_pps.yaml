@@ -1,6 +1,6 @@
 reader:
   description: NetCDF4 reader for the NWCSAF/PPS 2014 format
-  name: nc_nwcsaf
+  name: nc_nwcsaf_pps
   sensors: ['avhrr-3', 'viirs', 'modis']
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -67,10 +67,30 @@ datasets:
     name: ct
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
+    standard_name: cloudtype
+
+  ct_conditions:
+    name: ct_conditions
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_conditions
+
+  ct_quality:
+    name: ct_quality
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_quality
+
+  ct_status_flag:
+    name: ct_status_flag
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_status_flag
 
   ct_pal:
     name: ct_pal
     file_type: nc_nwcsaf_ct
+    standard_name: palette
 
 # ---- PC products ------------
 

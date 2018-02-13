@@ -26,7 +26,7 @@ import numpy as np
 import six
 
 from pyresample.geometry import SwathDefinition
-from satpy.dataset import combine_info
+from satpy.dataset import combine_metadata
 
 
 # what about file pattern and config ?
@@ -80,7 +80,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          Also, concatenate the areas.
 
         """
-        combined_info = combine_info(*all_infos)
+        combined_info = combine_metadata(*all_infos)
         if 'start_time' not in combined_info and 'start_time' in all_infos[0]:
             combined_info['start_time'] = min(
                 i['start_time'] for i in all_infos)

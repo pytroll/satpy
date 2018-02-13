@@ -254,3 +254,20 @@ composites:
     - 10.8
     - 12.0
     standard_name: ir_overview
+
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - VIS006
+    - VIS008
+    - 10.8
+    standard_name: overview
+  overview_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - 10.8
+    standard_name: overview

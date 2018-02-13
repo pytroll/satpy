@@ -35,6 +35,20 @@ LOG = logging.getLogger(__name__)
 
 
 class GeoTIFFWriter(ImageWriter):
+
+    """Writer to save GeoTIFF images.
+
+    Basic example from Scene:
+
+        scn.save_datasets(writer='geotiff')
+
+    Un-enhanced float geotiff with NaN for fill values:
+
+        scn.save_datasets(writer='geotiff', floating_point=True,
+                          enhancement_config=False, fill_value=np.nan)
+
+    """
+
     GDAL_OPTIONS = ("tfw",
                     "rpb",
                     "rpctxt",
@@ -86,8 +100,10 @@ class GeoTIFFWriter(ImageWriter):
         """
         if fill_value is not None:
             for i, chan in enumerate(datasets):
-                ds = chan.filled(fill_value[i])
-                dst_ds.GetRasterBand(i + 1).WriteArray(ds)
+                chn = chan.filled(fill_value[i])
+                bnd = dst_ds.GetRasterBand(i + 1)
+                bnd.SetNoDataValue(fill_value[i])
+                bnd.WriteArray(chn)
         else:
             mask = np.zeros(datasets[0].shape, dtype=np.bool)
             i = 0
