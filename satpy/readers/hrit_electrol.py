@@ -30,7 +30,7 @@ References:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -38,8 +38,7 @@ import xarray as xr
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
+                                     image_data_function, time_cds_short)
 
 logger = logging.getLogger('hrit_electrol')
 
@@ -136,9 +135,7 @@ def recarray2dict(arr):
 
 
 class HRITGOMSPrologueFileHandler(HRITFileHandler):
-
-    """GOMS HRIT format reader
-    """
+    """GOMS HRIT format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -226,9 +223,7 @@ epilogue = np.dtype([('RadiometricProcessing', radiometric_processing, (10, )),
 
 
 class HRITGOMSEpilogueFileHandler(HRITFileHandler):
-
-    """GOMS HRIT format reader
-    """
+    """GOMS HRIT format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -242,12 +237,12 @@ class HRITGOMSEpilogueFileHandler(HRITFileHandler):
 
     def read_epilogue(self):
         """Read the prologue metadata."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=epilogue, count=1)[0]
 
             self.epilogue.update(recarray2dict(data))
+
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -292,11 +287,9 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
         return res
 
-
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-
         if calibration == 'counts':
             res = data
 
@@ -335,13 +328,11 @@ class HRITGOMSFileHandler(HRITFileHandler):
         coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
-
         a = 6378169.00
         b = 6356583.80
         h = 35785831.00
 
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-        lat_0 = 0
 
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
@@ -372,38 +363,3 @@ class HRITGOMSFileHandler(HRITFileHandler):
         self.area = area
 
         return area
-
-
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()
