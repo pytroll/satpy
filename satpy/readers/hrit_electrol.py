@@ -292,8 +292,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         tic = datetime.now()
         if calibration == 'counts':
             res = data
-
-        if calibration in ['radiance', 'brightness_temperature']:
+        elif calibration in ['radiance', 'brightness_temperature']:
             res = self._calibrate(data)
         else:
             raise NotImplementedError("Don't know how to calibrate to " +
