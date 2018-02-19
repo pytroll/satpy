@@ -275,9 +275,18 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         data.attrs.update(i)
         return data
 
+    def get_bounding_box(self):
+        """Get the bounding box of this file."""
+        path = 'Data_Products/{file_group}/{file_group}_Gran_0/attr/'
+        prefix = path.format(**self.filetype_info)
+
+        lats = self.file_content[prefix + 'G-Ring_Latitude']
+        lons = self.file_content[prefix + 'G-Ring_Longitude']
+
+        return lons.ravel(), lats.ravel()
+
 
 class VIIRSSDRReader(FileYAMLReader):
-
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
     def __init__(self, config_files, use_tc=True, **kwargs):
@@ -288,7 +297,7 @@ class VIIRSSDRReader(FileYAMLReader):
             use_tc (boolean): If `True` (default) use the terrain corrected
                               file types specified in the config files. If
                               `False`, switch all terrain corrected file types
-                              to non-TC file types. If `None` 
+                              to non-TC file types. If `None`
 
         """
         super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
