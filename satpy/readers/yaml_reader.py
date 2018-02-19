@@ -426,8 +426,9 @@ class FileYAMLReader(AbstractYAMLReader):
         from satpy.resample import get_area_def
         try:
             gbb = Boundary(*file_handler.get_bounding_box())
-        except NotImplementedError:
-            pass
+        except NotImplementedError as err:
+            logger.debug("Bounding box computation not implemented: %s",
+                         str(err))
         else:
             abb = AreaDefBoundary(get_area_def(check_area), frequency=1000)
 
@@ -521,18 +522,18 @@ class FileYAMLReader(AbstractYAMLReader):
         if not self.time_matches(
                 sample_dict.get('start_time'), sample_dict.get('end_time')):
             return False
-
         for key, val in self.filter_parameters.items():
-            if key not in sample_dict:
+            if key != 'area' and key not in sample_dict:
                 continue
 
-            fval = sample_dict[key]
             if key in ['start_time', 'end_time']:
                 continue
-            elif key == 'area' and file_handler and \
-                    not self.check_file_covers_area(file_handler, val):
-                break
-            elif val != fval:
+            elif key == 'area' and file_handler:
+                if not self.check_file_covers_area(file_handler, val):
+                    logger.info('Filtering out %s based on area',
+                                file_handler.filename)
+                    break
+            elif key in sample_dict and val != sample_dict[key]:
                 # don't use this file
                 break
         else:
@@ -613,7 +614,6 @@ class FileYAMLReader(AbstractYAMLReader):
         slice_list = []
         failure = True
 
-
         for fh in file_handlers:
             try:
                 projectable = fh.get_dataset(dsid, ds_info)
@@ -627,7 +627,6 @@ class FileYAMLReader(AbstractYAMLReader):
         if failure:
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
-
 
         if dim not in slice_list[0].dims:
             dim = slice_list[0].dims[0]
