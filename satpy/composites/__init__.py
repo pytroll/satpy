@@ -580,7 +580,17 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
+    def check_area_compatibility(self, projectables):
+        areas = [projectable.attrs.get('area', None)
+                 for projectable in projectables]
+        areas = [area for area in areas if area is not None]
+        if areas and areas.count(areas[0]) != len(areas):
+            LOG.debug("Not all areas are the same in '{}'".format(self.attrs['name']))
+            raise IncompatibleAreas
+
     def _concat_datasets(self, projectables, mode):
+        self.check_area_compatibility(projectables)
+
         try:
             projs = [p.drop('time') if 'time' in p.coords else p for p in projectables]
             data = xr.concat(projs, 'bands')
@@ -588,13 +598,6 @@ class GenericCompositor(CompositeBase):
         except ValueError as e:
             LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
             raise IncompatibleAreas
-        else:
-            areas = [projectable.attrs.get('area', None)
-                     for projectable in projectables]
-            areas = [area for area in areas if area is not None]
-            if areas and areas.count(areas[0]) != len(areas):
-                LOG.debug("Not all areas are the same in '{}'".format(self.attrs['name']))
-                raise IncompatibleAreas
 
         return data
 
