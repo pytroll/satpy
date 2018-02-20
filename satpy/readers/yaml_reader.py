@@ -28,7 +28,7 @@ import logging
 import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import deque, namedtuple
+from collections import deque, namedtuple, OrderedDict
 from fnmatch import fnmatch
 
 import six
@@ -178,10 +178,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         for pattern in self.file_patterns:
             matching = match_filenames(filenames, pattern)
-            selected_filenames.extend(matching)
+            for fname in matching:
+                if fname not in selected_filenames:
+                    selected_filenames.append(fname)
         if len(selected_filenames) == 0:
             logger.warning("No filenames found for reader: %s", self.name)
-
         return selected_filenames
 
     def get_ds_ids_by_wavelength(self, wavelength, ids=None):
@@ -480,15 +481,18 @@ class FileYAMLReader(AbstractYAMLReader):
     @staticmethod
     def filename_items_for_filetype(filenames, filetype_info):
         """Iterator over the filenames matching *filetype_info*."""
+        matched_files = []
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
+                if filename in matched_files:
+                    continue
                 try:
                     filename_info = parse(
                         pattern, get_filebase(filename, pattern))
                 except ValueError:
                     logger.debug("Can't parse %s with %s.", filename, pattern)
                     continue
-
+                matched_files.append(filename)
                 yield filename, filename_info
 
     def new_filehandler_instances(self, filetype_info, filename_items):
@@ -593,6 +597,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
+        filenames = list(OrderedDict.fromkeys(filenames))
         logger.debug("Assigning to %s: %s", self.info['name'], filenames)
 
         self.info.setdefault('filenames', []).extend(filenames)
