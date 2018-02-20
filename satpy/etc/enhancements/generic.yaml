@@ -70,7 +70,7 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
-  airmass_abit:
+  airmass_abi:
     standard_name: airmass
     sensor: abi
     operations:
