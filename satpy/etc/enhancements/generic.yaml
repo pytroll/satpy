@@ -70,6 +70,16 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
+  airmass_abi:
+    standard_name: airmass
+    sensor: abi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-26.2, -43.2, 243.9]
+        max_stretch: [0.6, 6.7, 208.5]
   green_snow_default:
     standard_name: green_snow
     operations:
