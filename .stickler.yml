@@ -1,7 +1,3 @@
 linters:
   flake8:
-    fixer: true
-  shellcheck:
-    shell: bash
-fixers:
-  enable: true
+    max-line-length: 120
