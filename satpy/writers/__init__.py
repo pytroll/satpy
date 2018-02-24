@@ -29,13 +29,12 @@ import logging
 import os
 
 import numpy as np
-import dask.array as da
 import yaml
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
 from satpy.plugin_base import Plugin
-from trollimage.image import Image
+from trollimage.xrimage import XRImage
 from trollsift import parser
 
 LOG = logging.getLogger(__name__)
@@ -58,7 +57,8 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None, level_coast=1, level_borders=1):
+def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
+                level_coast=1, level_borders=1):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -198,8 +198,8 @@ def add_decorate(orig, **decorate):
     Any numbers of text/logo in any order can be added to the decorate list,
     but the order of the list is kept as described above.
 
-    Note that a feature given in one element, eg. bg (which is the background color) will also apply on the next elements
-    unless a new value is given.
+    Note that a feature given in one element, eg. bg (which is the background color)
+    will also apply on the next elements  unless a new value is given.
 
     align is a special keyword telling where in the image to start adding features, top_bottom is either top or bottom
     and left_right is either left or right.
@@ -247,8 +247,6 @@ def get_enhanced_image(dataset,
 
         enhancer.apply(img, **dataset.attrs)
 
-    img.info.update(dataset.attrs)
-
     if overlay is not None:
         add_overlay(img, dataset.attrs['area'], **overlay)
 
@@ -273,17 +271,10 @@ def to_image(dataset, copy=False, **kwargs):
             kwargs.setdefault(key, dataset.attrs[key])
     dataset = dataset.squeeze()
 
-    if isinstance(dataset.data, da.Array):
-        dataset = dataset.compute()
-
-    if 'bands' in dataset.dims:
-        return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
-                      for band in dataset['bands']],
-                     copy=copy, **kwargs)
-    elif dataset.ndim < 2:
+    if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
-        return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
+        return XRImage(dataset)
 
 
 class Writer(Plugin):
