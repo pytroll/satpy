@@ -27,9 +27,8 @@ import logging
 import os
 
 import numpy as np
-import xarray.ufuncs as xu
 
-from satpy.composites import CompositeBase, RGBCompositor, IncompatibleAreas
+from satpy.composites import CompositeBase, RGBCompositor
 from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
@@ -53,80 +52,6 @@ class VIIRSFog(CompositeBase):
         fog.attrs["wavelength"] = None
         fog.attrs.setdefault("mode", "L")
         return fog
-
-
-class RatioSharpenedRGB(RGBCompositor):
-
-    def __init__(self, *args, **kwargs):
-        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
-
-    def __call__(self, datasets, optional_datasets=None, **info):
-        if len(datasets) != 3:
-            raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
-
-        new_attrs = {}
-        p1, p2, p3 = datasets
-        if optional_datasets:
-            high_res = optional_datasets[0]
-            low_res = datasets[["red", "green", "blue"].index(
-                self.high_resolution_band)]
-            if high_res.attrs["area"] != low_res.attrs["area"]:
-                    raise IncompatibleAreas("High resolution band is not "
-                                            "mapped to the same area as the "
-                                            "low resolution bands. Must "
-                                            "resample first.")
-            if 'rows_per_scan' in high_res.attrs:
-                new_attrs.setdefault('rows_per_scan',
-                                     high_res.attrs['rows_per_scan'])
-            new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            if self.high_resolution_band == "red":
-                LOG.debug("Sharpening image with high resolution red band")
-                ratio = high_res / p1
-                # make ratio a no-op (multiply by 1) where the ratio is NaN or
-                # infinity or it is negative.
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = high_res
-                g = p2 * ratio
-                b = p3 * ratio
-            elif self.high_resolution_band == "green":
-                LOG.debug("Sharpening image with high resolution green band")
-                ratio = high_res / p2
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = high_res
-                b = p3 * ratio
-            elif self.high_resolution_band == "blue":
-                LOG.debug("Sharpening image with high resolution blue band")
-                ratio = high_res / p3
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = p2 * ratio
-                b = high_res
-            else:
-                # no sharpening
-                r = p1
-                g = p2
-                b = p3
-        else:
-            r, g, b = p1, p2, p3
-        # combine the masks
-        mask = ~(r.isnull() | g.isnull() | b.isnull())
-        r = r.where(mask)
-        g = g.where(mask)
-        b = b.where(mask)
-
-        # Collect information that is the same between the projectables
-        # we want to use the metadata from the original datasets since the
-        # new r, g, b arrays may have lost their metadata during calculations
-        info = combine_metadata(*datasets)
-        info.update(new_attrs)
-        # Update that information with configured information (including name)
-        info.update(self.attrs)
-        # Force certain pieces of metadata that we *know* to be true
-        info.setdefault("standard_name", "true_color")
-        info["mode"] = self.attrs.get("mode", "RGB")
-        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
 
 
 class ReflectanceCorrector(CompositeBase):

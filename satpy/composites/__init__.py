@@ -33,6 +33,7 @@ import numpy as np
 import six
 import xarray as xr
 import xarray.ufuncs as xu
+import dask.array as da
 import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
@@ -592,8 +593,7 @@ class GenericCompositor(CompositeBase):
         self.check_area_compatibility(projectables)
 
         try:
-            projs = [p.drop('time') if 'time' in p.coords else p for p in projectables]
-            data = xr.concat(projs, 'bands')
+            data = xr.concat(projectables, 'bands', coords='minimal')
             data['bands'] = list(mode)
         except ValueError as e:
             LOG.debug("Original exception for incompatible areas: {}".format(str(e)))
@@ -633,7 +633,7 @@ class GenericCompositor(CompositeBase):
         # time coordinate value
         if len(projectables) > 1:
             time = check_times(projectables)
-            if time is not None:
+            if time is not None and 'time' in data.dims:
                 data['time'] = [time]
 
         new_attrs = combine_metadata(*projectables)
@@ -994,3 +994,207 @@ def enhance2dataset(dset):
                    copy=False,
                    **dset.info)
     return data
+
+
+class RatioSharpenedRGB(GenericCompositor):
+
+    def __init__(self, *args, **kwargs):
+        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
+        if self.high_resolution_band not in ['red', 'green', 'blue', None]:
+            raise ValueError("RatioSharpenedRGB.high_resolution_band must "
+                             "be one of ['red', 'green', 'blue', None]. Not "
+                             "'{}'".format(self.high_resolution_band))
+        super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
+
+    def __call__(self, datasets, optional_datasets=None, **info):
+        if len(datasets) != 3:
+            raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
+        if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
+                (optional_datasets and
+                optional_datasets[0].shape != datasets[0].shape):
+            raise IncompatibleAreas('RatioSharpening requires datasets of '
+                                    'the same size. Must resample first.')
+
+        new_attrs = {}
+        p1, p2, p3 = datasets
+        if optional_datasets:
+            high_res = optional_datasets[0]
+            low_res = datasets[["red", "green", "blue"].index(
+                self.high_resolution_band)]
+            if high_res.attrs["area"] != low_res.attrs["area"]:
+                    raise IncompatibleAreas("High resolution band is not "
+                                            "mapped to the same area as the "
+                                            "low resolution bands. Must "
+                                            "resample first.")
+            if 'rows_per_scan' in high_res.attrs:
+                new_attrs.setdefault('rows_per_scan',
+                                     high_res.attrs['rows_per_scan'])
+            new_attrs.setdefault('resolution', high_res.attrs['resolution'])
+            if self.high_resolution_band == "red":
+                LOG.debug("Sharpening image with high resolution red band")
+                ratio = high_res / p1
+                # make ratio a no-op (multiply by 1) where the ratio is NaN or
+                # infinity or it is negative.
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
+                r = high_res
+                g = p2 * ratio
+                b = p3 * ratio
+            elif self.high_resolution_band == "green":
+                LOG.debug("Sharpening image with high resolution green band")
+                ratio = high_res / p2
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
+                r = p1 * ratio
+                g = high_res
+                b = p3 * ratio
+            elif self.high_resolution_band == "blue":
+                LOG.debug("Sharpening image with high resolution blue band")
+                ratio = high_res / p3
+                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
+                r = p1 * ratio
+                g = p2 * ratio
+                b = high_res
+            else:
+                # no sharpening
+                r = p1
+                g = p2
+                b = p3
+        else:
+            r, g, b = p1, p2, p3
+        # combine the masks
+        mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
+        r = r.where(mask)
+        g = g.where(mask)
+        b = b.where(mask)
+
+        # Collect information that is the same between the projectables
+        # we want to use the metadata from the original datasets since the
+        # new r, g, b arrays may have lost their metadata during calculations
+        info = combine_metadata(*datasets)
+        info.update(new_attrs)
+        # Update that information with configured information (including name)
+        info.update(self.attrs)
+        # Force certain pieces of metadata that we *know* to be true
+        info.setdefault("standard_name", "true_color")
+        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+
+
+class SelfSharpenedRGB(RatioSharpenedRGB):
+    """Sharpen RGB with ratio of a band with a strided-version of itself.
+
+    Example:
+
+        R -  500m resolution - shape=(4000, 4000)
+        G - 1000m resolution - shape=(2000, 2000)
+        B - 1000m resolution - shape=(2000, 2000)
+
+        ratio = R / four_element_average(R)
+        new_R = R
+        new_G = G
+
+
+    """
+
+    @staticmethod
+    def four_element_average_dask(d):
+        """Average every 4 elements (2x2) in a 2D array"""
+        def _mean4(data):
+            rows, cols = data.shape
+            if rows % 2 != 0 or cols % 2 != 0:
+                raise ValueError("Self-sharpening requires arrays with "
+                                 "shapes divisible by 2")
+            new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
+            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
+            return data_mean
+
+        print(d)
+        print(d.dims)
+        res = d.data.map_blocks(_mean4, dtype=d.dtype)
+        return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
+
+    @staticmethod
+    def four_element_average(d):
+        """Average every 4 elements (2x2) in a 2D array"""
+        rows, cols = d.shape
+        new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
+        if isinstance(d, xr.DataArray):
+            # we don't need the dimensionality of xarray, it complicates it
+            d = d.data
+        return da.mean(d.reshape(new_shape), axis=(1, 3))
+
+    @staticmethod
+    def repeat_low_res(d, factor=2, dims=None, coords=None, **new_attrs):
+        if isinstance(d, xr.DataArray):
+            data = d.data
+            attrs = d.attrs.copy()
+            attrs.update(new_attrs)
+            new_attrs = attrs
+            coords = coords or getattr(d, 'coords', None)
+        else:
+            data = d
+        return xr.DataArray(
+            da.repeat(da.repeat(data, factor, axis=0), factor, axis=1),
+            attrs=new_attrs, dims=getattr(d, 'dims', dims),
+            coords=coords)
+
+    def __call__(self, datasets, optional_datasets=None, **attrs):
+        high_res = datasets[["red", "green", "blue"].index(
+            self.high_resolution_band)]
+        low_res = [x for x in datasets if x is not high_res]
+        # check if all the datasets are the same shape
+        if all(x.shape == high_res.shape for x in low_res):
+            LOG.info("All RGB bands are the same shape, no self-sharpening "
+                     "can be done.")
+            return super(SelfSharpenedRGB, self).__call__(datasets, **attrs)
+        # check if the bands are the shapes we expect
+        for low_band in low_res:
+            low_shape = low_band.shape
+            if low_shape[0] * 2 != high_res.shape[0] or \
+                    low_shape[1] * 2 != high_res.shape[1]:
+                raise ValueError("Unexpected resolutions during "
+                                 "self-sharpening.")
+
+        high_area = high_res.attrs['area']
+        new_mean_attrs = high_res.attrs.copy()
+        high_mean = self.four_element_average_dask(high_res)
+        # high_mean = self.four_element_average(high_res)
+        # high_mean = self.repeat_low_res(high_mean, dims=high_res.dims,
+        #                                 coords=high_res.coords,
+        #                                 **new_mean_attrs)
+
+        if self.high_resolution_band == 'red':
+            red = high_mean
+            green = self.repeat_low_res(datasets[1], area=high_area,
+                                        dims=high_res.dims,
+                                        coords=high_res.coords)
+            blue = self.repeat_low_res(datasets[2], area=high_area,
+                                       dims=high_res.dims,
+                                       coords=high_res.coords)
+        elif self.high_resolution_band == 'green':
+            red = self.repeat_low_res(datasets[0], area=high_area,
+                                      dims=high_res.dims,
+                                      coords=high_res.coords)
+            green = high_mean
+            blue = self.repeat_low_res(datasets[2], area=high_area,
+                                       dims=high_res.dims,
+                                       coords=high_res.coords)
+        elif self.high_resolution_band == 'blue':
+            print(datasets[0].shape, datasets[1].shape, high_res.shape, high_mean.shape, datasets[2].shape)
+            red = self.repeat_low_res(datasets[0], area=high_area,
+                                      dims=high_res.dims,
+                                      coords=high_res.coords)
+            green = self.repeat_low_res(datasets[1], area=high_area,
+                                        dims=high_res.dims,
+                                        coords=high_res.coords)
+            blue = high_mean
+            print(red.shape, green.shape, blue.shape)
+            print(red.coords, green.coords, blue.coords)
+            print(red.dims, green.dims, blue.dims)
+        else:
+            raise ValueError("SelfSharpenedRGB requires at least one high "
+                             "resolution band, not "
+                             "'{}'".format(self.high_resolution_band))
+
+        return super(SelfSharpenedRGB, self).__call__(
+            (red, green, blue), optional_datasets=(high_res,), **attrs)
+
