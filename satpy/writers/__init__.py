@@ -29,6 +29,7 @@ import logging
 import os
 
 import numpy as np
+import dask.array as da
 import yaml
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
@@ -271,6 +272,9 @@ def to_image(dataset, copy=False, **kwargs):
         if key in dataset.attrs:
             kwargs.setdefault(key, dataset.attrs[key])
     dataset = dataset.squeeze()
+
+    if isinstance(dataset.data, da.Array):
+        dataset = dataset.compute()
 
     if 'bands' in dataset.dims:
         return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
