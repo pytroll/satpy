@@ -44,6 +44,7 @@ from satpy.readers.msg_base import get_cds_time
 from satpy.readers.msg_base import dec10216
 import satpy.readers.msg_base as mb
 
+
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
                 'IR_108', 'IR_120', 'IR_134', 'HRV']
@@ -63,9 +64,9 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
-        super(NativeMSGFileHandler,self).__init__(filename,
-                                                  filename_info,
-                                                  filetype_info)
+        super(NativeMSGFileHandler, self).__init__(filename,
+                                                   filename_info,
+                                                   filetype_info)
 
         self.filename = filename
         self.platform_name = None
@@ -75,7 +76,6 @@ class NativeMSGFileHandler(BaseFileHandler):
             self.available_channels[item] = False
 
         self._get_header()
-
         for item in CHANNEL_LIST:
             if self.available_channels.get(item):
                 self.channel_order_list.append(item)
@@ -105,6 +105,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             # Lazy reading:
             hdr_size = self.header.dtype.itemsize
+
             return np.memmap(fp_, dtype=dt, shape=(self.data_len,),
                              offset=hdr_size, mode="r")
 
@@ -120,7 +121,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Create memory map for lazy reading of channel data:
 
         def get_lrec(cols):
-
             lrec = [
                 ("gp_pk", pk_head_dtype),
                 ("version", np.uint8),
@@ -155,10 +155,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         hd_dt = np.dtype(hdrrec)
         hd_dt = hd_dt.newbyteorder('>')
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
-
         # Set the list of available channels:
         chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
             'SelectedBandIDs'][0][-1].strip()
+
         for item, chmark in zip(CHANNEL_LIST, chlist_str):
             self.available_channels[item] = (chmark == 'X')
 
@@ -183,28 +183,33 @@ class NativeMSGFileHandler(BaseFileHandler):
                                              'SSP_longitude': ssp_lon}
         self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
             'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
+        # The number of columns is incorrect - seems to be fixed at 3712
+        # EUMETSAT will fix this
         self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
             'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
 
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
+
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
         numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
-        # Subsetting doesn't work unless number of pixels on a line
-        # divded by 4 is a whole number!
-        # FIXME!
-        if abs(int(numlines_visir / 4.) - numlines_visir / 4.) > 0.001:
-            msgstr = (
-                "Number of pixels in east-west direction needs to be a" +
-                " multiple of 4!\nPlease get the full disk!")
-            raise NotImplementedError(msgstr)
+        # We suspect the UMARF will pad out any ROI colums that
+        # are divisible by 4 so here we work out how many pixels have
+        # been added to the column
+        x = ((west-east+1)*(10.0/8) % 1)
+        y = int((1-x)*4)
 
-        # Data are stored in 10 bits!
-        self._cols_visir = int(np.ceil(numlines_visir * 10.0 / 8))  # 4640
+        if y < 4:
+            # column has been padded with y pixels
+            self._cols_visir = int((west-east+1+y)*1.25)
+        else:
+            # no padding has occurred
+            self._cols_visir = int((west-east+1)*1.25)
+
         if (west - east) < 3711:
             self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
         else:
@@ -262,8 +267,15 @@ class NativeMSGFileHandler(BaseFileHandler):
             raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
             ch_idn = self.channel_order_list.index(key.name)
-            data = dec10216(
-                self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
+            # Check if there is only 1 channel in the list as a change
+            # is needed in the arrray assignment ie channl id is not present
+            if len(self.channel_order_list) == 1:
+                data = dec10216(
+                        self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
+            else:
+                data = dec10216(
+                    self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
+
         else:
             data2 = dec10216(
                 self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
