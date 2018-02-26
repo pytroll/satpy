@@ -1107,8 +1107,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
             data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
             return data_mean
 
-        print(d)
-        print(d.dims)
         res = d.data.map_blocks(_mean4, dtype=d.dtype)
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
@@ -1179,7 +1177,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
                                        dims=high_res.dims,
                                        coords=high_res.coords)
         elif self.high_resolution_band == 'blue':
-            print(datasets[0].shape, datasets[1].shape, high_res.shape, high_mean.shape, datasets[2].shape)
             red = self.repeat_low_res(datasets[0], area=high_area,
                                       dims=high_res.dims,
                                       coords=high_res.coords)
@@ -1187,9 +1184,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
                                         dims=high_res.dims,
                                         coords=high_res.coords)
             blue = high_mean
-            print(red.shape, green.shape, blue.shape)
-            print(red.coords, green.coords, blue.coords)
-            print(red.dims, green.dims, blue.dims)
         else:
             raise ValueError("SelfSharpenedRGB requires at least one high "
                              "resolution band, not "
