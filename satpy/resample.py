@@ -478,8 +478,8 @@ class NativeResampler(BaseResampler):
     If `expand=True` (default) input datasets are replicated in both
     dimensions to be the same as the shape provided on initialization.
 
-    If `expand=False` then input datasets are strided to the shape
-    provided.
+    If `expand=False` then input datasets are averaged to the shape
+    of the target area.
 
     """
     def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
@@ -488,27 +488,54 @@ class NativeResampler(BaseResampler):
                                                      cache_dir=cache_dir,
                                                      mask_area=mask_area,
                                                      **kwargs)
-
     @staticmethod
-    def expand_reduce(d_arr, repeats, axis):
+    def aggregate(d, y_size, x_size):
+        """Average every 4 elements (2x2) in a 2D array"""
+        def _mean(data):
+            rows, cols = data.shape
+            new_shape = (int(rows / y_size), y_size,
+                         int(cols / x_size), x_size)
+            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            return data_mean
+
+        if d.ndim != 2:
+            # we can't guarantee what blocks we are getting and how
+            # it should be reshaped to do the averaging.
+            raise ValueError("Can't aggregrate (reduce) data arrays with "
+                             "more than 2 dimensions.")
+        if not (x_size.is_integer() and y_size.is_integer()):
+            raise ValueError("Aggregation factors are not integers")
+        for agg_size, chunks in zip([y_size, x_size], d.chunks):
+            for chunk_size in chunks:
+                if chunk_size % agg_size != 0:
+                    raise ValueError("Aggregation requires arrays with "
+                                     "shapes and chunks divisible by the "
+                                     "factor")
+
+        new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
+                      tuple(int(x / x_size) for x in d.chunks[1]))
+        return da.core.map_blocks(_mean, d, dtype=d.dtype, chunks=new_chunks)
+
+    @classmethod
+    def expand_reduce(cls, d_arr, repeats):
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
-        if repeats == 1:
+        if all(x == 1 for x in repeats.values()):
             return d_arr
-        elif repeats > 1:
-            if not repeats.is_integer():
-                raise ValueError("Expand factor must be a whole number")
-            # expand
-            return da.repeat(d_arr, int(repeats), axis=axis)
-        else:
+        elif all(x >= 1 for x in repeats.values()):
+            for axis, factor in repeats.items():
+                if not factor.is_integer():
+                    raise ValueError("Expand factor must be a whole number")
+                d_arr = da.repeat(d_arr, int(factor), axis=axis)
+            return d_arr
+        elif all(x <= 1 for x in repeats.values()):
             # reduce
-            repeats = 1. / repeats
-            if not repeats.is_integer():
-                raise ValueError("Reduce factor must be a whole number")
-            slices = tuple(slice(None, None, int(repeats))
-                           if a == axis else slice(None)
-                           for a in range(d_arr.ndim))
-            return d_arr[slices]
+            y_size = 1. / repeats[0]
+            x_size = 1. / repeats[1]
+            return cls.aggregate(d_arr, y_size, x_size)
+        else:
+            raise ValueError("Must either expand or reduce in both "
+                             "directions")
 
     def compute(self, data, expand=True, **kwargs):
         if isinstance(self.target_geo_def, (list, tuple)):
@@ -535,9 +562,12 @@ class NativeResampler(BaseResampler):
         in_shape = data.shape
         y_repeats = out_shape[y_axis] / float(in_shape[y_axis])
         x_repeats = out_shape[x_axis] / float(in_shape[x_axis])
+        repeats = {
+            y_axis: y_repeats,
+            x_axis: x_repeats,
+        }
 
-        d_arr = self.expand_reduce(data.data, y_repeats, y_axis)
-        d_arr = self.expand_reduce(d_arr, x_repeats, x_axis)
+        d_arr = self.expand_reduce(data.data, repeats)
 
         coords = {}
         # Update coords if we can
@@ -580,9 +610,13 @@ def resample(source_area, data, destination_area,
         resampler = RESAMPLER_CACHE[key]
     else:
         if resampler is None:
+            LOG.info("Using default KDTree resampler")
             resampler = 'kd_tree'
 
-        resampler_class = RESAMPLERS[resampler]
+        if isinstance(resampler, str):
+            resampler_class = RESAMPLERS[resampler]
+        else:
+            resampler_class = resampler
         resampler = resampler_class(source_area, destination_area)
         RESAMPLER_CACHE[key] = resampler
 
