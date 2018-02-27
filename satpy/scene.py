@@ -35,6 +35,7 @@ from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import resample_dataset, get_frozen_area
+from xarray import DataArray
 
 try:
     import configparser
@@ -206,6 +207,55 @@ class Scene(MetadataObject):
         """DatasetIDs that have not been loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
 
+    def _compare_areas(self, datasets=None, compare_func=max):
+        """Get  for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+            compare_func (function): `min` or `max` or other function used to
+                                     compare the dataset's areas.
+
+        """
+        if datasets is None:
+            check_datasets = self.values()
+        else:
+            check_datasets = []
+            for ds in datasets:
+                print(type(ds))
+                if not isinstance(ds, DataArray):
+                    ds = self[ds]
+                check_datasets.append(ds)
+
+        # find the highest/lowest area among the provided
+        return compare_func(ds.attrs['area'] for ds in check_datasets)
+
+    def max_area(self, datasets=None):
+        """Get highest resolution area for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        return self._compare_areas(datasets=datasets, compare_func=max)
+
+    def min_area(self, datasets=None):
+        """Get lowest resolution area for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        return self._compare_areas(datasets=datasets, compare_func=min)
+
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
         if specified, that can be loaded.
@@ -339,6 +389,9 @@ class Scene(MetadataObject):
 
     def keys(self, **kwargs):
         return self.datasets.keys(**kwargs)
+
+    def values(self):
+        return self.datasets.values()
 
     def __getitem__(self, key):
         """Get a dataset."""
@@ -585,19 +638,6 @@ class Scene(MetadataObject):
     def _resampled_scene(cls, datasets, destination, **resample_kwargs):
         """Generate a new scene with resampled *datasets*."""
         new_scn = cls()
-
-        # special case for 'native'
-        # FIXME: This should go in the resampler, but currently the
-        # `resample_dataset` function assigns the area which we can't
-        # do for the native resampler because it gets a list
-        if destination is None:
-            # find the highest/lowest area among the provided
-            expand = resample_kwargs.get('expand', True)
-            test_func = max if expand else min
-            destination = [ds.attrs['area'] for ds in datasets]
-            destination = test_func(destination,
-                                    key=lambda x: x.shape)
-
         new_datasets = {}
         destination_area = None
         for dataset, parent_dataset in dataset_walker(datasets):
@@ -638,6 +678,8 @@ class Scene(MetadataObject):
         to_resample = [dataset for (dsid, dataset) in self.datasets.items()
                        if (not datasets) or dsid in datasets]
 
+        if destination is None:
+            destination = self.max_area(to_resample)
         new_scn = self._resampled_scene(to_resample, destination,
                                         **resample_kwargs)
 

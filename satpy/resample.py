@@ -585,12 +585,8 @@ class NativeResampler(BaseResampler):
             if 'x' in data.coords:
                 coords['x'] = x_coord
 
-        new_attrs = data.attrs.copy()
-        # FIXME: This is assigned by the caller
-        # new_attrs['area'] = target_geo_def
         return xr.DataArray(d_arr,
                             dims=data.dims,
-                            attrs=new_attrs,
                             coords=coords or None)
 
 
@@ -653,8 +649,6 @@ def resample_dataset(dataset, destination_area, **kwargs):
         return dataset
 
     new_data = resample(source_area, dataset, destination_area, **kwargs)
-    # FIXME: Resamplers are probably already copying attrs, can we
-    #        leave this logic to the resamplers?
     new_data.attrs = dataset.attrs.copy()
     new_data.attrs['area'] = destination_area
 
