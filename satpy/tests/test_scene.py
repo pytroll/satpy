@@ -285,6 +285,48 @@ class TestScene(unittest.TestCase):
         self.assertEquals(len(scene.datasets.keys()), 0)
         self.assertRaises(KeyError, scene.__delitem__, 0.2)
 
+    def test_min_max_area(self):
+        """Test 'min_area' and 'max_area' methods."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        import numpy as np
+        scene = Scene()
+        scene["1"] = ds1 = DataArray(np.arange(10).reshape((2, 5)),
+                                     attrs={'wavelength': (0.1, 0.2, 0.3)})
+        scene["2"] = ds2 = DataArray(np.arange(40).reshape((4, 10)),
+                                     attrs={'wavelength': (0.4, 0.5, 0.6)})
+        scene["3"] = ds3 = DataArray(np.arange(40).reshape((4, 10)),
+                                     attrs={'wavelength': (0.7, 0.8, 0.9)})
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def1 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        area_def2 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        ds1.attrs['area'] = area_def1
+        ds2.attrs['area'] = area_def2
+        ds3.attrs['area'] = area_def2
+        self.assertIs(scene.min_area(), area_def1)
+        self.assertIs(scene.max_area(), area_def2)
+        self.assertIs(scene.min_area(['2', '3']), area_def2)
+
     def test_all_datasets_no_readers(self):
         from satpy import Scene
         scene = Scene()
