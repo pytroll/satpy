@@ -105,33 +105,6 @@ class BaseResampler(object):
         """Get (and set) the hash for the *area*.
         """
         return str(area.__hash__())
-        #return str(id(area))
-        #
-        # try:
-        #     return area.kdtree_hash
-        # except AttributeError:
-        #     LOG.debug("Computing kd-tree hash for area %s",
-        #               getattr(area, 'name', 'swath'))
-        # try:
-        #     area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
-        #                          hashlib.sha1(json.dumps(area.area_extent).encode(
-        #                              "utf-8")).hexdigest(),
-        #                          hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
-        # except AttributeError:
-        #     if not hasattr(area, "lons") or area.lons is None:
-        #         lons, lats = area.get_lonlats()
-        #     else:
-        #         lons, lats = area.lons, area.lats
-        #
-        #     try:
-        #         mask_hash = hashlib.sha1(area.mask).hexdigest()
-        #     except AttributeError:
-        #         mask_hash = "False"
-        #     area_hash = "".join((mask_hash,
-        #                          hashlib.sha1(lons).hexdigest(),
-        #                          hashlib.sha1(lats).hexdigest()))
-        # area.kdtree_hash = area_hash
-        # return area_hash
 
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
         """Get hash for the current resample with the given *kwargs*.
@@ -175,16 +148,10 @@ class BaseResampler(object):
         :param mask_area: Provide data mask to `precompute` method to mask invalid data values in geolocation.
         """
         if mask_area:
-            mask = kwargs.get('mask', np.zeros_like(data, dtype=np.bool))
-            if data.attrs.get('_FillValue'):
-                mask = xu.logical_and(data, data == data.attrs['_FillValue'])
-            if hasattr(data, 'mask'):
-                mask = xu.logical_and(data, data.mask)
-            elif hasattr(data, 'isnull'):
-                mask = xu.logical_and(data, data.isnull())
-            summing_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
-            mask = mask.sum(dim=summing_dims).astype(bool)
-            kwargs['mask'] = mask
+            flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
+            # xarray <= 0.10.1 computes dask arrays during isnull
+            # use `da.isnull` for now, then `data.isnull()` should be fine
+            kwargs['mask'] = da.isnull(data).all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         data.attrs['_last_resampler'] = self
         return self.compute(data, cache_id=cache_id, **kwargs)
@@ -662,32 +629,18 @@ def mask_source_lonlats(source_def, mask):
     # the data may have additional masked pixels
     # let's compare them to see if we can use the same area
     # assume lons and lats mask are the same
-    if isinstance(source_geo_def, SwathDefinition):
+    if mask and isinstance(source_geo_def, SwathDefinition):
         if np.issubsctype(mask.dtype, np.bool):
             # copy the source area and use it for the rest of the calculations
             LOG.debug("Copying source area to mask invalid dataset points")
-            # source_geo_def = deepcopy(source_geo_def)
-            # lons, lats = source_geo_def.get_lonlats()
-            if np.ndim(mask) == 3:
-                # FIXME: we should treat 3d arrays (composites) layer by layer!
-                mask = np.sum(mask, axis=2)
-                # FIXME: pyresample doesn't seem to like this
-                # lons = np.tile(lons, (1, 1, mask.shape[2]))
-                # lats = np.tile(lats, (1, 1, mask.shape[2]))
+            if mask.ndim != source_geo_def.lons.ndim:
+                raise ValueError("Can't mask area, mask has different number "
+                                 "of dimensions.")
 
-            # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            # the ma.array function combines the undelying mask with the new
-            # one (OR)
-            source_geo_def.lons = source_geo_def.lons.where(~mask)
-            source_geo_def.lats = source_geo_def.lats.where(~mask)
-            # source_geo_def.lons = np.ma.array(lons, mask=mask)
-            # source_geo_def.lats = np.ma.array(lats, mask=mask)
+            return SwathDefinition(source_geo_def.lons.where(~mask),
+                                   source_geo_def.lats.where(~mask))
         else:
-            import xarray.ufuncs as xu
             return SwathDefinition(source_geo_def.lons.where(~xu.isnan(mask)),
                                    source_geo_def.lats.where(~xu.isnan(mask)))
-            # This was evil
-            # source_geo_def.lons = source_geo_def.lons.where(~xu.isnan(mask))
-            # source_geo_def.lats = source_geo_def.lats.where(~xu.isnan(mask))
 
     return source_geo_def
