@@ -1110,79 +1110,22 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         res = d.data.map_blocks(_mean4, dtype=d.dtype)
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
-    @staticmethod
-    def four_element_average(d):
-        """Average every 4 elements (2x2) in a 2D array"""
-        rows, cols = d.shape
-        new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
-        if isinstance(d, xr.DataArray):
-            # we don't need the dimensionality of xarray, it complicates it
-            d = d.data
-        return da.mean(d.reshape(new_shape), axis=(1, 3))
-
-    @staticmethod
-    def repeat_low_res(d, factor=2, dims=None, coords=None, **new_attrs):
-        if isinstance(d, xr.DataArray):
-            data = d.data
-            attrs = d.attrs.copy()
-            attrs.update(new_attrs)
-            new_attrs = attrs
-            coords = coords or getattr(d, 'coords', None)
-        else:
-            data = d
-        return xr.DataArray(
-            da.repeat(da.repeat(data, factor, axis=0), factor, axis=1),
-            attrs=new_attrs, dims=getattr(d, 'dims', dims),
-            coords=coords)
-
     def __call__(self, datasets, optional_datasets=None, **attrs):
         high_res = datasets[["red", "green", "blue"].index(
             self.high_resolution_band)]
-        low_res = [x for x in datasets if x is not high_res]
-        # check if all the datasets are the same shape
-        if all(x.shape == high_res.shape for x in low_res):
-            LOG.info("All RGB bands are the same shape, no self-sharpening "
-                     "can be done.")
-            return super(SelfSharpenedRGB, self).__call__(datasets, **attrs)
-        # check if the bands are the shapes we expect
-        for low_band in low_res:
-            low_shape = low_band.shape
-            if low_shape[0] * 2 != high_res.shape[0] or \
-                    low_shape[1] * 2 != high_res.shape[1]:
-                raise ValueError("Unexpected resolutions during "
-                                 "self-sharpening.")
-
-        high_area = high_res.attrs['area']
-        new_mean_attrs = high_res.attrs.copy()
         high_mean = self.four_element_average_dask(high_res)
-        # high_mean = self.four_element_average(high_res)
-        # high_mean = self.repeat_low_res(high_mean, dims=high_res.dims,
-        #                                 coords=high_res.coords,
-        #                                 **new_mean_attrs)
 
         if self.high_resolution_band == 'red':
             red = high_mean
-            green = self.repeat_low_res(datasets[1], area=high_area,
-                                        dims=high_res.dims,
-                                        coords=high_res.coords)
-            blue = self.repeat_low_res(datasets[2], area=high_area,
-                                       dims=high_res.dims,
-                                       coords=high_res.coords)
+            green = datasets[1]
+            blue = datasets[2]
         elif self.high_resolution_band == 'green':
-            red = self.repeat_low_res(datasets[0], area=high_area,
-                                      dims=high_res.dims,
-                                      coords=high_res.coords)
+            red = datasets[0]
             green = high_mean
-            blue = self.repeat_low_res(datasets[2], area=high_area,
-                                       dims=high_res.dims,
-                                       coords=high_res.coords)
+            blue = datasets[2]
         elif self.high_resolution_band == 'blue':
-            red = self.repeat_low_res(datasets[0], area=high_area,
-                                      dims=high_res.dims,
-                                      coords=high_res.coords)
-            green = self.repeat_low_res(datasets[1], area=high_area,
-                                        dims=high_res.dims,
-                                        coords=high_res.coords)
+            red = datasets[0]
+            green = datasets[1]
             blue = high_mean
         else:
             raise ValueError("SelfSharpenedRGB requires at least one high "
