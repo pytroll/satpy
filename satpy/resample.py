@@ -488,6 +488,7 @@ class NativeResampler(BaseResampler):
                                                      cache_dir=cache_dir,
                                                      mask_area=mask_area,
                                                      **kwargs)
+
     @staticmethod
     def aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array"""
