@@ -586,6 +586,18 @@ class Scene(MetadataObject):
         """Generate a new scene with resampled *datasets*."""
         new_scn = cls()
 
+        # special case for 'native'
+        # FIXME: This should go in the resampler, but currently the
+        # `resample_dataset` function assigns the area which we can't
+        # do for the native resampler because it gets a list
+        if destination is None:
+            # find the highest/lowest area among the provided
+            expand = resample_kwargs.get('expand', True)
+            test_func = max if expand else min
+            destination = [ds.attrs['area'] for ds in datasets]
+            destination = test_func(destination,
+                                    key=lambda x: x.shape)
+
         new_datasets = {}
         destination_area = None
         for dataset, parent_dataset in dataset_walker(datasets):
@@ -616,9 +628,8 @@ class Scene(MetadataObject):
 
         return new_scn
 
-
     def resample(self,
-                 destination,
+                 destination=None,
                  datasets=None,
                  compute=True,
                  unload=True,
