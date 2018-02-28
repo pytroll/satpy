@@ -234,15 +234,13 @@ class DependencyTree(Node):
     def get_compositor(self, key):
         for sensor_name in self.compositors.keys():
             try:
-                comp = self.compositors[sensor_name][key]
-                return comp
+                return self.compositors[sensor_name][key]
             except KeyError:
                 continue
 
         if isinstance(key, DatasetID) and key.modifiers:
             # we must be generating a modifier composite
-            mod = self.get_modifier(key)
-            return mod
+            return self.get_modifier(key)
 
         raise KeyError("Could not find compositor '{}'".format(key))
 
