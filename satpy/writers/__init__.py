@@ -34,8 +34,15 @@ import yaml
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
 from satpy.plugin_base import Plugin
-from trollimage.xrimage import XRImage
 from trollsift import parser
+
+try:
+    from trollimage.xrimage import XRImage as Image
+except ImportError:
+    import warnings
+    warnings.warn("Please update to the newest version of trollimage "
+                  "for best writer performance")
+    from trollimage.image import Image
 
 LOG = logging.getLogger(__name__)
 
@@ -274,7 +281,7 @@ def to_image(dataset, copy=False, **kwargs):
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
-        return XRImage(dataset)
+        return Image(dataset)
 
 
 class Writer(Plugin):
