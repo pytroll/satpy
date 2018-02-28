@@ -95,7 +95,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
         class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
 
-                print(args, kwargs)
                 super(FakeMod, self).__init__(*args, **kwargs)
 
             def __call__(self, datasets, optional_datasets, **info):

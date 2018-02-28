@@ -35,6 +35,7 @@ from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import resample_dataset, get_frozen_area
+from pyresample.geometry import AreaDefinition
 from xarray import DataArray
 
 try:
@@ -215,12 +216,12 @@ class Scene(MetadataObject):
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
-            compare_func (function): `min` or `max` or other function used to
+            compare_func (callable): `min` or `max` or other function used to
                                      compare the dataset's areas.
 
         """
         if datasets is None:
-            check_datasets = self.values()
+            check_datasets = list(self.values())
         else:
             check_datasets = []
             for ds in datasets:
@@ -228,8 +229,27 @@ class Scene(MetadataObject):
                     ds = self[ds]
                 check_datasets.append(ds)
 
+        if not check_datasets:
+            raise ValueError("No dataset areas available")
+
+        areas = [ds.attrs['area'] for ds in check_datasets]
+        if not all(type(x) is type(areas[0])
+                   for x in areas[1:]):
+            raise ValueError("Can't compare areas of different types")
+        elif isinstance(areas[0], AreaDefinition):
+            first_pstr = areas[0].proj_str
+            if not all(ad.proj_str == first_pstr for ad in areas[1:]):
+                raise ValueError("Can't compare areas with different "
+                                 "projections.")
+
+            def key_func(ds):
+                return 1. / ds.pixel_size_x
+        else:
+            def key_func(ds):
+                return ds.shape
+
         # find the highest/lowest area among the provided
-        return compare_func(ds.attrs['area'] for ds in check_datasets)
+        return compare_func(areas, key=key_func)
 
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets.
