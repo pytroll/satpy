@@ -224,7 +224,6 @@ class Scene(MetadataObject):
         else:
             check_datasets = []
             for ds in datasets:
-                print(type(ds))
                 if not isinstance(ds, DataArray):
                     ds = self[ds]
                 check_datasets.append(ds)

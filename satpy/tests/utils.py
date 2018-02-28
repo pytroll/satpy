@@ -141,6 +141,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
         DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
+        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], [])
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
