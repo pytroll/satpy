@@ -17,7 +17,7 @@ modifiers:
   rayleigh_corrected_iband:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: I01
       resolution: 371
@@ -35,7 +35,7 @@ modifiers:
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: M05
       resolution: 742
