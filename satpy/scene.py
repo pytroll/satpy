@@ -232,8 +232,8 @@ class Scene(MetadataObject):
         if not check_datasets:
             raise ValueError("No dataset areas available")
 
-        areas = [ds.attrs['area'] for ds in check_datasets]
-        if not all(type(x) is type(areas[0])
+        areas = [x.attrs['area'] for x in check_datasets]
+        if not all(isinstance(x, type(areas[0]))
                    for x in areas[1:]):
             raise ValueError("Can't compare areas of different types")
         elif isinstance(areas[0], AreaDefinition):
