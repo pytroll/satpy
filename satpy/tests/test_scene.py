@@ -923,12 +923,10 @@ class TestSceneLoading(unittest.TestCase):
         # initialize the dep tree without loading the data
         scene.dep_tree.find_dependencies({'comp19'})
         this_node = scene.dep_tree['comp19']
-        print(scene.dep_tree.display())
         shared_dep_id = DatasetID(name='ds5', modifiers=('res_change',))
         shared_dep_expected_node = scene.dep_tree[shared_dep_id]
         # get the node for the first dep in the prereqs list of the
         # comp13 node
-        print("comp13 data: ", scene.dep_tree['comp13'].data)
         shared_dep_node = scene.dep_tree['comp13'].data[1][0]
         shared_dep_node2 = this_node.data[1][0]
         self.assertIs(shared_dep_expected_node, shared_dep_node)
