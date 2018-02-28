@@ -899,6 +899,52 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp19(self, cri, cl):
+        """Test loading a composite that shares a dep with a dependency.
+
+        More importantly test that loading a dependency that depends on
+        the same dependency as this composite (a sibling dependency) and
+        that sibling dependency includes a modifier. This test makes sure
+        that the Node in the dependency tree is the exact same node.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Check dependency tree nodes
+        # initialize the dep tree without loading the data
+        scene.dep_tree.find_dependencies({'comp19'})
+        this_node = scene.dep_tree['comp19']
+        print(scene.dep_tree.display())
+        shared_dep_id = DatasetID(name='ds5', modifiers=('res_change',))
+        shared_dep_expected_node = scene.dep_tree[shared_dep_id]
+        # get the node for the first dep in the prereqs list of the
+        # comp13 node
+        print("comp13 data: ", scene.dep_tree['comp13'].data)
+        shared_dep_node = scene.dep_tree['comp13'].data[1][0]
+        shared_dep_node2 = this_node.data[1][0]
+        self.assertIs(shared_dep_expected_node, shared_dep_node)
+        self.assertIs(shared_dep_expected_node, shared_dep_node2)
+
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp19'])
+
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertTupleEqual(
+            tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
+
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_multiple_comps(self, cri, cl):
         """Test loading multiple composites"""
         import satpy.scene
