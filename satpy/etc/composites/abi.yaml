@@ -77,6 +77,20 @@ modifiers:
     - solar_zenith_angle
 
 composites:
+  green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
   true_color_2km:
     compositor: !!python/name:satpy.composites.abi.TrueColor2km
     prerequisites:
@@ -111,14 +125,13 @@ composites:
     standard_name: true_color
 
   true_color:
-    compositor: !!python/name:satpy.composites.abi.TrueColor
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - name: C01
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_1km]
     - name: C02
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected_500m]
-    - name: C03
-      modifiers: [effective_solar_pathlength_corrected]
+      modifiers: [sunz_corrected]
+    - name: green
+    - name: C01
+      modifiers: [sunz_corrected]
     standard_name: true_color
 
   natural:
