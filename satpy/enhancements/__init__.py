@@ -54,6 +54,8 @@ def cira_stretch(img, **kwargs):
     x_arr = img.data
     attrs = x_arr.attrs
     data_arrs = []
+    log_root = np.log10(0.0223)
+    denom = (1.0 - log_root) * 0.75
     for band_name in x_arr['bands']:
         band_data = x_arr.sel(bands=band_name)
         if band_name == 'A':
@@ -61,10 +63,10 @@ def cira_stretch(img, **kwargs):
             data_arrs.append(band_data)
             continue
 
-        band_data /= 100
+        band_data *= 0.01
         band_data = xu.log10(band_data)
-        band_data -= np.log10(0.02223)
-        band_data /= (1.0 - np.log10(0.02223)) * 0.75
+        band_data -= log_root
+        band_data /= denom
         data_arrs.append(band_data)
     img.data = xr.concat(data_arrs, dim='bands')
     img.data.attrs = attrs

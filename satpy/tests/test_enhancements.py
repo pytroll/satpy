@@ -47,8 +47,8 @@ class TestEnhancementStretch(unittest.TestCase):
         cira_stretch(img)
 
         expected = np.array([[
-            [np.nan, np.nan, np.nan, 0.7965777, 0.95966537],
-            [1.05195848, 1.11662171, 1.16644164, 1.20697643, 1.24114933]]])
+            [np.nan, np.nan, np.nan, 0.79630132, 0.95947296],
+            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
         np.testing.assert_allclose(img.data.values, expected)
         self.assertEqual(img.data.attrs, self.ch1.attrs)
 
