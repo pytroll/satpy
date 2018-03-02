@@ -1011,7 +1011,7 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
                 (optional_datasets and
-                optional_datasets[0].shape != datasets[0].shape):
+                 optional_datasets[0].shape != datasets[0].shape):
             raise IncompatibleAreas('RatioSharpening requires datasets of '
                                     'the same size. Must resample first.')
 
@@ -1134,4 +1134,3 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         return super(SelfSharpenedRGB, self).__call__(
             (red, green, blue), optional_datasets=(high_res,), **attrs)
-
