@@ -85,10 +85,17 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
     from satpy.composites import CompositeBase, IncompatibleAreas
     from satpy import DatasetID
 
+    attrs = {
+        'name': name,
+        'prerequisites': tuple(prereqs),
+        'optional_prerequisites': tuple(opt_prereqs)
+    }
+
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
-                self.attrs = {}
+
+                super(FakeMod, self).__init__(*args, **kwargs)
 
             def __call__(self, datasets, optional_datasets, **info):
                 resolution = DatasetID.from_dict(datasets[0].attrs).resolution
@@ -104,16 +111,13 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 self.apply_modifier_info(i, info)
                 return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
 
-        m = FakeMod()
-        m.attrs = {
-            'prerequisites': tuple(prereqs),
-            'optional_prerequisites': tuple(opt_prereqs)
-        }
+        m = FakeMod(*args, **kwargs)
+        # m.attrs = attrs
         m._call_mock = mock.patch.object(
             FakeMod, '__call__', wraps=m.__call__).start()
         return m
 
-    return _mod_loader, {}
+    return _mod_loader, attrs
 
 
 def test_composites(sensor_name):
@@ -141,6 +145,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
         DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
+        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], [])
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {

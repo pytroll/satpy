@@ -197,6 +197,11 @@ class DependencyTree(Node):
 
     def add_child(self, parent, child):
         Node.add_child(parent, child)
+        # Sanity check: Node objects should be unique. They can be added
+        #               multiple times if more than one Node depends on them
+        #               but they should all map to the same Node object.
+        if child.name in self._all_nodes:
+            assert self._all_nodes[child.name] is child
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
@@ -276,14 +281,17 @@ class DependencyTree(Node):
                 #           str(dataset_key), reader_name)
                 pass
             else:
-                # LOG.debug("Found {} in reader {}".format(str(ds_id), reader_name))
+                # LOG.debug("Found {} in reader {}".format(str(ds_id),
+                #                                          reader_name))
                 return Node(ds_id, {'reader_name': reader_name})
 
-    def _get_compositor_prereqs(self, prereq_names, skip=False,
-                                calibration=None, polarization=None, resolution=None):
+    def _get_compositor_prereqs(self, parent, prereq_names, skip=False,
+                                calibration=None, polarization=None,
+                                resolution=None):
         """Determine prerequisite Nodes for a composite.
 
         Args:
+            parent (Node): Compositor node to add these prerequisites under
             prereq_names (sequence): Strings (names), floats (wavelengths), or
                                      DatasetIDs to analyze.
             skip (bool, optional): If True, prerequisites are considered
@@ -297,7 +305,8 @@ class DependencyTree(Node):
         prereq_ids = []
         unknowns = set()
         for prereq in prereq_names:
-            n, u = self._find_dependencies(prereq, calibration, polarization, resolution)
+            n, u = self._find_dependencies(prereq, calibration,
+                                           polarization, resolution)
             if u:
                 unknowns.update(u)
                 if skip:
@@ -306,12 +315,15 @@ class DependencyTree(Node):
                               str(prereq), u_str)
             else:
                 prereq_ids.append(n)
+                self.add_child(parent, n)
         return prereq_ids, unknowns
 
-    def _find_compositor(self, dataset_key, calibration=None, polarization=None, resolution=None):
+    def _find_compositor(self, dataset_key, calibration=None,
+                         polarization=None, resolution=None):
         """Find the compositor object for the given dataset_key."""
-        # NOTE: This function can not find a modifier that performs one or more modifications
-        # if it has modifiers see if we can find the unmodified version first
+        # NOTE: This function can not find a modifier that performs
+        # one or more modifications if it has modifiers see if we can find
+        # the unmodified version first
         src_node = None
         if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
             new_prereq = DatasetID(
@@ -332,24 +344,26 @@ class DependencyTree(Node):
         if polarization:
             compositor.attrs['polarization'] = polarization
         dataset_key = compositor.id
+        root = Node(dataset_key, data=(compositor, [], []))
+        if src_node is not None:
+            self.add_child(root, src_node)
+            root.data[1].append(src_node)
+
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
-            compositor.attrs['prerequisites'], calibration=calibration, polarization=polarization, resolution=resolution)
+            root, compositor.attrs['prerequisites'], calibration=calibration,
+            polarization=polarization, resolution=resolution)
         if unknowns:
+            # Should we remove all of the unknown nodes that were found
+            # if there is an unknown prerequisite are we in trouble?
             return None, unknowns
+        root.data[1].extend(prereqs)
 
         optional_prereqs, _ = self._get_compositor_prereqs(
-            compositor.attrs['optional_prerequisites'],
-            skip=True, calibration=calibration, polarization=polarization, resolution=resolution)
-
-        # Is this the right place for that?
-        if src_node is not None:
-            prereqs.insert(0, src_node)
-        root = Node(dataset_key, data=(compositor, prereqs, optional_prereqs))
-        # LOG.debug("Found composite {}".format(str(dataset_key)))
-        for prereq in prereqs + optional_prereqs:
-            if prereq is not None:
-                self.add_child(root, prereq)
+            root, compositor.attrs['optional_prerequisites'], skip=True,
+            calibration=calibration, polarization=polarization,
+            resolution=resolution)
+        root.data[2].extend(prereqs)
 
         return root, set()
 
