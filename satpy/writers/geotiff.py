@@ -25,6 +25,7 @@
 
 import logging
 
+import dask
 import numpy as np
 from osgeo import gdal, osr
 
@@ -98,11 +99,18 @@ class GeoTIFFWriter(ImageWriter):
         """Write *datasets* in a gdal raster structure *dts_ds*, using
         *opacity* as alpha value for valid data, and *fill_value*.
         """
+        def _write_array(bnd, chn):
+            bnd.WriteArray(chn.values)
+
+        # queue up data writes so we don't waste computation time
+        delayed = []
         for i, band in enumerate(datasets['bands']):
             chn = datasets.sel(bands=band)
             bnd = dst_ds.GetRasterBand(i + 1)
             bnd.SetNoDataValue(0)
-            bnd.WriteArray(chn.values)
+            delay = dask.delayed(_write_array)(bnd, chn)
+            delayed.append(delay)
+        dask.compute(*delayed)
 
     def save_image(self, img, filename=None, floating_point=False, **kwargs):
         """Save the image to the given *filename* in geotiff_ format.
@@ -113,7 +121,7 @@ class GeoTIFFWriter(ImageWriter):
         """
         raster = gdal.GetDriverByName("GTiff")
 
-        filename = filename or self.get_filename(**img.info)
+        filename = filename or self.get_filename(**img.data.attrs)
 
         # Update global GDAL options with these specific ones
         gdal_options = self.gdal_options.copy()
