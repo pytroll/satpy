@@ -39,4 +39,4 @@ class PillowWriter(ImageWriter):
         filename = filename or self.get_filename(**img.info)
 
         LOG.debug("Saving to image: %s", filename)
-        img.save(filename)
+        img.save(filename, format_kw=kwargs)
