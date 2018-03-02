@@ -192,7 +192,7 @@ composites:
     standard_name: true_color
 
   natural_color:
-    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M11
       modifiers: [sunz_corrected]

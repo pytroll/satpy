@@ -35,6 +35,7 @@ import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class NC_ABI_L1B(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine='h5netcdf',
-                                  chunks={'x': 1000, 'y': 1000})
+                                  chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
         self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)

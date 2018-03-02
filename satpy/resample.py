@@ -30,13 +30,16 @@ from logging import getLogger
 from weakref import WeakValueDictionary
 
 import numpy as np
+import xarray as xr
+import dask.array as da
 import xarray.ufuncs as xu
 import six
 
 from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
-from pyresample.geometry import SwathDefinition
+from pyresample.geometry import SwathDefinition, AreaDefinition
 from pyresample.kd_tree import XArrayResamplerNN
+from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
@@ -102,33 +105,6 @@ class BaseResampler(object):
         """Get (and set) the hash for the *area*.
         """
         return str(area.__hash__())
-        #return str(id(area))
-        #
-        # try:
-        #     return area.kdtree_hash
-        # except AttributeError:
-        #     LOG.debug("Computing kd-tree hash for area %s",
-        #               getattr(area, 'name', 'swath'))
-        # try:
-        #     area_hash = "".join((hashlib.sha1(json.dumps(area.proj_dict, sort_keys=True).encode("utf-8")).hexdigest(),
-        #                          hashlib.sha1(json.dumps(area.area_extent).encode(
-        #                              "utf-8")).hexdigest(),
-        #                          hashlib.sha1(json.dumps(area.shape).encode('utf-8')).hexdigest()))
-        # except AttributeError:
-        #     if not hasattr(area, "lons") or area.lons is None:
-        #         lons, lats = area.get_lonlats()
-        #     else:
-        #         lons, lats = area.lons, area.lats
-        #
-        #     try:
-        #         mask_hash = hashlib.sha1(area.mask).hexdigest()
-        #     except AttributeError:
-        #         mask_hash = "False"
-        #     area_hash = "".join((mask_hash,
-        #                          hashlib.sha1(lons).hexdigest(),
-        #                          hashlib.sha1(lats).hexdigest()))
-        # area.kdtree_hash = area_hash
-        # return area_hash
 
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
         """Get hash for the current resample with the given *kwargs*.
@@ -167,23 +143,26 @@ class BaseResampler(object):
             np.savez(filename, **self.cache)
 
     def resample(self, data, cache_dir=False, mask_area=True, **kwargs):
-        """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
+        """Resample data.
 
-        :param mask_area: Provide data mask to `precompute` method to mask invalid data values in geolocation.
+        If the resampler supports precomputing then that information can be
+        cached on disk (if the `precompute` method returns `True`).
+
+        Args:
+            data (xarray.DataArray): Data to be resampled
+            cache_dir (bool): directory to cache precomputed results
+                              (default False, optional)
+            mask_area (bool): Mask geolocation data where data values are
+                              invalid. This should be used when data values
+                              may affect what neighbors are considered valid.
+
         """
         if mask_area:
-            mask = kwargs.get('mask', np.zeros_like(data, dtype=np.bool))
-            if data.attrs.get('_FillValue'):
-                mask = xu.logical_and(data, data == data.attrs['_FillValue'])
-            if hasattr(data, 'mask'):
-                mask = xu.logical_and(data, data.mask)
-            elif hasattr(data, 'isnull'):
-                mask = xu.logical_and(data, data.isnull())
-            summing_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
-            mask = mask.sum(dim=summing_dims).astype(bool)
-            kwargs['mask'] = mask
+            flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
+            # xarray <= 0.10.1 computes dask arrays during isnull
+            # use `da.isnull` for now, then `data.isnull()` should be fine
+            kwargs['mask'] = da.isnull(data).all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
-        data.attrs['_last_resampler'] = self
         return self.compute(data, cache_id=cache_id, **kwargs)
 
     # FIXME: there should be only one obvious way to resample
@@ -304,28 +283,17 @@ class KDTreeResampler(BaseResampler):
 
 class EWAResampler(BaseResampler):
 
-    def __init__(self, source_geo_def, target_geo_def, swath_usage=0,
-                 grid_coverage=0, **kwargs):
-        """
-
-        :param source_geo_def: See `BaseResampler` for details
-        :param target_geo_def: See `BaseResampler` for details
-        :param swath_usage: minimum ratio of number of input pixels to number of pixels used in output
-        :param grid_coverage: minimum ratio of number of output grid pixels covered with swath pixels
-        """
-        self.swath_usage = swath_usage
-        self.grid_coverage = grid_coverage
-        super(EWAResampler, self).__init__(
-            source_geo_def, target_geo_def, **kwargs)
-
-    def precompute(self, mask=None,
-                   # nprocs=1,
-                   cache_dir=False,
+    def precompute(self, mask=None, cache_dir=False, swath_usage=0,
                    **kwargs):
         """Generate row and column arrays and store it for later use.
 
-        Note: The `mask` keyword should be provided if geolocation may be valid where data points are invalid.
-        This defaults to the `mask` attribute of the `data` numpy masked array passed to the `resample` method.
+        :param swath_usage: minimum ratio of number of input pixels to
+                            number of pixels used in output
+
+        Note: The `mask` keyword should be provided if geolocation may be
+              valid where data points are invalid. This defaults to the
+              `mask` attribute of the `data` numpy masked array passed to
+              the `resample` method.
         """
 
         del kwargs
@@ -360,7 +328,7 @@ class EWAResampler(BaseResampler):
 
         # Determine if enough of the input swath was used
         fraction_in = swath_points_in_grid / float(lons.size)
-        swath_used = fraction_in > self.swath_usage
+        swath_used = fraction_in > swath_usage
         if not swath_used:
             LOG.info("Data does not fit in grid %s because it only %f%% of "
                      "the swath is used" %
@@ -388,7 +356,13 @@ class EWAResampler(BaseResampler):
 
     def compute(self, data, fill_value=0, weight_count=10000, weight_min=0.01,
                 weight_distance_max=1.0, weight_sum_min=-1.0,
-                maximum_weight_mode=False, **kwargs):
+                maximum_weight_mode=False, grid_coverage=0, **kwargs):
+        """Resample the data according to the precomputed X/Y coordinates.
+
+        :param grid_coverage: minimum ratio of number of output grid pixels
+                              covered with swath pixels
+
+        """
         rows = self.cache["rows"]
         cols = self.cache["cols"]
 
@@ -422,11 +396,11 @@ class EWAResampler(BaseResampler):
             num_valid_points = sum(num_valid_points)
 
         grid_covered_ratio = num_valid_points / float(res.size)
-        grid_covered = grid_covered_ratio > self.grid_coverage
+        grid_covered = grid_covered_ratio > grid_coverage
         if not grid_covered:
             msg = "EWA resampling only found %f%% of the grid covered "
             "(need %f%%)" % (grid_covered_ratio * 100,
-                             self.grid_coverage * 100)
+                             grid_coverage * 100)
             raise RuntimeError(msg)
         LOG.debug("EWA resampling found %f%% of the grid covered" %
                   (grid_covered_ratio * 100))
@@ -509,27 +483,152 @@ class BilinearResampler(BaseResampler):
         return res
 
 
+class NativeResampler(BaseResampler):
+    """Expand or reduce input datasets to be the same shape.
+
+    If `expand=True` (default) input datasets are replicated in both
+    dimensions to be the same as the shape provided on initialization.
+
+    If `expand=False` then input datasets are averaged to the shape
+    of the target area.
+
+    """
+    def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
+        # use 'mask_area' with a default of False. It wouldn't do anything.
+        return super(NativeResampler, self).resample(data,
+                                                     cache_dir=cache_dir,
+                                                     mask_area=mask_area,
+                                                     **kwargs)
+
+    @staticmethod
+    def aggregate(d, y_size, x_size):
+        """Average every 4 elements (2x2) in a 2D array"""
+        def _mean(data):
+            rows, cols = data.shape
+            new_shape = (int(rows / y_size), y_size,
+                         int(cols / x_size), x_size)
+            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            return data_mean
+
+        if d.ndim != 2:
+            # we can't guarantee what blocks we are getting and how
+            # it should be reshaped to do the averaging.
+            raise ValueError("Can't aggregrate (reduce) data arrays with "
+                             "more than 2 dimensions.")
+        if not (x_size.is_integer() and y_size.is_integer()):
+            raise ValueError("Aggregation factors are not integers")
+        for agg_size, chunks in zip([y_size, x_size], d.chunks):
+            for chunk_size in chunks:
+                if chunk_size % agg_size != 0:
+                    raise ValueError("Aggregation requires arrays with "
+                                     "shapes and chunks divisible by the "
+                                     "factor")
+
+        new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
+                      tuple(int(x / x_size) for x in d.chunks[1]))
+        return da.core.map_blocks(_mean, d, dtype=d.dtype, chunks=new_chunks)
+
+    @classmethod
+    def expand_reduce(cls, d_arr, repeats):
+        if not isinstance(d_arr, da.Array):
+            d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
+        if all(x == 1 for x in repeats.values()):
+            return d_arr
+        elif all(x >= 1 for x in repeats.values()):
+            for axis, factor in repeats.items():
+                if not factor.is_integer():
+                    raise ValueError("Expand factor must be a whole number")
+                d_arr = da.repeat(d_arr, int(factor), axis=axis)
+            return d_arr
+        elif all(x <= 1 for x in repeats.values()):
+            # reduce
+            y_size = 1. / repeats[0]
+            x_size = 1. / repeats[1]
+            return cls.aggregate(d_arr, y_size, x_size)
+        else:
+            raise ValueError("Must either expand or reduce in both "
+                             "directions")
+
+    def compute(self, data, expand=True, **kwargs):
+        if isinstance(self.target_geo_def, (list, tuple)):
+            # find the highest/lowest area among the provided
+            test_func = max if expand else min
+            target_geo_def = test_func(self.target_geo_def,
+                                       key=lambda x: x.shape)
+        else:
+            target_geo_def = self.target_geo_def
+
+        # convert xarray backed with numpy array to dask array
+        if 'x' not in data.dims or 'y' not in data.dims:
+            if data.ndim not in [2, 3]:
+                raise ValueError("Can only handle 2D or 3D arrays without "
+                                 "dimensions.")
+            # assume rows is the second to last axis
+            y_axis = data.ndim - 2
+            x_axis = data.ndim - 1
+        else:
+            y_axis = data.dims.index('y')
+            x_axis = data.dims.index('x')
+
+        out_shape = target_geo_def.shape
+        in_shape = data.shape
+        y_repeats = out_shape[y_axis] / float(in_shape[y_axis])
+        x_repeats = out_shape[x_axis] / float(in_shape[x_axis])
+        repeats = {
+            y_axis: y_repeats,
+            x_axis: x_repeats,
+        }
+
+        d_arr = self.expand_reduce(data.data, repeats)
+
+        coords = {}
+        # Update coords if we can
+        if 'y' in data.coords or 'x' in data.coords and \
+                isinstance(target_geo_def, AreaDefinition):
+            coord_chunks = (d_arr.chunks[y_axis], d_arr.chunks[x_axis])
+            x_coord, y_coord = target_geo_def.get_proj_vectors_dask(
+                chunks=coord_chunks)
+            if 'y' in data.coords:
+                coords['y'] = y_coord
+            if 'x' in data.coords:
+                coords['x'] = x_coord
+
+        return xr.DataArray(d_arr,
+                            dims=data.dims,
+                            coords=coords or None)
+
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
+              "native": NativeResampler,
               }
 
 RESAMPLER_CACHE = WeakValueDictionary()
 
 
 def resample(source_area, data, destination_area,
-             resampler_class=KDTreeResampler, **kwargs):
+             resampler=None, **kwargs):
     """Do the resampling."""
+    if 'resampler_class' in kwargs:
+        import warnings
+        warnings.warn("'resampler_class' is deprecated, use 'resampler'",
+                      DeprecationWarning)
+        resampler = kwargs.pop('resampler_class')
+
     key = (source_area, destination_area)
+    if key in RESAMPLER_CACHE:
+        resampler = RESAMPLER_CACHE[key]
+    else:
+        if resampler is None:
+            LOG.info("Using default KDTree resampler")
+            resampler = 'kd_tree'
 
-    resampler = RESAMPLER_CACHE.get(key)
-
-    if resampler is None:
-        try:
-            resampler_class = RESAMPLERS[resampler_class]
-        except KeyError:
-            pass
+        if isinstance(resampler, str):
+            resampler_class = RESAMPLERS[resampler]
+        else:
+            resampler_class = resampler
         resampler = resampler_class(source_area, destination_area)
         RESAMPLER_CACHE[key] = resampler
 
@@ -561,13 +660,9 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
         return dataset
 
-    if 'area' in dataset.attrs:
-        new_data = resample(source_area, dataset, destination_area, **kwargs)
-        new_data.attrs = dataset.attrs.copy()
-        new_data.attrs['area'] = destination_area
-    else:
-        new_data = dataset
-        new_data.attrs = dataset.attrs.copy()
+    new_data = resample(source_area, dataset, destination_area, **kwargs)
+    new_data.attrs = dataset.attrs.copy()
+    new_data.attrs['area'] = destination_area
 
     return new_data
 
@@ -579,32 +674,18 @@ def mask_source_lonlats(source_def, mask):
     # the data may have additional masked pixels
     # let's compare them to see if we can use the same area
     # assume lons and lats mask are the same
-    if isinstance(source_geo_def, SwathDefinition):
+    if mask and isinstance(source_geo_def, SwathDefinition):
         if np.issubsctype(mask.dtype, np.bool):
             # copy the source area and use it for the rest of the calculations
             LOG.debug("Copying source area to mask invalid dataset points")
-            # source_geo_def = deepcopy(source_geo_def)
-            # lons, lats = source_geo_def.get_lonlats()
-            if np.ndim(mask) == 3:
-                # FIXME: we should treat 3d arrays (composites) layer by layer!
-                mask = np.sum(mask, axis=2)
-                # FIXME: pyresample doesn't seem to like this
-                # lons = np.tile(lons, (1, 1, mask.shape[2]))
-                # lats = np.tile(lats, (1, 1, mask.shape[2]))
+            if mask.ndim != source_geo_def.lons.ndim:
+                raise ValueError("Can't mask area, mask has different number "
+                                 "of dimensions.")
 
-            # use the same data, but make a new mask (i.e. don't affect the original masked array)
-            # the ma.array function combines the undelying mask with the new
-            # one (OR)
-            source_geo_def.lons = source_geo_def.lons.where(~mask)
-            source_geo_def.lats = source_geo_def.lats.where(~mask)
-            # source_geo_def.lons = np.ma.array(lons, mask=mask)
-            # source_geo_def.lats = np.ma.array(lats, mask=mask)
+            return SwathDefinition(source_geo_def.lons.where(~mask),
+                                   source_geo_def.lats.where(~mask))
         else:
-            import xarray.ufuncs as xu
             return SwathDefinition(source_geo_def.lons.where(~xu.isnan(mask)),
                                    source_geo_def.lats.where(~xu.isnan(mask)))
-            # This was evil
-            # source_geo_def.lons = source_geo_def.lons.where(~xu.isnan(mask))
-            # source_geo_def.lats = source_geo_def.lats.where(~xu.isnan(mask))
 
     return source_geo_def

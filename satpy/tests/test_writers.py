@@ -39,6 +39,7 @@ except ImportError:
 
 
 def mkdir_p(path):
+    """Make directories."""
     if not path or path == '.':
         return
 
@@ -55,36 +56,31 @@ def mkdir_p(path):
 
 
 class TestWritersModule(unittest.TestCase):
+    """Test the writers module."""
 
     def test_to_image_1D(self):
-        """
-        Conversion to image
-        """
+        """Conversion to image."""
         # 1D
         p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
-    @mock.patch('satpy.writers.Image')
+    @mock.patch('satpy.writers.XRImage')
     def test_to_image_2D(self, mock_geoimage):
-        """
-        Conversion to image
-        """
+        """Conversion to image."""
         # 2D
         data = np.arange(25).reshape((5, 5))
-        p = xr.DataArray(data, attrs=dict(
-            mode="L", fill_value=0, palette=[0, 1, 2, 3, 4, 5]),
-            dims=['y', 'x'])
+        p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
+                                          palette=[0, 1, 2, 3, 4, 5]),
+                         dims=['y', 'x'])
         to_image(p)
 
         np.testing.assert_array_equal(
-            data, mock_geoimage.call_args[0][0][0])
+            data, mock_geoimage.call_args[0][0].values)
         mock_geoimage.reset_mock()
 
-    @mock.patch('satpy.writers.Image')
+    @mock.patch('satpy.writers.XRImage')
     def test_to_image_3D(self, mock_geoimage):
-        """
-        Conversion to image
-        """
+        """Conversion to image."""
         # 3D
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=['bands', 'y', 'x'])
@@ -96,6 +92,7 @@ class TestWritersModule(unittest.TestCase):
 
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
+        """Check showing."""
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
@@ -103,22 +100,22 @@ class TestWritersModule(unittest.TestCase):
 
 
 class TestEnhancer(unittest.TestCase):
+    """Test basic `Enhancer` functionality with builtin configs."""
 
-    """Test basic `Enhancer` functionality with builtin configs"""
     def test_basic_init_no_args(self):
-        """Test Enhancer init with no arguments passed"""
+        """Test Enhancer init with no arguments passed."""
         from satpy.writers import Enhancer
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
 
     def test_basic_init_no_enh(self):
-        """Test Enhancer init requesting no enhancements"""
+        """Test Enhancer init requesting no enhancements."""
         from satpy.writers import Enhancer
         e = Enhancer(enhancement_config_file=False)
         self.assertIsNone(e.enhancement_tree)
 
     def test_basic_init_provided_enh(self):
-        """Test Enhancer init with string enhancement configs"""
+        """Test Enhancer init with string enhancement configs."""
         from satpy.writers import Enhancer
         e = Enhancer(enhancement_config_file=["""enhancements:
   enh1:
@@ -131,14 +128,14 @@ class TestEnhancer(unittest.TestCase):
         self.assertIsNotNone(e.enhancement_tree)
 
     def test_init_nonexistent_enh_file(self):
-        """Test Enhancer init with a nonexistent enhancement configuration file"""
+        """Test Enhancer init with a nonexistent enhancement configuration file."""
         from satpy.writers import Enhancer
         self.assertRaises(
             ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
 class TestEnhancerUserConfigs(unittest.TestCase):
-    """Test `Enhancer` functionality when user's custom configurations are present"""
+    """Test `Enhancer` functionality when user's custom configurations are present."""
 
     TEST_CONFIGS = {
         'test_sensor.yaml': """
@@ -150,7 +147,7 @@ enhancements:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch ''
       kwargs: {stretch: linear, cutoffs: [0., 0.]}
-        
+
         """,
         'enhancements/test_sensor.yaml': """
 sensor_name: visir/test_sensor
@@ -177,7 +174,7 @@ sensor_name: visir/test_sensor2
 
     @classmethod
     def setUpClass(cls):
-        """Create fake user configurations"""
+        """Create fake user configurations."""
         for fn, content in cls.TEST_CONFIGS.items():
             base_dir = os.path.dirname(fn)
             mkdir_p(base_dir)
@@ -186,7 +183,7 @@ sensor_name: visir/test_sensor2
 
     @classmethod
     def tearDownClass(cls):
-        """Remove fake user configurations"""
+        """Remove fake user configurations."""
         for fn, content in cls.TEST_CONFIGS.items():
             base_dir = os.path.dirname(fn)
             if base_dir not in ['.', ''] and os.path.isdir(base_dir):
@@ -195,10 +192,12 @@ sensor_name: visir/test_sensor2
                 os.remove(fn)
 
     def test_enhance_with_sensor_no_entry(self):
-        """Test enhancing an image that has no configuration sections"""
+        """Test enhancing an image that has no configuration sections."""
         from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
-        ds = DataArray(np.arange(1, 11.).reshape((2, 5)), attrs=dict(sensor='test_sensor2', mode='L'))
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(sensor='test_sensor2', mode='L'),
+                       dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhancer=e)
@@ -206,35 +205,48 @@ sensor_name: visir/test_sensor2
                             {'test_sensor2.yaml', 'enhancements/test_sensor2.yaml'})
 
     def test_enhance_with_sensor_entry(self):
-        """Test enhancing an image with a configuration section"""
+        """Test enhancing an image with a configuration section."""
         from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+        import dask.array as da
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                     attrs=dict(name='test1', sensor='test_sensor', mode='L'))
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
-        np.testing.assert_almost_equal(img.channels[0].max(), 1.)
+        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
+
+        ds = DataArray(da.arange(1, 11., chunks=5).reshape((2, 5)),
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
+        e = Enhancer()
+        self.assertIsNotNone(e.enhancement_tree)
+        img = get_enhanced_image(ds, enhancer=e)
+        self.assertSetEqual(set(e.sensor_enhancement_configs),
+                            {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
+        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry2(self):
-        """Test enhancing an image with a more detailed configuration section"""
+        """Test enhancing an image with a more detailed configuration section."""
         from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                     attrs=dict(name='test1', units='kelvin', sensor='test_sensor', mode='L'))
+                       attrs=dict(name='test1', units='kelvin',
+                                  sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
-        np.testing.assert_almost_equal(img.channels[0].max(), 0.5)
+        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
 def suite():
-    """The test suite for test_projector.
-    """
+    """The test suite for test_projector."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))

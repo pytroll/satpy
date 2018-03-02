@@ -83,11 +83,93 @@ class TestCache(unittest.TestCase):
                     self.assertEqual(list(resampler.caches.keys()), ['a', 'c', 'd'])
 
 
+class TestNativeResampler(unittest.TestCase):
+    def test_expand_reduce(self):
+        from satpy.resample import NativeResampler
+        import numpy as np
+        import dask.array as da
+        d_arr = da.zeros((6, 20), chunks=4)
+        new_arr = NativeResampler.expand_reduce(d_arr, {0: 2., 1: 2.})
+        self.assertEqual(new_arr.shape, (12, 40))
+        new_arr = NativeResampler.expand_reduce(d_arr, {0: .5, 1: .5})
+        self.assertEqual(new_arr.shape, (3, 10))
+        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+                          d_arr, {0: 1. / 3, 1: 1.})
+        new_arr = NativeResampler.expand_reduce(d_arr, {0: 1., 1: 1.})
+        self.assertEqual(new_arr.shape, (6, 20))
+        self.assertIs(new_arr, d_arr)
+        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+                          d_arr, {0: 0.333323423, 1: 1.})
+        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+                          d_arr, {0: 1.333323423, 1: 1.})
+
+        n_arr = np.zeros((6, 20))
+        new_arr = NativeResampler.expand_reduce(n_arr, {0: 2., 1: 1.0})
+        self.assertTrue(np.all(new_arr.compute()[::2, :] == n_arr))
+
+    def test_expand_dims(self):
+        from satpy.resample import NativeResampler
+        import numpy as np
+        import dask.array as da
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        ds1 = DataArray(da.zeros((100, 50), chunks=85), dims=('y', 'x'),
+                        coords={'y': da.arange(100, chunks=85),
+                                'x': da.arange(50, chunks=85)})
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        target = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        # source geo def doesn't actually matter
+        resampler = NativeResampler(None, target)
+        new_arr = resampler.resample(ds1)
+        self.assertEqual(new_arr.shape, (200, 100))
+        new_arr2 = resampler.resample(ds1.compute())
+        self.assertTrue(np.all(new_arr == new_arr2))
+
+    def test_expand_without_dims(self):
+        from satpy.resample import NativeResampler
+        import numpy as np
+        import dask.array as da
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        ds1 = DataArray(da.zeros((100, 50), chunks=85))
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        target = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        # source geo def doesn't actually matter
+        resampler = NativeResampler(None, target)
+        new_arr = resampler.resample(ds1)
+        self.assertEqual(new_arr.shape, (200, 100))
+        new_arr2 = resampler.resample(ds1.compute())
+        self.assertTrue(np.all(new_arr == new_arr2))
+
+
 def suite():
     """The test suite for test_scene.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
     # FIXME: Fix these tests
     # mysuite.addTest(loader.loadTestsFromTestCase(TestCache))
 
