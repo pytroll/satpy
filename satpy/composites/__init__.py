@@ -361,6 +361,39 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         return atmospheric_path_length_correction(proj, coszen)
 
 
+class SMACReflectance(CompositeBase):
+    def __call__(self, projectables, optional_datasets=None, **info):
+        from smac import smac_inv, PdeZ, coeff
+        (vis, ) = projectables
+        nom_smac = '/home/a001673/usr/contrib/smac-python/COEFS/coef_MODIS%s_CONT.dat' % vis.attrs['name']
+        coefs = coeff(nom_smac)
+        (phi_v, theta_v, phi_s, theta_s) = optional_datasets
+        # theta_s=30 #solar zenith angle
+        # phi_s=180  #solar azimuth angle
+        # theta_v=0  #viewing zenith angle
+        # phi_v=0    #viewing azimuth
+
+        # compute pressure at pixel altitude (in m)
+        pressure = PdeZ(0)
+
+        # find the values of AOT, UO3, UH2O
+        AOT550 = 0.1  # AOT at 550 nm
+        AOT550 = 0    # Rayleigh only
+        UO3 = 0.3     # Ozone content (cm)  0.3 cm= 300 Dobson Units
+        UH2O = 3      # Water vapour (g/cm2)
+
+        # compute the atmospheric correction
+        LOG.info('Using SMAC')
+
+        res = smac_inv(vis.values / 100.0, theta_s, phi_s, theta_v, phi_v, pressure,
+                       AOT550, UO3, UH2O, coefs)
+        res *= 100
+        res = res.clip(0, 100)
+        res.attrs = vis.attrs.copy()
+        self.apply_modifier_info(vis, res)
+        return res
+
+
 class PSPRayleighReflectance(CompositeBase):
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -421,6 +454,7 @@ class PSPRayleighReflectance(CompositeBase):
                                                       red.values)
 
         proj = vis - refl_cor_band
+        proj = proj.clip(0, 100)
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
         return proj

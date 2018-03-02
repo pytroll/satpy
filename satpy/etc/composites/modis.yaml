@@ -1,5 +1,15 @@
 sensor_name: visir/modis
 
+modifiers:
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.SMACReflectance
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+
 composites:
   true_color_uncorrected:
     compositor: !!python/name:satpy.composites.GenericCompositor
