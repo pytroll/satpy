@@ -36,7 +36,7 @@ class PillowWriter(ImageWriter):
             **kwargs)
 
     def save_image(self, img, filename=None, **kwargs):
-        filename = filename or self.get_filename(**img.info)
+        filename = filename or self.get_filename(**img.data.attrs)
 
         LOG.debug("Saving to image: %s", filename)
-        img.save(filename)
+        img.save(filename, format_kw=kwargs)
