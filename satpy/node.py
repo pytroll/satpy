@@ -363,7 +363,7 @@ class DependencyTree(Node):
             root, compositor.attrs['optional_prerequisites'], skip=True,
             calibration=calibration, polarization=polarization,
             resolution=resolution)
-        root.data[2].extend(prereqs)
+        root.data[2].extend(optional_prereqs)
 
         return root, set()
 
