@@ -612,7 +612,7 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         scene.load(['comp1'])
         loaded_ids = list(scene.datasets.keys())
-        self.assertEquals(len(loaded_ids), 1)
+        self.assertEqual(len(loaded_ids), 1)
         self.assertTupleEqual(
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp1')))
 
@@ -1099,6 +1099,69 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(comps['fake_sensor']['ds1']._call_mock.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 2)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp20(self, cri, cl):
+        """Test loading composite with optional modifier dependencies"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp20'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertTupleEqual(
+            tuple(loaded_ids[0]), tuple(DatasetID(name='comp20')))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp21(self, cri, cl):
+        """Test loading composite with optional modifier dependencies"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp21'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertTupleEqual(
+            tuple(loaded_ids[0]), tuple(DatasetID(name='comp21')))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp22(self, cri, cl):
+        """Test loading composite with optional modifier dependencies"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp22'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEquals(len(loaded_ids), 1)
+        self.assertTupleEqual(
+            tuple(loaded_ids[0]), tuple(DatasetID(name='comp22')))
 
 
 def suite():
