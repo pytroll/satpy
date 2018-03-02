@@ -143,9 +143,19 @@ class BaseResampler(object):
             np.savez(filename, **self.cache)
 
     def resample(self, data, cache_dir=False, mask_area=True, **kwargs):
-        """Resample the *data*, saving the projection info on disk if *precompute* evaluates to True.
+        """Resample data.
 
-        :param mask_area: Provide data mask to `precompute` method to mask invalid data values in geolocation.
+        If the resampler supports precomputing then that information can be
+        cached on disk (if the `precompute` method returns `True`).
+
+        Args:
+            data (xarray.DataArray): Data to be resampled
+            cache_dir (bool): directory to cache precomputed results
+                              (default False, optional)
+            mask_area (bool): Mask geolocation data where data values are
+                              invalid. This should be used when data values
+                              may affect what neighbors are considered valid.
+
         """
         if mask_area:
             flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
@@ -273,17 +283,17 @@ class KDTreeResampler(BaseResampler):
 
 class EWAResampler(BaseResampler):
 
-    def precompute(self, mask=None,
-                   # nprocs=1,
-                   cache_dir=False,
-                   swath_usage=0,
+    def precompute(self, mask=None, cache_dir=False, swath_usage=0,
                    **kwargs):
         """Generate row and column arrays and store it for later use.
 
-        :param swath_usage: minimum ratio of number of input pixels to number of pixels used in output
+        :param swath_usage: minimum ratio of number of input pixels to
+                            number of pixels used in output
 
-        Note: The `mask` keyword should be provided if geolocation may be valid where data points are invalid.
-        This defaults to the `mask` attribute of the `data` numpy masked array passed to the `resample` method.
+        Note: The `mask` keyword should be provided if geolocation may be
+              valid where data points are invalid. This defaults to the
+              `mask` attribute of the `data` numpy masked array passed to
+              the `resample` method.
         """
 
         del kwargs
@@ -349,7 +359,8 @@ class EWAResampler(BaseResampler):
                 maximum_weight_mode=False, grid_coverage=0, **kwargs):
         """Resample the data according to the precomputed X/Y coordinates.
 
-        :param grid_coverage: minimum ratio of number of output grid pixels covered with swath pixels
+        :param grid_coverage: minimum ratio of number of output grid pixels
+                              covered with swath pixels
 
         """
         rows = self.cache["rows"]
