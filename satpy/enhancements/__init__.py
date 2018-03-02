@@ -23,6 +23,7 @@
 """Enhancements."""
 
 import numpy as np
+import xarray as xr
 import xarray.ufuncs as xu
 import logging
 
@@ -50,11 +51,22 @@ def cira_stretch(img, **kwargs):
     Applicable only for visible channels.
     """
     LOG.debug("Applying the cira-stretch")
-    attrs = img.data.attrs
-    img.data /= 100
-    img.data = xu.log10(img.data)
-    img.data -= np.log10(0.02223)
-    img.data /= (1.0 - np.log10(0.02223)) * 0.75
+    x_arr = img.data
+    attrs = x_arr.attrs
+    data_arrs = []
+    for band_name in x_arr['bands']:
+        band_data = x_arr.sel(bands=band_name)
+        if band_name == 'A':
+            # don't modify alpha
+            data_arrs.append(band_data)
+            continue
+
+        band_data /= 100
+        band_data = xu.log10(band_data)
+        band_data -= np.log10(0.02223)
+        band_data /= (1.0 - np.log10(0.02223)) * 0.75
+        data_arrs.append(band_data)
+    img.data = xr.concat(data_arrs, dim='bands')
     img.data.attrs = attrs
 
 

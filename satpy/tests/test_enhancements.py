@@ -25,46 +25,32 @@
 
 import unittest
 import numpy as np
-from satpy.enhancements import cira_stretch
-
-CH1 = np.ma.arange(-210, 790, 100) * 0.95
-CH1.mask = np.logical_and(np.arange(10) * 0.1 > 0.3, np.arange(10) * 0.1 < 0.8)
-
-RESMASK = np.array(
-    [False,  False,  False,  True,  True,  True,  True,  True, False, False], dtype=bool)
-RESULT = np.ma.array([np.nan,         np.nan,      np.nan,  1.93196611,  2.25647721,
-                      2.4401216,  2.56878821,  2.66791969,  1.20691137,  1.24110186], mask=RESMASK)
-
-
-def assertNumpyArraysEqual(self, other):
-    if self.shape != other.shape:
-        raise AssertionError("Shapes don't match")
-    if not np.allclose(self, other, equal_nan=True):
-        raise AssertionError("Elements don't match!")
-
-
-class TrollImageMock(object):
-
-    def __init__(self):
-        self.channels = []
+import xarray as xr
 
 
 class TestEnhancementStretch(unittest.TestCase):
 
-    '''Class for testing satpy.satin'''
+    """Class for testing enhancements in satpy.enhancements"""
 
     def setUp(self):
         """Setup the test"""
-        pass
+        data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
+        data[0, 0] = np.nan  # one bad value for testing
+        self.ch1 = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
 
     def test_cira_stretch(self):
         """Test applying the cira_stretch"""
+        from trollimage.xrimage import XRImage
+        from satpy.enhancements import cira_stretch
 
-        img = TrollImageMock()
-        img.channels.append(CH1)
+        img = XRImage(self.ch1)
         cira_stretch(img)
-        assertNumpyArraysEqual(RESULT.data, img.channels[0].data)
-        assertNumpyArraysEqual(RESULT.mask, img.channels[0].mask)
+
+        expected = np.array([[
+            [np.nan, np.nan, np.nan, 0.7965777, 0.95966537],
+            [1.05195848, 1.11662171, 1.16644164, 1.20697643, 1.24114933]]])
+        np.testing.assert_allclose(img.data.values, expected)
+        self.assertEqual(img.data.attrs, self.ch1.attrs)
 
     def tearDown(self):
         """Clean up"""
