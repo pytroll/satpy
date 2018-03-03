@@ -25,6 +25,8 @@
 import numpy as np
 import xarray as xr
 import xarray.ufuncs as xu
+import dask
+import dask.array as da
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -32,17 +34,80 @@ LOG = logging.getLogger(__name__)
 
 def stretch(img, **kwargs):
     """Perform stretch."""
-    img.stretch(**kwargs)
+    return img.stretch(**kwargs)
 
 
 def gamma(img, **kwargs):
     """Perform gamma correction."""
-    img.gamma(**kwargs)
+    return img.gamma(**kwargs)
 
 
 def invert(img, *args):
     """Perform inversion."""
-    img.invert(*args)
+    return img.invert(*args)
+
+
+def apply_enhancement(data, func, exclude=None, separate=False,
+                      pass_dask=False):
+    """Apply `func` to the provided data.
+
+    Args:
+        data (xarray.DataArray): Data to be modified inplace.
+        func (callable): Function to be applied to an xarray
+        exclude (iterable): Bands in the 'bands' dimension to not include
+                            in the calculations.
+        separate (bool): Apply `func` one band at a time. Default is False.
+        pass_dask (bool): Pass the underlying dask array instead of the
+                          xarray.DataArray.
+
+    """
+    attrs = data.attrs
+    bands = data.coords['bands'].values
+    if exclude is None:
+        exclude = ['A'] if 'A' in bands else []
+
+    if separate:
+        data_arrs = []
+        for band_name in bands:
+            band_data = data.sel(bands=[band_name])
+            if band_name in exclude:
+                # don't modify alpha
+                data_arrs.append(band_data)
+                continue
+
+            if pass_dask:
+                dims = band_data.dims
+                coords = band_data.coords
+                d_arr = func(band_data.data)
+                band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+            else:
+                band_data = func(band_data)
+            data_arrs.append(band_data)
+            # we assume that the func can add attrs
+            attrs.update(band_data.attrs)
+
+        data.data = xr.concat(data_arrs, dim='bands').data
+        data.attrs = attrs
+        return data
+    else:
+        band_data = data.sel(bands=[b for b in bands
+                                    if b not in exclude])
+        if pass_dask:
+            dims = band_data.dims
+            coords = band_data.coords
+            d_arr = func(band_data.data)
+            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+        else:
+            band_data = func(band_data)
+
+        attrs.update(band_data.attrs)
+        # combine the new data with the excluded data
+        new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                             dim='bands')
+        data.data = new_data.sel(bands=bands)
+        data.attrs = attrs
+
+    return data
 
 
 def cira_stretch(img, **kwargs):
@@ -51,35 +116,37 @@ def cira_stretch(img, **kwargs):
     Applicable only for visible channels.
     """
     LOG.debug("Applying the cira-stretch")
-    x_arr = img.data
-    attrs = x_arr.attrs
-    data_arrs = []
-    log_root = np.log10(0.0223)
-    denom = (1.0 - log_root) * 0.75
-    for band_name in x_arr['bands']:
-        band_data = x_arr.sel(bands=band_name)
-        if band_name == 'A':
-            # don't modify alpha
-            data_arrs.append(band_data)
-            continue
 
+    def func(band_data):
+        log_root = np.log10(0.0223)
+        denom = (1.0 - log_root) * 0.75
         band_data *= 0.01
         band_data = xu.log10(band_data)
         band_data -= log_root
         band_data /= denom
-        data_arrs.append(band_data)
-    img.data = xr.concat(data_arrs, dim='bands')
-    img.data.attrs = attrs
+        return band_data
+
+    return apply_enhancement(img.data, func)
 
 
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
+    luts = luts.ravel()
 
-    for idx, ch in enumerate(img.channels):
-        np.ma.clip(ch, 0, 255, out=ch)
-        img.channels[idx] = np.ma.array(
-            luts[:, idx][ch.astype(np.uint8)], copy=False, mask=ch.mask)
+    def func(band_data, luts=luts):
+        # NaN/null values will become 0
+        band_data = band_data.clip(0, luts.size - 1).astype(np.uint8)
+
+        def _delayed(luts, band_data):
+            # can't use luts.__getitem__ for some reason
+            return luts[band_data]
+        new_delay = dask.delayed(_delayed)(luts, band_data)
+        new_data = da.from_delayed(new_delay, shape=band_data.shape,
+                                   dtype=luts.dtype)
+        return new_data
+
+    return apply_enhancement(img.data, func, pass_dask=True)
 
 
 def colorize(img, **kwargs):
@@ -96,15 +163,20 @@ def palettize(img, **kwargs):
 
 def _merge_colormaps(kwargs):
     """Merge colormaps listed in kwargs."""
+    from trollimage.colormap import Colormap
     full_cmap = None
 
-    for itm in kwargs["palettes"]:
-        cmap = create_colormap(itm)
-        cmap.set_range(itm["min_value"], itm["max_value"])
-        if full_cmap is None:
-            full_cmap = cmap
-        else:
-            full_cmap = full_cmap + cmap
+    palette = kwargs['palettes']
+    if isinstance(palette, Colormap):
+        full_cmap = palette
+    else:
+        for itm in palette:
+            cmap = create_colormap(itm)
+            cmap.set_range(itm["min_value"], itm["max_value"])
+            if full_cmap is None:
+                full_cmap = cmap
+            else:
+                full_cmap = full_cmap + cmap
 
     return full_cmap
 
@@ -150,9 +222,18 @@ def three_d_effect(img, **kwargs):
     kernel = np.array([[-w, 0, w],
                        [-w, 1, w],
                        [-w, 0, w]])
+    mode = kwargs.get('convolve_mode', 'same')
 
-    for i in range(len(img.channels)):
-        mask = img.channels[i].mask
-        img.channels[i] = np.ma.masked_where(mask,
-                                             convolve2d(img.channels[i],
-                                                        kernel, mode='same'))
+    def func(band_data, kernel=kernel, mode=mode):
+        def _delayed(band_data, kernel, mode):
+            band_data = band_data.reshape(band_data.shape[1:])
+            new_data = convolve2d(band_data, kernel, mode=mode)
+            return new_data.reshape((1, band_data.shape[0],
+                                     band_data.shape[1]))
+
+        delay = dask.delayed(_delayed)(band_data, kernel, mode)
+        new_data = da.from_delayed(delay, shape=band_data.shape,
+                                   dtype=band_data.dtype)
+        return new_data
+
+    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
