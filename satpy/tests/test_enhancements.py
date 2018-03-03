@@ -26,6 +26,7 @@
 import unittest
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
@@ -49,6 +50,7 @@ class TestEnhancementStretch(unittest.TestCase):
         img = XRImage(data)
         func(img, **kwargs)
 
+        self.assertIsInstance(img.data.data, da.Array)
         self.assertListEqual(sorted(pre_attrs.keys()),
                              sorted(img.data.attrs.keys()),
                              "DataArray attributes were not preserved")
