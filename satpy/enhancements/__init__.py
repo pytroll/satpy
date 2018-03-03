@@ -104,7 +104,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         # combine the new data with the excluded data
         new_data = xr.concat([band_data, data.sel(bands=exclude)],
                              dim='bands')
-        data.data = new_data.sel(bands=bands)
+        data.data = new_data.sel(bands=bands).data
         data.attrs = attrs
 
     return data
