@@ -133,7 +133,7 @@ modifiers:
 composites:
 
   true_color:
-    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
