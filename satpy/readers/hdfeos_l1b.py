@@ -47,7 +47,7 @@ import xarray as xr
 from satpy import CHUNK_SIZE
 from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
-from hdf4_utils import from_sds
+from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
