@@ -433,16 +433,22 @@ class Scene(MetadataObject):
         """Check if the dataset is in the scene."""
         return name in self.datasets
 
-    def read_datasets(self, dataset_nodes, **kwargs):
+    def _read_datasets(self, dataset_nodes, **kwargs):
         """Read the given datasets from file."""
         # Sort requested datasets by reader
         reader_datasets = {}
 
         for node in dataset_nodes:
             ds_id = node.name
-            if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
+            # if we already have this node loaded or the node was assigned
+            # by the user (node data is None) then don't try to load from a
+            # reader
+            if ds_id in self.datasets or not isinstance(node.data, dict):
                 continue
-            reader_name = node.data['reader_name']
+            reader_name = node.data.get('reader_name')
+            if reader_name is None:
+                raise RuntimeError("Dependency tree has a corrupt node. "
+                                   "This shouldn't be possible.")
             reader_datasets.setdefault(reader_name, set()).add(ds_id)
 
         # load all datasets for one reader at a time
@@ -557,9 +563,8 @@ class Scene(MetadataObject):
             keepables.add(comp_node.name)
             return
 
-    def read_composites(self, compositor_nodes):
-        """Read (generate) composites.
-        """
+    def _read_composites(self, compositor_nodes):
+        """Read (generate) composites."""
         keepables = set()
         for item in compositor_nodes:
             self._generate_composite(item, keepables)
@@ -579,7 +584,7 @@ class Scene(MetadataObject):
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = self.dep_tree.leaves(nodes=required_nodes)
-        return self.read_datasets(nodes, **kwargs)
+        return self._read_datasets(nodes, **kwargs)
 
     def compute(self, nodes=None):
         """Compute all the composites contained in `requirements`.
@@ -588,7 +593,7 @@ class Scene(MetadataObject):
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
                 set(self.datasets.keys())
-        return self.read_composites(nodes)
+        return self._read_composites(nodes)
 
     def _remove_failed_datasets(self, keepables):
         keepables = keepables or set()
@@ -708,7 +713,7 @@ class Scene(MetadataObject):
         # MUST set this after assigning the resampled datasets otherwise
         # composite prereqs that were resampled will be considered "wishlisted"
         if datasets is None:
-            new_scn.wishlist = self.wishlist
+            new_scn.wishlist = self.wishlist.copy()
         else:
             new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
                                     for ds in new_scn])
