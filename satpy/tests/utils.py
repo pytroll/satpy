@@ -98,6 +98,12 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 super(FakeMod, self).__init__(*args, **kwargs)
 
             def __call__(self, datasets, optional_datasets, **info):
+                if self.attrs['optional_prerequisites']:
+                    for opt_dep in self.attrs['optional_prerequisites']:
+                        if 'NOPE' in opt_dep or 'fail' in opt_dep:
+                            continue
+                        assert optional_datasets is not None and \
+                            len(optional_datasets)
                 resolution = DatasetID.from_dict(datasets[0].attrs).resolution
                 if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
@@ -145,7 +151,10 @@ def test_composites(sensor_name):
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
         DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
-        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], [])
+        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
+        DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
+        DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
+        DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -153,6 +162,9 @@ def test_composites(sensor_name):
         'mod2': (['comp3'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
+        'mod_opt_prereq': (['ds1'], ['ds2']),
+        'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
+        'mod_opt_only': ([], ['ds2']),
     }
 
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}

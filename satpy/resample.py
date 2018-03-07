@@ -160,8 +160,7 @@ class BaseResampler(object):
         if mask_area:
             flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
             # xarray <= 0.10.1 computes dask arrays during isnull
-            # use `da.isnull` for now, then `data.isnull()` should be fine
-            kwargs['mask'] = da.isnull(data).all(dim=flat_dims)
+            kwargs['mask'] = data.isnull().all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
