@@ -61,10 +61,13 @@ class Node(object):
             child.flatten(d=d)
         return d
 
-    def copy(self):
+    def copy(self, node_cache=None):
+        if node_cache and self.name in node_cache:
+            return node_cache[self.name]
+
         s = Node(self.name, self.data)
         for c in self.children:
-            c = c.copy()
+            c = c.copy(node_cache=node_cache)
             s.add_child(c)
         return s
 
@@ -220,9 +223,8 @@ class DependencyTree(Node):
         """
         new_tree = DependencyTree({}, self.compositors, self.modifiers)
         for c in self.children:
-            c = c.copy()
+            c = c.copy(node_cache=new_tree._all_nodes)
             new_tree.add_child(new_tree, c)
-        new_tree._all_nodes = new_tree.flatten(d=self._all_nodes)
         return new_tree
 
     def __contains__(self, item):

@@ -1074,7 +1074,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(r.load.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
         self.assertEquals(len(loaded_ids), 1)
-        with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
+        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
@@ -1083,7 +1083,7 @@ class TestSceneLoading(unittest.TestCase):
             self.assertIn(DatasetID(name='ds1'), loaded_ids)
             # m.assert_called_once_with(set([scene.dep_tree['ds1']]))
             m.assert_called_once_with(set())
-        with mock.patch.object(scene, 'read_composites', wraps=scene.read_composites) as m:
+        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene.datasets.keys())
