@@ -49,6 +49,15 @@ HTYPE_TO_DTYPE = {
 }
 
 
+def from_sds(var, *args, **kwargs):
+    """Create a dask array from a SD dataset."""
+    import dask.array as da
+    var.__dict__['dtype'] = HTYPE_TO_DTYPE[var.info()[3]]
+    shape = var.info()[2]
+    var.__dict__['shape'] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
+    return da.from_array(var, *args, **kwargs)
+
+
 class HDF4FileHandler(BaseFileHandler):
     """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
     """
