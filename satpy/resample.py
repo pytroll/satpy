@@ -483,6 +483,7 @@ class BilinearResampler(BaseResampler):
 
 
 class NativeResampler(BaseResampler):
+
     """Expand or reduce input datasets to be the same shape.
 
     If `expand=True` (default) input datasets are replicated in both
@@ -492,6 +493,7 @@ class NativeResampler(BaseResampler):
     of the target area.
 
     """
+
     def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
         # use 'mask_area' with a default of False. It wouldn't do anything.
         return super(NativeResampler, self).resample(data,
@@ -673,7 +675,7 @@ def mask_source_lonlats(source_def, mask):
     # the data may have additional masked pixels
     # let's compare them to see if we can use the same area
     # assume lons and lats mask are the same
-    if mask and isinstance(source_geo_def, SwathDefinition):
+    if mask is not None and isinstance(source_geo_def, SwathDefinition):
         if np.issubsctype(mask.dtype, np.bool):
             # copy the source area and use it for the rest of the calculations
             LOG.debug("Copying source area to mask invalid dataset points")
