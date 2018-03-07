@@ -673,7 +673,7 @@ def mask_source_lonlats(source_def, mask):
     # the data may have additional masked pixels
     # let's compare them to see if we can use the same area
     # assume lons and lats mask are the same
-    if mask and isinstance(source_geo_def, SwathDefinition):
+    if mask is not None and mask is not False and isinstance(source_geo_def, SwathDefinition):
         if np.issubsctype(mask.dtype, np.bool):
             # copy the source area and use it for the rest of the calculations
             LOG.debug("Copying source area to mask invalid dataset points")
