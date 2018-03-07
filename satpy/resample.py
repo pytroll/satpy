@@ -483,6 +483,7 @@ class BilinearResampler(BaseResampler):
 
 
 class NativeResampler(BaseResampler):
+
     """Expand or reduce input datasets to be the same shape.
 
     If `expand=True` (default) input datasets are replicated in both
@@ -492,6 +493,7 @@ class NativeResampler(BaseResampler):
     of the target area.
 
     """
+
     def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
         # use 'mask_area' with a default of False. It wouldn't do anything.
         return super(NativeResampler, self).resample(data,
