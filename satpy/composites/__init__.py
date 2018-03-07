@@ -770,56 +770,50 @@ class DayNightCompositor(GenericCompositor):
     """A compositor that takes one composite on the night side, another on day
     side, and then blends them together."""
 
-    def __call__(self, projectables, lim_low=85., lim_high=95., *args,
-                 **kwargs):
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables), ))
+    def __init__(self, lim_low=85., lim_high=95., *args, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lim_low (float): lower limit of Sun zenith angle for the
+                             blending of the given channels
+            lim_high (float): upper limit of Sun zenith angle for the
+                             blending of the given channels
+        """
+        self.lim_low = lim_low
+        self.lim_high = lim_high
+        super(DayNightCompositor, self).__init__(*args, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+
+        day_data = projectables[0]
+        night_data = projectables[1]
+
+        lim_low = np.cos(np.deg2rad(self.lim_low))
+        lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            day_data = projectables[0].copy()
-            night_data = projectables[1].copy()
-            coszen = np.cos(np.deg2rad(projectables[2]))
+            coszen = xu.cos(xu.deg2rad(projectables[2]))
+        except IndexError:
+            from pyorbital.astronomy import cos_zen
+            LOG.debug("Computing sun zenith angles.")
+            lons, lats = day_data.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+            coszen = xr.DataArray(cos_zen(day_data.attrs["start_time"],
+                                          lons, lats),
+                                  dims=['y', 'x'],
+                                  coords=[day_data['y'], day_data['x']])
+        # Calculate blending weights
+        coszen -= np.min((lim_high, lim_low))
+        coszen /= np.abs(lim_low - lim_high)
+        coszen = coszen.clip(0, 1)
 
-            coszen -= min(np.cos(np.deg2rad(lim_high)),
-                          np.cos(np.deg2rad(lim_low)))
-            coszen /= np.abs(np.cos(np.deg2rad(lim_low)) -
-                             np.cos(np.deg2rad(lim_high)))
-            coszen = np.clip(coszen, 0, 1)
+        # Apply enhancements to get images
+        day_data = enhance2dataset(day_data).clip(0.0, 1.0).fillna(0.0)
+        night_data = enhance2dataset(night_data).clip(0.0, 1.0).fillna(0.0)
 
-            full_data = []
+        data = (1 - coszen) * night_data + coszen * day_data
+        data = data.where(data <= 0.0)
 
-            # Apply enhancements
-            day_data = enhance2dataset(day_data)
-            night_data = enhance2dataset(night_data)
-
-            # Match dimensions to the data with more channels
-            # There are only 1-channel and 3-channel composites
-            if day_data.shape[0] > night_data.shape[0]:
-                night_data = np.ma.repeat(night_data, 3, 0)
-            elif day_data.shape[0] < night_data.shape[0]:
-                day_data = np.ma.repeat(day_data, 3, 0)
-
-            for i in range(day_data.shape[0]):
-                day = day_data[i, :, :]
-                night = night_data[i, :, :]
-
-                data = (1 - coszen) * np.ma.masked_invalid(night).filled(0) + \
-                    coszen * np.ma.masked_invalid(day).filled(0)
-                data = np.ma.array(data, mask=np.logical_and(night.mask,
-                                                             day.mask),
-                                   copy=False)
-                data = Dataset(np.ma.masked_invalid(data),
-                               copy=True,
-                               **projectables[0].info)
-                full_data.append(data)
-
-            res = super(DayNightCompositor, self).__call__((full_data[0],
-                                                            full_data[1],
-                                                            full_data[2]),
-                                                           *args, **kwargs)
-
-        except ValueError:
-            raise IncompatibleAreas
+        res = super(DayNightCompositor, self).__call__((data, ),
+                                                       **kwargs)
 
         return res
 
@@ -979,21 +973,10 @@ class CloudCompositor(GenericCompositor):
 
 
 def enhance2dataset(dset):
-    """Apply enhancements to dataset *dset* and convert the image data
-    back to Dataset object."""
+    """Apply enhancements to dataset *dset* and return the resulting data
+    array of the image."""
     img = get_enhanced_image(dset)
-
-    data = np.rollaxis(np.dstack(img.channels), axis=2)
-    mask = dset.mask
-    if mask.ndim < data.ndim:
-        mask = np.expand_dims(mask, 0)
-        mask = np.repeat(mask, 3, 0)
-    elif mask.ndim > data.ndim:
-        mask = mask[0, :, :]
-    data = Dataset(np.ma.masked_array(data, mask=mask),
-                   copy=False,
-                   **dset.info)
-    return data
+    return img.data
 
 
 class RatioSharpenedRGB(GenericCompositor):
@@ -1079,6 +1062,7 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 class SelfSharpenedRGB(RatioSharpenedRGB):
+
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
     Example:
