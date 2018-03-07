@@ -89,7 +89,7 @@ class HDF4FileHandler(BaseFileHandler):
             self.file_content[name] = obj
             info = obj.info()
             self.file_content[name + "/dtype"] = HTYPE_TO_DTYPE.get(info[3])
-            self.file_content[name + "/shape"] = info[2] if not isinstance(info[2], (int, float)) else tuple(info[2])
+            self.file_content[name + "/shape"] = info[2] if isinstance(info[2], (int, float)) else tuple(info[2])
         self._collect_attrs(name, obj.attributes())
 
     def __getitem__(self, key):
