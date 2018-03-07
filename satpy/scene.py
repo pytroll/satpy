@@ -447,8 +447,8 @@ class Scene(MetadataObject):
                 continue
             reader_name = node.data.get('reader_name')
             if reader_name is None:
-                raise RuntimeError("Dependency tree has a corrupt node. "
-                                   "This shouldn't be possible.")
+                # This shouldn't be possible
+                raise RuntimeError("Dependency tree has a corrupt node.")
             reader_datasets.setdefault(reader_name, set()).add(ds_id)
 
         # load all datasets for one reader at a time
