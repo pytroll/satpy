@@ -47,6 +47,7 @@ import xarray as xr
 from satpy import CHUNK_SIZE
 from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
+from hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +153,12 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             if key.name == 'satellite_azimuth_angle':
                 var = self.sd.select('SensorAzimuth')
 
-            data = xr.DataArray(da.from_array(var[:], chunks=CHUNK_SIZE),
+            data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
                                 dims=['y', 'x']).astype(np.float32)
             data = data.where(data != var._FillValue)
             data = data * np.float32(var.scale_factor)
+
+            data.attrs = info
             return data
 
         if key.name not in ['longitude', 'latitude']:
@@ -184,12 +187,13 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
         if key.name == 'latitude':
             data = self.cache[key.resolution]['lats'].filled(np.nan)
+            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                dims=['y', 'x'])
         else:
             data = self.cache[key.resolution]['lons'].filled(np.nan)
-
-        data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
-                                                        CHUNK_SIZE)),
-                            dims=['y', 'x'])
+            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                            CHUNK_SIZE)),
+                                dims=['y', 'x'])
         data.attrs = info
         return data
 
@@ -316,12 +320,12 @@ class HDFEOSBandReader(HDFEOSFileReader):
             except ValueError:
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            array = xr.DataArray(da.from_array(subdata[index, :, :], chunks=CHUNK_SIZE),
+            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
                                  dims=['y', 'x']).astype(np.float32)
             valid_range = subdata.attributes()['valid_range']
             array = array.where(array >= np.float32(valid_range[0]))
             array = array.where(array <= np.float32(valid_range[1]))
-            array = array.where(uncertainty[index, :, :] < 15)
+            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
             if dataset.endswith('Emissive'):
                 projectable = calibrate_tb(array, subdata.attributes(), index, key.name)
