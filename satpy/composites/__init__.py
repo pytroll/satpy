@@ -809,10 +809,19 @@ class DayNightCompositor(GenericCompositor):
         day_data = enhance2dataset(day_data).clip(0.0, 1.0).fillna(0.0)
         night_data = enhance2dataset(night_data).clip(0.0, 1.0).fillna(0.0)
 
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        day_data = add_bands(day_data, night_data['bands'])
+        night_data = add_bands(night_data, day_data['bands'])
+
         data = (1 - coszen) * night_data + coszen * day_data
 
-        res = super(DayNightCompositor, self).__call__((data, ),
-                                                       **kwargs)
+        # Split to separate bands so the mode is correct
+        data = [data.sel(bands=b) for b in data.bands]
+
+        res = super(DayNightCompositor, self).__call__(data, **kwargs)
 
         return res
 
@@ -976,6 +985,28 @@ def enhance2dataset(dset):
     array of the image."""
     img = get_enhanced_image(dset)
     return img.data
+
+
+def add_bands(data, bands):
+    """Add bands so that they match *bands*"""
+    # Add R, G and B bands, remove L band
+    if 'L' in data.bands.data and 'R' in bands.data:
+        lum = data.sel(bands='L')
+        new_data = xr.concat((lum, lum, lum), dim='bands')
+        new_data['bands'] = ['R', 'G', 'B']
+        new_data.attrs = data.attrs
+        data = new_data
+    # Add alpha band
+    if 'A' not in data.bands.data and 'A' in bands.data:
+        alpha = da.ones((data.sizes['y'], data.sizes['x']),
+                        chunks=data.chunks)
+        new_data = [data.sel(bands=band) for band in data.bands.data]
+        new_data.append(alpha)
+        new_data = xr.concat(new_data)
+        new_data.attrs = data.attrs
+        data = new_data
+
+    return data
 
 
 class RatioSharpenedRGB(GenericCompositor):
