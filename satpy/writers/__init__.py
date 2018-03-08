@@ -30,6 +30,7 @@ import os
 
 import numpy as np
 import yaml
+import dask
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
@@ -325,17 +326,24 @@ class Writer(Plugin):
                 "No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
 
-    def save_datasets(self, datasets, **kwargs):
+    def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
 
         Subclasses can use this method to save all datasets to one single
         file or optimize the writing of individual datasets. By default
         this simply calls `save_dataset` for each dataset provided.
         """
+        delayeds = []
         for ds in datasets:
-            self.save_dataset(ds, **kwargs)
+            delayeds.append(self.save_dataset(ds, compute=compute, **kwargs))
+        delayed = dask.delayed(delayeds)
+        if compute:
+            return delayed.compute()
+        else:
+            return delayed
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     compute=True, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         raise NotImplementedError(
@@ -360,15 +368,18 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, decorate=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     overlay=None, decorate=None, compute=True, **kwargs):
         """Saves the *dataset* to a given *filename*.
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay, decorate=decorate)
-        self.save_image(img, filename=filename, **kwargs)
+            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            decorate=decorate)
+        return self.save_image(img, filename=filename, compute=compute,
+                               **kwargs)
 
-    def save_image(self, img, filename=None, **kwargs):
+    def save_image(self, img, filename=None, compute=True, **kwargs):
         raise NotImplementedError(
             "Writer '%s' has not implemented image saving" % (self.name, ))
 

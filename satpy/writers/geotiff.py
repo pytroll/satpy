@@ -112,61 +112,10 @@ class GeoTIFFWriter(ImageWriter):
             delayed.append(delay)
         dask.compute(*delayed)
 
-    def save_image(self, img, filename=None, floating_point=False, **kwargs):
-        """Save the image to the given *filename* in geotiff_ format.
-        `floating_point` allows the saving of
-        'L' mode images in floating point format if set to True.
-
-        .. _geotiff: http://trac.osgeo.org/geotiff/
-        """
+    def _create_file(self, filename, img, gformat, g_opts, opacity,
+                     datasets, mode):
         raster = gdal.GetDriverByName("GTiff")
 
-        filename = filename or self.get_filename(**img.data.attrs)
-
-        # Update global GDAL options with these specific ones
-        gdal_options = self.gdal_options.copy()
-        for k in kwargs.keys():
-            if k in self.GDAL_OPTIONS:
-                gdal_options[k] = kwargs[k]
-
-        floating_point = floating_point if floating_point is not None else self.floating_point
-
-        if "alpha" in kwargs:
-            raise ValueError(
-                "Keyword 'alpha' is automatically set and should not be specified")
-        if floating_point:
-            if img.mode != "L":
-                raise ValueError(
-                    "Image must be in 'L' mode for floating point geotiff saving")
-            raise NotImplementedError('Floating point saving not yet implemented.')
-            # if img.fill_value is None:
-            #     LOG.warning(
-            #         "Image with floats cannot be transparent, so setting fill_value to 0")
-            #     fill_value = 0
-            # datasets = [img.channels[0].astype(np.float64)]
-            # fill_value = img.fill_value or [0]
-            # gformat = gdal.GDT_Float64
-            # opacity = 0
-        else:
-            nbits = int(gdal_options.get("nbits", "8"))
-            if nbits > 16:
-                dtype = np.uint32
-                gformat = gdal.GDT_UInt32
-            elif nbits > 8:
-                dtype = np.uint16
-                gformat = gdal.GDT_UInt16
-            else:
-                dtype = np.uint8
-                gformat = gdal.GDT_Byte
-            opacity = np.iinfo(dtype).max
-            datasets, mode = img._finalize(dtype=dtype)
-
-        LOG.debug("Saving to GeoTiff: %s", filename)
-
-        g_opts = ["{0}={1}".format(k.upper(), str(v))
-                  for k, v in gdal_options.items()]
-
-        ensure_dir(filename)
         if mode == "L":
             dst_ds = raster.Create(filename, img.width, img.height, 1,
                                    gformat, g_opts)
@@ -229,5 +178,64 @@ class GeoTIFFWriter(ImageWriter):
 
         dst_ds.SetMetadata(tags, '')
 
-        # Close the dataset
-        dst_ds = None
+    def save_image(self, img, filename=None, floating_point=False,
+                   compute=True, **kwargs):
+        """Save the image to the given *filename* in geotiff_ format.
+        `floating_point` allows the saving of
+        'L' mode images in floating point format if set to True.
+
+        .. _geotiff: http://trac.osgeo.org/geotiff/
+        """
+        filename = filename or self.get_filename(**img.data.attrs)
+
+        # Update global GDAL options with these specific ones
+        gdal_options = self.gdal_options.copy()
+        for k in kwargs.keys():
+            if k in self.GDAL_OPTIONS:
+                gdal_options[k] = kwargs[k]
+
+        floating_point = floating_point if floating_point is not None else self.floating_point
+
+        if "alpha" in kwargs:
+            raise ValueError(
+                "Keyword 'alpha' is automatically set and should not be specified")
+        if floating_point:
+            if img.mode != "L":
+                raise ValueError(
+                    "Image must be in 'L' mode for floating point geotiff saving")
+            raise NotImplementedError('Floating point saving not yet implemented.')
+            # if img.fill_value is None:
+            #     LOG.warning(
+            #         "Image with floats cannot be transparent, so setting fill_value to 0")
+            #     fill_value = 0
+            # datasets = [img.channels[0].astype(np.float64)]
+            # fill_value = img.fill_value or [0]
+            # gformat = gdal.GDT_Float64
+            # opacity = 0
+        else:
+            nbits = int(gdal_options.get("nbits", "8"))
+            if nbits > 16:
+                dtype = np.uint32
+                gformat = gdal.GDT_UInt32
+            elif nbits > 8:
+                dtype = np.uint16
+                gformat = gdal.GDT_UInt16
+            else:
+                dtype = np.uint8
+                gformat = gdal.GDT_Byte
+            opacity = np.iinfo(dtype).max
+            datasets, mode = img._finalize(dtype=dtype)
+
+        LOG.debug("Saving to GeoTiff: %s", filename)
+
+        g_opts = ["{0}={1}".format(k.upper(), str(v))
+                  for k, v in gdal_options.items()]
+
+        ensure_dir(filename)
+        delayed = dask.delayed(self._create_file)(filename, img, gformat,
+                                                  g_opts, opacity, datasets,
+                                                  mode)
+        if compute:
+            return delayed.compute()
+        else:
+            return delayed
