@@ -40,9 +40,4 @@ class PillowWriter(ImageWriter):
         filename = filename or self.get_filename(**img.data.attrs)
 
         LOG.debug("Saving to image: %s", filename)
-        delayed = dask.delayed(img.save)(filename, compute=compute,
-                                         format_kw=kwargs)
-        if compute:
-            return delayed.compute()
-        else:
-            return delayed
+        return img.save(filename, compute=compute, format_kw=kwargs)
