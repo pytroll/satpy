@@ -826,6 +826,35 @@ class DayNightCompositor(GenericCompositor):
         return res
 
 
+def enhance2dataset(dset):
+    """Apply enhancements to dataset *dset* and return the resulting data
+    array of the image."""
+    img = get_enhanced_image(dset)
+    return img.data
+
+
+def add_bands(data, bands):
+    """Add bands so that they match *bands*"""
+    # Add R, G and B bands, remove L band
+    if 'L' in data.bands.data and 'R' in bands.data:
+        lum = data.sel(bands='L')
+        new_data = xr.concat((lum, lum, lum), dim='bands')
+        new_data['bands'] = ['R', 'G', 'B']
+        new_data.attrs = data.attrs
+        data = new_data
+    # Add alpha band
+    if 'A' not in data.bands.data and 'A' in bands.data:
+        alpha = da.ones((data.sizes['y'], data.sizes['x']),
+                        chunks=data.chunks)
+        new_data = [data.sel(bands=band) for band in data.bands.data]
+        new_data.append(alpha)
+        new_data = xr.concat(new_data)
+        new_data.attrs = data.attrs
+        data = new_data
+
+    return data
+
+
 class Airmass(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -978,35 +1007,6 @@ class CloudCompositor(GenericCompositor):
                                                     **kwargs)
 
         return res
-
-
-def enhance2dataset(dset):
-    """Apply enhancements to dataset *dset* and return the resulting data
-    array of the image."""
-    img = get_enhanced_image(dset)
-    return img.data
-
-
-def add_bands(data, bands):
-    """Add bands so that they match *bands*"""
-    # Add R, G and B bands, remove L band
-    if 'L' in data.bands.data and 'R' in bands.data:
-        lum = data.sel(bands='L')
-        new_data = xr.concat((lum, lum, lum), dim='bands')
-        new_data['bands'] = ['R', 'G', 'B']
-        new_data.attrs = data.attrs
-        data = new_data
-    # Add alpha band
-    if 'A' not in data.bands.data and 'A' in bands.data:
-        alpha = da.ones((data.sizes['y'], data.sizes['x']),
-                        chunks=data.chunks)
-        new_data = [data.sel(bands=band) for band in data.bands.data]
-        new_data.append(alpha)
-        new_data = xr.concat(new_data)
-        new_data.attrs = data.attrs
-        data = new_data
-
-    return data
 
 
 class RatioSharpenedRGB(GenericCompositor):
