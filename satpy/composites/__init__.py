@@ -806,8 +806,8 @@ class DayNightCompositor(GenericCompositor):
         coszen = coszen.clip(0, 1)
 
         # Apply enhancements to get images
-        day_data = enhance2dataset(day_data).clip(0.0, 1.0).fillna(0.0)
-        night_data = enhance2dataset(night_data).clip(0.0, 1.0).fillna(0.0)
+        day_data = enhance2dataset(day_data)
+        night_data = enhance2dataset(night_data)
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
@@ -816,7 +816,12 @@ class DayNightCompositor(GenericCompositor):
         day_data = add_bands(day_data, night_data['bands'])
         night_data = add_bands(night_data, day_data['bands'])
 
+        # Get merged metadata
+        attrs = combine_metadata(day_data, night_data)
+
+        # Blend the two images together
         data = (1 - coszen) * night_data + coszen * day_data
+        data.attrs = attrs
 
         # Split to separate bands so the mode is correct
         data = [data.sel(bands=b) for b in data.bands]
@@ -829,8 +834,13 @@ class DayNightCompositor(GenericCompositor):
 def enhance2dataset(dset):
     """Apply enhancements to dataset *dset* and return the resulting data
     array of the image."""
+    attrs = dset.attrs
     img = get_enhanced_image(dset)
-    return img.data
+    # Clip image data to interval [0.0, 1.0] and replace nan values
+    data = img.data.clip(0.0, 1.0).fillna(0.0)
+    data.attrs = attrs
+
+    return data
 
 
 def add_bands(data, bands):
@@ -840,12 +850,11 @@ def add_bands(data, bands):
         lum = data.sel(bands='L')
         new_data = xr.concat((lum, lum, lum), dim='bands')
         new_data['bands'] = ['R', 'G', 'B']
-        new_data.attrs = data.attrs
         data = new_data
     # Add alpha band
     if 'A' not in data.bands.data and 'A' in bands.data:
         new_data = [data.sel(bands=band) for band in data.bands.data]
-        # Create alpha band on top of a copy of the first "real" band
+        # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes['y'],
                               data.sizes['x']),
@@ -854,7 +863,6 @@ def add_bands(data, bands):
         alpha['bands'] = 'A'
         new_data.append(alpha)
         new_data = xr.concat(new_data, dim='bands')
-        new_data.attrs = data.attrs
         data = new_data
 
     return data
