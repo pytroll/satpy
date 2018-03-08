@@ -766,7 +766,7 @@ class Scene(MetadataObject):
         return writer
 
     def save_dataset(self, dataset_id, filename=None, writer=None,
-                     overlay=None, **kwargs):
+                     overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None:
             if filename is None:
@@ -776,18 +776,19 @@ class Scene(MetadataObject):
                     os.path.splitext(filename)[1], **kwargs)
         else:
             writer = self.get_writer(writer, **kwargs)
-        writer.save_dataset(self[dataset_id],
-                            filename=filename,
-                            overlay=overlay, **kwargs)
+        return writer.save_dataset(self[dataset_id], filename=filename,
+                                   overlay=overlay, compute=compute,
+                                   **kwargs)
 
-    def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, compute=True,
+                      **kwargs):
         """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
         else:
             datasets = self.datasets.values()
         writer = self.get_writer(writer, **kwargs)
-        writer.save_datasets(datasets, **kwargs)
+        return writer.save_datasets(datasets, compute=compute, **kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
         """Get the writer instance."""

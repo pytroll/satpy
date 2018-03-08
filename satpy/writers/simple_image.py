@@ -23,6 +23,7 @@
 
 import logging
 
+import dask
 from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
@@ -35,8 +36,13 @@ class PillowWriter(ImageWriter):
             default_config_filename="writers/simple_image.yaml",
             **kwargs)
 
-    def save_image(self, img, filename=None, **kwargs):
+    def save_image(self, img, filename=None, compute=True, **kwargs):
         filename = filename or self.get_filename(**img.data.attrs)
 
         LOG.debug("Saving to image: %s", filename)
-        img.save(filename, format_kw=kwargs)
+        delayed = dask.delayed(img.save)(filename, compute=compute,
+                                         format_kw=kwargs)
+        if compute:
+            return delayed.compute()
+        else:
+            return delayed
