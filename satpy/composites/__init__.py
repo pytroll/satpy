@@ -844,11 +844,16 @@ def add_bands(data, bands):
         data = new_data
     # Add alpha band
     if 'A' not in data.bands.data and 'A' in bands.data:
-        alpha = da.ones((data.sizes['y'], data.sizes['x']),
-                        chunks=data.chunks)
         new_data = [data.sel(bands=band) for band in data.bands.data]
+        # Create alpha band on top of a copy of the first "real" band
+        alpha = new_data[0].copy()
+        alpha.data = da.ones((data.sizes['y'],
+                              data.sizes['x']),
+                             chunks=new_data[0].chunks)
+        # Rename band to indicate it's alpha
+        alpha['bands'] = 'A'
         new_data.append(alpha)
-        new_data = xr.concat(new_data)
+        new_data = xr.concat(new_data, dim='bands')
         new_data.attrs = data.attrs
         data = new_data
 
