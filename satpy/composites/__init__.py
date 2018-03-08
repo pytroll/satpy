@@ -810,7 +810,6 @@ class DayNightCompositor(GenericCompositor):
         night_data = enhance2dataset(night_data).clip(0.0, 1.0).fillna(0.0)
 
         data = (1 - coszen) * night_data + coszen * day_data
-        data = data.where(data <= 0.0)
 
         res = super(DayNightCompositor, self).__call__((data, ),
                                                        **kwargs)
