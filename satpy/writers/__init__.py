@@ -335,7 +335,7 @@ class Writer(Plugin):
         """
         delayeds = []
         for ds in datasets:
-            delayeds.append(self.save_dataset(ds, compute=compute, **kwargs))
+            delayeds.append(self.save_dataset(ds, compute=False, **kwargs))
         delayed = dask.delayed(delayeds)
         if compute:
             return delayed.compute()
