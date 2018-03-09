@@ -824,7 +824,7 @@ class DayNightCompositor(GenericCompositor):
         data.attrs = attrs
 
         # Split to separate bands so the mode is correct
-        data = [data.sel(bands=b) for b in data.bands]
+        data = [data.sel(bands=b) for b in data['bands']]
 
         res = super(DayNightCompositor, self).__call__(data, **kwargs)
 
@@ -846,14 +846,14 @@ def enhance2dataset(dset):
 def add_bands(data, bands):
     """Add bands so that they match *bands*"""
     # Add R, G and B bands, remove L band
-    if 'L' in data.bands.data and 'R' in bands.data:
+    if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
         new_data = xr.concat((lum, lum, lum), dim='bands')
         new_data['bands'] = ['R', 'G', 'B']
         data = new_data
     # Add alpha band
-    if 'A' not in data.bands.data and 'A' in bands.data:
-        new_data = [data.sel(bands=band) for band in data.bands.data]
+    if 'A' not in data['bands'].data and 'A' in bands.data:
+        new_data = [data.sel(bands=band) for band in data['bands'].data]
         # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
         alpha.data = da.ones((data.sizes['y'],
