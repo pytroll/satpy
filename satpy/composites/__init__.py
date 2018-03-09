@@ -317,7 +317,7 @@ class SunZenithCorrectorBase(CompositeBase):
                 coszen = coszen.where((coszen > 0.035) & (coszen < 1))
                 self.coszen[key] = coszen
         else:
-            coszen = np.cos(np.deg2rad(projectables[1]))
+            coszen = xu.cos(xu.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
         if vis.shape != coszen.shape:
@@ -380,7 +380,7 @@ class PSPRayleighReflectance(CompositeBase):
             from pyorbital.orbital import get_observer_look
             lons, lats = vis.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
             sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-            suna = np.rad2deg(suna)
+            suna = xu.rad2deg(suna)
             sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
             sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
                                             vis.attrs['satellite_latitude'],
@@ -406,11 +406,10 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = corrector.get_reflectance(sunz.load().values,
-                                                      satz.load().values,
-                                                      ssadiff.load().values,
-                                                      vis.attrs['name'],
-                                                      red.values)
+            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz.data,
+                                          satz.data, ssadiff.data, vis.attrs['name'],
+                                          red.data)
+
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
@@ -617,7 +616,7 @@ class GenericCompositor(CompositeBase):
         return sensor
 
     def __call__(self, projectables, nonprojectables=None, **attrs):
-
+        """Build the composite."""
         num = len(projectables)
         mode = attrs.get('mode')
         if mode is None:

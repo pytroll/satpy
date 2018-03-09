@@ -31,14 +31,14 @@ import logging
 import os
 import re
 
-import numpy as np
-
 import xarray.ufuncs as xu
 
 try:
     import configparser
-except:
+except ImportError:
     from six.moves import configparser
+
+_is_logging_on = False
 
 
 class OrderedConfigParser(object):
@@ -75,7 +75,7 @@ class OrderedConfigParser(object):
 
         try:
             return self.section_keys
-        except:
+        except:  # noqa: E722
             return self.config_parser.sections()
 
 
@@ -102,8 +102,6 @@ def debug_on():
     """Turn debugging logging on.
     """
     logging_on(logging.DEBUG)
-
-_is_logging_on = False
 
 
 def logging_on(level=logging.WARNING):
@@ -203,7 +201,7 @@ def proj_units_to_meters(proj_str):
 def _get_sunz_corr_li_and_shibata(cos_zen):
 
     return 24.35 / (2. * cos_zen +
-                    np.sqrt(498.5225 * cos_zen**2 + 1))
+                    xu.sqrt(498.5225 * cos_zen**2 + 1))
 
 
 def sunzen_corr_cos(data, cos_zen, limit=88.):
@@ -219,7 +217,7 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     """
 
     # Convert the zenith angle limit to cosine of zenith angle
-    limit = np.cos(np.deg2rad(limit))
+    limit = xu.cos(xu.deg2rad(limit))
 
     # Cosine correction
     corr = 1. / cos_zen
@@ -244,7 +242,7 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     """
 
     # Convert the zenith angle limit to cosine of zenith angle
-    limit = np.cos(np.radians(limit))
+    limit = xu.cos(xu.radians(limit))
 
     # Cosine correction
     corr = _get_sunz_corr_li_and_shibata(cos_zen)
