@@ -795,7 +795,12 @@ class DayNightCompositor(GenericCompositor):
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
-            lons, lats = day_data.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+            # Get chunking that matches the data
+            try:
+                chunks = day_data.sel(bands=day_data['bands'][0]).chunks
+            except KeyError:
+                chunks = day_data.chunks
+            lons, lats = day_data.attrs["area"].get_lonlats_dask(chunks)
             coszen = xr.DataArray(cos_zen(day_data.attrs["start_time"],
                                           lons, lats),
                                   dims=['y', 'x'],
