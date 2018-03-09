@@ -43,6 +43,7 @@ import xarray as xr
 
 import dask.array as da
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ ANGLES = {'sensor_zenith_angle': 'satz',
 
 
 def create_xarray(arr):
-    res = da.from_array(arr, chunks=(1000, 1000))
+    res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
     res = xr.DataArray(res, dims=['y', 'x'],
                        coords=[np.arange(res.shape[0]),
                                np.arange(res.shape[1])])
@@ -592,22 +593,3 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
         tb_ = np.ma.masked_less(tb_, 0.1, copy=False)
 
     return tb_
-
-
-if __name__ == '__main__':
-
-    def norm255(a__):
-        """normalize array to uint8.
-        """
-        arr = a__ * 1.0
-        arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
-        return arr.astype(np.uint8)
-
-    def show(a__):
-        """show array.
-        """
-        from PIL import Image
-        Image.fromarray(norm255(a__), "L").show()
-
-    import sys
-    res = read_raw(sys.argv[1])
