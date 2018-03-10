@@ -31,6 +31,7 @@ import os
 import numpy as np
 import yaml
 import dask
+import dask.array as da
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
@@ -333,10 +334,30 @@ class Writer(Plugin):
         file or optimize the writing of individual datasets. By default
         this simply calls `save_dataset` for each dataset provided.
         """
-        delayeds = []
+        sources = []
+        targets = []
         for ds in datasets:
-            delayeds.append(self.save_dataset(ds, compute=False, **kwargs))
-        delayed = dask.delayed(delayeds)
+            res = self.save_dataset(ds, compute=False, **kwargs)
+            if isinstance(res, tuple):
+                # source, target to be passed to da.store
+                sources.append(res[0])
+                targets.append(res[1])
+            else:
+                # delayed object
+                sources.append(res)
+
+        # we have targets, we should save sources to targets
+        if targets:
+            if compute:
+                res = da.store(sources, targets)
+                for target in targets:
+                    if hasattr(target, 'close'):
+                        target.close()
+                return res
+            else:
+                return sources, targets
+
+        delayed = dask.delayed(sources)
         if compute:
             return delayed.compute()
         else:
