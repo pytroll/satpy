@@ -23,7 +23,6 @@
 
 import logging
 
-import dask
 from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
