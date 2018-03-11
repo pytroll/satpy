@@ -269,6 +269,15 @@ REGION: met09globeFull {
         AREA_EXTENT:   (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
 };
 
+REGION: msg_resample_area {
+        NAME:          Full globe MSG image 20.75 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=20.75, a=6378169.00, b=6356583.80, h=35785831.0
+        XSIZE:         3712
+        YSIZE:         3712
+        AREA_EXTENT:   (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
+};
+
 REGION: met07globe {
         NAME:          Full globe IODC image 57 degrees
         PCS_ID:        geos57
@@ -885,3 +894,4 @@ REGION: robinson {
 	YSIZE:	3296
 	AREA_EXTENT:	(-2049911.5256036147, 5326895.725982913, 2049911.5256036168, 8625155.12857459)
 };
+
