@@ -44,6 +44,8 @@ from satpy.readers.msg_base import get_cds_time
 from satpy.readers.msg_base import dec10216
 import satpy.readers.msg_base as mb
 
+import os
+
 
 CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                 'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -195,11 +197,12 @@ class NativeMSGFileHandler(BaseFileHandler):
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
+
         numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
         # We suspect the UMARF will pad out any ROI colums that
-        # are divisible by 4 so here we work out how many pixels have
-        # been added to the column
+        # arent divisible by 4 so here we work out how many pixels have
+        # been added to the column.
         x = ((west-east+1)*(10.0/8) % 1)
         y = int((1-x)*4)
 
@@ -220,8 +223,10 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
+
         lindir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+
         area_extent = ((1856 - west - 0.5) * coldir_step,
                        (1856 - north + 0.5) * lindir_step,
                        (1856 - east + 0.5) * coldir_step,
@@ -300,7 +305,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         else:
             return None
 
-        self.calibrate(out, key)
+        out = self.calibrate(out, key)
         out.attrs['units'] = info['units']
         out.attrs['wavelength'] = info['wavelength']
         out.attrs['standard_name'] = info['standard_name']
@@ -312,11 +317,9 @@ class NativeMSGFileHandler(BaseFileHandler):
     def calibrate(self, data, key):
         """Calibrate the data."""
         tic = datetime.now()
-
         calibration = key.calibration
         if calibration == 'counts':
             return
-
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             res = self.convert_to_radiance(data, key.name)
         if calibration == 'reflectance':
@@ -325,19 +328,30 @@ class NativeMSGFileHandler(BaseFileHandler):
             res = self._ir_calibrate(res, key.name)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
-
         return res
 
     def convert_to_radiance(self, data, key_name):
         """Calibrate to radiance."""
 
-        coeffs = self.header['15_DATA_HEADER'][
-            'RadiometricProcessing']['Level15ImageCalibration']
-
         channel_index = self.channel_order_list.index(key_name)
+        calMode = 'NOMINAL'
+        # determine the required calibration coefficients to use
+        # for the Level 1.5 Header
+        # NB gsics doesnt apply to VIS channels so ignore them
+        if (channel_index > 2):
+            calMode = os.environ.get('CAL_MODE', 'NOMINAL')
 
-        gain = coeffs['CalSlope'][0][channel_index]
-        offset = coeffs['CalOffset'][0][channel_index]
+        if (calMode.upper() != 'GSICS'):
+            coeffs = self.header['15_DATA_HEADER'][
+              'RadiometricProcessing']['Level15ImageCalibration']
+            gain = coeffs['CalSlope'][0][channel_index]
+            offset = coeffs['CalOffset'][0][channel_index]
+        else:
+            coeffs = self.header['15_DATA_HEADER'][
+              'RadiometricProcessing']['MPEFCalFeedback']
+            gain = coeffs['GSICSCalCoeff'][0][channel_index]
+            offset = coeffs['GSICSOffsetCount'][0][channel_index]
+            offset = offset*gain
 
         return mb.convert_to_radiance(data, gain, offset)
 
@@ -352,7 +366,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
         wavenumber = CALIB[self.platform_id][key_name]["VC"]
-
         return mb.erads2bt(data, wavenumber, alpha, beta)
 
     def _srads2bt(self, data, key_name):
@@ -364,7 +377,6 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data, key_name):
         """IR calibration."""
-
         channel_index = self.channel_order_list.index(key_name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
