@@ -38,9 +38,37 @@ else:
 
 
 class TestPillowWriter(unittest.TestCase):
+
+    def _get_test_datasets(self):
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow()}
+        )
+        return [ds1]
+
     def test_init(self):
         from satpy.writers.simple_image import PillowWriter
         w = PillowWriter()
+
+    def test_simple_write(self):
+        from satpy.writers.simple_image import PillowWriter
+        datasets = self._get_test_datasets()
+        w = PillowWriter()
+        w.save_datasets(datasets)
+
+    def test_simple_delayed_write(self):
+        from dask.delayed import Delayed
+        from satpy.writers.simple_image import PillowWriter
+        datasets = self._get_test_datasets()
+        w = PillowWriter()
+        res = w.save_datasets(datasets, compute=False)
+        self.assertIsInstance(res, Delayed)
+        res.compute()
 
 
 def suite():
