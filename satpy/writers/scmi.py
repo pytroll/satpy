@@ -689,6 +689,17 @@ class SCMIWriter(Writer):
         self.fix_awips = fix_awips
         self._fill_sector_info()
 
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(SCMIWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['compress', 'fix_awips']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+
+        return init_kwargs, kwargs
+
     def _fill_sector_info(self):
         for sector_info in self.scmi_sectors.values():
             p = Proj(sector_info['projection'])
@@ -818,9 +829,13 @@ class SCMIWriter(Writer):
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
-                      **kwargs):
+                      compute=True, **kwargs):
         if sector_id is None:
             raise TypeError("Keyword 'sector_id' is required")
+        if not compute:
+            import warnings
+            warnings.warn("SCMI Writer does not support delayed computing "
+                          "yet.")
 
         def _area_id(area_def):
             return area_def.name + str(area_def.area_extent) + str(area_def.shape)
@@ -843,6 +858,8 @@ class SCMIWriter(Writer):
                 if isinstance(dataset, np.ma.MaskedArray):
                     data = dataset
                 else:
+                    # FIXME: Handle data better by using `da.store` or move
+                    #        netcdf creation/storing to a dask delayed object
                     mask = dataset.isnull()
                     data = np.ma.masked_array(dataset.values, mask=mask, copy=False)
 
@@ -880,7 +897,7 @@ class SCMIWriter(Writer):
                 for (trow, tcol, tile_id, tmp_x, tmp_y), tmp_tile in tile_gen(data, fill_value=fill_value):
                     try:
                         fn = self.create_tile_output(
-                            dataset, sector_id,
+                            dataset.attrs, sector_id,
                             trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile,
                             tile_gen.tile_count, tile_gen.image_shape,
                             tile_gen.mx, tile_gen.bx, tile_gen.my, tile_gen.by,
@@ -897,7 +914,7 @@ class SCMIWriter(Writer):
 
         return output_filenames[-1] if output_filenames else None
 
-    def create_tile_output(self, dataset, sector_id,
+    def create_tile_output(self, ds_info, sector_id,
                            trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile,
                            tile_count, image_shape,
                            mx, bx, my, by,
@@ -905,7 +922,6 @@ class SCMIWriter(Writer):
                            awips_info, attr_helper,
                            fills, factor, offset, valid_min, valid_max, bit_depth, **kwargs):
         # Create the netcdf file
-        ds_info = dataset.attrs
         area_def = ds_info['area']
         created_files = []
         try:

@@ -39,7 +39,10 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
-PLATFORM_NAMES = {'G16': 'GOES-16'}
+PLATFORM_NAMES = {
+    'G16': 'GOES-16',
+    'G17': 'GOES-17',
+}
 
 
 class NC_ABI_L1B(BaseFileHandler):
@@ -47,10 +50,10 @@ class NC_ABI_L1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
+        # xarray's default netcdf4 engine
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  engine='h5netcdf',
                                   chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
         self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
@@ -164,3 +167,9 @@ class NC_ABI_L1B(BaseFileHandler):
     @property
     def end_time(self):
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    def __del__(self):
+        try:
+            self.nc.close()
+        except (IOError, OSError):
+            pass
