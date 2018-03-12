@@ -95,6 +95,17 @@ class GeoTIFFWriter(ImageWriter):
             if k in kwargs or k in self.info:
                 self.gdal_options[k] = kwargs.get(k, self.info[k])
 
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['floating_point', 'tags']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+
+        return init_kwargs, kwargs
+
     def _gdal_write_datasets(self, dst_ds, datasets, opacity):
         """Write *datasets* in a gdal raster structure *dts_ds*, using
         *opacity* as alpha value for valid data, and *fill_value*.
