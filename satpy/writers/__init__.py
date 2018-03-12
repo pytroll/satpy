@@ -111,7 +111,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
         else:
             resolution = "f"
 
-        LOG.debug("Automagically choose resolution " + resolution)
+        LOG.debug("Automagically choose resolution %s", resolution)
 
     if img.mode.endswith('A'):
         img = img.convert('RGBA')
@@ -333,6 +333,29 @@ class Writer(Plugin):
         Subclasses can use this method to save all datasets to one single
         file or optimize the writing of individual datasets. By default
         this simply calls `save_dataset` for each dataset provided.
+
+        Args:
+            datasets (iterable): Iterable of `xarray.DataArray` objects to
+                                 save using this writer.
+            compute (bool): If `True` (default), compute all of the saves to
+                            disk. If `False` then the return value is either
+                            a `dask.delayed.Delayed` object or two lists to
+                            be passed to a `dask.array.store` call.
+                            See return values below for more details.
+            **kwargs: Keyword arguments to pass to `save_dataset`. See that
+                      documentation for more details.
+
+        Returns:
+            Value returned depends on `compute` keyword argument. If
+            `compute` is `True` the value is the result of a either a
+            `dask.array.store` operation or a `dask.delayed.Delayed` compute,
+            typically this is `None`. If `compute` is `False` then the
+            result is either a `dask.delayed.Delayed` object that can be
+            computed with `delayed.compute()` or a two element tuple of
+            sources and targets to be passed to `dask.array.store`. If
+            `targets` is provided then it is the caller's responsibility to
+            close any objects that have a "close" method.
+
         """
         sources = []
         targets = []
@@ -347,25 +370,52 @@ class Writer(Plugin):
                 sources.append(res)
 
         # we have targets, we should save sources to targets
-        if targets:
-            if compute:
-                res = da.store(sources, targets)
-                for target in targets:
-                    if hasattr(target, 'close'):
-                        target.close()
-                return res
-            else:
-                return sources, targets
+        if targets and compute:
+            res = da.store(sources, targets)
+            for target in targets:
+                if hasattr(target, 'close'):
+                    target.close()
+            return res
+        elif targets:
+            return sources, targets
 
         delayed = dask.delayed(sources)
         if compute:
             return delayed.compute()
-        else:
-            return delayed
+        return delayed
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
-        """Saves the *dataset* to a given *filename*.
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method must be overloaded by the subclass.
+
+        Args:
+            dataset (xarray.DataArray): Dataset to save using this writer.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            fill_value (int or float): Replace invalid values in the dataset
+                                       with this fill value if applicable to
+                                       this writer.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments for this particular reader.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
         """
         raise NotImplementedError(
             "Writer '%s' has not implemented dataset saving" % (self.name, ))
@@ -391,7 +441,12 @@ class ImageWriter(Writer):
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
-        """Saves the *dataset* to a given *filename*.
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method creates an enhanced image using `get_enhanced_image`. The
+        image is then passed to `save_image`. See both of these functions for
+        more details on the arguments passed to this method.
+
         """
         fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
@@ -401,6 +456,32 @@ class ImageWriter(Writer):
                                **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
+        """Save Image object to a given ``filename``.
+
+        Args:
+            img (trollimage.xrimage.XRImage): Image object to save to disk.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments to pass to this writer.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
+        """
         raise NotImplementedError(
             "Writer '%s' has not implemented image saving" % (self.name, ))
 
