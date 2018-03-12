@@ -760,25 +760,26 @@ class Scene(MetadataObject):
             with open(conf_fn) as fd:
                 conf = recursive_dict_update(conf, yaml.load(fd))
         writer_class = conf['writer']['writer']
+        init_kwargs, kwargs = writer_class.separate_init_kwargs(kwargs)
         writer = writer_class(ppp_config_dir=self.ppp_config_dir,
                               config_files=config_files,
-                              **kwargs)
-        return writer
+                              **init_kwargs)
+        return writer, kwargs
 
     def save_dataset(self, dataset_id, filename=None, writer=None,
                      overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None:
             if filename is None:
-                writer = self.get_writer("geotiff", **kwargs)
+                writer, save_kwargs = self.get_writer("geotiff", **kwargs)
             else:
-                writer = self.get_writer_by_ext(
+                writer, save_kwargs = self.get_writer_by_ext(
                     os.path.splitext(filename)[1], **kwargs)
         else:
-            writer = self.get_writer(writer, **kwargs)
+            writer, save_kwargs = self.get_writer(writer, **kwargs)
         return writer.save_dataset(self[dataset_id], filename=filename,
                                    overlay=overlay, compute=compute,
-                                   **kwargs)
+                                   **save_kwargs)
 
     def save_datasets(self, writer="geotiff", datasets=None, compute=True,
                       **kwargs):
@@ -787,8 +788,8 @@ class Scene(MetadataObject):
             datasets = [self[ds] for ds in datasets]
         else:
             datasets = self.datasets.values()
-        writer = self.get_writer(writer, **kwargs)
-        return writer.save_datasets(datasets, compute=compute, **kwargs)
+        writer, save_kwargs = self.get_writer(writer, **kwargs)
+        return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
     def get_writer(self, writer="geotiff", **kwargs):
         """Get the writer instance."""

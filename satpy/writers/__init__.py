@@ -288,7 +288,6 @@ class Writer(Plugin):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  base_dir=None,
                  **kwargs):
@@ -299,17 +298,23 @@ class Writer(Plugin):
         # Use options from the config file if they weren't passed as arguments
         self.name = self.info.get("name",
                                   None) if name is None else name
-        self.fill_value = self.info.get(
-            "fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.info.get(
             "file_pattern", None) if file_pattern is None else file_pattern
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
-        if self.fill_value:
-            self.fill_value = float(self.fill_value)
 
-        self.create_filename_parser(base_dir)
+        self.filename_parser = self.create_filename_parser(base_dir)
+
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs = {}
+        kwargs = kwargs.copy()
+        for kw in ['base_dir', 'file_pattern']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
         # just in case a writer needs more complex file patterns
@@ -318,8 +323,7 @@ class Writer(Plugin):
             file_pattern = os.path.join(base_dir, self.file_pattern)
         else:
             file_pattern = self.file_pattern
-        self.filename_parser = parser.Parser(
-            file_pattern) if file_pattern else None
+        return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
@@ -393,9 +397,9 @@ class Writer(Plugin):
         Args:
             dataset (xarray.DataArray): Dataset to save using this writer.
             filename (str): Optionally specify the filename to save this
-                            dataset to. It may include string formatting
-                            patterns that will be filled in by dataset
-                            attributes.
+                            dataset to. If not provided then `file_pattern`
+                            which can be provided to the init method will be
+                            used and formatted by dataset attributes.
             fill_value (int or float): Replace invalid values in the dataset
                                        with this fill value if applicable to
                                        this writer.
@@ -425,12 +429,11 @@ class ImageWriter(Writer):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  enhancement_config=None,
                  base_dir=None,
                  **kwargs):
-        Writer.__init__(self, name, fill_value, file_pattern, base_dir,
+        Writer.__init__(self, name, file_pattern, base_dir,
                         **kwargs)
         enhancement_config = self.info.get(
             "enhancement_config",
@@ -438,6 +441,16 @@ class ImageWriter(Writer):
 
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
+
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['enhancement_config']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
@@ -448,7 +461,6 @@ class ImageWriter(Writer):
         more details on the arguments passed to this method.
 
         """
-        fill_value = fill_value if fill_value is not None else self.fill_value
         img = get_enhanced_image(
             dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
             decorate=decorate)
