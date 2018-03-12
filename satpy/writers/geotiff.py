@@ -237,5 +237,4 @@ class GeoTIFFWriter(ImageWriter):
                                                   mode)
         if compute:
             return delayed.compute()
-        else:
-            return delayed
+        return delayed
