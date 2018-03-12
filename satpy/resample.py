@@ -636,6 +636,8 @@ def resample(source_area, data, destination_area,
         resampler_instance = prepare_resampler(source_area,
                                                destination_area,
                                                resampler)
+    else:
+        resampler_instance = resampler
 
     if isinstance(data, list):
         res = [resampler_instance.resample(ds, **kwargs) for ds in data]
