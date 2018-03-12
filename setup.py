@@ -37,7 +37,7 @@ BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
 requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
-            'trollimage >=1.3', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1', 'dask[array] >=0.17.1']
+            'trollimage >=1.4', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1', 'dask[array] >=0.17.1']
 
 test_requires = ['behave']
 
@@ -67,7 +67,7 @@ extras_require = {
     'abi_l1b': ['h5netcdf'],
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal'],
+    'geotiff': ['gdal', 'trollimage[geotiff]'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

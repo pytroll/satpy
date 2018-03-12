@@ -30,6 +30,8 @@ import os
 
 import numpy as np
 import yaml
+import dask
+import dask.array as da
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
@@ -109,7 +111,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
         else:
             resolution = "f"
 
-        LOG.debug("Automagically choose resolution " + resolution)
+        LOG.debug("Automagically choose resolution %s", resolution)
 
     if img.mode.endswith('A'):
         img = img.convert('RGBA')
@@ -286,7 +288,6 @@ class Writer(Plugin):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  base_dir=None,
                  **kwargs):
@@ -297,17 +298,23 @@ class Writer(Plugin):
         # Use options from the config file if they weren't passed as arguments
         self.name = self.info.get("name",
                                   None) if name is None else name
-        self.fill_value = self.info.get(
-            "fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.info.get(
             "file_pattern", None) if file_pattern is None else file_pattern
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
-        if self.fill_value:
-            self.fill_value = float(self.fill_value)
 
-        self.create_filename_parser(base_dir)
+        self.filename_parser = self.create_filename_parser(base_dir)
+
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs = {}
+        kwargs = kwargs.copy()
+        for kw in ['base_dir', 'file_pattern']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
         # just in case a writer needs more complex file patterns
@@ -316,8 +323,7 @@ class Writer(Plugin):
             file_pattern = os.path.join(base_dir, self.file_pattern)
         else:
             file_pattern = self.file_pattern
-        self.filename_parser = parser.Parser(
-            file_pattern) if file_pattern else None
+        return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
@@ -325,18 +331,95 @@ class Writer(Plugin):
                 "No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
 
-    def save_datasets(self, datasets, **kwargs):
+    def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
 
         Subclasses can use this method to save all datasets to one single
         file or optimize the writing of individual datasets. By default
         this simply calls `save_dataset` for each dataset provided.
-        """
-        for ds in datasets:
-            self.save_dataset(ds, **kwargs)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
-        """Saves the *dataset* to a given *filename*.
+        Args:
+            datasets (iterable): Iterable of `xarray.DataArray` objects to
+                                 save using this writer.
+            compute (bool): If `True` (default), compute all of the saves to
+                            disk. If `False` then the return value is either
+                            a `dask.delayed.Delayed` object or two lists to
+                            be passed to a `dask.array.store` call.
+                            See return values below for more details.
+            **kwargs: Keyword arguments to pass to `save_dataset`. See that
+                      documentation for more details.
+
+        Returns:
+            Value returned depends on `compute` keyword argument. If
+            `compute` is `True` the value is the result of a either a
+            `dask.array.store` operation or a `dask.delayed.Delayed` compute,
+            typically this is `None`. If `compute` is `False` then the
+            result is either a `dask.delayed.Delayed` object that can be
+            computed with `delayed.compute()` or a two element tuple of
+            sources and targets to be passed to `dask.array.store`. If
+            `targets` is provided then it is the caller's responsibility to
+            close any objects that have a "close" method.
+
+        """
+        sources = []
+        targets = []
+        for ds in datasets:
+            res = self.save_dataset(ds, compute=False, **kwargs)
+            if isinstance(res, tuple):
+                # source, target to be passed to da.store
+                sources.append(res[0])
+                targets.append(res[1])
+            else:
+                # delayed object
+                sources.append(res)
+
+        # we have targets, we should save sources to targets
+        if targets and compute:
+            res = da.store(sources, targets)
+            for target in targets:
+                if hasattr(target, 'close'):
+                    target.close()
+            return res
+        elif targets:
+            return sources, targets
+
+        delayed = dask.delayed(sources)
+        if compute:
+            return delayed.compute()
+        return delayed
+
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     compute=True, **kwargs):
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method must be overloaded by the subclass.
+
+        Args:
+            dataset (xarray.DataArray): Dataset to save using this writer.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. If not provided then `file_pattern`
+                            which can be provided to the init method will be
+                            used and formatted by dataset attributes.
+            fill_value (int or float): Replace invalid values in the dataset
+                                       with this fill value if applicable to
+                                       this writer.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments for this particular reader.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
         """
         raise NotImplementedError(
             "Writer '%s' has not implemented dataset saving" % (self.name, ))
@@ -346,12 +429,11 @@ class ImageWriter(Writer):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  enhancement_config=None,
                  base_dir=None,
                  **kwargs):
-        Writer.__init__(self, name, fill_value, file_pattern, base_dir,
+        Writer.__init__(self, name, file_pattern, base_dir,
                         **kwargs)
         enhancement_config = self.info.get(
             "enhancement_config",
@@ -360,15 +442,58 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, decorate=None, **kwargs):
-        """Saves the *dataset* to a given *filename*.
-        """
-        fill_value = fill_value if fill_value is not None else self.fill_value
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay, decorate=decorate)
-        self.save_image(img, filename=filename, **kwargs)
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['enhancement_config']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
-    def save_image(self, img, filename=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     overlay=None, decorate=None, compute=True, **kwargs):
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method creates an enhanced image using `get_enhanced_image`. The
+        image is then passed to `save_image`. See both of these functions for
+        more details on the arguments passed to this method.
+
+        """
+        img = get_enhanced_image(
+            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            decorate=decorate)
+        return self.save_image(img, filename=filename, compute=compute,
+                               **kwargs)
+
+    def save_image(self, img, filename=None, compute=True, **kwargs):
+        """Save Image object to a given ``filename``.
+
+        Args:
+            img (trollimage.xrimage.XRImage): Image object to save to disk.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments to pass to this writer.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
+        """
         raise NotImplementedError(
             "Writer '%s' has not implemented image saving" % (self.name, ))
 
