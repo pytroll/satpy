@@ -1049,7 +1049,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         # we should only load from the file twice
         self.assertEqual(r.load.call_count, 2)
-        # we should only compute the composite once
+        # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
                          'comp3'].side_effect.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
@@ -1090,7 +1090,7 @@ class TestSceneLoading(unittest.TestCase):
             # this is the unmodified ds1
             self.assertIn(DatasetID(name='ds1'), loaded_ids)
             m.assert_called_once_with(set())
-        # we should only compute the composite once
+        # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
                          'comp10'].side_effect.call_count, 1)
         # Create the modded ds1 at comp10, then load the numodified version
