@@ -56,9 +56,7 @@ ANGLES = {'sensor_zenith_angle': 'satz',
 
 def create_xarray(arr):
     res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
-    res = xr.DataArray(res, dims=['y', 'x'],
-                       coords=[np.arange(res.shape[0]),
-                               np.arange(res.shape[1])])
+    res = xr.DataArray(res, dims=['y', 'x'])
     return res
 
 
@@ -512,7 +510,7 @@ def _vis_calibrate(data,
 
     channel[mask2] = (channel * slope2 + intercept2)[mask2]
 
-    channel[channel < 0] = np.nan
+    channel = channel.clip(min=0)
     return np.ma.masked_invalid(channel)
 
 
