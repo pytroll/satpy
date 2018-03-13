@@ -643,9 +643,11 @@ class Scene(MetadataObject):
             raise KeyError("Unknown datasets: {}".format(unknown_str))
 
         self.read(**kwargs)
-        keepables = None
         if generate:
             keepables = self.generate_composites()
+        else:
+            # don't lose datasets we loaded to try to generate composites
+            keepables = set(self.datasets.keys()) | self.wishlist
         if self.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
@@ -719,12 +721,13 @@ class Scene(MetadataObject):
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        keepables = None
         if generate:
-            nodes = [self.dep_tree[i]
-                     for i in new_scn.wishlist
-                     if i in self.dep_tree and not self.dep_tree[i].is_leaf]
-            keepables = new_scn.generate_composites(nodes=nodes)
+            keepables = new_scn.generate_composites()
+        else:
+            # don't lose datasets that we may need later for generating
+            # composites
+            keepables = set(new_scn.datasets.keys()) | new_scn.wishlist
+
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
