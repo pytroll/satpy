@@ -756,13 +756,15 @@ class PaletteCompositor(ColormapCompositor):
         channels = palette[channels]
 
         r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
         g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
         b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
 
-        return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
+        res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
 
 class DayNightCompositor(GenericCompositor):
