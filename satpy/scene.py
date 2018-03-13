@@ -34,14 +34,14 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
 from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area
+from satpy.resample import resample_dataset, get_frozen_area, prepare_resampler
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
 
 try:
     import configparser
 except ImportError:
-    from six.moves import configparser
+    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class Scene(MetadataObject):
         if not filenames and (start_time or end_time or base_dir):
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
+                "Deprecated: Use " +
                 "'from satpy import find_files_and_readers' to find files")
             from satpy import find_files_and_readers
             filenames = find_files_and_readers(
@@ -126,8 +126,8 @@ class Scene(MetadataObject):
         elif start_time or end_time or area:
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
-                "'filter_parameters' to filter loaded files by 'start_time', " + \
+                "Deprecated: Use " +
+                "'filter_parameters' to filter loaded files by 'start_time', " +
                 "'end_time', or 'area'.")
             fp = filter_parameters if filter_parameters else {}
             fp.update({
@@ -348,8 +348,7 @@ class Scene(MetadataObject):
         # wishlist
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
-        unknowns = dep_tree.find_dependencies(
-            set(available_datasets + all_comps))
+        dep_tree.find_dependencies(set(available_datasets + all_comps))
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
@@ -663,6 +662,7 @@ class Scene(MetadataObject):
         new_scn = cls()
         new_datasets = {}
         destination_area = None
+        resamplers = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -681,8 +681,13 @@ class Scene(MetadataObject):
                 destination_area = get_frozen_area(destination,
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
-            res = resample_dataset(dataset, destination_area,
-                                   **resample_kwargs)
+            source_area = dataset.attrs['area']
+            if source_area not in resamplers:
+                resamplers[source_area] = prepare_resampler(source_area,
+                                                            destination_area,
+                                                            resampler=resample_kwargs.get('resampler'))
+            resample_kwargs['resampler'] = resamplers[source_area]
+            res = resample_dataset(dataset, destination_area, **resample_kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
                 new_scn[ds_id] = res
