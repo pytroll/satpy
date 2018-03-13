@@ -8,15 +8,21 @@ reader:
 file_types:
     nc_nwcsaf_cma:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CMA_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CMA_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_ct:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CT_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CT_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_ctth:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CTTH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CTTH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CTTH_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CTTH_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_pc:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
@@ -32,12 +38,12 @@ datasets:
 
   lon:
     name: lon
-    file_type: nc_nwcsaf_cma
+    file_type: nc_nwcsaf_ct
     units: "degrees"
     standard_name: longitude
   lat:
     name: lat
-    file_type: nc_nwcsaf_cma
+    file_type: nc_nwcsaf_ct
     units: "degrees"
     standard_name: latitude
 

@@ -26,6 +26,10 @@
 
 import logging
 
+from contextlib import closing
+import tempfile
+import bz2
+import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
 
@@ -166,3 +170,24 @@ def get_sub_area(area, xslice, yslice):
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)
+
+
+def unzip_file(filename):
+    """Unzip the file if file is bzipped = ending with 'bz2'"""
+
+    if filename.endswith('bz2'):
+        bz2file = bz2.BZ2File(filename)
+        fdn, tmpfilepath = tempfile.mkstemp()
+        with closing(os.fdopen(fdn, 'wb')) as ofpt:
+            try:
+                ofpt.write(bz2file.read())
+            except IOError:
+                import traceback
+                traceback.print_exc()
+                LOGGER.info("Failed to read bzipped file %s", str(filename))
+                os.remove(tmpfilepath)
+                return None
+
+        return tmpfilepath
+
+    return None

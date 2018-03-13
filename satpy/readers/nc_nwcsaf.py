@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Pytroll
+# Copyright (c) 2017, 2018 Pytroll
 
 # Author(s):
 
@@ -26,12 +26,15 @@
 
 import logging
 from datetime import datetime
+import os
 
 import numpy as np
 import xarray as xr
 
 from pyresample.utils import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import unzip_file
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,7 @@ SENSOR = {'NOAA-19': 'avhrr/3',
           'EOS-Aqua': 'modis',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
+          'NOAA-20': 'viirs',
           'JPSS-1': 'viirs', }
 
 PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
@@ -53,12 +57,19 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAF(BaseFileHandler):
+
     """NWCSAF PPS&MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init method."""
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
+
+        self._unzipped = unzip_file(filename)
+        if self._unzipped:
+            filename = self._unzipped
+
+        self.cache = {}
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
@@ -66,7 +77,6 @@ class NcNWCSAF(BaseFileHandler):
                                   chunks=1000)
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
-
         self.pps = False
 
         try:
@@ -85,8 +95,29 @@ class NcNWCSAF(BaseFileHandler):
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', dsid.name)
-        variable = self.nc[dsid.name]
+
+        dsid_name = dsid.name
+        if dsid_name in self.cache:
+            logger.debug('Get the data set from cache: %s.', dsid_name)
+            return self.cache[dsid_name]
+
+        if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc.keys():
+            dsid_name = dsid_name + '_reduced'
+
+        logger.debug('Reading %s.', dsid_name)
+        variable = self.nc[dsid_name]
+        variable = self.scale_dataset(dsid, variable, info)
+
+        if dsid_name.endswith('_reduced'):
+            # Get full resolution lon,lat from the reduced (tie points) grid
+            self.upsample_geolocation(dsid, info)
+
+            return self.cache[dsid.name]
+
+        return variable
+
+    def scale_dataset(self, dsid, variable, info):
+        """Scale the data set, applying the attributes from the netCDF file"""
 
         variable = remove_empties(variable)
 
@@ -132,6 +163,31 @@ class NcNWCSAF(BaseFileHandler):
 
         return variable
 
+    def upsample_geolocation(self, dsid, info):
+        """Upsample the geolocation (lon,lat) from the tiepoint grid"""
+        from geotiepoints import SatelliteInterpolator
+
+        # Read the fields needed:
+        col_indices = self.nc['nx_reduced'].values
+        row_indices = self.nc['ny_reduced'].values
+        lat_reduced = self.scale_dataset(dsid, self.nc['lat_reduced'], info)
+        lon_reduced = self.scale_dataset(dsid, self.nc['lon_reduced'], info)
+
+        shape = (self.nc['y'].shape[0], self.nc['x'].shape[0])
+        cols_full = np.arange(shape[1])
+        rows_full = np.arange(shape[0])
+
+        satint = SatelliteInterpolator((lon_reduced.values, lat_reduced.values),
+                                       (row_indices,
+                                        col_indices),
+                                       (rows_full, cols_full))
+
+        lons, lats = satint.interpolate()
+        self.cache['lon'] = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
+        self.cache['lat'] = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+
+        return
+
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.
 
@@ -165,6 +221,13 @@ class NcNWCSAF(BaseFileHandler):
                             area_extent)
 
         return area
+
+    def __del__(self):
+        if self._unzipped:
+            try:
+                os.remove(self._unzipped)
+            except IOError, OSError:
+                pass
 
     @property
     def start_time(self):
