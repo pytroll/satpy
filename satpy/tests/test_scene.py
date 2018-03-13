@@ -1162,6 +1162,32 @@ class TestSceneLoading(unittest.TestCase):
         self.assertTupleEqual(
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp22')))
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_no_generate_comp10(self, cri, cl):
+        """Test generating a composite after loading"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp10'], generate=False)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        scene.generate_composites()
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertIn('comp10', scene.datasets)
+        self.assertEqual(len(scene.missing_datasets), 0)
+
 
 class TestSceneResampling(unittest.TestCase):
 
@@ -1237,6 +1263,66 @@ class TestSceneResampling(unittest.TestCase):
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
         self.assertTupleEqual(
             tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
+
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_no_generate_comp10(self, cri, cl, rs):
+        """Test generating a composite after loading"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp10'], generate=False)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        new_scn = scene.resample(area_def, generate=False)
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        new_scn.generate_composites()
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertIn('comp10', new_scn.datasets)
+        self.assertEqual(len(new_scn.missing_datasets), 0)
+
+        # try generating them right away
+        new_scn = scene.resample(area_def)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertIn('comp10', new_scn.datasets)
+        self.assertEqual(len(new_scn.missing_datasets), 0)
 
 
 def suite():
