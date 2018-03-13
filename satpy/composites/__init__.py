@@ -413,12 +413,9 @@ class PSPRayleighReflectance(CompositeBase):
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = corrector.get_reflectance(sunz.load().values,
-                                                      satz.load().values,
-                                                      ssadiff.load().values,
-                                                      vis.attrs['wavelength'][1],
-                                                      red.values)
-
+            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz.data,
+                                          satz.data, ssadiff.data, vis.attrs['wavelength'][1],
+                                          red.data)
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
