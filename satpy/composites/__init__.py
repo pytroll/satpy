@@ -699,9 +699,9 @@ class ColormapCompositor(GenericCompositor):
                     for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
 
-            sf = info['scale_factor']
+            sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
-                *info['valid_range'] * sf + info['add_offset'])
+                *info['valid_range'] * sf + info.get('add_offset', 0))
 
         return colormap
 
@@ -754,6 +754,9 @@ class PaletteCompositor(ColormapCompositor):
 
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
+
+        import pdb
+        pdb.set_trace()
 
         r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
                          dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
@@ -844,7 +847,7 @@ class Airmass(GenericCompositor):
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[3])
         res = super(Airmass, self).__call__((ch1, ch2,
-                                            projectables[0]),
+                                             projectables[0]),
                                             *args, **kwargs)
         return res
 
@@ -1024,10 +1027,10 @@ class RatioSharpenedRGB(GenericCompositor):
             low_res = datasets[["red", "green", "blue"].index(
                 self.high_resolution_band)]
             if high_res.attrs["area"] != low_res.attrs["area"]:
-                    raise IncompatibleAreas("High resolution band is not "
-                                            "mapped to the same area as the "
-                                            "low resolution bands. Must "
-                                            "resample first.")
+                raise IncompatibleAreas("High resolution band is not "
+                                        "mapped to the same area as the "
+                                        "low resolution bands. Must "
+                                        "resample first.")
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan',
                                      high_res.attrs['rows_per_scan'])
@@ -1081,6 +1084,7 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 class SelfSharpenedRGB(RatioSharpenedRGB):
+
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
     Example:
