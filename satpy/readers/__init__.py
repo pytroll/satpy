@@ -391,6 +391,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     if not filenames and not reader:
         # used for an empty Scene
         return {}
+    elif reader and filenames is not None and not filenames:
+        # user made a mistake in their glob pattern
+        raise ValueError("'filenames' was provided but is empty.")
     elif not filenames:
         LOG.warning("'filenames' required to create readers and load data")
         return {}

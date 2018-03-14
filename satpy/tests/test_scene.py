@@ -95,6 +95,11 @@ class TestScene(unittest.TestCase):
         self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
         self.assertFalse(scn.readers, 'Empty scene should not load any readers')
 
+    def test_init_no_files(self):
+        """Test that providing an empty list of filenames fails."""
+        from satpy.scene import Scene
+        self.assertRaises(ValueError, Scene, reader='viirs_sdr', filenames=[])
+
     def test_init_with_ppp_config_dir(self):
         from satpy.scene import Scene
         scn = Scene(ppp_config_dir="foo")
