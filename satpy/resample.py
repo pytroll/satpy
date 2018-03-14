@@ -615,7 +615,10 @@ def prepare_resampler(source_area, destination_area, resampler=None):
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, str):
+    if isinstance(resampler, BaseResampler):
+        raise ValueError("Trying to create a resampler when one already "
+                         "exists.")
+    elif isinstance(resampler, str):
         resampler_class = RESAMPLERS[resampler]
     else:
         resampler_class = resampler
