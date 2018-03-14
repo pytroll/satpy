@@ -27,10 +27,8 @@
 import logging
 import numbers
 from collections import namedtuple
-import warnings
 
 import numpy as np
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +235,11 @@ def dataset_walker(datasets):
     for dataset in datasets:
         yield dataset, None
         for anc_ds in dataset.attrs.get('ancillary_variables', []):
-            yield anc_ds, dataset
+            try:
+                anc_ds.attrs
+                yield anc_ds, dataset
+            except AttributeError:
+                continue
 
 
 def replace_anc(dataset, parent_dataset):
