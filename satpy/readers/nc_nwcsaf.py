@@ -106,6 +106,7 @@ class NcNWCSAF(BaseFileHandler):
 
         logger.debug('Reading %s.', dsid_name)
         variable = self.nc[dsid_name]
+
         variable = self.scale_dataset(dsid, variable, info)
 
         if dsid_name.endswith('_reduced'):
@@ -120,27 +121,28 @@ class NcNWCSAF(BaseFileHandler):
         """Scale the data set, applying the attributes from the netCDF file"""
 
         variable = remove_empties(variable)
+        attrs = variable.attrs
 
-        if 'scale_factor' in variable.attrs or 'add_offset' in variable.attrs:
-            scale = variable.attrs.get('scale_factor', 1)
-            offset = variable.attrs.get('add_offset', 0)
-            if np.issubdtype((scale + offset).dtype, np.floating):
-                if '_FillValue' in variable.attrs:
-                    variable = variable.where(
-                        variable != variable.attrs['_FillValue'])
-                if 'valid_range' in variable.attrs:
-                    variable = variable.where(
-                        variable <= variable.attrs['valid_range'][1])
-                    variable = variable.where(
-                        variable >= variable.attrs['valid_range'][0])
-                if 'valid_max' in variable.attrs:
-                    variable = variable.where(
-                        variable <= variable.attrs['valid_max'])
-                if 'valid_min' in variable.attrs:
-                    variable = variable.where(
-                        variable >= variable.attrs['valid_min'])
+        scale = variable.attrs.get('scale_factor', np.array(1))
+        offset = variable.attrs.get('add_offset', np.array(0))
+        if np.issubdtype((scale + offset).dtype, np.floating):
+            if '_FillValue' in variable.attrs:
+                variable = variable.where(
+                    variable != variable.attrs['_FillValue'])
+            if 'valid_range' in variable.attrs:
+                variable = variable.where(
+                    variable <= variable.attrs['valid_range'][1])
+                variable = variable.where(
+                    variable >= variable.attrs['valid_range'][0])
+            if 'valid_max' in variable.attrs:
+                variable = variable.where(
+                    variable <= variable.attrs['valid_max'])
+            if 'valid_min' in variable.attrs:
+                variable = variable.where(
+                    variable >= variable.attrs['valid_min'])
 
-            variable = variable * scale + offset
+        variable = variable * scale + offset
+        variable.attrs = attrs
 
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor})
