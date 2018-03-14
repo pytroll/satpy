@@ -665,6 +665,7 @@ class Scene(MetadataObject):
         new_datasets = {}
         destination_area = None
         resamplers = {}
+        resampler = resample_kwargs.get('resampler')
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -680,16 +681,18 @@ class Scene(MetadataObject):
                     replace_anc(dataset, pres)
                 continue
             if destination_area is None:
+                # FIXME: We should allow users to freeze based with specific
+                #        dataset
                 destination_area = get_frozen_area(destination,
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             if source_area not in resamplers:
-                resamplers[source_area] = prepare_resampler(source_area,
-                                                            destination_area,
-                                                            resampler=resample_kwargs.get('resampler'))
+                resamplers[source_area] = prepare_resampler(
+                    source_area, destination_area, resampler=resampler)
             resample_kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area, **resample_kwargs)
+            res = resample_dataset(dataset, destination_area,
+                                   **resample_kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
                 new_scn[ds_id] = res
