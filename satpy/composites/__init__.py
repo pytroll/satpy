@@ -284,57 +284,29 @@ class CompositeBase(MetadataObject):
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
-    def remove_coords(self, data_arrays, coords=('x', 'y', 'time')):
-        new_data_arrays = []
-        for coord in coords:
-            for ds in data_arrays:
-                ds = ds.copy()
-                if coord in ds.coords:
-                    del ds.coords[coord]
-                new_data_arrays.append(ds)
-        return new_data_arrays
-
-    def check_areas(self, data_arrays, adjust_coords=True):
+    def check_areas(self, data_arrays):
         if len(data_arrays) == 1:
             return data_arrays
 
-        if not all(x.shape == data_arrays[0].shape for x in data_arrays[1:]):
-            raise IncompatibleAreas("Data shapes are not the same in "
-                                    "'{}'".format(self.attrs['name']))
+        if 'x' in data_arrays[0].dims and \
+                not all(x.sizes['x'] == data_arrays[0].sizes['x']
+                        for x in data_arrays[1:]):
+            raise IncompatibleAreas("X dimension has different sizes")
+        if 'y' in data_arrays[0].dims and \
+                not all(x.sizes['y'] == data_arrays[0].sizes['y']
+                        for x in data_arrays[1:]):
+            raise IncompatibleAreas("Y dimension has different sizes")
 
-        areas = [ds.attrs.get('area', None) for ds in data_arrays]
+        areas = [ds.attrs.get('area') for ds in data_arrays]
         if not areas or any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
-        coords_to_adjust = []
-        if 'x' in data_arrays[0].coords and 'y' in data_arrays[0].coords:
-            comp_x = data_arrays[0]['x']
-            comp_y = data_arrays[0]['y']
-            all_x = all(np.all(comp_x == ds['x']) for ds in data_arrays[1:])
-            all_y = all(np.all(comp_y == ds['y']) for ds in data_arrays[1:])
-            matching_coords = all_x and all_y
-            if not adjust_coords and not matching_coords:
-                raise IncompatibleAreas("Dataset coordinates do not match")
-            if adjust_coords and not matching_coords:
-                coords_to_adjust.extend(['y', 'x'])
-                return self.remove_coords(data_arrays)
-
-        # Check time coords are the same
-        if 'time' in data_arrays[0].coords:
-            comp_t = data_arrays[0]['time']
-            all_times = all(np.all(comp_t == ds['time'])
-                            for ds in data_arrays[1:])
-            if adjust_coords and not all_times:
-                coords_to_adjust.append('time')
-
-        if coords_to_adjust:
-            return self.remove_coords(data_arrays, coords_to_adjust)
-            # FUTURE: Replace the areas with one shared area
-
-        if all(areas[0] == x for x in areas[1:]):
+        if not all(areas[0] == x for x in areas[1:]):
             LOG.debug("Not all areas are the same in "
                       "'{}'".format(self.attrs['name']))
-            raise IncompatibleAreas
+            raise IncompatibleAreas("Areas are different")
+
+        return data_arrays
 
 
 class SunZenithCorrectorBase(CompositeBase):
@@ -1075,6 +1047,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = high_res
                 g = p2 * ratio
                 b = p3 * ratio
+                g.attrs = p2.attrs.copy()
+                b.attrs = p3.attrs.copy()
             elif self.high_resolution_band == "green":
                 LOG.debug("Sharpening image with high resolution green band")
                 ratio = high_res / p2
@@ -1082,6 +1056,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = high_res
                 b = p3 * ratio
+                r.attrs = p1.attrs.copy()
+                b.attrs = p3.attrs.copy()
             elif self.high_resolution_band == "blue":
                 LOG.debug("Sharpening image with high resolution blue band")
                 ratio = high_res / p3
@@ -1089,6 +1065,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = p2 * ratio
                 b = high_res
+                r.attrs = p1.attrs.copy()
+                g.attrs = p2.attrs.copy()
             else:
                 # no sharpening
                 r = p1
