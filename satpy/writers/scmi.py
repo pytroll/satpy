@@ -84,7 +84,9 @@ LOG = logging.getLogger(__name__)
 # AWIPS 2 seems to not like data values under 0
 AWIPS_USES_NEGATIVES = False
 AWIPS_DATA_DTYPE = np.int16
-DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_' \
+                         '{name}_{sector_id}_{tile_id}_' \
+                         '{start_time:%Y%m%d_%H%M}.nc'
 
 # misc. global attributes
 SCMI_GLOBAL_ATT = dict(
