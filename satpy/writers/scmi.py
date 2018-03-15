@@ -84,7 +84,7 @@ LOG = logging.getLogger(__name__)
 # AWIPS 2 seems to not like data values under 0
 AWIPS_USES_NEGATIVES = False
 AWIPS_DATA_DTYPE = np.int16
-DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
 
 # misc. global attributes
 SCMI_GLOBAL_ATT = dict(
@@ -814,7 +814,7 @@ class SCMIWriter(Writer):
             if awips_info['source_name'] is None:
                 raise TypeError("'source_name' keyword must be specified")
 
-            def_ce = "{}-{}".format(ds_info["platform"].upper(), ds_info["sensor"].upper())
+            def_ce = "{}-{}".format(ds_info["platform_name"].upper(), ds_info["sensor"].upper())
             awips_info.setdefault('creating_entity', def_ce)
             return awips_info
         except KeyError as e:
