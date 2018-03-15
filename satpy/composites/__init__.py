@@ -44,7 +44,6 @@ from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
-from pyresample.geometry import AreaDefinition
 
 LOG = logging.getLogger(__name__)
 
