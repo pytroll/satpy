@@ -141,6 +141,22 @@ datasets:
     name: ctth_alti_pal
     file_type: nc_nwcsaf_ctth
 
+  ctth_quality:
+    name: ctth_quality
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_conditions:
+    name: ctth_conditions
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_status_flag:
+    name: ctth_status_flag
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+
   ctth_pres:
     name: ctth_pres
     file_type: nc_nwcsaf_ctth
