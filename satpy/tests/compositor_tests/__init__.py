@@ -93,7 +93,7 @@ class TestCheckArea(unittest.TestCase):
 
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
-        from satpy.composites import CompositeBase, IncompatibleAreas
+        from satpy.composites import CompositeBase
         # x is still 50, y is still 100, even though they are in
         # different order
         ds1 = self._get_test_ds(shape=(50, 100), dims=('y', 'x'))
