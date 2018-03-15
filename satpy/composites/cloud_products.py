@@ -33,6 +33,23 @@ from satpy.composites import ColormapCompositor
 class CloudTopHeightCompositor(ColormapCompositor):
     """Colorize with a palette, put cloud-free pixels as black."""
 
+    @staticmethod
+    def build_colormap(palette, info):
+        """Create the colormap from the `raw_palette` and the valid_range."""
+
+        from trollimage.colormap import Colormap
+
+        palette = np.asanyarray(palette).squeeze()
+        tups = [(val, tuple(tup))
+                for (val, tup) in enumerate(palette)]
+        colormap = Colormap(*tups)
+
+        sf = info.get('scale_factor', np.array(1))
+        colormap.set_range(
+            *info['valid_range'] * sf + info.get('add_offset', 0))
+
+        return colormap
+
     def __call__(self, projectables, **info):
         """Create the composite."""
         if len(projectables) != 3:
@@ -40,8 +57,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
                              (len(projectables), ))
         data, palette, status = projectables
         palette = np.asanyarray(palette).squeeze() / 255.0
-        colormap = self.build_colormap(palette, data.dtype, data.attrs)
-
+        colormap = self.build_colormap(palette, data.attrs)
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
         mask_nan = data.notnull()
