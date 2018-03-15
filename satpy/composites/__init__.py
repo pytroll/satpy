@@ -754,13 +754,17 @@ class PaletteCompositor(ColormapCompositor):
 
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
-
+        fill_value = data.attrs.get('_FillValue', np.nan)
+        if np.isnan(fill_value):
+            mask = data.notnull()
+        else:
+            mask = data != data.attrs['_FillValue']
         r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
+                         dims=data.dims, coords=data.coords).where(mask)
         g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
+                         dims=data.dims, coords=data.coords).where(mask)
         b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(data != data.attrs['_FillValue'])
+                         dims=data.dims, coords=data.coords).where(mask)
 
         res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
         res.attrs['_FillValue'] = np.nan
