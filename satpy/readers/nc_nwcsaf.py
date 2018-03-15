@@ -121,14 +121,13 @@ class NcNWCSAF(BaseFileHandler):
         """Scale the data set, applying the attributes from the netCDF file"""
 
         variable = remove_empties(variable)
-        attrs = variable.attrs
-
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating):
             if '_FillValue' in variable.attrs:
                 variable = variable.where(
                     variable != variable.attrs['_FillValue'])
+                variable.attrs['_FillValue'] = np.nan
             if 'valid_range' in variable.attrs:
                 variable = variable.where(
                     variable <= variable.attrs['valid_range'][1])
@@ -141,6 +140,7 @@ class NcNWCSAF(BaseFileHandler):
                 variable = variable.where(
                     variable >= variable.attrs['valid_min'])
 
+        attrs = variable.attrs
         variable = variable * scale + offset
         variable.attrs = attrs
 
@@ -159,8 +159,10 @@ class NcNWCSAF(BaseFileHandler):
             variable.attrs.setdefault('standard_name', info['standard_name'])
 
         if self.pps and dsid.name == 'ctth_alti':
-            variable.attrs['valid_range'] = (0., 8500.)
+            # pps valid range and palette don't match
+            variable.attrs['valid_range'] = (0., 9000.)
         if self.pps and dsid.name == 'ctth_alti_pal':
+            # pps palette has the nodata color (black) first
             variable = variable[1:, :]
 
         return variable
@@ -168,7 +170,6 @@ class NcNWCSAF(BaseFileHandler):
     def upsample_geolocation(self, dsid, info):
         """Upsample the geolocation (lon,lat) from the tiepoint grid"""
         from geotiepoints import SatelliteInterpolator
-
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
@@ -228,7 +229,7 @@ class NcNWCSAF(BaseFileHandler):
         if self._unzipped:
             try:
                 os.remove(self._unzipped)
-            except IOError, OSError:
+            except (IOError, OSError):
                 pass
 
     @property
