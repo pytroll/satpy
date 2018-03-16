@@ -80,7 +80,7 @@ class TestSCMIWriter(unittest.TestCase):
             np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)),
             attrs=dict(
                 name='test_ds',
-                platform='PLAT',
+                platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
                 area=area_def,
@@ -111,7 +111,7 @@ class TestSCMIWriter(unittest.TestCase):
             np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)),
             attrs=dict(
                 name='test_ds',
-                platform='PLAT',
+                platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
                 area=area_def,
@@ -147,7 +147,7 @@ class TestSCMIWriter(unittest.TestCase):
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
             attrs=dict(
                 name='test_ds',
-                platform='PLAT',
+                platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
                 area=area_def,
@@ -183,7 +183,7 @@ class TestSCMIWriter(unittest.TestCase):
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
             attrs=dict(
                 name='test_ds',
-                platform='PLAT',
+                platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
                 area=area_def,
@@ -220,7 +220,7 @@ class TestSCMIWriter(unittest.TestCase):
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
             attrs=dict(
                 name='test_ds',
-                platform='PLAT',
+                platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
                 area=area_def,

@@ -196,7 +196,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "file_units": file_units,
-            "platform": self.platform_name,
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
