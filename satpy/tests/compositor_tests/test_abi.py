@@ -33,19 +33,27 @@ class TestABIComposites(unittest.TestCase):
         import dask.array as da
         import numpy as np
         from satpy.composites.abi import SimulatedGreen
-        comp = SimulatedGreen('green', prerequisites=('C01', 'C02', 'C03'),
-                              standard_name='toa_bidirectional_reflectance')
+        from pyresample.geometry import AreaDefinition
         rows = 5
         cols = 10
+        area = AreaDefinition(
+            'test', 'test', 'test',
+            {'proj': 'eqc', 'lon_0': 0.0,
+             'lat_0': 0.0},
+            cols, rows,
+            (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
+
+        comp = SimulatedGreen('green', prerequisites=('C01', 'C02', 'C03'),
+                              standard_name='toa_bidirectional_reflectance')
         c01 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.25,
                            dims=('y', 'x'),
-                           attrs={'name': 'C01'})
+                           attrs={'name': 'C01', 'area': area})
         c02 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.30,
                            dims=('y', 'x'),
-                           attrs={'name': 'C01'})
+                           attrs={'name': 'C02', 'area': area})
         c03 = xr.DataArray(da.zeros((rows, cols), chunks=25) + 0.35,
                            dims=('y', 'x'),
-                           attrs={'name': 'C01'})
+                           attrs={'name': 'C03', 'area': area})
         res = comp((c01, c02, c03))
         self.assertIsInstance(res, xr.DataArray)
         self.assertIsInstance(res.data, da.Array)
