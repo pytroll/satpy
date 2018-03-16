@@ -283,6 +283,30 @@ class CompositeBase(MetadataObject):
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
+    def check_areas(self, data_arrays):
+        if len(data_arrays) == 1:
+            return data_arrays
+
+        if 'x' in data_arrays[0].dims and \
+                not all(x.sizes['x'] == data_arrays[0].sizes['x']
+                        for x in data_arrays[1:]):
+            raise IncompatibleAreas("X dimension has different sizes")
+        if 'y' in data_arrays[0].dims and \
+                not all(x.sizes['y'] == data_arrays[0].sizes['y']
+                        for x in data_arrays[1:]):
+            raise IncompatibleAreas("Y dimension has different sizes")
+
+        areas = [ds.attrs.get('area') for ds in data_arrays]
+        if not areas or any(a is None for a in areas):
+            raise ValueError("Missing 'area' attribute")
+
+        if not all(areas[0] == x for x in areas[1:]):
+            LOG.debug("Not all areas are the same in "
+                      "'{}'".format(self.attrs['name']))
+            raise IncompatibleAreas("Areas are different")
+
+        return data_arrays
+
 
 class SunZenithCorrectorBase(CompositeBase):
 
@@ -382,6 +406,7 @@ class PSPRayleighReflectance(CompositeBase):
             sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
             suna = xu.rad2deg(suna)
             sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+            # FIXME: Make it daskified
             sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
                                             vis.attrs['satellite_latitude'],
                                             vis.attrs['satellite_altitude'],
@@ -577,16 +602,8 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-    def check_area_compatibility(self, projectables):
-        areas = [projectable.attrs.get('area', None)
-                 for projectable in projectables]
-        areas = [area for area in areas if area is not None]
-        if areas and areas.count(areas[0]) != len(areas):
-            LOG.debug("Not all areas are the same in '{}'".format(self.attrs['name']))
-            raise IncompatibleAreas
-
     def _concat_datasets(self, projectables, mode):
-        self.check_area_compatibility(projectables)
+        projectables = self.check_areas(projectables)
 
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
@@ -1012,16 +1029,10 @@ class RatioSharpenedRGB(GenericCompositor):
                                     'the same size. Must resample first.')
 
         new_attrs = {}
-        p1, p2, p3 = datasets
         if optional_datasets:
-            high_res = optional_datasets[0]
-            low_res = datasets[["red", "green", "blue"].index(
-                self.high_resolution_band)]
-            if high_res.attrs["area"] != low_res.attrs["area"]:
-                    raise IncompatibleAreas("High resolution band is not "
-                                            "mapped to the same area as the "
-                                            "low resolution bands. Must "
-                                            "resample first.")
+            datasets = self.check_areas(datasets + optional_datasets)
+            high_res = datasets[-1]
+            p1, p2, p3 = datasets[:3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan',
                                      high_res.attrs['rows_per_scan'])
@@ -1035,6 +1046,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = high_res
                 g = p2 * ratio
                 b = p3 * ratio
+                g.attrs = p2.attrs.copy()
+                b.attrs = p3.attrs.copy()
             elif self.high_resolution_band == "green":
                 LOG.debug("Sharpening image with high resolution green band")
                 ratio = high_res / p2
@@ -1042,6 +1055,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = high_res
                 b = p3 * ratio
+                r.attrs = p1.attrs.copy()
+                b.attrs = p3.attrs.copy()
             elif self.high_resolution_band == "blue":
                 LOG.debug("Sharpening image with high resolution blue band")
                 ratio = high_res / p3
@@ -1049,13 +1064,16 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = p2 * ratio
                 b = high_res
+                r.attrs = p1.attrs.copy()
+                g.attrs = p2.attrs.copy()
             else:
                 # no sharpening
                 r = p1
                 g = p2
                 b = p3
         else:
-            r, g, b = p1, p2, p3
+            datasets = self.check_areas(datasets)
+            r, g, b = datasets[:3]
         # combine the masks
         mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
         r = r.where(mask)
