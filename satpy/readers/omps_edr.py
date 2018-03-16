@@ -84,7 +84,7 @@ class EDRFileHandler(HDF5FileHandler):
             "shape": self.get_shape(dataset_id, ds_info),
             "file_units": file_units,
             "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
