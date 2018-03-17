@@ -617,6 +617,7 @@ class Scene(MetadataObject):
                   if ds_id not in self.wishlist and (not keepables or ds_id
                                                      not in keepables)]
         for ds_id in to_del:
+            LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
     def load(self,
