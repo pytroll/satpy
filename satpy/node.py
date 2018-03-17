@@ -23,7 +23,7 @@
 
 import logging
 
-from satpy import DatasetDict, DatasetID
+from satpy import DatasetDict, DatasetID, DATASET_KEYS
 
 LOG = logging.getLogger(__name__)
 
@@ -320,6 +320,27 @@ class DependencyTree(Node):
                 self.add_child(parent, n)
         return prereq_ids, unknowns
 
+    def _update_modifier_key(self, orig_key, dep_key):
+        """Update a key based on the dataset it will modified (dep).
+
+        Typical use case is requesting a modified dataset (orig_key). This
+        modified dataset most likely depends on a less-modified
+        dataset (dep_key). The less-modified dataset must come from a reader
+        (at least for now) or will eventually depend on a reader dataset.
+        The original request key may be limited like
+        (wavelength=0.67, modifiers=('a', 'b')) while the reader-based key
+        should have all of its properties specified. This method updates the
+        original request key so it is fully specified and should reduce the
+        chance of Node's not being unique.
+
+        """
+        orig_dict = orig_key._asdict()
+        dep_dict = dep_key._asdict()
+        # don't change the modifiers
+        for k in DATASET_KEYS[:-1]:
+            orig_dict[k] = dep_dict[k]
+        return DatasetID.from_dict(orig_dict)
+
     def _find_compositor(self, dataset_key, calibration=None,
                          polarization=None, resolution=None):
         """Find the compositor object for the given dataset_key."""
@@ -330,7 +351,12 @@ class DependencyTree(Node):
         if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
             new_prereq = DatasetID(
                 *dataset_key[:-1] + (dataset_key.modifiers[:-1],))
-            src_node, u = self._find_dependencies(new_prereq, calibration, polarization, resolution)
+            src_node, u = self._find_dependencies(new_prereq, calibration,
+                                                  polarization, resolution)
+            # Update the requested DatasetID with information from the src
+            if src_node is not None:
+                dataset_key = self._update_modifier_key(dataset_key,
+                                                        src_node.name)
             if u:
                 return None, u
 
