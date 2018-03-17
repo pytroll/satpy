@@ -1193,6 +1193,54 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn('comp10', scene.datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_modified_with_wl_dep(self, cri, cl):
+        """Test modifying a dataset with a modifier with modified deps.
+
+        More importantly test that loading the modifiers dependency at the
+        same time as the original modified dataset that the dependency tree
+        nodes are unique and that DatasetIDs.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Check dependency tree nodes
+        # initialize the dep tree without loading the data
+        ds1_mod_id = DatasetID(name='ds1', modifiers=('mod_wl',))
+        ds3_mod_id = DatasetID(name='ds3', modifiers=('mod_wl',))
+        scene.dep_tree.find_dependencies({ds1_mod_id, ds3_mod_id})
+        ds1_mod_node = scene.dep_tree[ds1_mod_id]
+        ds3_mod_node = scene.dep_tree[ds3_mod_id]
+        ds1_mod_dep_node = ds1_mod_node.data[1][1]
+        ds3_mod_dep_node = ds3_mod_node.data[1][1]
+        # mod_wl depends on the this node:
+        ds6_modded_node = scene.dep_tree[DatasetID(name='ds6', modifiers=('mod1',))]
+        # this dep should be full qualified with name and wavelength
+        self.assertIsNotNone(ds6_modded_node.name.name)
+        self.assertIsNotNone(ds6_modded_node.name.wavelength)
+        self.assertEqual(len(ds6_modded_node.name.wavelength), 3)
+        # the node should be shared between everything that uses it
+        self.assertIs(ds1_mod_dep_node, ds3_mod_dep_node)
+        self.assertIs(ds1_mod_dep_node, ds6_modded_node)
+
+        # it is fine that an optional prereq doesn't exist
+        scene.load([ds1_mod_id, ds3_mod_id])
+
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertIn(ds1_mod_id, scene.datasets)
+        self.assertIn(ds3_mod_id, scene.datasets)
+
 
 class TestSceneResampling(unittest.TestCase):
 
