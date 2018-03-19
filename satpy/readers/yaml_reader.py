@@ -613,7 +613,6 @@ class FileYAMLReader(AbstractYAMLReader):
         """Load only a piece of the dataset."""
         slice_list = []
         failure = True
-
         for fh in file_handlers:
             try:
                 projectable = fh.get_dataset(dsid, ds_info)
@@ -682,11 +681,12 @@ class FileYAMLReader(AbstractYAMLReader):
         cids = []
 
         for cinfo in ds_info.get('coordinates', []):
-            if isinstance(cinfo, dict):
-                cinfo['resolution'] = ds_info['resolution']
-            else:
-                # cid = self.get_dataset_key(cinfo)
-                cinfo = {'name': cinfo, 'resolution': ds_info['resolution']}
+            if not isinstance(cinfo, dict):
+                cinfo = {'name': cinfo}
+
+            cinfo['resolution'] = ds_info['resolution']
+            if 'polarization' in ds_info:
+                cinfo['polarization'] = ds_info['polarization']
             cid = DatasetID(**cinfo)
             cids.append(self.get_dataset_key(cid))
 
