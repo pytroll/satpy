@@ -27,7 +27,7 @@ import hashlib
 import json
 import os
 from logging import getLogger
-from weakref import WeakValueDictionary
+from collections import OrderedDict
 
 import numpy as np
 import xarray as xr
@@ -88,7 +88,7 @@ class BaseResampler(object):
     The base resampler class. Abstract.
     """
 
-    caches = WeakValueDictionary()
+    caches = OrderedDict()
 
     def __init__(self, source_geo_def, target_geo_def):
         """
@@ -192,6 +192,8 @@ class BaseResampler(object):
 
     def _update_caches(self, hash_str, cache_dir, filename):
         """Update caches and dump new resampling parameters to disk"""
+        while len(self.caches.keys()) > 2:
+            self.caches.popitem()
         self.caches[hash_str] = self.cache
         if cache_dir:
             # XXX: Look in to doing memmap-able files instead
@@ -269,6 +271,8 @@ class KDTreeResampler(BaseResampler):
                 self._update_caches(kd_hash, cache_dir, filename)
 
                 return self.cache
+            else:
+                del valid_input_index, valid_output_index, index_array, distance_array
 
     def compute(self, data, weight_funcs=None, fill_value=None,
                 with_uncert=False, **kwargs):
@@ -604,7 +608,22 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "native": NativeResampler,
               }
 
-RESAMPLER_CACHE = WeakValueDictionary()
+
+def prepare_resampler(source_area, destination_area, resampler=None):
+    """Instanciate and return a resampler."""
+    if resampler is None:
+        LOG.info("Using default KDTree resampler")
+        resampler = 'kd_tree'
+
+    if isinstance(resampler, BaseResampler):
+        raise ValueError("Trying to create a resampler when one already "
+                         "exists.")
+    elif isinstance(resampler, str):
+        resampler_class = RESAMPLERS[resampler]
+    else:
+        resampler_class = resampler
+
+    return resampler_class(source_area, destination_area)
 
 
 def resample(source_area, data, destination_area,
@@ -616,25 +635,19 @@ def resample(source_area, data, destination_area,
                       DeprecationWarning)
         resampler = kwargs.pop('resampler_class')
 
-    key = (source_area, destination_area)
-    if key in RESAMPLER_CACHE:
-        resampler = RESAMPLER_CACHE[key]
+    if not isinstance(resampler, BaseResampler):
+        resampler_instance = prepare_resampler(source_area,
+                                               destination_area,
+                                               resampler)
     else:
-        if resampler is None:
-            LOG.info("Using default KDTree resampler")
-            resampler = 'kd_tree'
-
-        if isinstance(resampler, str):
-            resampler_class = RESAMPLERS[resampler]
-        else:
-            resampler_class = resampler
-        resampler = resampler_class(source_area, destination_area)
-        RESAMPLER_CACHE[key] = resampler
+        resampler_instance = resampler
 
     if isinstance(data, list):
-        return [resampler.resample(ds, **kwargs) for ds in data]
+        res = [resampler_instance.resample(ds, **kwargs) for ds in data]
     else:
-        return resampler.resample(data, **kwargs)
+        res = resampler_instance.resample(data, **kwargs)
+
+    return res
 
 
 def resample_dataset(dataset, destination_area, **kwargs):
@@ -667,7 +680,7 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
 
 def mask_source_lonlats(source_def, mask):
-    """Mask source longitudes and latitudes to match data mask"""
+    """Mask source longitudes and latitudes to match data mask."""
     source_geo_def = source_def
 
     # the data may have additional masked pixels

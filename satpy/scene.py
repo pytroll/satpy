@@ -34,14 +34,14 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
 from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area
+from satpy.resample import resample_dataset, get_frozen_area, prepare_resampler
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
 
 try:
     import configparser
 except ImportError:
-    from six.moves import configparser
+    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class Scene(MetadataObject):
         if not filenames and (start_time or end_time or base_dir):
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
+                "Deprecated: Use " +
                 "'from satpy import find_files_and_readers' to find files")
             from satpy import find_files_and_readers
             filenames = find_files_and_readers(
@@ -126,8 +126,8 @@ class Scene(MetadataObject):
         elif start_time or end_time or area:
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
-                "'filter_parameters' to filter loaded files by 'start_time', " + \
+                "Deprecated: Use " +
+                "'filter_parameters' to filter loaded files by 'start_time', " +
                 "'end_time', or 'area'.")
             fp = filter_parameters if filter_parameters else {}
             fp.update({
@@ -159,8 +159,7 @@ class Scene(MetadataObject):
 
     def _compute_metadata_from_readers(self):
         """Determine pieces of metadata from the readers loaded."""
-        mda = {}
-        mda['sensor'] = self._get_sensor_names()
+        mda = {'sensor': self._get_sensor_names()}
 
         # overwrite the request start/end times with actual loaded data limits
         if self.readers:
@@ -349,8 +348,7 @@ class Scene(MetadataObject):
         # wishlist
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
-        unknowns = dep_tree.find_dependencies(
-            set(available_datasets + all_comps))
+        dep_tree.find_dependencies(set(available_datasets + all_comps))
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
@@ -586,7 +584,7 @@ class Scene(MetadataObject):
             nodes = self.dep_tree.leaves(nodes=required_nodes)
         return self._read_datasets(nodes, **kwargs)
 
-    def compute(self, nodes=None):
+    def generate_composites(self, nodes=None):
         """Compute all the composites contained in `requirements`.
         """
         if nodes is None:
@@ -608,7 +606,7 @@ class Scene(MetadataObject):
 
         Datasets are considered unneeded if they weren't directly requested
         or added to the Scene by the user or they are no longer needed to
-        compute composites that have yet to be computed.
+        generate composites that have yet to be generated.
 
         Args:
             keepables (iterable): DatasetIDs to keep whether they are needed
@@ -619,6 +617,7 @@ class Scene(MetadataObject):
                   if ds_id not in self.wishlist and (not keepables or ds_id
                                                      not in keepables)]
         for ds_id in to_del:
+            LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
     def load(self,
@@ -626,10 +625,10 @@ class Scene(MetadataObject):
              calibration=None,
              resolution=None,
              polarization=None,
-             compute=True,
+             generate=True,
              unload=True,
              **kwargs):
-        """Read, compute and unload.
+        """Read, generate, and unload.
         """
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
@@ -644,9 +643,11 @@ class Scene(MetadataObject):
             raise KeyError("Unknown datasets: {}".format(unknown_str))
 
         self.read(**kwargs)
-        keepables = None
-        if compute:
-            keepables = self.compute()
+        if generate:
+            keepables = self.generate_composites()
+        else:
+            # don't lose datasets we loaded to try to generate composites
+            keepables = set(self.datasets.keys()) | self.wishlist
         if self.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
@@ -664,6 +665,8 @@ class Scene(MetadataObject):
         new_scn = cls()
         new_datasets = {}
         destination_area = None
+        resamplers = {}
+        resampler = resample_kwargs.get('resampler')
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -679,9 +682,16 @@ class Scene(MetadataObject):
                     replace_anc(dataset, pres)
                 continue
             if destination_area is None:
+                # FIXME: We should allow users to freeze based with specific
+                #        dataset
                 destination_area = get_frozen_area(destination,
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
+            source_area = dataset.attrs['area']
+            if source_area not in resamplers:
+                resamplers[source_area] = prepare_resampler(
+                    source_area, destination_area, resampler=resampler)
+            resample_kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
                                    **resample_kwargs)
             new_datasets[ds_id] = res
@@ -695,7 +705,7 @@ class Scene(MetadataObject):
     def resample(self,
                  destination=None,
                  datasets=None,
-                 compute=True,
+                 generate=True,
                  unload=True,
                  **resample_kwargs):
         """Resample the datasets and return a new scene."""
@@ -718,14 +728,15 @@ class Scene(MetadataObject):
             new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
                                     for ds in new_scn])
 
-        # recompute anything from the wishlist that needs it (combining
+        # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        keepables = None
-        if compute:
-            nodes = [self.dep_tree[i]
-                     for i in new_scn.wishlist
-                     if i in self.dep_tree and not self.dep_tree[i].is_leaf]
-            keepables = new_scn.compute(nodes=nodes)
+        if generate:
+            keepables = new_scn.generate_composites()
+        else:
+            # don't lose datasets that we may need later for generating
+            # composites
+            keepables = set(new_scn.datasets.keys()) | new_scn.wishlist
+
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
