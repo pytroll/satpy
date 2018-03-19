@@ -796,11 +796,14 @@ class PaletteCompositor(ColormapCompositor):
         else:
             mask = data != data.attrs['_FillValue']
         r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(mask)
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
         g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(mask)
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
         b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords).where(mask)
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
 
         res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
         res.attrs['_FillValue'] = np.nan
