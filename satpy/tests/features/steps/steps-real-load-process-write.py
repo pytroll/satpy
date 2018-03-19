@@ -23,7 +23,7 @@
 """
 
 import os
-from glob import glob
+import fnmatch
 
 from behave import given, when, then
 
@@ -71,13 +71,22 @@ def assert_images_match(image1, image2, threshold=0.1):
         image1, image2, rms)
 
 
+def get_all_files(directory, pattern):
+    """Find all files matching *pattern* under *directory*."""
+    matches = []
+    for root, dirnames, filenames in os.walk(directory):
+        for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
+
+
 def before_all(context):
     if not context.config.log_capture:
         from satpy.utils import debug_on
         debug_on()
 
 
-@given(u'{dformat} data is available')
+@given(u'{dformat} data is available')  # noqa
 def step_impl(context, dformat):
     data_path = os.path.join('test_data', dformat)
     data_available = os.path.exists(data_path)
@@ -88,30 +97,31 @@ def step_impl(context, dformat):
         context.data_path = data_path
 
 
-@when(u'the user loads the {composite} composite')
+@when(u'the user loads the {composite} composite')  # noqa
 def step_impl(context, composite):
     from satpy import Scene
     scn = Scene(reader=context.dformat,
-                filenames=glob(os.path.join(context.data_path, 'data', '*')))
+                filenames=get_all_files(os.path.join(context.data_path, 'data'),
+                                        '*'))
     scn.load([composite])
     context.scn = scn
     context.composite = composite
 
 
-@when(u'the user resamples the data to {area}')
+@when(u'the user resamples the data to {area}')  # noqa
 def step_impl(context, area):
     context.lscn = context.scn.resample(area)
     context.area = area
 
 
-@when(u'the user saves the composite to disk')
+@when(u'the user saves the composite to disk')  # noqa
 def step_impl(context):
     with NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         context.lscn.save_dataset(context.composite, filename=tmp_file.name)
         context.new_filename = tmp_file.name
 
 
-@then(u'the resulting image should match the reference image')
+@then(u'the resulting image should match the reference image')  # noqa
 def step_impl(context):
     ref_filename = context.composite + "_" + context.area + ".png"
     ref_filename = os.path.join(context.data_path, "ref", ref_filename)
