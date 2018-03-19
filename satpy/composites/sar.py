@@ -53,3 +53,77 @@ class SARIce(GenericCompositor):
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
+
+
+class SARRGB(GenericCompositor):
+    """The SAR RGB composite."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Create the SAR RGB composite."""
+
+        (mhh, mhv) = projectables
+        green = overlay(mhh, mhv)
+        green.attrs = combine_metadata(mhh, mhv)
+
+        return super(SARRGB, self).__call__((-mhv, -green, -mhh), *args, **kwargs)
+        # (mhh, mhv) = projectables
+        # green = 1 - (overlay(mhh, mhv) / .0044)
+        # red = 1 - (mhv / .223)
+        # blue = 1 - (mhh / .596)
+        # import xarray as xr
+        # import xarray.ufuncs as xu
+        # from functools import reduce
+        #
+        # mask1 = reduce(xu.logical_and,
+        #                [abs(green - blue) < 10 / 255.,
+        #                 red - blue >= 0,
+        #                 xu.maximum(green, blue) < 200 / 255.])
+        #
+        # mask2 = xu.logical_and(abs(green - blue) < 40 / 255.,
+        #                        red - blue > 40 / 255.)
+        #
+        # mask3 = xu.logical_and(red - blue > 10 / 255.,
+        #                        xu.maximum(green, blue) < 120 / 255.)
+        #
+        # mask4 = reduce(xu.logical_and,
+        #                [red < 70 / 255.,
+        #                 green < 60 / 255.,
+        #                 blue < 60 / 255.])
+        #
+        # mask5 = reduce(xu.logical_and,
+        #                [red < 80 / 255.,
+        #                 green < 80 / 255.,
+        #                 blue < 80 / 255.,
+        #                 xu.minimum(xu.minimum(red, green), blue) < 30 / 255.])
+        #
+        # mask6 = reduce(xu.logical_and,
+        #                [red < 110 / 255.,
+        #                 green < 110 / 255.,
+        #                 blue < 110 / 255.,
+        #                 xu.minimum(red, green) < 10 / 255.])
+        #
+        # mask = reduce(xu.logical_or, [mask1, mask2, mask3, mask4, mask5, mask6])
+        #
+        # red = xr.where(mask, 230 / 255. - red, red).clip(min=0)
+        # green = xr.where(mask, 1 - green, green)
+        # blue = xr.where(mask, 1 - blue, blue)
+        #
+        # attrs = combine_metadata(mhh, mhv)
+        # green.attrs = attrs
+        # red.attrs = attrs
+        # blue.attrs = attrs
+        #
+        # return super(SARRGB, self).__call__((mhv, green, mhh), *args, **kwargs)
+
+
+class SARQuickLook(GenericCompositor):
+    """The SAR QuickLook composite."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Create the SAR QuickLook composite."""
+        (mhh, mhv) = projectables
+
+        blue = mhv / mhh
+        blue.attrs = combine_metadata(mhh, mhv)
+
+        return super(SARQuickLook, self).__call__((mhh, mhv, blue), *args, **kwargs)
