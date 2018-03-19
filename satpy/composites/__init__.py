@@ -735,9 +735,9 @@ class ColormapCompositor(GenericCompositor):
                     for (val, tup) in enumerate(palette[:-1])]
             colormap = Colormap(*tups)
 
-            sf = info['scale_factor']
+            sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
-                *info['valid_range'] * sf + info['add_offset'])
+                *info['valid_range'] * sf + info.get('add_offset', 0))
 
         return colormap
 
@@ -790,15 +790,21 @@ class PaletteCompositor(ColormapCompositor):
 
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
-
+        fill_value = data.attrs.get('_FillValue', np.nan)
+        if np.isnan(fill_value):
+            mask = data.notnull()
+        else:
+            mask = data != data.attrs['_FillValue']
         r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(mask)
         g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(mask)
         b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords)
+                         dims=data.dims, coords=data.coords).where(mask)
 
-        return super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
+        res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
 
 class DayNightCompositor(GenericCompositor):
@@ -878,7 +884,7 @@ class Airmass(GenericCompositor):
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[3])
         res = super(Airmass, self).__call__((ch1, ch2,
-                                            projectables[0]),
+                                             projectables[0]),
                                             *args, **kwargs)
         return res
 
@@ -1116,6 +1122,7 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 class SelfSharpenedRGB(RatioSharpenedRGB):
+
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
     Example:

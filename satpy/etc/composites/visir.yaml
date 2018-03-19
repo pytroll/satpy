@@ -256,10 +256,11 @@ composites:
     standard_name: cloudtype
 
   cloud_top_height:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.cloud_products.CloudTopHeightCompositor
     prerequisites:
     - ctth_alti
     - ctth_alti_pal
+    - ctth_status_flag
     standard_name: cloud_top_height
 
   cloud_top_pressure:
