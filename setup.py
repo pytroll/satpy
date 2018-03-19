@@ -37,7 +37,8 @@ BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
 requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
-            'trollimage >=1.4', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1', 'dask[array] >=0.17.1']
+            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
+            'dask[array] >=0.17.1']
 
 test_requires = ['behave']
 
