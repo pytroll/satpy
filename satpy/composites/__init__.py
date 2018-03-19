@@ -770,7 +770,7 @@ class DayNightCompositor(GenericCompositor):
     """A compositor that takes one composite on the night side, another on day
     side, and then blends them together."""
 
-    def __init__(self, lim_low=85., lim_high=95., *args, **kwargs):
+    def __init__(self, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -781,9 +781,9 @@ class DayNightCompositor(GenericCompositor):
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        super(DayNightCompositor, self).__init__(*args, **kwargs)
+        super(DayNightCompositor, self).__init__(**kwargs)
 
-    def __call__(self, projectables, *args, **kwargs):
+    def __call__(self, projectables, **kwargs):
 
         day_data = projectables[0]
         night_data = projectables[1]
