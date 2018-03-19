@@ -95,6 +95,11 @@ class TestScene(unittest.TestCase):
         self.assertEqual(scn.ppp_config_dir, PACKAGE_CONFIG_PATH)
         self.assertFalse(scn.readers, 'Empty scene should not load any readers')
 
+    def test_init_no_files(self):
+        """Test that providing an empty list of filenames fails."""
+        from satpy.scene import Scene
+        self.assertRaises(ValueError, Scene, reader='viirs_sdr', filenames=[])
+
     def test_init_with_ppp_config_dir(self):
         from satpy.scene import Scene
         scn = Scene(ppp_config_dir="foo")
@@ -1049,7 +1054,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         # we should only load from the file twice
         self.assertEqual(r.load.call_count, 2)
-        # we should only compute the composite once
+        # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
                          'comp3'].side_effect.call_count, 1)
         loaded_ids = list(scene.datasets.keys())
@@ -1090,7 +1095,7 @@ class TestSceneLoading(unittest.TestCase):
             # this is the unmodified ds1
             self.assertIn(DatasetID(name='ds1'), loaded_ids)
             m.assert_called_once_with(set())
-        # we should only compute the composite once
+        # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
                          'comp10'].side_effect.call_count, 1)
         # Create the modded ds1 at comp10, then load the numodified version
@@ -1161,6 +1166,80 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 1)
         self.assertTupleEqual(
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp22')))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_no_generate_comp10(self, cri, cl):
+        """Test generating a composite after loading"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp10'], generate=False)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        scene.generate_composites()
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertIn('comp10', scene.datasets)
+        self.assertEqual(len(scene.missing_datasets), 0)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_modified_with_wl_dep(self, cri, cl):
+        """Test modifying a dataset with a modifier with modified deps.
+
+        More importantly test that loading the modifiers dependency at the
+        same time as the original modified dataset that the dependency tree
+        nodes are unique and that DatasetIDs.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Check dependency tree nodes
+        # initialize the dep tree without loading the data
+        ds1_mod_id = DatasetID(name='ds1', modifiers=('mod_wl',))
+        ds3_mod_id = DatasetID(name='ds3', modifiers=('mod_wl',))
+        scene.dep_tree.find_dependencies({ds1_mod_id, ds3_mod_id})
+        ds1_mod_node = scene.dep_tree[ds1_mod_id]
+        ds3_mod_node = scene.dep_tree[ds3_mod_id]
+        ds1_mod_dep_node = ds1_mod_node.data[1][1]
+        ds3_mod_dep_node = ds3_mod_node.data[1][1]
+        # mod_wl depends on the this node:
+        ds6_modded_node = scene.dep_tree[DatasetID(name='ds6', modifiers=('mod1',))]
+        # this dep should be full qualified with name and wavelength
+        self.assertIsNotNone(ds6_modded_node.name.name)
+        self.assertIsNotNone(ds6_modded_node.name.wavelength)
+        self.assertEqual(len(ds6_modded_node.name.wavelength), 3)
+        # the node should be shared between everything that uses it
+        self.assertIs(ds1_mod_dep_node, ds3_mod_dep_node)
+        self.assertIs(ds1_mod_dep_node, ds6_modded_node)
+
+        # it is fine that an optional prereq doesn't exist
+        scene.load([ds1_mod_id, ds3_mod_id])
+
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertIn(ds1_mod_id, scene.datasets)
+        self.assertIn(ds3_mod_id, scene.datasets)
 
 
 class TestSceneResampling(unittest.TestCase):
@@ -1237,6 +1316,66 @@ class TestSceneResampling(unittest.TestCase):
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
         self.assertTupleEqual(
             tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
+
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_no_generate_comp10(self, cri, cl, rs):
+        """Test generating a composite after loading"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp10'], generate=False)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        new_scn = scene.resample(area_def, generate=False)
+        self.assertNotIn('comp10', scene.datasets)
+        # two dependencies should have been loaded
+        self.assertEqual(len(scene.datasets), 2)
+        self.assertEqual(len(scene.missing_datasets), 1)
+
+        new_scn.generate_composites()
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertIn('comp10', new_scn.datasets)
+        self.assertEqual(len(new_scn.missing_datasets), 0)
+
+        # try generating them right away
+        new_scn = scene.resample(area_def)
+        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertIn('comp10', new_scn.datasets)
+        self.assertEqual(len(new_scn.missing_datasets), 0)
 
 
 def suite():

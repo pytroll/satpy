@@ -33,12 +33,7 @@ class SimulatedGreen(GenericCompositor):
     """A single-band dataset resembles a Green (0.55 µm)."""
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
-        c01, c02, c03 = projectables
-        if not all(c.shape == projectables[0].shape
-                   for c in projectables[1:]):
-            raise IncompatibleAreas("Simulated green can only be made from "
-                                    "bands of the same size. Resample "
-                                    "first.")
+        c01, c02, c03 = self.check_areas(projectables)
 
         # Kaba:
         # res = (c01 + c02) * 0.45 + 0.1 * c03

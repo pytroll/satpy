@@ -573,7 +573,7 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         attrs = kwargs.pop("attrs", ("name",
-                                     "platform",
+                                     "platform_name",
                                      "sensor",
                                      "standard_name",
                                      "units",))

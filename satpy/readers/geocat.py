@@ -206,7 +206,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             info['units'] = CF_UNITS[u]
 
         info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
-        info['platform'] = self.get_platform(self['/attr/Platform_Name'])
+        info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
         info['resolution'] = dataset_id.resolution
         if var_name == 'pixel_longitude':
             info['standard_name'] = 'longitude'
