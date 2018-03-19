@@ -315,6 +315,7 @@ class SunZenithCorrectorBase(CompositeBase):
     coszen = WeakValueDictionary()
 
     def __call__(self, projectables, **info):
+        projectables = self.check_areas(projectables)
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -343,14 +344,6 @@ class SunZenithCorrectorBase(CompositeBase):
         else:
             coszen = xu.cos(xu.deg2rad(projectables[1]))
             self.coszen[key] = coszen
-
-        if vis.shape != coszen.shape:
-            # assume we were given lower resolution szen data than band data
-            LOG.debug(
-                "Interpolating coszen calculations for higher resolution band")
-            factor = int(vis.shape[1] / coszen.shape[1])
-            coszen = np.repeat(
-                np.repeat(coszen, factor, axis=0), factor, axis=1)
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
@@ -387,40 +380,71 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
 class PSPRayleighReflectance(CompositeBase):
 
+    def get_angles(self, vis):
+        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+        from pyorbital.orbital import get_observer_look
+
+        def _get_sun_angles(lons, lats, start_time):
+            sunalt, suna = get_alt_az(start_time, lons, lats)
+            suna = xu.rad2deg(suna)
+            sunz = sun_zenith_angle(start_time, lons, lats)
+            return np.stack([suna, sunz])
+
+        def _get_sat_angles(lons, lats, start_time, sat_lon, sat_lat, sat_alt):
+            sata, satel = get_observer_look(sat_lon,
+                                            sat_lat,
+                                            sat_alt,
+                                            start_time,
+                                            lons, lats, 0)
+            return np.stack([sata, satel])
+
+        lons, lats = vis.attrs['area'].get_lonlats_dask(
+            chunks=vis.data.chunks)
+
+        res = da.map_blocks(_get_sun_angles, lons, lats,
+                            vis.attrs['start_time'],
+                            dtype=lons.dtype, new_axis=[0],
+                            chunks=(2, lons.chunks[0], lons.chunks[1]))
+
+        suna, sunz = res[0, :, :], res[1, :, :]
+        res = da.map_blocks(_get_sat_angles, lons, lats,
+                            vis.attrs['start_time'],
+                            vis.attrs['satellite_longitude'],
+                            vis.attrs['satellite_latitude'],
+                            vis.attrs['satellite_altitude'],
+                            dtype=lons.dtype, new_axis=[0],
+                            chunks=(2, lons.chunks[0], lons.chunks[1]))
+        sata, satel = res[0, :, :], res[1, :, :]
+        satz = 90 - satel
+        return sata, satz, suna, sunz
+
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
 
         Uses pyspectral.
         """
         from pyspectral.rayleigh import Rayleigh
+        if not optional_datasets or len(optional_datasets) != 4:
+            vis, red = self.check_areas(projectables)
+            sata, satz, suna, sunz = self.get_angles(vis)
+            red.data = da.rechunk(red.data, vis.data.chunks)
+        else:
+            vis, red, sata, satz, suna, sunz = self.check_areas(
+                projectables + optional_datasets)
+            sata, satz, suna, sunz = optional_datasets
+            # get the dask array underneath
+            sata = sata.data
+            satz = satz.data
+            suna = suna.data
+            sunz = sunz.data
 
-        (vis, red) = projectables
-        if vis.shape != red.shape:
-            raise IncompatibleAreas
-        try:
-            (sata, satz, suna, sunz) = optional_datasets
-        except ValueError:
-            from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-            from pyorbital.orbital import get_observer_look
-            lons, lats = vis.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
-            sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-            suna = xu.rad2deg(suna)
-            sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-            # FIXME: Make it daskified
-            sata, satel = get_observer_look(vis.attrs['satellite_longitude'],
-                                            vis.attrs['satellite_latitude'],
-                                            vis.attrs['satellite_altitude'],
-                                            vis.attrs['start_time'],
-                                            lons, lats, 0)
-            satz = 90 - satel
-            del satel
         LOG.info('Removing Rayleigh scattering and aerosol absorption')
 
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
         suna = suna % 360.
-        ssadiff = abs(suna - sata)
-        ssadiff = xu.minimum(ssadiff, 360 - ssadiff)
+        ssadiff = da.absolute(suna - sata)
+        ssadiff = da.minimum(ssadiff, 360 - ssadiff)
         del sata, suna
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
@@ -431,15 +455,14 @@ class PSPRayleighReflectance(CompositeBase):
                              aerosol_type=aerosol_type)
 
         try:
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz.data,
-                                          satz.data, ssadiff.data, vis.attrs['name'],
+            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
+                                          satz, ssadiff, vis.attrs['name'],
                                           red.data)
-
         except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz.data,
-                                          satz.data, ssadiff.data, vis.attrs['wavelength'][1],
+            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
+                                          satz, ssadiff, vis.attrs['wavelength'][1],
                                           red.data)
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
