@@ -93,6 +93,15 @@ class NcNWCSAF(BaseFileHandler):
 
         self.sensor = SENSOR.get(self.platform_name, 'seviri')
 
+    def remove_timedim(self, var):
+        """Remove time dimension from dataset"""
+        if self.pps and var.dims[0] == 'time':
+            data = var[0, :, :]
+            data.attrs = var.attrs
+            var = data
+
+        return var
+
     def get_dataset(self, dsid, info):
         """Load a dataset."""
 
@@ -106,7 +115,7 @@ class NcNWCSAF(BaseFileHandler):
 
         logger.debug('Reading %s.', dsid_name)
         variable = self.nc[dsid_name]
-
+        variable = self.remove_timedim(variable)
         variable = self.scale_dataset(dsid, variable, info)
 
         if dsid_name.endswith('_reduced'):

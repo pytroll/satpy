@@ -38,12 +38,18 @@ datasets:
 
   lon:
     name: lon
-    file_type: nc_nwcsaf_ct
+    file_type:
+    - nc_nwcsaf_cma
+    - nc_nwcsaf_ct
+    - nc_nwcsaf_ctth
     units: "degrees"
     standard_name: longitude
   lat:
     name: lat
-    file_type: nc_nwcsaf_ct
+    file_type:
+    - nc_nwcsaf_cma
+    - nc_nwcsaf_ct
+    - nc_nwcsaf_ctth
     units: "degrees"
     standard_name: latitude
 
