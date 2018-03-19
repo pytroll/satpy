@@ -78,27 +78,25 @@ class TestEnhancementStretch(unittest.TestCase):
         from satpy.enhancements import colorize
         from trollimage.colormap import brbg
         expected = np.array([[
-            [          np.nan,   3.29409498e-01,   3.29409498e-01,
-               4.35952940e-06,   4.35952940e-06],
-            [  4.35952940e-06,   4.35952940e-06,   4.35952940e-06,
-               4.35952940e-06,   4.35952940e-06]],
-
-           [[          np.nan,   1.88249866e-01,   1.88249866e-01,
-               2.35302110e-01,   2.35302110e-01],
-            [  2.35302110e-01,   2.35302110e-01,   2.35302110e-01,
-               2.35302110e-01,   2.35302110e-01]],
-
-           [[          np.nan,   1.96102817e-02,   1.96102817e-02,
-               1.88238767e-01,   1.88238767e-01],
-            [  1.88238767e-01,   1.88238767e-01,   1.88238767e-01,
-               1.88238767e-01,   1.88238767e-01]]])
+            [np.nan, 3.29409498e-01, 3.29409498e-01,
+             4.35952940e-06, 4.35952940e-06],
+            [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
+             4.35952940e-06, 4.35952940e-06]],
+           [[np.nan, 1.88249866e-01, 1.88249866e-01,
+             2.35302110e-01, 2.35302110e-01],
+            [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
+             2.35302110e-01, 2.35302110e-01]],
+           [[np.nan, 1.96102817e-02, 1.96102817e-02,
+             1.88238767e-01, 1.88238767e-01],
+            [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
+             1.88238767e-01, 1.88238767e-01]]])
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
         from satpy.enhancements import palettize
         from trollimage.colormap import brbg
         expected = np.array([[
-            [11, -1, -1, 10, 10], [10, 10, 10, 10, 10]]])
+            [11, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
     def test_three_d_effect(self):
@@ -121,6 +119,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
 
     return mysuite
+
 
 if __name__ == "__main__":
     # So you can run tests from this module individually.
