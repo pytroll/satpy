@@ -95,8 +95,7 @@ class TestEnhancementStretch(unittest.TestCase):
     def test_palettize(self):
         from satpy.enhancements import palettize
         from trollimage.colormap import brbg
-        expected = np.array([[
-            [11, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
+        expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
     def test_three_d_effect(self):
