@@ -31,9 +31,9 @@
 
 import os
 
-CHUNK_SIZE = os.getenv('PYTROLL_CHUNK_SIZE', 4096)
+CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
-from satpy.version import __version__
-from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
-from satpy.readers import DatasetDict, find_files_and_readers
-from satpy.scene import Scene
+from satpy.version import __version__  # noqa
+from satpy.dataset import Dataset, DatasetID, DATASET_KEYS  # noqa
+from satpy.readers import DatasetDict, find_files_and_readers  # noqa
+from satpy.scene import Scene  # noqa

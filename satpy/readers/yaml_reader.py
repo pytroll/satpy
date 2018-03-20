@@ -629,7 +629,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 "Could not load {} from any provided files".format(dsid))
 
         if dim not in slice_list[0].dims:
-            dim = slice_list[0].dims[0]
+            return slice_list[0]
         res = xr.concat(slice_list, dim=dim)
 
         combined_info = file_handlers[0].combine_info(
@@ -657,7 +657,6 @@ class FileYAMLReader(AbstractYAMLReader):
 
         At the moment, it just returns the first filetype that has been loaded.
         """
-
         if not isinstance(filetypes, list):
             filetypes = [filetypes]
 
