@@ -62,21 +62,14 @@ class CloudTopHeightCompositor(ColormapCompositor):
         channels = palette[channels]
         mask_nan = data.notnull()
         mask_cloud_free = (status + 1) % 2
-        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask_nan)
-        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask_nan)
-        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask_nan)
+        chans = []
+        for idx in range(channels.shape[-1]):
+            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
+                                dims=data.dims, coords=data.coords,
+                                attrs=data.attrs).where(mask_nan)
+            # Set cloud-free pixels as black
+            chans.append(chan.where(mask_cloud_free, 0))
 
-        # Set cloud-free pixels as black
-        r = r.where(mask_cloud_free, 0)
-        g = g.where(mask_cloud_free, 0)
-        b = b.where(mask_cloud_free, 0)
-
-        res = super(CloudTopHeightCompositor, self).__call__((r, g, b), **data.attrs)
+        res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
