@@ -39,8 +39,8 @@ Feature: Loading real data in many formats with the same command
     Examples: ABI L1 data
         | format         | composite         | area          |
         | abi_l1b        | overview          | -             |
-        | abi_l1b        | true_color        | -             |
-        | abi_l1b        | true_color        | north_america |
+        | abi_l1b        | airmass           | -             |
+        | abi_l1b        | natural           | -             |
 
     # Examples: ACSPO data
     #     | format       | composite         | area          |
