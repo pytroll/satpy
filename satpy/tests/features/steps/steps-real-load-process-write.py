@@ -23,7 +23,7 @@
 """
 
 import os
-from glob import glob
+import fnmatch
 
 from behave import given, when, then
 
@@ -71,13 +71,22 @@ def assert_images_match(image1, image2, threshold=0.1):
         image1, image2, rms)
 
 
+def get_all_files(directory, pattern):
+    """Find all files matching *pattern* under *directory*."""
+    matches = []
+    for root, dirnames, filenames in os.walk(directory):
+        for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
+
+
 def before_all(context):
     if not context.config.log_capture:
         from satpy.utils import debug_on
         debug_on()
 
 
-@given(u'{dformat} data is available')
+@given(u'{dformat} data is available')  # noqa
 def step_impl(context, dformat):
     data_path = os.path.join('test_data', dformat)
     data_available = os.path.exists(data_path)
@@ -92,7 +101,8 @@ def step_impl(context, dformat):
 def step_impl(context, composite):
     from satpy import Scene
     scn = Scene(reader=context.dformat,
-                filenames=glob(os.path.join(context.data_path, 'data', '*')))
+                filenames=get_all_files(os.path.join(context.data_path, 'data'),
+                                        '*'))
     scn.load([composite])
     context.scn = scn
     context.composite = composite

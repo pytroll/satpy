@@ -106,9 +106,19 @@ class SAFEXML(BaseFileHandler):
         if self._polarization != key.polarization:
             return
 
-        data_items = self.root.findall(".//" + info['xml_item'])
-        data, low_res_coords = self.read_xml_array(data_items,
-                                                   info['xml_tag'])
+        xml_items = info['xml_item']
+        xml_tags = info['xml_tag']
+
+        if not isinstance(xml_items, list):
+            xml_items = [xml_items]
+            xml_tags = [xml_tags]
+
+        for xml_item, xml_tag in zip(xml_items, xml_tags):
+            data_items = self.root.findall(".//" + xml_item)
+            if not data_items:
+                continue
+            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
+
         if key.name.endswith('squared'):
             data **= 2
 
@@ -175,11 +185,13 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
 def interpolate_xarray_linear(xpoints, ypoints, values, shape,
                               blocksize=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
-    vchunks = range(0, shape[0], blocksize)
-    hchunks = range(0, shape[1], blocksize)
-
     from scipy.interpolate.interpnd import (LinearNDInterpolator,
                                             _ndim_coords_from_arrays)
+
+    vblocksize, hblocksize = blocksize, blocksize
+
+    vchunks = range(0, shape[0], vblocksize)
+    hchunks = range(0, shape[1], hblocksize)
 
     points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints),
                                                  np.asarray(xpoints))).T)
@@ -194,16 +206,17 @@ def interpolate_xarray_linear(xpoints, ypoints, values, shape,
         return interpolator((grid_x, grid_y))
 
     dskx = {(name, i, j): (intp,
-                           slice(vcs, min(vcs + blocksize, shape[0])),
-                           slice(hcs, min(hcs + blocksize, shape[1])),
+                           slice(vcs, min(vcs + vblocksize, shape[0])),
+                           slice(hcs, min(hcs + hblocksize, shape[1])),
                            interpolator)
             for i, vcs in enumerate(vchunks)
             for j, hcs in enumerate(hchunks)
             }
 
     res = Array(dskx, name, shape=list(shape),
-                chunks=(blocksize, blocksize),
+                chunks=(vblocksize, hblocksize),
                 dtype=values.dtype)
+
     return DataArray(res, dims=('y', 'x'))
 
 
@@ -253,6 +266,7 @@ class SAFEGRD(BaseFileHandler):
                 data = self.lats
             else:
                 data = self.lons
+            data.attrs = info
 
         else:
             data = self.read_band()
@@ -271,6 +285,8 @@ class SAFEGRD(BaseFileHandler):
             data = (data * data + cal_constant - noise) / cal
 
             data = xu.sqrt(data.clip(min=0))
+
+            data.attrs = info
 
             del noise, cal
 
