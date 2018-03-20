@@ -175,8 +175,10 @@ Feature: Loading real data in many formats with the same command
         | safe_msi       | true_color        | eurol   |
 
     Examples: SAR-C L1 data
-        | format         | composite | area  |
-        | sar_c          | ice       | eurol |
+        | format         | composite | area   |
+        | safe_sar_c     | sar-ice   | euron1 |
+        | safe_sar_c     | sar-rgb   | euron1 |
+        | safe_sar_c     | sar-quick | euron1 |
 
     # Examples: SCATSAT 1 data
     #     | format         | composite | area  |

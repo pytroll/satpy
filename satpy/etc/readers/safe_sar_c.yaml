@@ -64,8 +64,12 @@ datasets:
     resolution: 80
     polarization: [hh, hv, vv, vh]
     file_type: safe_noise
-    xml_item: noiseVector
-    xml_tag: noiseLut
+    xml_item:
+    - noiseVector
+    - noiseRangeVector
+    xml_tag:
+    - noiseLut
+    - noiseRangeLut
 
   sigma:
     name: sigma_squared
