@@ -88,7 +88,7 @@ def step_impl(context, dformat):
         context.data_path = data_path
 
 
-@when(u'the user loads the {composite} composite')
+@when(u'the user loads the {composite} composite')  # noqa
 def step_impl(context, composite):
     from satpy import Scene
     scn = Scene(reader=context.dformat,
@@ -98,22 +98,28 @@ def step_impl(context, composite):
     context.composite = composite
 
 
-@when(u'the user resamples the data to {area}')
+@when(u'the user resamples the data to {area}')  # noqa
 def step_impl(context, area):
-    context.lscn = context.scn.resample(area)
+    if area != '-':
+        context.lscn = context.scn.resample(area)
+    else:
+        context.lscn = context.scn.resample(resampler='native')
     context.area = area
 
 
-@when(u'the user saves the composite to disk')
+@when(u'the user saves the composite to disk')  # noqa
 def step_impl(context):
     with NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         context.lscn.save_dataset(context.composite, filename=tmp_file.name)
         context.new_filename = tmp_file.name
 
 
-@then(u'the resulting image should match the reference image')
+@then(u'the resulting image should match the reference image')  # noqa
 def step_impl(context):
-    ref_filename = context.composite + "_" + context.area + ".png"
+    if context.area == '-':
+        ref_filename = context.composite + ".png"
+    else:
+        ref_filename = context.composite + "_" + context.area + ".png"
     ref_filename = os.path.join(context.data_path, "ref", ref_filename)
     assert os.path.exists(ref_filename), "Missing reference file."
     assert_images_match(ref_filename, context.new_filename)
