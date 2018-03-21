@@ -63,12 +63,12 @@ class NCOLCIBase(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'],
+        return datetime.strptime(self.nc.attrs['start_time'].decode(),
                                  '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'],
+        return datetime.strptime(self.nc.attrs['stop_time'].decode(),
                                  '%Y-%m-%dT%H:%M:%S.%fZ')
 
     def get_dataset(self, key, info):
