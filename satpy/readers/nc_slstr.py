@@ -70,11 +70,11 @@ class NCSLSTRGeo(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['start_time'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['stop_time'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCSLSTR1B(BaseFileHandler):
@@ -136,11 +136,11 @@ class NCSLSTR1B(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['start_time'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        return datetime.strptime(self.nc.attrs['stop_time'].decode(), '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCSLSTRAngles(BaseFileHandler):

@@ -64,11 +64,11 @@ class LIFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        return datetime.strptime(self.nc.attrs['sensing_start'], '%Y%m%d%H%M%S')
+        return datetime.strptime(self.nc.attrs['sensing_start'].decode(), '%Y%m%d%H%M%S')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.nc.attrs['end_time'], '%Y%m%d%H%M%S')
+        return datetime.strptime(self.nc.attrs['end_time'].decode(), '%Y%m%d%H%M%S')
 
     def get_dataset(self, key, info=None, out=None, xslice=None, yslice=None):
         """Load a dataset

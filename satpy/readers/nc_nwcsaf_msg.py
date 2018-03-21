@@ -126,20 +126,13 @@ class NcNWCSAFMSG(BaseFileHandler):
 
     @property
     def start_time(self):
-        try:
-            return datetime.strptime(self.nc.attrs['time_coverage_start'],
-                                     '%Y-%m-%dT%H:%M:%SZ')
-        except TypeError:
-            return datetime.strptime(
-                self.nc.attrs['time_coverage_start'].astype(str),
-                                     '%Y-%m-%dT%H:%M:%SZ')
+
+        return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(),
+                                 '%Y-%m-%dT%H:%M:%SZ')
+
 
     @property
     def end_time(self):
-        try:
-            return datetime.strptime(self.nc.attrs['time_coverage_end'],
-                                     '%Y-%m-%dT%H:%M:%SZ')
-        except TypeError:
-            return datetime.strptime(
-                self.nc.attrs['time_coverage_end'].astype(str),
-                                     '%Y-%m-%dT%H:%M:%SZ')
+
+        return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(),
+                                 '%Y-%m-%dT%H:%M:%SZ')
