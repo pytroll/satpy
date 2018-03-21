@@ -136,4 +136,3 @@ class NcNWCSAFMSG(BaseFileHandler):
 
         return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(),
                                             '%Y-%m-%dT%H:%M:%SZ')
-
