@@ -247,7 +247,7 @@ class NcNWCSAF(BaseFileHandler):
         try:
             # MSG:
             return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(),
-                                                    '%Y-%m-%dT%H:%M:%SZ')
+                                     '%Y-%m-%dT%H:%M:%SZ')
 
         except ValueError:
             # PPS:
@@ -260,7 +260,7 @@ class NcNWCSAF(BaseFileHandler):
         try:
             # MSG:
             return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(),
-                                                    '%Y-%m-%dT%H:%M:%SZ')
+                                     '%Y-%m-%dT%H:%M:%SZ')
 
         except ValueError:
             # PPS:

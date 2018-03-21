@@ -128,11 +128,11 @@ class NcNWCSAFMSG(BaseFileHandler):
     def start_time(self):
 
         return datetime.strptime(self.nc.attrs['time_coverage_start'].decode(),
-                                             '%Y-%m-%dT%H:%M:%SZ')
+                                 '%Y-%m-%dT%H:%M:%SZ')
 
 
     @property
     def end_time(self):
 
         return datetime.strptime(self.nc.attrs['time_coverage_end'].decode(),
-                                            '%Y-%m-%dT%H:%M:%SZ')
+                                 '%Y-%m-%dT%H:%M:%SZ')
