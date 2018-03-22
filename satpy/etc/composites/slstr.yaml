@@ -2,7 +2,7 @@ sensor_name: visir/slstr
 
 composites:
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.65
     - 0.86
@@ -10,7 +10,7 @@ composites:
     standard_name: overview
 
   day_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.86
     - wavelength: 3.7

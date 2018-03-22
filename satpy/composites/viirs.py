@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015
+# Copyright (c) 2015-2018 PyTroll developers
 
 # Author(s):
 
@@ -28,9 +28,9 @@ import os
 
 import numpy as np
 
-from satpy.composites import CompositeBase, IncompatibleAreas
+from satpy.composites import CompositeBase, RGBCompositor
 from satpy.config import get_environ_ancpath
-from satpy.dataset import Dataset, combine_info
+from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
 
@@ -44,123 +44,18 @@ class VIIRSFog(CompositeBase):
 
         p1, p2 = projectables
         fog = p1 - p2
-        fog.info.update(self.info)
-        fog.info["area"] = p1.info["area"]
-        fog.info["start_time"] = p1.info["start_time"]
-        fog.info["end_time"] = p1.info["end_time"]
-        fog.info["name"] = self.info["name"]
-        fog.info["wavelength"] = None
-        fog.info.setdefault("mode", "L")
+        fog.attrs.update(self.attrs)
+        fog.attrs["area"] = p1.attrs["area"]
+        fog.attrs["start_time"] = p1.attrs["start_time"]
+        fog.attrs["end_time"] = p1.attrs["end_time"]
+        fog.attrs["name"] = self.attrs["name"]
+        fog.attrs["wavelength"] = None
+        fog.attrs.setdefault("mode", "L")
         return fog
 
 
-class VIIRSTrueColor(CompositeBase):
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        if len(projectables) != 3:
-            raise ValueError("Expected 3 datasets, got %d" %
-                             (len(projectables), ))
-
-        # Collect information that is the same between the projectables
-        info = combine_info(*projectables)
-        # Update that information with configured information (including name)
-        info.update(self.info)
-        # Force certain pieces of metadata that we *know* to be true
-        info["wavelength"] = None
-        info["mode"] = self.info.get("mode", "RGB")
-        return Dataset(data=np.rollaxis(
-            np.ma.dstack([projectable for projectable in projectables]),
-            axis=2),
-            **info)
-
-
-class RatioSharpenedRGB(CompositeBase):
-
-    def __init__(self, *args, **kwargs):
-        self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
-        super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
-
-    def __call__(self, datasets, optional_datasets=None, **info):
-        if len(datasets) != 3:
-            raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
-
-        area = None
-        n = {}
-        p1, p2, p3 = datasets
-        if optional_datasets:
-            high_res = optional_datasets[0]
-            low_res = datasets[["red", "green", "blue"].index(
-                self.high_resolution_band)]
-            if high_res.info["area"] != low_res.info["area"]:
-                if np.mod(high_res.shape[0], low_res.shape[0]) or \
-                        np.mod(high_res.shape[1], low_res.shape[1]):
-                    raise IncompatibleAreas(
-                        "High resolution band is not mapped the same area as the low resolution bands")
-                else:
-                    f0 = high_res.shape[0] / low_res.shape[0]
-                    f1 = high_res.shape[1] / low_res.shape[1]
-                    if p1.shape != high_res.shape:
-                        p1 = np.ma.repeat(np.ma.repeat(
-                            p1, f0, axis=0), f1, axis=1)
-                        p1.info["area"] = high_res.info["area"]
-                    if p2.shape != high_res.shape:
-                        p2 = np.ma.repeat(np.ma.repeat(
-                            p2, f0, axis=0), f1, axis=1)
-                        p2.info["area"] = high_res.info["area"]
-                    if p3.shape != high_res.shape:
-                        p3 = np.ma.repeat(np.ma.repeat(
-                            p3, f0, axis=0), f1, axis=1)
-                        p3.info["area"] = high_res.info["area"]
-                    area = high_res.info["area"]
-            if 'rows_per_scan' in high_res.info:
-                n.setdefault('rows_per_scan', high_res.info['rows_per_scan'])
-            n.setdefault('resolution', high_res.info['resolution'])
-            if self.high_resolution_band == "red":
-                LOG.debug("Sharpening image with high resolution red band")
-                ratio = high_res.data / p1.data
-                r = high_res.data
-                g = p2.data * ratio
-                b = p3.data * ratio
-            elif self.high_resolution_band == "green":
-                LOG.debug("Sharpening image with high resolution green band")
-                ratio = high_res.data / p2.data
-                r = p1.data * ratio
-                g = high_res.data
-                b = p3.data * ratio
-            elif self.high_resolution_band == "blue":
-                LOG.debug("Sharpening image with high resolution blue band")
-                ratio = high_res.data / p3.data
-                r = p1.data * ratio
-                g = p2.data * ratio
-                b = high_res.data
-            else:
-                # no sharpening
-                r = p1.data
-                g = p2.data
-                b = p3.data
-            mask = p1.mask | p2.mask | p3.mask | high_res.mask
-        else:
-            r, g, b = p1.data, p2.data, p3.data
-            mask = p1.mask | p2.mask | p3.mask
-
-        # Collect information that is the same between the projectables
-        info = combine_info(*datasets)
-        info.update(n)
-        # Update that information with configured information (including name)
-        info.update(self.info)
-        # Force certain pieces of metadata that we *know* to be true
-        info["wavelength"] = None
-        info.setdefault("standard_name", "true_color")
-        info["mode"] = self.info.get("mode", "RGB")
-        if area is not None:
-            info['area'] = area
-        return Dataset(data=np.concatenate(
-            ([r], [g], [b]), axis=0),
-            mask=np.array([[mask, mask, mask]]),
-            **info)
-
-
 class ReflectanceCorrector(CompositeBase):
+
     """CREFL modifier
 
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
@@ -189,7 +84,7 @@ class ReflectanceCorrector(CompositeBase):
 
     def __call__(self, datasets, **info):
         refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
-        if refl_data.info.get("rayleigh_corrected"):
+        if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
 
         if os.path.isfile(self.dem_file):
@@ -204,16 +99,16 @@ class ReflectanceCorrector(CompositeBase):
 
         from satpy.composites.crefl_utils import run_crefl, get_coefficients
 
-        percent = refl_data.info["units"] == "%"
+        percent = refl_data.attrs["units"] == "%"
 
-        coefficients = get_coefficients(refl_data.info["sensor"],
-                                        refl_data.info["wavelength"],
-                                        refl_data.info["resolution"])
+        coefficients = get_coefficients(refl_data.attrs["sensor"],
+                                        refl_data.attrs["wavelength"],
+                                        refl_data.attrs["resolution"])
 
         results = run_crefl(refl_data,
                             coefficients,
-                            sensor_aa.info["area"].lons,
-                            sensor_aa.info["area"].lats,
+                            sensor_aa.attrs["area"].lons,
+                            sensor_aa.attrs["area"].lats,
                             sensor_aa,
                             sensor_za,
                             solar_aa,
@@ -221,20 +116,18 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent, )
 
-        info.update(refl_data.info)
+        info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
-        proj = Dataset(data=results.data * factor,
-                       mask=results.mask,
-                       dtype=results.dtype,
-                       **info)
+        results = results * factor
+        results.attrs = info
 
-        self.apply_modifier_info(refl_data, proj)
-
-        return proj
+        self.apply_modifier_info(refl_data, results)
+        return results
 
 
 class HistogramDNB(CompositeBase):
+
     """Histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -304,7 +197,7 @@ class HistogramDNB(CompositeBase):
             raise RuntimeError("No valid data found to histogram equalize")
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -312,6 +205,7 @@ class HistogramDNB(CompositeBase):
 
 
 class AdaptiveDNB(HistogramDNB):
+
     """Adaptive histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -424,7 +318,7 @@ class AdaptiveDNB(HistogramDNB):
             raise RuntimeError("No valid data found to histogram equalize")
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -432,6 +326,7 @@ class AdaptiveDNB(HistogramDNB):
 
 
 class ERFDNB(CompositeBase):
+
     """Equalized DNB composite using the error function (erf).
 
     The logic for this code was taken from Polar2Grid and was originally developed by Curtis Seaman and Steve Miller.
@@ -515,7 +410,7 @@ class ERFDNB(CompositeBase):
         np.sqrt(inner_sqrt, out=output_dataset)
 
         info = dnb_data.info.copy()
-        info.update(self.info)
+        info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
         output_dataset.info = info
@@ -817,7 +712,9 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
                             temp_sum += (temp_equalized_data *
                                          tmp_tile_weights)
 
-                        else:  # if the tile we're processing doesn't exist, hang onto the weight we would have used for it so we can correct that later
+                        # if the tile we're processing doesn't exist, hang onto the weight we
+                        # would have used for it so we can correct that later
+                        else:
                             unused_weight -= tmp_tile_weights
 
                 # if we have unused weights, scale our values to correct for
@@ -1045,6 +942,7 @@ def _linear_normalization_from_0to1(
 
 
 class NCCZinke(CompositeBase):
+
     """Equalized DNB composite using the Zinke algorithm.
 
     http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
@@ -1093,7 +991,7 @@ class NCCZinke(CompositeBase):
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
-        mda['name'] = self.info['name']
+        mda['name'] = self.attrs['name']
         mda.pop('calibration')
         mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
@@ -1123,9 +1021,9 @@ class NCCZinke(CompositeBase):
         return gain
 
 
+class SnowAge(RGBCompositor):
 
-class SnowAge(CompositeBase):
-    """Returns RGB snow product based on method presented at the second 
+    """Returns RGB snow product based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
     """
     # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
@@ -1142,29 +1040,38 @@ class SnowAge(CompositeBase):
     # Pascale Roquet at Pascale.Roquet@meteo.fr
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate a SnowAge RGB composite.
+
+        The algorithm and the product are described in this
+        presentation :
+        http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        For further information you may contact
+        Bernard Bellec at Bernard.Bellec@meteo.fr
+        or
+        Pascale Roquet at Pascale.Roquet@meteo.fr
+        
+        """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
                              (len(projectables), ))
 
         # Collect information that is the same between the projectables
-        info = combine_info(*projectables)
+        info = combine_metadata(*projectables)
         # Update that information with configured information (including name)
-        info.update(self.info)
+        info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info["wavelength"] = None
-        info["mode"] = self.info.get("mode", "RGB")
 
-        m07 = projectables[0]*255./160.
-        m08 = projectables[1]*255./160.
-        m09 = projectables[2]*255./160.
-        m10 = projectables[3]*255./160.
-        m11 = projectables[4]*255./160.
+        m07 = projectables[0] * 255. / 160.
+        m08 = projectables[1] * 255. / 160.
+        m09 = projectables[2] * 255. / 160.
+        m10 = projectables[3] * 255. / 160.
+        m11 = projectables[4] * 255. / 160.
         refcu = m11 - m10
-        refcu[refcu < 0] = 0
+        refcu = refcu.clip(min=0)
 
         ch1 = m07 - refcu / 2. - m09 / 4.
         ch2 = m08 + refcu / 4. + m09 / 4.
         ch3 = m11 + m09
 
-        return Dataset(data=[ch1, ch2, ch3], **info)
-
+        return RGBCompositor.__call__(self, [ch1, ch2, ch3], **info)

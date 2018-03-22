@@ -25,46 +25,85 @@
 
 import unittest
 import numpy as np
-from satpy.enhancements import cira_stretch
-
-CH1 = np.ma.arange(-210, 790, 100) * 0.95
-CH1.mask = np.logical_and(np.arange(10) * 0.1 > 0.3, np.arange(10) * 0.1 < 0.8)
-
-RESMASK = np.array(
-    [False,  False,  False,  True,  True,  True,  True,  True, False, False], dtype=bool)
-RESULT = np.ma.array([np.nan,         np.nan,      np.nan,  1.93196611,  2.25647721,
-                      2.4401216,  2.56878821,  2.66791969,  1.20691137,  1.24110186], mask=RESMASK)
-
-
-def assertNumpyArraysEqual(self, other):
-    if self.shape != other.shape:
-        raise AssertionError("Shapes don't match")
-    if not np.allclose(self, other, equal_nan=True):
-        raise AssertionError("Elements don't match!")
-
-
-class TrollImageMock(object):
-
-    def __init__(self):
-        self.channels = []
+import xarray as xr
+import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
 
-    '''Class for testing satpy.satin'''
+    """Class for testing enhancements in satpy.enhancements"""
 
     def setUp(self):
         """Setup the test"""
-        pass
+        data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
+        data[0, 0] = np.nan  # one bad value for testing
+        self.ch1 = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
+        rgb_data = np.stack([data, data, data])
+        self.rgb = xr.DataArray(rgb_data, dims=('bands', 'y', 'x'),
+                                coords={'bands': ['R', 'G', 'B']})
+
+    def _test_enhancement(self, func, data, expected, **kwargs):
+        """Helper for testing enhancement functions."""
+        from trollimage.xrimage import XRImage
+
+        pre_attrs = data.attrs
+        img = XRImage(data)
+        func(img, **kwargs)
+
+        self.assertIsInstance(img.data.data, da.Array)
+        self.assertListEqual(sorted(pre_attrs.keys()),
+                             sorted(img.data.attrs.keys()),
+                             "DataArray attributes were not preserved")
+
+        np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
 
     def test_cira_stretch(self):
         """Test applying the cira_stretch"""
+        from satpy.enhancements import cira_stretch
 
-        img = TrollImageMock()
-        img.channels.append(CH1)
-        cira_stretch(img)
-        assertNumpyArraysEqual(RESULT.data, img.channels[0].data)
-        assertNumpyArraysEqual(RESULT.mask, img.channels[0].mask)
+        expected = np.array([[
+            [np.nan, np.nan, np.nan, 0.79630132, 0.95947296],
+            [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
+        self._test_enhancement(cira_stretch, self.ch1, expected)
+
+    def test_lookup(self):
+        from satpy.enhancements import lookup
+        expected = np.array([[
+            [0., 0., 0., 0.333333, 0.705882],
+            [1., 1., 1., 1., 1.]]])
+        lut = np.arange(256.)
+        self._test_enhancement(lookup, self.ch1, expected, luts=lut)
+
+    def test_colorize(self):
+        from satpy.enhancements import colorize
+        from trollimage.colormap import brbg
+        expected = np.array([[
+            [np.nan, 3.29409498e-01, 3.29409498e-01,
+             4.35952940e-06, 4.35952940e-06],
+            [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
+             4.35952940e-06, 4.35952940e-06]],
+           [[np.nan, 1.88249866e-01, 1.88249866e-01,
+             2.35302110e-01, 2.35302110e-01],
+            [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
+             2.35302110e-01, 2.35302110e-01]],
+           [[np.nan, 1.96102817e-02, 1.96102817e-02,
+             1.88238767e-01, 1.88238767e-01],
+            [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
+             1.88238767e-01, 1.88238767e-01]]])
+        self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
+
+    def test_palettize(self):
+        from satpy.enhancements import palettize
+        from trollimage.colormap import brbg
+        expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
+        self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
+
+    def test_three_d_effect(self):
+        from satpy.enhancements import three_d_effect
+        expected = np.array([[
+            [np.nan, np.nan, -389.5, -294.5, 826.5],
+            [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
+        self._test_enhancement(three_d_effect, self.ch1, expected)
 
     def tearDown(self):
         """Clean up"""
@@ -79,6 +118,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
 
     return mysuite
+
 
 if __name__ == "__main__":
     # So you can run tests from this module individually.

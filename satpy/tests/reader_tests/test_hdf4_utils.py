@@ -41,10 +41,10 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
 
 
-class TestNetCDF4FileHandler(unittest.TestCase):
-    """Test NetCDF4 File Handler Utility class"""
+class TestHDF4FileHandler(unittest.TestCase):
+    """Test HDF4 File Handler Utility class"""
     def setUp(self):
-        """Create a test NetCDF4 file"""
+        """Create a test HDF4 file"""
         from pyhdf.SD import SD, SDC
         h = SD('test.hdf', SDC.WRITE | SDC.CREATE | SDC.TRUNC)
         data = np.arange(10. * 100, dtype=np.float32).reshape((10, 100))
@@ -70,7 +70,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         os.remove('test.hdf')
 
     def test_all_basic(self):
-        """Test everything about the NetCDF4 class"""
+        """Test everything about the HDF4 class"""
         from satpy.readers.hdf4_utils import HDF4FileHandler
         from pyhdf.SD import SDC
         file_handler = HDF4FileHandler('test.hdf', {}, {})
@@ -100,6 +100,6 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNetCDF4FileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHDF4FileHandler))
 
     return mysuite

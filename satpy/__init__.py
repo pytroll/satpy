@@ -4,11 +4,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 
@@ -29,7 +29,11 @@
 """SatPy Package initializer.
 """
 
-from satpy.version import __version__
-from satpy.dataset import Dataset, DatasetID, DATASET_KEYS
-from satpy.readers import DatasetDict, find_files_and_readers
-from satpy.scene import Scene
+import os
+
+CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
+
+from satpy.version import __version__  # noqa
+from satpy.dataset import Dataset, DatasetID, DATASET_KEYS  # noqa
+from satpy.readers import DatasetDict, find_files_and_readers  # noqa
+from satpy.scene import Scene  # noqa

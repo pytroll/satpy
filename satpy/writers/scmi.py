@@ -84,7 +84,9 @@ LOG = logging.getLogger(__name__)
 # AWIPS 2 seems to not like data values under 0
 AWIPS_USES_NEGATIVES = False
 AWIPS_DATA_DTYPE = np.int16
-DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_' \
+                         '{name}_{sector_id}_{tile_id}_' \
+                         '{start_time:%Y%m%d_%H%M}.nc'
 
 # misc. global attributes
 SCMI_GLOBAL_ATT = dict(
@@ -689,6 +691,17 @@ class SCMIWriter(Writer):
         self.fix_awips = fix_awips
         self._fill_sector_info()
 
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(SCMIWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['compress', 'fix_awips']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+
+        return init_kwargs, kwargs
+
     def _fill_sector_info(self):
         for sector_info in self.scmi_sectors.values():
             p = Proj(sector_info['projection'])
@@ -803,7 +816,7 @@ class SCMIWriter(Writer):
             if awips_info['source_name'] is None:
                 raise TypeError("'source_name' keyword must be specified")
 
-            def_ce = "{}-{}".format(ds_info["platform"].upper(), ds_info["sensor"].upper())
+            def_ce = "{}-{}".format(ds_info["platform_name"].upper(), ds_info["sensor"].upper())
             awips_info.setdefault('creating_entity', def_ce)
             return awips_info
         except KeyError as e:
@@ -818,17 +831,21 @@ class SCMIWriter(Writer):
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
-                      **kwargs):
+                      compute=True, **kwargs):
         if sector_id is None:
             raise TypeError("Keyword 'sector_id' is required")
+        if not compute:
+            import warnings
+            warnings.warn("SCMI Writer does not support delayed computing "
+                          "yet.")
 
         def _area_id(area_def):
             return area_def.name + str(area_def.area_extent) + str(area_def.shape)
         # get all of the datasets stored by area
         area_datasets = {}
         for x in datasets:
-            area_id = _area_id(x.info['area'])
-            area, ds_list = area_datasets.setdefault(area_id, (x.info['area'], []))
+            area_id = _area_id(x.attrs['area'])
+            area, ds_list = area_datasets.setdefault(area_id, (x.attrs['area'], []))
             ds_list.append(x)
 
         output_filenames = []
@@ -838,12 +855,15 @@ class SCMIWriter(Writer):
             tile_gen = self._get_tile_generator(area_def, lettered_grid, sector_id, num_subtiles, tile_size, tile_count)
             for dataset in ds_list:
                 pkwargs = {}
-                ds_info = dataset.info.copy()
+                ds_info = dataset.attrs.copy()
                 LOG.info("Writing product %s to AWIPS SCMI NetCDF file", ds_info["name"])
                 if isinstance(dataset, np.ma.MaskedArray):
                     data = dataset
                 else:
-                    data = np.ma.masked_array(data, mask=np.isnan(data), copy=False)
+                    # FIXME: Handle data better by using `da.store` or move
+                    #        netcdf creation/storing to a dask delayed object
+                    mask = dataset.isnull()
+                    data = np.ma.masked_array(dataset.values, mask=mask, copy=False)
 
                 pkwargs['awips_info'] = self._get_awips_info(ds_info, source_name=source_name)
                 pkwargs['attr_helper'] = AttributeHelper(ds_info)
@@ -879,7 +899,7 @@ class SCMIWriter(Writer):
                 for (trow, tcol, tile_id, tmp_x, tmp_y), tmp_tile in tile_gen(data, fill_value=fill_value):
                     try:
                         fn = self.create_tile_output(
-                            dataset, sector_id,
+                            dataset.attrs, sector_id,
                             trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile,
                             tile_gen.tile_count, tile_gen.image_shape,
                             tile_gen.mx, tile_gen.bx, tile_gen.my, tile_gen.by,
@@ -896,7 +916,7 @@ class SCMIWriter(Writer):
 
         return output_filenames[-1] if output_filenames else None
 
-    def create_tile_output(self, dataset, sector_id,
+    def create_tile_output(self, ds_info, sector_id,
                            trow, tcol, tile_id, tmp_x, tmp_y, tmp_tile,
                            tile_count, image_shape,
                            mx, bx, my, by,
@@ -904,7 +924,6 @@ class SCMIWriter(Writer):
                            awips_info, attr_helper,
                            fills, factor, offset, valid_min, valid_max, bit_depth, **kwargs):
         # Create the netcdf file
-        ds_info = dataset.info
         area_def = ds_info['area']
         created_files = []
         try:

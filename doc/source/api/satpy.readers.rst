@@ -140,14 +140,6 @@ satpy\.readers\.hdfeos\_l1b module
     :undoc-members:
     :show-inheritance:
 
-satpy\.readers\.helper\_functions module
-----------------------------------------
-
-.. automodule:: satpy.readers.helper_functions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy\.readers\.hrit\_base module
 ---------------------------------
 
@@ -160,6 +152,14 @@ satpy\.readers\.hrit\_electrol module
 -------------------------------------
 
 .. automodule:: satpy.readers.hrit_electrol
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy\.readers\.hrit\_goes module
+---------------------------------
+
+.. automodule:: satpy.readers.hrit_goes
     :members:
     :undoc-members:
     :show-inheritance:
@@ -304,6 +304,22 @@ satpy\.readers\.safe\_sar\_c module
 -----------------------------------
 
 .. automodule:: satpy.readers.safe_sar_c
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy\.readers\.scatsat1\_l2b module
+------------------------------------
+
+.. automodule:: satpy.readers.scatsat1_l2b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy\.readers\.utils module
+----------------------------
+
+.. automodule:: satpy.readers.utils
     :members:
     :undoc-members:
     :show-inheritance:

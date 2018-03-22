@@ -41,8 +41,13 @@ import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy.dataset import Dataset, DatasetID
+import dask.array as da
+import xarray.ufuncs as xu
+import xarray as xr
+from satpy import CHUNK_SIZE
+from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
@@ -148,9 +153,13 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             if key.name == 'satellite_azimuth_angle':
                 var = self.sd.select('SensorAzimuth')
 
-            mask = var[:] == var._FillValue
-            data = np.ma.masked_array(var[:] * var.scale_factor, mask=mask)
-            return Dataset(data, id=key, **info)
+            data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
+                                dims=['y', 'x']).astype(np.float32)
+            data = data.where(data != var._FillValue)
+            data = data * np.float32(var.scale_factor)
+
+            data.attrs = info
+            return data
 
         if key.name not in ['longitude', 'latitude']:
             return
@@ -177,9 +186,16 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             self.cache[key.resolution]['lats'] = lats
 
         if key.name == 'latitude':
-            return Dataset(self.cache[key.resolution]['lats'], id=key, **info)
+            data = self.cache[key.resolution]['lats'].filled(np.nan)
+            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                dims=['y', 'x'])
         else:
-            return Dataset(self.cache[key.resolution]['lons'], id=key, **info)
+            data = self.cache[key.resolution]['lons'].filled(np.nan)
+            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                            CHUNK_SIZE)),
+                                dims=['y', 'x'])
+        data.attrs = info
+        return data
 
     def load(self, keys, interpolate=True, raw=False):
         """Load the data."""
@@ -198,10 +214,12 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                     key.resolution < self.resolution and
                     interpolate):
                 data = self._interpolate(data, self.resolution, key.resolution)
-            if raw:
-                projectables.append(data)
-            else:
-                projectables.append(Dataset(data, id=key))
+            if not raw:
+                data = data.filled(np.nan)
+                data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
+                                                                CHUNK_SIZE)),
+                                    dims=['y', 'x'])
+            projectables.append(data)
 
         return projectables
 
@@ -272,8 +290,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
         self.resolution = self.res[ds[-3]]
 
     def get_dataset(self, key, info):
-        """Read data from file and return the corresponding projectables.
-        """
+        """Read data from file and return the corresponding projectables."""
         datadict = {
             1000: ['EV_250_Aggr1km_RefSB',
                    'EV_500_Aggr1km_RefSB',
@@ -293,7 +310,6 @@ class HDFEOSBandReader(HDFEOSFileReader):
             return
 
         datasets = datadict[self.resolution]
-
         for dataset in datasets:
             subdata = self.sd.select(dataset)
             band_names = subdata.attributes()["band_names"].split(",")
@@ -304,12 +320,19 @@ class HDFEOSBandReader(HDFEOSFileReader):
             except ValueError:
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            if dataset.endswith('Emissive'):
-                array = calibrate_tb(subdata, uncertainty, [index], band_names)
-            else:
-                array = calibrate_refl(subdata, uncertainty, [index])
+            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
+                                 dims=['y', 'x']).astype(np.float32)
+            valid_range = subdata.attributes()['valid_range']
+            array = array.where(array >= np.float32(valid_range[0]))
+            array = array.where(array <= np.float32(valid_range[1]))
+            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
-            projectable = Dataset(array[0], id=key, mask=array[0].mask, **info)
+            if dataset.endswith('Emissive'):
+                projectable = calibrate_tb(array, subdata.attributes(), index, key.name)
+            else:
+                projectable = calibrate_refl(array, subdata.attributes(), index)
+            projectable.attrs = info
+
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
             #     height, width = projectable.shape
@@ -362,61 +385,37 @@ class HDFEOSBandReader(HDFEOSFileReader):
         return self.data.select("SensorAzimuth")
 
 
-def calibrate_refl(subdata, uncertainty, indices):
-    """Calibration for reflective channels.
-    """
+def calibrate_refl(array, attributes, index):
+    """Calibration for reflective channels."""
+    offset = np.float32(attributes["reflectance_offsets"][index])
+    scale = np.float32(attributes["reflectance_scales"][index])
 
-    array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
-    valid_range = subdata.attributes()["valid_range"]
-    array = np.ma.masked_outside(array,
-                                 valid_range[0],
-                                 valid_range[1],
-                                 copy=False)
-    array = np.ma.masked_where(
-        (uncertainty.get()[indices, :, :] >= 15), array, False)
-
-    array = array * np.float32(1.0)
-    offsets = np.array(subdata.attributes()["reflectance_offsets"],
-                       dtype=np.float32)[indices]
-    scales = np.array(subdata.attributes()["reflectance_scales"],
-                      dtype=np.float32)[indices]
-    dims = (len(indices), 1, 1)
-    array = (array - offsets.reshape(dims)) * scales.reshape(dims) * 100
+    array = (array - offset) * scale * 100
 
     return array
 
 
-def calibrate_tb(subdata, uncertainty, indices, band_names):
-    """Calibration for the emissive channels.
-    """
+def calibrate_tb(array, attributes, index, band_name):
+    """Calibration for the emissive channels."""
+    offset = np.float32(attributes["radiance_offsets"][index])
+    scale = np.float32(attributes["radiance_scales"][index])
 
-    array = np.vstack(np.expand_dims(subdata[idx, :, :], 0) for idx in indices)
-    valid_range = subdata.attributes()["valid_range"]
-    array = np.ma.masked_outside(array,
-                                 valid_range[0],
-                                 valid_range[1],
-                                 copy=False)
-    array = np.ma.masked_where(
-        (uncertainty.get()[indices, :, :] >= 15), array, False)
-    offsets = np.array(subdata.attributes()["radiance_offsets"],
-                       dtype=np.float32)[indices]
-    scales = np.array(subdata.attributes()["radiance_scales"],
-                      dtype=np.float32)[indices]
+    array = (array - offset) * scale
 
-    #- Planck constant (Joule second)
+    # Planck constant (Joule second)
     h__ = np.float32(6.6260755e-34)
 
-    #- Speed of light in vacuum (meters per second)
+    # Speed of light in vacuum (meters per second)
     c__ = np.float32(2.9979246e+8)
 
-    #- Boltzmann constant (Joules per Kelvin)
+    # Boltzmann constant (Joules per Kelvin)
     k__ = np.float32(1.380658e-23)
 
-    #- Derived constants
+    # Derived constants
     c_1 = 2 * h__ * c__ * c__
     c_2 = (h__ * c__) / k__
 
-    #- Effective central wavenumber (inverse centimeters)
+    # Effective central wavenumber (inverse centimeters)
     cwn = np.array([
         2.641775E+3, 2.505277E+3, 2.518028E+3, 2.465428E+3,
         2.235815E+3, 2.200346E+3, 1.477967E+3, 1.362737E+3,
@@ -424,7 +423,7 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
         7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2],
         dtype=np.float32)
 
-    #- Temperature correction slope (no units)
+    # Temperature correction slope (no units)
     tcs = np.array([
         9.993411E-1, 9.998646E-1, 9.998584E-1, 9.998682E-1,
         9.998819E-1, 9.998845E-1, 9.994877E-1, 9.994918E-1,
@@ -432,7 +431,7 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
         9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1],
         dtype=np.float32)
 
-    #- Temperature correction intercept (Kelvin)
+    # Temperature correction intercept (Kelvin)
     tci = np.array([
         4.770532E-1, 9.262664E-2, 9.757996E-2, 8.929242E-2,
         7.310901E-2, 7.060415E-2, 2.204921E-1, 2.046087E-1,
@@ -441,23 +440,18 @@ def calibrate_tb(subdata, uncertainty, indices, band_names):
         dtype=np.float32)
 
     # Transfer wavenumber [cm^(-1)] to wavelength [m]
-    cwn = 1 / (cwn * 100)
+    cwn = 1. / (cwn * 100)
 
     # Some versions of the modis files do not contain all the bands.
     emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29",
                           "30", "31", "32", "33", "34", "35", "36"]
-    current_channels = [i for i, band in enumerate(emmissive_channels)
-                        if band in band_names]
-    global_indices = list(np.array(current_channels)[indices])
+    global_index = emmissive_channels.index(band_name)
 
-    dims = (len(indices), 1, 1)
-    cwn = cwn[global_indices].reshape(dims)
-    tcs = tcs[global_indices].reshape(dims)
-    tci = tci[global_indices].reshape(dims)
-
-    tmp = (array - offsets.reshape(dims)) * scales.reshape(dims)
-    tmp = c_2 / (cwn * np.ma.log(c_1 / (1000000 * tmp * cwn ** 5) + 1))
-    array = (tmp - tci) / tcs
+    cwn = cwn[global_index]
+    tcs = tcs[global_index]
+    tci = tci[global_index]
+    array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
+    array = (array - tci) / tcs
     return array
 
 

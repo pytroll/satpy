@@ -26,6 +26,10 @@
 
 import logging
 
+from contextlib import closing
+import tempfile
+import bz2
+import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
 
@@ -33,14 +37,26 @@ LOGGER = logging.getLogger(__name__)
 
 
 def np2str(value):
-    """Convert an np.string_ to str."""
-    if issubclass(value.dtype.type, np.string_):
+    """Convert an `numpy.string_` to str.
+
+    Args:
+        value (ndarray): scalar or 1-element numpy array to convert
+
+    Raises:
+        ValueError: if value is array larger than 1-element or it is not of
+                    type `numpy.string_` or it is not a numpy array
+
+    """
+    if hasattr(value, 'dtype') and \
+            issubclass(value.dtype.type, np.string_) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
             # otherwise python 2 - scalar numpy array of 'str'
             value = value.decode()
-    return value
+        return value
+    else:
+        raise ValueError("Array is not a string type or is larger than 1")
 
 
 def get_geostationary_angle_extent(geos_area):
@@ -154,3 +170,24 @@ def get_sub_area(area, xslice, yslice):
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)
+
+
+def unzip_file(filename):
+    """Unzip the file if file is bzipped = ending with 'bz2'"""
+
+    if filename.endswith('bz2'):
+        bz2file = bz2.BZ2File(filename)
+        fdn, tmpfilepath = tempfile.mkstemp()
+        with closing(os.fdopen(fdn, 'wb')) as ofpt:
+            try:
+                ofpt.write(bz2file.read())
+            except IOError:
+                import traceback
+                traceback.print_exc()
+                LOGGER.info("Failed to read bzipped file %s", str(filename))
+                os.remove(tmpfilepath)
+                return None
+
+        return tmpfilepath
+
+    return None

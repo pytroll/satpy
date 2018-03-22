@@ -11,21 +11,6 @@ enhancements:
     operations:
     - name: cira_stretch
       method: !!python/name:satpy.enhancements.cira_stretch
-  true_color_ahi_default:
-    standard_name: true_color_ahi
-    operations:
-    - name: cira_stretch
-      method: !!python/name:satpy.enhancements.cira_stretch
-  true_color_norayleigh_default:
-    standard_name: true_color_norayleigh
-    operations:
-    - name: cira_stretch
-      method: !!python/name:satpy.enhancements.cira_stretch
-  true_color_reducedsize_default:
-    standard_name: true_color_reducedsize
-    operations:
-    - name: cira_stretch
-      method: !!python/name:satpy.enhancements.cira_stretch
   overview_default:
     standard_name: overview
     operations:
@@ -57,7 +42,7 @@ enhancements:
     operations:
     - name: stretch
       method: *stretchfun
-      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 90}
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 120}
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.8}
@@ -70,6 +55,16 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
+  airmass_abi:
+    standard_name: airmass
+    sensor: abi
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [-26.2, -43.2, 243.9]
+        max_stretch: [0.6, 6.7, 208.5]
   green_snow_default:
     standard_name: green_snow
     operations:
@@ -136,7 +131,7 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 2, 1]
-        
+
   snow_default:
     standard_name: snow
     operations:
@@ -150,7 +145,7 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1.7, 1.7, 1.7]
-        
+
   day_microphysics_default:
     standard_name: day_microphysics
     operations:
@@ -164,7 +159,7 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 2.5, 1]
-        
+
   day_microphysics_winter:
     standard_name: day_microphysics_winter
     operations:
@@ -191,11 +186,12 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
   reflectance:
-    standard_name: reflectance
+    standard_name: toa_bidirectional_reflectance
     operations:
     - name: stretch
       method: *stretchfun
       kwargs: {stretch: linear}
+
   sar-ice:
     standard_name: sar-ice
     operations:
@@ -208,6 +204,28 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 1.2, 1]
+
+  sar-rgb:
+    standard_name: sar-rgb
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+    - name: inverse
+      method: *inversefun
+      args:
+      - [true, true, true]
+
+  sar-quick:
+    standard_name: sar-quick
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.2, 0.02]
+
   natural_with_ir_night:
     standard_name: natural_with_night_fog
     operations:
@@ -590,3 +608,18 @@ enhancements:
       method: *stretchfun
       kwargs: {stretch: linear}
 
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    operations:
+      - name: inverse
+        method: *inversefun
+        args:
+          - [True, false]
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: linear
+      - name: 3d
+        method: *3d_filter
+        kwargs:
+          weight: 1.0

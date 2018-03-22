@@ -13,13 +13,14 @@ install:
 - pip install -U setuptools
 - pip install .
 - pip install h5py
-- pip install coveralls
+- pip install coveralls codecov
 - pip install pyorbital
 - pip install behave
 - pip install h5netcdf
 - pip install python-hdf4
 - "pip install --no-binary :all: netCDF4"
 - pip install gdal==1.10.0
+- pip install scipy
 addons:
   apt_packages:
     - libgdal-dev
@@ -31,7 +32,9 @@ addons:
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
-after_success: coveralls
+after_success:
+- coveralls
+- codecov
 deploy:
   provider: pypi
   user: Martin.Raspaud

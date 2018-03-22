@@ -196,51 +196,43 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
-        i = {}
-        i.update(ds_info)
-        for a in ['standard_name', 'units', 'long_name', 'flag_meanings', 'flag_values', 'flag_masks']:
-            attr_path = var_name + '/attr/' + a
-            if attr_path in self:
-                i[a] = self[attr_path]
-
-        u = i.get('units')
+        shape = self.get_shape(dataset_id, ds_info)
+        info = getattr(self[var_name], 'attrs', {})
+        info['shape'] = shape
+        info.update(ds_info)
+        u = info.get('units')
         if u in CF_UNITS:
             # CF compliance
-            i['units'] = CF_UNITS[u]
+            info['units'] = CF_UNITS[u]
 
-        i['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
-        i['platform'] = self.get_platform(self['/attr/Platform_Name'])
-        i['resolution'] = dataset_id.resolution
+        info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
+        info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
+        info['resolution'] = dataset_id.resolution
         if var_name == 'pixel_longitude':
-            i['standard_name'] = 'longitude'
+            info['standard_name'] = 'longitude'
         elif var_name == 'pixel_latitude':
-            i['standard_name'] = 'latitude'
+            info['standard_name'] = 'latitude'
 
-        return i
+        return info
 
-    def get_dataset(self, dataset_id, ds_info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
         var_name = ds_info.get('file_key', dataset_id.name)
         # FUTURE: Metadata retrieval may be separate
-        i = self.get_metadata(dataset_id, ds_info)
+        info = self.get_metadata(dataset_id, ds_info)
         data = self[var_name][yslice, xslice]
         fill = self[var_name + '/attr/_FillValue']
         factor = self.get(var_name + '/attr/scale_factor')
         offset = self.get(var_name + '/attr/add_offset')
         valid_range = self.get(var_name + '/attr/valid_range')
 
-        mask = data == fill
+        data = data.where(data != fill)
         if valid_range is not None:
-            mask |= (data < valid_range[0]) | (data > valid_range[1])
-        data = data.astype(out.data.dtype)
+            data = data.where((data >= valid_range[0]) & (data <= valid_range[1]))
         if factor is not None and offset is not None:
-            data *= factor
-            data += offset
+            data = data * factor + offset
 
-        out.data[:] = data
-        out.mask[:] |= mask
-        out.info.update(i)
-        return out
+        data.attrs.update(info)
+        return data
 
 
 class GEOCATYAMLReader(FileYAMLReader):

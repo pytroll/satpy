@@ -8,7 +8,9 @@ reader:
 file_types:
   native_msg:
     file_reader: !!python/name:satpy.readers.native_msg.NativeMSGFileHandler ''
-    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{processing_time2:%Y%m%d%H%M%S}-{order_id:d}.nat']
+    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{processing_time2:%Y%m%d%H%M%S}-{order_id:d}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-NA.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{order_id:d}.nat']
 
 datasets:
   HRV:

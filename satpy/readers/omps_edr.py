@@ -65,10 +65,11 @@ class EDRFileHandler(HDF5FileHandler):
             return factors
         return np.array(factors)
 
-    def get_dataset(self, dataset_id, ds_info, out=None):
+    def get_metadata(self, dataset_id, ds_info):
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
-        dtype = ds_info.get('dtype', np.float32)
-        shape = self.get_shape(dataset_id, ds_info)
+        info = getattr(self[var_path], 'attrs', {})
+        info.update(ds_info)
+
         file_units = ds_info.get('file_units')
         if file_units is None:
             file_units = self.get(var_path + '/attr/units', self.get(var_path + '/attr/Units'))
@@ -79,10 +80,23 @@ class EDRFileHandler(HDF5FileHandler):
         elif file_units == 'Unitless':
             file_units = '1'
 
-        if out is None:
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
+        info.update({
+            "shape": self.get_shape(dataset_id, ds_info),
+            "file_units": file_units,
+            "units": ds_info.get("units", file_units),
+            "platform_name": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+        })
+        info.update(dataset_id.to_dict())
+        if 'standard_name' not in ds_info:
+            info['standard_name'] = self.get(var_path + '/attr/Title', dataset_id.name)
+        return info
 
+    def get_dataset(self, dataset_id, ds_info):
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self.get(var_path + '/attr/valid_range',
                                         self.get(var_path + '/attr/ValidRange', (None, None)))
         if valid_min is None or valid_max is None:
@@ -93,7 +107,7 @@ class EDRFileHandler(HDF5FileHandler):
         else:
             fill_value = None
 
-        out.data[:] = np.require(self[var_path][:], dtype=dtype)
+        data = self[var_path]
         scale_factor_path = var_path + '/attr/ScaleFactor'
         if scale_factor_path in self:
             scale_factor = self[scale_factor_path]
@@ -104,30 +118,17 @@ class EDRFileHandler(HDF5FileHandler):
 
         if valid_min is not None and valid_max is not None:
             # the original .cfg/INI based reader only checked valid_max
-            out.mask[:] |= (out.data > valid_max) | (out.data < valid_min)
+            data = data.where((data <= valid_max) & (data >= valid_min))
         if fill_value is not None:
-            out.mask[:] |= out.data == fill_value
+            data = data.where(data != fill_value)
 
         factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
+        factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
-            out.data[:] *= factors[0]
-            out.data[:] += factors[1]
+            data = data * factors[0] + factors[1]
 
-        i = getattr(out, 'info', {})
-        i.update(ds_info)
-        i.update({
-            "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
-            "sensor": self.sensor_name,
-            "start_orbit": self.start_orbit_number,
-            "end_orbit": self.end_orbit_number,
-        })
-        i.update(dataset_id.to_dict())
-        if 'standard_name' not in ds_info:
-            i['standard_name'] = self.get(var_path + '/attr/Title', dataset_id.name)
-        cls = ds_info.pop("container", Dataset)
-        return cls(out.data, mask=out.mask, copy=False, **i)
+        data.attrs.update(metadata)
+        return data
 
 
 class EDREOSFileHandler(EDRFileHandler):

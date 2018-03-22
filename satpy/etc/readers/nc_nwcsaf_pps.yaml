@@ -1,6 +1,6 @@
 reader:
   description: NetCDF4 reader for the NWCSAF/PPS 2014 format
-  name: nc_nwcsaf
+  name: nc_nwcsaf_pps
   sensors: ['avhrr-3', 'viirs', 'modis']
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -8,15 +8,21 @@ reader:
 file_types:
     nc_nwcsaf_cma:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CMA_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CMA_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CMA_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_ct:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CT_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CT_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CT_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_ctth:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
-        file_patterns: ['S_NWC_CTTH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_patterns: ['S_NWC_CTTH_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CTTH_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc',
+        'W_XX-EUMETSAT-Darmstadt,SING+LEV+SAT,{platform_id}+CTTH_C_EUMS_{start_time:%Y%m%d%H%M%S}_{orbit_number}.nc.bz2']
 
     nc_nwcsaf_pc:
         file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
@@ -32,12 +38,18 @@ datasets:
 
   lon:
     name: lon
-    file_type: nc_nwcsaf_cma
+    file_type:
+    - nc_nwcsaf_cma
+    - nc_nwcsaf_ct
+    - nc_nwcsaf_ctth
     units: "degrees"
     standard_name: longitude
   lat:
     name: lat
-    file_type: nc_nwcsaf_cma
+    file_type:
+    - nc_nwcsaf_cma
+    - nc_nwcsaf_ct
+    - nc_nwcsaf_ctth
     units: "degrees"
     standard_name: latitude
 
@@ -67,10 +79,30 @@ datasets:
     name: ct
     file_type: nc_nwcsaf_ct
     coordinates: [lon, lat]
+    standard_name: cloudtype
+
+  ct_conditions:
+    name: ct_conditions
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_conditions
+
+  ct_quality:
+    name: ct_quality
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_quality
+
+  ct_status_flag:
+    name: ct_status_flag
+    file_type: nc_nwcsaf_ct
+    coordinates: [lon, lat]
+    standard_name: cloudtype_status_flag
 
   ct_pal:
     name: ct_pal
     file_type: nc_nwcsaf_ct
+    standard_name: palette
 
 # ---- PC products ------------
 
@@ -114,6 +146,22 @@ datasets:
   ctth_alti_pal:
     name: ctth_alti_pal
     file_type: nc_nwcsaf_ctth
+
+  ctth_quality:
+    name: ctth_quality
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_conditions:
+    name: ctth_conditions
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
+  ctth_status_flag:
+    name: ctth_status_flag
+    file_type: nc_nwcsaf_ctth
+    coordinates: [lon, lat]
+
 
   ctth_pres:
     name: ctth_pres

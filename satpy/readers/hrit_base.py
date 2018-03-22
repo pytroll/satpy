@@ -28,9 +28,11 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
+import dask.array as da
 from pyresample import geometry
-from satpy.dataset import Dataset
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('hrit_base')
@@ -93,33 +95,46 @@ base_hdr_map = {0: primary_header,
 
 
 def dec10216(inbuf):
+
+    """
+
+    ::
+
+        /*
+         * pack 4 10-bit words in 5 bytes into 4 16-bit words
+         *
+         * 0       1       2       3       4       5
+         * 01234567890123456789012345678901234567890
+         * 0         1         2         3         4
+         */
+        ip = &in_buffer[i];
+        op = &out_buffer[j];
+        op[0] = ip[0]*4 + ip[1]/64;
+        op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
+        op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
+        op[3] = (ip[3] & 0x03)*256 +ip[4];
+
+    """
+
     arr10 = inbuf.astype(np.uint16)
-    arr16 = np.zeros((int(len(arr10) * 4 / 5),), dtype=np.uint16)
-    arr10_len = int((len(arr16) * 5) / 4)
+    arr16_len = int(len(arr10) * 4 / 5)
+    arr10_len = int((arr16_len * 5) / 4)
     arr10 = arr10[:arr10_len]  # adjust size
-    """
-    /*
-     * pack 4 10-bit words in 5 bytes into 4 16-bit words
-     *
-     * 0       1       2       3       4       5
-     * 01234567890123456789012345678901234567890
-     * 0         1         2         3         4
-     */
-    ip = &in_buffer[i];
-    op = &out_buffer[j];
-    op[0] = ip[0]*4 + ip[1]/64;
-    op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
-    op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
-    op[3] = (ip[3] & 0x03)*256 +ip[4];
-    """
-    arr16.flat[::4] = np.left_shift(arr10[::5], 2) + \
-        np.right_shift((arr10[1::5]), 6)
-    arr16.flat[1::4] = np.left_shift((arr10[1::5] & 63), 4) + \
-        np.right_shift((arr10[2::5]), 4)
-    arr16.flat[2::4] = np.left_shift(arr10[2::5] & 15, 6) + \
-        np.right_shift((arr10[3::5]), 2)
-    arr16.flat[3::4] = np.left_shift(arr10[3::5] & 3, 8) + \
-        arr10[4::5]
+
+    # dask is slow with indexing
+    arr10_0 = arr10[::5]
+    arr10_1 = arr10[1::5]
+    arr10_2 = arr10[2::5]
+    arr10_3 = arr10[3::5]
+    arr10_4 = arr10[4::5]
+
+    arr16_0 = (arr10_0 << 2) + (arr10_1 >> 6)
+    arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
+    arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
+    arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
+    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
+    arr16 = da.rechunk(arr16, arr16.shape[0])
+
     return arr16
 
 
@@ -189,18 +204,15 @@ class HRITFileHandler(BaseFileHandler):
     def end_time(self):
         return self._end_time
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
-        to_return = out is None
-        if out is None:
-            nlines = int(self.mda['number_of_lines'])
-            ncols = int(self.mda['number_of_columns'])
-            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        # Read bands
+        data = self.read_band(key, info)
 
-        self.read_band(key, info, out, xslice, yslice)
+        # Convert to xarray
+        xdata = xr.DataArray(data, dims=['y', 'x'])
 
-        if to_return:
-            from satpy.yaml_reader import Shuttle
-            return Shuttle(out.data, out.mask, out.info)
+        return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -274,44 +286,27 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def read_band(self, key, info,
-                  out=None, xslice=slice(None), yslice=slice(None)):
+    def read_band(self, key, info):
         """Read the data"""
         # TODO slicing !
         tic = datetime.now()
 
-        with open(self.filename, "rb") as fp_:
-            fp_.seek(self.mda['total_header_length'])
-            if self.mda['number_of_bits_per_pixel'] == 10:
-                data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
-                                                      self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            elif self.mda['number_of_bits_per_pixel'] == 16:
-                data = np.fromfile(fp_, dtype='>u2', count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
-                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            elif self.mda['number_of_bits_per_pixel'] == 8:
-                data = np.fromfile(fp_, dtype='>u1', count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
-                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            out.mask[:] = out.data == 0
-        logger.debug("Reading time " + str(datetime.now() - tic))
+        shape = int(np.ceil(self.mda['data_field_length'] / 8.))
+        if self.mda['number_of_bits_per_pixel'] == 16:
+            dtype = '>u2'
+            shape /= 2
+        elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
+            dtype = np.uint8
+        shape = (shape, )
 
-        # new_info = dict(units=info['units'],
-        #                 standard_name=info['standard_name'],
-        #                 wavelength=info['wavelength'],
-        #                 resolution='resolution',
-        #                 id=key,
-        #                 name=key.name,
-        #                 platform_name=self.platform_name,
-        #                 sensor=self.sensor,
-        #                 satellite_longitude=float(
-        #                     self.nav_info['SSP_longitude']),
-        #                 satellite_latitude=float(
-        #                     self.nav_info['SSP_latitude']),
-        #                 satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-        #                                          self.proj_info['earth_equatorial_radius']) * 1000)
-        # out.info.update(new_info)
+        data = np.memmap(self.filename, mode='r',
+                         offset=self.mda['total_header_length'],
+                         dtype=dtype,
+                         shape=shape)
+        data = da.from_array(data, chunks=shape[0])
+        if self.mda['number_of_bits_per_pixel'] == 10:
+            data = dec10216(data)
+        data = data.reshape((self.mda['number_of_lines'],
+                             self.mda['number_of_columns']))
+        logger.debug("Reading time " + str(datetime.now() - tic))
+        return data

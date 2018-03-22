@@ -20,13 +20,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta
 
 import numpy as np
 import six
 
 from pyresample.geometry import SwathDefinition
-from satpy.dataset import combine_info
+from satpy.dataset import combine_metadata
 
 
 # what about file pattern and config ?
@@ -58,6 +58,11 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
     def get_bounding_box(self):
+        """Get the bounding box of the files, as a (lons, lats) tuple.
+
+        The tuple return should a lons and lats list of coordinates traveling
+        clockwise around the points available in the file.
+        """
         raise NotImplementedError
 
     def combine_info(self, all_infos):
@@ -80,7 +85,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          Also, concatenate the areas.
 
         """
-        combined_info = combine_info(*all_infos)
+        combined_info = combine_metadata(*all_infos)
         if 'start_time' not in combined_info and 'start_time' in all_infos[0]:
             combined_info['start_time'] = min(
                 i['start_time'] for i in all_infos)
