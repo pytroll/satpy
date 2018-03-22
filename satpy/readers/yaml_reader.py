@@ -99,6 +99,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             # correct separator if needed
             file_patterns = [os.path.join(*pattern.split('/'))
                              for pattern in filetype_info['file_patterns']]
+            filetype_info['file_patterns'] = file_patterns
             self.file_patterns.extend(file_patterns)
 
         if not isinstance(self.info['sensors'], (list, tuple)):
