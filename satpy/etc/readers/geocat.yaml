@@ -30,8 +30,6 @@ datasets:
     name: B01
     sensor: ahi
     wavelength: [0.45,0.47,0.49]
-    # FIXME: The resolution depends on the input files
-    resolution: 1000
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_1_reflectance
@@ -45,7 +43,6 @@ datasets:
     name: B02
     sensor: ahi
     wavelength: [0.49,0.51,0.53]
-    resolution: 1000
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_2_reflectance
@@ -59,7 +56,6 @@ datasets:
     name: B03
     sensor: ahi
     wavelength: [0.62,0.64,0.66]
-    resolution: 500
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_3_reflectance
@@ -73,7 +69,6 @@ datasets:
     name: B04
     sensor: ahi
     wavelength: [0.83, 0.85, 0.87]
-    resolution: 1000
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_4_reflectance
@@ -87,7 +82,6 @@ datasets:
     name: B05
     sensor: ahi
     wavelength: [1.5, 1.6, 1.7]
-    resolution: 2000
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_5_reflectance
@@ -101,7 +95,6 @@ datasets:
     name: B06
     sensor: ahi
     wavelength: [2.2, 2.3, 2.4]
-    resolution: 2000
     calibration:
       reflectance:
         file_key: himawari_8_ahi_channel_6_reflectance
@@ -115,7 +108,6 @@ datasets:
     name: B07
     sensor: ahi
     wavelength: [3.7, 3.9, 4.1]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_7_brightness_temperature
@@ -129,7 +121,6 @@ datasets:
     name: B08
     sensor: ahi
     wavelength: [6.0, 6.2, 6.4]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_8_brightness_temperature
@@ -143,7 +134,6 @@ datasets:
     name: B09
     sensor: ahi
     wavelength: [6.7, 6.9, 7.1]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_9_brightness_temperature
@@ -157,7 +147,6 @@ datasets:
     name: B10
     sensor: ahi
     wavelength: [7.1, 7.3, 7.5]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_10_brightness_temperature
@@ -171,7 +160,6 @@ datasets:
     name: B11
     sensor: ahi
     wavelength: [8.4, 8.6, 8.8]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_11_brightness_temperature
@@ -185,7 +173,6 @@ datasets:
     name: B12
     sensor: ahi
     wavelength: [9.4, 9.6, 9.8]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_12_brightness_temperature
@@ -199,7 +186,6 @@ datasets:
     name: B13
     sensor: ahi
     wavelength: [10.2, 10.4, 10.6]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_13_brightness_temperature
@@ -213,7 +199,6 @@ datasets:
     name: B14
     sensor: ahi
     wavelength: [11.0, 11.2, 11.4]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_14_brightness_temperature
@@ -227,7 +212,6 @@ datasets:
     name: B15
     sensor: ahi
     wavelength: [12.2, 12.4, 12.6]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_15_brightness_temperature
@@ -241,7 +225,6 @@ datasets:
     name: B16
     sensor: ahi
     wavelength: [13.1, 13.3, 13.5]
-    resolution: 2000
     calibration:
       brightness_temperature:
         file_key: himawari_8_ahi_channel_16_brightness_temperature
