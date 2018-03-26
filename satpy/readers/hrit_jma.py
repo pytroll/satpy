@@ -29,7 +29,7 @@ References:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -37,8 +37,7 @@ import xarray as xr
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
+                                     image_data_function)
 
 logger = logging.getLogger('hrit_jma')
 
@@ -102,9 +101,7 @@ def recarray2dict(arr):
 
 
 class HRITJMAFileHandler(HRITFileHandler):
-
-    """JMA HRIT format reader
-    """
+    """JMA HRIT format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -155,8 +152,6 @@ class HRITJMAFileHandler(HRITFileHandler):
         ncols = int(self.mda['number_of_columns'])
 
         segment_number = self.mda['segment_sequence_number'] - 1
-        total_segments = (self.mda['planned_end_segment_number'] -
-                          self.mda['planned_start_segment_number'] + 1)
 
         loff -= segment_number * nlines
 
@@ -200,7 +195,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         tic = datetime.now()
 
         if calibration == 'counts':
-            return
+            return data
         elif calibration == 'radiance':
             raise NotImplementedError("Can't calibrate to radiance.")
         else:
@@ -218,37 +213,3 @@ class HRITJMAFileHandler(HRITFileHandler):
         res = res.where(data > 0)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
-
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()
