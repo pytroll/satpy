@@ -102,6 +102,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return GEO_PROJS[platform].format(lon_0=ref_lon)
 
     @property
+    def sensor_names(self):
+        return [self.get_sensor(self['/attr/Sensor_Name'])]
+
+    @property
     def start_time(self):
         return self.filename_info['start_time']
 
@@ -232,6 +236,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             data = data * factor + offset
 
         data.attrs.update(info)
+        data = data.rename({'lines': 'y', 'elements': 'x'})
         return data
 
 
