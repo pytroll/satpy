@@ -62,8 +62,7 @@ class TestAHIComposites(unittest.TestCase):
         self.assertEqual(res.attrs['standard_name'],
                          'toa_bidirectional_reflectance')
         data = res.compute()
-        print(data)
-        np.testing.assert_allclose(data, 0.28025)
+        np.testing.assert_allclose(data, 0.2575)
 
 
 def suite():
