@@ -24,9 +24,7 @@
 """
 
 import logging
-import os
 from datetime import datetime
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
@@ -40,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
-
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -82,21 +79,22 @@ class NCOLCIBase(BaseFileHandler):
 class NCOLCICal(NCOLCIBase):
     pass
 
+
 class NCOLCIGeo(NCOLCIBase):
     pass
 
-class NCOLCIChannelBase(NCOLCIBase):
 
+class NCOLCIChannelBase(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
-                                         filetype_info)
+                                                filetype_info)
         self.channel = filename_info['dataset_name']
 
-class NCOLCI1B(NCOLCIChannelBase):
 
+class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal):
         super(NCOLCI1B, self).__init__(filename, filename_info,
-                                         filetype_info)
+                                       filetype_info)
         self.cal = cal.nc
 
     def _get_solar_flux_old(self, band):
@@ -135,10 +133,11 @@ class NCOLCI1B(NCOLCIChannelBase):
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        def get_items(idx):
+        def get_items(idx, solar_flux):
             return solar_flux[idx]
 
-        return da.map_blocks(get_items, d_index.data, dtype=solar_flux.dtype)
+        return da.map_blocks(get_items, d_index.data, solar_flux=solar_flux,
+                             dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""

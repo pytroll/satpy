@@ -305,7 +305,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         return res
 
     def _calibrate(self, data):
-        """Visible/IR channel calibration"""
+        """Visible/IR channel calibration."""
         lut = self.prologue['ImageCalibration'][self.chid]
         if abs(lut).max() > 16777216:
             lut = lut.astype(np.float64)

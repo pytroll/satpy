@@ -32,7 +32,6 @@ import xarray as xr
 
 import dask.array as da
 from pyresample import geometry
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('hrit_base')
@@ -69,6 +68,7 @@ def make_time_cds_short(tcds_array):
             timedelta(days=int(tcds_array['days']),
                       milliseconds=int(tcds_array['milliseconds'])))
 
+
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
 
@@ -95,8 +95,7 @@ base_hdr_map = {0: primary_header,
 
 
 def dec10216(inbuf):
-
-    """
+    """Decode 10 bits data into 16 bits words.
 
     ::
 
@@ -115,7 +114,6 @@ def dec10216(inbuf):
         op[3] = (ip[3] & 0x03)*256 +ip[4];
 
     """
-
     arr10 = inbuf.astype(np.uint16)
     arr16_len = int(len(arr10) * 4 / 5)
     arr10_len = int((arr16_len * 5) / 4)
@@ -139,7 +137,6 @@ def dec10216(inbuf):
 
 
 class HRITFileHandler(BaseFileHandler):
-
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
@@ -162,8 +159,13 @@ class HRITFileHandler(BaseFileHandler):
                     current_hdr = np.fromfile(fp,
                                               dtype=the_type,
                                               count=field_length)
-                    self.mda[variable_length_headers[
-                        the_type]] = current_hdr
+                    key = variable_length_headers[the_type]
+                    if key in self.mda:
+                        if not isinstance(self.mda[key], list):
+                            self.mda[key] = [self.mda[key]]
+                        self.mda[key].append(current_hdr)
+                    else:
+                        self.mda[key] = current_hdr
                 elif the_type in text_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
@@ -258,10 +260,6 @@ class HRITFileHandler(BaseFileHandler):
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
 
-        segment_number = self.mda['segment_sequence_number']
-        total_segments = (self.mda['planned_end_segment_number'] -
-                          self.mda['planned_start_segment_number'] + 1)
-
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
                                            (lfac, cfac),
@@ -287,7 +285,7 @@ class HRITFileHandler(BaseFileHandler):
         return area
 
     def read_band(self, key, info):
-        """Read the data"""
+        """Read the data."""
         # TODO slicing !
         tic = datetime.now()
 
