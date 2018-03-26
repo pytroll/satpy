@@ -114,3 +114,8 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     @property
     def end_time(self):
         return self.filename_info.get('end_time', self.start_time)
+
+    @property
+    def sensor_names(self):
+        """List of sensors represented in this file."""
+        raise NotImplementedError
