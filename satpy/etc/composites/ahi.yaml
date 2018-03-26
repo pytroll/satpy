@@ -49,13 +49,14 @@ composites:
     standard_name: natural
 
   true_color:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 0.65
       modifiers: [sunz_corrected]  #, rayleigh_corrected]
     - name: green
     - wavelength: 0.46
       modifiers: [sunz_corrected]  #, rayleigh_corrected]
+    high_resolution_band: red
     standard_name: true_color
 
 #  true_color_reducedsize_land:
