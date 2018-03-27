@@ -577,8 +577,8 @@ class NativeResampler(BaseResampler):
 
         out_shape = target_geo_def.shape
         in_shape = data.shape
-        y_repeats = out_shape[y_axis] / float(in_shape[y_axis])
-        x_repeats = out_shape[x_axis] / float(in_shape[x_axis])
+        y_repeats = out_shape[0] / float(in_shape[y_axis])
+        x_repeats = out_shape[1] / float(in_shape[x_axis])
         repeats = {
             y_axis: y_repeats,
             x_axis: x_repeats,
@@ -597,6 +597,9 @@ class NativeResampler(BaseResampler):
                 coords['y'] = y_coord
             if 'x' in data.coords:
                 coords['x'] = x_coord
+        for dim in data.dims:
+            if dim not in ['y', 'x'] and dim in data.coords:
+                coords[dim] = data.coords[dim]
 
         return xr.DataArray(d_arr,
                             dims=data.dims,
