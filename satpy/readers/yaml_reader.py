@@ -104,11 +104,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         if not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
-        self.sensor_names = self.info['sensors']
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
         self.ids = {}
         self.load_ds_ids_from_config()
+
+    @property
+    def sensor_names(self):
+        return self.info['sensors']
 
     @property
     def all_dataset_ids(self):
@@ -395,6 +398,23 @@ class FileYAMLReader(AbstractYAMLReader):
         if kwargs:
             logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
         self.coords_cache = WeakValueDictionary()
+
+    @property
+    def sensor_names(self):
+        if not self.file_handlers:
+            return self.info['sensors']
+
+        file_handlers = (handlers[0] for handlers in
+                         self.file_handlers.values())
+        sensor_names = set()
+        for fh in file_handlers:
+            try:
+                sensor_names.update(fh.sensor_names)
+            except NotImplementedError:
+                continue
+        if not sensor_names:
+            return self.info['sensors']
+        return sorted(sensor_names)
 
     @property
     def available_dataset_ids(self):
