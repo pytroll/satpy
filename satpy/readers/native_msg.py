@@ -159,7 +159,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
         # Set the list of available channels:
         chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
-            'SelectedBandIDs'][0][-1].strip()
+            'SelectedBandIDs'][0][-1].strip().decode()
 
         for item, chmark in zip(CHANNEL_LIST, chlist_str):
             self.available_channels[item] = (chmark == 'X')
