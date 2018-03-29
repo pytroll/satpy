@@ -154,8 +154,8 @@ class Msg15NativeHeaderRecord(object):
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
             ('15_SECONDARY_PRODUCT_HEADER',
              L15SecondaryProductHeaderRecord().get()),
-            #('GP_PK_HEADER', GpPkHeaderRecord().get()),
-            #('GP_PK_SH1', GpPkSh1Record().get()),
+            # ('GP_PK_HEADER', GpPkHeaderRecord().get()),
+            # ('GP_PK_SH1', GpPkSh1Record().get()),
             ('GP_PK_HEADER', GSDTRecords().gp_pk_header),
             ('GP_PK_SH1', GSDTRecords().gp_pk_sh1),
             ('15_DATA_HEADER', L15DataHeaderRecord().get())
@@ -170,8 +170,8 @@ class L15PhData(object):
     def l15_ph_data(self):
 
         record = [
-            ('Name', (np.str, 30)),
-            ('Value', (np.str, 50))
+            ('Name', 'S30'),
+            ('Value', 'S50')
         ]
 
         return record
@@ -221,9 +221,9 @@ class L15MainProductHeaderRecord(L15PhData):
     def l15_ph_data_identification(self):
 
         record = [
-            ('Name', (np.str, 30)),
-            ('Size', (np.str, 16)),
-            ('Address', (np.str, 16))]
+            ('Name', 'S30'),
+            ('Size', 'S16'),
+            ('Address', 'S16')]
 
         return record
 
@@ -480,8 +480,8 @@ class L15DataHeaderRecord(GSDTRecords):
         ephemeris = [
             ('PeriodTimeStart', self.time_cds_short),
             ('PeriodTimeEnd', self.time_cds_short),
-            ('RelatedOrbitFileTime', (np.str, 15)),
-            ('RelatedAttitudeFileTime', (np.str, 15)),
+            ('RelatedOrbitFileTime', 'S15'),
+            ('RelatedAttitudeFileTime', 'S15'),
             ('EarthEphemeris', (earth_moon_sun_coeff, 100)),
             ('MoonEphemeris', (earth_moon_sun_coeff, 100)),
             ('SunEphemeris', (earth_moon_sun_coeff, 100)),
@@ -602,8 +602,8 @@ class L15DataHeaderRecord(GSDTRecords):
             ('FCURedundantBlackBodySensorTemp', np.uint16)]
 
         fcu_mode = [
-            ('FCUNominalSMMStatus', (np.str, 2)),
-            ('FCURedundantSMMStatus', (np.str, 2))]
+            ('FCUNominalSMMStatus', 'S2'),
+            ('FCURedundantSMMStatus', 'S2')]
 
         extracted_bb_data = [
             ('NumberOfPixelsUsed', np.uint32),
@@ -642,7 +642,7 @@ class L15DataHeaderRecord(GSDTRecords):
             ('ImageQualityFlag', np.uint8),
             ('ReferenceDataFlag', np.uint8),
             ('AbsCalMethod', np.uint8),
-            ('Pad1', (np.str, 1)),
+            ('Pad1', 'S1'),
             ('AbsCalWeightVic', np.float32),
             ('AbsCalWeightXsat', np.float32),
             ('AbsCalCoeff', np.float32),
