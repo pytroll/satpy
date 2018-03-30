@@ -31,6 +31,12 @@ class TestABIComposites(unittest.TestCase):
 
     """Test ABI-specific composites."""
 
+    def test_load_composite_yaml(self):
+        """Test loading the yaml for this sensor."""
+        from satpy.composites import CompositorLoader
+        cl = CompositorLoader()
+        cl.load_sensor_composites('abi')
+
     def test_simulated_green(self):
         """Test creating a fake 'green' band."""
         import xarray as xr
