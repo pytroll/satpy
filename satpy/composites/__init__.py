@@ -446,7 +446,7 @@ class PSPRayleighReflectance(CompositeBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs['name'],
                                                       red.data)
-        except KeyError as e:
+        except KeyError:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
