@@ -532,6 +532,16 @@ class NativeResampler(BaseResampler):
         if all(x == 1 for x in repeats.values()):
             return d_arr
         elif all(x >= 1 for x in repeats.values()):
+            # rechunk so new chunks are the same size as old chunks
+            c_size = max(x[0] for x in d_arr.chunks)
+
+            def _calc_chunks(c, c_size):
+                return tuple(([c_size] * int(sum(c) // c_size)) +
+                             [sum(c) % c_size])
+            new_chunks = [_calc_chunks(x, c_size // repeats[axis])
+                          for axis, x in enumerate(d_arr.chunks)]
+            d_arr = d_arr.rechunk(new_chunks)
+
             for axis, factor in repeats.items():
                 if not factor.is_integer():
                     raise ValueError("Expand factor must be a whole number")
