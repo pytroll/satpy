@@ -536,9 +536,12 @@ class NativeResampler(BaseResampler):
             c_size = max(x[0] for x in d_arr.chunks)
 
             def _calc_chunks(c, c_size):
-                return tuple(([c_size] * int(sum(c) // c_size)) +
-                             [sum(c) % c_size])
-            new_chunks = [_calc_chunks(x, c_size // repeats[axis])
+                whole_chunks = [c_size] * int(sum(c) // c_size)
+                remaining = sum(c) - sum(whole_chunks)
+                if remaining:
+                    whole_chunks += [remaining]
+                return tuple(whole_chunks)
+            new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
                           for axis, x in enumerate(d_arr.chunks)]
             d_arr = d_arr.rechunk(new_chunks)
 
