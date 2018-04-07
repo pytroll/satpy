@@ -380,6 +380,8 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
 class PSPRayleighReflectance(CompositeBase):
 
+    _rayleigh_cache = WeakValueDictionary()
+
     def get_angles(self, vis):
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
@@ -449,21 +451,26 @@ class PSPRayleighReflectance(CompositeBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-
-        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                             atmosphere=atmosphere,
-                             aerosol_type=aerosol_type)
+        rayleigh_key = (vis.attrs['platform_name'],
+                        vis.attrs['sensor'], atmosphere, aerosol_type)
+        if rayleigh_key not in self._rayleigh_cache:
+            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                                 atmosphere=atmosphere,
+                                 aerosol_type=aerosol_type)
+            self._rayleigh_cache[rayleigh_key] = corrector
+        else:
+            corrector = self._rayleigh_cache[rayleigh_key]
 
         try:
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
-                                          satz, ssadiff, vis.attrs['name'],
-                                          red.data)
-        except KeyError:
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
+                                                      vis.attrs['name'],
+                                                      red.data)
+        except KeyError as e:
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
-                                          satz, ssadiff, vis.attrs['wavelength'][1],
-                                          red.data)
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
+                                                      vis.attrs['wavelength'][1],
+                                                      red.data)
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
@@ -471,6 +478,7 @@ class PSPRayleighReflectance(CompositeBase):
 
 
 class NIRReflectance(CompositeBase):
+    # TODO: Daskify
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel. Not supposed to be used
