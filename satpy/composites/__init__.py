@@ -386,37 +386,18 @@ class PSPRayleighReflectance(CompositeBase):
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
-        def _get_sun_angles(lons, lats, start_time):
-            sunalt, suna = get_alt_az(start_time, lons, lats)
-            suna = xu.rad2deg(suna)
-            sunz = sun_zenith_angle(start_time, lons, lats)
-            return np.stack([suna, sunz])
-
-        def _get_sat_angles(lons, lats, start_time, sat_lon, sat_lat, sat_alt):
-            sata, satel = get_observer_look(sat_lon,
-                                            sat_lat,
-                                            sat_alt,
-                                            start_time,
-                                            lons, lats, 0)
-            return np.stack([sata, satel])
-
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
 
-        res = da.map_blocks(_get_sun_angles, lons, lats,
-                            vis.attrs['start_time'],
-                            dtype=lons.dtype, new_axis=[0],
-                            chunks=(2, lons.chunks[0], lons.chunks[1]))
-
-        suna, sunz = res[0, :, :], res[1, :, :]
-        res = da.map_blocks(_get_sat_angles, lons, lats,
-                            vis.attrs['start_time'],
-                            vis.attrs['satellite_longitude'],
-                            vis.attrs['satellite_latitude'],
-                            vis.attrs['satellite_altitude'],
-                            dtype=lons.dtype, new_axis=[0],
-                            chunks=(2, lons.chunks[0], lons.chunks[1]))
-        sata, satel = res[0, :, :], res[1, :, :]
+        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
+        suna = xu.rad2deg(suna)
+        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        sata, satel = get_observer_look(
+            vis.attrs['satellite_longitude'],
+            vis.attrs['satellite_latitude'],
+            vis.attrs['satellite_altitude'],
+            vis.attrs['start_time'],
+            lons, lats, 0)
         satz = 90 - satel
         return sata, satz, suna, sunz
 
