@@ -445,7 +445,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        self.assertEqual(len(id_list), 5)
+        # ds1, comp1, comp14, comp16
+        self.assertEqual(len(id_list), 4)
 
     def test_available_composite_ids_bad_available(self):
         from satpy import Scene
@@ -889,6 +890,7 @@ class TestSceneLoading(unittest.TestCase):
         """
         import satpy.scene
         from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
         cri.return_value = {'fake_reader': create_fake_reader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
@@ -899,8 +901,21 @@ class TestSceneLoading(unittest.TestCase):
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp18'])
         loaded_ids = list(scene.datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)  # the 1 dependencies
-        self.assertEqual(loaded_ids[0].name, 'ds1')
+        print(loaded_ids)
+        # depends on:
+        #   ds3
+        #   ds4 (mod1, mod3)
+        #   ds5 (mod1, incomp_areas)
+        # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
+        # for the mod1 modifier
+        self.assertEqual(len(loaded_ids), 4)  # the 1 dependencies
+        self.assertIn('ds3', scene.datasets)
+        self.assertIn(DatasetID(name='ds4', calibration='reflectance',
+                                modifiers=('mod1', 'mod3')),
+                      scene.datasets)
+        self.assertIn(DatasetID(name='ds5', resolution=250,
+                                modifiers=('mod1',)),
+                      scene.datasets)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
