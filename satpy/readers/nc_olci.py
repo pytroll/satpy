@@ -88,7 +88,7 @@ class NCOLCIChannelBase(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
-        self.channel = filename_info['dataset_name']
+        self.channel = filename_info.get('dataset_name')
 
 
 class NCOLCI1B(NCOLCIChannelBase):
@@ -164,15 +164,18 @@ class NCOLCI2(NCOLCIChannelBase):
     def get_dataset(self, key, info):
         """Load a dataset
         """
-        if self.channel != key.name:
+        if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-        reflectances = self.nc[self.channel + '_reflectance']
+        if self.channel is not None and self.channel.startswith('Oa'):
+            dataset = self.nc[self.channel + '_reflectance']
+        else:
+            dataset = self.nc[info['nc_key']]
 
-        reflectances.attrs['platform_name'] = self.platform_name
-        reflectances.attrs['sensor'] = self.sensor
-        reflectances.attrs.update(key.to_dict())
-        return reflectances
+        dataset.attrs['platform_name'] = self.platform_name
+        dataset.attrs['sensor'] = self.sensor
+        dataset.attrs.update(key.to_dict())
+        return dataset
 
 
 class NCOLCIAngles(BaseFileHandler):
