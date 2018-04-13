@@ -189,7 +189,7 @@ class GeoTIFFWriter(ImageWriter):
 
         dst_ds.SetMetadata(tags, '')
 
-    def save_image(self, img, filename=None, floating_point=False,
+    def save_image(self, img, filename=None, floating_point=None,
                    compute=True, **kwargs):
         """Save the image to the given *filename* in geotiff_ format.
         `floating_point` allows the saving of
@@ -212,17 +212,13 @@ class GeoTIFFWriter(ImageWriter):
                 "Keyword 'alpha' is automatically set and should not be specified")
         if floating_point:
             if img.mode != "L":
-                raise ValueError(
-                    "Image must be in 'L' mode for floating point geotiff saving")
-            raise NotImplementedError('Floating point saving not yet implemented.')
-            # if img.fill_value is None:
-            #     LOG.warning(
-            #         "Image with floats cannot be transparent, so setting fill_value to 0")
-            #     fill_value = 0
-            # datasets = [img.channels[0].astype(np.float64)]
-            # fill_value = img.fill_value or [0]
-            # gformat = gdal.GDT_Float64
-            # opacity = 0
+                raise ValueError("Image must be in 'L' mode for floating "
+                                 "point geotiff saving")
+            fill_value = np.nan
+            datasets, mode = img._finalize(fill_value=fill_value,
+                                           dtype=np.float64)
+            gformat = gdal.GDT_Float64
+            opacity = 0
         else:
             nbits = int(gdal_options.get("nbits", "8"))
             if nbits > 16:
