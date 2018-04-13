@@ -38,8 +38,23 @@ else:
 
 
 class TestGeoTIFFWriter(unittest.TestCase):
+    """Test the GeoTIFF Writer class."""
+
+    def setUp(self):
+        """Create temporary directory to save files to"""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
 
     def _get_test_datasets(self):
+        """Helper function to create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -52,25 +67,42 @@ class TestGeoTIFFWriter(unittest.TestCase):
         return [ds1]
 
     def test_init(self):
+        """Test creating the writer with no arguments."""
         from satpy.writers.geotiff import GeoTIFFWriter
         w = GeoTIFFWriter()
 
     def test_simple_write(self):
+        """Test basic writer operation."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter()
-        w.save_datasets(datasets)
+        w.save_datasets(datasets, base_dir=self.base_dir)
 
     def test_simple_delayed_write(self):
+        """Test writing can be delayed."""
         from dask.delayed import Delayed
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter()
         # when we switch to rio_save on XRImage then this will be sources
         # and targets
-        res = w.save_datasets(datasets, compute=False)
+        res = w.save_datasets(datasets, compute=False, base_dir=self.base_dir)
         self.assertIsInstance(res, Delayed)
         res.compute()
+
+    def test_float_write(self):
+        """Test that geotiffs can be written as floats.
+
+        NOTE: Does not actually check that the output is floats.
+
+        """
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter()
+        w.save_datasets(datasets,
+                        floating_point=True,
+                        enhancement_config=False,
+                        base_dir=self.base_dir)
 
 
 def suite():
