@@ -2,6 +2,39 @@ Changelog
 =========
 
 
+v0.8.3 (2018-04-13)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.8.2 → 0.8.3. [davidh-ssec]
+- Fix image writing to geotiffs can be saved as unenhanced floats.
+  [davidh-ssec]
+
+  (cherry picked from commit 1bbf0af)
+
+- Merge pull request #249 from davidh-ssec/bugfix-08-float-geotiffs.
+  [David Hoese]
+
+  Fix float geotiff saving on 0.8
+- Add very basic example to geotiff writer docstring for float tiffs.
+  [davidh-ssec]
+
+  (cherry picked from commit b0c15ec)
+
+- Fix image writing to geotiffs can be saved as unenhanced floats.
+  [davidh-ssec]
+
+  (cherry picked from commit 1bbf0af)
+
+- Use no-aerosol/rayleigh only as the default for true color RGBs.
+  [Adam.Dybbroe]
+- Tabs/spaces issue. [ColinDuff]
+- Removed whitespace. [ColinDuff]
+- Moved doc string as per pull request comments. [ColinDuff]
+- Fixed an error when reading native msg format data and updated
+  file_patterns to let eumetsat read their native msg filename format.
+  [cduff65]
+
+
 v0.8.2 (2018-02-12)
 -------------------
 - Update changelog. [davidh-ssec]
