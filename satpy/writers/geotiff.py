@@ -206,9 +206,6 @@ class GeoTIFFWriter(ImageWriter):
         dtype = dtype if dtype is not None else self.dtype
         if dtype is None:
             dtype = np.uint8
-        # force to numpy dtype
-        dtype = np.dtype(dtype)
-        gformat = NP2GDAL[dtype.type]
 
         if "alpha" in kwargs:
             raise ValueError(
@@ -222,16 +219,29 @@ class GeoTIFFWriter(ImageWriter):
                 LOG.debug("Alpha band not supported for float geotiffs, "
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
-        gdal_options['nbits'] = int(gdal_options.get('nbits',
-                                                     dtype.itemsize * 8))
-        datasets, mode = img._finalize(fill_value=fill_value, dtype=dtype)
-        LOG.debug("Saving to GeoTiff: %s", filename)
-        g_opts = ["{0}={1}".format(k.upper(), str(v))
-                  for k, v in gdal_options.items()]
 
-        ensure_dir(filename)
-        delayed = self._create_file(filename, img, gformat, g_opts,
-                                    datasets, mode)
-        if compute:
-            return delayed.compute()
-        return delayed
+        try:
+            import rasterio
+            # we can use the faster rasterio-based save
+            return img.save(filename, fformat='tif', fill_value=fill_value,
+                            dtype=dtype, compute=compute, **gdal_options)
+        except ImportError:
+            LOG.warning("Using legacy/slower geotiff save method, install "
+                        "'rasterio' for faster saving.")
+            # force to numpy dtype object
+            dtype = np.dtype(dtype)
+            gformat = NP2GDAL[dtype.type]
+
+            gdal_options['nbits'] = int(gdal_options.get('nbits',
+                                                         dtype.itemsize * 8))
+            datasets, mode = img._finalize(fill_value=fill_value, dtype=dtype)
+            LOG.debug("Saving to GeoTiff: %s", filename)
+            g_opts = ["{0}={1}".format(k.upper(), str(v))
+                      for k, v in gdal_options.items()]
+
+            ensure_dir(filename)
+            delayed = self._create_file(filename, img, gformat, g_opts,
+                                        datasets, mode)
+            if compute:
+                return delayed.compute()
+            return delayed
