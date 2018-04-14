@@ -221,7 +221,7 @@ class GeoTIFFWriter(ImageWriter):
                 fill_value = np.nan
 
         try:
-            import rasterio
+            import rasterio  # noqa
             # we can use the faster rasterio-based save
             return img.save(filename, fformat='tif', fill_value=fill_value,
                             dtype=dtype, compute=compute, **gdal_options)
