@@ -100,7 +100,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter()
         w.save_datasets(datasets,
-                        floating_point=True,
+                        dtype=np.float32,
                         enhancement_config=False,
                         base_dir=self.base_dir)
 
