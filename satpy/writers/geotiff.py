@@ -35,6 +35,20 @@ from satpy.writers import ImageWriter
 LOG = logging.getLogger(__name__)
 
 
+# Map numpy data types to GDAL data types
+NP2GDAL = {
+    np.float32: gdal.GDT_Float32,
+    np.float64: gdal.GDT_Float64,
+    np.uint8: gdal.GDT_Byte,
+    np.uint16: gdal.GDT_UInt16,
+    np.uint32: gdal.GDT_UInt32,
+    np.int16: gdal.GDT_Int16,
+    np.int32: gdal.GDT_Int32,
+    np.complex64: gdal.GDT_CFloat32,
+    np.complex128: gdal.GDT_CFloat64,
+}
+
+
 class GeoTIFFWriter(ImageWriter):
 
     """Writer to save GeoTIFF images.
@@ -45,8 +59,8 @@ class GeoTIFFWriter(ImageWriter):
 
     Un-enhanced float geotiff with NaN for fill values:
 
-        scn.save_datasets(writer='geotiff', floating_point=True,
-                          enhancement_config=False, fill_value=np.nan)
+        scn.save_datasets(writer='geotiff', dtype=np.float32,
+                          enhancement_config=False)
 
     """
 
@@ -73,14 +87,12 @@ class GeoTIFFWriter(ImageWriter):
                     "pixeltype",
                     "copy_src_overviews", )
 
-    def __init__(self, floating_point=False, tags=None, **kwargs):
+    def __init__(self, dtype=None, tags=None, **kwargs):
         ImageWriter.__init__(self,
                              default_config_filename="writers/geotiff.yaml",
                              **kwargs)
 
-        self.floating_point = bool(self.info.get(
-            "floating_point", None) if floating_point is None else
-            floating_point)
+        self.dtype = self.info.get("dtype") if dtype is None else dtype
         self.tags = self.info.get("tags",
                                   None) if tags is None else tags
         if self.tags is None:
@@ -100,16 +112,14 @@ class GeoTIFFWriter(ImageWriter):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
-        for kw in ['floating_point', 'tags']:
+        for kw in ['dtype', 'tags']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
 
         return init_kwargs, kwargs
 
-    def _gdal_write_datasets(self, dst_ds, datasets, opacity):
-        """Write *datasets* in a gdal raster structure *dts_ds*, using
-        *opacity* as alpha value for valid data, and *fill_value*.
-        """
+    def _gdal_write_datasets(self, dst_ds, datasets):
+        """Write datasets in a gdal raster structure dts_ds"""
         for i, band in enumerate(datasets['bands']):
             chn = datasets.sel(bands=band)
             bnd = dst_ds.GetRasterBand(i + 1)
@@ -141,8 +151,7 @@ class GeoTIFFWriter(ImageWriter):
             LOG.warning(
                 "Can't save geographic information to geotiff, unsupported area type")
 
-    def _create_file(self, filename, img, gformat, g_opts, opacity,
-                     datasets, mode):
+    def _create_file(self, filename, img, gformat, g_opts, datasets, mode):
         num_bands = len(mode)
         if mode[-1] == 'A':
             g_opts.append("ALPHA=YES")
@@ -150,7 +159,7 @@ class GeoTIFFWriter(ImageWriter):
         def _delayed_create(create_opts, datasets, area, start_time, tags):
             raster = gdal.GetDriverByName("GTiff")
             dst_ds = raster.Create(*create_opts)
-            self._gdal_write_datasets(dst_ds, datasets, opacity)
+            self._gdal_write_datasets(dst_ds, datasets)
 
             # Create raster GeoTransform based on upper left corner and pixel
             # resolution ... if not overwritten by argument geotransform.
@@ -172,8 +181,8 @@ class GeoTIFFWriter(ImageWriter):
             self.tags.copy())
         return delayed
 
-    def save_image(self, img, filename=None, floating_point=None,
-                   compute=True, **kwargs):
+    def save_image(self, img, filename=None, dtype=None, fill_value=None,
+                   floating_point=None, compute=True, **kwargs):
         """Save the image to the given *filename* in geotiff_ format.
         `floating_point` allows the saving of
         'L' mode images in floating point format if set to True.
@@ -188,42 +197,41 @@ class GeoTIFFWriter(ImageWriter):
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
 
-        floating_point = floating_point if floating_point is not None else self.floating_point
+        if floating_point is not None:
+            import warnings
+            warnings.warn("'floating_point' is deprecated, use"
+                          "'dtype=np.float64' instead.",
+                          DeprecationWarning)
+            dtype = np.float64
+        dtype = dtype if dtype is not None else self.dtype
+        if dtype is None:
+            dtype = np.uint8
+        # force to numpy dtype
+        dtype = np.dtype(dtype)
+        gformat = NP2GDAL[dtype.type]
 
         if "alpha" in kwargs:
             raise ValueError(
-                "Keyword 'alpha' is automatically set and should not be specified")
-        if floating_point:
+                "Keyword 'alpha' is automatically set based on 'fill_value' "
+                "and should not be specified")
+        if np.issubdtype(dtype, np.floating):
             if img.mode != "L":
                 raise ValueError("Image must be in 'L' mode for floating "
                                  "point geotiff saving")
-            fill_value = np.nan
-            datasets, mode = img._finalize(fill_value=fill_value,
-                                           dtype=np.float64)
-            gformat = gdal.GDT_Float64
-            opacity = 0
-        else:
-            nbits = int(gdal_options.get("nbits", "8"))
-            if nbits > 16:
-                dtype = np.uint32
-                gformat = gdal.GDT_UInt32
-            elif nbits > 8:
-                dtype = np.uint16
-                gformat = gdal.GDT_UInt16
-            else:
-                dtype = np.uint8
-                gformat = gdal.GDT_Byte
-            opacity = np.iinfo(dtype).max
-            datasets, mode = img._finalize(dtype=dtype)
-
+            if fill_value is None:
+                LOG.debug("Alpha band not supported for float geotiffs, "
+                          "setting fill value to 'NaN'")
+                fill_value = np.nan
+        gdal_options['nbits'] = int(gdal_options.get('nbits',
+                                                     dtype.itemsize * 8))
+        datasets, mode = img._finalize(fill_value=fill_value, dtype=dtype)
         LOG.debug("Saving to GeoTiff: %s", filename)
-
         g_opts = ["{0}={1}".format(k.upper(), str(v))
                   for k, v in gdal_options.items()]
 
         ensure_dir(filename)
         delayed = self._create_file(filename, img, gformat, g_opts,
-                                    opacity, datasets, mode)
+                                    datasets, mode)
         if compute:
             return delayed.compute()
         return delayed
