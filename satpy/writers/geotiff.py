@@ -110,84 +110,67 @@ class GeoTIFFWriter(ImageWriter):
         """Write *datasets* in a gdal raster structure *dts_ds*, using
         *opacity* as alpha value for valid data, and *fill_value*.
         """
-        def _write_array(bnd, chn):
-            bnd.WriteArray(chn.values)
-
-        # queue up data writes so we don't waste computation time
-        delayed = []
         for i, band in enumerate(datasets['bands']):
             chn = datasets.sel(bands=band)
             bnd = dst_ds.GetRasterBand(i + 1)
             bnd.SetNoDataValue(0)
-            delay = dask.delayed(_write_array)(bnd, chn)
-            delayed.append(delay)
-        dask.compute(*delayed)
+            bnd.WriteArray(chn.values)
+
+    def _gdal_write_geo(self, dst_ds, area):
+        try:
+            geotransform = [area.area_extent[0], area.pixel_size_x, 0,
+                            area.area_extent[3], 0, -area.pixel_size_y]
+            dst_ds.SetGeoTransform(geotransform)
+            srs = osr.SpatialReference()
+
+            srs.ImportFromProj4(area.proj4_string)
+            srs.SetProjCS(area.proj_id)
+            try:
+                srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
+            except KeyError:
+                pass
+            try:
+                # Check for epsg code.
+                srs.ImportFromEPSG(int(
+                    area.proj_dict['init'].lower().split('epsg:')[1]))
+            except (KeyError, IndexError):
+                pass
+            srs = srs.ExportToWkt()
+            dst_ds.SetProjection(srs)
+        except AttributeError:
+            LOG.warning(
+                "Can't save geographic information to geotiff, unsupported area type")
 
     def _create_file(self, filename, img, gformat, g_opts, opacity,
                      datasets, mode):
-        raster = gdal.GetDriverByName("GTiff")
+        num_bands = len(mode)
+        if mode[-1] == 'A':
+            g_opts.append("ALPHA=YES")
 
-        if mode == "L":
-            dst_ds = raster.Create(filename, img.width, img.height, 1,
-                                   gformat, g_opts)
+        def _delayed_create(create_opts, datasets, area, start_time, tags):
+            raster = gdal.GetDriverByName("GTiff")
+            dst_ds = raster.Create(*create_opts)
             self._gdal_write_datasets(dst_ds, datasets, opacity)
-        elif mode == "LA":
-            g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename, img.width, img.height, 2, gformat,
-                                   g_opts)
-            self._gdal_write_datasets(dst_ds, datasets, datasets)
-        elif mode == "RGB":
-            dst_ds = raster.Create(filename, img.width, img.height, 3,
-                                   gformat, g_opts)
-            self._gdal_write_datasets(dst_ds, datasets, datasets)
 
-        elif mode == "RGBA":
-            g_opts.append("ALPHA=YES")
-            dst_ds = raster.Create(filename, img.width, img.height, 4, gformat,
-                                   g_opts)
+            # Create raster GeoTransform based on upper left corner and pixel
+            # resolution ... if not overwritten by argument geotransform.
+            if "area" is None:
+                LOG.warning("No 'area' metadata found in image")
+            else:
+                self._gdal_write_geo(dst_ds, area)
 
-            self._gdal_write_datasets(dst_ds, datasets, datasets)
-        else:
-            raise NotImplementedError(
-                "Saving to GeoTIFF using image mode %s is not implemented." %
-                mode)
+            if start_time is not None:
+                tags.update({'TIFFTAG_DATETIME': start_time.strftime(
+                    "%Y:%m:%d %H:%M:%S")})
 
-        # Create raster GeoTransform based on upper left corner and pixel
-        # resolution ... if not overwritten by argument geotransform.
-        if "area" not in img.data.attrs:
-            LOG.warning("No 'area' metadata found in image")
-        else:
-            area = img.data.attrs["area"]
-            try:
-                geotransform = [area.area_extent[0], area.pixel_size_x, 0,
-                                area.area_extent[3], 0, -area.pixel_size_y]
-                dst_ds.SetGeoTransform(geotransform)
-                srs = osr.SpatialReference()
+            dst_ds.SetMetadata(tags, '')
 
-                srs.ImportFromProj4(area.proj4_string)
-                srs.SetProjCS(area.proj_id)
-                try:
-                    srs.SetWellKnownGeogCS(area.proj_dict['ellps'])
-                except KeyError:
-                    pass
-                try:
-                    # Check for epsg code.
-                    srs.ImportFromEPSG(int(
-                        area.proj_dict['init'].lower().split('epsg:')[1]))
-                except (KeyError, IndexError):
-                    pass
-                srs = srs.ExportToWkt()
-                dst_ds.SetProjection(srs)
-            except AttributeError:
-                LOG.warning(
-                    "Can't save geographic information to geotiff, unsupported area type")
-
-        tags = self.tags.copy()
-        if "start_time" in img.data.attrs:
-            tags.update({'TIFFTAG_DATETIME': img.data.attrs["start_time"].strftime(
-                "%Y:%m:%d %H:%M:%S")})
-
-        dst_ds.SetMetadata(tags, '')
+        create_opts = (filename, img.width, img.height, num_bands, gformat, g_opts)
+        delayed = dask.delayed(_delayed_create)(
+            create_opts, datasets, img.data.attrs.get('area'),
+            img.data.attrs.get('start_time'),
+            self.tags.copy())
+        return delayed
 
     def save_image(self, img, filename=None, floating_point=None,
                    compute=True, **kwargs):
@@ -239,9 +222,8 @@ class GeoTIFFWriter(ImageWriter):
                   for k, v in gdal_options.items()]
 
         ensure_dir(filename)
-        delayed = dask.delayed(self._create_file)(filename, img, gformat,
-                                                  g_opts, opacity, datasets,
-                                                  mode)
+        delayed = self._create_file(filename, img, gformat, g_opts,
+                                    opacity, datasets, mode)
         if compute:
             return delayed.compute()
         return delayed
