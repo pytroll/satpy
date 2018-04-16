@@ -138,8 +138,8 @@ class TestVIIRSComposites(unittest.TestCase):
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
         comp = ERFDNB('dynamic_dnb', prerequisites=('dnb',),
-                           standard_name='toa_outgoing_radiance_per_'
-                                         'unit_wavelength')
+                      standard_name='toa_outgoing_radiance_per_'
+                                    'unit_wavelength')
         dnb = np.zeros((rows, cols)) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
