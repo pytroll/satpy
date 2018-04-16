@@ -366,10 +366,11 @@ def run_crefl(refl, coeffs,
         #height = np.zeros(lon.shape, dtype=np.float)
         height = 0.
     else:
-        row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
-        col = np.int32((lon + 180.0) * avg_elevation.shape[1] / 360.0)
-        height = np.float64(avg_elevation[row, col])
-        height[height < 0.] = 0.0
+        row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
+        col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
+        height = avg_elevation[row, col].astype(np.float64)
+        # negative heights aren't allowed, clip to 0
+        height = height.where(height >= 0., 0.0)
         del lat, lon, row, col
 
     mus = xu.cos(xu.deg2rad(solar_zenith))
