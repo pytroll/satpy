@@ -162,7 +162,6 @@ class HistogramDNB(CompositeBase):
 
         """
         good_mask = ~(dnb_data.isnull() | sza_data.isnull())
-        # good_mask = ~(dnb_data.mask | sza_data.mask)
         output_dataset = dnb_data.where(good_mask)
         # we only need the numpy array
         output_dataset = output_dataset.values.copy()
@@ -171,7 +170,7 @@ class HistogramDNB(CompositeBase):
 
         day_mask, mixed_mask, night_mask = make_day_night_masks(
             sza_data,
-            good_mask,
+            good_mask.values,
             self.high_angle_cutoff,
             self.low_angle_cutoff,
             stepsDegrees=self.mixed_degree_step)
@@ -276,7 +275,7 @@ class AdaptiveDNB(HistogramDNB):
 
         day_mask, mixed_mask, night_mask = make_day_night_masks(
             sza_data,
-            good_mask,
+            good_mask.values,
             self.high_angle_cutoff,
             self.low_angle_cutoff,
             stepsDegrees=self.mixed_degree_step)
@@ -291,7 +290,7 @@ class AdaptiveDNB(HistogramDNB):
                 local_histogram_equalization(
                     dnb_data,
                     day_mask,
-                    valid_data_mask=good_mask,
+                    valid_data_mask=good_mask.values,
                     local_radius_px=self.day_radius_pixels,
                     out=output_dataset)
             else:
@@ -311,7 +310,7 @@ class AdaptiveDNB(HistogramDNB):
                         local_histogram_equalization(
                             dnb_data,
                             mask,
-                            valid_data_mask=good_mask,
+                            valid_data_mask=good_mask.values,
                             local_radius_px=self.mixed_radius_pixels,
                             out=output_dataset)
                     else:
@@ -327,7 +326,7 @@ class AdaptiveDNB(HistogramDNB):
                 local_histogram_equalization(
                     dnb_data,
                     night_mask,
-                    valid_data_mask=good_mask,
+                    valid_data_mask=good_mask.values,
                     local_radius_px=self.night_radius_pixels,
                     out=output_dataset)
             else:
@@ -577,7 +576,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     returns the equalized data
     """
 
-    out = out if out is not None else np.ma.zeros_like(data)
+    out = out if out is not None else np.zeros_like(data)
     # if we don't have a valid mask, use the mask of what we should be
     # equalizing
     if valid_data_mask is None:
@@ -759,7 +758,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
 
                 # now that we've calculated the weighted sum for this tile, set
                 # it in our data array
-                out.data[min_row:max_row, min_col:max_col][
+                out[min_row:max_row, min_col:max_col][
                     temp_mask_to_equalize] = temp_sum
                 """
                 # TEMP, test without using weights
