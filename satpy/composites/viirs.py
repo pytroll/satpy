@@ -1020,8 +1020,6 @@ class NCCZinke(CompositeBase):
         dnb_data *= gtot
 
         mda['name'] = self.attrs['name']
-        mda.pop('calibration')
-        mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
         dnb_data.attrs = mda
         return dnb_data
