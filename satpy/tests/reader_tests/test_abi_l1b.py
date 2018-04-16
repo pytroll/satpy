@@ -37,8 +37,12 @@ try:
 except ImportError:
     import mock
 
-class FakeDataArray(object):
+
+class FakeDataset(object):
     def __init__(self, info):
+        for var_name, var_data in list(info.items()):
+            if isinstance(var_data, np.ndarray):
+                info[var_name] = xr.DataArray(var_data)
         self.info = info
 
     def __getitem__(self, key):
@@ -47,13 +51,16 @@ class FakeDataArray(object):
     def rename(self, *args, **kwargs):
         return self
 
+    def close(self):
+        return
+
 
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr):
         """Setup for test."""
-        xr.open_dataset.return_value = FakeDataArray({
+        xr.open_dataset.return_value = FakeDataset({
             'band_id': np.array(8),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -86,7 +93,7 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr):
         """Setup for test."""
-        xr.open_dataset.return_value = FakeDataArray({
+        xr.open_dataset.return_value = FakeDataset({
             'band_id': np.array(5),
             'Rad': np.arange(10.).reshape((2, 5)),
             "planck_fk1": np.array(13432.1),
@@ -116,30 +123,32 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
 class Test_NC_ABI_L1B_area(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
     @mock.patch('satpy.readers.abi_l1b.xr')
-    def setUp(self, xr):
+    def setUp(self, xr_):
         """Setup for test."""
-        proj = mock.MagicMock()
-        proj.attrs = {'semi_major_axis': np.array(1.),
-                      'semi_minor_axis': np.array(1.),
-                      'perspective_point_height': np.array(1.),
-                      'longitude_of_projection_origin': np.array(-90.),
-                      'sweep_angle_axis': u'x'
-                      }
-        x__ = mock.MagicMock()
-        x__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
-        x__.__getitem__.side_effect = [-1., 1.]
-        x__[0] = -1.
-        x__[-1] = 1.
-        y__ = mock.MagicMock()
-        y__.__getitem__.side_effect = [-1., 1.]
-        y__[0] = -1.
-        y__[-1] = 1.
-        y__.attrs = {'scale_factor': [1.], 'add_offset': [0.]}
-        xr.open_dataset.return_value = FakeDataArray({
+        import xarray as xr
+        proj = xr.DataArray(
+            [],
+            attrs={
+                'semi_major_axis': 1.,
+                'semi_minor_axis': 1.,
+                'perspective_point_height': 1.,
+                'longitude_of_projection_origin': -90.,
+                'sweep_angle_axis': u'x'
+            }
+        )
+        x__ = xr.DataArray(
+            [-1., 1.],
+            attrs={'scale_factor': 1., 'add_offset': 0.},
+        )
+        y__ = xr.DataArray(
+            [-1., 1.],
+            attrs={'scale_factor': 1., 'add_offset': 0.},
+        )
+        xr_.open_dataset.return_value = FakeDataset({
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'Rad': np.ma.ones((10, 10))})
+            'Rad': np.ones((10, 10))})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16'},
@@ -158,9 +167,9 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
         np.testing.assert_allclose(call_args[6], (-1.1111111111111112,
-                                                  -1.1111111111111112,
                                                   1.1111111111111112,
-                                                  1.1111111111111112))
+                                                  1.1111111111111112,
+                                                  -1.1111111111111112))
 
 
 def suite():
