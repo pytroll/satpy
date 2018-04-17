@@ -128,6 +128,9 @@ class SAFEXML(BaseFileHandler):
         """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
         data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
+        if not data_items:
+            data_items = self.root.findall(".//noiseRangeVector")
+            data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
         return self.interpolate_xml_array(data, low_res_coords, shape)
 
     def get_calibration(self, name, shape):
