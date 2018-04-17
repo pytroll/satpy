@@ -332,8 +332,9 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def convert_to_radiance(self, data, key_name):
         """Calibrate to radiance."""
-
-        channel_index = self.channel_order_list.index(key_name)
+        # all 12 channels are in calibration coefficients
+        # regardless of how many channels are in file
+        channel_index = CHANNEL_LIST.index(key_name)
         calMode = 'NOMINAL'
         # determine the required calibration coefficients to use
         # for the Level 1.5 Header
