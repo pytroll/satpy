@@ -32,10 +32,14 @@ import numpy as np
 import yaml
 import dask
 import dask.array as da
+import xarray as xr
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
+from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
+from satpy.resample import get_area_def
+
 from trollsift import parser
 
 from trollimage.xrimage import XRImage
@@ -74,18 +78,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
-    if orig.mode.startswith('L'):
-        orig.channels = [orig.channels[0].copy(),
-                         orig.channels[0].copy(),
-                         orig.channels[0]] + orig.channels[1:]
-        orig.mode = 'RGB' + orig.mode[1:]
-    img = orig.pil_image()
 
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
     from pycoast import ContourWriterAGG
-    from satpy.resample import get_area_def
     if isinstance(area, str):
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
@@ -113,27 +110,19 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    if img.mode.endswith('A'):
-        img = img.convert('RGBA')
-    else:
-        img = img.convert('RGB')
-
+    img = orig.pil_image()
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
                     resolution=resolution, width=width, level=level_borders)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if orig.mode == 'L':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-    elif orig.mode == 'LA':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-        orig.channels[1] = np.ma.array(arr[:, :, -1] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_text(orig, dc, img, text=None):
