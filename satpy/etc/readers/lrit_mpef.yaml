@@ -1,0 +1,23 @@
+reader:
+  description: LRIT MPEF Reader
+  name: lrit_mpef
+  sensors: [seviri]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    LRIT_CTH:
+        file_reader: !!python/name:satpy.readers.lrit_mpef.LRITMPEFCTHFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{family_name:_<12s}-CTH______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        requires: [LRIT_CTH_PRO]
+
+    LRIT_CTH_PRO:
+        file_reader: !!python/name:satpy.readers.lrit_mpef.LRITMPEFPrologueFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{family_name:_<12s}-CTH______-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+
+
+datasets:
+  'CTH':
+    name: 'CTH'
+    resolution: 3000
+    file_type: LRIT_CTH
