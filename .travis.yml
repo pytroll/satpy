@@ -20,6 +20,7 @@ install:
 - 'pip install --no-binary :all: netCDF4'
 - pip install gdal==1.10.0
 - pip install scipy
+- pip install rasterio
 addons:
   apt_packages:
   - libgdal-dev
