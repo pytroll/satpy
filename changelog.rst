@@ -2,6 +2,23 @@ Changelog
 =========
 
 
+v0.8.4 (2018-04-19)
+-------------------
+- Update changelog. [davidh-ssec]
+- Bump version: 0.8.3 → 0.8.4. [davidh-ssec]
+- Add new PyPI release token. [davidh-ssec]
+- Add 'python_requires' to setup.py to specify python support. [davidh-
+  ssec]
+
+  (cherry picked from commit 8366964)
+
+- Merge pull request #201 from pytroll/bugfix-geotiff-masking-maint/0.8.
+  [David Hoese]
+
+  Fix masking for geotiff writer
+- Fix masking for geotiff writer. [Panu Lahtinen]
+
+
 v0.8.3 (2018-04-13)
 -------------------
 - Update changelog. [davidh-ssec]
