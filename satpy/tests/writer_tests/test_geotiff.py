@@ -75,20 +75,29 @@ class TestGeoTIFFWriter(unittest.TestCase):
         """Test basic writer operation."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter()
-        w.save_datasets(datasets, base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w.save_datasets(datasets)
 
     def test_simple_delayed_write(self):
         """Test writing can be delayed."""
-        from dask.delayed import Delayed
+        import dask.array as da
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
         # when we switch to rio_save on XRImage then this will be sources
         # and targets
-        res = w.save_datasets(datasets, compute=False, base_dir=self.base_dir)
-        self.assertIsInstance(res, Delayed)
-        res.compute()
+        res = w.save_datasets(datasets, compute=False)
+        # this will fail if rasterio isn't installed
+        self.assertIsInstance(res, tuple)
+        # two lists, sources and destinations
+        self.assertEqual(len(res), 2)
+        self.assertIsInstance(res[0], list)
+        self.assertIsInstance(res[1], list)
+        self.assertIsInstance(res[0][0], da.Array)
+        da.store(res[0], res[1])
+        for target in res[1]:
+            if hasattr(target, 'close'):
+                target.close()
 
     def test_float_write(self):
         """Test that geotiffs can be written as floats.
@@ -98,11 +107,10 @@ class TestGeoTIFFWriter(unittest.TestCase):
         """
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter()
-        w.save_datasets(datasets,
-                        dtype=np.float32,
-                        enhancement_config=False,
-                        base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=self.base_dir,
+                          enhancement_config=False,
+                          dtype=np.float32)
+        w.save_datasets(datasets)
 
 
 def suite():
