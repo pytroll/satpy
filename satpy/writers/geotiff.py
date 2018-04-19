@@ -103,11 +103,11 @@ class GeoTIFFWriter(ImageWriter):
                 ds = chan.filled(fill_value[i])
                 dst_ds.GetRasterBand(i + 1).WriteArray(ds)
         else:
-            mask = np.zeros(datasets[0].shape, dtype=np.bool)
+            mask = np.ones(datasets[0].shape, dtype=np.bool)
             i = 0
             for i, chan in enumerate(datasets):
                 dst_ds.GetRasterBand(i + 1).WriteArray(chan.filled(0))
-                mask |= np.ma.getmaskarray(chan)
+                mask &= np.ma.getmaskarray(chan)
             try:
                 mask |= np.ma.getmaskarray(opacity)
             except AttributeError:
