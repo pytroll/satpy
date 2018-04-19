@@ -39,6 +39,19 @@ else:
 
 class TestPillowWriter(unittest.TestCase):
 
+    def setUp(self):
+        """Create temporary directory to save files to"""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
     def _get_test_datasets(self):
         import xarray as xr
         import dask.array as da
@@ -58,14 +71,14 @@ class TestPillowWriter(unittest.TestCase):
     def test_simple_write(self):
         from satpy.writers.simple_image import PillowWriter
         datasets = self._get_test_datasets()
-        w = PillowWriter()
+        w = PillowWriter(base_dir=self.base_dir)
         w.save_datasets(datasets)
 
     def test_simple_delayed_write(self):
         from dask.delayed import Delayed
         from satpy.writers.simple_image import PillowWriter
         datasets = self._get_test_datasets()
-        w = PillowWriter()
+        w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
         self.assertIsInstance(res, Delayed)
         res.compute()
