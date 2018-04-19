@@ -18,25 +18,25 @@ install:
 - pip install behave
 - pip install h5netcdf
 - pip install python-hdf4
-- "pip install --no-binary :all: netCDF4"
+- 'pip install --no-binary :all: netCDF4'
 - pip install gdal==1.10.0
 addons:
   apt_packages:
-    - libgdal-dev
-    - libhdf5-serial-dev
-    - libhdf4-alt-dev
-    - netcdf-bin
-    - libnetcdf-dev
-    - cython
+  - libgdal-dev
+  - libhdf5-serial-dev
+  - libhdf4-alt-dev
+  - netcdf-bin
+  - libnetcdf-dev
+  - cython
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success: coveralls
 deploy:
   provider: pypi
-  user: Martin.Raspaud
+  user: dhoese
   password:
-    secure: RuQzdaLTY4sryIzG8Hz1KWEsyYRxrLvbyfm7DurXDPcj2vsujRwJicNwBrJajIBkzZWwdmWE8db55BPWZwCsJtVUbE53vc742wSAcci2zzCgizSb/jjlDkwk1CE/PoMl4t3JsuIU6bklgw1Y1d4Xn4+BeZe8Blol5PD/FUovxfo=
+    secure: qTXZjXCKVgY2nvj5oDKrnRElVlKIEOnBj/w6i185JTUWRsGdyhTt5YxA0bSXPi/uNXNhANNH+fog3HnAfwkth7Gy40xl5pas7aAV19mu6lMucHBGEGTpPrhBhhBtYrG5Y37d+iGF5lhuV+06mWgDjwizInW6Bep+J1uvHn53+ekIMTkEuxrcGy4W7HX8KGr9UClxHi+EG0Ipufa4dkCKWtK78Px3wTD1bN59M4tfwPUgdkcKroS5EKQBCCV41H9guBfyiJvZFYeoMoc2I4QrdJI8uzpXRWGMeR6ZjpcKwbt5jL9cmHth922DzH2WlMz9O2PpbfOeRN/XjWstmuUJrYW0ulmPJixBr2oXlwWLJe7fO037yR8M3moNEA+Sp3o6nW2AtuxmCwPfq7tmgjfVt9ADjgEgfTgGKl76YY/jFsVFUzCfM2Yqb8DEKXk7vqkFmymODXr5Xopetcf7HGrUzZjzGnbMzrZvlo/jeV1ovZS+YXe9OS2cYriN5O06J3nzKn9VLmYUNSOI6P79m4eloE4RP9MLH5W2D8oukeS398FuddBU4yzTEMvXM+a/E05WcbL+Tj+2hrjKrQkttChlTHwS98oTA2NfhfQqCpenHXXzz3K8dTVqiwSUMvfU4XGLGN+lYVw5ySBs01CqMKQIQVfx6qY7USPAYyCvY2/z/rw=
   on:
     tags: true
     repo: pytroll/satpy
@@ -44,4 +44,4 @@ sudo: true
 notifications:
   slack:
     rooms:
-      - pytroll:96mNSYSI1dBjGyzVXkBT6qFt#satpy
+    - pytroll:96mNSYSI1dBjGyzVXkBT6qFt#satpy
