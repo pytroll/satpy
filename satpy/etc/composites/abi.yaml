@@ -74,9 +74,9 @@ composites:
     prerequisites:
     # should we be using the most corrected or least corrected inputs?
     - name: C01
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: C02
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: C03
       modifiers: [sunz_corrected]
     standard_name: toa_bidirection_reflectance
@@ -107,10 +107,10 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - name: C02
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: green
     - name: C01
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
   natural:
