@@ -47,6 +47,42 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
+def load_writer_configs(writer_configs, ppp_config_dir=None,
+                        **writer_kwargs):
+    """Load the writer config for *config_files*."""
+    conf = {}
+    try:
+        for conf_fn in writer_configs:
+            with open(conf_fn) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
+        writer_class = conf['writer']['writer']
+    except (ValueError, KeyError, yaml.YAMLError):
+        raise ValueError("Invalid writer configs: "
+                         "'{}'".format(writer_configs))
+    init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
+    writer = writer_class(ppp_config_dir=ppp_config_dir,
+                          config_files=writer_configs,
+                          **init_kwargs)
+    return writer, kwargs
+
+
+def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+    config_fn = writer + ".yaml" if "." not in writer else writer
+    config_files = config_search_paths(
+        os.path.join("writers", config_fn), ppp_config_dir)
+    writer_kwargs.setdefault("config_files", config_files)
+    if not writer_kwargs['config_files']:
+        raise ValueError("Unknown writer '{}'".format(writer))
+
+    try:
+        return load_writer_configs(writer_kwargs['config_files'],
+                                   ppp_config_dir=ppp_config_dir,
+                                   **writer_kwargs)
+    except ValueError:
+        raise ValueError("Writer '{}' does not exist or could not be "
+                         "loaded".format(writer))
+
+
 def _determine_mode(dataset):
     if "mode" in dataset.attrs:
         return dataset.attrs["mode"]
