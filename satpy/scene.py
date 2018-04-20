@@ -28,11 +28,13 @@ import logging
 import os
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
-from satpy.config import config_search_paths, get_environ_config_dir
-from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
+from satpy.config import get_environ_config_dir
+from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
+                           replace_anc)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area, prepare_resampler
+from satpy.resample import (resample_dataset, get_frozen_area,
+                            prepare_resampler)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
