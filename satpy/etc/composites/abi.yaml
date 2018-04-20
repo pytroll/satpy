@@ -117,9 +117,9 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 1.63
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - wavelength: 0.85
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected]
     - wavelength: 0.635
       modifiers: [sunz_corrected, rayleigh_corrected]
     high_resolution_band: blue
