@@ -798,7 +798,9 @@ class Scene(MetadataObject):
             datasets = [self[ds] for ds in datasets]
         else:
             datasets = self.datasets.values()
-        writer, save_kwargs = self.get_writer(writer, **kwargs)
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
     @classmethod
