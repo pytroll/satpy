@@ -33,8 +33,7 @@ script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success:
-- coveralls
-- codecov
+- if [[ $TRAVIS_PYTHON_VERSION == 3.6 ]]; then coveralls; codecov; fi
 deploy:
   provider: pypi
   user: dhoese
