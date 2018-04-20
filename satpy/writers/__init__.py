@@ -47,9 +47,9 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
-def load_writer_configs(writer_configs, ppp_config_dir=None,
+def load_writer_configs(writer_configs, ppp_config_dir,
                         **writer_kwargs):
-    """Load the writer config for *config_files*."""
+    """Load the writer from the provided `writer_configs`."""
     conf = {}
     try:
         for conf_fn in writer_configs:
@@ -67,6 +67,10 @@ def load_writer_configs(writer_configs, ppp_config_dir=None,
 
 
 def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+    """Find and load writer `writer` in the available configuration files."""
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
+
     config_fn = writer + ".yaml" if "." not in writer else writer
     config_files = config_search_paths(
         os.path.join("writers", config_fn), ppp_config_dir)
