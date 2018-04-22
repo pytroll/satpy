@@ -21,35 +21,31 @@ Don't forget to commit!
 
 See [semver.org](http://semver.org/) for the definition of those values.
 
-If the current version number is the "dev" version of the desired version run:
-
-```
-# to get to alpha
-bumpversion --no-commit --no-tag pre
-# to get to beta
-bumpversion --no-commit --no-tag pre
-# to get to rc
-bumpversion --no-commit --no-tag pre
-# to get to final release and commit and tag the release
-bumpversion pre
-```
-
 If the current "dev" version is not the desired version run:
 
 ```
 bumpversion patch
 ```
 
-Where `patch` is `patch`, `minor`, or `major`. Check version.py to verify proper version.
+Where `patch` is `pre`, `patch`, `minor`, or `major` to get to the correct
+version. Check version.py to verify proper version. Then run:
+
+```
+bumpversion --tag release
+```
+
+To remove the `devN` portion of the version number and tag the release.
 
 8. merge back to master and develop `git merge new_release`
 9. remove new_release⁠⁠⁠⁠ branch `git branch -d new_release⁠⁠⁠⁠`
 10. push changes to github `git push --follow-tags`
 11. Verify travis tests passed and deployed sdist and wheel to PyPI
-12. Update version to `dev0` version of next release:
+12. Update version to "dev" version of next release:
 
 ```
-bumpversion --no-tag patch
+bumpversion patch
 ```
 
 Which will set the version to "X.Y.Zdev0"
+
+See [this issue](https://github.com/peritus/bumpversion/issues/77) for more information.
