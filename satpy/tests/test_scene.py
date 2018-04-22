@@ -1393,6 +1393,58 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(new_scn.missing_datasets), 0)
 
 
+class TestSceneSaving(unittest.TestCase):
+    """Test the Scene's saving method."""
+
+    def setUp(self):
+        """Create temporary directory to save files to"""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_save_datasets_default(self):
+        """Save a dataset using 'save_datasets'."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow()}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        scn.save_datasets(base_dir=self.base_dir)
+
+    def test_save_datasets_bad_writer(self):
+        """Save a dataset using 'save_datasets'."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow()}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        self.assertRaises(ValueError,
+                          scn.save_datasets,
+                          writer='_bad_writer_',
+                          base_dir=self.base_dir)
+
+
 def suite():
     """The test suite for test_scene.
     """
@@ -1401,6 +1453,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResampling))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
 
     return mysuite
 
