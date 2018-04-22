@@ -32,6 +32,6 @@ Check version.py for proper version.
 12. Update version to `dev0` version of next release:
 
 ```
-bumpversion --no-tag minor
+bumpversion --no-tag patch
 bumpversion --no-tag pre
 ```
