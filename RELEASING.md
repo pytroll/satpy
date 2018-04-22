@@ -49,3 +49,5 @@ bumpversion patch
 Which will set the version to "X.Y.Zdev0"
 
 See [this issue](https://github.com/peritus/bumpversion/issues/77) for more information.
+
+13. Push changes to github `git push` (there shouldn't be any new tags).
