@@ -17,13 +17,30 @@ loghub pytroll/satpy -u <username> -st v0.8.0 -plg bug "Bugs fixed" -plg enhance
 
 Don't forget to commit!
 
-7. run `bumpversion` with either patch, minor, major, pre, or num (see [semver.org](http://semver.org/) for the definition of those) until reaching the desired version number
+7. run `bumpversion` with either `patch`, `minor`, `major`, `pre`, or `num` to reach the desired version number
+
+See [semver.org](http://semver.org/) for the definition of those values.
+
+If the current version number is the "dev" version of the desired version run:
+
+```
+# to get to alpha
+bumpversion --no-commit --no-tag pre
+# to get to beta
+bumpversion --no-commit --no-tag pre
+# to get to rc
+bumpversion --no-commit --no-tag pre
+# to get to final release and commit and tag the release
+bumpversion pre
+```
+
+If the current "dev" version is not the desired version run:
 
 ```
 bumpversion patch
 ```
 
-Check version.py for proper version.
+Where `patch` is `patch`, `minor`, or `major`. Check version.py to verify proper version.
 
 8. merge back to master and develop `git merge new_release`
 9. remove new_release⁠⁠⁠⁠ branch `git branch -d new_release⁠⁠⁠⁠`
@@ -33,5 +50,6 @@ Check version.py for proper version.
 
 ```
 bumpversion --no-tag patch
-bumpversion --no-tag pre
 ```
+
+Which will set the version to "X.Y.Zdev0"
