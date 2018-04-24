@@ -22,6 +22,9 @@
 
 from datetime import datetime, timedelta
 import h5py
+import xarray as xr
+import xarray.ufuncs as xu
+import dask.array as da
 
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
@@ -51,23 +54,27 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         stdname = info.get('standard_name')
 
         if stdname in ['latitude', 'longitude']:
-
             if self.lons is None or self.lats is None:
                 self.lons = h5data['Longitude'][:]*self.longitude_scale
                 self.lats = h5data['Latitude'][:]*self.latitude_scale
 
             if info['standard_name'] == 'longitude':
-                return Dataset(self.lons, id=key, **info)
+                return xr.DataArray(self.lons, name=key,
+                                        attrs=info, dims=('y', 'x'))
             else:
-                return Dataset(self.lats, id=key, **info)
+                return xr.DataArray(self.lats, name=key,
+                                        attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_speed']:
             windspeed=h5data['Wind_speed_selection'][:,:]*self.wind_speed_scale
-            return Dataset(windspeed, id=key, **info)
+            return xr.DataArray(windspeed, name=key,
+                                        attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_direction']:
             wind_direction = h5data['Wind_direction_selection'][:,:]*self.wind_direction_scale
-            return Dataset(wind_direction, id=key, **info)
+            return xr.DataArray(wind_direction, name=key,
+                                        attrs=info, dims=('y', 'x'))
+
 
 
 

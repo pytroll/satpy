@@ -8,33 +8,41 @@ reader:
 datasets:
   longitude:
     name: longitude
+    sensor: OSCAT
     resolution: 25000
     file_type: scatsat
     standard_name: longitude
     units: degree
+    platform_name: ScatSat-1
 
   latitude:
     name: latitude
+    sensor: OSCAT
     resolution: 25000
     file_type: scatsat
     standard_name: latitude
     units: degree
+    platform_name: ScatSat-1
 
   wind_speed:
     name: wind_speed
-    sensor: Scatterometer
+    sensor: OSCAT
     resolution: 25000
     coordinates: [longitude, latitude]
     file_type: scatsat
     standard_name: wind_speed
+    units: m/s
+    platform_name: ScatSat-1
 
   wind_direction:
     name: wind_direction
+    sensor: OSCAT
     resolution: 25000
     coordinates: [longitude, latitude]
     file_type: scatsat
     standard_name: wind_direction
-
+    units: °
+    platform_name: ScatSat-1
 
 file_types:
   scatsat:
