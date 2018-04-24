@@ -38,8 +38,23 @@ else:
 
 
 class TestGeoTIFFWriter(unittest.TestCase):
+    """Test the GeoTIFF Writer class."""
+
+    def setUp(self):
+        """Create temporary directory to save files to"""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
 
     def _get_test_datasets(self):
+        """Helper function to create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -52,25 +67,50 @@ class TestGeoTIFFWriter(unittest.TestCase):
         return [ds1]
 
     def test_init(self):
+        """Test creating the writer with no arguments."""
         from satpy.writers.geotiff import GeoTIFFWriter
         w = GeoTIFFWriter()
 
     def test_simple_write(self):
+        """Test basic writer operation."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
         w.save_datasets(datasets)
 
     def test_simple_delayed_write(self):
-        from dask.delayed import Delayed
+        """Test writing can be delayed."""
+        import dask.array as da
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
         # when we switch to rio_save on XRImage then this will be sources
         # and targets
         res = w.save_datasets(datasets, compute=False)
-        self.assertIsInstance(res, Delayed)
-        res.compute()
+        # this will fail if rasterio isn't installed
+        self.assertIsInstance(res, tuple)
+        # two lists, sources and destinations
+        self.assertEqual(len(res), 2)
+        self.assertIsInstance(res[0], list)
+        self.assertIsInstance(res[1], list)
+        self.assertIsInstance(res[0][0], da.Array)
+        da.store(res[0], res[1])
+        for target in res[1]:
+            if hasattr(target, 'close'):
+                target.close()
+
+    def test_float_write(self):
+        """Test that geotiffs can be written as floats.
+
+        NOTE: Does not actually check that the output is floats.
+
+        """
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir,
+                          enhancement_config=False,
+                          dtype=np.float32)
+        w.save_datasets(datasets)
 
 
 def suite():

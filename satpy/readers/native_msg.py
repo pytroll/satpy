@@ -159,7 +159,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
         # Set the list of available channels:
         chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
-            'SelectedBandIDs'][0][-1].strip()
+            'SelectedBandIDs'][0][-1].strip().decode()
 
         for item, chmark in zip(CHANNEL_LIST, chlist_str):
             self.available_channels[item] = (chmark == 'X')
@@ -332,8 +332,9 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def convert_to_radiance(self, data, key_name):
         """Calibrate to radiance."""
-
-        channel_index = self.channel_order_list.index(key_name)
+        # all 12 channels are in calibration coefficients
+        # regardless of how many channels are in file
+        channel_index = CHANNEL_LIST.index(key_name)
         calMode = 'NOMINAL'
         # determine the required calibration coefficients to use
         # for the Level 1.5 Header

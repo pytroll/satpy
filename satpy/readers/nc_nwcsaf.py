@@ -34,7 +34,7 @@ import xarray as xr
 from pyresample.utils import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
-
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class NcNWCSAF(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   engine='h5netcdf',
-                                  chunks=1000)
+                                  chunks=CHUNK_SIZE)
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
         self.pps = False
@@ -148,7 +148,6 @@ class NcNWCSAF(BaseFileHandler):
             if 'valid_min' in variable.attrs:
                 variable = variable.where(
                     variable >= variable.attrs['valid_min'])
-
         attrs = variable.attrs
         variable = variable * scale + offset
         variable.attrs = attrs

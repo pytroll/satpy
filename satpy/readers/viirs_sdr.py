@@ -272,6 +272,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "end_orbit": self.end_orbit_number,
         })
         i.update(dataset_id.to_dict())
+        # xarray bug does not allow differing list attributes
+        i.pop('coordinates', None)
         data.attrs.update(i)
         return data
 

@@ -1,4 +1,39 @@
-## Version 0.9.0-alpha.0 (Unreleased)
+## Version 0.9.0a1 (2018/04/22)
+
+### Issues Closed
+
+* [Issue 227](https://github.com/pytroll/satpy/issues/227) - Issue Reading MSG4
+* [Issue 225](https://github.com/pytroll/satpy/issues/225) - Save Datasets using SCMI ([PR 228](https://github.com/pytroll/satpy/pull/228))
+* [Issue 215](https://github.com/pytroll/satpy/issues/215) - Change `Scene.compute` to something else ([PR 220](https://github.com/pytroll/satpy/pull/220))
+* [Issue 208](https://github.com/pytroll/satpy/issues/208) - Strange behaviour when trying to load data to a scene object after having worked with it ([PR 214](https://github.com/pytroll/satpy/pull/214))
+* [Issue 200](https://github.com/pytroll/satpy/issues/200) - Different mask handling when saving to PNG or GeoTIFF ([PR 201](https://github.com/pytroll/satpy/pull/201))
+* [Issue 176](https://github.com/pytroll/satpy/issues/176) - Loading viirs natural_color composite fails ([PR 177](https://github.com/pytroll/satpy/pull/177))
+
+In this release 6 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 259](https://github.com/pytroll/satpy/pull/259) - Fix writer and refactor so bad writer name raises logical exception
+* [PR 257](https://github.com/pytroll/satpy/pull/257) - Fix geotiff and png writers to save to a temporary directory
+* [PR 256](https://github.com/pytroll/satpy/pull/256) - Add 'python_requires' to setup.py to specify python support
+* [PR 253](https://github.com/pytroll/satpy/pull/253) - Fix ABI L1B reader to use 64-bit scaling factors for X/Y variables
+* [PR 250](https://github.com/pytroll/satpy/pull/250) - Fix floating point geotiff saving in dask geotiff writer
+* [PR 249](https://github.com/pytroll/satpy/pull/249) - Fix float geotiff saving on 0.8
+* [PR 248](https://github.com/pytroll/satpy/pull/248) - Fix unloading composite deps when one of them has incompatible areas
+* [PR 243](https://github.com/pytroll/satpy/pull/243) - Remove ABI composite reducerX modifiers
+
+#### Features added
+
+* [PR 252](https://github.com/pytroll/satpy/pull/252) - Use rasterio to save geotiffs when available
+* [PR 239](https://github.com/pytroll/satpy/pull/239) - Add CSPP Geo (geocat) AHI reading support
+
+In this release 10 pull requests were closed.
+
+###############################################################################
+
+## Version 0.9.0a0 (2018-03-20)
 
 #### Bugs fixed
 

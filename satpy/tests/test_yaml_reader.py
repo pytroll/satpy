@@ -27,8 +27,6 @@ import unittest
 from datetime import datetime
 from tempfile import mkdtemp
 
-import numpy as np
-
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DATASET_KEYS, DatasetID
 
@@ -36,7 +34,6 @@ try:
     from unittest.mock import MagicMock, patch
 except ImportError:
     from mock import MagicMock, patch
-
 
 
 class FakeFH(object):
@@ -95,6 +92,79 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(yr.listify_string('some string'), ['some string'])
         self.assertEqual(yr.listify_string(['some', 'string']),
                          ['some', 'string'])
+
+
+class DummyReader():
+    def __init__(self, filename, filename_info, filetype_info):
+        self.filename = filename
+        self.filename_info = filename_info
+        self.filetype_info = filetype_info
+        self.start_time = datetime(2000, 1, 1, 12, 1)
+        self.end_time = datetime(2000, 1, 1, 12, 2)
+        self.metadata = {}
+
+
+class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
+    """Test units from FileYAMLReader with multiple readers."""
+
+    @patch('satpy.readers.yaml_reader.recursive_dict_update')
+    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
+    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+        """Setup a reader instance with a fake config."""
+        patterns = ['a{something:3s}.bla',
+                    'a0{something:2s}.bla']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_patterns': patterns,
+                                              'file_reader': DummyReader}},
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7],
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'ch2': {'name': 'ch02',
+                                         'wavelength': [0.7, 0.75, 0.8],
+                                         'calibration': 'counts',
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'lons': {'name': 'lons',
+                                          'file_type': 'ftype2'},
+                                 'lats': {'name': 'lats',
+                                          'file_type': 'ftype2'}}}
+
+        rec_up.return_value = res_dict
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader([__file__],
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2)})
+
+    def test_select_from_pathnames(self):
+        """Check select_files_from_pathnames."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+
+        res = self.reader.select_files_from_pathnames(filelist)
+        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
+            self.assertIn(expected, res)
+        self.assertEqual(len(res), 3)
+
+    def test_fn_items_for_ft(self):
+        """Check filename_items_for_filetype."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        ft_info = self.config['file_types']['ftype1']
+        fiter = self.reader.filename_items_for_filetype(filelist, ft_info)
+
+        filenames = dict(fname for fname in fiter)
+        self.assertEqual(len(filenames.keys()), 3)
+
+    def test_create_filehandlers(self):
+        """Check create_filehandlers."""
+        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
+                    'abcd.bla', 'k001.bla', 'a003.bli']
+
+        self.reader.create_filehandlers(filelist)
+        self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
@@ -657,7 +727,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
                          calibration=None, modifiers=())
         self.assertEqual(self.reader._get_file_handlers(lons), None)
 
-
     @patch('satpy.readers.yaml_reader.xr')
     def test_load_entire_dataset(self, xarray):
         """Check loading an entire dataset."""
@@ -675,6 +744,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReaderMultiplePatterns))
 
     return mysuite
 

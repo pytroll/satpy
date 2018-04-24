@@ -26,15 +26,16 @@
 
 import logging
 import os
-import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
-from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
+from satpy.config import get_environ_config_dir
+from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
+                           replace_anc)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area, prepare_resampler
+from satpy.resample import (resample_dataset, get_frozen_area,
+                            prepare_resampler)
+from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
 
@@ -479,6 +480,7 @@ class Scene(MetadataObject):
 
         """
         prereq_datasets = []
+        delayed_gen = False
         for prereq_node in prereq_nodes:
             prereq_id = prereq_node.name
             if prereq_id not in self.datasets and prereq_id not in keepables \
@@ -487,19 +489,30 @@ class Scene(MetadataObject):
 
             if prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
+            elif not prereq_node.is_leaf and prereq_id in keepables:
+                delayed_gen = True
+                continue
+            elif not skip:
+                LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite")
             else:
-                if not prereq_node.is_leaf and prereq_id in keepables:
-                    keepables.add(comp_id)
-                    LOG.warning("Delaying generation of %s "
-                                "because of dependency's delayed generation: %s",
-                                comp_id, prereq_id)
-                if not skip:
-                    LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                        comp_id, prereq_id))
-                    raise KeyError("Missing composite prerequisite")
-                else:
-                    LOG.debug("Missing optional prerequisite for {}: {}".format(
-                        comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(
+                    comp_id, prereq_id))
+
+        if delayed_gen:
+            keepables.add(comp_id)
+            keepables.update([x.name for x in prereq_nodes])
+            LOG.warning("Delaying generation of %s "
+                        "because of dependency's delayed generation: %s",
+                        comp_id, prereq_id)
+            if not skip:
+                LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite")
+            else:
+                LOG.debug("Missing optional prerequisite for {}: {}".format(
+                    comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -764,30 +777,16 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def load_writer_config(self, config_files, **kwargs):
-        """Load the writer config for *config_files*."""
-        conf = {}
-        for conf_fn in config_files:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
-        init_kwargs, kwargs = writer_class.separate_init_kwargs(kwargs)
-        writer = writer_class(ppp_config_dir=self.ppp_config_dir,
-                              config_files=config_files,
-                              **init_kwargs)
-        return writer, kwargs
-
     def save_dataset(self, dataset_id, filename=None, writer=None,
                      overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
-        if writer is None:
-            if filename is None:
-                writer, save_kwargs = self.get_writer("geotiff", **kwargs)
-            else:
-                writer, save_kwargs = self.get_writer_by_ext(
-                    os.path.splitext(filename)[1], **kwargs)
-        else:
-            writer, save_kwargs = self.get_writer(writer, **kwargs)
+        if writer is None and filename is None:
+            writer = 'geotiff'
+        elif writer is None:
+            writer = self.get_writer_by_ext(os.path.splitext(filename)[1])
+
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir)
         return writer.save_dataset(self[dataset_id], filename=filename,
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
@@ -799,19 +798,13 @@ class Scene(MetadataObject):
             datasets = [self[ds] for ds in datasets]
         else:
             datasets = self.datasets.values()
-        writer, save_kwargs = self.get_writer(writer, **kwargs)
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
-    def get_writer(self, writer="geotiff", **kwargs):
-        """Get the writer instance."""
-        config_fn = writer + ".yaml" if "." not in writer else writer
-        config_files = config_search_paths(
-            os.path.join("writers", config_fn), self.ppp_config_dir)
-        kwargs.setdefault("config_files", config_files)
-        return self.load_writer_config(**kwargs)
-
-    def get_writer_by_ext(self, extension, **kwargs):
+    @classmethod
+    def get_writer_by_ext(cls, extension):
         """Find the writer matching the *extension*."""
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
-        return self.get_writer(
-            mapping.get(extension.lower(), "simple_image"), **kwargs)
+        return mapping.get(extension.lower(), 'simple_image')

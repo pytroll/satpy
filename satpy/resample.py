@@ -488,15 +488,7 @@ class BilinearResampler(BaseResampler):
 
 class NativeResampler(BaseResampler):
 
-    """Expand or reduce input datasets to be the same shape.
-
-    If `expand=True` (default) input datasets are replicated in both
-    dimensions to be the same as the shape provided on initialization.
-
-    If `expand=False` then input datasets are averaged to the shape
-    of the target area.
-
-    """
+    """Expand or reduce input datasets to be the same shape."""
 
     def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
         # use 'mask_area' with a default of False. It wouldn't do anything.
@@ -540,6 +532,19 @@ class NativeResampler(BaseResampler):
         if all(x == 1 for x in repeats.values()):
             return d_arr
         elif all(x >= 1 for x in repeats.values()):
+            # rechunk so new chunks are the same size as old chunks
+            c_size = max(x[0] for x in d_arr.chunks)
+
+            def _calc_chunks(c, c_size):
+                whole_chunks = [c_size] * int(sum(c) // c_size)
+                remaining = sum(c) - sum(whole_chunks)
+                if remaining:
+                    whole_chunks += [remaining]
+                return tuple(whole_chunks)
+            new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
+                          for axis, x in enumerate(d_arr.chunks)]
+            d_arr = d_arr.rechunk(new_chunks)
+
             for axis, factor in repeats.items():
                 if not factor.is_integer():
                     raise ValueError("Expand factor must be a whole number")
@@ -577,8 +582,8 @@ class NativeResampler(BaseResampler):
 
         out_shape = target_geo_def.shape
         in_shape = data.shape
-        y_repeats = out_shape[y_axis] / float(in_shape[y_axis])
-        x_repeats = out_shape[x_axis] / float(in_shape[x_axis])
+        y_repeats = out_shape[0] / float(in_shape[y_axis])
+        x_repeats = out_shape[1] / float(in_shape[x_axis])
         repeats = {
             y_axis: y_repeats,
             x_axis: x_repeats,
@@ -597,6 +602,9 @@ class NativeResampler(BaseResampler):
                 coords['y'] = y_coord
             if 'x' in data.coords:
                 coords['x'] = x_coord
+        for dim in data.dims:
+            if dim not in ['y', 'x'] and dim in data.coords:
+                coords[dim] = data.coords[dim]
 
         return xr.DataArray(d_arr,
                             dims=data.dims,
