@@ -256,7 +256,6 @@ class HRITFileHandler(BaseFileHandler):
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
 
@@ -286,9 +285,6 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        # TODO slicing !
-        tic = datetime.now()
-
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         if self.mda['number_of_bits_per_pixel'] == 16:
             dtype = '>u2'
@@ -296,7 +292,6 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-
         data = np.memmap(self.filename, mode='r',
                          offset=self.mda['total_header_length'],
                          dtype=dtype,
@@ -306,5 +301,4 @@ class HRITFileHandler(BaseFileHandler):
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],
                              self.mda['number_of_columns']))
-        logger.debug("Reading time " + str(datetime.now() - tic))
         return data
