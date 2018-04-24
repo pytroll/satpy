@@ -26,7 +26,7 @@ from datetime import datetime
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, dec10216
+from satpy.readers.hrit_base import HRITFileHandler, dec10216, make_time_cds_short
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -49,6 +49,13 @@ class TestDec10216(unittest.TestCase):
         res = dec10216(np.array([1, 1, 1, 1, 1], dtype=np.uint8))
         exp = np.array([4,  16,  64, 257], dtype=np.uint16)
         self.assertTrue(np.all(res == exp))
+
+
+class TestMakeTimeCDSShort(unittest.TestCase):
+    def test_fun(self):
+        tcds = {'days': 1, 'milliseconds': 2}
+        expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
+        self.assertEqual(make_time_cds_short(tcds), expected)
 
 
 class TestHRITFileHandler(unittest.TestCase):
@@ -133,4 +140,9 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeTimeCDSShort))
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()
