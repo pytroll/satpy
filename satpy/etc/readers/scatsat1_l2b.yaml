@@ -41,7 +41,7 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: scatsat
     standard_name: wind_direction
-    units: °
+    units: degree
     platform_name: ScatSat-1
 
 file_types:
