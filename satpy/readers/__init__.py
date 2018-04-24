@@ -32,6 +32,7 @@ import yaml
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy import CALIBRATION_ORDER
 
 try:
     import configparser
@@ -50,7 +51,9 @@ def get_best_dataset_key(key, choices):
            specified.
         2. Least modified dataset if `modifiers` is `None` in `key`.
            Otherwise, the modifiers are ignored.
-        3. Best resolution (smallest number) if `resolution` is `None`
+        3. Highest calibration if `calibration` is `None` in `key`.
+           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+        4. Best resolution (smallest number) if `resolution` is `None`
            in `key`. Otherwise, the resolution is ignored.
 
     This function assumes `choices` has already been filtered to only
@@ -78,6 +81,11 @@ def get_best_dataset_key(key, choices):
         num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
         choices = [c for c in choices if len(
             c.modifiers or tuple()) == num_modifiers]
+    if key.calibration is None and choices:
+        best_cal = [x.calibration for x in choices if x.calibration]
+        if best_cal:
+            low_res = min(best_cal, lambda x: CALIBRATION_ORDER[best_cal])
+            choices = [c for c in choices if c.resolution == low_res]
     if key.resolution is None and choices:
         low_res = [x.resolution for x in choices if x.resolution]
         if low_res:
@@ -223,25 +231,13 @@ class DatasetDict(dict):
 
         return keys
 
-    def get_item(self,
-                 name_or_wl,
-                 resolution=None,
-                 polarization=None,
-                 calibration=None,
-                 modifiers=None):
-        keys = self.get_keys(name_or_wl,
-                             resolution=resolution,
-                             polarization=polarization,
-                             calibration=calibration,
-                             modifiers=modifiers)
-        if not keys:
-            raise KeyError("No keys found matching provided filters")
-
-        return self[keys[0]]
-
     def __getitem__(self, item):
-        key = self.get_key(item)
-        return super(DatasetDict, self).__getitem__(key)
+        try:
+            # short circuit - try to get the object without more work
+            return super(DatasetDict, self).__getitem__(item)
+        except KeyError:
+            key = self.get_key(item)
+            return super(DatasetDict, self).__getitem__(key)
 
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
@@ -296,8 +292,12 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__contains__(key)
 
     def __delitem__(self, key):
-        key = self.get_key(key)
-        return super(DatasetDict, self).__delitem__(key)
+        try:
+            # short circuit - try to get the object without more work
+            return super(DatasetDict, self).__delitem__(key)
+        except KeyError:
+            key = self.get_key(key)
+            return super(DatasetDict, self).__delitem__(key)
 
 
 def read_reader_config(config_files, loader=yaml.Loader):

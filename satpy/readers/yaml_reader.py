@@ -42,7 +42,7 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict
 from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE
+from satpy import CHUNK_SIZE, CALIBRATION_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -257,15 +257,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         return dfilter
 
     @staticmethod
-    def _get_best_calibration(calibration):
+    def _get_best_calibration(calibration, order=CALIBRATION_ORDER):
         # default calibration choices
         if calibration is None:
             calibration = ["brightness_temperature", "reflectance", 'radiance',
                            'counts']
         else:
-            calibration = [x
-                           for x in ["brightness_temperature", "reflectance",
-                                     "radiance", "counts"] if x in calibration]
+            calibration = sorted(calibration,
+                                 key=lambda cal: order[cal])
         return calibration
 
     def _ds_ids_with_best_calibration(self, datasets, calibration):
@@ -317,16 +316,14 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         return dataset_ids
 
     def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset id corresponding to *key*.
+        """Get the fully qualified dataset id corresponding to `key`.
 
         Can be either by name or centerwavelength. If `key` is a `DatasetID`
         object its name is searched if it exists, otherwise its wavelength is
         used.
         """
         datasets = self._ds_ids_from_any_key(key)
-
         dfilter = self.dfilter_from_key(dfilter, key)
-
         datasets = self.filter_ds_ids(datasets, dfilter)
 
         if not datasets:
