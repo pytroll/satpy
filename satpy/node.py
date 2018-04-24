@@ -210,7 +210,11 @@ class DependencyTree(Node):
     def add_leaf(self, ds_id, parent=None):
         if parent is None:
             parent = self
-        self.add_child(parent, Node(ds_id))
+        try:
+            node = self[ds_id]
+        except KeyError:
+            node = Node(ds_id)
+        self.add_child(parent, node)
 
     def copy(self):
         """Copy the this node tree

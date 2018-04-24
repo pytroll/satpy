@@ -40,7 +40,7 @@ modifiers:
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - wavelength: 0.67
       modifiers: [sunz_corrected]

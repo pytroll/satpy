@@ -241,6 +241,7 @@ datasets:
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: latitude
+    polarization: [H, V]
     units: degree
     file_key: 'Latitude of Observation Point for 89A'
     fill_value: -9999.0
@@ -250,6 +251,7 @@ datasets:
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: latitude
+    polarization: [H, V]
     units: degree
     file_key: 'Latitude of Observation Point for 89B'
     fill_value: -9999.0
@@ -259,6 +261,7 @@ datasets:
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: longitude
+    polarization: [H, V]
     units: degree
     file_key: 'Longitude of Observation Point for 89A'
     fill_value: -9999.0
@@ -268,6 +271,7 @@ datasets:
     resolution: 5000
     file_type: amsr2_l1b
     standard_name: longitude
+    polarization: [H, V]
     units: degree
     file_key: 'Longitude of Observation Point for 89B'
     fill_value: -9999.0
@@ -277,6 +281,7 @@ datasets:
     resolution: 10000
     file_type: amsr2_l1b
     standard_name: latitude
+    polarization: [H, V]
     units: degree
     file_key: 'Latitude of Observation Point for 89A'
     fill_value: -9999.0
@@ -286,6 +291,7 @@ datasets:
     resolution: 10000
     file_type: amsr2_l1b
     standard_name: longitude
+    polarization: [H, V]
     units: degree
     file_key: 'Longitude of Observation Point for 89A'
     fill_value: -9999.0

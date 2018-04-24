@@ -110,6 +110,7 @@ def make_time_cds_expanded(tcds_array):
                       microseconds=float(tcds_array['microseconds'] +
                                          tcds_array['nanoseconds'] / 1000.)))
 
+
 satellite_status = np.dtype([('SatelliteDefinition',
                               [('SatelliteID', '>u2'),
                                ('NominalLongitude', '>f4'),
@@ -527,11 +528,9 @@ image_production_stats = np.dtype([('SatelliteId', '>u2'),
                                         ('MirrorBackToReferencePos', 'bool')]),
                                    ('ReceptionSummaryStats',
                                     [('PlannedNumberOfL10Lines', '>u4', (12, )),
-                                     ('NumberOfMissingL10Lines',
-                                      '>u4', (12, )),
-                                        ('NumberOfCorruptedL10Lines',
-                                         '>u4', (12, )),
-                                        ('NumberOfReplacedL10Lines', '>u4', (12, ))]),
+                                     ('NumberOfMissingL10Lines', '>u4', (12, )),
+                                     ('NumberOfCorruptedL10Lines', '>u4', (12, )),
+                                     ('NumberOfReplacedL10Lines', '>u4', (12, ))]),
                                    ('L15ImageValidity',
                                     [('NominalImage', 'bool'),
                                      ('NonNominalBecauseIncomplete', 'bool'),
@@ -583,7 +582,6 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
 
     def read_epilogue(self):
         """Read the prologue metadata."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=epilogue, count=1)[0]
@@ -875,7 +873,6 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         cfac = np.int32(self.mda['cfac'])
         lfac = np.int32(self.mda['lfac'])
-        coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
         a = self.mda['projection_parameters']['a']
@@ -887,8 +884,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         ncols = int(self.mda['number_of_columns'])
 
         segment_number = self.mda['segment_sequence_number']
-        total_segments = (self.mda['planned_end_segment_number'] -
-                          self.mda['planned_start_segment_number'] + 1)
 
         current_first_line = (segment_number -
                               self.mda['planned_start_segment_number']) * nlines
@@ -897,8 +892,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
         upper_south_line = min(max(upper_south_line, 0), nlines)
-        lower_slice = slice(0, upper_south_line)
-        upper_slice = slice(upper_south_line, nlines)
 
         lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
         upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
@@ -958,7 +951,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-
         return res
 
     def calibrate(self, data, calibration):
@@ -968,6 +960,11 @@ class HRITMSGFileHandler(HRITFileHandler):
             res = data
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             res = self.convert_to_radiance(data.astype(np.float32))
+            line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
+            line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
+            line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
+            line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
+            res *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
         if calibration == 'reflectance':
             res = self._vis_calibrate(res)
         elif calibration == 'brightness_temperature':

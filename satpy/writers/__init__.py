@@ -32,15 +32,59 @@ import numpy as np
 import yaml
 import dask
 import dask.array as da
+import xarray as xr
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
+from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
+from satpy.resample import get_area_def
+
 from trollsift import parser
 
 from trollimage.xrimage import XRImage
 
 LOG = logging.getLogger(__name__)
+
+
+def load_writer_configs(writer_configs, ppp_config_dir,
+                        **writer_kwargs):
+    """Load the writer from the provided `writer_configs`."""
+    conf = {}
+    try:
+        for conf_fn in writer_configs:
+            with open(conf_fn) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
+        writer_class = conf['writer']['writer']
+    except (ValueError, KeyError, yaml.YAMLError):
+        raise ValueError("Invalid writer configs: "
+                         "'{}'".format(writer_configs))
+    init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
+    writer = writer_class(ppp_config_dir=ppp_config_dir,
+                          config_files=writer_configs,
+                          **init_kwargs)
+    return writer, kwargs
+
+
+def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+    """Find and load writer `writer` in the available configuration files."""
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
+
+    config_fn = writer + ".yaml" if "." not in writer else writer
+    config_files = config_search_paths(
+        os.path.join("writers", config_fn), ppp_config_dir)
+    writer_kwargs.setdefault("config_files", config_files)
+    if not writer_kwargs['config_files']:
+        raise ValueError("Unknown writer '{}'".format(writer))
+
+    try:
+        return load_writer_configs(writer_kwargs['config_files'],
+                                   ppp_config_dir=ppp_config_dir,
+                                   **writer_kwargs)
+    except ValueError:
+        raise ValueError("Writer '{}' does not exist or could not be "
+                         "loaded".format(writer))
 
 
 def _determine_mode(dataset):
@@ -74,18 +118,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
-    if orig.mode.startswith('L'):
-        orig.channels = [orig.channels[0].copy(),
-                         orig.channels[0].copy(),
-                         orig.channels[0]] + orig.channels[1:]
-        orig.mode = 'RGB' + orig.mode[1:]
-    img = orig.pil_image()
 
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
     from pycoast import ContourWriterAGG
-    from satpy.resample import get_area_def
     if isinstance(area, str):
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
@@ -113,27 +150,19 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    if img.mode.endswith('A'):
-        img = img.convert('RGBA')
-    else:
-        img = img.convert('RGB')
-
+    img = orig.pil_image()
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
                     resolution=resolution, width=width, level=level_borders)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if orig.mode == 'L':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-    elif orig.mode == 'LA':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-        orig.channels[1] = np.ma.array(arr[:, :, -1] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_text(orig, dc, img, text=None):
