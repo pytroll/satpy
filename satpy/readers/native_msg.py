@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
 
@@ -183,15 +183,18 @@ class NativeMSGFileHandler(BaseFileHandler):
                                              'b': polar_radius,
                                              'h': 35785831.00,
                                              'SSP_longitude': ssp_lon}
-        self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
+        # self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
+        #    'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
+
         # The number of columns is incorrect - seems to be fixed at 3712
         # EUMETSAT will fix this
-        self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
+        # self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
+        #     'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
 
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
+
+        self.mda['number_of_lines'] = numlines_visir
 
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
@@ -203,23 +206,25 @@ class NativeMSGFileHandler(BaseFileHandler):
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
         # been added to the column.
-        x = ((west-east+1)*(10.0/8) % 1)
-        y = int((1-x)*4)
+        x = ((west - east + 1) * (10.0 / 8) % 1)
+        y = int((1 - x) * 4)
 
         if y < 4:
             # column has been padded with y pixels
-            self._cols_visir = int((west-east+1+y)*1.25)
+            self._cols_visir = int((west - east + 1 + y) * 1.25)
         else:
             # no padding has occurred
-            self._cols_visir = int((west-east+1)*1.25)
+            self._cols_visir = int((west - east + 1) * 1.25)
 
         if (west - east) < 3711:
             self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
         else:
             self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
 
-        # 'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
-        # 'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
+        self.mda['number_of_columns'] = int(self._cols_visir / 1.25)
+        self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'][0])
+        # The number of HRV columns seem to be correct in the UMARF header:
+        self.mda['hrv_number_of_columns'] = int(numcols_hrv)
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
@@ -243,15 +248,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
 
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
-
         proj_dict = {'a': float(a),
                      'b': float(b),
                      'lon_0': float(lon_0),
                      'h': float(h),
                      'proj': 'geos',
                      'units': 'm'}
+
+        if dsid.name == 'HRV':
+            nlines = self.mda['hrv_number_of_lines']
+            ncols = self.mda['hrv_number_of_columns']
+        else:
+            nlines = self.mda['number_of_lines']
+            ncols = self.mda['number_of_columns']
 
         area = geometry.AreaDefinition(
             'some_area_name',
@@ -276,7 +285,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             # is needed in the arrray assignment ie channl id is not present
             if len(self.channel_order_list) == 1:
                 data = dec10216(
-                        self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
+                    self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
             else:
                 data = dec10216(
                     self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
@@ -344,15 +353,15 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         if (calMode.upper() != 'GSICS'):
             coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['Level15ImageCalibration']
+                'RadiometricProcessing']['Level15ImageCalibration']
             gain = coeffs['CalSlope'][0][channel_index]
             offset = coeffs['CalOffset'][0][channel_index]
         else:
             coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['MPEFCalFeedback']
+                'RadiometricProcessing']['MPEFCalFeedback']
             gain = coeffs['GSICSCalCoeff'][0][channel_index]
             offset = coeffs['GSICSOffsetCount'][0][channel_index]
-            offset = offset*gain
+            offset = offset * gain
 
         return mb.convert_to_radiance(data, gain, offset)
 
