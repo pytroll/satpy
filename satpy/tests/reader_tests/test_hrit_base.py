@@ -69,6 +69,22 @@ class TestHRITFileHandler(unittest.TestCase):
                                           {'filetype': 'info'},
                                           [mock.MagicMock(), mock.MagicMock(),
                                            mock.MagicMock()])
+            ncols = 3712
+            nlines = 464
+            nbits = 10
+            self.reader.mda['number_of_bits_per_pixel'] = nbits
+            self.reader.mda['number_of_lines'] = nlines
+            self.reader.mda['number_of_columns'] = ncols
+            self.reader.mda['data_field_length'] = nlines * ncols * nbits
+            self.reader.mda['cfac'] = 5
+            self.reader.mda['lfac'] = 5
+            self.reader.mda['coff'] = 10
+            self.reader.mda['loff'] = 10
+            self.reader.mda['projection_parameters'] = {}
+            self.reader.mda['projection_parameters']['a'] = 6378169.0
+            self.reader.mda['projection_parameters']['b'] = 6356583.8
+            self.reader.mda['projection_parameters']['h'] = 35785831.0
+            self.reader.mda['projection_parameters']['SSP_longitude'] = 44
 
     def test_get_xy_from_linecol(self):
         """Test get_xy_from_linecol."""
@@ -87,6 +103,27 @@ class TestHRITFileHandler(unittest.TestCase):
         exp = (-71717.44995740513, -71717.44995740513,
                79266.655216079365, 79266.655216079365)
         self.assertTupleEqual(res, exp)
+
+    def test_get_area_def(self):
+        area = self.reader.get_area_def('VIS06')
+        self.assertEqual(area.proj_dict, {'a': 6378169.0,
+                                          'b': 6356583.8,
+                                          'h': 35785831.0,
+                                          'lon_0': 44.0,
+                                          'proj': 'geos',
+                                          'units': 'm'})
+        self.assertEqual(area.area_extent,
+                         (-77771774058.38356, -77771774058.38356,
+                          30310525626438.438, 3720765401003.719))
+
+    @mock.patch('satpy.readers.hrit_base.np.memmap')
+    def test_read_band(self, memmap):
+        nbits = self.reader.mda['number_of_bits_per_pixel']
+        memmap.return_value = np.random.randint(0, 256,
+                                                size=(464 * 3712 * nbits) / 8,
+                                                dtype=np.uint8)
+        res = self.reader.read_band('VIS006', None)
+        self.assertEqual(res.compute().shape, (464, 3712))
 
 
 def suite():
