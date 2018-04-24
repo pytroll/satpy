@@ -127,7 +127,7 @@ class TestHRITFileHandler(unittest.TestCase):
     def test_read_band(self, memmap):
         nbits = self.reader.mda['number_of_bits_per_pixel']
         memmap.return_value = np.random.randint(0, 256,
-                                                size=(464 * 3712 * nbits) / 8,
+                                                size=int((464 * 3712 * nbits) / 8),
                                                 dtype=np.uint8)
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.compute().shape, (464, 3712))
