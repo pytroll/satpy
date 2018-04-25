@@ -25,7 +25,6 @@
 import glob
 import itertools
 import logging
-import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, namedtuple, OrderedDict
@@ -42,7 +41,7 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
 from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE, CALIBRATION_ORDER
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
