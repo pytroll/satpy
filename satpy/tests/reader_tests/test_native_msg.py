@@ -77,11 +77,11 @@ IR_108_TBS = np.array([[311.77913132,  312.11070275,  312.44143083,  312.7713221
                         316.34670629]], dtype=np.float64)
 
 
-CHANNEL_ORDER_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
+CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
                       'IR_108', 'IR_120', 'IR_134', 'HRV']
 AVAILABLE_CHANNELS = {}
-for item in CHANNEL_ORDER_LIST:
+for item in CHANNEL_INDEX_LIST:
     AVAILABLE_CHANNELS[item] = True
 
 # Calibration type = Effective radiances
@@ -129,7 +129,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         self.reader.platform_name = 'Meteosat-10'
         self.reader.platform_id = 323
         self.reader.header = hdr
-        self.reader.channel_order_list = CHANNEL_ORDER_LIST
+        self.reader.channel_index_list = CHANNEL_INDEX_LIST
         #self.reader.available_channels = AVAILABLE_CHANNELS
 
     def test_convert_to_radiance(self):
