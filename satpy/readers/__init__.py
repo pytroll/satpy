@@ -54,17 +54,6 @@ def _wl_dist(wl_a, wl_b):
     return abs(wl_a - wl_b)
 
 
-def _sort_by_wavelength(wavelength, choices, filter=True):
-    """Sort `DatasetID` choices nearest to `wavelength."""
-    nearest_wl = min([_wl_dist(wavelength, c.wavelength)
-                      for c in choices if c.wavelength is not None])
-    dists = [_wl_dist(wavelength, c.wavelength) for c in choices]
-    sorted_choices = sorted(zip(dists, nearest_wl))
-    if not filter:
-        return list(zip(*sorted_choices)[1])
-    return [c for dist, c in sorted_choices if dist == sorted_choices[0][0]]
-
-
 def get_best_dataset_key(key, choices):
     """Choose the "best" `DatasetID` from `choices` based on `key`.
 
@@ -242,28 +231,6 @@ def get_key(key, key_container, num_results=1, best=True,
         return res[:num_results]
 
 
-def get_keys(name_or_wl, key_container, num_results=0, **dfilter):
-    """Get multiple fully-specified keys that match the provided query.
-
-    .. note::
-
-        Results are not sorted by filtered by best result like in `get_key`.
-
-    Args:
-        name_or_wl (str or float): Name of datasets or relative wavelength
-                                   for the datasets.
-        key_container (dict or set): Container of DatasetID objects that
-                                     uses hashing to quickly access items.
-        num_results (int): Number of results to return. If `0` return all,
-                           if `1` return only that element, otherwise
-                           return a list of matching keys.
-        **dfilter (dict): See `get_key` function for more information.
-
-    """
-    return get_key(name_or_wl, key_container, num_results=num_results,
-                   best=False, **dfilter)
-
-
 class MalformedConfigError(IOError):
     pass
 
@@ -289,25 +256,24 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def get_key(self, match_key):
-        return get_key(match_key, self.keys())
-
-    def get_keys(self, name_or_wl, num_results=0, **dfilter):
+    def get_key(self, match_key, num_results=1, best=True, **dfilter):
         """Get multiple fully-specified keys that match the provided query.
 
-        Returned keys are not ordered by "best" choice like `get_key` is
-        (best resolution, nearest wavelength, highest calibration, etc).
-
         Args:
-            name_or_wl (str or float): Name of datasets or relative wavelength
-                                       for the datasets.
+            key (DatasetID): DatasetID of query parameters to use for
+                             searching. Any parameter that is `None`
+                             is considered a wild card and any match is
+                             accepted. Can also be a string representing the
+                             dataset name or a number representing the dataset
+                             wavelength.
             num_results (int): Number of results to return. If `0` return all,
                                if `1` return only that element, otherwise
                                return a list of matching keys.
             **dfilter (dict): See `get_key` function for more information.
 
         """
-        return get_keys(name_or_wl, self.keys(), num_results=num_results, **dfilter)
+        return get_key(match_key, self.keys(), num_results=num_results,
+                       best=best, **dfilter)
 
     def __getitem__(self, item):
         try:

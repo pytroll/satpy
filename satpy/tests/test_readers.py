@@ -47,7 +47,7 @@ class TestDatasetDict(unittest.TestCase):
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
-    def test_get_keys_by_datasetid(self):
+    def test_filter_keys_by_dataset_id(self):
         from satpy.readers import filter_keys_by_dataset_id
         from satpy.dataset import DatasetID
         did_list = [DatasetID(

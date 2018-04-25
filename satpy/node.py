@@ -296,7 +296,7 @@ class DependencyTree(Node):
         """
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, dfilter)
+                ds_id = reader_instance.get_dataset_key(dataset_key, **dfilter)
             except KeyError:
                 # LOG.debug("Can't find dataset %s in reader %s",
                 #           str(dataset_key), reader_name)
