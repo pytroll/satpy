@@ -74,15 +74,12 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         self.filename = filename
         self.platform_name = None
-        self.available_channels = {}
-        self.channel_order_list = []
-        for item in CHANNEL_LIST:
-            self.available_channels[item] = False
 
+        # The available channels are only known after the header
+        # has been read, after that we know what the indices are for each channel
+        self.available_channels = dict(zip(CHANNEL_LIST,[False]*len(CHANNEL_LIST)))
         self._get_header()
-        for item in CHANNEL_LIST:
-            if self.available_channels.get(item):
-                self.channel_order_list.append(item)
+        self.channel_index_list = [i for i in CHANNEL_LIST if self.available_channels[i]]
 
         self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
@@ -144,7 +141,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         visir_rec = get_lrec(self._cols_visir)
 
         number_of_lowres_channels = len(
-            [s for s in self.channel_order_list if not s == 'HRV'])
+            [s for s in self.channel_index_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
         if self.available_channels['HRV']:
             hrv_rec = get_lrec(self._cols_hrv)
@@ -279,15 +276,15 @@ class NativeMSGFileHandler(BaseFileHandler):
     def get_dataset(self, key, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key.name not in self.channel_order_list:
+        if key.name not in self.channel_index_list:
             raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
-            ch_idn = self.channel_order_list.index(key.name)
+            ch_idn = self.channel_index_list.index(key.name)
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
-            if len(self.channel_order_list) == 1:
+            if len(self.channel_index_list) == 1:
                 raw = self.memmap['visir']['line_data']
             else:
                 raw = self.memmap['visir']['line_data'][:, ch_idn, :]
@@ -398,7 +395,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data, key_name):
         """IR calibration."""
-        channel_index = self.channel_order_list.index(key_name)
+        channel_index = self.channel_index_list.index(key_name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
             'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
