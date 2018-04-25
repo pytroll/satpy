@@ -33,6 +33,8 @@ from datetime import datetime
 import numpy as np
 
 import xarray as xr
+import dask.array as da
+from satpy import CHUNK_SIZE
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
@@ -41,7 +43,7 @@ from pyresample import geometry
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import get_cds_time
-from satpy.readers.msg_base import dec10216
+from satpy.readers.hrit_base import dec10216
 import satpy.readers.msg_base as mb
 
 import os
@@ -82,7 +84,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             if self.available_channels.get(item):
                 self.channel_order_list.append(item)
 
-        self.memmap = self._get_memmap()
+        self.memmap = da.from_array(self._get_memmap(), chunks=(10,))
 
     @property
     def start_time(self):
@@ -280,25 +282,34 @@ class NativeMSGFileHandler(BaseFileHandler):
         if key.name not in self.channel_order_list:
             raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
+            shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+
             ch_idn = self.channel_order_list.index(key.name)
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
             if len(self.channel_order_list) == 1:
-                data = dec10216(
-                    self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
+                raw = self.memmap['visir']['line_data']
             else:
-                data = dec10216(
-                    self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
+                raw = self.memmap['visir']['line_data'][:, ch_idn, :]
+
+            data = dec10216(raw.flatten())
+            data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
-            data2 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
-            data1 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 1, :])[::-1, ::-1]
-            data0 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 0, :])[::-1, ::-1]
-            # Make empty array:
-            shape = data0.shape[0] * 3, data0.shape[1]
+            shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
+
+            raw2 = self.memmap['hrv']['line_data'][:, 2, :]
+            raw1 = self.memmap['hrv']['line_data'][:, 1, :]
+            raw0 = self.memmap['hrv']['line_data'][:, 0, :]
+
+            shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
+            data2 = dec10216(raw2.flatten())
+            data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
+            data1 = dec10216(raw1.flatten())
+            data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
+            data0 = dec10216(raw0.flatten())
+            data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
+
             data = np.zeros(shape)
             idx = range(0, shape[0], 3)
             data[idx, :] = data2
