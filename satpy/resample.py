@@ -27,7 +27,7 @@ import hashlib
 import json
 import os
 from logging import getLogger
-from collections import OrderedDict
+from weakref import WeakValueDictionary
 
 import numpy as np
 import xarray as xr
@@ -45,6 +45,13 @@ from satpy.config import config_search_paths, get_config_path
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
+
+resamplers_cache = WeakValueDictionary()
+
+
+def hash_dict(the_dict):
+    return hashlib.sha1(json.dumps(the_dict,
+                                   sort_keys=True).encode('utf-8')).hexdigest()
 
 
 def get_area_file():
@@ -88,7 +95,7 @@ class BaseResampler(object):
     The base resampler class. Abstract.
     """
 
-    caches = OrderedDict()
+    cache = None
 
     def __init__(self, source_geo_def, target_geo_def):
         """
@@ -98,7 +105,6 @@ class BaseResampler(object):
 
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
-        self.cache = {}
 
     @staticmethod
     def hash_area(area):
@@ -116,7 +122,7 @@ class BaseResampler(object):
 
         the_hash = "".join((self.hash_area(source_geo_def),
                             self.hash_area(target_geo_def),
-                            hashlib.sha1(json.dumps(kwargs, sort_keys=True).encode('utf-8')).hexdigest()))
+                            hash_dict(kwargs)))
         return the_hash
 
     def precompute(self, **kwargs):
@@ -132,15 +138,6 @@ class BaseResampler(object):
         """Do the actual resampling
         """
         raise NotImplementedError
-
-    def dump(self, filename):
-        """Dump the projection info to *filename*.
-        """
-        if os.path.exists(filename):
-            LOG.debug("Projection already saved to %s", filename)
-        else:
-            LOG.info("Saving projection to %s", filename)
-            np.savez(filename, **self.cache)
 
     def resample(self, data, cache_dir=False, mask_area=True, **kwargs):
         """Resample data.
@@ -170,35 +167,16 @@ class BaseResampler(object):
         """
         self.resample(*args, **kwargs)
 
-    def _create_cache_filename(self, cache_dir, hash_str):
+    def _create_cache_filename(self, cache_dir=None, **kwargs):
         """Create filename for the cached resampling parameters"""
+        cache_dir = cache_dir or '.'
+        kwhash = self.get_hash(**kwargs)
         if isinstance(cache_dir, (str, six.text_type)):
-            filename = os.path.join(
-                cache_dir, hashlib.sha1(hash_str).hexdigest() + ".npz")
+            hash_str = hashlib.sha1(kwhash).hexdigest()
         else:
-            filename = os.path.join('.', hashlib.sha1(
-                hash_str.encode("utf-8")).hexdigest() + ".npz")
+            hash_str = hashlib.sha1(kwhash).encode("utf-8").hexdigest()
 
-        return filename
-
-    def _read_params_from_cache(self, cache_dir, hash_str, filename):
-        """Read resampling parameters from cache"""
-        self.cache = self.caches.pop(hash_str, None)
-        if self.cache is not None and cache_dir:
-            self.dump(filename)
-        elif os.path.exists(filename):
-            self.cache = dict(np.load(filename))
-            self.caches[hash_str] = self.cache
-
-    def _update_caches(self, hash_str, cache_dir, filename):
-        """Update caches and dump new resampling parameters to disk"""
-        while len(self.caches.keys()) > 2:
-            self.caches.popitem()
-        self.caches[hash_str] = self.cache
-        if cache_dir:
-            # XXX: Look in to doing memmap-able files instead
-            # `arr.tofile(filename)`
-            self.dump(filename)
+        return os.path.join(cache_dir, hash_str + '.npz')
 
 
 class KDTreeResampler(BaseResampler):
@@ -211,9 +189,8 @@ class KDTreeResampler(BaseResampler):
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
-    def precompute(
-            self, mask=None, radius_of_influence=10000, epsilon=0, reduce_data=True, nprocs=1, segments=None,
-            cache_dir=False, **kwargs):
+    def precompute(self, mask=None, radius_of_influence=None, epsilon=0,
+                   reduce_data=True, cache_dir=None, **kwargs):
         """Create a KDTree structure and store it for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
@@ -224,55 +201,47 @@ class KDTreeResampler(BaseResampler):
         del kwargs
         source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
-        kd_hash = self.get_hash(source_geo_def=source_geo_def,
-                                radius_of_influence=radius_of_influence,
-                                epsilon=epsilon)
-
-        filename = self._create_cache_filename(cache_dir, kd_hash)
-        self._read_params_from_cache(cache_dir, kd_hash, filename)
-
         if self.resampler is None:
-            if self.cache is not None:
-                LOG.debug("Loaded kd-tree parameters")
-                return self.cache
+            kwargs = dict(source_geo_def=source_geo_def,
+                          target_geo_def=self.target_geo_def,
+                          radius_of_influence=radius_of_influence,
+                          neighbours=1,
+                          epsilon=epsilon,
+                          reduce_data=reduce_data)
 
-            LOG.debug("Computing kd-tree parameters")
-
-            self.resampler = XArrayResamplerNN(source_geo_def,
-                                               self.target_geo_def,
-                                               radius_of_influence,
-                                               neighbours=1,
-                                               epsilon=epsilon,
-                                               reduce_data=reduce_data,
-                                               nprocs=nprocs,
-                                               segments=segments)
-
-            valid_input_index, valid_output_index, index_array, distance_array = \
+            self.resampler = XArrayResamplerNN(**kwargs)
+            try:
+                self.load_neighbour_info(cache_dir, **kwargs)
+                LOG.debug("Read pre-computed kd-tree parameters")
+            except IOError:
+                LOG.debug("Computing kd-tree parameters")
                 self.resampler.get_neighbour_info()
-            # reference call to pristine pyresample
-            # vii, voi, ia, da = get_neighbour_info(source_geo_def,
-            #                                       self.target_geo_def,
-            #                                       radius_of_influence,
-            #                                       neighbours=1,
-            #                                       epsilon=epsilon,
-            #                                       reduce_data=reduce_data,
-            #                                       nprocs=nprocs,
-            #                                       segments=segments)
+                self.save_neighbour_info(cache_dir, **kwargs)
 
-            # it's important here not to modify the existing cache dictionary.
-            if cache_dir:
-                self.cache = {"valid_input_index": valid_input_index,
-                              "valid_output_index": valid_output_index,
-                              "index_array": index_array,
-                              "distance_array": distance_array,
-                              "source_geo_def": source_geo_def,
-                              }
+    def load_neighbour_info(self, cache_dir, **kwargs):
 
-                self._update_caches(kd_hash, cache_dir, filename)
+        if cache_dir:
+            filename = self._create_cache_filename(cache_dir, **kwargs)
+            cache = np.load(filename)
+            for elt in ['valid_input_index', 'valid_output_index', 'index_array', 'distance_array']:
+                if isinstance(cache[elt], tuple):
+                    setattr(self.resampler, elt, cache[elt][0])
+                else:
+                    setattr(self.resampler, elt, cache[elt])
+            cache.close()
+        else:
+            raise IOError
 
-                return self.cache
-            else:
-                del valid_input_index, valid_output_index, index_array, distance_array
+    def save_neighbour_info(self, cache_dir, **kwargs):
+        if cache_dir:
+            filename = self._create_cache_filename(cache_dir, **kwargs)
+            LOG.info('Saving kd_tree neighbour info to %s', filename)
+            cache = {'valid_input_index': self.resampler.valid_input_index,
+                     'valid_output_index': self.resampler.valid_output_index,
+                     'index_array': self.resampler.index_array,
+                     'distance_array': self.resampler.distance_array}
+
+            np.savez(filename, **cache)
 
     def compute(self, data, weight_funcs=None, fill_value=None,
                 with_uncert=False, **kwargs):
@@ -619,7 +588,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
-def prepare_resampler(source_area, destination_area, resampler=None):
+def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instanciate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
@@ -633,7 +602,13 @@ def prepare_resampler(source_area, destination_area, resampler=None):
     else:
         resampler_class = resampler
 
-    return resampler_class(source_area, destination_area)
+    try:
+        key = (resampler_class,
+               source_area, destination_area,
+               hash_dict(resample_kwargs))
+        return resamplers_cache[key]
+    except KeyError:
+        return resampler_class(source_area, destination_area)
 
 
 def resample(source_area, data, destination_area,
