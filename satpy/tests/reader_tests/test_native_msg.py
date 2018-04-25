@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -103,7 +103,8 @@ class TestNativeMSGFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_header')
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_filedtype')
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_memmap')
-    def setUp(self, _get_memmap, _get_filedtype, _get_header):
+    @mock.patch('dask.array.from_array')
+    def setUp(self, _get_memmap, _get_filedtype, _get_header, dask):
         """Setup the natve MSG file handler for testing."""
 
         hdr = {}
@@ -117,6 +118,8 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         _get_header.return_value = None
         _get_filedtype.return_value = None
+
+        dask.return_code = None
 
         self.reader = NativeMSGFileHandler('filename',
                                            {'platform_shortname': 'MSG3',
