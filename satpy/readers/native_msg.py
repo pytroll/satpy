@@ -84,7 +84,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             if self.available_channels.get(item):
                 self.channel_order_list.append(item)
 
-        self.memmap = da.from_array(self._get_memmap(), chunks=(10,))
+        self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
     @property
     def start_time(self):
