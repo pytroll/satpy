@@ -50,7 +50,8 @@ class ASCATMETOPFileHandler(BaseFileHandler):
         self.filename_info['equator_crossing_time'] = \
             datetime.strptime(ds.getncattr('equator_crossing_date')
                               + ' ' +
-                              ds.getncattr('equator_crossing_time'), '%Y-%m-%d %H:%M:%S')
+                              ds.getncattr('equator_crossing_time'),
+                              '%Y-%m-%d %H:%M:%S')
         self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
 
         self.platform_name = SHORT_NAMES[filename_info['platform_id']]
