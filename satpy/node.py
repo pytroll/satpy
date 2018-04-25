@@ -278,7 +278,6 @@ class DependencyTree(Node):
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    # FIXME: dfilter should either be a **dfilter or a single dictionary. Probably **dfilter to make it easier on the user
     def _find_reader_dataset(self, dataset_key, **dfilter):
         """Attempt to find a `DatasetID` in the available readers.
 
@@ -312,8 +311,7 @@ class DependencyTree(Node):
                 return Node(ds_id, {'reader_name': reader_name})
 
     def _get_compositor_prereqs(self, parent, prereq_names, skip=False,
-                                calibration=None, polarization=None,
-                                resolution=None):
+                                **dfilter):
         """Determine prerequisite Nodes for a composite.
 
         Args:
@@ -331,8 +329,7 @@ class DependencyTree(Node):
         prereq_ids = []
         unknowns = set()
         for prereq in prereq_names:
-            n, u = self._find_dependencies(prereq, calibration,
-                                           polarization, resolution)
+            n, u = self._find_dependencies(prereq, **dfilter)
             if u:
                 unknowns.update(u)
                 if skip:
@@ -365,8 +362,7 @@ class DependencyTree(Node):
             orig_dict[k] = dep_dict[k]
         return DatasetID.from_dict(orig_dict)
 
-    def _find_compositor(self, dataset_key, calibration=None,
-                         polarization=None, resolution=None):
+    def _find_compositor(self, dataset_key, **dfilter):
         """Find the compositor object for the given dataset_key."""
         # NOTE: This function can not find a modifier that performs
         # one or more modifications if it has modifiers see if we can find
@@ -375,8 +371,7 @@ class DependencyTree(Node):
         if isinstance(dataset_key, DatasetID) and dataset_key.modifiers:
             new_prereq = DatasetID(
                 *dataset_key[:-1] + (dataset_key.modifiers[:-1],))
-            src_node, u = self._find_dependencies(new_prereq, calibration,
-                                                  polarization, resolution)
+            src_node, u = self._find_dependencies(new_prereq, **dfilter)
             # Update the requested DatasetID with information from the src
             if src_node is not None:
                 dataset_key = self._update_modifier_key(dataset_key,
@@ -390,12 +385,7 @@ class DependencyTree(Node):
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
         # FIXME: What if resolution/calibration/polarization are lists?
-        if resolution:
-            compositor.attrs['resolution'] = resolution
-        if calibration:
-            compositor.attrs['calibration'] = calibration
-        if polarization:
-            compositor.attrs['polarization'] = polarization
+        # compositor.attrs.update(dfilter)
         dataset_key = compositor.id
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
@@ -404,8 +394,7 @@ class DependencyTree(Node):
 
         # 2.1 get the prerequisites
         prereqs, unknowns = self._get_compositor_prereqs(
-            root, compositor.attrs['prerequisites'], calibration=calibration,
-            polarization=polarization, resolution=resolution)
+            root, compositor.attrs['prerequisites'], **dfilter)
         if unknowns:
             # Should we remove all of the unknown nodes that were found
             # if there is an unknown prerequisite are we in trouble?
@@ -414,35 +403,20 @@ class DependencyTree(Node):
 
         optional_prereqs, _ = self._get_compositor_prereqs(
             root, compositor.attrs['optional_prerequisites'], skip=True,
-            calibration=calibration, polarization=polarization,
-            resolution=resolution)
+            **dfilter)
         root.data[2].extend(optional_prereqs)
 
         return root, set()
 
-    def _find_dependencies(self,
-                           dataset_key,
-                           calibration=None,
-                           polarization=None,
-                           resolution=None):
+    def _find_dependencies(self, dataset_key, **dfilter):
         """Find the dependencies for *dataset_key*.
 
         Args:
             dataset_key (str, float, DatasetID): Dataset identifier to locate
                                                  and find any additional
                                                  dependencies for.
-            calibration (list): List of calibration string levels to load from
-                                a reader in order of preference. This is a
-                                convenience so individual DatasetIDs don't
-                                have to be created by the caller.
-            polarization (list): List of polarization strings to load from a
-                                 reader in order of preference. This is a
-                                 convenience so individual DatasetIDs don't
-                                 have to be created by the caller.
-            resolution (list): List of resolution levels to load from a
-                               reader in order of preference. This is a
-                               convenience so individual DatasetIDs don't
-                               have to be created by the caller.
+            **dfilter (dict): Additional filter parameters. See
+                              `satpy.readers.get_key` for more details.
 
         """
         # 0 check if the *exact* dataset is already loaded
@@ -453,13 +427,11 @@ class DependencyTree(Node):
             pass
 
         # 1 try to get *best* dataset from reader
-        node = self._find_reader_dataset(dataset_key,
-                                         calibration=calibration,
-                                         polarization=polarization,
-                                         resolution=resolution)
+        node = self._find_reader_dataset(dataset_key, **dfilter)
         if node is not None:
             return node, set()
 
+        # 2 try to find a composite by name (any version of it is good enough)
         try:
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
@@ -469,29 +441,22 @@ class DependencyTree(Node):
             # composite hasn't been loaded yet, let's load it below
             pass
 
-        # 2 try to find a composite that matches
+        # 3 try to find a composite that matches
         try:
-            node, unknowns = self._find_compositor(dataset_key,
-                                                   calibration=calibration,
-                                                   polarization=polarization,
-                                                   resolution=resolution)
+            node, unknowns = self._find_compositor(dataset_key, **dfilter)
         except KeyError:
             node = None
             unknowns = set([dataset_key])
 
         return node, unknowns
 
-    def find_dependencies(self,
-                          dataset_keys,
-                          calibration=None,
-                          polarization=None,
-                          resolution=None):
+    def find_dependencies(self, dataset_keys, **dfilter):
         """Create the dependency tree.
 
         Args:
             dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
-            TODO
-            calibration (iterable or None):
+            **dfilter (dict): Additional filter parameters. See
+                              `satpy.readers.get_key` for more details.
 
         Returns:
             (Node, set): Root node of the dependency tree and a set of unknown datasets
@@ -499,9 +464,7 @@ class DependencyTree(Node):
         """
         unknown_datasets = set()
         for key in dataset_keys.copy():
-            n, unknowns = self._find_dependencies(
-                key, calibration=calibration, polarization=polarization,
-                resolution=resolution)
+            n, unknowns = self._find_dependencies(key, **dfilter)
 
             dataset_keys.discard(key)  # remove old non-DatasetID
             if n is not None:
