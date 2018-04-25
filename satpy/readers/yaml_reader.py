@@ -287,13 +287,10 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
     def _ds_ids_from_any_key(self, key):
         """Return a dataset ids from any type of key."""
         if isinstance(key, numbers.Number):
-            datasets = self.get_ds_ids_by_wavelength(key)
-        elif isinstance(key, DatasetID):
-            datasets = self.get_ds_ids_by_id(key)
-        else:
-            datasets = self.get_ds_ids_by_name(key)
-
-        return datasets
+            key = DatasetID(wavelength=key, modifiers=None)
+        elif isinstance(key, str):
+            key = DatasetID(name=key, modifiers=None)
+        return self.get_ds_ids_by_id(key)
 
     def filter_ds_ids(self, dataset_ids, dfilter):
         """Filter *dataset_ids* based on *dfilter*."""

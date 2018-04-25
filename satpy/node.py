@@ -203,7 +203,7 @@ class DependencyTree(Node):
         # Sanity check: Node objects should be unique. They can be added
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
-        if child.name in self._all_nodes:
+        if self.exact_contains(child.name):
             assert self._all_nodes[child.name] is child
         self._all_nodes[child.name] = child
 
@@ -236,6 +236,13 @@ class DependencyTree(Node):
 
     def __getitem__(self, item):
         return self._all_nodes[item]
+
+    def exact_contains(self, item):
+        return super(DatasetDict, self._all_nodes).__contains__(item)
+
+    def exact_getitem(self, item):
+        """Get Node when we know the *exact* DatasetID"""
+        return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
         for sensor_name in self.compositors.keys():
@@ -271,24 +278,37 @@ class DependencyTree(Node):
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _find_reader_dataset(self,
-                             dataset_key,
-                             calibration=None,
-                             polarization=None,
-                             resolution=None):
+    # FIXME: dfilter should either be a **dfilter or a single dictionary. Probably **dfilter to make it easier on the user
+    def _find_reader_dataset(self, dataset_key, **dfilter):
+        """Attempt to find a `DatasetID` in the available readers.
+
+        Args:
+            dataset_key (str, float, DatasetID):
+                Dataset name, wavelength, or a combination of `DatasetID`
+                parameters to use in searching for the dataset from the
+                available readers.
+            **dfilter (list or str): `DatasetID` parameters besides `name`
+                                     and `wavelength` to use to filter the
+                                     available datasets. Passed directly to
+                                     `get_dataset_key` of the readers, see
+                                     that method for more information.
+
+        """
         for reader_name, reader_instance in self.readers.items():
             try:
-                dfilter = {'calibration': calibration,
-                           'polarization': polarization,
-                           'resolution': resolution}
                 ds_id = reader_instance.get_dataset_key(dataset_key, dfilter)
-            except KeyError as err:
+            except KeyError:
                 # LOG.debug("Can't find dataset %s in reader %s",
                 #           str(dataset_key), reader_name)
-                pass
-            else:
-                # LOG.debug("Found {} in reader {}".format(str(ds_id),
-                #                                          reader_name))
+                continue
+            # LOG.debug("Found {} in reader {}".format(str(ds_id),
+            #                                          reader_name))
+            try:
+                # now that we know we have the exact DatasetID see if we have
+                # already created a Node for it
+                return self.exact_getitem(ds_id)
+            except KeyError:
+                # we haven't created a node yet, create it now
                 return Node(ds_id, {'reader_name': reader_name})
 
     def _get_compositor_prereqs(self, parent, prereq_names, skip=False,
@@ -369,6 +389,7 @@ class DependencyTree(Node):
         except KeyError:
             raise KeyError("Can't find anything called {}".format(
                 str(dataset_key)))
+        # FIXME: What if resolution/calibration/polarization are lists?
         if resolution:
             compositor.attrs['resolution'] = resolution
         if calibration:
@@ -424,21 +445,29 @@ class DependencyTree(Node):
                                have to be created by the caller.
 
         """
-        # 0 check if the dataset is already loaded
+        # 0 check if the *exact* dataset is already loaded
         try:
-            if dataset_key in self:
-                return self[dataset_key], set()
+            return self.exact_getitem(dataset_key), set()
         except KeyError:
-            # there could be more than one matching dataset, which is fine
+            # exact dataset isn't loaded, let's load it below
             pass
 
-        # 1 try to get dataset from reader
+        # 1 try to get *best* dataset from reader
         node = self._find_reader_dataset(dataset_key,
                                          calibration=calibration,
                                          polarization=polarization,
                                          resolution=resolution)
         if node is not None:
             return node, set()
+
+        try:
+            # assume that there is no such thing as a "better" composite
+            # version so if we find any DatasetIDs already loaded then
+            # we want to use them
+            return self[dataset_key], set()
+        except KeyError:
+            # composite hasn't been loaded yet, let's load it below
+            pass
 
         # 2 try to find a composite that matches
         try:
@@ -461,6 +490,7 @@ class DependencyTree(Node):
 
         Args:
             dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
+            TODO
             calibration (iterable or None):
 
         Returns:
@@ -469,14 +499,9 @@ class DependencyTree(Node):
         """
         unknown_datasets = set()
         for key in dataset_keys.copy():
-            if key in self:
-                n = self[key]
-                unknowns = None
-            else:
-                n, unknowns = self._find_dependencies(key,
-                                                      calibration=calibration,
-                                                      polarization=polarization,
-                                                      resolution=resolution)
+            n, unknowns = self._find_dependencies(
+                key, calibration=calibration, polarization=polarization,
+                resolution=resolution)
 
             dataset_keys.discard(key)  # remove old non-DatasetID
             if n is not None:

@@ -1256,6 +1256,48 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn(ds1_mod_id, scene.datasets)
         self.assertIn(ds3_mod_id, scene.datasets)
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp11_and_23(self, cri, cl):
+        """Test loading two composites that depend on similar wavelengths."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID, DatasetDict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+
+        def _test(self, sensor_names):
+            if not self.compositors:
+                self.compositors = comps
+                self.modifiers = mods
+            new_comps = {}
+            new_mods = {}
+            for sn in sensor_names:
+                new_comps[sn] = DatasetDict(
+                    self.compositors[sn].copy())
+                new_mods[sn] = self.modifiers[sn].copy()
+            return new_comps, new_mods
+
+        cl.side_effect = _test
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # mock the available comps/mods in the compositor loader
+        avail_comps = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='comp11'), avail_comps)
+        self.assertIn(DatasetID(name='comp23'), avail_comps)
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp11', 'comp23'])
+        comp11_node = scene.dep_tree['comp11']
+        comp23_node = scene.dep_tree['comp23']
+        self.assertEqual(comp11_node.data[1][-1].name, 'ds10')
+        self.assertEqual(comp23_node.data[1][0].name, 'ds8')
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertIn('comp11', scene.datasets)
+        self.assertIn('comp23', scene.datasets)
+
 
 class TestSceneResampling(unittest.TestCase):
 

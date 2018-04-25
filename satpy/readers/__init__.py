@@ -42,6 +42,16 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
+def _wl_dist(wl_a, wl_b):
+    """Return the distance between two requested wavelengths."""
+    if isinstance(wl_a, tuple):
+        # central wavelength
+        wl_a = wl_a[1]
+    if isinstance(wl_b, tuple):
+        wl_b = wl_b[1]
+    return abs(wl_a - wl_b)
+
+
 def get_best_dataset_key(key, choices):
     """Choose the "best" `DatasetID` from `choices` based on `key`.
 
@@ -73,10 +83,10 @@ def get_best_dataset_key(key, choices):
     if key.wavelength is not None and choices:
         # find the dataset with a central wavelength nearest to the
         # requested wavelength
-        nearest_wl = min([(key.wavelength - x.wavelength[1])
+        nearest_wl = min([_wl_dist(key.wavelength, x.wavelength)
                           for x in choices if x.wavelength is not None])
         choices = [c for c in choices
-                   if (key.wavelength - c.wavelength) == nearest_wl]
+                   if _wl_dist(key.wavelength, c.wavelength) == nearest_wl]
     if key.modifiers is None and choices:
         num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
         choices = [c for c in choices if len(
@@ -84,7 +94,7 @@ def get_best_dataset_key(key, choices):
     if key.calibration is None and choices:
         best_cal = [x.calibration for x in choices if x.calibration]
         if best_cal:
-            low_res = min(best_cal, lambda x: CALIBRATION_ORDER[best_cal])
+            low_res = min(best_cal, key=lambda x: CALIBRATION_ORDER[x])
             choices = [c for c in choices if c.resolution == low_res]
     if key.resolution is None and choices:
         low_res = [x.resolution for x in choices if x.resolution]
