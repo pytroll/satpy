@@ -34,7 +34,7 @@ from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset, get_frozen_area,
-                            prepare_resampler)
+                            prepare_resampler, resamplers_cache, hash_dict)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
@@ -154,6 +154,7 @@ class Scene(MetadataObject):
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
+        self.resamplers = {}
 
     def _ipython_key_completions_(self):
         return [x.name for x in self.datasets.keys()]
@@ -703,7 +704,8 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             if source_area not in resamplers:
                 resamplers[source_area] = prepare_resampler(
-                    source_area, destination_area, resampler=resampler)
+                    source_area, destination_area, resampler=resampler,
+                    **resample_kwargs)
             resample_kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
                                    **resample_kwargs)
@@ -713,7 +715,7 @@ class Scene(MetadataObject):
             else:
                 replace_anc(res, pres)
 
-        return new_scn
+        return new_scn, resamplers, destination_area
 
     def resample(self,
                  destination=None,
@@ -727,8 +729,14 @@ class Scene(MetadataObject):
 
         if destination is None:
             destination = self.max_area(to_resample)
-        new_scn = self._resampled_scene(to_resample, destination,
-                                        **resample_kwargs)
+        new_scn, resamplers, destination_area = self._resampled_scene(to_resample, destination,
+                                                                      **resample_kwargs)
+        for source, resampler in resamplers.items():
+            key = (resampler.__class__,
+                   source, destination_area,
+                   hash_dict(resample_kwargs))
+            resamplers_cache[key] = resampler
+            self.resamplers[key] = resampler
 
         new_scn.attrs = self.attrs.copy()
         new_scn.dep_tree = self.dep_tree.copy()
