@@ -46,6 +46,7 @@ def test_datasets():
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
+        DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
     ]
     return d
 
@@ -159,6 +160,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
+        DatasetID(name='comp23'): ([0.8], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -181,24 +183,35 @@ def test_composites(sensor_name):
 
 def _get_dataset_key(self,
                      key,
-                     calibration=None,
-                     resolution=None,
-                     polarization=None,
-                     modifiers=None,
+                     dfilter=None,
                      aslist=False):
     from satpy import DatasetID
-    if isinstance(key, DatasetID) and not key.modifiers:
-        try:
-            return _get_dataset_key(self, key.name or key.wavelength)
-        except KeyError:
-            pass
+    import numbers
+    if isinstance(key, str):
+        key = DatasetID(name=key, modifiers=None)
+    elif isinstance(key, numbers.Number):
+        key = DatasetID(wavelength=key, modifiers=None)
+
+    if key.modifiers:
+        raise KeyError("No fake test key '{}'".format(key))
 
     dataset_ids = self.datasets
+    possible_ids = []
+    # FIXME: Use the actual reader get dataset
     for ds in dataset_ids:
-        # should do wavelength and string matching for equality
-        if key == ds:
-            return ds
-    raise KeyError("No fake test key '{}'".format(key))
+        if key.name:
+            if key.name == ds.name:
+                possible_ids.append(ds)
+                continue
+        if key.wavelength:
+            if DatasetID.wavelength_match(key.wavelength, ds.wavelength):
+                possible_ids.append(ds)
+                continue
+    from satpy.readers import get_best_dataset_key
+    res = get_best_dataset_key(key, possible_ids)
+    if len(res) != 1:
+        raise KeyError("No fake test key '{}'".format(key))
+    return res[0]
 
 
 def _reader_load(self, dataset_keys):
