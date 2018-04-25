@@ -188,12 +188,13 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             logger.warning("No filenames found for reader: %s", self.name)
         return selected_filenames
 
-    def get_dataset_key(self, key, dfilter=None, aslist=False, best=True):
-        """Get the fully qualified `DatasetID` matching `key`."""
-        dfilter = dfilter or {}
-        num_results = 0 if aslist else 1
-        return get_key(key, self.ids.keys(), num_results=num_results,
-                       best=best, **dfilter)
+    def get_dataset_key(self, key, **kwargs):
+        """Get the fully qualified `DatasetID` matching `key`.
+
+        See `satpy.readers.get_key` for more information about kwargs.
+
+        """
+        return get_key(key, self.ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""

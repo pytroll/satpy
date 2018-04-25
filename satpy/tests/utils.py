@@ -181,11 +181,9 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self, key, dfilter=None, aslist=False, best=True):
+def _get_dataset_key(self, key, **kwargs):
     from satpy.readers import get_key
-    dfilter = dfilter or {}
-    num_results = 0 if aslist else 1
-    return get_key(key, self.datasets, num_results=num_results, best=best, **dfilter)
+    return get_key(key, self.datasets, **kwargs)
 
 
 def _reader_load(self, dataset_keys):
