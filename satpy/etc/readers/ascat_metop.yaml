@@ -2,52 +2,75 @@ reader:
   description: Generic Eumetsat / KNMI Ascat Metop Wind field Reader
   name: ascat_metop
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
-  sensors: [scatterometer]
+  sensors: [ASCAT]
   default_datasets:
 
 datasets:
   longitude:
     name: longitude
-    file_type: ascat_wind
+    sensor: ASCAT
+    file_type: [ascat_wind_coa, ascat_wind_250]
     standard_name: longitude
     units: degree
+    resolution: [12500, 25000]
 
   latitude:
     name: latitude
-    file_type: ascat_wind
+    sernsor: ASCAT
+    file_type: [ascat_wind_coa, ascat_wind_250]
     standard_name: latitude
     units: degree
+    resolution: [12500, 25000]
 
   wind_speed:
     name: wind_speed
-    sensor: Scatterometer
+    sensor: ASCAT
     coordinates: [longitude, latitude]
     file_type: ascat_wind
+    units: m/s
     standard_name: wind_speed
+    resolution:
+      12500: {file_type: ascat_wind_coa}
+      25000: {file_type: ascat_wind_250}
 
   wind_direction:
     name: wind_direction
-    sensor: Scatterometer
+    sensor: ASCAT
     coordinates: [longitude, latitude]
     file_type: ascat_wind
+    units: degree
     standard_name: wind_direction
+    resolution: 
+      12500: {file_type: ascat_wind_coa}
+      25000: {file_type: ascat_wind_250}
 
   ice_prob:
     name: ice_prob
-    sensor: Scatterometer
+    sensor: ASCAT
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: ice_prob
+    resolution:
+      12500: {file_type: ascat_wind_coa}
+      25000: {file_type: ascat_wind_250}
 
   ice_age:
     name: ice_age
-    sensor: Scatterometer
+    sensor: ASCAT
     coordinates: [longitude, latitude]
     file_type: ascat_wind
+    units: dB
     standard_name: ice_age
+    resolution:
+      12500: {file_type: ascat_wind_coa}
+      25000: {file_type: ascat_wind_250}
 
 
 file_types:
-  ascat_wind:
+  ascat_wind_250:
     file_reader: !!python/name:satpy.readers.ascat_metop.ASCATMETOPFileHandler ''
-    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc']
+    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_250_{version}_{product_content}.{product_level}.nc']
+  ascat_wind_coa:
+    file_reader: !!python/name:satpy.readers.ascat_metop.ASCATMETOPFileHandler ''
+#    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc']
+    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_coa_{version}_{product_content}.{product_level}.nc']

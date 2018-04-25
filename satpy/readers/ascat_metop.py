@@ -20,14 +20,17 @@
 """ OSI SAF ASCAT reader for Metop wind products as provided by KNMI
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
+import xarray as xr
+import xarray.ufuncs as xu
+import dask.array as da
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 from netCDF4 import Dataset as CDF4_Dataset
 
-
+SHORT_NAMES = {'metopa': 'Metop-A',
+               'metopb': 'Metop-B'}
 
 class ASCATMETOPFileHandler(BaseFileHandler):
 
@@ -44,35 +47,43 @@ class ASCATMETOPFileHandler(BaseFileHandler):
         self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
                                                         +' '+ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
         self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
-        self.lons = None
-        self.lats = None
 
+        self.platform_name = SHORT_NAMES[filename_info['platform_id']]
+        self.lats = None
+        self.lons = None
 
     def get_dataset(self, key, info):
-
+        
+        info['platform_name'] = self.platform_name
         stdname = info.get('standard_name')
         if stdname in ['latitude', 'longitude']:
-
             if self.lons is None or self.lats is None:
                 self.lons = self.ds['lon'][:]
                 self.lats = self.ds['lat'][:]
 
             if info['standard_name'] == 'longitude':
-                return Dataset(self.lons, id=key, **info)
+                return xr.DataArray(self.lons, name=key.name,
+                                        attrs=info, dims=('y', 'x'))
             else:
-                return Dataset(self.lats, id=key, **info)
+                return xr.DataArray(self.lats, name=key.name,
+                                        attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_speed']:
-            return Dataset(self.ds['wind_speed'][:], id=key, **info)
+            return xr.DataArray(self.ds['wind_speed'][:], name=key.name,
+                                   attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_direction']:
-            return Dataset(self.ds['wind_dir'][:], id=key, **info)
+            return xr.DataArray(self.ds['wind_dir'][:], name=key.name,
+                                   attrs=info, dims=('y', 'x'))
 
         if stdname in ['ice_prob']:
-            return Dataset(self.ds['ice_prob'][:], id=key, **info)
+            return xr.DataArray(self.ds['ice_prob'][:], name=key.name,
+                                   attrs=info, dims=('y', 'x'))
 
         if stdname in ['ice_age']:
-            return Dataset(self.ds['ice_age'][:], id=key, **info)
+            return xr.DataArray(self.ds['ice_age'][:], name=key.name,
+                                   attrs=info, dims=('y', 'x'))
+
 
 
 
