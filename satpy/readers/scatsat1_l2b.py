@@ -23,8 +23,10 @@
 from datetime import datetime
 import h5py
 import xarray as xr
+import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 
 class SCATSAT1L2BFileHandler(BaseFileHandler):
@@ -35,13 +37,13 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         self.h5f = h5py.File(self.filename, "r")
         h5data = self.h5f['science_data']
 
-        self.filename_info['start_time'] = \
+        self.finfo = filename_info
+        self.finfo['start_time'] = \
             datetime.strptime(h5data.attrs['Range Beginning Date'],
                               '%Y-%jT%H:%M:%S.%f')
-        self.filename_info['end_time'] = \
+        self.finfo['end_time'] = \
             datetime.strptime(h5data.attrs['Range Ending Date'],
                               '%Y-%jT%H:%M:%S.%f')
-
         self.lons = None
         self.lats = None
 
@@ -57,6 +59,7 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         h5data = self.h5f['science_data']
         stdname = info.get('standard_name')
+        chunk_size = CHUNK_SIZE
 
         if stdname in ['latitude', 'longitude']:
             if self.lons is None or self.lats is None:
@@ -64,20 +67,32 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
                 self.lats = h5data['Latitude'][:]*self.latitude_scale
 
             if info['standard_name'] == 'longitude':
-                return xr.DataArray(self.lons, name=key,
-                                    attrs=info, dims=('y', 'x'))
+                return xr.DataArray(da.from_array(self.lons,
+                                                  chunks=chunk_size),
+                                    name=key, attrs=info, dims=('y', 'x'))
             else:
-                return xr.DataArray(self.lats, name=key,
-                                    attrs=info, dims=('y', 'x'))
+                return xr.DataArray(da.from_array(self.lats,
+                                                  chunks=chunk_size),
+                                    name=key, attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_speed']:
             windspeed = h5data['Wind_speed_selection'][:, :] * \
                   self.wind_speed_scale
-            return xr.DataArray(windspeed, name=key,
-                                attrs=info, dims=('y', 'x'))
+            return xr.DataArray(da.from_array(windspeed,
+                                              chunks=chunk_size),
+                                name=key, attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_direction']:
             wind_direction = h5data['Wind_direction_selection'][:, :] * \
                   self.wind_direction_scale
-            return xr.DataArray(wind_direction, name=key,
-                                attrs=info, dims=('y', 'x'))
+            return xr.DataArray(da.from_array(wind_direction,
+                                              chunks=chunk_size),
+                                name=key, attrs=info, dims=('y', 'x'))
+
+    @property
+    def start_time(self):
+        return self.finfo['start_time']
+
+    @property
+    def end_time(self):
+        return self.finfo['end_time']
