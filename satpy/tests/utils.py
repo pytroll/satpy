@@ -181,37 +181,11 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self,
-                     key,
-                     dfilter=None,
-                     aslist=False):
-    from satpy import DatasetID
-    import numbers
-    if isinstance(key, str):
-        key = DatasetID(name=key, modifiers=None)
-    elif isinstance(key, numbers.Number):
-        key = DatasetID(wavelength=key, modifiers=None)
-
-    if key.modifiers:
-        raise KeyError("No fake test key '{}'".format(key))
-
-    dataset_ids = self.datasets
-    possible_ids = []
-    # FIXME: Use the actual reader get dataset
-    for ds in dataset_ids:
-        if key.name:
-            if key.name == ds.name:
-                possible_ids.append(ds)
-                continue
-        if key.wavelength:
-            if DatasetID.wavelength_match(key.wavelength, ds.wavelength):
-                possible_ids.append(ds)
-                continue
-    from satpy.readers import get_best_dataset_key
-    res = get_best_dataset_key(key, possible_ids)
-    if len(res) != 1:
-        raise KeyError("No fake test key '{}'".format(key))
-    return res[0]
+def _get_dataset_key(self, key, dfilter=None, aslist=False, best=True):
+    from satpy.readers import get_key
+    dfilter = dfilter or {}
+    num_results = 0 if aslist else 1
+    return get_key(key, self.datasets, num_results=num_results, best=best, **dfilter)
 
 
 def _reader_load(self, dataset_keys):
