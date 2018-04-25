@@ -77,7 +77,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
-        self.available_channels = dict(zip(CHANNEL_LIST,[False]*len(CHANNEL_LIST)))
+        self.available_channels = dict(zip(CHANNEL_LIST, [False] * len(CHANNEL_LIST)))
         self._get_header()
         self.channel_index_list = [i for i in CHANNEL_LIST if self.available_channels[i]]
 
@@ -144,7 +144,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             [s for s in self.channel_index_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
         if self.available_channels['HRV']:
-            hrv_rec = get_lrec(self._cols_hrv)
+            hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
 
         return np.dtype(drec)
@@ -182,13 +182,6 @@ class NativeMSGFileHandler(BaseFileHandler):
                                              'b': polar_radius,
                                              'h': 35785831.00,
                                              'SSP_longitude': ssp_lon}
-        # self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
-        #    'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
-
-        # The number of columns is incorrect - seems to be fixed at 3712
-        # EUMETSAT will fix this
-        # self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
-        #     'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
 
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
@@ -199,8 +192,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
-
-        numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
@@ -215,21 +206,24 @@ class NativeMSGFileHandler(BaseFileHandler):
             # no padding has occurred
             self._cols_visir = int((west - east + 1) * 1.25)
 
-        if (west - east) < 3711:
-            self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
-        else:
-            self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
-
         self.mda['number_of_columns'] = int(self._cols_visir / 1.25)
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'][0])
         # The number of HRV columns seem to be correct in the UMARF header:
-        self.mda['hrv_number_of_columns'] = int(numcols_hrv)
+        self.mda['hrv_number_of_columns'] = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
 
         lindir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+
+        # Check the calculated row,column dimensions against the header information:
+        numcols_cal = self.mda['number_of_columns']
+        numcols_hd = self.header['15_DATA_HEADER']['ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
+        if numcols_cal != numcols_hd:
+            logger.warning("Number of (non HRV band) columns from header and derived from data are not consistent!")
+            logger.warning("Number of columns read from header = %d", numcols_hd)
+            logger.warning("Number of columns calculated from data = %d", numcols_cal)
 
         area_extent = ((1856 - west - 0.5) * coldir_step,
                        (1856 - north + 0.5) * lindir_step,
