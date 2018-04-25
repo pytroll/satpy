@@ -22,8 +22,6 @@
 
 from datetime import datetime
 import xarray as xr
-import xarray.ufuncs as xu
-import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -32,20 +30,27 @@ from netCDF4 import Dataset as CDF4_Dataset
 SHORT_NAMES = {'metopa': 'Metop-A',
                'metopb': 'Metop-B'}
 
+
 class ASCATMETOPFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(ASCATMETOPFileHandler, self).__init__(filename, filename_info,
-                                                      filetype_info)
+                                                    filetype_info)
         ds = CDF4_Dataset(self.filename, 'r')
         self.ds = ds
 
-        self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date')
-                                                        +' '+ds.getncattr('start_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date')
-                                                        +' '+ds.getncattr('stop_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
-                                                        +' '+ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
+        self.filename_info['start_time'] = \
+            datetime.strptime(ds.getncattr('start_date')
+                              + ' ' +
+                              ds.getncattr('start_time'), '%Y-%m-%d %H:%M:%S')
+        self.filename_info['end_time'] = \
+            datetime.strptime(ds.getncattr('stop_date')
+                              + ' ' +
+                              ds.getncattr('stop_time'), '%Y-%m-%d %H:%M:%S')
+        self.filename_info['equator_crossing_time'] = \
+            datetime.strptime(ds.getncattr('equator_crossing_date')
+                              + ' ' +
+                              ds.getncattr('equator_crossing_time'), '%Y-%m-%d %H:%M:%S')
         self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
 
         self.platform_name = SHORT_NAMES[filename_info['platform_id']]
@@ -53,7 +58,6 @@ class ASCATMETOPFileHandler(BaseFileHandler):
         self.lons = None
 
     def get_dataset(self, key, info):
-        
         info['platform_name'] = self.platform_name
         stdname = info.get('standard_name')
         if stdname in ['latitude', 'longitude']:
@@ -63,29 +67,23 @@ class ASCATMETOPFileHandler(BaseFileHandler):
 
             if info['standard_name'] == 'longitude':
                 return xr.DataArray(self.lons, name=key.name,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
             else:
                 return xr.DataArray(self.lats, name=key.name,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_speed']:
             return xr.DataArray(self.ds['wind_speed'][:], name=key.name,
-                                   attrs=info, dims=('y', 'x'))
+                                attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_direction']:
             return xr.DataArray(self.ds['wind_dir'][:], name=key.name,
-                                   attrs=info, dims=('y', 'x'))
+                                attrs=info, dims=('y', 'x'))
 
         if stdname in ['ice_prob']:
             return xr.DataArray(self.ds['ice_prob'][:], name=key.name,
-                                   attrs=info, dims=('y', 'x'))
+                                attrs=info, dims=('y', 'x'))
 
         if stdname in ['ice_age']:
             return xr.DataArray(self.ds['ice_age'][:], name=key.name,
-                                   attrs=info, dims=('y', 'x'))
-
-
-
-
-
-
+                                attrs=info, dims=('y', 'x'))
