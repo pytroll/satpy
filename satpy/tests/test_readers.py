@@ -48,7 +48,7 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(d, regular_dict)
 
     def test_get_keys_by_datasetid(self):
-        from satpy.readers import DatasetDict
+        from satpy.readers import filter_keys_by_dataset_id
         from satpy.dataset import DatasetID
         did_list = [DatasetID(
             name="test", wavelength=(0, 0.5, 1),
@@ -58,18 +58,16 @@ class TestDatasetDict(unittest.TestCase):
                     DatasetID(name="test2",
                               wavelength=(1, 1.5, 2),
                               resolution=1000)]
-        val_list = ["1", "1h", "2"]
-        d = DatasetDict(dict(zip(did_list, val_list)))
         self.assertIn(did_list[0],
-                      d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+                      filter_keys_by_dataset_id(DatasetID(wavelength=0.5), did_list))
         self.assertIn(did_list[1],
-                      d.get_keys_by_datasetid(DatasetID(wavelength=0.5)))
+                      filter_keys_by_dataset_id(DatasetID(wavelength=0.5), did_list))
         self.assertIn(did_list[2],
-                      d.get_keys_by_datasetid(DatasetID(wavelength=1.5)))
+                      filter_keys_by_dataset_id(DatasetID(wavelength=1.5), did_list))
         self.assertIn(did_list[0],
-                      d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+                      filter_keys_by_dataset_id(DatasetID(resolution=1000), did_list))
         self.assertIn(did_list[2],
-                      d.get_keys_by_datasetid(DatasetID(resolution=1000)))
+                      filter_keys_by_dataset_id(DatasetID(resolution=1000), did_list))
 
     def test_get_item(self):
         from satpy.dataset import DatasetID

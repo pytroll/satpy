@@ -39,7 +39,7 @@ from weakref import WeakValueDictionary
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
-from satpy.readers import DatasetDict
+from satpy.readers import DatasetDict, get_key
 from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE, CALIBRATION_ORDER
@@ -189,147 +189,12 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             logger.warning("No filenames found for reader: %s", self.name)
         return selected_filenames
 
-    def get_ds_ids_by_wavelength(self, wavelength, ids=None):
-        """Get the dataset ids matching a given a *wavelength*."""
-        if ids is None:
-            ids = self.ids
-        if isinstance(wavelength, (tuple, list)):
-            datasets = [ds for ds in ids
-                        if ds.wavelength == tuple(wavelength)]
-        else:
-            datasets = [ds for ds in ids if ds.wavelength
-                        and ds.wavelength[0] <= wavelength <= ds.wavelength[2]]
-            datasets = sorted(datasets,
-                              key=lambda ch: abs(ch.wavelength[1] - wavelength))
-        if not datasets:
-            raise KeyError("Can't find any projectable at %sum" %
-                           str(wavelength))
-
-        return datasets
-
-    def get_ds_ids_by_id(self, dsid, ids=None):
-        """Get the dataset ids matching a given a dataset id."""
-        if ids is None:
-            ids = self.ids.keys()
-        for key in DATASET_KEYS:
-            value = getattr(dsid, key)
-            if value is None or (key == 'modifiers' and not value):
-                # filter everything else except modifiers if it isn't
-                # specified (None or tuple())
-                continue
-            if key == "wavelength":
-                ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
-            else:
-                ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
-        if len(ids) == 0:
-            raise KeyError(
-                "Can't find any projectable matching '{}'".format(dsid))
-        return ids
-
-    def get_ds_ids_by_name(self, name, ids=None):
-        """Get the datasets ids by *name*."""
-        if ids is None:
-            ids = self.ids
-        datasets = [ds_id for ds_id in ids if ds_id.name == name]
-        if not datasets:
-            raise KeyError("Can't find any projectable called '{}'".format(
-                name))
-
-        return datasets
-
-    @staticmethod
-    def dfilter_from_key(dfilter, key):
-        """Create a dataset filter from a *key*."""
-        if dfilter is None:
-            dfilter = {}
-        else:
-            dfilter = dfilter.copy()
-        for attr in ['calibration', 'polarization', 'resolution']:
-            dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
-        # modifiers default is an empty tuple so handle it specially
-        dfilter['modifiers'] = dfilter.get('modifiers',
-                                           getattr(key, 'modifiers', None) or None)
-
-        for attr in ['calibration', 'polarization', 'resolution']:
-            if (dfilter[attr] is not None
-                    and not isinstance(dfilter[attr], (list, tuple, set))):
-                dfilter[attr] = [dfilter[attr]]
-        return dfilter
-
-    @staticmethod
-    def _get_best_calibration(calibration, order=CALIBRATION_ORDER):
-        # default calibration choices
-        if calibration is None:
-            calibration = ["brightness_temperature", "reflectance", 'radiance',
-                           'counts']
-        else:
-            calibration = sorted(calibration,
-                                 key=lambda cal: order[cal])
-        return calibration
-
-    def _ds_ids_with_best_calibration(self, datasets, calibration):
-        """Get the datasets with the best available calibration."""
-
-        calibrations = self._get_best_calibration(calibration)
-
-        new_datasets = []
-
-        for cal in calibrations:
-            for ds_id in datasets:
-                if ds_id.calibration == cal:
-                    new_datasets.append(ds_id)
-        for ds_id in datasets:
-            if (ds_id not in new_datasets and
-                    (ds_id.calibration is None and calibration is None)):
-                new_datasets.append(ds_id)
-        return new_datasets
-
-    def _ds_ids_from_any_key(self, key):
-        """Return a dataset ids from any type of key."""
-        if isinstance(key, numbers.Number):
-            key = DatasetID(wavelength=key, modifiers=None)
-        elif isinstance(key, str):
-            key = DatasetID(name=key, modifiers=None)
-        return self.get_ds_ids_by_id(key)
-
-    def filter_ds_ids(self, dataset_ids, dfilter):
-        """Filter *dataset_ids* based on *dfilter*."""
-        # sort by resolution, highest resolution first (lowest number)
-        dataset_ids = sorted(dataset_ids, key=lambda x: x.resolution or -1)
-
-        for attr in ['resolution', 'polarization']:
-            if dfilter.get(attr) is not None:
-                dataset_ids = [ds_id for ds_id in dataset_ids
-                               if getattr(ds_id, attr) in dfilter[attr]]
-
-        calibration = dfilter.get('calibration')
-        dataset_ids = self._ds_ids_with_best_calibration(dataset_ids,
-                                                         calibration)
-
-        if dfilter.get('modifiers') is not None:
-            dataset_ids = [ds_id for ds_id in dataset_ids
-                           if ds_id.modifiers == dfilter['modifiers']]
-
-        return dataset_ids
-
-    def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset id corresponding to `key`.
-
-        Can be either by name or centerwavelength. If `key` is a `DatasetID`
-        object its name is searched if it exists, otherwise its wavelength is
-        used.
-        """
-        datasets = self._ds_ids_from_any_key(key)
-        dfilter = self.dfilter_from_key(dfilter, key)
-        datasets = self.filter_ds_ids(datasets, dfilter)
-
-        if not datasets:
-            raise KeyError("Can't find any projectable matching '{}'".format(
-                str(key)))
-        if aslist:
-            return datasets
-        else:
-            return datasets[0]
+    def get_dataset_key(self, key, dfilter=None, aslist=False, best=True):
+        """Get the fully qualified `DatasetID` matching `key`."""
+        dfilter = dfilter or {}
+        num_results = 0 if aslist else 1
+        return get_key(key, self.ids.keys(), num_results=num_results,
+                       best=best, **dfilter)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
