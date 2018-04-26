@@ -28,6 +28,7 @@ https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF
 
 """
 
+import os
 import logging
 from datetime import datetime
 import numpy as np
@@ -42,16 +43,10 @@ from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
 from pyresample import geometry
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
+from satpy.readers.msg_base import CHANNEL_NAMES
 from satpy.readers.msg_base import get_cds_time
 from satpy.readers.hrit_base import dec10216
 import satpy.readers.msg_base as mb
-
-import os
-
-
-CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
-                'WV_062', 'WV_073', 'IR_087', 'IR_097',
-                'IR_108', 'IR_120', 'IR_134', 'HRV']
 
 
 class CalibrationError(Exception):
@@ -77,9 +72,10 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
-        self.available_channels = dict(zip(CHANNEL_LIST, [False] * len(CHANNEL_LIST)))
+        self.available_channels = None
         self._get_header()
-        self.channel_index_list = [i for i in CHANNEL_LIST if self.available_channels[i]]
+        self.channel_index_list = [i for i in CHANNEL_NAMES.values()
+                                   if self.available_channels[i]]
 
         self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
@@ -156,12 +152,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         hd_dt = np.dtype(hdrrec)
         hd_dt = hd_dt.newbyteorder('>')
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
-        # Set the list of available channels:
-        chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
-            'SelectedBandIDs'][0][-1].strip().decode()
 
-        for item, chmark in zip(CHANNEL_LIST, chlist_str):
-            self.available_channels[item] = (chmark == 'X')
+        # Set the list of available channels:
+        self.available_channels = get_available_channels(self.header)
 
         self.platform_id = self.header['15_DATA_HEADER'][
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
@@ -345,7 +338,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         """Calibrate to radiance."""
         # all 12 channels are in calibration coefficients
         # regardless of how many channels are in file
-        channel_index = CHANNEL_LIST.index(key_name)
+        #channel_index = CHANNEL_LIST.index(key_name)
+        channel_index = [key - 1 for key, value in CHANNEL_NAMES.iteritems()
+                         if value == key_name][0]
+
         calMode = 'NOMINAL'
         # determine the required calibration coefficients to use
         # for the Level 1.5 Header
@@ -402,3 +398,21 @@ class NativeMSGFileHandler(BaseFileHandler):
             return self._erads2bt(data, key_name)
         else:
             raise NotImplementedError('Unknown calibration type')
+
+
+def get_available_channels(header):
+    """Get the available channels from the header information"""
+
+    chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+        'SelectedBandIDs'][0][-1].strip().decode()
+
+    retv = dict(zip(CHANNEL_NAMES.values(),
+                    [False] * len(CHANNEL_NAMES.values())))
+
+    # for item, chmark in zip(CHANNEL_LIST, chlist_str):
+    #     self.available_channels[item] = (chmark == 'X')
+
+    for idx, chmark in zip(range(12), chlist_str):
+        retv[CHANNEL_NAMES[idx + 1]] = (chmark == 'X')
+
+    return retv

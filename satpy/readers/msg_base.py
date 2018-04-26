@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -29,6 +29,23 @@ import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
+
+# CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
+#                'WV_062', 'WV_073', 'IR_087', 'IR_097',
+#                'IR_108', 'IR_120', 'IR_134', 'HRV']
+CHANNEL_NAMES = {1: "VIS006",
+                 2: "VIS008",
+                 3: "IR_016",
+                 4: "IR_039",
+                 5: "WV_062",
+                 6: "WV_073",
+                 7: "IR_087",
+                 8: "IR_097",
+                 9: "IR_108",
+                 10: "IR_120",
+                 11: "IR_134",
+                 12: "HRV"}
+
 
 def get_cds_time(days, msecs):
     """Get the datetime object of the time since epoch given in days and
