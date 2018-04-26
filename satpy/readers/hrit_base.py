@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -33,6 +33,7 @@ import xarray as xr
 import dask.array as da
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.msg_base import dec10216
 
 logger = logging.getLogger('hrit_base')
 
@@ -95,6 +96,7 @@ base_hdr_map = {0: primary_header,
 
 
 class HRITFileHandler(BaseFileHandler):
+
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
