@@ -48,8 +48,8 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from netCDF4 import Dataset
         with Dataset('test.nc', 'w') as nc:
             # Create dimensions
-            row_dim = nc.createDimension('rows', 10)
-            col_dim = nc.createDimension('cols', 100)
+            nc.createDimension('rows', 10)
+            nc.createDimension('cols', 100)
 
             # Create Group
             g1 = nc.createGroup('test_group')
