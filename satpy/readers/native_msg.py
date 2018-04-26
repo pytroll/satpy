@@ -339,7 +339,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         # all 12 channels are in calibration coefficients
         # regardless of how many channels are in file
         #channel_index = CHANNEL_LIST.index(key_name)
-        channel_index = [key - 1 for key, value in CHANNEL_NAMES.iteritems()
+        channel_index = [key - 1 for key, value in CHANNEL_NAMES.items()
                          if value == key_name][0]
 
         calMode = 'NOMINAL'
