@@ -35,13 +35,12 @@ import numpy as np
 
 import xarray as xr
 import dask.array as da
+
 from satpy import CHUNK_SIZE
+from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
-
-from pyresample import geometry
-
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import CHANNEL_NAMES
 import satpy.readers.msg_base as mb
@@ -73,7 +72,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.available_channels = {}
         self._get_header()
 
-        self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
+        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
     @property
     def start_time(self):
@@ -90,7 +89,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             tend['Day'][0], tend['MilliSecsOfDay'][0])
 
     def _get_memmap(self):
-        """Get the numpy memory map for the SEVIRI data"""
+        """Get the memory map for the SEVIRI data"""
 
         with open(self.filename) as fp_:
 
@@ -133,7 +132,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         visir_rec = get_lrec(self._cols_visir)
 
         number_of_lowres_channels = len(
-            [s for s in self.channel_index_list if not s == 'HRV'])
+            [s for s in self._channel_index_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
         if self.available_channels['HRV']:
             hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
@@ -270,9 +269,9 @@ class NativeMSGFileHandler(BaseFileHandler):
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
             if len(self._channel_index_list) == 1:
-                raw = self.memmap['visir']['line_data']
+                raw = self.dask_array['visir']['line_data']
             else:
-                raw = self.memmap['visir']['line_data'][:, ch_idn, :]
+                raw = self.dask_array['visir']['line_data'][:, ch_idn, :]
 
             data = mb.dec10216(raw.flatten())
             data = da.flipud(da.fliplr((data.reshape(shape))))
@@ -280,9 +279,9 @@ class NativeMSGFileHandler(BaseFileHandler):
         else:
             shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
 
-            raw2 = self.memmap['hrv']['line_data'][:, 2, :]
-            raw1 = self.memmap['hrv']['line_data'][:, 1, :]
-            raw0 = self.memmap['hrv']['line_data'][:, 0, :]
+            raw2 = self.dask_array['hrv']['line_data'][:, 2, :]
+            raw1 = self.dask_array['hrv']['line_data'][:, 1, :]
+            raw0 = self.dask_array['hrv']['line_data'][:, 0, :]
 
             shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
             data2 = mb.dec10216(raw2.flatten())
