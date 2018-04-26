@@ -70,10 +70,8 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
-        self.available_channels = None
+        self.available_channels = {}
         self._get_header()
-        self.channel_index_list = [i for i in CHANNEL_NAMES.values()
-                                   if self.available_channels[i]]
 
         self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
@@ -153,6 +151,8 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Set the list of available channels:
         self.available_channels = get_available_channels(self.header)
+        self._channel_index_list = [i for i in CHANNEL_NAMES.values()
+                                    if self.available_channels[i]]
 
         self.platform_id = self.header['15_DATA_HEADER'][
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
@@ -261,15 +261,15 @@ class NativeMSGFileHandler(BaseFileHandler):
     def get_dataset(self, key, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key.name not in self.channel_index_list:
+        if key.name not in self._channel_index_list:
             raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
-            ch_idn = self.channel_index_list.index(key.name)
+            ch_idn = self._channel_index_list.index(key.name)
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
-            if len(self.channel_index_list) == 1:
+            if len(self._channel_index_list) == 1:
                 raw = self.memmap['visir']['line_data']
             else:
                 raw = self.memmap['visir']['line_data'][:, ch_idn, :]
@@ -383,7 +383,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data, key_name):
         """IR calibration."""
-        channel_index = self.channel_index_list.index(key_name)
+        channel_index = self._channel_index_list.index(key_name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
             'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
@@ -404,9 +404,9 @@ def get_available_channels(header):
     chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
         'SelectedBandIDs'][0][-1].strip().decode()
 
-    retv = dict(zip(CHANNEL_NAMES.values(),
-                    [False] * len(CHANNEL_NAMES.values())))
-
+    # retv = dict(zip(CHANNEL_NAMES.values(),
+    #                 [False] * len(CHANNEL_NAMES.values())))
+    retv = {}
     # for item, chmark in zip(CHANNEL_LIST, chlist_str):
     #     self.available_channels[item] = (chmark == 'X')
 
