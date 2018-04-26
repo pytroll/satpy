@@ -44,8 +44,6 @@ from pyresample import geometry
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import CHANNEL_NAMES
-from satpy.readers.msg_base import get_cds_time
-from satpy.readers.hrit_base import dec10216
 import satpy.readers.msg_base as mb
 
 
@@ -83,14 +81,14 @@ class NativeMSGFileHandler(BaseFileHandler):
     def start_time(self):
         tstart = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return get_cds_time(
+        return mb.get_cds_time(
             tstart['Day'][0], tstart['MilliSecsOfDay'][0])
 
     @property
     def end_time(self):
         tend = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return get_cds_time(
+        return mb.get_cds_time(
             tend['Day'][0], tend['MilliSecsOfDay'][0])
 
     def _get_memmap(self):
@@ -276,7 +274,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             else:
                 raw = self.memmap['visir']['line_data'][:, ch_idn, :]
 
-            data = dec10216(raw.flatten())
+            data = mb.dec10216(raw.flatten())
             data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
@@ -287,11 +285,11 @@ class NativeMSGFileHandler(BaseFileHandler):
             raw0 = self.memmap['hrv']['line_data'][:, 0, :]
 
             shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
-            data2 = dec10216(raw2.flatten())
+            data2 = mb.dec10216(raw2.flatten())
             data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
-            data1 = dec10216(raw1.flatten())
+            data1 = mb.dec10216(raw1.flatten())
             data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
-            data0 = dec10216(raw0.flatten())
+            data0 = mb.dec10216(raw0.flatten())
             data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
 
             data = np.zeros(shape)
@@ -339,7 +337,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         # all 12 channels are in calibration coefficients
         # regardless of how many channels are in file
         #channel_index = CHANNEL_LIST.index(key_name)
-        channel_index = [key - 1 for key, value in CHANNEL_NAMES.iteritems()
+        channel_index = [key - 1 for key, value in CHANNEL_NAMES.items()
                          if value == key_name][0]
 
         calMode = 'NOMINAL'

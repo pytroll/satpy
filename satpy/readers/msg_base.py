@@ -25,6 +25,8 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+
+import dask.array as da
 import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
@@ -54,22 +56,45 @@ def get_cds_time(days, msecs):
     return datetime(1958, 1, 1) + timedelta(days=float(days),
                                             milliseconds=float(msecs))
 
+def dec10216(inbuf):
+    """Decode 10 bits data into 16 bits words.
 
-def dec10216(data):
-    """Unpacking the 10 bit data to 16 bit"""
+    ::
 
-    arr10 = data.astype(np.uint16).flat
-    new_shape = list(data.shape[:-1]) + [(data.shape[-1] * 8) / 10]
-    new_shape = [int(s) for s in new_shape]
-    arr16 = np.zeros(new_shape, dtype=np.uint16)
-    arr16.flat[::4] = np.left_shift(arr10[::5], 2) + \
-        np.right_shift((arr10[1::5]), 6)
-    arr16.flat[1::4] = np.left_shift((arr10[1::5] & 63), 4) + \
-        np.right_shift((arr10[2::5]), 4)
-    arr16.flat[2::4] = np.left_shift(arr10[2::5] & 15, 6) + \
-        np.right_shift((arr10[3::5]), 2)
-    arr16.flat[3::4] = np.left_shift(arr10[3::5] & 3, 8) + \
-        arr10[4::5]
+        /*
+         * pack 4 10-bit words in 5 bytes into 4 16-bit words
+         *
+         * 0       1       2       3       4       5
+         * 01234567890123456789012345678901234567890
+         * 0         1         2         3         4
+         */
+        ip = &in_buffer[i];
+        op = &out_buffer[j];
+        op[0] = ip[0]*4 + ip[1]/64;
+        op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
+        op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
+        op[3] = (ip[3] & 0x03)*256 +ip[4];
+
+    """
+    arr10 = inbuf.astype(np.uint16)
+    arr16_len = int(len(arr10) * 4 / 5)
+    arr10_len = int((arr16_len * 5) / 4)
+    arr10 = arr10[:arr10_len]  # adjust size
+
+    # dask is slow with indexing
+    arr10_0 = arr10[::5]
+    arr10_1 = arr10[1::5]
+    arr10_2 = arr10[2::5]
+    arr10_3 = arr10[3::5]
+    arr10_4 = arr10[4::5]
+
+    arr16_0 = (arr10_0 << 2) + (arr10_1 >> 6)
+    arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
+    arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
+    arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
+    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
+    arr16 = da.rechunk(arr16, arr16.shape[0])
+
     return arr16
 
 
