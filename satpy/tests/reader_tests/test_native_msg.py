@@ -28,6 +28,7 @@ from datetime import datetime
 
 import numpy as np
 from satpy.readers.native_msg import NativeMSGFileHandler
+from satpy.readers.native_msg import get_available_channels
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -87,6 +88,16 @@ for item in CHANNEL_INDEX_LIST:
 # Calibration type = Effective radiances
 CALIBRATION_TYPE = np.array(
     [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
+
+TEST1_HEADER_CHNLIST = {}
+TEST1_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
+TEST1_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XX--XX--XX-- ']]
+TEST2_HEADER_CHNLIST = {}
+TEST2_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
+TEST2_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XX-XXXX----X ']]
+TEST3_HEADER_CHNLIST = {}
+TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
+TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XXXXXXXXXXXX ']]
 
 
 def assertNumpyArraysEqual(self, other):
@@ -156,11 +167,29 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         data = self.reader._ir_calibrate(data, key_name)
         assertNumpyArraysEqual(data.data, IR_108_TBS)
 
-    # def test_get_available_channels(self):
-    #     # We need a small test here!
-    #     # Fixme!
+    def test_get_available_channels(self):
+        """Test the derivation of the available channel list"""
 
-    #     pass
+        available_chs = get_available_channels(TEST1_HEADER_CHNLIST)
+        trues = ['WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120']
+        for bandname in AVAILABLE_CHANNELS.keys():
+            if bandname in trues:
+                self.assertTrue(available_chs[bandname])
+            else:
+                self.assertFalse(available_chs[bandname])
+
+        # 'XX-XXXX----X '
+        available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
+        trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
+        for bandname in AVAILABLE_CHANNELS.keys():
+            if bandname in trues:
+                self.assertTrue(available_chs[bandname])
+            else:
+                self.assertFalse(available_chs[bandname])
+
+        available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
+        for bandname in AVAILABLE_CHANNELS.keys():
+            self.assertTrue(available_chs[bandname])
 
     def tearDown(self):
         pass
