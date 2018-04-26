@@ -53,38 +53,37 @@ class TestUtils(unittest.TestCase):
 
     def test_get_filebase(self):
         """Check the get_filebase function."""
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
         pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
                    '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        filename = ('/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                    '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                    '78_2340_SVL_O_NR_002.SEN3/Oa05_radiance.nc')
-        expected = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_20161020T'
-                    '102406_0179_010_078_2340_SVL_O_NR_002.SEN3/Oa05_radiance.'
-                    'nc')
+        filename = os.path.join(base_dir, 'Oa05_radiance.nc')
+        expected = os.path.join(base_data, 'Oa05_radiance.nc')
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
+        # just a fake path for testing that doesn't have to exist
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
         pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
                    '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        filenames = ['/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                     '78_2340_SVL_O_NR_002.SEN3/Oa05_radiance.nc',
-                     '/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                     '78_2340_SVL_O_NR_002.SEN3/geo_coordinates.nc']
-        expected = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_20161020T'
-                    '102406_0179_010_078_2340_SVL_O_NR_002.SEN3/geo_coordinates'
-                    '.nc')
-        self.assertEqual(yr.match_filenames(filenames, pattern),
-                         ["/home/a001673/data/satellite/Sentinel-3/" +
-                          expected])
+        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
+                     os.path.join(base_dir, 'geo_coordinates.nc')]
+        expected = os.path.join(base_dir, 'geo_coordinates.nc')
+        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
 
     def test_listify_string(self):
         """Check listify_string."""
