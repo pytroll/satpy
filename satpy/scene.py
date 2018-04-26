@@ -34,7 +34,7 @@ from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset, get_frozen_area,
-                            prepare_resampler, resamplers_cache, hash_dict)
+                            prepare_resampler)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
@@ -706,7 +706,7 @@ class Scene(MetadataObject):
                 resamplers[source_area] = prepare_resampler(
                     source_area, destination_area, resampler=resampler,
                     **resample_kwargs)
-            resample_kwargs['resampler'] = resamplers[source_area]
+            resample_kwargs['resampler'] = resamplers[source_area][1]
             res = resample_dataset(dataset, destination_area,
                                    **resample_kwargs)
             new_datasets[ds_id] = res
@@ -731,11 +731,7 @@ class Scene(MetadataObject):
             destination = self.max_area(to_resample)
         new_scn, resamplers, destination_area = self._resampled_scene(to_resample, destination,
                                                                       **resample_kwargs)
-        for source, resampler in resamplers.items():
-            key = (resampler.__class__,
-                   source, destination_area,
-                   hash_dict(resample_kwargs))
-            resamplers_cache[key] = resampler
+        for source, (key, resampler) in resamplers.items():
             self.resamplers[key] = resampler
 
         new_scn.attrs = self.attrs.copy()

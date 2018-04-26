@@ -602,13 +602,15 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     else:
         resampler_class = resampler
 
+    key = (resampler_class,
+           source_area, destination_area,
+           hash_dict(resample_kwargs))
     try:
-        key = (resampler_class,
-               source_area, destination_area,
-               hash_dict(resample_kwargs))
-        return resamplers_cache[key]
+        resampler_instance = resamplers_cache[key]
     except KeyError:
-        return resampler_class(source_area, destination_area)
+        resampler_instance = resampler_class(source_area, destination_area)
+        resamplers_cache[key] = resampler_instance
+    return key, resampler_instance
 
 
 def resample(source_area, data, destination_area,
