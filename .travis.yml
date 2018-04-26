@@ -17,8 +17,6 @@ env:
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
-before_install:
-    - source travis/linux_install.sh
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
