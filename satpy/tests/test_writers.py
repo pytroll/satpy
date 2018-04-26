@@ -137,8 +137,13 @@ class TestEnhancer(unittest.TestCase):
 class TestEnhancerUserConfigs(unittest.TestCase):
     """Test `Enhancer` functionality when user's custom configurations are present."""
 
+    ENH_FN = 'test_sensor.yaml'
+    ENH_ENH_FN = os.path.join('enhancements', ENH_FN)
+    ENH_FN2 = 'test_sensor2.yaml'
+    ENH_ENH_FN2 = os.path.join('enhancements', ENH_FN2)
+
     TEST_CONFIGS = {
-        'test_sensor.yaml': """
+        ENH_FN: """
 sensor_name: visir/test_sensor
 enhancements:
   test1_default:
@@ -149,7 +154,7 @@ enhancements:
       kwargs: {stretch: linear, cutoffs: [0., 0.]}
 
         """,
-        'enhancements/test_sensor.yaml': """
+        ENH_ENH_FN: """
 sensor_name: visir/test_sensor
 enhancements:
   test1_kelvin:
@@ -161,12 +166,12 @@ enhancements:
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
 
         """,
-        'test_sensor2.yaml': """
+        ENH_FN2: """
 sensor_name: visir/test_sensor2
 
 
         """,
-        'enhancements/test_sensor2.yaml': """
+        ENH_ENH_FN2: """
 sensor_name: visir/test_sensor2
 
         """,
@@ -202,7 +207,7 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhancer=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {'test_sensor2.yaml', 'enhancements/test_sensor2.yaml'})
+                            {self.ENH_FN2, self.ENH_ENH_FN2})
 
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section."""
@@ -215,9 +220,11 @@ sensor_name: visir/test_sensor2
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
-        self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
-        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
+        self.assertSetEqual(
+            set(e.sensor_enhancement_configs),
+            {self.ENH_FN, self.ENH_ENH_FN})
+        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values,
+                                       1.)
 
         ds = DataArray(da.arange(1, 11., chunks=5).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
@@ -226,7 +233,7 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
+                            {self.ENH_FN, self.ENH_ENH_FN})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry2(self):
@@ -241,7 +248,7 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhancer=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {'test_sensor.yaml', 'enhancements/test_sensor.yaml'})
+                            {self.ENH_FN, self.ENH_ENH_FN})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
