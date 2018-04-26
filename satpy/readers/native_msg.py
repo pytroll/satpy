@@ -40,9 +40,8 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
+from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM, BTFIT)
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
-from satpy.readers.msg_base import CHANNEL_NAMES
 import satpy.readers.msg_base as mb
 
 
