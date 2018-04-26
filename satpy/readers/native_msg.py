@@ -400,14 +400,9 @@ def get_available_channels(header):
     """Get the available channels from the header information"""
 
     chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
-        'SelectedBandIDs'][0][-1].strip().decode()
+        'SelectedBandIDs'][0][-1].strip().encode().decode()
 
-    # retv = dict(zip(CHANNEL_NAMES.values(),
-    #                 [False] * len(CHANNEL_NAMES.values())))
     retv = {}
-    # for item, chmark in zip(CHANNEL_LIST, chlist_str):
-    #     self.available_channels[item] = (chmark == 'X')
-
     for idx, chmark in zip(range(12), chlist_str):
         retv[CHANNEL_NAMES[idx + 1]] = (chmark == 'X')
 
