@@ -5,30 +5,21 @@ python:
 - '3.6'
 os:
 - linux
-before_install:
-- source travis/linux_install.sh
+env:
+    global:
+        # Set defaults to avoid repeating in most cases
+        - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
+        - NUMPY_VERSION=stable
+        - MAIN_CMD='python setup.py'
+        - CONDA_DEPENDENCIES='xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls codedev coverage behave netcdf4 h5py h5netcdf gdal rasterio python-hdf4'
+        - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital'
+        - SETUP_XVFB=False
+        - EVENT_TYPE='push pull_request'
+        - SETUP_CMD='test'
+        - CONDA_CHANNELS='conda-forge'
 install:
-- pip install -U pip
-- pip install -U setuptools
-- pip install .
-- pip install h5py
-- pip install coveralls codecov
-- pip install pyorbital
-- pip install behave
-- pip install h5netcdf
-- pip install python-hdf4
-- 'pip install --no-binary :all: netCDF4'
-- pip install gdal==1.10.0
-- pip install scipy
-- pip install rasterio
-addons:
-  apt_packages:
-  - libgdal-dev
-  - libhdf5-serial-dev
-  - libhdf4-alt-dev
-  - netcdf-bin
-  - libnetcdf-dev
-  - cython
+    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
+    - source ci-helpers/travis/setup_conda.sh
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
@@ -44,7 +35,6 @@ deploy:
     repo: pytroll/satpy
     python: 3.6
     distributions: "sdist bdist_wheel"
-sudo: true
 notifications:
   slack:
     rooms:
