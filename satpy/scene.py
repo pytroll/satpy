@@ -673,10 +673,9 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    @classmethod
-    def _resampled_scene(cls, datasets, destination, **resample_kwargs):
+    def _resampled_scene(self, datasets, destination, **resample_kwargs):
         """Generate a new scene with resampled *datasets*."""
-        new_scn = cls()
+        new_scn = self.__class__()
         new_datasets = {}
         destination_area = None
         resamplers = {}
@@ -703,10 +702,12 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             if source_area not in resamplers:
-                resamplers[source_area] = prepare_resampler(
-                    source_area, destination_area, resampler=resampler,
-                    **resample_kwargs)
-            resample_kwargs['resampler'] = resamplers[source_area][1]
+                key, resampler = prepare_resampler(
+                        source_area, destination_area, resampler=resampler,
+                        **resample_kwargs)
+                resamplers[source_area] = resampler
+                self.resamplers[key] = resampler
+            resample_kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
                                    **resample_kwargs)
             new_datasets[ds_id] = res
