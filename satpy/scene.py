@@ -553,11 +553,8 @@ class Scene(MetadataObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
-
-            req_ids = [DatasetID.from_dict(req.attrs) for req in prereq_datasets]
-            opt_ids = [DatasetID.from_dict(req.attrs) for req in optional_datasets]
-            composite.attrs['prerequisites'] = req_ids
-            composite.attrs['optional_prerequisites'] = opt_ids
+            composite.attrs['prerequisites'] = prereq_datasets
+            composite.attrs['optional_prerequisites'] = optional_datasets
 
             cid = DatasetID.from_dict(composite.attrs)
 
