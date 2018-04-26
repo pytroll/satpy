@@ -46,43 +46,40 @@ class TestNetCDF4FileHandler(unittest.TestCase):
     def setUp(self):
         """Create a test NetCDF4 file"""
         from netCDF4 import Dataset
-        nc = Dataset('test.nc', 'w')
+        with Dataset('test.nc', 'w') as nc:
+            # Create dimensions
+            row_dim = nc.createDimension('rows', 10)
+            col_dim = nc.createDimension('cols', 100)
 
-        # Create dimensions
-        row_dim = nc.createDimension('rows', 10)
-        col_dim = nc.createDimension('cols', 100)
+            # Create Group
+            g1 = nc.createGroup('test_group')
 
-        # Create Group
-        g1 = nc.createGroup('test_group')
+            # Add datasets
+            ds1_f = g1.createVariable('ds1_f', np.float32,
+                                      dimensions=('rows', 'cols'))
+            ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
+            ds1_i = g1.createVariable('ds1_i', np.int32,
+                                      dimensions=('rows', 'cols'))
+            ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
+            ds2_f = nc.createVariable('ds2_f', np.float32,
+                                      dimensions=('rows', 'cols'))
+            ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
+            ds2_i = nc.createVariable('ds2_i', np.int32,
+                                      dimensions=('rows', 'cols'))
+            ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
 
-        # Add datasets
-        ds1_f = g1.createVariable('ds1_f', np.float32,
-                                  dimensions=('rows', 'cols'))
-        ds1_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds1_i = g1.createVariable('ds1_i', np.int32,
-                                  dimensions=('rows', 'cols'))
-        ds1_i[:] = np.arange(10 * 100).reshape((10, 100))
-        ds2_f = nc.createVariable('ds2_f', np.float32,
-                                  dimensions=('rows', 'cols'))
-        ds2_f[:] = np.arange(10. * 100).reshape((10, 100))
-        ds2_i = nc.createVariable('ds2_i', np.int32,
-                                  dimensions=('rows', 'cols'))
-        ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
-
-        # Add attributes
-        nc.test_attr_str = 'test_string'
-        nc.test_attr_int = 0
-        nc.test_attr_float = 1.2
-        nc.test_attr_str_arr = np.array(b"test_string2")
-        g1.test_attr_str = 'test_string'
-        g1.test_attr_int = 0
-        g1.test_attr_float = 1.2
-        for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
-            d.test_attr_str = 'test_string'
-            d.test_attr_int = 0
-            d.test_attr_float = 1.2
-
-        nc.close()
+            # Add attributes
+            nc.test_attr_str = 'test_string'
+            nc.test_attr_int = 0
+            nc.test_attr_float = 1.2
+            nc.test_attr_str_arr = np.array(b"test_string2")
+            g1.test_attr_str = 'test_string'
+            g1.test_attr_int = 0
+            g1.test_attr_float = 1.2
+            for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
+                d.test_attr_str = 'test_string'
+                d.test_attr_int = 0
+                d.test_attr_float = 1.2
 
     def tearDown(self):
         """Remove the previously created test file"""
