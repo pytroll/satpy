@@ -5,8 +5,8 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci-helpers\\appveyor\\windows_sdk.cmd"
     # Don't build pykdtree with openmp because it isn't supported in appveyor's compilers
     USE_OMP: "0"
-    CONDA_DEPENDENCIES: "xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coverage netcdf4 h5py h5netcdf gdal rasterio python-hdf4"
-    PIP_DEPENDENCIES: "trollsift trollimage pyspectral pyorbital"
+    CONDA_DEPENDENCIES: "xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coverage netcdf4 h5py h5netcdf gdal rasterio hdf4"
+    PIP_DEPENDENCIES: "trollsift trollimage pyspectral pyorbital python-hdf4"
     CONDA_CHANNELS: "conda-forge"
 
   matrix:
