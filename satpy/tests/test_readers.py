@@ -36,43 +36,13 @@ os.environ.pop("PPP_CONFIG_DIR", None)
 
 
 class TestDatasetDict(unittest.TestCase):
-    def test_init_noargs(self):
-        from satpy.readers import DatasetDict
-        d = DatasetDict()
+    """Test DatasetDict and its methods."""
 
-    def test_init_dict(self):
+    def setUp(self):
+        """Create a test DatasetDict."""
         from satpy.dataset import DatasetID
         from satpy.readers import DatasetDict
-        regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
-        d = DatasetDict(regular_dict)
-        self.assertEqual(d, regular_dict)
-
-    def test_filter_keys_by_dataset_id(self):
-        from satpy.readers import filter_keys_by_dataset_id
-        from satpy.dataset import DatasetID
-        did_list = [DatasetID(
-            name="test", wavelength=(0, 0.5, 1),
-            resolution=1000), DatasetID(name="testh",
-                                        wavelength=(0, 0.5, 1),
-                                        resolution=500),
-                    DatasetID(name="test2",
-                              wavelength=(1, 1.5, 2),
-                              resolution=1000)]
-        self.assertIn(did_list[0],
-                      filter_keys_by_dataset_id(DatasetID(wavelength=0.5), did_list))
-        self.assertIn(did_list[1],
-                      filter_keys_by_dataset_id(DatasetID(wavelength=0.5), did_list))
-        self.assertIn(did_list[2],
-                      filter_keys_by_dataset_id(DatasetID(wavelength=1.5), did_list))
-        self.assertIn(did_list[0],
-                      filter_keys_by_dataset_id(DatasetID(resolution=1000), did_list))
-        self.assertIn(did_list[2],
-                      filter_keys_by_dataset_id(DatasetID(resolution=1000), did_list))
-
-    def test_get_item(self):
-        from satpy.dataset import DatasetID
-        from satpy.readers import DatasetDict
-        regular_dict = {
+        self.regular_dict = regular_dict = {
             DatasetID(name="test",
                       wavelength=(0, 0.5, 1),
                       resolution=1000): "1",
@@ -82,14 +52,132 @@ class TestDatasetDict(unittest.TestCase):
             DatasetID(name="test2",
                       wavelength=(1, 1.5, 2),
                       resolution=1000): "2",
+            DatasetID(name="test3",
+                      wavelength=(1.2, 1.7, 2.2),
+                      resolution=1000): "3",
+            DatasetID(name="test4",
+                      calibration="radiance",
+                      polarization="V"): "4rad",
+            DatasetID(name="test4",
+                      calibration="reflectance",
+                      polarization="H"): "4refl",
+            DatasetID(name="test5",
+                      modifiers=('mod1', 'mod2')): "5_2mod",
+            DatasetID(name="test5",
+                      modifiers=('mod2',)): "5_1mod",
         }
-        d = DatasetDict(regular_dict)
+        self.test_dict = DatasetDict(regular_dict)
 
+    def test_init_noargs(self):
+        """Test DatasetDict init with no arguments."""
+        from satpy.readers import DatasetDict
+        d = DatasetDict()
+
+    def test_init_dict(self):
+        """Test DatasetDict init with a regular dict argument."""
+        from satpy.dataset import DatasetID
+        from satpy.readers import DatasetDict
+        regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
+        d = DatasetDict(regular_dict)
+        self.assertEqual(d, regular_dict)
+
+    def test_getitem(self):
+        """Test DatasetDict getitem with different arguments."""
+        from satpy.dataset import DatasetID
+        d = self.test_dict
+        # access by name
         self.assertEqual(d["test"], "1")
+        # access by exact wavelength
         self.assertEqual(d[1.5], "2")
+        # access by near wavelength
+        self.assertEqual(d[1.55], "2")
+        # access by near wavelength of another dataset
+        self.assertEqual(d[1.65], "3")
+
         self.assertEqual(d[DatasetID(wavelength=1.5)], "2")
         self.assertEqual(d[DatasetID(wavelength=0.5, resolution=1000)], "1")
         self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
+        # higher resolution is returned
+        self.assertEqual(d[0.5], "1h")
+        self.assertEqual(d['test4'], '4refl')
+        self.assertEqual(d[DatasetID(name='test4', calibration='radiance')], '4rad')
+        self.assertRaises(KeyError, d.getitem, '1h')
+
+    def test_get_key(self):
+        """Test 'get_key' special functions."""
+        from satpy import DatasetID
+        from satpy.readers import get_key
+        d = self.test_dict
+        res1 = get_key(DatasetID(name='test4'), d, calibration='radiance')
+        res2 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+                       num_results=0)
+        res3 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+                       num_results=3)
+        self.assertEqual(len(res2), 1)
+        self.assertEqual(len(res3), 1)
+        res2 = res2[0]
+        res3 = res3[0]
+        self.assertEqual(res1, res2)
+        self.assertEqual(res1, res3)
+
+        res1 = get_key('test4', d, polarization='V')
+        self.assertEqual(res1, DatasetID(name='test4', calibration='radiance',
+                                         polarization='V'))
+
+        res1 = get_key(0.5, d, resolution=500)
+        self.assertEqual(res1, DatasetID(name='testh',
+                                         wavelength=(0, 0.5, 1),
+                                         resolution=500))
+
+        res1 = get_key('test5', d)
+        res2 = get_key('test5', d, modifiers=('mod2',))
+        res3 = get_key('test5', d, modifiers=('mod1', 'mod2',))
+        self.assertEqual(res1, DatasetID(name='test5',
+                                         modifiers=('mod2',)))
+        self.assertEqual(res1, res2)
+        self.assertNotEqual(res1, res3)
+
+        # more than 1 result when default is to ask for 1 result
+        self.assertRaises(KeyError, get_key, 'test4', d, best=False)
+
+    def test_contains(self):
+        """Test DatasetDict contains method."""
+        from satpy.dataset import DatasetID
+        d = self.test_dict
+        self.assertIn('test', d)
+        self.assertFalse(d.contains('test'))
+        self.assertNotIn('test_bad', d)
+        self.assertIn(0.5, d)
+        self.assertFalse(d.contains(0.5))
+        self.assertIn(1.5, d)
+        self.assertIn(1.55, d)
+        self.assertIn(1.65, d)
+        self.assertIn(DatasetID(name='test4', calibration='radiance'), d)
+        self.assertIn('test4', d)
+
+    def test_keys(self):
+        """Test keys method of DatasetDict."""
+        from satpy import DatasetID
+        d = self.test_dict
+        self.assertEqual(len(d.keys()), len(self.regular_dict.keys()))
+        self.assertTrue(all(isinstance(x, DatasetID) for x in d.keys()))
+        name_keys = d.keys(names=True)
+        self.assertListEqual(sorted(set(name_keys))[:4], [
+            'test', 'test2', 'test3', 'test4'])
+        wl_keys = tuple(d.keys(wavelengths=True))
+        self.assertIn((0, 0.5, 1), wl_keys)
+        self.assertIn((1, 1.5, 2), wl_keys)
+        self.assertIn((1.2, 1.7, 2.2), wl_keys)
+        self.assertIn(None, wl_keys)
+
+    def test_setitem(self):
+        """Test setitem method of DatasetDict."""
+        d = self.test_dict
+        d['new_ds'] = {'metadata': 'new_ds'}
+        self.assertEqual(d['new_ds']['metadata'], 'new_ds')
+        d[0.5] = {'calibration': 'radiance'}
+        self.assertEqual(d[0.5]['resolution'], 500)
+        self.assertEqual(d[0.5]['name'], 'testh')
 
 
 class TestReaderLoader(unittest.TestCase):

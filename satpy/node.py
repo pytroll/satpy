@@ -203,7 +203,7 @@ class DependencyTree(Node):
         # Sanity check: Node objects should be unique. They can be added
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
-        if self.exact_contains(child.name):
+        if self.contains(child.name):
             assert self._all_nodes[child.name] is child
         self._all_nodes[child.name] = child
 
@@ -237,11 +237,12 @@ class DependencyTree(Node):
     def __getitem__(self, item):
         return self._all_nodes[item]
 
-    def exact_contains(self, item):
+    def contains(self, item):
+        """Check contains when we know the *exact* DatasetID."""
         return super(DatasetDict, self._all_nodes).__contains__(item)
 
-    def exact_getitem(self, item):
-        """Get Node when we know the *exact* DatasetID"""
+    def getitem(self, item):
+        """Get Node when we know the *exact* DatasetID."""
         return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
@@ -260,7 +261,6 @@ class DependencyTree(Node):
     def get_modifier(self, comp_id):
         # create a DatasetID for the compositor we are generating
         modifier = comp_id.modifiers[-1]
-        # source_id = DatasetID(*comp_id[:-1] + (comp_id.modifiers[:-1]))
         for sensor_name in self.modifiers.keys():
             modifiers = self.modifiers[sensor_name]
             compositors = self.compositors[sensor_name]
@@ -270,8 +270,6 @@ class DependencyTree(Node):
             mloader, moptions = modifiers[modifier]
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
-            # moptions['prerequisites'] = (
-            #     [source_id] + moptions['prerequisites'])
             moptions['sensor'] = sensor_name
             compositors[comp_id] = mloader(**moptions)
             return compositors[comp_id]
@@ -305,7 +303,7 @@ class DependencyTree(Node):
             try:
                 # now that we know we have the exact DatasetID see if we have
                 # already created a Node for it
-                return self.exact_getitem(ds_id)
+                return self.getitem(ds_id)
             except KeyError:
                 # we haven't created a node yet, create it now
                 return Node(ds_id, {'reader_name': reader_name})
@@ -421,7 +419,7 @@ class DependencyTree(Node):
         """
         # 0 check if the *exact* dataset is already loaded
         try:
-            return self.exact_getitem(dataset_key), set()
+            return self.getitem(dataset_key), set()
         except KeyError:
             # exact dataset isn't loaded, let's load it below
             pass
