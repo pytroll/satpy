@@ -129,8 +129,8 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         self.reader.platform_name = 'Meteosat-10'
         self.reader.platform_id = 323
         self.reader.header = hdr
-        self.reader.channel_index_list = CHANNEL_INDEX_LIST
-        #self.reader.available_channels = AVAILABLE_CHANNELS
+        self.reader.available_channels = AVAILABLE_CHANNELS
+        self.reader._channel_index_list = CHANNEL_INDEX_LIST
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
@@ -156,10 +156,11 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         data = self.reader._ir_calibrate(data, key_name)
         assertNumpyArraysEqual(data.data, IR_108_TBS)
 
-    def test_get_available_channels(self):
-        # We need a small test here!
-        # Fixme!
-        pass
+    # def test_get_available_channels(self):
+    #     # We need a small test here!
+    #     # Fixme!
+
+    #     pass
 
     def tearDown(self):
         pass
