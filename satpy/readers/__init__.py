@@ -275,6 +275,10 @@ class DatasetDict(dict):
         return get_key(match_key, self.keys(), num_results=num_results,
                        best=best, **dfilter)
 
+    def getitem(self, item):
+        """Get Node when we know the *exact* DatasetID."""
+        return super(DatasetDict, self).__getitem__(item)
+
     def __getitem__(self, item):
         try:
             # short circuit - try to get the object without more work
@@ -310,8 +314,8 @@ class DatasetDict(dict):
                                 calibration=d.get("calibration"),
                                 modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
-                    raise ValueError(
-                        "One of 'name' or 'wavelength' attrs values should be set.")
+                    raise ValueError("One of 'name' or 'wavelength' attrs "
+                                     "values should be set.")
 
         # update the 'value' with the information contained in the key
         if isinstance(d, dict):
@@ -327,6 +331,10 @@ class DatasetDict(dict):
                 raise TypeError("Can't change the wavelength of a dataset")
 
         return super(DatasetDict, self).__setitem__(key, value)
+
+    def contains(self, item):
+        """Check contains when we know the *exact* DatasetID."""
+        return super(DatasetDict, self).__contains__(item)
 
     def __contains__(self, item):
         try:

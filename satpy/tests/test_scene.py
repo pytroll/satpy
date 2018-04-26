@@ -551,6 +551,23 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds1_unknown_modifier(self, cri, cl):
+        """Test loading one dataset with no loaded compositors"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        self.assertRaises(KeyError, scene.load,
+                          [DatasetID(name='ds1', modifiers=('_fake_bad_mod_',))])
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds4_cal(self, cri, cl):
         """Test loading a dataset that has two calibration variations"""
         import satpy.scene
