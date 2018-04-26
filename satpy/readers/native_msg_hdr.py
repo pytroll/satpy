@@ -121,11 +121,10 @@ class L15PhData(object):
 
 
 class L15MainProductHeaderRecord(object):
-
-    '''
+    """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
-    '''
+    """
 
     def get(self):
 
