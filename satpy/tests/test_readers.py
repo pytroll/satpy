@@ -72,6 +72,7 @@ class TestDatasetDict(unittest.TestCase):
         """Test DatasetDict init with no arguments."""
         from satpy.readers import DatasetDict
         d = DatasetDict()
+        self.assertIsInstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
