@@ -32,6 +32,7 @@ import yaml
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy import CALIBRATION_ORDER
 
 try:
     import configparser
@@ -41,7 +42,196 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
-class MalformedConfigError(Exception):
+def _wl_dist(wl_a, wl_b):
+    """Return the distance between two requested wavelengths."""
+    if isinstance(wl_a, tuple):
+        # central wavelength
+        wl_a = wl_a[1]
+    if isinstance(wl_b, tuple):
+        wl_b = wl_b[1]
+    if wl_a is None or wl_b is None:
+        return 1000.
+    return abs(wl_a - wl_b)
+
+
+def get_best_dataset_key(key, choices):
+    """Choose the "best" `DatasetID` from `choices` based on `key`.
+
+    The best key is chosen based on the follow criteria:
+
+        1. Central wavelength is nearest to the `key` wavelength if
+           specified.
+        2. Least modified dataset if `modifiers` is `None` in `key`.
+           Otherwise, the modifiers are ignored.
+        3. Highest calibration if `calibration` is `None` in `key`.
+           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+        4. Best resolution (smallest number) if `resolution` is `None`
+           in `key`. Otherwise, the resolution is ignored.
+
+    This function assumes `choices` has already been filtered to only
+    include datasets that match the provided `key`.
+
+    Args:
+        key (DatasetID): Query parameters to sort `choices` by.
+        choices (iterable): `DatasetID`s to sort through to determine
+                            the best dataset.
+
+    Returns: List of best `DatasetID`s from `choices`. If there is more
+             than one element this function could not choose between the
+             available datasets.
+
+    """
+    # Choose the wavelength closest to the choice
+    if key.wavelength is not None and choices:
+        # find the dataset with a central wavelength nearest to the
+        # requested wavelength
+        nearest_wl = min([_wl_dist(key.wavelength, x.wavelength)
+                          for x in choices if x.wavelength is not None])
+        choices = [c for c in choices
+                   if _wl_dist(key.wavelength, c.wavelength) == nearest_wl]
+    if key.modifiers is None and choices:
+        num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
+        choices = [c for c in choices if len(
+            c.modifiers or tuple()) == num_modifiers]
+    if key.calibration is None and choices:
+        best_cal = [x.calibration for x in choices if x.calibration]
+        if best_cal:
+            best_cal = min(best_cal, key=lambda x: CALIBRATION_ORDER[x])
+            choices = [c for c in choices if c.calibration == best_cal]
+    if key.resolution is None and choices:
+        low_res = [x.resolution for x in choices if x.resolution]
+        if low_res:
+            low_res = min(low_res)
+            choices = [c for c in choices if c.resolution == low_res]
+    return choices
+
+
+def filter_keys_by_dataset_id(did, key_container):
+    """Filer provided key iterable by the provided `DatasetID`.
+
+    Note: The `modifiers` attribute of `did` should be `None` to allow for
+          **any** modifier in the results.
+
+    Args:
+        did (DatasetID): Query parameters to match in the `key_container`.
+        key_container (iterable): Set, list, tuple, or dict of `DatasetID`
+                                  keys.
+
+    Returns (list): List of keys matching the provided parameters in no
+                    specific order.
+
+    """
+    keys = iter(key_container)
+
+    for key in DATASET_KEYS:
+        if getattr(did, key) is not None:
+            if key == "wavelength":
+                keys = [k for k in keys
+                        if (getattr(k, key) is not None and
+                            DatasetID.wavelength_match(getattr(k, key),
+                                                       getattr(did, key)))]
+            else:
+                keys = [k for k in keys
+                        if getattr(k, key) is not None and getattr(k, key)
+                        == getattr(did, key)]
+
+    return keys
+
+
+def get_key(key, key_container, num_results=1, best=True,
+            resolution=None, calibration=None, polarization=None,
+            modifiers=None):
+    """Get the fully-specified key best matching the provided key.
+
+    Only the best match is returned if `best` is `True` (default). See
+    `get_best_dataset_key` for more information on how this is determined.
+
+    The `resolution` and other identifier keywords are provided as a
+    convenience to filter by multiple parameters at once without having
+    to filter by multiple `key` inputs.
+
+    Args:
+        key (DatasetID): DatasetID of query parameters to use for
+                         searching. Any parameter that is `None`
+                         is considered a wild card and any match is
+                         accepted.
+        key_container (dict or set): Container of DatasetID objects that
+                                     uses hashing to quickly access items.
+        num_results (int): Number of results to return. Use `0` for all
+                           matching results. If `1` then the single matching
+                           key is returned instead of a list of length 1.
+                           (default: 1)
+        best (bool): Sort results to get "best" result first
+                     (default: True). See `get_best_dataset_key` for details.
+        resolution (float, int, or list): Resolution of the dataset in
+                                          dataset units (typically
+                                          meters). This can also be a
+                                          list of these numbers.
+        calibration (str or list): Dataset calibration
+                                   (ex.'reflectance'). This can also be a
+                                   list of these strings.
+        polarization (str or list): Dataset polarization
+                                   (ex.'V'). This can also be a
+                                    list of these strings.
+        modifiers (list): Modifiers applied to the dataset. Unlike
+                          resolution and calibration this is the exact
+                          desired list of modifiers for one dataset, not
+                          a list of possible modifiers.
+
+
+    Returns (list or DatasetID): Matching key(s)
+
+    Raises: KeyError if no matching results or if more than one result is
+            found when `num_results` is `1`.
+
+    """
+    if isinstance(key, numbers.Number):
+        # we want this ID to act as a query so we set modifiers to None
+        # meaning "we don't care how many modifiers it has".
+        key = DatasetID(wavelength=key, modifiers=None)
+    elif isinstance(key, str):
+        # ID should act as a query (see wl comment above)
+        key = DatasetID(name=key, modifiers=None)
+
+    res = filter_keys_by_dataset_id(key, key_container)
+
+    # further filter by other parameters
+    if resolution is not None:
+        if not isinstance(resolution, (list, tuple)):
+            resolution = (resolution, )
+        res = [k for k in res
+               if k.resolution is not None and k.resolution in resolution]
+    if polarization is not None:
+        if not isinstance(polarization, (list, tuple)):
+            polarization = (polarization, )
+        res = [k for k in res
+               if k.polarization is not None and k.polarization in
+               polarization]
+    if calibration is not None:
+        if not isinstance(calibration, (list, tuple)):
+            calibration = (calibration, )
+        res = [k for k in res
+               if k.calibration is not None and k.calibration in calibration]
+    if modifiers is not None:
+        res = [k for k in res
+               if k.modifiers is not None and k.modifiers == modifiers]
+
+    if best:
+        res = get_best_dataset_key(key, res)
+
+    if num_results == 1 and not res:
+        raise KeyError("No dataset matching '{}' found".format(str(key)))
+    elif num_results == 1 and len(res) != 1:
+        raise KeyError("No unique dataset matching {}".format(str(key)))
+    elif num_results == 1:
+        return res[0]
+    elif num_results == 0:
+        return res
+    else:
+        return res[:num_results]
+
+
+class MalformedConfigError(IOError):
     pass
 
 
@@ -66,122 +256,36 @@ class DatasetDict(dict):
         else:
             return keys
 
-    def get_key(self, key):
-        if isinstance(key, DatasetID):
-            res = self.get_keys_by_datasetid(key)
-            if not res:
-                return None
-            elif len(res) == 1:
-                return res[0]
+    def get_key(self, match_key, num_results=1, best=True, **dfilter):
+        """Get multiple fully-specified keys that match the provided query.
 
-            # more than one dataset matched
-            res = self.get_best_choice(key, res)
-            if len(res) != 1:
-                raise KeyError("No unique dataset matching " + str(key))
-            return res[0]
-        # get by wavelength
-        elif isinstance(key, numbers.Number):
-            for k in self.keys():
-                if k.wavelength is not None and \
-                        DatasetID.wavelength_match(k.wavelength, key):
-                    return k
-        # get by name
-        else:
-            for k in self.keys():
-                if DatasetID.name_match(k.name, key):
-                    return k
+        Args:
+            key (DatasetID): DatasetID of query parameters to use for
+                             searching. Any parameter that is `None`
+                             is considered a wild card and any match is
+                             accepted. Can also be a string representing the
+                             dataset name or a number representing the dataset
+                             wavelength.
+            num_results (int): Number of results to return. If `0` return all,
+                               if `1` return only that element, otherwise
+                               return a list of matching keys.
+            **dfilter (dict): See `get_key` function for more information.
 
-    def get_keys(self,
-                 name_or_wl,
-                 resolution=None,
-                 polarization=None,
-                 calibration=None,
-                 modifiers=None):
-        # Get things that match at least the name_or_wl
-        if isinstance(name_or_wl, numbers.Number):
-            keys = [k for k in self.keys()
-                    if DatasetID.wavelength_match(k.wavelength, name_or_wl)]
-        elif isinstance(name_or_wl, (str, six.text_type)):
-            keys = [k for k in self.keys()
-                    if DatasetID.name_match(k.name, name_or_wl)]
-        else:
-            raise TypeError("First argument must be a wavelength or name")
+        """
+        return get_key(match_key, self.keys(), num_results=num_results,
+                       best=best, **dfilter)
 
-        if resolution is not None:
-            if not isinstance(resolution, (list, tuple)):
-                resolution = (resolution, )
-            keys = [k for k in keys
-                    if k.resolution is not None and k.resolution in resolution]
-        if polarization is not None:
-            if not isinstance(polarization, (list, tuple)):
-                polarization = (polarization, )
-            keys = [k for k in keys
-                    if k.polarization is not None and k.polarization in
-                    polarization]
-        if calibration is not None:
-            if not isinstance(calibration, (list, tuple)):
-                calibration = (calibration, )
-            keys = [
-                k for k in keys
-                if k.calibration is not None and k.calibration in calibration
-            ]
-        if modifiers is not None:
-            keys = [
-                k for k in keys
-                if k.modifiers is not None and k.modifiers == modifiers
-            ]
-
-        return keys
-
-    def get_best_choice(self, key, choices):
-        if key.modifiers is None and choices:
-            num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-            choices = [c for c in choices if len(
-                c.modifiers or tuple()) == num_modifiers]
-        if key.resolution is None and choices:
-            low_res = [x.resolution for x in choices if x.resolution]
-            if low_res:
-                low_res = min(low_res)
-                choices = [c for c in choices if c.resolution == low_res]
-        return choices
-
-    def get_keys_by_datasetid(self, did):
-        keys = self.keys()
-        for key in DATASET_KEYS:
-            if getattr(did, key) is not None:
-                if key == "wavelength":
-                    keys = [k for k in keys
-                            if (getattr(k, key) is not None and
-                                DatasetID.wavelength_match(getattr(k, key),
-                                                           getattr(did, key)))]
-                else:
-                    keys = [k for k in keys
-                            if getattr(k, key) is not None and getattr(k, key)
-                            == getattr(did, key)]
-
-        return keys
-
-    def get_item(self,
-                 name_or_wl,
-                 resolution=None,
-                 polarization=None,
-                 calibration=None,
-                 modifiers=None):
-        keys = self.get_keys(name_or_wl,
-                             resolution=resolution,
-                             polarization=polarization,
-                             calibration=calibration,
-                             modifiers=modifiers)
-        if not keys:
-            raise KeyError("No keys found matching provided filters")
-
-        return self[keys[0]]
+    def getitem(self, item):
+        """Get Node when we know the *exact* DatasetID."""
+        return super(DatasetDict, self).__getitem__(item)
 
     def __getitem__(self, item):
-        key = self.get_key(item)
-        if key is None:
-            raise KeyError("No dataset matching '{}' found".format(str(item)))
-        return super(DatasetDict, self).__getitem__(key)
+        try:
+            # short circuit - try to get the object without more work
+            return super(DatasetDict, self).__getitem__(item)
+        except KeyError:
+            key = self.get_key(item)
+            return super(DatasetDict, self).__getitem__(key)
 
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
@@ -195,8 +299,9 @@ class DatasetDict(dict):
             if not isinstance(d, dict):
                 raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
             old_key = key
-            key = self.get_key(key)
-            if key is None:
+            try:
+                key = self.get_key(key)
+            except KeyError:
                 if isinstance(old_key, (str, six.text_type)):
                     new_name = old_key
                 else:
@@ -209,8 +314,8 @@ class DatasetDict(dict):
                                 calibration=d.get("calibration"),
                                 modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
-                    raise ValueError(
-                        "One of 'name' or 'wavelength' attrs values should be set.")
+                    raise ValueError("One of 'name' or 'wavelength' attrs "
+                                     "values should be set.")
 
         # update the 'value' with the information contained in the key
         if isinstance(d, dict):
@@ -227,13 +332,24 @@ class DatasetDict(dict):
 
         return super(DatasetDict, self).__setitem__(key, value)
 
+    def contains(self, item):
+        """Check contains when we know the *exact* DatasetID."""
+        return super(DatasetDict, self).__contains__(item)
+
     def __contains__(self, item):
-        key = self.get_key(item)
+        try:
+            key = self.get_key(item)
+        except KeyError:
+            return False
         return super(DatasetDict, self).__contains__(key)
 
     def __delitem__(self, key):
-        key = self.get_key(key)
-        return super(DatasetDict, self).__delitem__(key)
+        try:
+            # short circuit - try to get the object without more work
+            return super(DatasetDict, self).__delitem__(key)
+        except KeyError:
+            key = self.get_key(key)
+            return super(DatasetDict, self).__delitem__(key)
 
 
 def read_reader_config(config_files, loader=yaml.Loader):

@@ -33,6 +33,21 @@ import os
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
+# Order of "highest" calibration from highest to lowest
+DEFAULT_CALIBRATION_ORDER = [
+    'brightness_temperature',
+    'reflectance',
+    'radiance',
+    'counts',
+]
+CALIBRATION_ORDER = os.getenv('PYTROLL_CALIBRATION_ORDER', None)
+if CALIBRATION_ORDER is None:
+    CALIBRATION_ORDER = DEFAULT_CALIBRATION_ORDER
+else:
+    CALIBRATION_ORDER = [x.strip() for x in CALIBRATION_ORDER.split(' ')]
+# convert to a dictionary of priority for faster access (0 higher priority)
+CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
+
 from satpy.version import __version__  # noqa
 from satpy.dataset import Dataset, DatasetID, DATASET_KEYS  # noqa
 from satpy.readers import DatasetDict, find_files_and_readers  # noqa
