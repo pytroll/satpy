@@ -154,6 +154,7 @@ class Scene(MetadataObject):
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
+        self.resamplers = {}
 
     def _ipython_key_completions_(self):
         return [x.name for x in self.datasets.keys()]
@@ -673,10 +674,9 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    @classmethod
-    def _resampled_scene(cls, datasets, destination, **resample_kwargs):
+    def _resampled_scene(self, datasets, destination, **resample_kwargs):
         """Generate a new scene with resampled *datasets*."""
-        new_scn = cls()
+        new_scn = self.__class__()
         new_datasets = {}
         destination_area = None
         resamplers = {}
@@ -703,18 +703,21 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             if source_area not in resamplers:
-                resamplers[source_area] = prepare_resampler(
-                    source_area, destination_area, resampler=resampler)
-            resample_kwargs['resampler'] = resamplers[source_area]
+                key, resampler = prepare_resampler(
+                        source_area, destination_area, **resample_kwargs)
+                resamplers[source_area] = resampler
+                self.resamplers[key] = resampler
+            kwargs = resample_kwargs.copy()
+            kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
-                                   **resample_kwargs)
+                                   **kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
                 new_scn[ds_id] = res
             else:
                 replace_anc(res, pres)
 
-        return new_scn
+        return new_scn, destination_area
 
     def resample(self,
                  destination=None,
@@ -728,8 +731,8 @@ class Scene(MetadataObject):
 
         if destination is None:
             destination = self.max_area(to_resample)
-        new_scn = self._resampled_scene(to_resample, destination,
-                                        **resample_kwargs)
+        new_scn, destination_area = self._resampled_scene(to_resample, destination,
+                                                          **resample_kwargs)
 
         new_scn.attrs = self.attrs.copy()
         new_scn.dep_tree = self.dep_tree.copy()
