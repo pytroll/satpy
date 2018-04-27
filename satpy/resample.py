@@ -192,6 +192,11 @@ class KDTreeResampler(BaseResampler):
         del kwargs
         source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
 
+        if radius_of_influence is None:
+            try:
+                radius_of_influence = source_geo_def.lons.resolution * 3
+            except AttributeError:
+                radius_of_influence = 10000
         if self.resampler is None:
             kwargs = dict(source_geo_def=source_geo_def,
                           target_geo_def=self.target_geo_def,
