@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2018 PyTroll Community
+# Copyright (c) 2010-2017 PyTroll Community
 
 # Author(s):
 
@@ -43,6 +43,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function, make_time_cds_short,
                                      time_cds_short)
 
+from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM, BTFIT)
 import satpy.readers.msg_base as mb
 
@@ -604,7 +605,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         pacqtime['ForwardScanStart'] = start
 
 
-class HRITMSGFileHandler(HRITFileHandler):
+class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     """MSG HRIT format reader
     """
@@ -648,6 +649,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         else:
             self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
+
 
     @property
     def start_time(self):
@@ -793,66 +795,37 @@ class HRITMSGFileHandler(HRITFileHandler):
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
+
+        channel_name = self.channel_name
+
         if calibration == 'counts':
             res = data
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self.convert_to_radiance(data.astype(np.float32))
+
+            coeffs = self.prologue["RadiometricProcessing"]
+            coeffs = coeffs["Level1_5ImageCalibration"]
+            gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
+            offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
+            data = data.where(data > 0)
+            res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
             line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
             line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
             line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
             line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
             res *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+
         if calibration == 'reflectance':
-            res = self._vis_calibrate(res)
+            solar_irradiance = CALIB[self.platform_id][channel_name]["F"]
+            res = self._vis_calibrate(res, solar_irradiance)
+
         elif calibration == 'brightness_temperature':
-            res = self._ir_calibrate(res)
+            cal_type = self.prologue['ImageDescription'][
+                'Level1_5ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
+            res = self._ir_calibrate(res, channel_name, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
-    def convert_to_radiance(self, data):
-        """Calibrate to radiance."""
-        coeffs = self.prologue["RadiometricProcessing"]
-        coeffs = coeffs["Level1_5ImageCalibration"]
-        gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
-        offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
-        data = data.where(data > 0)
-        return mb.convert_to_radiance(data, gain, offset)
-
-    def _vis_calibrate(self, data):
-        """Visible channel calibration only."""
-        solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-        return mb.vis_calibrate(data, solar_irradiance)
-
-    def _erads2bt(self, data):
-        """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][self.channel_name]
-        alpha = cal_info["ALPHA"]
-        beta = cal_info["BETA"]
-        wavenumber = cal_info["VC"]
-
-        return mb.erads2bt(data, wavenumber, alpha, beta)
-
-    def _srads2bt(self, data):
-        """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[self.channel_name]
-        wavenumber = CALIB[self.platform_id][self.channel_name]["VC"]
-
-        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
-
-    def _ir_calibrate(self, data):
-        """IR calibration."""
-        cal_type = self.prologue['ImageDescription'][
-            'Level1_5ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
-
-        if cal_type == 1:
-            # spectral radiances
-            return self._srads2bt(data)
-        elif cal_type == 2:
-            # effective radiances
-            return self._erads2bt(data)
-        else:
-            raise NotImplemented('Unknown calibration type')
 
 
 def show(data, negate=False):
