@@ -36,7 +36,7 @@ version = imp.load_source('satpy.version', 'satpy/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.9.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
