@@ -28,30 +28,22 @@ https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF
 
 """
 
+import os
 import logging
 from datetime import datetime
 import numpy as np
 
 import xarray as xr
 import dask.array as da
+
 from satpy import CHUNK_SIZE
-
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
-
 from pyresample import geometry
 
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.msg_base import SEVIRICalibrationHandler
+from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
-from satpy.readers.msg_base import get_cds_time
-from satpy.readers.hrit_base import dec10216
 import satpy.readers.msg_base as mb
-
-import os
-
-
-CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
-                'WV_062', 'WV_073', 'IR_087', 'IR_097',
-                'IR_108', 'IR_120', 'IR_134', 'HRV']
 
 
 class CalibrationError(Exception):
@@ -61,7 +53,7 @@ class CalibrationError(Exception):
 logger = logging.getLogger('native_msg')
 
 
-class NativeMSGFileHandler(BaseFileHandler):
+class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     """Native MSG format reader
     """
@@ -77,28 +69,27 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
-        self.available_channels = dict(zip(CHANNEL_LIST, [False] * len(CHANNEL_LIST)))
+        self.available_channels = {}
         self._get_header()
-        self.channel_index_list = [i for i in CHANNEL_LIST if self.available_channels[i]]
 
-        self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
+        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
     @property
     def start_time(self):
         tstart = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return get_cds_time(
+        return mb.get_cds_time(
             tstart['Day'][0], tstart['MilliSecsOfDay'][0])
 
     @property
     def end_time(self):
         tend = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return get_cds_time(
+        return mb.get_cds_time(
             tend['Day'][0], tend['MilliSecsOfDay'][0])
 
     def _get_memmap(self):
-        """Get the numpy memory map for the SEVIRI data"""
+        """Get the memory map for the SEVIRI data"""
 
         with open(self.filename) as fp_:
 
@@ -141,7 +132,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         visir_rec = get_lrec(self._cols_visir)
 
         number_of_lowres_channels = len(
-            [s for s in self.channel_index_list if not s == 'HRV'])
+            [s for s in self._channel_index_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
         if self.available_channels['HRV']:
             hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
@@ -156,12 +147,11 @@ class NativeMSGFileHandler(BaseFileHandler):
         hd_dt = np.dtype(hdrrec)
         hd_dt = hd_dt.newbyteorder('>')
         self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
-        # Set the list of available channels:
-        chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
-            'SelectedBandIDs'][0][-1].strip().decode()
 
-        for item, chmark in zip(CHANNEL_LIST, chlist_str):
-            self.available_channels[item] = (chmark == 'X')
+        # Set the list of available channels:
+        self.available_channels = get_available_channels(self.header)
+        self._channel_index_list = [i for i in CHANNEL_NAMES.values()
+                                    if self.available_channels[i]]
 
         self.platform_id = self.header['15_DATA_HEADER'][
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
@@ -267,38 +257,40 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def get_dataset(self, key, info,
+    def get_dataset(self, dataset_id, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key.name not in self.channel_index_list:
-            raise KeyError('Channel % s not available in the file' % key.name)
-        elif key.name not in ['HRV']:
+        channel_name = dataset_id.name
+
+        if channel_name not in self._channel_index_list:
+            raise KeyError('Channel % s not available in the file' % channel_name)
+        elif channel_name not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
-            ch_idn = self.channel_index_list.index(key.name)
+            ch_idn = self._channel_index_list.index(channel_name)
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
-            if len(self.channel_index_list) == 1:
-                raw = self.memmap['visir']['line_data']
+            if len(self._channel_index_list) == 1:
+                raw = self.dask_array['visir']['line_data']
             else:
-                raw = self.memmap['visir']['line_data'][:, ch_idn, :]
+                raw = self.dask_array['visir']['line_data'][:, ch_idn, :]
 
-            data = dec10216(raw.flatten())
+            data = mb.dec10216(raw.flatten())
             data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
             shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
 
-            raw2 = self.memmap['hrv']['line_data'][:, 2, :]
-            raw1 = self.memmap['hrv']['line_data'][:, 1, :]
-            raw0 = self.memmap['hrv']['line_data'][:, 0, :]
+            raw2 = self.dask_array['hrv']['line_data'][:, 2, :]
+            raw1 = self.dask_array['hrv']['line_data'][:, 1, :]
+            raw0 = self.dask_array['hrv']['line_data'][:, 0, :]
 
             shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
-            data2 = dec10216(raw2.flatten())
+            data2 = mb.dec10216(raw2.flatten())
             data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
-            data1 = dec10216(raw1.flatten())
+            data1 = mb.dec10216(raw1.flatten())
             data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
-            data0 = dec10216(raw0.flatten())
+            data0 = mb.dec10216(raw0.flatten())
             data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
 
             data = np.zeros(shape)
@@ -316,7 +308,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         else:
             return None
 
-        out = self.calibrate(out, key)
+        out = self.calibrate(out, dataset_id)
         out.attrs['units'] = info['units']
         out.attrs['wavelength'] = info['wavelength']
         out.attrs['standard_name'] = info['standard_name']
@@ -325,80 +317,66 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         return out
 
-    def calibrate(self, data, key):
+    def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = datetime.now()
-        calibration = key.calibration
+
+        calibration = dataset_id.calibration
+        channel_name = dataset_id.name
+        channel_index = self._channel_index_list.index(channel_name)
+
         if calibration == 'counts':
             return
+
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self.convert_to_radiance(data, key.name)
+
+            calMode = 'NOMINAL'
+            # determine the required calibration coefficients to use
+            # for the Level 1.5 Header
+            # NB gsics doesnt apply to VIS channels so ignore them
+            if (channel_index > 2):
+                calMode = os.environ.get('CAL_MODE', 'NOMINAL')
+
+            if (calMode.upper() != 'GSICS'):
+                coeffs = self.header['15_DATA_HEADER'][
+                    'RadiometricProcessing']['Level15ImageCalibration']
+                gain = coeffs['CalSlope'][0][channel_index]
+                offset = coeffs['CalOffset'][0][channel_index]
+            else:
+                coeffs = self.header['15_DATA_HEADER'][
+                    'RadiometricProcessing']['MPEFCalFeedback']
+                gain = coeffs['GSICSCalCoeff'][0][channel_index]
+                offset = coeffs['GSICSOffsetCount'][0][channel_index]
+                offset = offset * gain
+            res = self._convert_to_radiance(data, gain, offset)
+
         if calibration == 'reflectance':
-            res = self._vis_calibrate(res, key.name)
+            solar_irradiance = CALIB[self.platform_id][channel_name]["F"]
+            res = self._vis_calibrate(res, solar_irradiance)
+
         elif calibration == 'brightness_temperature':
-            res = self._ir_calibrate(res, key.name)
+            cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
+            res = self._ir_calibrate(res, channel_name, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
-    def convert_to_radiance(self, data, key_name):
-        """Calibrate to radiance."""
-        # all 12 channels are in calibration coefficients
-        # regardless of how many channels are in file
-        channel_index = CHANNEL_LIST.index(key_name)
-        calMode = 'NOMINAL'
-        # determine the required calibration coefficients to use
-        # for the Level 1.5 Header
-        # NB gsics doesnt apply to VIS channels so ignore them
-        if (channel_index > 2):
-            calMode = os.environ.get('CAL_MODE', 'NOMINAL')
 
-        if (calMode.upper() != 'GSICS'):
-            coeffs = self.header['15_DATA_HEADER'][
-                'RadiometricProcessing']['Level15ImageCalibration']
-            gain = coeffs['CalSlope'][0][channel_index]
-            offset = coeffs['CalOffset'][0][channel_index]
-        else:
-            coeffs = self.header['15_DATA_HEADER'][
-                'RadiometricProcessing']['MPEFCalFeedback']
-            gain = coeffs['GSICSCalCoeff'][0][channel_index]
-            offset = coeffs['GSICSOffsetCount'][0][channel_index]
-            offset = offset * gain
+def get_available_channels(header):
+    """Get the available channels from the header information"""
 
-        return mb.convert_to_radiance(data, gain, offset)
+    try:
+        chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+            'SelectedBandIDs'][0][-1].strip().decode()
+    except AttributeError:
+        # Strings have no deocde method in py3
+        chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+            'SelectedBandIDs'][0][-1].strip()
 
-    def _vis_calibrate(self, data, key_name):
-        """Visible channel calibration only."""
-        solar_irradiance = CALIB[self.platform_id][key_name]["F"]
-        return mb.vis_calibrate(data, solar_irradiance)
+    retv = {}
 
-    def _erads2bt(self, data, key_name):
-        """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][key_name]
-        alpha = cal_info["ALPHA"]
-        beta = cal_info["BETA"]
-        wavenumber = CALIB[self.platform_id][key_name]["VC"]
-        return mb.erads2bt(data, wavenumber, alpha, beta)
+    for idx, chmark in zip(range(12), chlist_str):
+        retv[CHANNEL_NAMES[idx + 1]] = (chmark == 'X')
 
-    def _srads2bt(self, data, key_name):
-        """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[key_name]
-        wavenumber = CALIB[self.platform_id][key_name]["VC"]
-
-        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
-
-    def _ir_calibrate(self, data, key_name):
-        """IR calibration."""
-        channel_index = self.channel_index_list.index(key_name)
-
-        cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
-            'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
-
-        if cal_type == 1:
-            # spectral radiances
-            return self._srads2bt(data, key_name)
-        elif cal_type == 2:
-            # effective radiances
-            return self._erads2bt(data, key_name)
-        else:
-            raise NotImplementedError('Unknown calibration type')
+    return retv
