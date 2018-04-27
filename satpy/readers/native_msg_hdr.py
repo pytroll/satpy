@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 Adam.Dybbroe
+# Copyright (c) 2014, 2018 PyTroll Community
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c14526.ad.smhi.se>
+#   Adam.Dybbroe <adam.dybbroe@smhi.se>
 #   Sauli.Joro <sauli.joro@eumetsat.int>
 
 # This program is free software: you can redistribute it and/or modify
@@ -40,125 +40,74 @@ class GSDTRecords(object):
     Reference Document: MSG Ground Segment Design Specification (GSDS)
 
     """
+    gp_fac_env = np.uint8
+    gp_fac_id = np.uint8
+    gp_sc_id = np.uint16
+    gp_su_id = np.uint32
+    gp_svce_type = np.uint8
 
-    @property
-    def gp_cpu_address(self):
+    gp_cpu_address = [
+        ('Qualifier_1', np.uint8),
+        ('Qualifier_2', np.uint8),
+        ('Qualifier_3', np.uint8),
+        ('Qualifier_4', np.uint8)
+    ]
 
-        record = [
-            ('Qualifier_1', np.uint8),
-            ('Qualifier_2', np.uint8),
-            ('Qualifier_3', np.uint8),
-            ('Qualifier_4', np.uint8)
-        ]
+    time_cds = [
+        ('Day', np.uint16),
+        ('MilliSecsOfDay', np.uint32),
+        ('MicrosecsOfMillisecs', np.uint16)
+    ]
 
-        return record
+    time_cds_expanded = [
+        ('Day', np.uint16),
+        ('MilliSecsOfDay', np.uint32),
+        ('MicrosecsOfMillisecs', np.uint16),
+        ('NanosecsOfMicrosecs', np.uint16)
+    ]
 
-    @property
-    def gp_fac_env(self):
+    time_cds_short = [
+        ('Day', np.uint16),
+        ('MilliSeconds', np.uint32)
+    ]
 
-        return np.uint8
+    gp_pk_header = [
+        ('HeaderVersionNo', np.uint8),
+        ('PacketType', np.uint8),
+        ('SubHeaderType', np.uint8),
+        ('SourceFacilityId', gp_fac_id),
+        ('SourceEnvId', gp_fac_env),
+        ('SourceInstanceId', np.uint8),
+        ('SourceSUId', gp_su_id),
+        ('SourceCPUId', gp_cpu_address),
+        ('DestFacilityId', gp_fac_id),
+        ('DestEnvId', gp_fac_env),
+        ('SequenceCount', np.uint16),
+        ('PacketLength', np.int32)
+    ]
 
-    @property
-    def gp_fac_id(self):
-
-        return np.uint8
-
-    @property
-    def gp_pk_header(self):
-
-        record = [
-            ('HeaderVersionNo', np.uint8),
-            ('PacketType', np.uint8),
-            ('SubHeaderType', np.uint8),
-            ('SourceFacilityId', self.gp_fac_id),
-            ('SourceEnvId', self.gp_fac_env),
-            ('SourceInstanceId', np.uint8),
-            ('SourceSUId', self.gp_su_id),
-            ('SourceCPUId', self.gp_cpu_address),
-            ('DestFacilityId', self.gp_fac_id),
-            ('DestEnvId', self.gp_fac_env),
-            ('SequenceCount', np.uint16),
-            ('PacketLength', np.int32)
-        ]
-
-        return record
-
-    @property
-    def gp_pk_sh1(self):
-
-        record = [
-            ('SubHeaderVersionNo', np.uint8),
-            ('ChecksumFlag', np.bool),
-            ('Acknowledgement', (np.uint8, 4)),
-            ('ServiceType', self.gp_svce_type),
-            ('ServiceSubtype', np.uint8),
-            ('PacketTime', self.time_cds_short),
-            ('SpacecraftId', self.gp_sc_id)
-        ]
-
-        return record
-
-    @property
-    def gp_sc_id(self):
-
-        return np.uint16
-
-    @property
-    def gp_su_id(self):
-
-        return np.uint32
-
-    @property
-    def gp_svce_type(self):
-
-        return np.uint8
-
-    @property
-    def time_cds(self):
-
-        record = [
-            ('Day', np.uint16),
-            ('MilliSecsOfDay', np.uint32),
-            ('MicrosecsOfMillisecs', np.uint16)]
-
-        return record
-
-    @property
-    def time_cds_expanded(self):
-
-        record = [
-            ('Day', np.uint16),
-            ('MilliSecsOfDay', np.uint32),
-            ('MicrosecsOfMillisecs', np.uint16),
-            ('NanosecsOfMicrosecs', np.uint16)
-        ]
-
-        return record
-
-    @property
-    def time_cds_short(self):
-
-        record = [
-            ('Day', np.uint16),
-            ('MilliSeconds', np.uint32)
-        ]
-
-        return record
+    gp_pk_sh1 = [
+        ('SubHeaderVersionNo', np.uint8),
+        ('ChecksumFlag', np.bool),
+        ('Acknowledgement', (np.uint8, 4)),
+        ('ServiceType', gp_svce_type),
+        ('ServiceSubtype', np.uint8),
+        ('PacketTime', time_cds_short),
+        ('SpacecraftId', gp_sc_id)
+    ]
 
 
 class Msg15NativeHeaderRecord(object):
 
-    def get(self):
+    def get(self, umarf=True):
 
         record = [
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
             ('15_SECONDARY_PRODUCT_HEADER',
              L15SecondaryProductHeaderRecord().get()),
-            # ('GP_PK_HEADER', GpPkHeaderRecord().get()),
-            # ('GP_PK_SH1', GpPkSh1Record().get()),
-            ('GP_PK_HEADER', GSDTRecords().gp_pk_header),
-            ('GP_PK_SH1', GSDTRecords().gp_pk_sh1),
-            ('15_DATA_HEADER', L15DataHeaderRecord().get())
+            ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
+            ('GP_PK_SH1', GSDTRecords.gp_pk_sh1),
+            ('15_DATA_HEADER', L15DataHeaderRecord().get(umarf=umarf))
         ]
 
         return record
@@ -166,148 +115,104 @@ class Msg15NativeHeaderRecord(object):
 
 class L15PhData(object):
 
-    @property
-    def l15_ph_data(self):
-
-        record = [
-            ('Name', 'S30'),
-            ('Value', 'S50')
-        ]
-
-        return record
+    l15_ph_data = [
+        ('Name', 'S30'),
+        ('Value', 'S50')
+    ]
 
 
-class L15MainProductHeaderRecord(L15PhData):
+class L15MainProductHeaderRecord(object):
 
-    '''
+    """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
-    '''
+    """
 
     def get(self):
 
-        record = [
-            ('FormatName', self.l15_ph_data),
-            ('FormatDocumentName', self.l15_ph_data),
-            ('FormatDocumentMajorVersion', self.l15_ph_data),
-            ('FormatDocumentMinorVersion', self.l15_ph_data),
-            ('CreationDateTime', self.l15_ph_data),
-            ('CreatingCentre', self.l15_ph_data),
-            ('DataSetIdentification', (self.l15_ph_data_identification, 27)),
-            ('TotalFileSize', self.l15_ph_data),
-            ('GORT', self.l15_ph_data),
-            ('ASTI', self.l15_ph_data),
-            ('LLOS', self.l15_ph_data),
-            ('SNIT', self.l15_ph_data),
-            ('AIID', self.l15_ph_data),
-            ('SSBT', self.l15_ph_data),
-            ('SSST', self.l15_ph_data),
-            ('RRCC', self.l15_ph_data),
-            ('RRBT', self.l15_ph_data),
-            ('RRST', self.l15_ph_data),
-            ('PPRC', self.l15_ph_data),
-            ('PPDT', self.l15_ph_data),
-            ('GPLV', self.l15_ph_data),
-            ('APNM', self.l15_ph_data),
-            ('AARF', self.l15_ph_data),
-            ('UUDT', self.l15_ph_data),
-            ('QQOV', self.l15_ph_data),
-            ('UDSP', self.l15_ph_data)
-        ]
+        l15_ph_data = L15PhData.l15_ph_data
 
-        return record
-
-    @property
-    def l15_ph_data_identification(self):
-
-        record = [
+        l15_ph_data_identification = [
             ('Name', 'S30'),
             ('Size', 'S16'),
-            ('Address', 'S16')]
-
-        return record
-
-
-class L15SecondaryProductHeaderRecord(L15PhData):
-
-    '''
-    Reference Document:
-            MSG Level 1.5 Native Format File Definition
-    '''
-
-    def get(self):
+            ('Address', 'S16')
+        ]
 
         record = [
-            ('ABID', self.l15_ph_data),
-            ('SMOD', self.l15_ph_data),
-            ('APXS', self.l15_ph_data),
-            ('AVPA', self.l15_ph_data),
-            ('LSCD', self.l15_ph_data),
-            ('LMAP', self.l15_ph_data),
-            ('QDLC', self.l15_ph_data),
-            ('QDLP', self.l15_ph_data),
-            ('QQAI', self.l15_ph_data),
-            ('SelectedBandIDs', self.l15_ph_data),
-            ('SouthLineSelectedRectangle', self.l15_ph_data),
-            ('NorthLineSelectedRectangle', self.l15_ph_data),
-            ('EastColumnSelectedRectangle', self.l15_ph_data),
-            ('WestColumnSelectedRectangle', self.l15_ph_data),
-            ('NumberLinesVISIR', self.l15_ph_data),
-            ('NumberColumnsVISIR', self.l15_ph_data),
-            ('NumberLinesHRV', self.l15_ph_data),
-            ('NumberColumnsHRV', self.l15_ph_data)
+            ('FormatName', l15_ph_data),
+            ('FormatDocumentName', l15_ph_data),
+            ('FormatDocumentMajorVersion', l15_ph_data),
+            ('FormatDocumentMinorVersion', l15_ph_data),
+            ('CreationDateTime', l15_ph_data),
+            ('CreatingCentre', l15_ph_data),
+            ('DataSetIdentification', (l15_ph_data_identification, 27)),
+            ('TotalFileSize', l15_ph_data),
+            ('GORT', l15_ph_data),
+            ('ASTI', l15_ph_data),
+            ('LLOS', l15_ph_data),
+            ('SNIT', l15_ph_data),
+            ('AIID', l15_ph_data),
+            ('SSBT', l15_ph_data),
+            ('SSST', l15_ph_data),
+            ('RRCC', l15_ph_data),
+            ('RRBT', l15_ph_data),
+            ('RRST', l15_ph_data),
+            ('PPRC', l15_ph_data),
+            ('PPDT', l15_ph_data),
+            ('GPLV', l15_ph_data),
+            ('APNM', l15_ph_data),
+            ('AARF', l15_ph_data),
+            ('UUDT', l15_ph_data),
+            ('QQOV', l15_ph_data),
+            ('UDSP', l15_ph_data)
         ]
 
         return record
 
 
-# class GpPkHeaderRecord(object):
-#
-#    def get(self):
-#
-#        record = [
-#            ('HeaderVersionNo', np.uint8),
-#            ('PacketType', np.uint8),
-#            ('SubHeaderType', np.uint8),
-#            ('SourceFacilityId', np.uint8),
-#            ('SourceEnvId', np.uint8),
-#            ('SourceInstanceId', np.uint8),
-#            ('SourceSUId', np.int32),
-#            ('SourceCPUId', (np.uint8, 4)),
-#            ('DestFacilityId', np.uint8),
-#            ('DestEnvId', np.uint8),
-#            ('SequenceCount', np.uint16),
-#            ('PacketLength', np.int32)
-#        ]
-#
-#        return record
+class L15SecondaryProductHeaderRecord(object):
 
+    """
+    Reference Document:
+            MSG Level 1.5 Native Format File Definition
+    """
 
-# class GpPkSh1Record(GSDTRecords):
-#
-#    def get(self):
-#
-#        record = [
-#            ('SubHeaderVersionNo', np.uint8),
-#            ('ChecksumFlag', np.uint8),
-#            ('Acknowledgement', (np.uint8, 4)),
-#            ('ServiceType', np.uint8),
-#            ('ServiceSubtype', np.uint8),
-#            ('PacketTime', self.time_cds_short),
-#            ('SpacecraftId', self.gp_sc_id)
-#        ]
-#
-#        return record
+    def get(self):
+
+        l15_ph_data = L15PhData.l15_ph_data
+
+        record = [
+            ('ABID', l15_ph_data),
+            ('SMOD', l15_ph_data),
+            ('APXS', l15_ph_data),
+            ('AVPA', l15_ph_data),
+            ('LSCD', l15_ph_data),
+            ('LMAP', l15_ph_data),
+            ('QDLC', l15_ph_data),
+            ('QDLP', l15_ph_data),
+            ('QQAI', l15_ph_data),
+            ('SelectedBandIDs', l15_ph_data),
+            ('SouthLineSelectedRectangle', l15_ph_data),
+            ('NorthLineSelectedRectangle', l15_ph_data),
+            ('EastColumnSelectedRectangle', l15_ph_data),
+            ('WestColumnSelectedRectangle', l15_ph_data),
+            ('NumberLinesVISIR', l15_ph_data),
+            ('NumberColumnsVISIR', l15_ph_data),
+            ('NumberLinesHRV', l15_ph_data),
+            ('NumberColumnsHRV', l15_ph_data)
+        ]
+
+        return record
 
 
 class L15DataHeaderRecord(GSDTRecords):
 
-    '''
+    """
     Reference Document:
             MSG Level 1.5 Image Data Format Description
-    '''
+    """
 
-    def get(self, umarf=True):
+    def get(self, umarf):
 
         record = [
             ('15HeaderVersion', np.uint8),
@@ -378,6 +283,7 @@ class L15DataHeaderRecord(GSDTRecords):
             ('VarA1', np.float64),
             ('A2', np.float64),
             ('VarA2', np.float64)]
+
         record = [
             ('SatelliteDefinition', satellite_definition),
             ('SatelliteOperations', satellite_operations),
@@ -486,6 +392,7 @@ class L15DataHeaderRecord(GSDTRecords):
             ('MoonEphemeris', (earth_moon_sun_coeff, 100)),
             ('SunEphemeris', (earth_moon_sun_coeff, 100)),
             ('StarEphemeris', (star_coeff, (20, 100)))]
+
         relation_to_image = [
             ('TypeOfEclipse', np.uint8),
             ('EclipseStartTime', self.time_cds_short),
