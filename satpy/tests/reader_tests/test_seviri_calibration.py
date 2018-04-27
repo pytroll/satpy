@@ -40,25 +40,76 @@ except ImportError:
     import mock
 
 
-TEST1_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
-                        [376.,  375.,  376.,  374.,  374.],
-                        [374.,  373.,  373.,  374.,  374.],
-                        [347.,  345.,  345.,  348.,  347.],
-                        [306.,  306.,  307.,  307.,  308.]], dtype=np.float32)
+COUNTS_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
+                         [376.,  375.,  376.,  374.,  374.],
+                         [374.,  373.,  373.,  374.,  374.],
+                         [347.,  345.,  345.,  348.,  347.],
+                         [306.,  306.,  307.,  307.,  308.]], dtype=np.float32)
 
-TEST1_OUTPUT = np.array([[66.84162903,  66.84162903,  66.84162903,  66.63659668,
-                          66.4315567],
-                         [66.63659668,  66.4315567,  66.63659668,  66.22652435,
-                          66.22652435],
-                         [66.22652435,  66.02148438,  66.02148438,  66.22652435,
-                          66.22652435],
-                         [60.69055939,  60.28048706,  60.28048706,  60.89559937,
-                          60.69055939],
-                         [52.28409576,  52.28409576,  52.48912811,  52.48912811,
-                          52.69416809]], dtype=np.float32)
+RADIANCES_OUTPUT = np.array([[66.84162903,  66.84162903,  66.84162903,  66.63659668,
+                              66.4315567],
+                             [66.63659668,  66.4315567,  66.63659668,  66.22652435,
+                              66.22652435],
+                             [66.22652435,  66.02148438,  66.02148438,  66.22652435,
+                              66.22652435],
+                             [60.69055939,  60.28048706,  60.28048706,  60.89559937,
+                              60.69055939],
+                             [52.28409576,  52.28409576,  52.48912811,  52.48912811,
+                              52.69416809]], dtype=np.float32)
 
-TEST1_GAIN = 0.20503567620766011
-TEST1_OFFSET = -10.456819486590666
+GAIN = 0.20503567620766011
+OFFSET = -10.456819486590666
+
+CAL_TYPE1 = 1
+CAL_TYPE2 = 2
+CHANNEL_NAME = 'IR_108'
+PLATFORM_ID = 323  # Met-10
+
+TBS_OUTPUT1 = np.array([[269.29684448,  269.29684448,  269.29684448,  269.13296509,
+                         268.96871948],
+                        [269.13296509,  268.96871948,  269.13296509,  268.80422974,
+                         268.80422974],
+                        [268.80422974,  268.63937378,  268.63937378,  268.80422974,
+                         268.80422974],
+                        [264.23751831,  263.88912964,  263.88912964,  264.41116333,
+                         264.23751831],
+                        [256.77682495,  256.77682495,  256.96743774,  256.96743774,
+                         257.15756226]], dtype=np.float32)
+
+
+TBS_OUTPUT2 = np.array([[268.94519043,  268.94519043,  268.94519043,  268.77984619,
+                         268.61422729],
+                        [268.77984619,  268.61422729,  268.77984619,  268.44830322,
+                         268.44830322],
+                        [268.44830322,  268.28204346,  268.28204346,  268.44830322,
+                         268.44830322],
+                        [263.84396362,  263.49285889,  263.49285889,  264.01898193,
+                         263.84396362],
+                        [256.32858276,  256.32858276,  256.52044678,  256.52044678,
+                         256.71188354]], dtype=np.float32)
+
+
+VIS008_SOLAR_IRRADIANCE = 23.29414028785013
+
+VIS008_RADIANCE = np.array([[0.62234485,  0.59405649,  0.59405649,  0.59405649,  0.59405649],
+                            [0.59405649,  0.62234485,  0.62234485,  0.59405649,  0.62234485],
+                            [0.76378691,  0.79207528,  0.79207528,  0.76378691,  0.79207528],
+                            [3.30974245,  3.33803129,  3.33803129,  3.25316572,  3.47947311],
+                            [7.52471399,  7.83588648,  8.2602129,  8.57138538,  8.99571133]], dtype=np.float32)
+
+VIS008_REFLECTANCE = np.array([[2.67167997,   2.55024004,   2.55024004,   2.55024004,
+                                2.55024004],
+                               [2.55024004,   2.67167997,   2.67167997,   2.55024004,
+                                2.67167997],
+                               [3.27888012,   3.40032005,   3.40032005,   3.27888012,
+                                3.40032005],
+                               [14.20847702,  14.32991886,  14.32991886,  13.96559715,
+                                14.93711853],
+                               [32.30303574,  33.63887405,  35.46047592,  36.79631805,
+                                38.61791611]], dtype=np.float32)
+
+
+# --
 
 CAL_DTYPE = np.array([[(0.0208876,  -1.06526761), (0.0278805,  -1.42190546),
                        (0.0235881,  -1.20299312), (0.00365867,  -0.18659201),
@@ -129,23 +180,16 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
             'PlannedChanProcessing': CALIBRATION_TYPE}
 
         self.handler = SEVIRICalibrationHandler()
+        self.handler.platform_id = PLATFORM_ID
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
 
-        data = TEST1_INPUT
-        gain = TEST1_GAIN
-        offset = TEST1_OFFSET
+        data = COUNTS_INPUT
+        gain = GAIN
+        offset = OFFSET
         result = self.handler._convert_to_radiance(data, gain, offset)
-        assertNumpyArraysEqual(result, TEST1_OUTPUT)
-
-    def test_erads2bt(self):
-
-        pass
-
-    def test_srads2bt(self):
-
-        pass
+        assertNumpyArraysEqual(result, RADIANCES_OUTPUT)
 
     def test_tl15(self):
 
@@ -153,11 +197,18 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
 
     def test_ir_calibrate(self):
 
-        pass
+        result = self.handler._ir_calibrate(RADIANCES_OUTPUT,
+                                            CHANNEL_NAME, CAL_TYPE1)
+        assertNumpyArraysEqual(result, TBS_OUTPUT1)
+
+        result = self.handler._ir_calibrate(RADIANCES_OUTPUT,
+                                            CHANNEL_NAME, CAL_TYPE2)
+        assertNumpyArraysEqual(result, TBS_OUTPUT2)
 
     def test_vis_calibrate(self):
 
-        pass
+        result = self.handler._vis_calibrate(VIS008_RADIANCE, VIS008_SOLAR_IRRADIANCE)
+        assertNumpyArraysEqual(result, VIS008_REFLECTANCE)
 
     def tearDown(self):
         pass
