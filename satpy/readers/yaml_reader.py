@@ -66,7 +66,7 @@ def listify_string(something):
 def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
-    tail_len = len(pattern.split(os.path.sep))
+    tail_len = len(pattern.split('/'))
     return os.path.join(*path.split(os.path.sep)[-tail_len:])
 
 

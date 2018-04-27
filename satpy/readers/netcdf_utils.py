@@ -128,8 +128,10 @@ class NetCDF4FileHandler(BaseFileHandler):
                 group, key = parts
             else:
                 group = None
-            val = xr.open_dataset(self.filename, group=group, chunks=CHUNK_SIZE,
-                                  mask_and_scale=self.auto_maskandscale)[key]
+            with xr.open_dataset(self.filename, group=group,
+                                 chunks=CHUNK_SIZE,
+                                 mask_and_scale=self.auto_maskandscale) as nc:
+                val = nc[key]
         return val
 
     def __contains__(self, item):
