@@ -703,13 +703,13 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             if source_area not in resamplers:
                 key, resampler = prepare_resampler(
-                        source_area, destination_area, resampler=resampler,
-                        **resample_kwargs)
+                        source_area, destination_area, **resample_kwargs)
                 resamplers[source_area] = resampler
                 self.resamplers[key] = resampler
-            resample_kwargs['resampler'] = resamplers[source_area]
+            kwargs = resample_kwargs.copy()
+            kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
-                                   **resample_kwargs)
+                                   **kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
                 new_scn[ds_id] = res
