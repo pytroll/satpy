@@ -137,7 +137,9 @@ Feature: Loading real data in many formats with the same command
     Examples: MSG Native data
         | format         | composite  | area    |
         | native_msg     | overview   | eurol   |
-        | native_msg     | cloudtop   | eurol   |
+        | native_msg     | snow       | eurol   |
+        | native_msg     | HRV        | -       |
+        | native_msg     | overview   | -       |
 
     Examples: NWCSAF GEO data
         | format         | composite  | area    |

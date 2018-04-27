@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
 
@@ -33,6 +33,8 @@ from datetime import datetime
 import numpy as np
 
 import xarray as xr
+import dask.array as da
+from satpy import CHUNK_SIZE
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
@@ -41,7 +43,7 @@ from pyresample import geometry
 
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 from satpy.readers.msg_base import get_cds_time
-from satpy.readers.msg_base import dec10216
+from satpy.readers.hrit_base import dec10216
 import satpy.readers.msg_base as mb
 
 import os
@@ -72,17 +74,14 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         self.filename = filename
         self.platform_name = None
-        self.available_channels = {}
-        self.channel_order_list = []
-        for item in CHANNEL_LIST:
-            self.available_channels[item] = False
 
+        # The available channels are only known after the header
+        # has been read, after that we know what the indices are for each channel
+        self.available_channels = dict(zip(CHANNEL_LIST, [False] * len(CHANNEL_LIST)))
         self._get_header()
-        for item in CHANNEL_LIST:
-            if self.available_channels.get(item):
-                self.channel_order_list.append(item)
+        self.channel_index_list = [i for i in CHANNEL_LIST if self.available_channels[i]]
 
-        self.memmap = self._get_memmap()
+        self.memmap = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
     @property
     def start_time(self):
@@ -142,10 +141,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         visir_rec = get_lrec(self._cols_visir)
 
         number_of_lowres_channels = len(
-            [s for s in self.channel_order_list if not s == 'HRV'])
+            [s for s in self.channel_index_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
         if self.available_channels['HRV']:
-            hrv_rec = get_lrec(self._cols_hrv)
+            hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
 
         return np.dtype(drec)
@@ -183,49 +182,48 @@ class NativeMSGFileHandler(BaseFileHandler):
                                              'b': polar_radius,
                                              'h': 35785831.00,
                                              'SSP_longitude': ssp_lon}
-        self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
-        # The number of columns is incorrect - seems to be fixed at 3712
-        # EUMETSAT will fix this
-        self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
 
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
+
+        self.mda['number_of_lines'] = numlines_visir
 
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
 
-        numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
-
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
         # been added to the column.
-        x = ((west-east+1)*(10.0/8) % 1)
-        y = int((1-x)*4)
+        x = ((west - east + 1) * (10.0 / 8) % 1)
+        y = int((1 - x) * 4)
 
         if y < 4:
             # column has been padded with y pixels
-            self._cols_visir = int((west-east+1+y)*1.25)
+            self._cols_visir = int((west - east + 1 + y) * 1.25)
         else:
             # no padding has occurred
-            self._cols_visir = int((west-east+1)*1.25)
+            self._cols_visir = int((west - east + 1) * 1.25)
 
-        if (west - east) < 3711:
-            self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
-        else:
-            self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
-
-        # 'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
-        # 'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
+        self.mda['number_of_columns'] = int(self._cols_visir / 1.25)
+        self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'][0])
+        # The number of HRV columns seem to be correct in the UMARF header:
+        self.mda['hrv_number_of_columns'] = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
 
         lindir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+
+        # Check the calculated row,column dimensions against the header information:
+        numcols_cal = self.mda['number_of_columns']
+        numcols_hd = self.header['15_DATA_HEADER']['ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
+        if numcols_cal != numcols_hd:
+            logger.warning("Number of (non HRV band) columns from header and derived from data are not consistent!")
+            logger.warning("Number of columns read from header = %d", numcols_hd)
+            logger.warning("Number of columns calculated from data = %d", numcols_cal)
 
         area_extent = ((1856 - west - 0.5) * coldir_step,
                        (1856 - north + 0.5) * lindir_step,
@@ -243,15 +241,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
 
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
-
         proj_dict = {'a': float(a),
                      'b': float(b),
                      'lon_0': float(lon_0),
                      'h': float(h),
                      'proj': 'geos',
                      'units': 'm'}
+
+        if dsid.name == 'HRV':
+            nlines = self.mda['hrv_number_of_lines']
+            ncols = self.mda['hrv_number_of_columns']
+        else:
+            nlines = self.mda['number_of_lines']
+            ncols = self.mda['number_of_columns']
 
         area = geometry.AreaDefinition(
             'some_area_name',
@@ -268,28 +270,37 @@ class NativeMSGFileHandler(BaseFileHandler):
     def get_dataset(self, key, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        if key.name not in self.channel_order_list:
+        if key.name not in self.channel_index_list:
             raise KeyError('Channel % s not available in the file' % key.name)
         elif key.name not in ['HRV']:
-            ch_idn = self.channel_order_list.index(key.name)
+            shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+
+            ch_idn = self.channel_index_list.index(key.name)
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
-            if len(self.channel_order_list) == 1:
-                data = dec10216(
-                        self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
+            if len(self.channel_index_list) == 1:
+                raw = self.memmap['visir']['line_data']
             else:
-                data = dec10216(
-                    self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
+                raw = self.memmap['visir']['line_data'][:, ch_idn, :]
+
+            data = dec10216(raw.flatten())
+            data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
-            data2 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
-            data1 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 1, :])[::-1, ::-1]
-            data0 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 0, :])[::-1, ::-1]
-            # Make empty array:
-            shape = data0.shape[0] * 3, data0.shape[1]
+            shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
+
+            raw2 = self.memmap['hrv']['line_data'][:, 2, :]
+            raw1 = self.memmap['hrv']['line_data'][:, 1, :]
+            raw0 = self.memmap['hrv']['line_data'][:, 0, :]
+
+            shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
+            data2 = dec10216(raw2.flatten())
+            data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
+            data1 = dec10216(raw1.flatten())
+            data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
+            data0 = dec10216(raw0.flatten())
+            data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
+
             data = np.zeros(shape)
             idx = range(0, shape[0], 3)
             data[idx, :] = data2
@@ -344,15 +355,15 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         if (calMode.upper() != 'GSICS'):
             coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['Level15ImageCalibration']
+                'RadiometricProcessing']['Level15ImageCalibration']
             gain = coeffs['CalSlope'][0][channel_index]
             offset = coeffs['CalOffset'][0][channel_index]
         else:
             coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['MPEFCalFeedback']
+                'RadiometricProcessing']['MPEFCalFeedback']
             gain = coeffs['GSICSCalCoeff'][0][channel_index]
             offset = coeffs['GSICSOffsetCount'][0][channel_index]
-            offset = offset*gain
+            offset = offset * gain
 
         return mb.convert_to_radiance(data, gain, offset)
 
@@ -378,7 +389,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data, key_name):
         """IR calibration."""
-        channel_index = self.channel_order_list.index(key_name)
+        channel_index = self.channel_index_list.index(key_name)
 
         cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
             'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
