@@ -434,7 +434,7 @@ def get_available_channels(header):
     """Get the available channels from the header information"""
 
     chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
-        'SelectedBandIDs'][0][-1].strip().decode()
+        'SelectedBandIDs'][0][-1].strip().encode().decode()
 
     retv = {}
 
