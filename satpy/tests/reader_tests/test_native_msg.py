@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -77,11 +77,11 @@ IR_108_TBS = np.array([[311.77913132,  312.11070275,  312.44143083,  312.7713221
                         316.34670629]], dtype=np.float64)
 
 
-CHANNEL_ORDER_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
+CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
                       'IR_108', 'IR_120', 'IR_134', 'HRV']
 AVAILABLE_CHANNELS = {}
-for item in CHANNEL_ORDER_LIST:
+for item in CHANNEL_INDEX_LIST:
     AVAILABLE_CHANNELS[item] = True
 
 # Calibration type = Effective radiances
@@ -103,7 +103,8 @@ class TestNativeMSGFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_header')
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_filedtype')
     @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_memmap')
-    def setUp(self, _get_memmap, _get_filedtype, _get_header):
+    @mock.patch('dask.array.from_array')
+    def setUp(self, _get_memmap, _get_filedtype, _get_header, dask):
         """Setup the natve MSG file handler for testing."""
 
         hdr = {}
@@ -118,6 +119,8 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         _get_header.return_value = None
         _get_filedtype.return_value = None
 
+        dask.return_code = None
+
         self.reader = NativeMSGFileHandler('filename',
                                            {'platform_shortname': 'MSG3',
                                             'start_time': datetime(2017, 3, 26, 10, 0)},
@@ -126,7 +129,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         self.reader.platform_name = 'Meteosat-10'
         self.reader.platform_id = 323
         self.reader.header = hdr
-        self.reader.channel_order_list = CHANNEL_ORDER_LIST
+        self.reader.channel_index_list = CHANNEL_INDEX_LIST
         #self.reader.available_channels = AVAILABLE_CHANNELS
 
     def test_convert_to_radiance(self):
