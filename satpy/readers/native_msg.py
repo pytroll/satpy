@@ -399,8 +399,13 @@ class NativeMSGFileHandler(BaseFileHandler):
 def get_available_channels(header):
     """Get the available channels from the header information"""
 
-    chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
-        'SelectedBandIDs'][0][-1].strip().encode().decode()
+    try:
+        chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+            'SelectedBandIDs'][0][-1].strip().decode()
+    except AttributeError:
+        # Strings have no deocde method in py3
+        chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+            'SelectedBandIDs'][0][-1].strip()
 
     retv = {}
     for idx, chmark in zip(range(12), chlist_str):
