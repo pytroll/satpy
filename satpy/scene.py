@@ -716,7 +716,7 @@ class Scene(MetadataObject):
             else:
                 replace_anc(res, pres)
 
-        return new_scn, resamplers, destination_area
+        return new_scn, destination_area
 
     def resample(self,
                  destination=None,
@@ -730,10 +730,8 @@ class Scene(MetadataObject):
 
         if destination is None:
             destination = self.max_area(to_resample)
-        new_scn, resamplers, destination_area = self._resampled_scene(to_resample, destination,
-                                                                      **resample_kwargs)
-        for source, (key, resampler) in resamplers.items():
-            self.resamplers[key] = resampler
+        new_scn, destination_area = self._resampled_scene(to_resample, destination,
+                                                          **resample_kwargs)
 
         new_scn.attrs = self.attrs.copy()
         new_scn.dep_tree = self.dep_tree.copy()
