@@ -106,6 +106,16 @@ class HRITFileHandler(BaseFileHandler):
 
         self.mda = {}
 
+        self._get_hd(hdr_info)
+
+        self._start_time = filename_info['start_time']
+        self._end_time = self._start_time + timedelta(minutes=15)
+
+    def _get_hd(self, hdr_info):
+        """Open the file, read and get the basic file header info and set the mda
+           dictionary
+        """
+
         hdr_map, variable_length_headers, text_headers = hdr_info
 
         with open(self.filename) as fp:
@@ -144,16 +154,13 @@ class HRITFileHandler(BaseFileHandler):
 
                 total_header_length = self.mda['total_header_length']
 
-            self._start_time = filename_info['start_time']
-            self._end_time = self._start_time + timedelta(minutes=15)
+        self.mda.setdefault('number_of_bits_per_pixel', 10)
 
-            self.mda.setdefault('number_of_bits_per_pixel', 10)
-
-            self.mda['projection_parameters'] = {'a': 6378169.00,
-                                                 'b': 6356583.80,
-                                                 'h': 35785831.00,
-                                                 # FIXME: find a reasonable SSP
-                                                 'SSP_longitude': 0.0}
+        self.mda['projection_parameters'] = {'a': 6378169.00,
+                                             'b': 6356583.80,
+                                             'h': 35785831.00,
+                                             # FIXME: find a reasonable SSP
+                                             'SSP_longitude': 0.0}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])

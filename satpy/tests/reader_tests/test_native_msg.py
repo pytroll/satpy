@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017, 2018 Adam.Dybbroe
+# Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c20671.ad.smhi.se>
+#   Adam.Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -100,6 +100,8 @@ TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
 TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XXXXXXXXXXXX ']]
 
 
+# This should preferably be put in a helper-module
+# Fixme!
 def assertNumpyArraysEqual(self, other):
     if self.shape != other.shape:
         raise AssertionError("Shapes don't match")
