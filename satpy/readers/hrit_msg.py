@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2017 PyTroll Community
+# Copyright (c) 2010-2018 PyTroll Community
 
 # Author(s):
 
@@ -44,7 +44,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      time_cds_short)
 
 from satpy.readers.msg_base import SEVIRICalibrationHandler
-from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM, BTFIT)
+from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 import satpy.readers.msg_base as mb
 
 logger = logging.getLogger('hrit_msg')
@@ -650,7 +650,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             self.mda['service'] = service
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
-
     @property
     def start_time(self):
         pacqtime = self.epilogue['ImageProductionStats'][
@@ -825,7 +824,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
-
 
 
 def show(data, negate=False):
