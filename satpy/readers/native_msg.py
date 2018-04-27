@@ -262,7 +262,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         channel_name = dataset_id.name
 
-        # import ipdb; ipdb.set_trace()
         if channel_name not in self._channel_index_list:
             raise KeyError('Channel % s not available in the file' % channel_name)
         elif channel_name not in ['HRV']:
@@ -362,72 +361,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
-
-    # def convert_to_radiance(self, data, channel_name):
-    #     """Calibrate to radiance."""
-        # all 12 channels are in calibration coefficients
-        # regardless of how many channels are in file
-        #channel_index = CHANNEL_LIST.index(channel_name)
-        # channel_index = [key - 1 for key, value in CHANNEL_NAMES.items()
-        #                  if value == channel_name][0]
-        #
-        # calMode = 'NOMINAL'
-        # # determine the required calibration coefficients to use
-        # # for the Level 1.5 Header
-        # # NB gsics doesnt apply to VIS channels so ignore them
-        # if (channel_index > 2):
-        #     calMode = os.environ.get('CAL_MODE', 'NOMINAL')
-        #
-        # if (calMode.upper() != 'GSICS'):
-        #     coeffs = self.header['15_DATA_HEADER'][
-        #         'RadiometricProcessing']['Level15ImageCalibration']
-        #     gain = coeffs['CalSlope'][0][channel_index]
-        #     offset = coeffs['CalOffset'][0][channel_index]
-        # else:
-        #     coeffs = self.header['15_DATA_HEADER'][
-        #         'RadiometricProcessing']['MPEFCalFeedback']
-        #     gain = coeffs['GSICSCalCoeff'][0][channel_index]
-        #     offset = coeffs['GSICSOffsetCount'][0][channel_index]
-        #     offset = offset * gain
-        #
-        # return mb.convert_to_radiance(data, gain, offset)
-
-    # def _vis_calibrate(self, data, channel_name):
-    #     """Visible channel calibration only."""
-    #     solar_irradiance = CALIB[self.platform_id][channel_name]["F"]
-    #     return mb.vis_calibrate(data, solar_irradiance)
-
-    # def _erads2bt(self, data, channel_name):
-    #     """computation based on effective radiance."""
-    #     cal_info = CALIB[self.platform_id][channel_name]
-    #     alpha = cal_info["ALPHA"]
-    #     beta = cal_info["BETA"]
-    #     wavenumber = CALIB[self.platform_id][channel_name]["VC"]
-    #     return mb.erads2bt(data, wavenumber, alpha, beta)
-
-    # def _srads2bt(self, data, channel_name):
-    #     """computation based on spectral radiance."""
-    #     coef_a, coef_b, coef_c = BTFIT[channel_name]
-    #     wavenumber = CALIB[self.platform_id][channel_name]["VC"]
-    #
-    #     return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
-
-    # def _ir_calibrate(self, data, channel_name):
-    #     """IR calibration."""
-    #     channel_index = self._channel_index_list.index(channel_name)
-    #
-    #     cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
-    #         'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
-    #
-    #     if cal_type == 1:
-    #         # spectral radiances
-    #         return self._srads2bt(data, channel_name)
-    #     elif cal_type == 2:
-    #         # import ipdb; ipdb.set_trace()
-    #         # effective radiances
-    #         return self._erads2bt(data, channel_name)
-    #     else:
-    #         raise NotImplementedError('Unknown calibration type')
 
 
 def get_available_channels(header):

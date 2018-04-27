@@ -241,30 +241,6 @@ def dec10216(inbuf):
     return arr16
 
 
-# def convert_to_radiance(data, gain, offset):
-#     """Calibrate to radiance."""
-#     return (data * gain + offset).clip(0.0, None)
-
-
-# def vis_calibrate(data, solar_irradiance):
-#     return data * 100.0 / solar_irradiance
-
-
-# def tl15(data, wavenumber):
-#     """Compute the L15 temperature."""
-#     return ((C2 * wavenumber) /
-#             xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
-
-
-# def erads2bt(data, wavenumber, alpha, beta):
-#     return (tl15(data, wavenumber) - beta) / alpha
-#
-#
-# def srads2bt(data, wavenumber, a__, b__, c__):
-#     res = tl15(data, wavenumber)
-#     return a__ * res * res + b__ * res + c__
-
-
 class SEVIRICalibrationHandler(object):
 
     def _convert_to_radiance(self, data, gain, offset):
@@ -272,7 +248,6 @@ class SEVIRICalibrationHandler(object):
         return (data * gain + offset).clip(0.0, None)
 
     def _erads2bt(self, data, channel_name):
-        # import ipdb; ipdb.set_trace()
         """computation based on effective radiance."""
         cal_info = CALIB[self.platform_id][channel_name]
         alpha = cal_info["ALPHA"]
@@ -293,7 +268,6 @@ class SEVIRICalibrationHandler(object):
             raise NotImplementedError('Unknown calibration type')
 
     def _srads2bt(self, data, channel_name):
-        # import ipdb; ipdb.set_trace()
         """computation based on spectral radiance."""
         a__, b__, c__ = BTFIT[channel_name]
         wavenumber = CALIB[self.platform_id][channel_name]["VC"]
@@ -307,5 +281,4 @@ class SEVIRICalibrationHandler(object):
                 xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
-        import ipdb; ipdb.set_trace()
         return data * 100.0 / solar_irradiance
