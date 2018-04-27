@@ -467,8 +467,8 @@ class NativeResampler(BaseResampler):
         """Average every 4 elements (2x2) in a 2D array"""
         def _mean(data):
             rows, cols = data.shape
-            new_shape = (int(rows / y_size), y_size,
-                         int(cols / x_size), x_size)
+            new_shape = (int(rows / y_size), int(y_size),
+                         int(cols / x_size), int(x_size))
             data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
             return data_mean
 
