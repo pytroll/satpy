@@ -376,7 +376,6 @@ def get_available_channels(header):
 
     retv = {}
 
-
     for idx, chmark in zip(range(12), chlist_str):
         retv[CHANNEL_NAMES[idx + 1]] = (chmark == 'X')
 
