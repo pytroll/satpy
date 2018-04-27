@@ -49,9 +49,11 @@ CACHE_SIZE = 10
 resamplers_cache = WeakValueDictionary()
 
 
-def hash_dict(the_dict):
-    return hashlib.sha1(json.dumps(the_dict,
-                                   sort_keys=True).encode('utf-8')).hexdigest()
+def hash_dict(the_dict, the_hash=None):
+    if the_hash is None:
+        the_hash = hashlib.sha1()
+    the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
+    return the_hash
 
 
 def get_area_file():
@@ -106,12 +108,6 @@ class BaseResampler(object):
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
 
-    @staticmethod
-    def hash_area(area):
-        """Get (and set) the hash for the *area*.
-        """
-        return str(area.__hash__())
-
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
         """Get hash for the current resample with the given *kwargs*.
         """
@@ -119,11 +115,10 @@ class BaseResampler(object):
             source_geo_def = self.source_geo_def
         if target_geo_def is None:
             target_geo_def = self.target_geo_def
-
-        the_hash = "".join((self.hash_area(source_geo_def),
-                            self.hash_area(target_geo_def),
-                            hash_dict(kwargs)))
-        return the_hash
+        the_hash = source_geo_def.update_hash()
+        target_geo_def.update_hash(the_hash)
+        hash_dict(kwargs, the_hash)
+        return the_hash.hexdigest()
 
     def precompute(self, **kwargs):
         """Do the precomputation.
@@ -170,13 +165,9 @@ class BaseResampler(object):
     def _create_cache_filename(self, cache_dir=None, **kwargs):
         """Create filename for the cached resampling parameters"""
         cache_dir = cache_dir or '.'
-        kwhash = self.get_hash(**kwargs)
-        if isinstance(cache_dir, (str, six.text_type)):
-            hash_str = hashlib.sha1(kwhash).hexdigest()
-        else:
-            hash_str = hashlib.sha1(kwhash).encode("utf-8").hexdigest()
+        hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, hash_str + '.npz')
+        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.npz')
 
 
 class KDTreeResampler(BaseResampler):
