@@ -24,8 +24,6 @@
 """
 
 import sys
-from datetime import datetime
-
 import numpy as np
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 
@@ -33,12 +31,6 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 COUNTS_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
                          [376.,  375.,  376.,  374.,  374.],
@@ -217,6 +209,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSEVIRICalibrationHandler))
     return mysuite
+
 
 if __name__ == "__main__":
     # So you can run tests from this module individually.

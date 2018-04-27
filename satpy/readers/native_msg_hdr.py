@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 PyTroll Community
+# Copyright (c) 2014, 2018 PyTroll Community
 
 # Author(s):
 
@@ -32,6 +32,7 @@
 
 import numpy as np
 
+
 class GSDTRecords(object):
 
     """MSG Ground Segment Data Type records.
@@ -56,7 +57,7 @@ class GSDTRecords(object):
         ('Day', np.uint16),
         ('MilliSecsOfDay', np.uint32),
         ('MicrosecsOfMillisecs', np.uint16)
-        ]
+    ]
 
     time_cds_expanded = [
         ('Day', np.uint16),
@@ -98,7 +99,7 @@ class GSDTRecords(object):
 
 class Msg15NativeHeaderRecord(object):
 
-    def get(self,umarf=True):
+    def get(self, umarf=True):
 
         record = [
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
@@ -121,6 +122,7 @@ class L15PhData(object):
 
 
 class L15MainProductHeaderRecord(object):
+
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -134,7 +136,7 @@ class L15MainProductHeaderRecord(object):
             ('Name', 'S30'),
             ('Size', 'S16'),
             ('Address', 'S16')
-            ]
+        ]
 
         record = [
             ('FormatName', l15_ph_data),
@@ -169,6 +171,7 @@ class L15MainProductHeaderRecord(object):
 
 
 class L15SecondaryProductHeaderRecord(object):
+
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -203,6 +206,7 @@ class L15SecondaryProductHeaderRecord(object):
 
 
 class L15DataHeaderRecord(GSDTRecords):
+
     """
     Reference Document:
             MSG Level 1.5 Image Data Format Description

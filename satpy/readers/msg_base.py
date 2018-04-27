@@ -25,11 +25,8 @@
 
 from datetime import datetime, timedelta
 import numpy as np
-
 import dask.array as da
 import xarray.ufuncs as xu
-
-from satpy.readers.file_handlers import BaseFileHandler
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -190,14 +187,13 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
                          'BETA': 0.5635}}
 
 
-
-
 def get_cds_time(days, msecs):
     """Get the datetime object of the time since epoch given in days and
     milliseconds of day
     """
     return datetime(1958, 1, 1) + timedelta(days=float(days),
                                             milliseconds=float(msecs))
+
 
 def dec10216(inbuf):
     """Decode 10 bits data into 16 bits words.

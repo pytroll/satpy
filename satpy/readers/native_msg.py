@@ -41,7 +41,7 @@ from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.msg_base import SEVIRICalibrationHandler
-from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM, BTFIT)
+from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
 import satpy.readers.msg_base as mb
 
