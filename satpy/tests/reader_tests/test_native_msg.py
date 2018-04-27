@@ -79,62 +79,6 @@ class TestNativeMSGFileHandler(unittest.TestCase):
     def setUp(self):
         pass
 
-    # @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_header')
-    # @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_filedtype')
-    # @mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_memmap')
-    # @mock.patch('dask.array.from_array')
-    # def setUp(self, _get_memmap, _get_filedtype, _get_header, dask):
-    #     """Setup the natve MSG file handler for testing."""
-
-    #     hdr = {}
-    #     hdr['15_DATA_HEADER'] = {}
-    #     hdr['15_DATA_HEADER']['RadiometricProcessing'] = {
-    #         'Level15ImageCalibration': CAL_DTYPE}
-
-    #     hdr['15_DATA_HEADER']['ImageDescription'] = {}
-    #     hdr['15_DATA_HEADER']['ImageDescription']['Level15ImageProduction'] = {
-    #         'PlannedChanProcessing': CALIBRATION_TYPE}
-
-    #     _get_header.return_value = None
-    #     _get_filedtype.return_value = None
-
-    #     dask.return_code = None
-
-    #     self.reader = NativeMSGFileHandler('filename',
-    #                                        {'platform_shortname': 'MSG3',
-    #                                         'start_time': datetime(2017, 3, 26, 10, 0)},
-    #                                        {'filetype': 'info'})
-
-    #     self.reader.platform_name = 'Meteosat-10'
-    #     self.reader.platform_id = 323
-    #     self.reader.header = hdr
-    #     self.reader.available_channels = AVAILABLE_CHANNELS
-    #     self.reader._channel_index_list = CHANNEL_INDEX_LIST
-
-    # def test_convert_to_radiance(self):
-    #     """Test the conversion from counts to radiance method"""
-
-    #     data = np.ma.ones((3, 5)) * 700 + np.arange(0, 45, 3).reshape(3, 5)
-    #     key_name = 'IR_108'
-    #     data = self.reader.convert_to_radiance(data, key_name)
-    #     assertNumpyArraysEqual(data.data, IR_108_RADIANCES.data)
-
-    # def test_vis_calibrate(self):
-    #     """Test the visible calibration: from radiances to reflectances"""
-
-    #     key_name = 'VIS006'
-    #     data = VIS006_RADIANCES[:]
-    #     data = self.reader._vis_calibrate(data, key_name)
-    #     assertNumpyArraysEqual(data.data, VIS006_REFLECTANCES)
-
-    # def test_ir_calibrate(self):
-    #     """Test the IR calibration: from radiances to brightness temperatures"""
-
-    #     key_name = 'IR_108'
-    #     data = IR_108_RADIANCES[:]
-    #     data = self.reader._ir_calibrate(data, key_name)
-    #     assertNumpyArraysEqual(data.data, IR_108_TBS)
-
     def test_get_available_channels(self):
         """Test the derivation of the available channel list"""
 

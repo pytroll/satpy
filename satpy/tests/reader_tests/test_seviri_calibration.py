@@ -191,10 +191,6 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
         result = self.handler._convert_to_radiance(data, gain, offset)
         assertNumpyArraysEqual(result, RADIANCES_OUTPUT)
 
-    def test_tl15(self):
-
-        pass
-
     def test_ir_calibrate(self):
 
         result = self.handler._ir_calibrate(RADIANCES_OUTPUT,
