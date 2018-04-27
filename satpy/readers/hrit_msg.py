@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2010-2017 PyTroll Community
+# Copyright (c) 2010-2018 PyTroll Community
 
 # Author(s):
 
@@ -617,8 +617,15 @@ class HRITMSGFileHandler(HRITFileHandler):
                                                  (msg_hdr_map,
                                                   msg_variable_length_headers,
                                                   msg_text_headers))
+
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
+        self._filename_info = filename_info
+
+        self._get_header()
+
+    def _get_header(self):
+        """Read the header info, and fill the metadata dictionary"""
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 1
@@ -635,7 +642,7 @@ class HRITMSGFileHandler(HRITFileHandler):
             "SatelliteDefinition"]["SatelliteID"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['platform_name'] = self.platform_name
-        service = filename_info['service']
+        service = self._filename_info['service']
         if service == '':
             self.mda['service'] = '0DEG'
         else:
