@@ -96,6 +96,12 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                 i['start_orbit'] for i in all_infos)
         if 'end_orbit' not in combined_info and 'end_orbit' in all_infos[0]:
             combined_info['end_orbit'] = max(i['end_orbit'] for i in all_infos)
+        if 'satellite_longitude' not in combined_info and 'satellite_longitude' in all_infos[0]:
+            combined_info['satellite_longitude'] = np.mean([i['satellite_longitude'] for i in all_infos])
+        if 'satellite_latitude' not in combined_info and 'satellite_latitude' in all_infos[0]:
+            combined_info['satellite_latitude'] = np.mean([i['satellite_latitude'] for i in all_infos])
+        if 'satellite_altitude' not in combined_info and 'satellite_altitude' in all_infos[0]:
+            combined_info['satellite_altitude'] = np.mean([i['satellite_altitude'] for i in all_infos])
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
