@@ -99,7 +99,7 @@ class GSDTRecords(object):
 
 class Msg15NativeHeaderRecord(object):
 
-    def get(self, umarf=True):
+    def get(self, umarf):
 
         record = [
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
