@@ -98,7 +98,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             # Lazy reading:
             hdr_size = self.header.dtype.itemsize
 
-            return np.memmap(fp_, dtype=dt, shape=(self.data_len,),
+            return np.memmap(fp_, dtype=dt, shape=(self.mda['number_of_lines'],),
                              offset=hdr_size, mode="r")
 
     def _get_filedtype(self):
@@ -129,7 +129,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             return lrec
 
-        visir_rec = get_lrec(self._cols_visir)
+        visir_rec = get_lrec(int(self.mda['number_of_columns']*1.25))
 
         number_of_lowres_channels = len(
             [s for s in self._channel_index_list if not s == 'HRV'])
@@ -137,7 +137,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         if self.available_channels['HRV']:
             hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
-
         return np.dtype(drec)
 
     def _get_header(self):
@@ -174,14 +173,14 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                                              'SSP_longitude': ssp_lon}
 
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
-        numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
 
-        self.mda['number_of_lines'] = numlines_visir
+        self.mda['number_of_lines'] = int(sec15hd['NumberLinesVISIR']['Value'][0])
 
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
+        numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
 
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
@@ -191,16 +190,21 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         if y < 4:
             # column has been padded with y pixels
-            self._cols_visir = int((west - east + 1 + y) * 1.25)
+            cols_visir = int((west - east + 1 + y) * 1.25)
         else:
             # no padding has occurred
-            self._cols_visir = int((west - east + 1) * 1.25)
+            cols_visir = int((west - east + 1) * 1.25)
 
-        self.mda['number_of_columns'] = int(self._cols_visir / 1.25)
+        # HRV Channel - check if an ROI
+        if (west - east) < 3711:
+            cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
+        else:
+            cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
+
+        # self.mda should represent the 16bit dimensions not 10bit
+        self.mda['number_of_columns'] = int(cols_visir / 1.25)
+        self.mda['hrv_number_of_columns'] = int(cols_hrv / 1.25)
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'][0])
-        # The number of HRV columns seem to be correct in the UMARF header:
-        self.mda['hrv_number_of_columns'] = int(sec15hd["NumberColumnsHRV"]['Value'][0])
-
         coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
             "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
 
@@ -210,10 +214,16 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # Check the calculated row,column dimensions against the header information:
         numcols_cal = self.mda['number_of_columns']
         numcols_hd = self.header['15_DATA_HEADER']['ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
+        numcols_hrv_cal = self.mda['hrv_number_of_columns']
+
         if numcols_cal != numcols_hd:
             logger.warning("Number of (non HRV band) columns from header and derived from data are not consistent!")
             logger.warning("Number of columns read from header = %d", numcols_hd)
             logger.warning("Number of columns calculated from data = %d", numcols_cal)
+        if numcols_hrv_cal != numcols_hrv:
+            logger.warning("Number of HRV columns from header and derived from data are not consistent!")
+            logger.warning("Number of HRV columns read from header = %d", numcols_hrv)
+            logger.warning("Number of HRV columns calculated from data = %d", numcols_hrv_cal)
 
         area_extent = ((1856 - west - 0.5) * coldir_step,
                        (1856 - north + 0.5) * lindir_step,
@@ -221,8 +231,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                        (1856 - south + 1.5) * lindir_step)
 
         self.area_extent = area_extent
-
-        self.data_len = numlines_visir
 
     def get_area_def(self, dsid):
 
