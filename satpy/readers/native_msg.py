@@ -201,7 +201,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['number_of_lines'] = int(sec15hd['NumberLinesVISIR']['Value'][0])
         self.mda['number_of_columns'] = int(cols_visir / 1.25)
         self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'][0])
-        # The number of HRV columns seem to be correct in the UMARF header:
         self.mda['hrv_number_of_columns'] = int(cols_hrv / 1.25)
 
         # Check the calculated row,column dimensions against the header information:
@@ -228,10 +227,14 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         line_step = data15hd['ImageDescription'][
             "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
 
-        area_extent = ((1856 - west - 0.5) * column_step,
-                       (1856 - north + 0.5) * line_step,
-                       (1856 - east + 0.5) * column_step,
-                       (1856 - south + 1.5) * line_step)
+        # get corner points for lower left and upper right
+        # columns and lines
+        ll_c = (1856 - west - 0.5) * column_step
+        ll_l = (south - 1856 + 1.5) * line_step
+        ur_c = (1856 - east + 0.5) * column_step
+        ur_l = (north - 1856 + 0.5) * line_step
+
+        area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         self.area_extent = area_extent
 
@@ -336,30 +339,25 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         data15hdr = self.header['15_DATA_HEADER']
         calibration = dataset_id.calibration
         channel = dataset_id.name
-        # locate the channel index as not all channels
-        # may be present in the Image files so self._channel_list
-        # cannot be used to locate their index
 
-        for v, i in enumerate(CHANNEL_NAMES):
-            if CHANNEL_NAMES[i] == channel:
-                break
-
-        # arrax index will start at 0 of course
-        i = i - 1
+        # even though all the channels may not be present in the file,
+        # the header does have calibration coefficients for all the channels
+        # hence, this channel index needs to refer to full channel list
+        i = list(CHANNEL_NAMES.values()).index(channel)
 
         if calibration == 'counts':
             return
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             # you cant apply GSICS values to the VIS channels
-            vis_ids = ['HRV', 'VIS006', 'VIS008', 'IR_016']
+            visual_channels = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
             # determine the required calibration coefficients to use
             # for the Level 1.5 Header
             calMode = os.environ.get('CAL_MODE', 'NOMINAL')
 
-            # NB gsics doesnt apply to VIS channels so ignore them
-            if (calMode.upper() != 'GSICS' or channel in vis_ids):
+            # NB GSICS doesn't have calibration coeffs for VIS channels
+            if (calMode.upper() != 'GSICS' or channel in visual_channels):
                 coeffs = data15hdr[
                     'RadiometricProcessing']['Level15ImageCalibration']
                 gain = coeffs['CalSlope'][0][i]
@@ -399,7 +397,7 @@ def get_available_channels(header):
 
     retv = {}
 
-    for idx, chmark in zip(range(12), chlist_str):
-        retv[CHANNEL_NAMES[idx + 1]] = (chmark == 'X')
+    for idx, char in zip(range(12), chlist_str):
+        retv[CHANNEL_NAMES[idx + 1]] = (char == 'X')
 
     return retv

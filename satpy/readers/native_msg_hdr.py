@@ -23,8 +23,8 @@
 
 """Definition of Header Records for the MSG Level 1.5 data (hrit or native)
     `impf_configuration` in `L15DataHeaderRecord`
-    Padding of 4 bytes has been added, believed to be down to Structure 
-    padding by the compiler. 
+    Padding of 4 bytes has been added, believed to be down to Structure
+    padding by the compiler.
 """
 
 
@@ -32,7 +32,6 @@ import numpy as np
 
 
 class GSDTRecords(object):
-
     """MSG Ground Segment Data Type records.
 
     Reference Document: MSG Ground Segment Design Specification (GSDS)
@@ -96,6 +95,9 @@ class GSDTRecords(object):
 
 
 class Msg15NativeHeaderRecord(object):
+    """
+    SEVIRI Level 1.5 header for native-format
+    """
 
     def get(self):
 
@@ -120,7 +122,6 @@ class L15PhData(object):
 
 
 class L15MainProductHeaderRecord(object):
-
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -169,7 +170,6 @@ class L15MainProductHeaderRecord(object):
 
 
 class L15SecondaryProductHeaderRecord(object):
-
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -204,7 +204,6 @@ class L15SecondaryProductHeaderRecord(object):
 
 
 class L15DataHeaderRecord(GSDTRecords):
-
     """
     Reference Document:
             MSG Level 1.5 Image Data Format Description
@@ -220,7 +219,7 @@ class L15DataHeaderRecord(GSDTRecords):
             ('ImageDescription', self.image_description),
             ('RadiometricProcessing', self.radiometric_processing),
             ('GeometricProcessing', self.geometric_processing)]
-            
+
         record.append(('IMPFConfiguration', self.impf_configuration))
 
         return record
@@ -676,6 +675,6 @@ class L15DataHeaderRecord(GSDTRecords):
             ('OverallConfiguration', overall_configuration),
             ('SUDetails', (su_details, 50)),
             ('WarmStartParams', warm_start_params),
-            ('Padding', (np.void, 4))]  # FIXME!
+            ('Padding', (np.void, 4))]
 
         return record
