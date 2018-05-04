@@ -23,7 +23,7 @@ composites:
     # should we be using the most corrected or least corrected inputs?
     # what happens if something requests more modifiers on top of this?
     - wavelength: 0.51
-      modifiers: [sunz_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - wavelength: 0.85
       modifiers: [sunz_corrected]
     standard_name: toa_bidirection_reflectance
@@ -52,10 +52,10 @@ composites:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 0.65
-      modifiers: [sunz_corrected]  #, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: green
     - wavelength: 0.46
-      modifiers: [sunz_corrected]  #, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected]
     high_resolution_band: red
     standard_name: true_color
 
