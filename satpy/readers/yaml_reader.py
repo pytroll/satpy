@@ -495,12 +495,12 @@ class FileYAMLReader(AbstractYAMLReader):
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
         # update existing dataset IDs with information from the file handler
-        self.update_ds_info_from_files()
+        self.update_ds_ids_from_file_handlers()
 
         # load any additional dataset IDs determined dynamically from the file
-        self.update_ds_ids_from_files()
+        self.add_ds_ids_from_files()
 
-    def update_ds_info_from_files(self):
+    def update_ds_ids_from_file_handlers(self):
         """Update DatasetIDs with information from loaded files.
 
         This is useful, for example, if dataset resolution may change
@@ -525,7 +525,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 self.ids[new_id] = ds_info
                 del self.ids[ds_id]
 
-    def update_ds_ids_from_files(self):
+    def add_ds_ids_from_files(self):
         """Check files for more dynamically discovered datasets."""
         for file_handlers in self.file_handlers.values():
             try:
