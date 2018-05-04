@@ -27,9 +27,12 @@
 import logging
 
 from pyhdf.SD import SD, SDC, SDS
+import dask.array as da
+import xarray as xr
 import numpy as np
 import six
 
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
@@ -51,7 +54,6 @@ HTYPE_TO_DTYPE = {
 
 def from_sds(var, *args, **kwargs):
     """Create a dask array from a SD dataset."""
-    import dask.array as da
     var.__dict__['dtype'] = HTYPE_TO_DTYPE[var.info()[3]]
     shape = var.info()[2]
     var.__dict__['shape'] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
@@ -90,14 +92,19 @@ class HDF4FileHandler(BaseFileHandler):
             info = obj.info()
             self.file_content[name + "/dtype"] = HTYPE_TO_DTYPE.get(info[3])
             self.file_content[name + "/shape"] = info[2] if isinstance(info[2], (int, float)) else tuple(info[2])
-        self._collect_attrs(name, obj.attributes())
+
+    def _open_xarray_dataset(self, val, chunks=CHUNK_SIZE):
+        """Read the band in blocks."""
+        dask_arr = from_sds(val, chunks=chunks)
+        attrs = val.attributes()
+        return xr.DataArray(dask_arr, dims=('y', 'x'),
+                            attrs=attrs)
 
     def __getitem__(self, key):
         val = self.file_content[key]
         if isinstance(val, SDS):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
-            info = val.info()
-            return SD(self.filename, SDC.READ).select(info[0])
+            return self._open_xarray_dataset(val)
         return val
 
     def __contains__(self, item):

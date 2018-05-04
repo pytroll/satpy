@@ -28,7 +28,8 @@ from datetime import datetime
 from tempfile import mkdtemp
 
 import satpy.readers.yaml_reader as yr
-from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.dataset import DatasetID
 
 try:
     from unittest.mock import MagicMock, patch
@@ -36,16 +37,25 @@ except ImportError:
     from mock import MagicMock, patch
 
 
-class FakeFH(object):
+class FakeFH(BaseFileHandler):
 
     def __init__(self, start_time, end_time):
-        self.start_time = start_time
-        self.end_time = end_time
+        super(FakeFH, self).__init__("", {}, {})
+        self._start_time = start_time
+        self._end_time = end_time
         self.get_bounding_box = MagicMock()
         fake_ds = MagicMock()
         fake_ds.return_value.dims = ['x', 'y']
         self.get_dataset = fake_ds
         self.combine_info = MagicMock()
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
 
 class TestUtils(unittest.TestCase):
@@ -93,14 +103,24 @@ class TestUtils(unittest.TestCase):
                          ['some', 'string'])
 
 
-class DummyReader():
+class DummyReader(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
+        super(DummyReader, self).__init__(
+            filename, filename_info, filetype_info)
         self.filename = filename
         self.filename_info = filename_info
         self.filetype_info = filetype_info
-        self.start_time = datetime(2000, 1, 1, 12, 1)
-        self.end_time = datetime(2000, 1, 1, 12, 2)
+        self._start_time = datetime(2000, 1, 1, 12, 1)
+        self._end_time = datetime(2000, 1, 1, 12, 2)
         self.metadata = {}
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
 
 class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):

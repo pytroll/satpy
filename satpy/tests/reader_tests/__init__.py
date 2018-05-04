@@ -31,7 +31,7 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_hdf4_utils, test_utils,
                                       test_acspo, test_amsr2_l1b,
                                       test_omps_edr, test_nucaps, test_geocat,
-                                      test_seviri_calibration)
+                                      test_seviri_calibration, test_clavrx)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -58,5 +58,6 @@ def suite():
     mysuite.addTests(test_nucaps.suite())
     mysuite.addTests(test_geocat.suite())
     mysuite.addTests(test_seviri_calibration.suite())
+    mysuite.addTests(test_clavrx.suite())
 
     return mysuite
