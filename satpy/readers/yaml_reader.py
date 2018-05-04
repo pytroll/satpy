@@ -483,6 +483,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.info.setdefault('filenames', []).extend(filenames)
         filename_set = set(filenames)
 
+        # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
@@ -492,6 +493,52 @@ class FileYAMLReader(AbstractYAMLReader):
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
+
+        # update existing dataset IDs with information from the file handler
+        self.update_ds_info_from_files()
+
+        # load any additional dataset IDs determined dynamically from the file
+        self.update_ds_ids_from_files()
+
+    def update_ds_info_from_files(self):
+        """Update DatasetIDs with information from loaded files.
+
+        This is useful, for example, if dataset resolution may change
+        depending on what files were loaded.
+
+        """
+        for file_handlers in self.file_handlers.values():
+            fh = file_handlers[0]
+            # update resolution in the dataset IDs for this files resolution
+            try:
+                res = fh.resolution
+            except NotImplementedError:
+                continue
+
+            for ds_id, ds_info in list(self.ids.items()):
+                if fh.filetype_info['file_type'] != ds_info['file_type']:
+                    continue
+                if ds_id.resolution is not None:
+                    continue
+                ds_info['resolution'] = res
+                new_id = DatasetID.from_dict(ds_info)
+                self.ids[new_id] = ds_info
+                del self.ids[ds_id]
+
+    def update_ds_ids_from_files(self):
+        """Check files for more dynamically discovered datasets."""
+        for file_handlers in self.file_handlers.values():
+            try:
+                fh = file_handlers[0]
+                avail_ids = fh.available_datasets()
+            except NotImplementedError:
+                continue
+
+            # dynamically discover other available datasets
+            for ds_id, ds_info in avail_ids:
+                # don't overwrite an existing dataset
+                # especially from the yaml config
+                self.ids.setdefault(ds_id, ds_info)
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):

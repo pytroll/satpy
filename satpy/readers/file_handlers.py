@@ -119,3 +119,21 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def sensor_names(self):
         """List of sensors represented in this file."""
         raise NotImplementedError
+
+    @property
+    def resolution(self):
+        """Scalar of resolution for all datasets in this file."""
+        raise NotImplementedError
+
+    def available_datasets(self):
+        """Get information of available datasets in file.
+
+        This is used for dynamically specifying what datasets are available
+        from a file instead of those listed in a YAML configuration file.
+
+        Returns: Iterator of (DatasetID, dict) pairs where dict is the
+                 dataset's metadata, similar to that specified in the YAML
+                 configuration files.
+
+        """
+        raise NotImplementedError
