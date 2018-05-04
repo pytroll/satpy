@@ -702,6 +702,14 @@ class Scene(MetadataObject):
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
+            try:
+                slice_x, slice_y = source_area.get_area_slices(destination_area)
+                source_area = source_area[slice_y, slice_x]
+                dataset.data = dataset.data.rechunk(1024)
+                dataset = dataset.isel(x=slice_x, y=slice_y)
+                dataset.attrs['area'] = source_area
+            except NotImplementedError:
+                LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
                 key, resampler = prepare_resampler(
                         source_area, destination_area, **resample_kwargs)

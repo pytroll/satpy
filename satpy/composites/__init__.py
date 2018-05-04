@@ -1164,17 +1164,40 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
     @staticmethod
     def four_element_average_dask(d):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean4(data):
+        def _mean4(data, offset=(0, 0), block_id=None):
             rows, cols = data.shape
-            if rows % 2 != 0 or cols % 2 != 0:
-                raise ValueError("Self-sharpening requires arrays with "
-                                 "shapes divisible by 2")
-            new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
-            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            rows2, cols2 = data.shape
+            pad = []
+            # we assume that the chunks except the first ones are aligned
+            if block_id[0] == 0:
+                row_offset = offset[0] % 2
+            else:
+                row_offset = 0
+            if block_id[1] == 0:
+                col_offset = offset[1] % 2
+            else:
+                col_offset = 0
+            row_after = (row_offset + rows) % 2
+            col_after = (col_offset + cols) % 2
+            pad = ((row_offset, row_after), (col_offset, col_after))
+
+            rows2 = rows + row_offset + row_after
+            cols2 = cols + col_offset + col_after
+
+            av_data = np.pad(data, pad, 'edge')
+            new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
+            data_mean = np.ma.mean(av_data.reshape(new_shape), axis=(1, 3))
             data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
+            data_mean = data_mean[row_offset:row_offset + rows,
+                                  col_offset:col_offset + cols]
             return data_mean
 
-        res = d.data.map_blocks(_mean4, dtype=d.dtype)
+        try:
+            offset = d.attrs['area'].crop_offset
+        except (KeyError, AttributeError):
+            offset = (0, 0)
+
+        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype)
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):
