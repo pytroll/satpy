@@ -44,14 +44,14 @@ REGION: iber {
         AREA_EXTENT:   (-342379.698, 4432580.06, 723701.52, 5029648.75)
 };
 
-REGION: SouthAmerica { 
-  NAME: South America 
-  PCS_ID: geos0 
-  PCS_DEF: proj=geos,lon_0=0.0,a=6378169.00,b=6356583.80,h=35785831.0 
-   XSIZE: 3000 
-   YSIZE: 1200 
-   AREA_EXTENT: (-5570248.4773392612, -4263473.5610361192, -384719.90821206354, 1339786.2707295895) 
-}; 
+REGION: SouthAmerica {
+  NAME: South America
+  PCS_ID: geos0
+  PCS_DEF: proj=geos,lon_0=0.0,a=6378169.00,b=6356583.80,h=35785831.0
+   XSIZE: 3000
+   YSIZE: 1200
+   AREA_EXTENT: (-5570248.4773392612, -4263473.5610361192, -384719.90821206354, 1339786.2707295895)
+};
 
 REGION: brazil2 {
         NAME:       brazil, platecarree
@@ -72,12 +72,12 @@ REGION: sudeste {
 };
 
 REGION: SouthAmerica_flat{
-  NAME: South America flat 
+  NAME: South America flat
   PCS_ID: eqc0
-  PCS_DEF: proj='eqc', a=6378137.0, b=6378137.0, units='m' 
+  PCS_DEF: proj='eqc', a=6378137.0, b=6378137.0, units='m'
   XSIZE: 1442
   YSIZE: 1213
-  AREA_EXTENT: (-8326322.8279089704,-4609377.085697311,-556597.45396636787, 1535833.8895192828 ) 
+  AREA_EXTENT: (-8326322.8279089704,-4609377.085697311,-556597.45396636787, 1535833.8895192828 )
 };
 
 
@@ -264,6 +264,24 @@ REGION: met09globeFull {
         NAME:          Full globe MSG image 0 degrees
         PCS_ID:        geos0
         PCS_DEF:       proj=geos, lon_0=0.0, a=6378169.00, b=6356583.80, h=35785831.0
+        XSIZE:         3712
+        YSIZE:         3712
+        AREA_EXTENT:   (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
+};
+
+REGION: seviri_0deg {
+        NAME:          Full globe MSG image 0 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=0, a=6378169.00, b=6356583.80, h=35785831.0
+        XSIZE:         3712
+        YSIZE:         3712
+        AREA_EXTENT:   (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
+};
+
+REGION: seviri_iodc {
+        NAME:          Full globe MSG image 41.5 degrees
+        PCS_ID:        geos0
+        PCS_DEF:       proj=geos, lon_0=41.5, a=6378169.00, b=6356583.80, h=35785831.0
         XSIZE:         3712
         YSIZE:         3712
         AREA_EXTENT:   (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
@@ -567,7 +585,7 @@ REGION: eport1 {
 };
 
 REGION: eport10 {
-        NAME:           eport reduced resolution 
+        NAME:           eport reduced resolution
         PCS_ID:         ps90n
         PCS_DEF:        proj=stere,lat_0=90,lon_0=0,ellps=WGS84,units=m
         XSIZE:          1057
@@ -576,7 +594,7 @@ REGION: eport10 {
 };
 
 REGION: eport4 {
-        NAME:           eport reduced resolution 
+        NAME:           eport reduced resolution
         PCS_ID:         ps90n
         PCS_DEF:        proj=stere,lat_0=90,lon_0=0,ellps=WGS84,units=m
         XSIZE:          2642
@@ -585,7 +603,7 @@ REGION: eport4 {
 };
 
 REGION: eport2 {
-        NAME:           eport reduced resolution 
+        NAME:           eport reduced resolution
         PCS_ID:         ps90n
         PCS_DEF:        proj=stere,lat_0=90,lon_0=0,ellps=WGS84,units=m
         XSIZE:          5285
@@ -669,7 +687,7 @@ REGION: ease_nh {
 
 REGION: barents_sea {
         NAME:       Barents and Greenland seas
-        PCS_ID:     barents_sea 
+        PCS_ID:     barents_sea
         PCS_DEF:    proj=stere,ellps=WGS84,lat_0=90,lon_0=40,lat_ts=75
         XSIZE:      3000
         YSIZE:      1700
@@ -809,7 +827,7 @@ REGION: northamerica_10km {
 
 # ------------------------------------------------------------------
 
-proj4_string = 
+proj4_string =
 
 REGION: romania {
 	NAME:		Romania - 3km
@@ -894,4 +912,3 @@ REGION: robinson {
 	YSIZE:	3296
 	AREA_EXTENT:	(-2049911.5256036147, 5326895.725982913, 2049911.5256036168, 8625155.12857459)
 };
-
