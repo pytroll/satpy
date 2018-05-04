@@ -129,7 +129,6 @@ class TestGRIBReader(unittest.TestCase):
         """Test loading all test datasets"""
         pg.open.return_value = FakeGRIB()
         from satpy.readers import load_reader
-        import xarray as xr
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
