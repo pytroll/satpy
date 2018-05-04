@@ -5,6 +5,10 @@
 
 import os
 import sys
+import numpy as np
+import xarray as xr
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -14,10 +18,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-import numpy as np
-import xarray as xr
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
