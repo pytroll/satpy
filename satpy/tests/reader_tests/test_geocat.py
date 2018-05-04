@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the satpy.readers.viirs_l1b module.
+"""Module for testing the satpy.readers.geocat module.
 """
 
 import os
