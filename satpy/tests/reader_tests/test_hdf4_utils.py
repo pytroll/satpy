@@ -7,7 +7,13 @@ import os
 import sys
 import numpy as np
 import xarray as xr
-from satpy.readers.hdf4_utils import HDF4FileHandler
+
+try:
+    from satpy.readers.hdf4_utils import HDF4FileHandler
+except ImportError:
+    # fake the import so we can at least run the tests in this file
+    HDF4FileHandler = None
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -16,8 +22,12 @@ else:
 
 class FakeHDF4FileHandler(HDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use"""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
+        if HDF4FileHandler is object:
+            raise ImportError("Base 'HDF4FileHandler' could not be "
+                              "imported.")
         super(HDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
