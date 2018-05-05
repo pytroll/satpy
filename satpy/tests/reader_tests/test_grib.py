@@ -110,6 +110,17 @@ class TestGRIBReader(unittest.TestCase):
         from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
+        try:
+            import pygrib
+        except ImportError:
+            pygrib = None
+        self.orig_pygrib = pygrib
+        sys.modules['pygrib'] = mock.MagicMock()
+
+    def tearDown(self):
+        """Re-enable pygrib import."""
+        sys.modules['pygrib'] = self.orig_pygrib
+
     @mock.patch('satpy.readers.grib.pygrib')
     def test_init(self, pg):
         """Test basic init with no extra parameters."""
