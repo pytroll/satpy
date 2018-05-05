@@ -6,7 +6,13 @@
 import os
 import sys
 import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
+
+try:
+    from satpy.readers.hdf5_utils import HDF5FileHandler
+except ImportError:
+    # fake the import so we can at least run the tests in this file
+    HDF5FileHandler = object
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -15,8 +21,12 @@ else:
 
 class FakeHDF5FileHandler(HDF5FileHandler):
     """Swap-in HDF5 File Handler for reader tests to use"""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
+        if HDF5FileHandler is object:
+            raise ImportError("Base 'HDF5FileHandler' could not be "
+                              "imported.")
         super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)

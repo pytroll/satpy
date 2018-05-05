@@ -6,7 +6,13 @@
 import os
 import sys
 import numpy as np
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+try:
+    from satpy.readers.netcdf_utils import NetCDF4FileHandler
+except ImportError:
+    # fake the import so we can at least run the tests in this file
+    NetCDF4FileHandler = object
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -15,8 +21,12 @@ else:
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use"""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
+        if NetCDF4FileHandler is object:
+            raise ImportError("Base 'NetCDF4FileHandler' could not be "
+                              "imported.")
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
