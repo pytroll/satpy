@@ -57,15 +57,15 @@ class GRIBFileHandler(BaseFileHandler):
         try:
             with pygrib.open(filename) as grib_file:
                 for idx, msg in enumerate(grib_file):
-                    # FIXME: Add a 'level' field to DatasetID
-                    name = "{}_{:d}".format(msg['shortName'], msg['level'])
-                    msg_id = DatasetID(name=name)
+                    msg_id = DatasetID(name=msg['shortName'],
+                                       level=msg['level'])
                     start_time = datetime.strptime(
                         msg['dataDate'] + msg['dataTime'],
                         '%Y%m%d%H%M')
                     ds_info = {
                         'message': idx,
-                        'name': name,
+                        'filename': self.filename,
+                        'name': msg['shortName'],
                         'long_name': msg['name'],
                         'level': msg['level'],
                         'pressureUnits': msg['pressureUnits'],
