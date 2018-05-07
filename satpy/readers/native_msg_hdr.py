@@ -22,11 +22,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Definition of Header Records for the MSG Level 1.5 data (hrit or native)
-
-.. warning::
-
-    `impf_configuration` in `L15DataHeaderRecord` class needs to be fixed!
-
+    `impf_configuration` in `L15DataHeaderRecord`
+    Padding of 4 bytes has been added, believed to be down to Structure
+    padding by the compiler.
 """
 
 
@@ -34,7 +32,6 @@ import numpy as np
 
 
 class GSDTRecords(object):
-
     """MSG Ground Segment Data Type records.
 
     Reference Document: MSG Ground Segment Design Specification (GSDS)
@@ -98,8 +95,11 @@ class GSDTRecords(object):
 
 
 class Msg15NativeHeaderRecord(object):
+    """
+    SEVIRI Level 1.5 header for native-format
+    """
 
-    def get(self, umarf=True):
+    def get(self):
 
         record = [
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
@@ -107,7 +107,7 @@ class Msg15NativeHeaderRecord(object):
              L15SecondaryProductHeaderRecord().get()),
             ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
             ('GP_PK_SH1', GSDTRecords.gp_pk_sh1),
-            ('15_DATA_HEADER', L15DataHeaderRecord().get(umarf=umarf))
+            ('15_DATA_HEADER', L15DataHeaderRecord().get())
         ]
 
         return record
@@ -122,7 +122,6 @@ class L15PhData(object):
 
 
 class L15MainProductHeaderRecord(object):
-
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -171,7 +170,6 @@ class L15MainProductHeaderRecord(object):
 
 
 class L15SecondaryProductHeaderRecord(object):
-
     """
     Reference Document:
             MSG Level 1.5 Native Format File Definition
@@ -206,13 +204,12 @@ class L15SecondaryProductHeaderRecord(object):
 
 
 class L15DataHeaderRecord(GSDTRecords):
-
     """
     Reference Document:
             MSG Level 1.5 Image Data Format Description
     """
 
-    def get(self, umarf):
+    def get(self):
 
         record = [
             ('15HeaderVersion', np.uint8),
@@ -223,8 +220,7 @@ class L15DataHeaderRecord(GSDTRecords):
             ('RadiometricProcessing', self.radiometric_processing),
             ('GeometricProcessing', self.geometric_processing)]
 
-        if umarf:
-            record.append(('IMPFConfiguration', self.impf_configuration))
+        record.append(('IMPFConfiguration', self.impf_configuration))
 
         return record
 
@@ -679,6 +675,6 @@ class L15DataHeaderRecord(GSDTRecords):
             ('OverallConfiguration', overall_configuration),
             ('SUDetails', (su_details, 50)),
             ('WarmStartParams', warm_start_params),
-            ('Dummy', (np.void, 4))]  # FIXME!
+            ('Padding', (np.void, 4))]
 
         return record
