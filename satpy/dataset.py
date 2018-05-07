@@ -89,9 +89,9 @@ def combine_metadata(*metadata_objects):
 
 
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration", "modifiers")
+                "calibration", "level", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, tuple())
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, None, tuple())
 
 
 class DatasetID(DatasetID):
@@ -129,6 +129,9 @@ class DatasetID(DatasetID):
         calibration (str): String identifying the calibration level of the
                            Dataset (ex. 'radiance', 'reflectance', etc).
                            `None` if not applicable.
+        level (int, float): Pressure/altitude level of the dataset. This is
+                            typically in hPa, but may be in inverse meters
+                            for altitude datasets (1/meters).
         modifiers (tuple): Tuple of strings identifying what corrections or
                            other modifications have been performed on this
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
