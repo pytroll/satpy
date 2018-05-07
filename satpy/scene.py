@@ -38,6 +38,7 @@ from satpy.resample import (resample_dataset, get_frozen_area,
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
+import numpy as np
 
 try:
     import configparser
@@ -708,11 +709,11 @@ class Scene(MetadataObject):
                 dataset.data = dataset.data.rechunk(1024)
                 dataset = dataset.isel(x=slice_x, y=slice_y)
                 dataset.attrs['area'] = source_area
-            except NotImplementedError:
+            except (NotImplementedError, np.ma.MaskError):
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
                 key, resampler = prepare_resampler(
-                        source_area, destination_area, **resample_kwargs)
+                    source_area, destination_area, **resample_kwargs)
                 resamplers[source_area] = resampler
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
