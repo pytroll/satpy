@@ -323,7 +323,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
-            dataset = xarr
             dataset.attrs['units'] = info['units']
             dataset.attrs['wavelength'] = info['wavelength']
             dataset.attrs['standard_name'] = info['standard_name']
