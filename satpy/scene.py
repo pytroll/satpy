@@ -712,7 +712,7 @@ class Scene(MetadataObject):
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
                 key, resampler = prepare_resampler(
-                        source_area, destination_area, **resample_kwargs)
+                    source_area, destination_area, **resample_kwargs)
                 resamplers[source_area] = resampler
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
