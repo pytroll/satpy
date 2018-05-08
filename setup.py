@@ -40,7 +40,7 @@ requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.9.1', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
-test_requires = ['behave']
+test_requires = ['behave', 'h5py', 'netCDF4', 'python-hdf4']
 
 if sys.version < '3.0':
     test_requires.append('mock')
