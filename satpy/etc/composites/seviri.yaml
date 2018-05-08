@@ -235,6 +235,20 @@ composites:
     - ci_pal
     standard_name: convection_initiation_prob90
 
+  asii_prob:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - asii_turb_trop_prob
+    - asii_turb_prob_pal
+    standard_name: asii_prob
+
+  rdt_cell_type:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - MapCellCatType
+    - MapCellCatType_pal
+    standard_name: rdt_cell_type
+
   realistic_colors:
     compositor: !!python/name:satpy.composites.RealisticColors
     standard_name: realistic_colors
