@@ -139,6 +139,9 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - GRIB2 format
+      - `grib`
+      - Beta
 
 Indices and tables
 ==================
