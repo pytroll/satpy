@@ -139,14 +139,14 @@ class MAIAFileHandler(BaseFileHandler):
                 values = values / 10.
         else:
             selected = self.selected
-        fill_value = None
+        info.update(self.finfo)
+
+        fill_value = np.nan
+
         if key.name == 'ct':
             fill_value = 0
-        ds = DataArray(values, dims=['y', 'x']).where(selected, fill_value)
+            info['_FillValue'] = 0
+        ds = DataArray(values, dims=['y', 'x'], attrs=info).where(selected, fill_value)
 
         # update dataset info with file_info
-        for k, v in self.finfo.items():
-            info[k] = v
-
-        ds.attrs = info
         return ds
