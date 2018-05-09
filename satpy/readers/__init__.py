@@ -103,6 +103,12 @@ def get_best_dataset_key(key, choices):
         if low_res:
             low_res = min(low_res)
             choices = [c for c in choices if c.resolution == low_res]
+    if key.level is None and choices:
+        low_level = [x.level for x in choices if x.level]
+        if low_level:
+            low_level = max(low_level)
+            choices = [c for c in choices if c.level == low_level]
+
     return choices
 
 
@@ -140,7 +146,7 @@ def filter_keys_by_dataset_id(did, key_container):
 
 def get_key(key, key_container, num_results=1, best=True,
             resolution=None, calibration=None, polarization=None,
-            modifiers=None):
+            level=None, modifiers=None):
     """Get the fully-specified key best matching the provided key.
 
     Only the best match is returned if `best` is `True` (default). See
@@ -173,6 +179,8 @@ def get_key(key, key_container, num_results=1, best=True,
         polarization (str or list): Dataset polarization
                                    (ex.'V'). This can also be a
                                     list of these strings.
+        level (number or list): Dataset level (ex. 100). This can also be a
+                                list of these numbers.
         modifiers (list): Modifiers applied to the dataset. Unlike
                           resolution and calibration this is the exact
                           desired list of modifiers for one dataset, not
@@ -212,6 +220,11 @@ def get_key(key, key_container, num_results=1, best=True,
             calibration = (calibration, )
         res = [k for k in res
                if k.calibration is not None and k.calibration in calibration]
+    if level is not None:
+        if not isinstance(level, (list, tuple)):
+            level = (level, )
+        res = [k for k in res
+               if k.level is not None and k.level in level]
     if modifiers is not None:
         res = [k for k in res
                if k.modifiers is not None and k.modifiers == modifiers]
@@ -312,6 +325,7 @@ class DatasetDict(dict):
                                 wavelength=d.get("wavelength"),
                                 polarization=d.get("polarization"),
                                 calibration=d.get("calibration"),
+                                level=d.get("level"),
                                 modifiers=d.get("modifiers", tuple()))
                 if key.name is None and key.wavelength is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
@@ -324,6 +338,7 @@ class DatasetDict(dict):
             d["resolution"] = key.resolution
             d["calibration"] = key.calibration
             d["polarization"] = key.polarization
+            d["level"] = key.level
             d["modifiers"] = key.modifiers
             # you can't change the wavelength of a dataset, that doesn't make
             # sense

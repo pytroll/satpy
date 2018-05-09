@@ -65,6 +65,8 @@ class TestDatasetDict(unittest.TestCase):
                       modifiers=('mod1', 'mod2')): "5_2mod",
             DatasetID(name="test5",
                       modifiers=('mod2',)): "5_1mod",
+            DatasetID(name='test6', level=100): '6_100',
+            DatasetID(name='test6', level=200): '6_200',
         }
         self.test_dict = DatasetDict(regular_dict)
 
@@ -94,10 +96,15 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(d[1.55], "2")
         # access by near wavelength of another dataset
         self.assertEqual(d[1.65], "3")
+        # access by name with multiple levels
+        self.assertEqual(d['test6'], '6_200')
 
         self.assertEqual(d[DatasetID(wavelength=1.5)], "2")
         self.assertEqual(d[DatasetID(wavelength=0.5, resolution=1000)], "1")
         self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
+        self.assertEqual(d[DatasetID(name='test6', level=100)], '6_100')
+        self.assertEqual(d[DatasetID(name='test6', level=200)], '6_200')
+
         # higher resolution is returned
         self.assertEqual(d[0.5], "1h")
         self.assertEqual(d['test4'], '4refl')
@@ -129,6 +136,10 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(res1, DatasetID(name='testh',
                                          wavelength=(0, 0.5, 1),
                                          resolution=500))
+
+        res1 = get_key('test6', d, level=100)
+        self.assertEqual(res1, DatasetID(name='test6',
+                                         level=100))
 
         res1 = get_key('test5', d)
         res2 = get_key('test5', d, modifiers=('mod2',))

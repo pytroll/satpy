@@ -1,0 +1,16 @@
+reader:
+  description: GRIB2 file reader
+  name: grib
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [_generic_]
+
+file_types:
+  grib:
+    file_reader: !!python/name:satpy.readers.grib.GRIBFileHandler
+    file_patterns:
+     # NOAA NCEP:
+     # gfs.t18z.sfluxgrbf106.grib2
+     - '{stem}.grib2'
+     # EUMETSAT:
+     # S-OSI_-NOR_-MULT-AHLDLI_FIELD-201805011200Z.grb.gz
+     - '{stem}.grb'
