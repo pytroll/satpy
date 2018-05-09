@@ -39,12 +39,12 @@ import xarray as xr
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
+                                     image_data_function, time_cds_short)
 
 
 class CalibrationError(Exception):
     pass
+
 
 logger = logging.getLogger('hrit_goes')
 
@@ -115,6 +115,7 @@ sgs_time = np.dtype([('century', 'u1'),
                      ('secs_msecs', 'u1'),
                      ('msecs', 'u1')])
 
+
 def make_sgs_time(sgs_time_array):
     year = ((sgs_time_array['century'] >> 4) * 1000 +
             (sgs_time_array['century'] & 15) * 100 +
@@ -131,14 +132,13 @@ def make_sgs_time(sgs_time_array):
             (sgs_time_array['secs_msecs'] >> 4))
     msecs = ((sgs_time_array['secs_msecs'] & 15) * 100 +
              (sgs_time_array['msecs'] >> 4) * 10 +
-             (sgs_time_array['msecs'] &15))
+             (sgs_time_array['msecs'] & 15))
     return (datetime(year, 1, 1) +
             timedelta(days=doy - 1,
                       hours=hours,
                       minutes=mins,
                       seconds=secs,
                       milliseconds=msecs))
-
 
 
 satellite_status = np.dtype([("TagType", "<u4"),
@@ -158,6 +158,7 @@ image_acquisition = np.dtype([("TagType", "<u4"),
 
 gvar_float = '>i4'
 
+
 def make_gvar_float(float_val):
     sign = 0
     if float_val < 0:
@@ -172,10 +173,6 @@ def make_gvar_float(float_val):
     return res
 
 
-# XXX arb
-#prologue = np.dtype([('SatelliteStatus', satellite_status),
-#                     ('ImageAcquisition', image_acquisition, (10, )),
-#                     ('ImageCalibration', "<i4", (10, 1024))])
 prologue = np.dtype([
   # common generic header
   ("CommonHeaderVersion", "u1"),
@@ -226,8 +223,8 @@ prologue = np.dtype([
   ("SubSatScan", '>u2'),
   ("SubSatPixel", '>u2'),
   ("SubSatLatitude", gvar_float),
-  ("SubSatLongitude", gvar_float), # ">f4" seems better than "<f4". still wrong though.
-  ("Junk4", "u1", 96), # move to "word" 295
+  ("SubSatLongitude", gvar_float),  # ">f4" seems better than "<f4". still wrong though.
+  ("Junk4", "u1", 96),  # move to "word" 295
   ("IMCIdentifier", "S4"),
   ("Zeros", "u1", 12),
   ("ReferenceLongitude", gvar_float),
@@ -372,6 +369,7 @@ SPACECRAFTS = {
                14: "GOES-14",
                15: "GOES-15"}
 
+
 class HRITGOESFileHandler(HRITFileHandler):
     """GOES HRIT format reader."""
 
@@ -385,23 +383,12 @@ class HRITGOESFileHandler(HRITFileHandler):
                                                    goms_text_headers))
         self.prologue = prologue.prologue
         self.chid = self.mda['spectral_channel_id']
-        # XXX no epilogue
-        #sublon = self.epilogue['GeometricProcessing']['TGeomNormInfo']['SubLon']
-        #sublon = sublon[self.chid]
-        sublon = self.prologue['SubSatLongitude'];
-        #sublon = -75.0 # XXX arb hard-coded since extraction returns -0.0883789
-        self.mda['projection_parameters']['SSP_longitude'] = sublon # degrees, so no need to np.rad2deg(sublon)
 
-        #satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
-        #self.platform_name = SPACECRAFTS[satellite_id]
+        sublon = self.prologue['SubSatLongitude']
+        self.mda['projection_parameters']['SSP_longitude'] = sublon
+
         satellite_id = self.prologue['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
-        #logger.debug("satellite_id  "+str(satellite_id))
-        #logger.debug("platform_name "+self.platform_name)
-        #logger.debug("SSP_longitude "+str(self.mda['projection_parameters']['SSP_longitude']))
-        #logger.debug("SSP_distance  "+str(self.prologue['ReferenceDistance']))
-        #logger.debug("SSP_latitude  "+str(self.prologue['SubSatLatitude']))
-
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
@@ -411,10 +398,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         logger.debug("hrit_goes/get_dataset post")
 
         logger.debug("hrit_goes/get_dataset res")
+        res.attrs = info.copy()
         self.mda['calibration_parameters'] = self._get_calibration_params()
         res = self.calibrate(res, key.calibration)
-        res.attrs['units'] = info['units']
-        res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'goes_imager'
 
@@ -443,9 +429,8 @@ class HRITGOESFileHandler(HRITFileHandler):
         """Calibrate the data."""
         logger.debug("hrit_goes/calibrate")
         tic = datetime.now()
-
         if calibration == 'counts':
-            return
+            return data
         if calibration == 'reflectance':
             res = self._calibrate(data)
         elif calibration == 'brightness_temperature':
@@ -467,7 +452,7 @@ class HRITGOESFileHandler(HRITFileHandler):
                            coords=data.coords)
         res = res.where(data > 0)
         res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
-        return data
+        return res
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
@@ -476,13 +461,11 @@ class HRITGOESFileHandler(HRITFileHandler):
         coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
-
         a = 6378169.00
         b = 6356583.80
         h = 35785831.00
 
         lon_0 = self.prologue['SubSatLongitude']
-        lat_0 = self.prologue['SubSatLatitude']
 
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
@@ -525,26 +508,3 @@ def show(data, negate=False):
         data = 255 - data
     img = pil.fromarray(data)
     img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()
