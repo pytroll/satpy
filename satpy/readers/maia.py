@@ -106,7 +106,7 @@ class MAIAFileHandler(BaseFileHandler):
         mask = 2**4 + 2**5 + 2**6 + 2**7 + 2**8
         classif = self.file_content[u'CloudType'] & mask
         classif = classif / 2**4
-        self.file_content['ct'] = classif
+        self.file_content['ct'] = classif.astype(np.uint8)
 
     def get_platform(self, platform):
         if self.file_content['sat_id'] in (14,):
@@ -139,7 +139,10 @@ class MAIAFileHandler(BaseFileHandler):
                 values = values / 10.
         else:
             selected = self.selected
-        ds = DataArray(values, dims=['y', 'x']).where(selected)
+        fill_value = None
+        if key.name == 'ct':
+            fill_value = 0
+        ds = DataArray(values, dims=['y', 'x']).where(selected, fill_value)
 
         # update dataset info with file_info
         for k, v in self.finfo.items():
