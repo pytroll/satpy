@@ -432,8 +432,10 @@ class HRITGOESFileHandler(HRITFileHandler):
         res = xr.DataArray(np.interp(data, idx, val),
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
-        res = res.where(data > 0)
-        res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
+        res = res.clip(min=0)
+        units = {'percent': '%'}
+        unit = self.mda['calibration_parameters']['_UNIT']
+        res.attrs['units'] = units.get(unit, unit)
         return res
 
     def get_area_def(self, dsid):
@@ -478,15 +480,3 @@ class HRITGOESFileHandler(HRITFileHandler):
         self.area = area
 
         return area
-
-
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
