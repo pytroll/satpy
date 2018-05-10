@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2014-2018 Pytroll developpers
 
 # Author(s):
 
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
+#   Andrew Brooks
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
@@ -161,7 +160,7 @@ gvar_float = '>i4'
 
 
 def make_gvar_float(float_val):
-    sign = 0
+    sign = 1
     if float_val < 0:
         float_val = -float_val
         sign = -1
@@ -236,8 +235,7 @@ prologue = np.dtype([
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
 
-    """GOES HRIT format reader
-    """
+    """GOES HRIT format reader"""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -379,12 +377,9 @@ class HRITGOESFileHandler(HRITFileHandler):
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
-        logger.debug("hrit_goes/get_dataset pre")
+        logger.debug("Getting raw data")
         res = super(HRITGOESFileHandler, self).get_dataset(key, info)
 
-        logger.debug("hrit_goes/get_dataset post")
-
-        logger.debug("hrit_goes/get_dataset res")
         res.attrs = info.copy()
         self.mda['calibration_parameters'] = self._get_calibration_params()
         res = self.calibrate(res, key.calibration)
@@ -414,7 +409,7 @@ class HRITGOESFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        logger.debug("hrit_goes/calibrate")
+        logger.debug("Calibration")
         tic = datetime.now()
         if calibration == 'counts':
             return data
