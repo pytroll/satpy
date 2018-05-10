@@ -24,8 +24,10 @@
 import sys
 import datetime
 import numpy as np
+from xarray import DataArray
 from satpy.readers.hrit_goes import (make_gvar_float, make_sgs_time,
-                                     HRITGOESPrologueFileHandler, sgs_time)
+                                     HRITGOESPrologueFileHandler, sgs_time,
+                                     HRITGOESFileHandler)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -60,6 +62,30 @@ class TestMakeSGSTime(unittest.TestCase):
         self.assertEqual(make_sgs_time(tcds[0]), expected)
 
 
+test_pro = {'TISTR': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TCurr': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TCLMT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'SubSatLongitude': 100.1640625,
+            'TCHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TLTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TIPFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TISPC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'ReferenceLatitude': 0.0,
+            'TIIRT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TLHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TIVIT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'SubSatLatitude': 0.0,
+            'TIECL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'ReferenceLongitude': 100.1640625,
+            'TCTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TLRAN': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TINFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TIBBC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'TIONA': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
+            'ReferenceDistance': 100.1640625,
+            'SatelliteID': 15}
+
+
 class TestHRITGOESPrologueFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
@@ -83,6 +109,7 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
         ret['SubSatLongitude'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
         ret['ReferenceLongitude'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
         ret['ReferenceDistance'] = np.frombuffer(b"\x42\x64\x2a\x00", dtype='>i4')[0]
+        ret['SatelliteID'] = 15
         fromfile.return_value = [ret]
         m = mock.mock_open()
         with mock.patch('satpy.readers.hrit_goes.open', m, create=True) as newopen:
@@ -93,29 +120,45 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
                              'service': 'test_service'},
                 {'filetype': 'info'})
 
-        expected = {'TISTR': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TCurr': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TCLMT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'SubSatLongitude': np.array([100.1640625]),
-                    'TCHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TLTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TIPFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TISPC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'ReferenceLatitude': 0.0,
-                    'TIIRT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TLHED': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TIVIT': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'SubSatLatitude': 0.0,
-                    'TIECL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'ReferenceLongitude': np.array([100.1640625]),
-                    'TCTRL': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TLRAN': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TINFS': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TIBBC': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'TIONA': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
-                    'ReferenceDistance': np.array([100.1640625])}
+        self.assertEqual(test_pro, self.reader.prologue)
 
-        self.assertEqual(expected, self.reader.prologue)
+
+class TestHRITGOESFileHandler(unittest.TestCase):
+    """Test the HRITFileHandler."""
+
+    @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.__init__')
+    def setUp(self, new_fh_init):
+        """Setup the hrit file handler for testing."""
+        mda = {'projection_parameters': {},
+               'spectral_channel_id': 1,
+               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+        HRITGOESFileHandler.filename = 'filename'
+        HRITGOESFileHandler.mda = mda
+        self.prologue = mock.MagicMock()
+        self.prologue.prologue = test_pro
+        self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
+
+    def test_init(self):
+
+        mda = {'spectral_channel_id': 1,
+               'projection_parameters': {'SSP_longitude': 100.1640625},
+               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+        self.assertEqual(self.reader.mda, mda)
+
+    @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.get_dataset')
+    def test_get_dataset(self, base_get_dataset):
+        key = mock.MagicMock()
+        key.calibration = 'reflectance'
+        base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
+        res = self.reader.get_dataset(key, {})
+        expected = np.array([[0., 0.097752, 0.195503, 0.293255, 0.391007],
+                             [0.488759, 0.58651, 0.684262, 0.782014, 0.879765],
+                             [0.977517, 1.075269, 1.173021, 1.270772, 1.368524],
+                             [1.466276, 1.564027, 1.661779, 1.759531, 1.857283],
+                             [1.955034, 2.052786, 2.150538, 2.248289, 2.346041]])
+
+        self.assertTrue(np.allclose(res.values, expected))
+        self.assertEqual(res.attrs['units'], '%')
 
 
 def suite():
