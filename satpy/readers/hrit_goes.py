@@ -133,12 +133,12 @@ def make_sgs_time(sgs_time_array):
     msecs = ((sgs_time_array['secs_msecs'] & 15) * 100 +
              (sgs_time_array['msecs'] >> 4) * 10 +
              (sgs_time_array['msecs'] & 15))
-    return (datetime(year, 1, 1) +
-            timedelta(days=doy - 1,
-                      hours=hours,
-                      minutes=mins,
-                      seconds=secs,
-                      milliseconds=msecs))
+    return (datetime(int(year), 1, 1) +
+            timedelta(days=int(doy - 1),
+                      hours=int(hours),
+                      minutes=int(mins),
+                      seconds=int(secs),
+                      milliseconds=int(msecs)))
 
 
 satellite_status = np.dtype([("TagType", "<u4"),
