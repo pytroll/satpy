@@ -39,7 +39,8 @@ import xarray as xr
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, time_cds_short)
+                                     image_data_function, time_cds_short,
+                                     recarray2dict)
 
 
 class CalibrationError(Exception):
@@ -231,20 +232,6 @@ prologue = np.dtype([
   ("ReferenceDistance",  gvar_float),
   ("ReferenceLatitude",  gvar_float)
   ])
-
-
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
 
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
