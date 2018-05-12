@@ -195,7 +195,7 @@ class KDTreeResampler(BaseResampler):
         if radius_of_influence is None:
             try:
                 radius_of_influence = source_geo_def.lons.resolution * 3
-            except AttributeError:
+            except (AttributeError, TypeError):
                 radius_of_influence = 10000
         if self.resampler is None:
             kwargs = dict(source_geo_def=source_geo_def,
