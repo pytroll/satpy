@@ -73,7 +73,6 @@ class NcNWCSAF(BaseFileHandler):
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
-                                  engine='h5netcdf',
                                   chunks=CHUNK_SIZE)
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})

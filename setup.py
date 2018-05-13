@@ -64,7 +64,7 @@ extras_require = {
     'pyspectral': ['pyspectral >= 0.7.0'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
-    'nc_nwcsaf_msg': ['h5netcdf'],
+    'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     # Writers:
