@@ -297,7 +297,9 @@ class CompositeBase(MetadataObject):
             raise IncompatibleAreas("Y dimension has different sizes")
 
         areas = [ds.attrs.get('area') for ds in data_arrays]
-        if not areas or any(a is None for a in areas):
+        if all(a is None for a in areas):
+            return data_arrays
+        elif any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
