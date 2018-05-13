@@ -35,9 +35,9 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy import CALIBRATION_ORDER
 
 try:
-    import configparser
+    import configparser  # noqa
 except ImportError:
-    from six.moves import configparser
+    from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ def get_key(key, key_container, num_results=1, best=True,
         # we want this ID to act as a query so we set modifiers to None
         # meaning "we don't care how many modifiers it has".
         key = DatasetID(wavelength=key, modifiers=None)
-    elif isinstance(key, str):
+    elif isinstance(key, (str, six.text_type)):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
 
