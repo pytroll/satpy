@@ -1,3 +1,51 @@
+## Version 0.9.0a2 (2018/05/14)
+
+### Issues Closed
+
+* [Issue 286](https://github.com/pytroll/satpy/issues/286) - Proposal: search automatically for local config-files/readers
+* [Issue 278](https://github.com/pytroll/satpy/issues/278) - msg native reader fails on full disk image
+* [Issue 277](https://github.com/pytroll/satpy/issues/277) - msg_native reader fails when order number has a hyphen in it ([PR 282](https://github.com/pytroll/satpy/pull/282))
+* [Issue 270](https://github.com/pytroll/satpy/issues/270) - How to find the value at certain latitude and longtitude
+* [Issue 269](https://github.com/pytroll/satpy/issues/269) - How to intepret the parameter values in  AreaDefinition
+* [Issue 268](https://github.com/pytroll/satpy/issues/268) - How to find the appropriate values of parameters in Scene.resample() function using Himawari Data
+* [Issue 241](https://github.com/pytroll/satpy/issues/241) - reader native_msg using `np.str`
+* [Issue 218](https://github.com/pytroll/satpy/issues/218) - Resampling to EPSG:4326 produces unexpected results
+* [Issue 189](https://github.com/pytroll/satpy/issues/189) - Error when reading MSG native format
+* [Issue 62](https://github.com/pytroll/satpy/issues/62) - msg_native example
+* [Issue 33](https://github.com/pytroll/satpy/issues/33) - Load metadata without loading data
+
+In this release 11 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 290](https://github.com/pytroll/satpy/pull/290) - Fix unicode-named data loading
+* [PR 285](https://github.com/pytroll/satpy/pull/285) - Fix native_msg calibration bug
+* [PR 282](https://github.com/pytroll/satpy/pull/282) - Fix native_msg reader for ROI input and multi-part order file patterns ([277](https://github.com/pytroll/satpy/issues/277))
+* [PR 280](https://github.com/pytroll/satpy/pull/280) - Fix CLAVR-x reader to work with xarray
+* [PR 274](https://github.com/pytroll/satpy/pull/274) - Convert ahi hsd reader to dask and xarray
+* [PR 265](https://github.com/pytroll/satpy/pull/265) - Bugfix msg native reader
+* [PR 262](https://github.com/pytroll/satpy/pull/262) - Fix dependency tree to find the best dependency when multiple matches occur
+* [PR 260](https://github.com/pytroll/satpy/pull/260) - Fix ABI L1B reader masking data improperly
+
+#### Features added
+
+* [PR 293](https://github.com/pytroll/satpy/pull/293) - Switch to netcdf4 as engine for nc nwcsaf reading
+* [PR 292](https://github.com/pytroll/satpy/pull/292) - Use pyresample's boundary classes
+* [PR 291](https://github.com/pytroll/satpy/pull/291) - Allow datasets without areas to be concatenated
+* [PR 289](https://github.com/pytroll/satpy/pull/289) - Fix so UMARF files (with extention .nat) are found as well
+* [PR 287](https://github.com/pytroll/satpy/pull/287) - Add production configuration for NWCSAF RDT, ASII products by Marco Sassi
+* [PR 283](https://github.com/pytroll/satpy/pull/283) - Add GRIB Reader ([279](https://github.com/pytroll/satpy/issues/279))
+* [PR 281](https://github.com/pytroll/satpy/pull/281) - Port the maia reader to dask/xarray
+* [PR 276](https://github.com/pytroll/satpy/pull/276) - Support reducing data for geos areas ([272](https://github.com/pytroll/satpy/issues/272))
+* [PR 273](https://github.com/pytroll/satpy/pull/273) - Msg readers cleanup ([267](https://github.com/pytroll/satpy/issues/267))
+* [PR 271](https://github.com/pytroll/satpy/pull/271) - Add appveyor and use ci-helpers for CI environments
+* [PR 264](https://github.com/pytroll/satpy/pull/264) - Add caching at the scene level, and handle saving/loading from disk
+* [PR 262](https://github.com/pytroll/satpy/pull/262) - Fix dependency tree to find the best dependency when multiple matches occur
+
+In this release 20 pull requests were closed.
+
 ## Version 0.9.0a1 (2018/04/22)
 
 ### Issues Closed
@@ -30,8 +78,6 @@ In this release 6 issues were closed.
 * [PR 239](https://github.com/pytroll/satpy/pull/239) - Add CSPP Geo (geocat) AHI reading support
 
 In this release 10 pull requests were closed.
-
-###############################################################################
 
 ## Version 0.9.0a0 (2018-03-20)
 
