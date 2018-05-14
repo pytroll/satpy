@@ -296,35 +296,29 @@ class TestFileFileYAMLReader(unittest.TestCase):
             # only the first one should be false
             self.assertEqual(res, idx not in [0, 4])
 
-    @patch('satpy.resample.get_area_def')
-    def test_file_covers_area(self, gad):
+    @patch('satpy.readers.yaml_reader.get_area_def')
+    @patch('satpy.readers.yaml_reader.AreaDefBoundary')
+    @patch('satpy.readers.yaml_reader.Boundary')
+    def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
                               datetime(2000, 1, 3, 12, 30))
 
-        trollsched = MagicMock()
-        adb = trollsched.boundary.AreaDefBoundary
-        bnd = trollsched.boundary.Boundary
+        self.reader.filter_parameters['area'] = True
+        bnd.return_value.contour_poly.intersection.return_value = True
+        adb.return_value.contour_poly.intersection.return_value = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
 
-        modules = {'trollsched': trollsched,
-                   'trollsched.boundary': trollsched.boundary}
+        bnd.return_value.contour_poly.intersection.return_value = False
+        adb.return_value.contour_poly.intersection.return_value = False
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertFalse(res)
 
-        with patch.dict('sys.modules', modules):
-            self.reader.filter_parameters['area'] = True
-            bnd.return_value.contour_poly.intersection.return_value = True
-            adb.return_value.contour_poly.intersection.return_value = True
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertTrue(res)
-
-            bnd.return_value.contour_poly.intersection.return_value = False
-            adb.return_value.contour_poly.intersection.return_value = False
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertFalse(res)
-
-            file_handler.get_bounding_box.side_effect = NotImplementedError()
-            self.reader.filter_parameters['area'] = True
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertTrue(res)
+        file_handler.get_bounding_box.side_effect = NotImplementedError()
+        self.reader.filter_parameters['area'] = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
