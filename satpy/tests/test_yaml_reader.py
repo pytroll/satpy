@@ -315,10 +315,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
         res = self.reader.check_file_covers_area(file_handler, True)
         self.assertFalse(res)
 
-    #     file_handler.get_bounding_box.side_effect = NotImplementedError()
-    #     self.reader.filter_parameters['area'] = True
-    #     res = self.reader.check_file_covers_area(file_handler, True)
-    #     self.assertTrue(res)
+        file_handler.get_bounding_box.side_effect = NotImplementedError()
+        self.reader.filter_parameters['area'] = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
