@@ -28,10 +28,11 @@ import logging
 # import xml.etree.ElementTree as ET
 
 import glymur
-# import numpy as np
+import numpy as np
 # from osgeo import gdal
 from xarray import DataArray
-from dask.array import from_array
+from dask.array import from_delayed
+from dask import delayed
 
 from satpy import CHUNK_SIZE
 # from geotiepoints.geointerpolator import GeoInterpolator
@@ -64,8 +65,9 @@ class SAFEMSIL1C(BaseFileHandler):
                 bitdepth = max(bitdepth, seg.bitdepth[0])
             except AttributeError:
                 pass
-        # jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-        data = from_array(jp2[:], chunks=CHUNK_SIZE) / QUANTIFICATION_VALUE * 100
+        jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
+        data = from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
+        data = data.rechunk(CHUNK_SIZE) / QUANTIFICATION_VALUE * 100
 
         proj = DataArray(data, dims=['y', 'x'])
         proj.attrs = info.copy()
