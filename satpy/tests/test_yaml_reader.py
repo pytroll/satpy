@@ -296,13 +296,14 @@ class TestFileFileYAMLReader(unittest.TestCase):
             # only the first one should be false
             self.assertEqual(res, idx not in [0, 4])
 
-    # @patch('satpy.readers.yaml_reader.get_area_def')
-    # @patch('satpy.readers.yaml_reader.AreaDefBoundary')
-    # @patch('satpy.readers.yaml_reader.Boundary')
-    # def test_file_covers_area(self, bnd, adb, gad):
-    #     """Test that area coverage is checked properly."""
-    #     file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
-    #                           datetime(2000, 1, 3, 12, 30))
+    @patch('satpy.readers.yaml_reader.get_area_def')
+    @patch('satpy.readers.yaml_reader.AreaDefBoundary')
+    @patch('satpy.readers.yaml_reader.Boundary')
+    def test_file_covers_area(self, bnd, adb, gad):
+        """Test that area coverage is checked properly."""
+        file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
+                              datetime(2000, 1, 3, 12, 30))
+        del file_handler
     #
     #     self.reader.filter_parameters['area'] = True
     #     bnd.return_value.contour_poly.intersection.return_value = True
