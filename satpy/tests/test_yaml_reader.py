@@ -303,13 +303,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
                               datetime(2000, 1, 3, 12, 30))
-        del file_handler
-    #
-    #     self.reader.filter_parameters['area'] = True
-    #     bnd.return_value.contour_poly.intersection.return_value = True
-    #     adb.return_value.contour_poly.intersection.return_value = True
-    #     res = self.reader.check_file_covers_area(file_handler, True)
-    #     self.assertTrue(res)
+
+        self.reader.filter_parameters['area'] = True
+        bnd.return_value.contour_poly.intersection.return_value = True
+        adb.return_value.contour_poly.intersection.return_value = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
     #
     #     bnd.return_value.contour_poly.intersection.return_value = False
     #     adb.return_value.contour_poly.intersection.return_value = False
