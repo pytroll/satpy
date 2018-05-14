@@ -24,15 +24,17 @@
 """
 
 import logging
-import os
-import xml.etree.ElementTree as ET
+# import os
+# import xml.etree.ElementTree as ET
 
 import glymur
-import numpy as np
-from osgeo import gdal
+# import numpy as np
+# from osgeo import gdal
+from xarray import DataArray
+from dask.array import from_array
 
-from geotiepoints.geointerpolator import GeoInterpolator
-from satpy.dataset import Dataset
+from satpy import CHUNK_SIZE
+# from geotiepoints.geointerpolator import GeoInterpolator
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -54,14 +56,20 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug('Reading %s.', key.name)
-        QUANTIFICATION_VALUE = 10000
+        QUANTIFICATION_VALUE = 10000.
         jp2 = glymur.Jp2k(self.filename)
-        data = jp2[:] / (QUANTIFICATION_VALUE + 0.0)
+        bitdepth = 0
+        for seg in jp2.codestream.segment:
+            try:
+                bitdepth = max(bitdepth, seg.bitdepth[0])
+            except AttributeError:
+                pass
+        # jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
+        data = from_array(jp2[:], chunks=CHUNK_SIZE) / QUANTIFICATION_VALUE * 100
 
-        proj = Dataset(data,
-                       copy=False,
-                       units='%',
-                       standard_name='reflectance')
+        proj = DataArray(data, dims=['y', 'x'])
+        proj.attrs = info.copy()
+        proj.attrs['units'] = '%'
         return proj
 
     @property
