@@ -27,7 +27,7 @@ import itertools
 import logging
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import deque, namedtuple, OrderedDict
+from collections import deque, OrderedDict
 from fnmatch import fnmatch
 
 import six
@@ -36,6 +36,8 @@ import yaml
 from weakref import WeakValueDictionary
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
+from pyresample.boundary import AreaDefBoundary, Boundary
+from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
@@ -44,8 +46,6 @@ from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
-
-Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
 def listify_string(something):
@@ -303,8 +303,6 @@ class FileYAMLReader(AbstractYAMLReader):
         If the file doesn't provide any bounding box information or 'area'
         was not provided in `filter_parameters`, the check returns True.
         """
-        from trollsched.boundary import AreaDefBoundary, Boundary
-        from satpy.resample import get_area_def
         try:
             gbb = Boundary(*file_handler.get_bounding_box())
         except NotImplementedError as err:
