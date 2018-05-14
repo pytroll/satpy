@@ -309,12 +309,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
         adb.return_value.contour_poly.intersection.return_value = True
         res = self.reader.check_file_covers_area(file_handler, True)
         self.assertTrue(res)
-    #
-    #     bnd.return_value.contour_poly.intersection.return_value = False
-    #     adb.return_value.contour_poly.intersection.return_value = False
-    #     res = self.reader.check_file_covers_area(file_handler, True)
-    #     self.assertFalse(res)
-    #
+
+        bnd.return_value.contour_poly.intersection.return_value = False
+        adb.return_value.contour_poly.intersection.return_value = False
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertFalse(res)
+
     #     file_handler.get_bounding_box.side_effect = NotImplementedError()
     #     self.reader.filter_parameters['area'] = True
     #     res = self.reader.check_file_covers_area(file_handler, True)
