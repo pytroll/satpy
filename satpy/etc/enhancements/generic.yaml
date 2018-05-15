@@ -24,6 +24,14 @@ enhancements:
     - name: gamma
       method: &gammafun !!python/name:satpy.enhancements.gamma ''
       kwargs: {gamma: 1.6}
+  ocean_color_default:
+    standard_name: ocean_color
+    operations:
+    - name: cira_stretch
+      method: !!python/name:satpy.enhancements.cira_stretch
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 2.6}
   night_overview_default:
     standard_name: night_overview
     operations:
