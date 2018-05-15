@@ -38,6 +38,20 @@ from satpy.readers.msg_base import dec10216
 logger = logging.getLogger('hrit_base')
 
 
+def recarray2dict(arr):
+    res = {}
+    for dtuple in arr.dtype.descr:
+        key = dtuple[0]
+        ntype = dtuple[1]
+        data = arr[key]
+        if isinstance(ntype, list):
+            res[key] = recarray2dict(data)
+        else:
+            res[key] = data
+
+    return res
+
+
 common_hdr = np.dtype([('hdr_id', 'u1'),
                        ('record_length', '>u2')])
 
