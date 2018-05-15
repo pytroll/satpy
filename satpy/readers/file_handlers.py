@@ -129,11 +129,6 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         """List of sensors represented in this file."""
         raise NotImplementedError
 
-    @property
-    def resolution(self):
-        """Scalar of resolution for all datasets in this file."""
-        raise NotImplementedError
-
     def available_datasets(self):
         """Get information of available datasets in file.
 
