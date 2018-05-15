@@ -62,6 +62,13 @@ class GRIBFileHandler(BaseFileHandler):
                     start_time = datetime.strptime(
                         msg['dataDate'] + msg['dataTime'],
                         '%Y%m%d%H%M')
+                    try:
+                        end_time = datetime.strptime(
+                            msg['validityDate'] + msg['validityTime'],
+                            '%Y%m%d%H%M'
+                        )
+                    except (RuntimeError, KeyError):
+                        end_time = start_time
                     ds_info = {
                         'message': idx,
                         'filename': self.filename,
@@ -72,7 +79,7 @@ class GRIBFileHandler(BaseFileHandler):
                         'standard_name': msg['cfName'],
                         'units': msg['units'],
                         'start_time': start_time,
-                        'end_time': start_time,
+                        'end_time': end_time,
                         'file_type': self.filetype_info['file_type'],
                     }
                     self._msg_datasets[msg_id] = ds_info
