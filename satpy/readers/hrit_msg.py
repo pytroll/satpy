@@ -41,11 +41,10 @@ from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function, make_time_cds_short,
-                                     time_cds_short)
+                                     time_cds_short, recarray2dict)
 
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
-import satpy.readers.msg_base as mb
 
 logger = logging.getLogger('hrit_msg')
 
@@ -438,20 +437,6 @@ impf_configuration = np.dtype([('OverallConfiguration', version),
                                  ('WSPReserved', 'V3408')])])
 
 # IMPFConfiguration_Record
-
-
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
 
 
 class HRITMSGPrologueFileHandler(HRITFileHandler):

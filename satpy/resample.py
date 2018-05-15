@@ -244,7 +244,7 @@ class KDTreeResampler(BaseResampler):
         del kwargs
         LOG.debug("Resampling " + str(data.name))
         if fill_value is None:
-            fill_value = data.attrs.get('_FillValue')
+            fill_value = data.attrs.get('_FillValue', np.nan)
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
         return res
 
