@@ -508,9 +508,8 @@ class FileYAMLReader(AbstractYAMLReader):
         for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
             # update resolution in the dataset IDs for this files resolution
-            try:
-                res = fh.resolution
-            except NotImplementedError:
+            res = getattr(fh, 'resolution', None)
+            if res is None:
                 continue
 
             for ds_id, ds_info in list(self.ids.items()):
