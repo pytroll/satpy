@@ -223,7 +223,7 @@ prologue = np.dtype([
   ("SubSatScan", '>u2'),
   ("SubSatPixel", '>u2'),
   ("SubSatLatitude", gvar_float),
-  ("SubSatLongitude", gvar_float),  # ">f4" seems better than "<f4". still wrong though.
+  ("SubSatLongitude", gvar_float),
   ("Junk4", "u1", 96),  # move to "word" 295
   ("IMCIdentifier", "S4"),
   ("Zeros", "u1", 12),
@@ -430,8 +430,8 @@ class HRITGOESFileHandler(HRITFileHandler):
         """Calibrate *data*."""
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
-        # TODO use dask's map_blocks for this
-        res = xr.DataArray(np.interp(data, idx, val),
+        ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
+        res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.clip(min=0)
