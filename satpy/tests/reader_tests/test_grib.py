@@ -53,9 +53,12 @@ class FakeGRIB(object):
                     units='K',
                     dataDate='20180504',
                     dataTime='1200',
+                    validityDate='20180504',
+                    validityTime='1800',
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -67,9 +70,12 @@ class FakeGRIB(object):
                     units='K',
                     dataDate='20180504',
                     dataTime='1200',
+                    validityDate='20180504',
+                    validityTime='1800',
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -81,9 +87,12 @@ class FakeGRIB(object):
                     units='K',
                     dataDate='20180504',
                     dataTime='1200',
+                    validityDate='20180504',
+                    validityTime='1800',
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
                 ),
             ]
         self.messages = len(self._messages)

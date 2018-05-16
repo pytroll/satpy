@@ -60,15 +60,14 @@ class GRIBFileHandler(BaseFileHandler):
                     msg_id = DatasetID(name=msg['shortName'],
                                        level=msg['level'])
                     start_time = datetime.strptime(
+                        msg['validityDate'] + msg['validityTime'],
+                        "%Y%m%d%H%M%S"
+                    )
+                    end_time = start_time
+                    model_time = datetime.strptime(
                         msg['dataDate'] + msg['dataTime'],
-                        '%Y%m%d%H%M')
-                    try:
-                        end_time = datetime.strptime(
-                            msg['validityDate'] + msg['validityTime'],
-                            '%Y%m%d%H%M'
-                        )
-                    except (RuntimeError, KeyError):
-                        end_time = start_time
+                        "%Y%m%d%H%M%S"
+                    )
                     ds_info = {
                         'message': idx,
                         'filename': self.filename,
@@ -81,7 +80,12 @@ class GRIBFileHandler(BaseFileHandler):
                         'start_time': start_time,
                         'end_time': end_time,
                         'file_type': self.filetype_info['file_type'],
+                        'modelName': msg['modelName'],
+                        'model_time': model_time,
                     }
+                    ds_info['sensor'] = msg['modelName']
+                    # National Weather Prediction
+                    ds_info['platform_name'] = 'unknown'
                     self._msg_datasets[msg_id] = ds_info
 
                     if self._start_time is None:
