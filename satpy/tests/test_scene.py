@@ -1478,11 +1478,13 @@ class TestSceneSaving(unittest.TestCase):
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
             attrs={'name': 'test',
-                   'start_time': datetime.utcnow()}
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
         )
         scn = Scene()
         scn['test'] = ds1
         scn.save_datasets(base_dir=self.base_dir)
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
 
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets'."""
@@ -1502,6 +1504,24 @@ class TestSceneSaving(unittest.TestCase):
                           scn.save_datasets,
                           writer='_bad_writer_',
                           base_dir=self.base_dir)
+
+    def test_save_datasets_default(self):
+        """Save a dataset using 'save_dataset'."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        scn.save_dataset('test', base_dir=self.base_dir)
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
 
 
 def suite():
