@@ -798,7 +798,8 @@ class Scene(MetadataObject):
             writer = self.get_writer_by_ext(os.path.splitext(filename)[1])
 
         writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self.ppp_config_dir)
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
         return writer.save_dataset(self[dataset_id], filename=filename,
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
