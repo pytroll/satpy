@@ -1505,7 +1505,7 @@ class TestSceneSaving(unittest.TestCase):
                           writer='_bad_writer_',
                           base_dir=self.base_dir)
 
-    def test_save_datasets_default(self):
+    def test_save_dataset_default(self):
         """Save a dataset using 'save_dataset'."""
         from satpy.scene import Scene
         import xarray as xr
