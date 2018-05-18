@@ -115,19 +115,6 @@ def make_time_cds_short(tcds_array):
                       milliseconds=int(tcds_array['MilliSecsOfDay'])))
 
 
-# - - -
-# Get data type records from native_msg_hdr
-# TODO: this could be cleaned-up a bit at some point
-prologue = HritPrologue().get()
-
-epi_rec = Msg15NativeTrailerRecord().seviri_l15_trailer
-epilogue = np.dtype(epi_rec).newbyteorder('>')
-
-impf_rec = L15DataHeaderRecord().impf_configuration
-impf_configuration = np.dtype(impf_rec).newbyteorder('>')
-# - - -
-
-
 class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
     """
@@ -151,6 +138,12 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
     def read_prologue(self):
         """Read the prologue metadata."""
+
+        # TODO: this implementation should be revisited
+        prologue = HritPrologue().get()
+        impf_rec = L15DataHeaderRecord().impf_configuration
+        impf_configuration = np.dtype(impf_rec).newbyteorder('>')
+
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=prologue, count=1)[0]
@@ -186,7 +179,12 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
             self.mda['service'] = service
 
     def read_epilogue(self):
-        """Read the prologue metadata."""
+        """Read the epilogue metadata."""
+
+        # TODO: this implementation should be revisited
+        epi_rec = Msg15NativeTrailerRecord().seviri_l15_trailer
+        epilogue = np.dtype(epi_rec).newbyteorder('>')
+
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=epilogue, count=1)[0]
