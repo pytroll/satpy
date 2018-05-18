@@ -112,7 +112,7 @@ time_cds_expanded = np.dtype([('days', '>u2'),
 def make_time_cds_short(tcds_array):
     return (datetime(1958, 1, 1) +
             timedelta(days=int(tcds_array['Day']),
-                      milliseconds=int(tcds_array['MilliSeconds'])))
+                      milliseconds=int(tcds_array['MilliSecsOfDay'])))
 
 
 # - - -

@@ -66,7 +66,7 @@ class GSDTRecords(object):
     # 6 bytes
     time_cds_short = [
         ('Day', np.uint16),
-        ('MilliSeconds', np.uint32)
+        ('MilliSecsOfDay', np.uint32)
     ]
 
     # 22 bytes
