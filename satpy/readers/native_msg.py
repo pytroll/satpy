@@ -23,9 +23,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A reader for the EUMETSAT MSG native format
+"""SEVIRI native format reader.
 
-https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
+References:
+    MSG Level 1.5 Native Format File Definition
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
 
@@ -41,10 +43,11 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.msg_base import SEVIRICalibrationHandler
-from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
-from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
-import satpy.readers.msg_base as mb
+from satpy.readers.msg_base import (SEVIRICalibrationHandler,
+                                    CHANNEL_NAMES, CALIB, SATNUM,
+                                    get_cds_time, dec10216)
+from satpy.readers.native_msg_hdr import (header_dtype,
+                                          trailer_dtype)
 
 
 class CalibrationError(Exception):
@@ -55,8 +58,7 @@ logger = logging.getLogger('native_msg')
 
 
 class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
-
-    """Native MSG format reader
+    """SEVIRI native format reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -70,36 +72,28 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
         self.available_channels = {}
-        self._get_header()
+        self.mda = {}
 
+        # Read header, prepare dask-array, read trailer
+        self._get_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
+        self._get_trailer()
 
     @property
     def start_time(self):
         tstart = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return mb.get_cds_time(
+        return get_cds_time(
             tstart['Day'][0], tstart['MilliSecsOfDay'][0])
 
     @property
     def end_time(self):
         tend = self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return mb.get_cds_time(
+        return get_cds_time(
             tend['Day'][0], tend['MilliSecsOfDay'][0])
 
-    def _get_memmap(self):
-        """Get the memory map for the SEVIRI data"""
-
-        with open(self.filename) as fp_:
-
-            dt = self._get_file_dtype()
-            hdr_size = self.header.dtype.itemsize
-
-            return np.memmap(fp_, dtype=dt, shape=(self.mda['number_of_lines'],),
-                             offset=hdr_size, mode="r")
-
-    def _get_file_dtype(self):
+    def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels"""
 
         pkhrec = [
@@ -131,17 +125,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         number_of_lowres_channels = len(
             [s for s in self._channel_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
+
         if self.available_channels['HRV']:
             hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
+
         return np.dtype(drec)
 
     def _get_header(self):
         """Read the header info"""
 
-        hdr_rec = Msg15NativeHeaderRecord().get()
-        hdr_dtype = np.dtype(hdr_rec).newbyteorder('>')
-        self.header = np.fromfile(self.filename, dtype=hdr_dtype, count=1)
+        self.header = np.fromfile(self.filename,
+                                  dtype=header_dtype, count=1)
 
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
@@ -154,8 +149,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
-
-        self.mda = {}
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'][0] * 1000.
@@ -177,7 +170,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
         south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
         ncols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'][0])
-
+        print(south, north, east, west)
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
         # been added to the column.
@@ -221,22 +214,30 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             logger.warning("Number of columns read from header = %d", ncols_hrv_hdr)
             logger.warning("Number of columns calculated from data = %d", ncols_hrv)
 
-        column_step = data15hd['ImageDescription'][
-            "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
+    def _get_memmap(self):
+        """Get the memory map for the SEVIRI data"""
 
-        line_step = data15hd['ImageDescription'][
-            "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+        with open(self.filename) as fp:
 
-        # get corner points for lower left and upper right
-        # columns and lines
-        ll_c = (1856 - west - 0.5) * column_step
-        ll_l = (south - 1856 + 1.5) * line_step
-        ur_c = (1856 - east + 0.5) * column_step
-        ur_l = (north - 1856 + 0.5) * line_step
+            data_dtype = self._get_data_dtype()
+            hdr_size = self.header.dtype.itemsize
 
-        area_extent = (ll_c, ll_l, ur_c, ur_l)
+            return np.memmap(fp, dtype=data_dtype,
+                             shape=(self.mda['number_of_lines'],),
+                             offset=hdr_size, mode="r")
 
-        self.area_extent = area_extent
+    def _get_trailer(self):
+
+        hdr_size = header_dtype.itemsize
+        data_size = (self._get_data_dtype().itemsize *
+                     self.mda['number_of_lines'])
+
+        with open(self.filename) as fp:
+
+            fp.seek(hdr_size + data_size)
+            trl = np.fromfile(fp, dtype=trailer_dtype, count=1)
+
+        self.trailer = trl
 
     def get_area_def(self, dsid):
 
@@ -266,16 +267,46 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             proj_dict,
             ncols,
             nlines,
-            self.area_extent)
-
-        self.area = area
+            self.get_area_extent(dsid))
 
         return area
 
-    def get_dataset(self, dataset_id, info,
+    def get_area_extent(self, dsid):
+
+        data15hd = self.header['15_DATA_HEADER']
+        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+
+        if dsid.name != 'HRV':
+
+            center_point = 3712/2
+
+            north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
+            east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
+            west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
+            south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
+
+            column_step = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
+            line_step = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+
+            ll_c = (center_point - west - 0.5) * column_step
+            ll_l = (south - center_point + 1.5) * line_step
+            ur_c = (center_point - east + 0.5) * column_step
+            ur_l = (north - center_point + 0.5) * line_step
+
+            area_extent = (ll_c, ll_l, ur_c, ur_l)
+
+        else:
+
+            raise NotImplementedError('HRV not supported!')
+
+        return area_extent
+
+    def get_dataset(self, dsid, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        channel = dataset_id.name
+        channel = dsid.name
         channel_list = self._channel_list
 
         if channel not in channel_list:
@@ -291,7 +322,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 i = channel_list.index(channel)
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
-            data = mb.dec10216(raw.flatten())
+            data = dec10216(raw.flatten())
             data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
@@ -302,11 +333,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             raw0 = self.dask_array['hrv']['line_data'][:, 0, :]
 
             shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
-            data2 = mb.dec10216(raw2.flatten())
+            data2 = dec10216(raw2.flatten())
             data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
-            data1 = mb.dec10216(raw1.flatten())
+            data1 = dec10216(raw1.flatten())
             data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
-            data0 = mb.dec10216(raw0.flatten())
+            data0 = dec10216(raw0.flatten())
             data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
 
             data = np.zeros(shape)
@@ -322,7 +353,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         if xarr is None:
             dataset = None
         else:
-            dataset = self.calibrate(xarr, dataset_id)
+            dataset = self.calibrate(xarr, dsid)
             dataset.attrs['units'] = info['units']
             dataset.attrs['wavelength'] = info['wavelength']
             dataset.attrs['standard_name'] = info['standard_name']
@@ -331,13 +362,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return dataset
 
-    def calibrate(self, data, dataset_id):
+    def calibrate(self, data, dsid):
         """Calibrate the data."""
         tic = datetime.now()
 
         data15hdr = self.header['15_DATA_HEADER']
-        calibration = dataset_id.calibration
-        channel = dataset_id.name
+        calibration = dsid.calibration
+        channel = dsid.name
 
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels

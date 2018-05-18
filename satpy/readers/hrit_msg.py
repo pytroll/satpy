@@ -22,7 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader.
+"""SEVIRI HRIT format reader.
 
 References:
     MSG Level 1.5 Image Data FormatDescription
@@ -40,14 +40,17 @@ import numpy as np
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
+                                     image_data_function,
                                      time_cds_short, recarray2dict)
 
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 
-logger = logging.getLogger('hrit_msg')
+from satpy.readers.native_msg_hdr import (HritPrologue,
+                                          L15DataHeaderRecord,
+                                          Msg15NativeTrailerRecord)
 
+logger = logging.getLogger('hrit_msg')
 
 # MSG implementation:
 key_header = np.dtype([('key_number', 'u1'),
@@ -106,342 +109,27 @@ time_cds_expanded = np.dtype([('days', '>u2'),
                               ('nanoseconds', '>u2')])
 
 
-def make_time_cds_expanded(tcds_array):
+def make_time_cds_short(tcds_array):
     return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['days']),
-                      milliseconds=int(tcds_array['milliseconds']),
-                      microseconds=float(tcds_array['microseconds'] +
-                                         tcds_array['nanoseconds'] / 1000.)))
+            timedelta(days=int(tcds_array['Day']),
+                      milliseconds=int(tcds_array['MilliSeconds'])))
 
 
-satellite_status = np.dtype([('SatelliteDefinition',
-                              [('SatelliteID', '>u2'),
-                               ('NominalLongitude', '>f4'),
-                                  ('SatelliteStatus', '>u1')]),
-                             ('SatelliteOperations',
-                              [('LastManoeuvreFlag', 'b'),
-                               ('LastManoeuvreStartTime', time_cds_short),
-                                  ('LastManoeuvreEndTime', time_cds_short),
-                                  ('LastManoeuvreType', '>u1'),
-                                  ('NextManoeuvreFlag', 'b'),
-                                  ('NextManoeuvreStartTime', time_cds_short),
-                                  ('NextManoeuvreEndTime', time_cds_short),
-                                  ('NextManoeuvreType', '>u1')]),
-                             ('Orbit',
-                              [('PeriodStartTime', time_cds_short),
-                               ('PeriodEndTime', time_cds_short),
-                                  ('OrbitPolynomial', orbit_coef, (100, ))]),
-                             ('Attitude',
-                              [('PeriodStartTime', time_cds_short),
-                               ('PeriodEndTime', time_cds_short),
-                                  ('PrincipleAxisOffsetAngle', 'f8'),
-                                  ('AttitudePolynomial', attitude_coef, (100, ))]),
-                             ('SpinRateatRCStart', '>f8'),
-                             ('UTCCorrelation',
-                              [('PeriodStartTime', time_cds_short),
-                               ('PeriodEndTime', time_cds_short),
-                                  ('OnBoardTimeStart', cuc_time),
-                                  ('VarOnBoardTimeStart', '>f8'),
-                                  ('A1', '>f8'),
-                                  ('VarA1', '>f8'),
-                                  ('A2', '>f8'),
-                                  ('VarA2', '>f8')])])
+# - - -
+# Get data type records from native_msg_hdr
+# TODO: this could be cleaned-up a bit at some point
+prologue = HritPrologue().get()
 
-image_acquisition = np.dtype([('PlannedAcquisitionTime',
-                               [('TrueRepeatCycleStart', time_cds_expanded),
-                                ('PlannedForwardScanEnd', time_cds_expanded),
-                                ('PlannedRepeatCycleEnd', time_cds_expanded)]),
-                              ('RadiometerStatus',
-                               [('ChannelStatus', 'u1', (12, )),
-                                ('DetectorStatus', 'u1', (42, ))]),
-                              ('RadiometerSettings',
-                               [('MDUSamplingDelays', '>u2', (42, )),
-                                ('HRVFrameOffsets',
-                                 [('MDUNomHRVDelay1', '>u2'),
-                                  ('MDUNomHRVDelay2', '>u2'),
-                                  ('Spare', '>u2'),
-                                  ('MDUNomHRVBreakline', '>u2')]),
-                                ('DHSSynchSelection', 'u1'),
-                                ('MDUOutGain', '>u2', (42, )),
-                                ('MDUCoarseGain', 'u1', (42, )),
-                                ('MDUFineGain', '>u2', (42, )),
-                                ('MDUNumericalOffset', '>u2', (42, )),
-                                ('PUGain', '>u2', (42, )),
-                                ('PUOffset', '>u2', (27, )),
-                                ('PUBias', '>u2', (15, )),
-                                ('OperationParameters',
-                                 [('L0_LineCounter', '>u2'),
-                                  ('K1_RetraceLines', '>u2'),
-                                  ('K2_PauseDeciseconds', '>u2'),
-                                  ('K3_RetraceLines', '>u2'),
-                                  ('K4_PauseDeciseconds', '>u2'),
-                                  ('K5_RetraceLines', '>u2'),
-                                  ('X_DeepSpaceWindowPosition', 'u1')]),
-                                ('RefocusingLines', '>u2'),
-                                ('RefocusingDirection', 'u1'),
-                                ('RefocusingPosition', '>u2'),
-                                ('ScanRefPosFlag', 'bool'),
-                                ('ScanRefPosNumber', '>u2'),
-                                ('ScanRefPotVal', '>f4'),
-                                ('ScanFirstLine', '>u2'),
-                                ('ScanLastLine', '>u2'),
-                                ('RetraceStartLine', '>u2')]),
-                              ('RadiometerOperations',
-                               [('LastGainChangeFlag', 'bool'),
-                                ('LastGainChangeTime', time_cds_short),
-                                ('Decontamination',
-                                 [('DecontaminationNow', 'bool'),
-                                  ('DecontaminationStart', time_cds_short),
-                                  ('DecontaminationEnd', time_cds_short)]),
-                                ('BBCalScheduled', 'bool'),
-                                ('BBCalibrationType', 'u1'),
-                                ('BBFirstLine', '>u2'),
-                                ('BBLastLine', '>u2'),
-                                ('ColdFocalPlaneOpTemp', '>u2'),
-                                ('WarmFocalPlaneOpTemp', '>u2')])])
+epi_rec = Msg15NativeTrailerRecord().seviri_l15_trailer
+epilogue = np.dtype(epi_rec).newbyteorder('>')
 
-earth_moon_sun_coeff = np.dtype([('StartTime', time_cds_short),
-                                 ('EndTime', time_cds_short),
-                                 ('AlphaCoef', '>f8', (8, )),
-                                 ('BetaCoef', '>f8', (8, ))])
-
-star_coeff = np.dtype([('StarId', '>u2'),
-                       ('StartTime', time_cds_short),
-                       ('EndTime', time_cds_short),
-                       ('AlphaCoef', '>f8', (8, )),
-                       ('BetaCoef', '>f8', (8, ))])
-
-celestial_events = np.dtype([('CelestialBodiesPosition',
-                              [('PeriodStartTime', time_cds_short),
-                               ('PeriodEndTime', time_cds_short),
-                               ('RelatedOrbitFileTime', '|S15'),
-                               ('RelatedAttitudeFileTime', '|S15'),
-                               ('EarthEphemeris',
-                                earth_moon_sun_coeff, (100, )),
-                               ('MoonEphemeris',
-                                earth_moon_sun_coeff, (100, )),
-                               ('SunEphemeris', earth_moon_sun_coeff, (100, )),
-                               ('StarEphemeris', star_coeff, (100, 20))]),
-                             ('RelationToImage',
-                              [('TypeOfEclipse', 'u1'),
-                               ('EclipseStartTime', time_cds_short),
-                               ('EclipseEndTime', time_cds_short),
-                               ('VisibleBodiesInImage', 'u1'),
-                               ('BodiesClosetoFOV', 'u1'),
-                               ('ImpactOnImageQuality', 'u1')])])
-
-
-image_description = np.dtype([('ProjectionDescription',
-                               [('TypeOfProjection', 'u1'),
-                                ('LongitudeOfSSP', '>f4')]),
-                              ('ReferenceGridVIS_IR',
-                               [('NumberOfLines', '>i4'),
-                                ('NumberOfColumns', '>i4'),
-                                ('LineDirGridStep', '>f4'),
-                                ('ColumnDirGridStep', '>f4'),
-                                ('GridOrigin', 'u1')]),
-                              ('ReferenceGridHRV',
-                               [('NumberOfLines', '>i4'),
-                                ('NumberOfColumns', '>i4'),
-                                ('LineDirGridStep', '>f4'),
-                                ('ColumnDirGridStep', '>f4'),
-                                ('GridOrigin', 'u1')]),
-                              ('PlannedCoverageVIR_IR',
-                               [('SouthernLinePlanned', '>i4'),
-                                ('NorthernLinePlanned', '>i4'),
-                                ('EasternColumnPlanned', '>i4'),
-                                ('WesternColumnPlanned', '>i4')]),
-                              ('PlannedCoverageHRV',
-                               [('LowerSouthernLinePlanned', '>i4'),
-                                ('LowerNorthernLinePlanned', '>i4'),
-                                ('LowerEasternColumnPlanned', '>i4'),
-                                ('LowerWesternColumnPlanned', '>i4'),
-                                ('UpperSouthernLinePlanned', '>i4'),
-                                ('UpperNorthernLinePlanned', '>i4'),
-                                ('UpperEasternColumnPlanned', '>i4'),
-                                ('UpperWesternColumnPlanned', '>i4')]),
-                              ('Level1_5ImageProduction',
-                               [('ImageProcDirection', 'u1'),
-                                ('PixelGenDirection', 'u1'),
-                                ('PlannedChanProcessing', 'u1', (12, ))])])
-
-level_1_5_image_calibration = np.dtype([('Cal_Slope', '>f8'),
-                                        ('Cal_Offset', '>f8')])
-
-impf_cal_data = np.dtype([("ImageQualityFlag", "u1"),
-                          ("ReferenceDataFlag", "u1"),
-                          ("AbsCalMethod", "u1"),
-                          ("Pad1", "u1"),
-                          ("AbsCalWeightVic", ">f4"),
-                          ("AbsCalWeightXsat", ">f4"),
-                          ("AbsCalCoeff", ">f4"),
-                          ("AbsCalError", ">f4"),
-                          ("GSICSCalCoeff", ">f4"),
-                          ("GSICSCalError", ">f4"),
-                          ("GSICSOffsetCount", ">f4")])
-
-radiometric_processing = np.dtype([('RPSummary',
-                                    [('RadianceLinearization', 'bool', (12, )),
-                                     ('DetectorEqualization', 'bool', (12, )),
-                                     ('OnboardCalibrationResult',
-                                      'bool', (12, )),
-                                     ('MPEFCalFeedback', 'bool', (12, )),
-                                     ('MTFAdaptation', 'bool', (12, )),
-                                     ('StraylightCorrectionFlag', 'bool', (12, ))]),
-                                   ('Level1_5ImageCalibration',
-                                    level_1_5_image_calibration, (12,)),
-                                   ('BlackBodyDataUsed',
-                                    [('BBObservationUTC', time_cds_expanded),
-                                     ('BBRelatedData',
-                                      [('OnBoardBBTime', cuc_time),
-                                       ('MDUOutGain', '>u2', (42, )),
-                                       ('MDUCoarseGain', 'u1', (42, )),
-                                       ('MDUFineGain', '>u2', (42, )),
-                                       ('MDUNumericalOffset', '>u2', (42, )),
-                                       ('PUGain', '>u2', (42, )),
-                                       ('PUOffset', '>u2', (27, )),
-                                       ('PUBias', '>u2', (15, )),
-                                       # 42x12bits
-                                       ('DCRValues', 'u1', (63, )),
-                                       ('X_DeepSpaceWindowPosition', 'u1'),
-                                       ('ColdFPTemperature',
-                                        [('FCUNominalColdFocalPlaneTemp', '>u2'),
-                                         ('FCURedundantColdFocalPlaneTemp', '>u2')]),
-                                       ('WarmFPTemperature',
-                                        [('FCUNominalWarmFocalPlaneVHROTemp', '>u2'),
-                                         ('FCURedundantWarmFocalPlaneVHROTemp', '>u2')]),
-                                       ('ScanMirrorTemperature',
-                                        [('FCUNominalScanMirrorSensor1Temp', '>u2'),
-                                         ('FCURedundantScanMirrorSensor1Temp',
-                                          '>u2'),
-                                         ('FCUNominalScanMirrorSensor2Temp',
-                                          '>u2'),
-                                         ('FCURedundantScanMirrorSensor2Temp', '>u2')]),
-                                       ('M1M2M3Temperature',
-                                        [('FCUNominalM1MirrorSensor1Temp', '>u2'),
-                                         ('FCURedundantM1MirrorSensor1Temp',
-                                          '>u2'),
-                                         ('FCUNominalM1MirrorSensor2Temp',
-                                          '>u2'),
-                                         ('FCURedundantM1MirrorSensor2Temp',
-                                          '>u2'),
-                                         ('FCUNominalM23AssemblySensor1Temp',
-                                          '>u1'),
-                                         ('FCURedundantM23AssemblySensor1Temp',
-                                          '>u1'),
-                                         ('FCUNominalM23AssemblySensor2Temp',
-                                          '>u1'),
-                                         ('FCURedundantM23AssemblySensor2Temp', '>u1')]),
-                                       ('BaffleTemperature',
-                                        [('FCUNominalM1BaffleTemp', '>u2'),
-                                         ('FCURedundantM1BaffleTemp', '>u2')]),
-                                       ('BlackBodyTemperature',
-                                        [('FCUNominalBlackBodySensorTemp', '>u2'),
-                                         ('FCURedundantBlackBodySensorTemp', '>u2')]),
-                                       ('FCUMode',
-                                        [('FCUNominalSMMStatus', '>u2'),
-                                         ('FCURedundantSMMStatus', '>u2')]),
-                                       ('ExtractedBBData',
-                                        [('NumberOfPixelsUsed', '>u4'),
-                                         ('MeanCount', '>f4'),
-                                         ('RMS', '>f4'),
-                                         ('MaxCount', '>u2'),
-                                         ('MinCount', '>u2'),
-                                         ('BB_Processing_Slope', '>f8'),
-                                         ('BB_Processing_Offset', '>f8')], (12,))])]),
-                                   ('MPEFCalFeedback', impf_cal_data, (12, )),
-                                   ('RadTransform', '>f4', (42, 64)),
-                                   ('RadProcMTFAdaptation',
-                                    [('VIS_IRMTFCorrectionE_W', '>f4', (33, 16)),
-                                     ('VIS_IRMTFCorrectionN_S',
-                                      '>f4', (33, 16)),
-                                     ('HRVMTFCorrectionE_W', '>f4', (9, 16)),
-                                     ('HRVMTFCorrectionN_S', '>f4', (9, 16)),
-                                     ('StraylightCorrection', '>f4', (12, 8, 8))])])
-
-geometric_processing = np.dtype([('OptAxisDistances',
-                                  [('E-WFocalPlane', '>f4', (42, )),
-                                   ('N-SFocalPlane', '>f4', (42, ))]),
-                                 ('EarthModel',
-                                  [('TypeOfEarthModel', 'u1'),
-                                   ('EquatorialRadius', '>f8'),
-                                   ('NorthPolarRadius', '>f8'),
-                                   ('SouthPolarRadius', '>f8')]),
-                                 ('AtmosphericModel', '>f4', (12, 360)),
-                                 ('ResamplingFunctions', 'u1', (12, ))])
-
-prologue = np.dtype([('SatelliteStatus', satellite_status),
-                     ('ImageAcquisition', image_acquisition),
-                     ('CelestialEvents', celestial_events),
-                     ('ImageDescription', image_description),
-                     ('RadiometricProcessing', radiometric_processing),
-                     ('GeometricProcessing', geometric_processing)])
-
-version = np.dtype([('Issue', '>u2'),
-                    ('Revision', '>u2')])
-
-impf_configuration = np.dtype([('OverallConfiguration', version),
-                               ('SUDetails',
-                                [('SUId', '>u2'),
-                                 ('SUIdInstance', 'u1'),
-                                 ('SUMode', 'u1'),
-                                 ('SUState', 'u1'),
-                                 ('SUConfiguration',
-                                  [('SWVersion', version),
-                                   ('InfoBaseVersions', version)])], (50, )),
-                               ('WarmStartParms',
-                                [('ScanningLaw', '>f8', (1527, )),
-                                 ('RadFramesAlignment', '>f8', (3, )),
-                                 ('ScanningLawVariation', '>f4', (2, )),
-                                 ('EqualisationParms',
-                                  [('ConstCoef', '>f4'),
-                                   ('LinearCoef', '>f4'),
-                                   ('QuadraticCoef', '>f4')], (42, )),
-                                 ('BlackBodyDataForWarmStart',
-                                  [('GTotalForMethod1', '>f8', (12, )),
-                                   ('GTotalForMethod2', '>f8', (12, )),
-                                   ('GTotalForMethod3', '>f8', (12, )),
-                                   ('GBackForMethod1', '>f8', (12, )),
-                                   ('GBackForMethod2', '>f8', (12, )),
-                                   ('GBackForMethod3', '>f8', (12, )),
-                                   ('RatioGTotalToGBack', '>f8', (12, )),
-                                   ('GainInFrontOpticsCont', '>f8', (12, )),
-                                   ('CalibrationConstants', '>f4', (12, )),
-                                   ('MaxIncidentRadiance', '>f8', (12, )),
-                                   ('TimeOfColdObsSeconds', '>f8'),
-                                   ('TimeOfColdObsNanoSecs', '>f8'),
-                                   ('IncidenceRadiance', '>f8', (12)),
-                                   ('TempCal', '>f8'),
-                                   ('TempM1', '>f8'),
-                                   ('TempScan', '>f8'),
-                                   ('TempM1Baf', '>f8'),
-                                   ('TempCalSurround', '>f8')]),
-                                 ('MirrorParameters',
-                                  [('MaxFeedbackVoltage', '>f8'),
-                                   ('MinFeedbackVoltage', '>f8'),
-                                   ('MirrorSlipEstimate', '>f8')]),
-                                 ('LastSpinPeriod', '>f8'),
-                                 ('HKTMParameters',
-                                  [('TimeS0Packet', time_cds_short),
-                                   ('TimeS1Packet', time_cds_short),
-                                   ('TimeS2Packet', time_cds_short),
-                                   ('TimeS3Packet', time_cds_short),
-                                   ('TimeS4Packet', time_cds_short),
-                                   ('TimeS5Packet', time_cds_short),
-                                   ('TimeS6Packet', time_cds_short),
-                                   ('TimeS7Packet', time_cds_short),
-                                   ('TimeS8Packet', time_cds_short),
-                                   ('TimeS9Packet', time_cds_short),
-                                   ('TimeSYPacket', time_cds_short),
-                                   ('TimePSPacket', time_cds_short)]),
-                                 ('WSPReserved', 'V3408')])])
-
-# IMPFConfiguration_Record
+impf_rec = L15DataHeaderRecord().impf_configuration
+impf_configuration = np.dtype(impf_rec).newbyteorder('>')
+# - - -
 
 
 class HRITMSGPrologueFileHandler(HRITFileHandler):
-
-    """MSG HRIT format reader
+    """SEVIRI HRIT prologue reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -476,81 +164,9 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
             else:
                 self.prologue.update(recarray2dict(impf))
 
-        self.process_prologue()
-
-    def process_prologue(self):
-        """Reprocess prologue to correct types."""
-        pacqtime = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']
-
-        start = pacqtime['TrueRepeatCycleStart']
-        psend = pacqtime['PlannedForwardScanEnd']
-        prend = pacqtime['PlannedRepeatCycleEnd']
-
-        start = make_time_cds_expanded(start)
-        psend = make_time_cds_expanded(psend)
-        prend = make_time_cds_expanded(prend)
-
-        pacqtime['TrueRepeatCycleStart'] = start
-        pacqtime['PlannedForwardScanEnd'] = psend
-        pacqtime['PlannedRepeatCycleEnd'] = prend
-
-
-image_production_stats = np.dtype([('SatelliteId', '>u2'),
-                                   ('ActualScanningSummary',
-                                    [('NominalImageScanning', 'bool'),
-                                     ('ReducedScan', 'bool'),
-                                     ('ForwardScanStart', time_cds_short),
-                                     ('ForwardScanEnd', time_cds_short)]),
-                                   ('RadiometerBehaviour',
-                                    [('NominalBehaviour', 'bool'),
-                                     ('RadScanIrregularity', 'bool'),
-                                        ('RadStoppage', 'bool'),
-                                        ('RepeatCycleNotCompleted', 'bool'),
-                                        ('GainChangeTookPlace', 'bool'),
-                                        ('DecontaminationTookPlace', 'bool'),
-                                        ('NoBBCalibrationAchieved', 'bool'),
-                                        ('IncorrectTemperature', 'bool'),
-                                        ('InvalidBBData', 'bool'),
-                                        ('InvalidAuxOrHKTMData', 'bool'),
-                                        ('RefocusingMechanismActuated',
-                                         'bool'),
-                                        ('MirrorBackToReferencePos', 'bool')]),
-                                   ('ReceptionSummaryStats',
-                                    [('PlannedNumberOfL10Lines', '>u4', (12, )),
-                                     ('NumberOfMissingL10Lines', '>u4', (12, )),
-                                     ('NumberOfCorruptedL10Lines', '>u4', (12, )),
-                                     ('NumberOfReplacedL10Lines', '>u4', (12, ))]),
-                                   ('L15ImageValidity',
-                                    [('NominalImage', 'bool'),
-                                     ('NonNominalBecauseIncomplete', 'bool'),
-                                        ('NonNominalRadiometricQuality',
-                                         'bool'),
-                                        ('NonNominalGeometricQuality', 'bool'),
-                                        ('NonNominalTimeliness', 'bool'),
-                                        ('IncompleteL15', 'bool')], (12, )),
-                                   ('ActualL15CoverageVIS_IR',
-                                    [('SouthernLineActual', '>i4'),
-                                     ('NorthernLineActual', '>i4'),
-                                        ('EasternColumnActual', '>i4'),
-                                        ('WesternColumnActual', '>i4')]),
-                                   ('ActualL15CoverageHRV',
-                                    [('LowerSouthLineActual', '>i4'),
-                                     ('LowerNorthLineActual', '>i4'),
-                                        ('LowerEastColumnActual', '>i4'),
-                                        ('LowerWestColumnActual', '>i4'),
-                                        ('UpperSouthLineActual', '>i4'),
-                                        ('UpperNorthLineActual', '>i4'),
-                                        ('UpperEastColumnActual', '>i4'),
-                                        ('UpperWestColumnActual', '>i4')])])
-
-epilogue = np.dtype([('15TRAILERVersion', 'u1'),
-                     ('ImageProductionStats', image_production_stats)])
-# FIXME: Add rest of the epilogue
-
 
 class HRITMSGEpilogueFileHandler(HRITFileHandler):
-
-    """MSG HRIT format reader
+    """SEVIRI HRIT epilogue reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -577,22 +193,9 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
 
             self.epilogue.update(recarray2dict(data))
 
-        pacqtime = self.epilogue['ImageProductionStats'][
-            'ActualScanningSummary']
-
-        start = pacqtime['ForwardScanStart']
-        end = pacqtime['ForwardScanEnd']
-
-        start = make_time_cds_short(start)
-        end = make_time_cds_short(end)
-
-        pacqtime['ForwardScanEnd'] = end
-        pacqtime['ForwardScanStart'] = start
-
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
-
-    """MSG HRIT format reader
+    """SEVIRI HRIT format reader
     """
 
     def __init__(self, filename, filename_info, filetype_info,
@@ -625,7 +228,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
         self.platform_id = self.prologue["SatelliteStatus"][
-            "SatelliteDefinition"]["SatelliteID"]
+            "SatelliteDefinition"]["SatelliteId"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda['platform_name'] = self.platform_name
         service = self._filename_info['service']
@@ -637,17 +240,19 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-        pacqtime = self.epilogue['ImageProductionStats'][
-            'ActualScanningSummary']
 
-        return pacqtime['ForwardScanStart']
+        time = self.epilogue['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanStart']
+
+        return make_time_cds_short(time)
 
     @property
     def end_time(self):
-        pacqtime = self.epilogue['ImageProductionStats'][
-            'ActualScanningSummary']
 
-        return pacqtime['ForwardScanEnd']
+        time = self.epilogue['ImageProductionStats'][
+            'ActualScanningSummary']['ForwardScanEnd']
+
+        return make_time_cds_short(time)
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -787,9 +392,9 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
 
             coeffs = self.prologue["RadiometricProcessing"]
-            coeffs = coeffs["Level1_5ImageCalibration"]
-            gain = coeffs['Cal_Slope'][self.mda['spectral_channel_id'] - 1]
-            offset = coeffs['Cal_Offset'][self.mda['spectral_channel_id'] - 1]
+            coeffs = coeffs["Level15ImageCalibration"]
+            gain = coeffs['CalSlope'][self.mda['spectral_channel_id'] - 1]
+            offset = coeffs['CalOffset'][self.mda['spectral_channel_id'] - 1]
             data = data.where(data > 0)
             res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
             line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
