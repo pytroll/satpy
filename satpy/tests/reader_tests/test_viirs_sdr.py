@@ -440,22 +440,22 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         ds = r.load([
-            DatasetID(name='M01', calibration='radiance'),
-            DatasetID(name='M02', calibration='radiance'),
-            DatasetID(name='M03', calibration='radiance'),
-            DatasetID(name='M04', calibration='radiance'),
-            DatasetID(name='M05', calibration='radiance'),
-            DatasetID(name='M06', calibration='radiance'),
-            DatasetID(name='M07', calibration='radiance'),
-            DatasetID(name='M08', calibration='radiance'),
-            DatasetID(name='M09', calibration='radiance'),
-            DatasetID(name='M10', calibration='radiance'),
-            DatasetID(name='M11', calibration='radiance'),
-            DatasetID(name='M12', calibration='radiance'),
-            DatasetID(name='M13', calibration='radiance'),
-            DatasetID(name='M14', calibration='radiance'),
-            DatasetID(name='M15', calibration='radiance'),
-            DatasetID(name='M16', calibration='radiance'),
+            DatasetID(name='M01', calibration='radiance', modifiers=None),
+            DatasetID(name='M02', calibration='radiance', modifiers=None),
+            DatasetID(name='M03', calibration='radiance', modifiers=None),
+            DatasetID(name='M04', calibration='radiance', modifiers=None),
+            DatasetID(name='M05', calibration='radiance', modifiers=None),
+            DatasetID(name='M06', calibration='radiance', modifiers=None),
+            DatasetID(name='M07', calibration='radiance', modifiers=None),
+            DatasetID(name='M08', calibration='radiance', modifiers=None),
+            DatasetID(name='M09', calibration='radiance', modifiers=None),
+            DatasetID(name='M10', calibration='radiance', modifiers=None),
+            DatasetID(name='M11', calibration='radiance', modifiers=None),
+            DatasetID(name='M12', calibration='radiance', modifiers=None),
+            DatasetID(name='M13', calibration='radiance', modifiers=None),
+            DatasetID(name='M14', calibration='radiance', modifiers=None),
+            DatasetID(name='M15', calibration='radiance', modifiers=None),
+            DatasetID(name='M16', calibration='radiance', modifiers=None),
                      ])
         self.assertEqual(len(ds), 16)
         for d in ds.values():

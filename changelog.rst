@@ -2,6 +2,33 @@ Changelog
 =========
 
 
+v0.8.1 (2018-01-19)
+-------------------
+
+Fix
+~~~
+- Bugfix: Fix so the Himawari platform name is a string and not a numpy
+  array. [Adam.Dybbroe]
+- Bugfix: The satellite azimuth returned by PyOrbital is not in the
+  range -180 to 180 as was expected. [Adam.Dybbroe]
+
+Other
+~~~~~
+- Update changelog. [Martin Raspaud]
+- Bump version: 0.8.0 → 0.8.1. [Martin Raspaud]
+- Merge pull request #162 from pytroll/bugfix-pyorbital-azimuth-
+  difference. [Martin Raspaud]
+
+  Bugfix: The satellite azimuth returned by PyOrbital is not in the ran…
+- Merge pull request #154 from pytroll/bugfix-viirs-truecolor-
+  ratiosharpening. [Martin Raspaud]
+
+  Add a rayleigh_correction modifier for I-bands,
+- Add a rayleigh_correction modifier for I-bands, which is refered to in
+  the ratio-sharpened true color and natural_color RGBs. [Adam.Dybbroe]
+- Fix backwards compatibility with scene instantiation. [Martin Raspaud]
+
+
 v0.8.0 (2018-01-11)
 -------------------
 

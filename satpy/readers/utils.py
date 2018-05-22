@@ -1,7 +1,6 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014, 2015.
+# Copyright (c) 2014-2018 PyTroll developers
 #
 # Author(s):
 #
@@ -26,21 +25,38 @@
 
 import logging
 
+from contextlib import closing
+import tempfile
+import bz2
+import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
+from pyresample.boundary import AreaDefBoundary, Boundary
 
 LOGGER = logging.getLogger(__name__)
 
 
 def np2str(value):
-    """Convert an np.string_ to str."""
-    if issubclass(value.dtype.type, np.string_) and not value.shape:
+    """Convert an `numpy.string_` to str.
+
+    Args:
+        value (ndarray): scalar or 1-element numpy array to convert
+
+    Raises:
+        ValueError: if value is array larger than 1-element or it is not of
+                    type `numpy.string_` or it is not a numpy array
+
+    """
+    if hasattr(value, 'dtype') and \
+            issubclass(value.dtype.type, np.string_) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
             # otherwise python 2 - scalar numpy array of 'str'
             value = value.decode()
-    return value
+        return value
+    else:
+        raise ValueError("Array is not a string type or is larger than 1")
 
 
 def get_geostationary_angle_extent(geos_area):
@@ -71,7 +87,7 @@ def _lonlat_from_geos_angle(x, y, geos_area):
     sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
                  (h**2 - (geos_area.proj_dict['a'] / 1000)**2))
-    #sd = 0
+    # sd = 0
 
     sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
     s1 = h - sn * np.cos(x) * np.cos(y)
@@ -124,8 +140,6 @@ def get_area_slices(data_area, area_to_cover):
 
         return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
 
-    from trollsched.boundary import AreaDefBoundary, Boundary
-
     data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
 
     area_boundary = AreaDefBoundary(area_to_cover, 100)
@@ -154,3 +168,24 @@ def get_sub_area(area, xslice, yslice):
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)
+
+
+def unzip_file(filename):
+    """Unzip the file if file is bzipped = ending with 'bz2'"""
+
+    if filename.endswith('bz2'):
+        bz2file = bz2.BZ2File(filename)
+        fdn, tmpfilepath = tempfile.mkstemp()
+        with closing(os.fdopen(fdn, 'wb')) as ofpt:
+            try:
+                ofpt.write(bz2file.read())
+            except IOError:
+                import traceback
+                traceback.print_exc()
+                LOGGER.info("Failed to read bzipped file %s", str(filename))
+                os.remove(tmpfilepath)
+                return None
+
+        return tmpfilepath
+
+    return None

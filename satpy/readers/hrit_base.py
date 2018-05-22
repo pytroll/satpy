@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -32,10 +32,24 @@ import xarray as xr
 
 import dask.array as da
 from pyresample import geometry
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.msg_base import dec10216
 
 logger = logging.getLogger('hrit_base')
+
+
+def recarray2dict(arr):
+    res = {}
+    for dtuple in arr.dtype.descr:
+        key = dtuple[0]
+        ntype = dtuple[1]
+        data = arr[key]
+        if isinstance(ntype, list):
+            res[key] = recarray2dict(data)
+        else:
+            res[key] = data
+
+    return res
 
 
 common_hdr = np.dtype([('hdr_id', 'u1'),
@@ -69,6 +83,7 @@ def make_time_cds_short(tcds_array):
             timedelta(days=int(tcds_array['days']),
                       milliseconds=int(tcds_array['milliseconds'])))
 
+
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
 
@@ -94,39 +109,6 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def dec10216(inbuf):
-    arr10 = inbuf.astype(np.uint16)
-    arr16_len = int(len(arr10) * 4 / 5)
-    arr10_len = int((arr16_len * 5) / 4)
-    arr10 = arr10[:arr10_len]  # adjust size
-    """
-    /*
-     * pack 4 10-bit words in 5 bytes into 4 16-bit words
-     *
-     * 0       1       2       3       4       5
-     * 01234567890123456789012345678901234567890
-     * 0         1         2         3         4
-     */
-    ip = &in_buffer[i];
-    op = &out_buffer[j];
-    op[0] = ip[0]*4 + ip[1]/64;
-    op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
-    op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
-    op[3] = (ip[3] & 0x03)*256 +ip[4];
-    """
-
-    arr16_0 = np.left_shift(arr10[::5], 2) + np.right_shift((arr10[1::5]), 6)
-    arr16_1 = np.left_shift((arr10[1::5] & 63), 4) + \
-        np.right_shift((arr10[2::5]), 4)
-    arr16_2 = np.left_shift(arr10[2::5] & 15, 6) + \
-        np.right_shift((arr10[3::5]), 2)
-    arr16_3 = np.left_shift(arr10[3::5] & 3, 8) + \
-        arr10[4::5]
-    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
-
-    return arr16
-
-
 class HRITFileHandler(BaseFileHandler):
 
     """HRIT standard format reader."""
@@ -137,6 +119,16 @@ class HRITFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self.mda = {}
+
+        self._get_hd(hdr_info)
+
+        self._start_time = filename_info['start_time']
+        self._end_time = self._start_time + timedelta(minutes=15)
+
+    def _get_hd(self, hdr_info):
+        """Open the file, read and get the basic file header info and set the mda
+           dictionary
+        """
 
         hdr_map, variable_length_headers, text_headers = hdr_info
 
@@ -151,8 +143,13 @@ class HRITFileHandler(BaseFileHandler):
                     current_hdr = np.fromfile(fp,
                                               dtype=the_type,
                                               count=field_length)
-                    self.mda[variable_length_headers[
-                        the_type]] = current_hdr
+                    key = variable_length_headers[the_type]
+                    if key in self.mda:
+                        if not isinstance(self.mda[key], list):
+                            self.mda[key] = [self.mda[key]]
+                        self.mda[key].append(current_hdr)
+                    else:
+                        self.mda[key] = current_hdr
                 elif the_type in text_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
@@ -171,17 +168,13 @@ class HRITFileHandler(BaseFileHandler):
 
                 total_header_length = self.mda['total_header_length']
 
-            self._start_time = filename_info['start_time']
-            self._end_time = self._start_time + timedelta(minutes=15)
+        self.mda.setdefault('number_of_bits_per_pixel', 10)
 
-            self.mda.setdefault('number_of_bits_per_pixel', 10)
-
-
-            self.mda['projection_parameters'] = {'a': 6378169.00,
-                                                 'b': 6356583.80,
-                                                 'h': 35785831.00,
-                                                 # FIXME: find a reasonable SSP
-                                                 'SSP_longitude': 0.0}
+        self.mda['projection_parameters'] = {'a': 6378169.00,
+                                             'b': 6356583.80,
+                                             'h': 35785831.00,
+                                             # FIXME: find a reasonable SSP
+                                             'SSP_longitude': 0.0}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
@@ -194,16 +187,15 @@ class HRITFileHandler(BaseFileHandler):
     def end_time(self):
         return self._end_time
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Load a dataset."""
         # Read bands
-        data = self.read_band(key, info, out, xslice, yslice)
+        data = self.read_band(key, info)
+
         # Convert to xarray
-        xdata = xr.DataArray(data[np.newaxis,:,:], dims=['time', 'y', 'x'])
-        xdata.coords['time'] = ([
-            self._start_time + (self._end_time - self._start_time) / 2])
-        # Mask invalid values
-        return xdata.where(xdata > 0)
+        xdata = xr.DataArray(data, dims=['y', 'x'])
+
+        return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -245,13 +237,8 @@ class HRITFileHandler(BaseFileHandler):
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
-
-        segment_number = self.mda['segment_sequence_number']
-        total_segments = (self.mda['planned_end_segment_number'] -
-                          self.mda['planned_start_segment_number'] + 1)
 
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
@@ -277,27 +264,22 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def read_band(self, key, info,
-                  out=None, xslice=slice(None), yslice=slice(None)):
-        """Read the data"""
-        # TODO slicing !
-        tic = datetime.now()
-
+    def read_band(self, key, info):
+        """Read the data."""
+        shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         if self.mda['number_of_bits_per_pixel'] == 16:
             dtype = '>u2'
+            shape /= 2
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
-        shape = (int(np.ceil(self.mda['data_field_length'] / 8.)),)
+        shape = (shape, )
         data = np.memmap(self.filename, mode='r',
                          offset=self.mda['total_header_length'],
-                         dtype=np.uint8,
+                         dtype=dtype,
                          shape=shape)
-        data = da.from_array(data, chunks=1000000)
+        data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
-
-        outdata = data.reshape((self.mda['number_of_lines'],
-                                self.mda['number_of_columns']))
-        outdata = outdata[yslice, xslice].astype(np.float64)
-        logger.debug("Reading time " + str(datetime.now() - tic))
-        return outdata
+        data = data.reshape((self.mda['number_of_lines'],
+                             self.mda['number_of_columns']))
+        return data

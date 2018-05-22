@@ -100,7 +100,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
         ds_info.update({
             "units": ds_info.get("units", file_units),
-            "platform": PLATFORM_NAME.get(self['/attr/platform'],
+            "platform_name": PLATFORM_NAME.get(self['/attr/platform'],
                                           self['/attr/platform']),
             "sensor": SENSOR_NAME.get(self['/attr/sensor'],
                                       self['/attr/sensor']),

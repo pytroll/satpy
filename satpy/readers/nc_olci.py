@@ -24,9 +24,7 @@
 """
 
 import logging
-import os
 from datetime import datetime
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
@@ -34,13 +32,12 @@ import xarray as xr
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
-from satpy import CHUNKSIZE
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
-
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -52,8 +49,8 @@ class NCOLCIBase(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine='h5netcdf',
-                                  chunks={'columns': CHUNKSIZE,
-                                          'rows': CHUNKSIZE})
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
 
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
 
@@ -82,22 +79,28 @@ class NCOLCIBase(BaseFileHandler):
 class NCOLCICal(NCOLCIBase):
     pass
 
+
 class NCOLCIGeo(NCOLCIBase):
     pass
 
-class NCOLCI1B(NCOLCIBase):
 
+class NCOLCIChannelBase(NCOLCIBase):
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCOLCIChannelBase, self).__init__(filename, filename_info,
+                                                filetype_info)
+        self.channel = filename_info['dataset_name']
+
+
+class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal):
         super(NCOLCI1B, self).__init__(filename, filename_info,
-                                         filetype_info)
-        self.channel = filename_info['dataset_name']
+                                       filetype_info)
         self.cal = cal.nc
 
-    def _get_solar_flux(self, band):
+    def _get_solar_flux_old(self, band):
         # TODO: this could be replaced with vectorized indexing in the future.
         from dask.base import tokenize
-        from dask.array import Array
-        blocksize = CHUNKSIZE
+        blocksize = CHUNK_SIZE
 
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
@@ -125,6 +128,17 @@ class NCOLCI1B(NCOLCIBase):
                        dtype=solar_flux.dtype)
         return res
 
+    def _get_solar_flux(self, band):
+        """Get the solar flux for the band."""
+        solar_flux = self.cal['solar_flux'].isel(bands=band).values
+        d_index = self.cal['detector_index'].fillna(0).astype(int)
+
+        def get_items(idx, solar_flux):
+            return solar_flux[idx]
+
+        return da.map_blocks(get_items, d_index.data, solar_flux=solar_flux,
+                             dtype=solar_flux.dtype)
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel != key.name:
@@ -134,9 +148,6 @@ class NCOLCI1B(NCOLCIBase):
         radiances = self.nc[self.channel + '_radiance']
 
         if key.calibration == 'reflectance':
-            solar_flux = self.cal['solar_flux']
-            d_index = self.cal['detector_index']
-
             idx = int(key.name[2:]) - 1
             sflux = self._get_solar_flux(idx)
             radiances = radiances / sflux * np.pi * 100
@@ -148,7 +159,7 @@ class NCOLCI1B(NCOLCIBase):
         return radiances
 
 
-class NCOLCI2(NCOLCIBase):
+class NCOLCI2(NCOLCIChannelBase):
 
     def get_dataset(self, key, info):
         """Load a dataset
@@ -156,7 +167,7 @@ class NCOLCI2(NCOLCIBase):
         if self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-        reflectances = self.nc[self.channel + '_reflectance'] * 100
+        reflectances = self.nc[self.channel + '_reflectance']
 
         reflectances.attrs['platform_name'] = self.platform_name
         reflectances.attrs['sensor'] = self.sensor
@@ -178,19 +189,9 @@ class NCOLCIAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        self.cache = WeakValueDictionary()
+        self.cache = {}
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
-
-    def _get_scaled_variable(self, name):
-        """Get a scaled variable."""
-        variable = self.nc[name]
-
-        values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs['_FillValue'], copy=False)
-                  * variable.attrs.get('scale_factor', 1)
-                  + variable.attrs.get('add_offset', 0))
-        return values, variable.attrs
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -202,8 +203,8 @@ class NCOLCIAngles(BaseFileHandler):
                                       decode_cf=True,
                                       mask_and_scale=True,
                                       engine='h5netcdf',
-                                      chunks={'tie_columns': CHUNKSIZE,
-                                              'tie_rows': CHUNKSIZE})
+                                      chunks={'tie_columns': CHUNK_SIZE,
+                                              'tie_rows': CHUNK_SIZE})
 
             self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
         logger.debug('Reading %s.', key.name)
@@ -244,11 +245,11 @@ class NCOLCIAngles(BaseFileHandler):
                                   cross_track_order)
             (x, y, z, ) = satint.interpolate()
             del satint
-            x = xr.DataArray(da.from_array(x, chunks=(CHUNKSIZE, CHUNKSIZE)),
+            x = xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x'])
-            y = xr.DataArray(da.from_array(y, chunks=(CHUNKSIZE, CHUNKSIZE)),
+            y = xr.DataArray(da.from_array(y, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x'])
-            z = xr.DataArray(da.from_array(z, chunks=(CHUNKSIZE, CHUNKSIZE)),
+            z = xr.DataArray(da.from_array(z, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x'])
 
             azi, zen = xyz2angle(x, y, z)
@@ -272,7 +273,7 @@ class NCOLCIAngles(BaseFileHandler):
         elif key.name in self.cache:
             values = self.cache[key.name]
         else:
-            values = self._get_scaled_variable(self.datasets[key.name])
+            values = self.nc[self.datasets[key.name]]
 
         values.attrs['platform_name'] = self.platform_name
         values.attrs['sensor'] = self.sensor

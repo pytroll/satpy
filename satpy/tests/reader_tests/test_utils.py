@@ -32,7 +32,7 @@ except ImportError:
 
 import numpy as np
 
-from satpy.readers import helper_functions as hf
+from satpy.readers import utils as hf
 
 
 class TestSatinHelpers(unittest.TestCase):
@@ -319,7 +319,7 @@ class TestHelpers(unittest.TestCase):
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
 
-    @mock.patch('satpy.readers.helper_functions.AreaDefinition')
+    @mock.patch('satpy.readers.utils.AreaDefinition')
     def test_sub_area(self, adef):
         """Sub area slicing."""
         area = mock.MagicMock()
@@ -339,8 +339,24 @@ class TestHelpers(unittest.TestCase):
 
     def test_np2str(self):
         """Test the np2str function."""
+        # byte object
         npstring = np.string_('hej')
         self.assertEquals(hf.np2str(npstring), 'hej')
+
+        # single element numpy array
+        np_arr = np.array([npstring])
+        self.assertEquals(hf.np2str(np_arr), 'hej')
+
+        # scalar numpy array
+        np_arr = np.array(npstring)
+        self.assertEquals(hf.np2str(np_arr), 'hej')
+
+        # multi-element array
+        npstring = np.array([npstring, npstring])
+        self.assertRaises(ValueError, hf.np2str, npstring)
+
+        # non-array
+        self.assertRaises(ValueError, hf.np2str, 5)
 
 
 def suite():

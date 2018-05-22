@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the satpy.readers.viirs_l1b module.
+"""Module for testing the satpy.readers.geocat module.
 """
 
 import os
@@ -96,7 +96,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     if key + '/attr/' + a in file_content:
                         attrs[a] = file_content[key + '/attr/' + a]
                 if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('y', 'x'), attrs=attrs)
+                    file_content[key] = DataArray(val, dims=('lines', 'elements'), attrs=attrs)
                 else:
                     file_content[key] = DataArray(val, attrs=attrs)
 

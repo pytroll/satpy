@@ -2,7 +2,7 @@ sensor_name: visir/modis
 
 composites:
   true_color_uncorrected:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: '1'
       modifiers: [sunz_corrected]
@@ -13,7 +13,7 @@ composites:
     standard_name: true_color
 
   true_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: '1'
       modifiers: [sunz_corrected, rayleigh_corrected]
@@ -24,7 +24,7 @@ composites:
     standard_name: true_color
 
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: '1'
       modifiers: [sunz_corrected]
