@@ -185,8 +185,7 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
     return DataArray(res, dims=('y', 'x'))
 
 
-def interpolate_xarray_linear(xpoints, ypoints, values, shape,
-                              blocksize=CHUNK_SIZE):
+def interpolate_xarray_linear(xpoints, ypoints, values, shape):
     """Interpolate linearly, generating a dask array."""
     from scipy.interpolate.interpnd import (LinearNDInterpolator,
                                             _ndim_coords_from_arrays)
