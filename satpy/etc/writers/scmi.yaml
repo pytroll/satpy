@@ -5,7 +5,7 @@ writer:
   name: scmi
   description: AWIPS-compatible Tiled NetCDF4 Writer
   writer: !!python/name:satpy.writers.scmi.SCMIWriter
-  file_pattern: '{source_name}_AII_{platform}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
+  file_pattern: '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
   compress: True
 sectors:
   LCC:

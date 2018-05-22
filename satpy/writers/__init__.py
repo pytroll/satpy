@@ -30,14 +30,61 @@ import os
 
 import numpy as np
 import yaml
+import dask
+import dask.array as da
+import xarray as xr
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           recursive_dict_update)
+from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
-from trollimage.image import Image
+from satpy.resample import get_area_def
+
 from trollsift import parser
 
+from trollimage.xrimage import XRImage
+
 LOG = logging.getLogger(__name__)
+
+
+def load_writer_configs(writer_configs, ppp_config_dir,
+                        **writer_kwargs):
+    """Load the writer from the provided `writer_configs`."""
+    conf = {}
+    try:
+        for conf_fn in writer_configs:
+            with open(conf_fn) as fd:
+                conf = recursive_dict_update(conf, yaml.load(fd))
+        writer_class = conf['writer']['writer']
+    except (ValueError, KeyError, yaml.YAMLError):
+        raise ValueError("Invalid writer configs: "
+                         "'{}'".format(writer_configs))
+    init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
+    writer = writer_class(ppp_config_dir=ppp_config_dir,
+                          config_files=writer_configs,
+                          **init_kwargs)
+    return writer, kwargs
+
+
+def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+    """Find and load writer `writer` in the available configuration files."""
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
+
+    config_fn = writer + ".yaml" if "." not in writer else writer
+    config_files = config_search_paths(
+        os.path.join("writers", config_fn), ppp_config_dir)
+    writer_kwargs.setdefault("config_files", config_files)
+    if not writer_kwargs['config_files']:
+        raise ValueError("Unknown writer '{}'".format(writer))
+
+    try:
+        return load_writer_configs(writer_kwargs['config_files'],
+                                   ppp_config_dir=ppp_config_dir,
+                                   **writer_kwargs)
+    except ValueError:
+        raise ValueError("Writer '{}' does not exist or could not be "
+                         "loaded".format(writer))
 
 
 def _determine_mode(dataset):
@@ -57,7 +104,8 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None, level_coast=1, level_borders=1):
+def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
+                level_coast=1, level_borders=1):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -70,18 +118,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
     """
-    if orig.mode.startswith('L'):
-        orig.channels = [orig.channels[0].copy(),
-                         orig.channels[0].copy(),
-                         orig.channels[0]] + orig.channels[1:]
-        orig.mode = 'RGB' + orig.mode[1:]
-    img = orig.pil_image()
 
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
     from pycoast import ContourWriterAGG
-    from satpy.resample import get_area_def
     if isinstance(area, str):
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
@@ -107,29 +148,21 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
         else:
             resolution = "f"
 
-        LOG.debug("Automagically choose resolution " + resolution)
+        LOG.debug("Automagically choose resolution %s", resolution)
 
-    if img.mode.endswith('A'):
-        img = img.convert('RGBA')
-    else:
-        img = img.convert('RGB')
-
+    img = orig.pil_image()
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
                     resolution=resolution, width=width, level=level_borders)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if orig.mode == 'L':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-    elif orig.mode == 'LA':
-        orig.channels[0] = np.ma.array(arr[:, :, 0] / 255.0)
-        orig.channels[1] = np.ma.array(arr[:, :, -1] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_text(orig, dc, img, text=None):
@@ -197,8 +230,8 @@ def add_decorate(orig, **decorate):
     Any numbers of text/logo in any order can be added to the decorate list,
     but the order of the list is kept as described above.
 
-    Note that a feature given in one element, eg. bg (which is the background color) will also apply on the next elements
-    unless a new value is given.
+    Note that a feature given in one element, eg. bg (which is the background color)
+    will also apply on the next elements  unless a new value is given.
 
     align is a special keyword telling where in the image to start adding features, top_bottom is either top or bottom
     and left_right is either left or right.
@@ -235,19 +268,16 @@ def get_enhanced_image(dataset,
     if enhancer is None:
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
-    if enhancer.enhancement_tree is None:
-        raise RuntimeError(
-            "No enhancement configuration files found or specified, cannot"
-            " automatically enhance dataset")
-
-    if dataset.attrs.get("sensor", None):
-        enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
-
     # Create an image for enhancement
     img = to_image(dataset, mode=mode, fill_value=fill_value)
-    enhancer.apply(img, **dataset.attrs)
 
-    img.info.update(dataset.attrs)
+    if enhancer.enhancement_tree is None:
+        LOG.debug("No enhancement being applied to dataset")
+    else:
+        if dataset.attrs.get("sensor", None):
+            enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
+
+        enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
         add_overlay(img, dataset.attrs['area'], **overlay)
@@ -273,14 +303,10 @@ def to_image(dataset, copy=False, **kwargs):
             kwargs.setdefault(key, dataset.attrs[key])
     dataset = dataset.squeeze()
 
-    if 'bands' in dataset.dims:
-        return Image([np.ma.masked_invalid(dataset.sel(bands=band).values)
-                      for band in dataset['bands']],
-                     copy=copy, **kwargs)
-    elif dataset.ndim < 2:
+    if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
-        return Image([np.ma.masked_invalid(dataset.values)], copy=copy, **kwargs)
+        return XRImage(dataset)
 
 
 class Writer(Plugin):
@@ -291,7 +317,6 @@ class Writer(Plugin):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  base_dir=None,
                  **kwargs):
@@ -302,17 +327,23 @@ class Writer(Plugin):
         # Use options from the config file if they weren't passed as arguments
         self.name = self.info.get("name",
                                   None) if name is None else name
-        self.fill_value = self.info.get(
-            "fill_value", None) if fill_value is None else fill_value
         self.file_pattern = self.info.get(
             "file_pattern", None) if file_pattern is None else file_pattern
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
-        if self.fill_value:
-            self.fill_value = float(self.fill_value)
 
-        self.create_filename_parser(base_dir)
+        self.filename_parser = self.create_filename_parser(base_dir)
+
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs = {}
+        kwargs = kwargs.copy()
+        for kw in ['base_dir', 'file_pattern']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
         # just in case a writer needs more complex file patterns
@@ -321,8 +352,7 @@ class Writer(Plugin):
             file_pattern = os.path.join(base_dir, self.file_pattern)
         else:
             file_pattern = self.file_pattern
-        self.filename_parser = parser.Parser(
-            file_pattern) if file_pattern else None
+        return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
@@ -330,18 +360,95 @@ class Writer(Plugin):
                 "No filename pattern or specific filename provided")
         return self.filename_parser.compose(kwargs)
 
-    def save_datasets(self, datasets, **kwargs):
+    def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
 
         Subclasses can use this method to save all datasets to one single
         file or optimize the writing of individual datasets. By default
         this simply calls `save_dataset` for each dataset provided.
-        """
-        for ds in datasets:
-            self.save_dataset(ds, **kwargs)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
-        """Saves the *dataset* to a given *filename*.
+        Args:
+            datasets (iterable): Iterable of `xarray.DataArray` objects to
+                                 save using this writer.
+            compute (bool): If `True` (default), compute all of the saves to
+                            disk. If `False` then the return value is either
+                            a `dask.delayed.Delayed` object or two lists to
+                            be passed to a `dask.array.store` call.
+                            See return values below for more details.
+            **kwargs: Keyword arguments to pass to `save_dataset`. See that
+                      documentation for more details.
+
+        Returns:
+            Value returned depends on `compute` keyword argument. If
+            `compute` is `True` the value is the result of a either a
+            `dask.array.store` operation or a `dask.delayed.Delayed` compute,
+            typically this is `None`. If `compute` is `False` then the
+            result is either a `dask.delayed.Delayed` object that can be
+            computed with `delayed.compute()` or a two element tuple of
+            sources and targets to be passed to `dask.array.store`. If
+            `targets` is provided then it is the caller's responsibility to
+            close any objects that have a "close" method.
+
+        """
+        sources = []
+        targets = []
+        for ds in datasets:
+            res = self.save_dataset(ds, compute=False, **kwargs)
+            if isinstance(res, tuple):
+                # source, target to be passed to da.store
+                sources.append(res[0])
+                targets.append(res[1])
+            else:
+                # delayed object
+                sources.append(res)
+
+        # we have targets, we should save sources to targets
+        if targets and compute:
+            res = da.store(sources, targets)
+            for target in targets:
+                if hasattr(target, 'close'):
+                    target.close()
+            return res
+        elif targets:
+            return sources, targets
+
+        delayed = dask.delayed(sources)
+        if compute:
+            return delayed.compute()
+        return delayed
+
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     compute=True, **kwargs):
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method must be overloaded by the subclass.
+
+        Args:
+            dataset (xarray.DataArray): Dataset to save using this writer.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. If not provided then `file_pattern`
+                            which can be provided to the init method will be
+                            used and formatted by dataset attributes.
+            fill_value (int or float): Replace invalid values in the dataset
+                                       with this fill value if applicable to
+                                       this writer.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments for this particular reader.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
         """
         raise NotImplementedError(
             "Writer '%s' has not implemented dataset saving" % (self.name, ))
@@ -351,12 +458,11 @@ class ImageWriter(Writer):
 
     def __init__(self,
                  name=None,
-                 fill_value=None,
                  file_pattern=None,
                  enhancement_config=None,
                  base_dir=None,
                  **kwargs):
-        Writer.__init__(self, name, fill_value, file_pattern, base_dir,
+        Writer.__init__(self, name, file_pattern, base_dir,
                         **kwargs)
         enhancement_config = self.info.get(
             "enhancement_config",
@@ -365,15 +471,58 @@ class ImageWriter(Writer):
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
 
-    def save_dataset(self, dataset, filename=None, fill_value=None, overlay=None, decorate=None, **kwargs):
-        """Saves the *dataset* to a given *filename*.
-        """
-        fill_value = fill_value if fill_value is not None else self.fill_value
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay, decorate=decorate)
-        self.save_image(img, filename=filename, **kwargs)
+    @classmethod
+    def separate_init_kwargs(cls, kwargs):
+        # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
+            kwargs)
+        for kw in ['enhancement_config']:
+            if kw in kwargs:
+                init_kwargs[kw] = kwargs.pop(kw)
+        return init_kwargs, kwargs
 
-    def save_image(self, img, filename=None, **kwargs):
+    def save_dataset(self, dataset, filename=None, fill_value=None,
+                     overlay=None, decorate=None, compute=True, **kwargs):
+        """Saves the ``dataset`` to a given ``filename``.
+
+        This method creates an enhanced image using `get_enhanced_image`. The
+        image is then passed to `save_image`. See both of these functions for
+        more details on the arguments passed to this method.
+
+        """
+        img = get_enhanced_image(
+            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            decorate=decorate)
+        return self.save_image(img, filename=filename, compute=compute,
+                               **kwargs)
+
+    def save_image(self, img, filename=None, compute=True, **kwargs):
+        """Save Image object to a given ``filename``.
+
+        Args:
+            img (trollimage.xrimage.XRImage): Image object to save to disk.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Other keyword arguments to pass to this writer.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
+        """
         raise NotImplementedError(
             "Writer '%s' has not implemented image saving" % (self.name, ))
 
@@ -453,7 +602,7 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         attrs = kwargs.pop("attrs", ("name",
-                                     "platform",
+                                     "platform_name",
                                      "sensor",
                                      "standard_name",
                                      "units",))

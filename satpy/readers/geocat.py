@@ -74,6 +74,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'ahi': {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
+            4: 3999.99992812707,
         }
     }
 
@@ -102,6 +103,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return GEO_PROJS[platform].format(lon_0=ref_lon)
 
     @property
+    def sensor_names(self):
+        return [self.get_sensor(self['/attr/Sensor_Name'])]
+
+    @property
     def start_time(self):
         return self.filename_info['start_time']
 
@@ -114,11 +119,20 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
 
-    def available_dataset_ids(self):
-        """Automatically determine datasets provided by this file"""
+    @property
+    def resolution(self):
         elem_res = self['/attr/Element_Resolution']
+        return int(elem_res * 1000)
+
+    def _calc_area_resolution(self, ds_res):
+        elem_res = round(ds_res / 1000.)  # mimic 'Element_Resolution' attribute from above
         sensor = self.get_sensor(self['/attr/Sensor_Name'])
-        res = self.resolutions.get(sensor, {}).get(int(elem_res), elem_res * 1000.)
+        return self.resolutions.get(sensor, {}).get(int(elem_res),
+                                                    elem_res * 1000.)
+
+    def available_datasets(self):
+        """Automatically determine datasets provided by this file"""
+        res = self.resolution
         coordinates = ['pixel_longitude', 'pixel_latitude']
         for var_name, val in self.file_content.items():
             if isinstance(val, netCDF4.Variable):
@@ -174,7 +188,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
         platform = self.get_platform(self['/attr/Platform_Name'])
-        res = dsid.resolution
+        res = self._calc_area_resolution(dsid.resolution)
         proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
         area_name = '{} {} Area at {}m'.format(
             platform,
@@ -206,7 +220,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             info['units'] = CF_UNITS[u]
 
         info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
-        info['platform'] = self.get_platform(self['/attr/Platform_Name'])
+        info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
         info['resolution'] = dataset_id.resolution
         if var_name == 'pixel_longitude':
             info['standard_name'] = 'longitude'
@@ -232,19 +246,5 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             data = data * factor + offset
 
         data.attrs.update(info)
+        data = data.rename({'lines': 'y', 'elements': 'x'})
         return data
-
-
-class GEOCATYAMLReader(FileYAMLReader):
-    def create_filehandlers(self, filenames):
-        super(GEOCATYAMLReader, self).create_filehandlers(filenames)
-        self.load_ds_ids_from_files()
-
-    def load_ds_ids_from_files(self):
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            for ds_id, ds_info in fh.available_dataset_ids():
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                self.ids.setdefault(ds_id, ds_info)
-

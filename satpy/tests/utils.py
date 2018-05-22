@@ -46,6 +46,7 @@ def test_datasets():
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
+        DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
     ]
     return d
 
@@ -85,12 +86,25 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
     from satpy.composites import CompositeBase, IncompatibleAreas
     from satpy import DatasetID
 
+    attrs = {
+        'name': name,
+        'prerequisites': tuple(prereqs),
+        'optional_prerequisites': tuple(opt_prereqs)
+    }
+
     def _mod_loader(*args, **kwargs):
         class FakeMod(CompositeBase):
             def __init__(self, *args, **kwargs):
-                self.attrs = {}
+
+                super(FakeMod, self).__init__(*args, **kwargs)
 
             def __call__(self, datasets, optional_datasets, **info):
+                if self.attrs['optional_prerequisites']:
+                    for opt_dep in self.attrs['optional_prerequisites']:
+                        if 'NOPE' in opt_dep or 'fail' in opt_dep:
+                            continue
+                        assert optional_datasets is not None and \
+                            len(optional_datasets)
                 resolution = DatasetID.from_dict(datasets[0].attrs).resolution
                 if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
@@ -104,16 +118,13 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 self.apply_modifier_info(i, info)
                 return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
 
-        m = FakeMod()
-        m.attrs = {
-            'prerequisites': tuple(prereqs),
-            'optional_prerequisites': tuple(opt_prereqs)
-        }
+        m = FakeMod(*args, **kwargs)
+        # m.attrs = attrs
         m._call_mock = mock.patch.object(
             FakeMod, '__call__', wraps=m.__call__).start()
         return m
 
-    return _mod_loader, {}
+    return _mod_loader, attrs
 
 
 def test_composites(sensor_name):
@@ -140,14 +151,28 @@ def test_composites(sensor_name):
         DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
-        DatasetID(name='comp18'): ([DatasetID(name='ds1', modifiers=('incomp_areas',))], []),
+        DatasetID(name='comp18'): (['ds3',
+                                    DatasetID(name='ds4',
+                                              modifiers=('mod1', 'mod3',)),
+                                    DatasetID(name='ds5',
+                                              modifiers=('mod1', 'incomp_areas'))], []),
+        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
+        DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
+        DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
+        DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
+        DatasetID(name='comp23'): ([0.8], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
         'mod1': (['ds2'], []),
         'mod2': (['comp3'], []),
+        'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
+        'mod_opt_prereq': (['ds1'], ['ds2']),
+        'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
+        'mod_opt_only': ([], ['ds2']),
+        'mod_wl': ([DatasetID(wavelength=0.2, modifiers=('mod1',))], []),
     }
 
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
@@ -156,26 +181,9 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self,
-                     key,
-                     calibration=None,
-                     resolution=None,
-                     polarization=None,
-                     modifiers=None,
-                     aslist=False):
-    from satpy import DatasetID
-    if isinstance(key, DatasetID) and not key.modifiers:
-        try:
-            return _get_dataset_key(self, key.name or key.wavelength)
-        except KeyError:
-            pass
-
-    dataset_ids = self.datasets
-    for ds in dataset_ids:
-        # should do wavelength and string matching for equality
-        if key == ds:
-            return ds
-    raise KeyError("No fake test key '{}'".format(key))
+def _get_dataset_key(self, key, **kwargs):
+    from satpy.readers import get_key
+    return get_key(key, self.datasets, **kwargs)
 
 
 def _reader_load(self, dataset_keys):

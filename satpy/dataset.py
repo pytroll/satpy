@@ -29,7 +29,6 @@ import numbers
 from collections import namedtuple
 
 import numpy as np
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -89,52 +88,10 @@ def combine_metadata(*metadata_objects):
     return shared_info
 
 
-def combine_attrs(*metadata_objects):
-    """Combine the metadata of two or more Datasets.
-
-    Args:
-        *metadata_objects: MetadataObject or dict objects to combine
-
-    Returns:
-        the combined metadata
-
-    """
-    shared_keys = None
-    info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared
-    # keys
-    for info_object in metadata_objects:
-        if isinstance(info_object, dict):
-            info_dict = info_object
-        elif hasattr(info_object, "attrs"):
-            info_dict = info_object.attrs
-        else:
-            continue
-        info_dicts.append(info_dict)
-
-        if shared_keys is None:
-            shared_keys = set(info_dict.keys())
-        else:
-            shared_keys &= set(info_dict.keys())
-
-    # combine all of the dictionaries
-    shared_info = {}
-    for k in shared_keys:
-        values = [nfo[k] for nfo in info_dicts]
-        any_arrays = any([isinstance(val, np.ndarray) for val in values])
-        if any_arrays:
-            if all(np.all(val == values[0]) for val in values[1:]):
-                shared_info[k] = values[0]
-        elif all(val == values[0] for val in values[1:]):
-            shared_info[k] = values[0]
-
-    return shared_info
-
-
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration", "modifiers")
+                "calibration", "level", "modifiers")
 DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, tuple())
+DatasetID.__new__.__defaults__ = (None, None, None, None, None, None, tuple())
 
 
 class DatasetID(DatasetID):
@@ -172,6 +129,9 @@ class DatasetID(DatasetID):
         calibration (str): String identifying the calibration level of the
                            Dataset (ex. 'radiance', 'reflectance', etc).
                            `None` if not applicable.
+        level (int, float): Pressure/altitude level of the dataset. This is
+                            typically in hPa, but may be in inverse meters
+                            for altitude datasets (1/meters).
         modifiers (tuple): Tuple of strings identifying what corrections or
                            other modifications have been performed on this
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
@@ -278,7 +238,11 @@ def dataset_walker(datasets):
     for dataset in datasets:
         yield dataset, None
         for anc_ds in dataset.attrs.get('ancillary_variables', []):
-            yield anc_ds, dataset
+            try:
+                anc_ds.attrs
+                yield anc_ds, dataset
+            except AttributeError:
+                continue
 
 
 def replace_anc(dataset, parent_dataset):

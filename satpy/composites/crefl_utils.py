@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2014, 2015.
+# Copyright (c) 2010-2018 PyTroll Developers
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +31,8 @@ import sys
 
 import numpy as np
 # from memory_profiler import profile
+import xarray.ufuncs as xu
+import xarray as xr
 
 LOG = logging.getLogger(__name__)
 
@@ -302,10 +305,9 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
     sphalb0 = csalbr(tau_step)
 
     air_mass = 1.0 / mus + 1 / muv
-    ii, jj = np.where(np.greater(air_mass, MAXAIRMASS))
-    air_mass[ii, jj] = -1.0
+    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
 
-    taur = tau * np.exp(-height / SCALEHEIGHT)
+    taur = tau * xu.exp(-height / SCALEHEIGHT)
 
     rhoray, trdown, trup = chand(phi, muv, mus, taur)
 
@@ -317,12 +319,12 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
     tH2O = 1.0
 
     if ao3 != 0:
-        tO3 = np.exp(-air_mass * UO3 * ao3)
+        tO3 = xu.exp(-air_mass * UO3 * ao3)
     if bh2o != 0:
         if bUseV171:
-            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
+            tH2O = xu.exp(-xu.exp(ah2o + bh2o * xu.log(air_mass * UH2O)))
         else:
-            tH2O = np.exp(-(ah2o * (np.power((air_mass * UH2O), bh2o))))
+            tH2O = xu.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
     #t02 = exp(-m * aO2)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
     tOG = tO3 * tO2
@@ -356,7 +358,6 @@ def run_crefl(refl, coeffs,
 
     """
     # FUTURE: Find a way to compute the average elevation before hand
-
     (ah2o, bh2o, ao3, tau) = coeffs
 
     # Get digital elevation map data for our granule, set ocean fill value to 0
@@ -365,14 +366,15 @@ def run_crefl(refl, coeffs,
         #height = np.zeros(lon.shape, dtype=np.float)
         height = 0.
     else:
-        row = np.int32((90.0 - lat) * avg_elevation.shape[0] / 180.0)
-        col = np.int32((lon + 180.0) * avg_elevation.shape[1] / 360.0)
-        height = np.float64(avg_elevation[row, col])
-        height[height < 0.] = 0.0
+        row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
+        col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
+        height = avg_elevation[row, col].astype(np.float64)
+        # negative heights aren't allowed, clip to 0
+        height = height.where(height >= 0., 0.0)
         del lat, lon, row, col
 
-    mus = np.cos(np.deg2rad(solar_zenith))
-    muv = np.cos(np.deg2rad(sensor_zenith))
+    mus = xu.cos(xu.deg2rad(solar_zenith))
+    muv = xu.cos(xu.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
@@ -403,8 +405,6 @@ def run_crefl(refl, coeffs,
     else:
         corr_refl = (refl / tOG - rhoray) / TtotraytH2O
     corr_refl /= (1.0 + corr_refl * sphalb)
-    np.clip(corr_refl, REFLMIN, REFLMAX, out=corr_refl)
-
-    return corr_refl
+    return corr_refl.clip(REFLMIN, REFLMAX)
 
     # return odata

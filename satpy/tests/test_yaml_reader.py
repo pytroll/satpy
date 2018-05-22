@@ -27,10 +27,9 @@ import unittest
 from datetime import datetime
 from tempfile import mkdtemp
 
-import numpy as np
-
 import satpy.readers.yaml_reader as yr
-from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.dataset import DatasetID
 
 try:
     from unittest.mock import MagicMock, patch
@@ -38,17 +37,25 @@ except ImportError:
     from mock import MagicMock, patch
 
 
-
-class FakeFH(object):
+class FakeFH(BaseFileHandler):
 
     def __init__(self, start_time, end_time):
-        self.start_time = start_time
-        self.end_time = end_time
+        super(FakeFH, self).__init__("", {}, {})
+        self._start_time = start_time
+        self._end_time = end_time
         self.get_bounding_box = MagicMock()
         fake_ds = MagicMock()
         fake_ds.return_value.dims = ['x', 'y']
         self.get_dataset = fake_ds
         self.combine_info = MagicMock()
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
 
 
 class TestUtils(unittest.TestCase):
@@ -56,38 +63,37 @@ class TestUtils(unittest.TestCase):
 
     def test_get_filebase(self):
         """Check the get_filebase function."""
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
         pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
                    '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        filename = ('/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                    '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                    '78_2340_SVL_O_NR_002.SEN3/Oa05_radiance.nc')
-        expected = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_20161020T'
-                    '102406_0179_010_078_2340_SVL_O_NR_002.SEN3/Oa05_radiance.'
-                    'nc')
+        filename = os.path.join(base_dir, 'Oa05_radiance.nc')
+        expected = os.path.join(base_data, 'Oa05_radiance.nc')
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
+        # just a fake path for testing that doesn't have to exist
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
         pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
                    '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
-        filenames = ['/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                     '78_2340_SVL_O_NR_002.SEN3/Oa05_radiance.nc',
-                     '/home/a001673/data/satellite/Sentinel-3/S3A_OL_1_EFR____2'
-                     '0161020T081224_20161020T081524_20161020T102406_0179_010_0'
-                     '78_2340_SVL_O_NR_002.SEN3/geo_coordinates.nc']
-        expected = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_20161020T'
-                    '102406_0179_010_078_2340_SVL_O_NR_002.SEN3/geo_coordinates'
-                    '.nc')
-        self.assertEqual(yr.match_filenames(filenames, pattern),
-                         ["/home/a001673/data/satellite/Sentinel-3/" +
-                          expected])
+        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
+                     os.path.join(base_dir, 'geo_coordinates.nc')]
+        expected = os.path.join(base_dir, 'geo_coordinates.nc')
+        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
 
     def test_listify_string(self):
         """Check listify_string."""
@@ -95,6 +101,89 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(yr.listify_string('some string'), ['some string'])
         self.assertEqual(yr.listify_string(['some', 'string']),
                          ['some', 'string'])
+
+
+class DummyReader(BaseFileHandler):
+    def __init__(self, filename, filename_info, filetype_info):
+        super(DummyReader, self).__init__(
+            filename, filename_info, filetype_info)
+        self.filename = filename
+        self.filename_info = filename_info
+        self.filetype_info = filetype_info
+        self._start_time = datetime(2000, 1, 1, 12, 1)
+        self._end_time = datetime(2000, 1, 1, 12, 2)
+        self.metadata = {}
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+
+class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
+    """Test units from FileYAMLReader with multiple readers."""
+
+    @patch('satpy.readers.yaml_reader.recursive_dict_update')
+    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
+    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+        """Setup a reader instance with a fake config."""
+        patterns = ['a{something:3s}.bla',
+                    'a0{something:2s}.bla']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_patterns': patterns,
+                                              'file_reader': DummyReader}},
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7],
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'ch2': {'name': 'ch02',
+                                         'wavelength': [0.7, 0.75, 0.8],
+                                         'calibration': 'counts',
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'lons': {'name': 'lons',
+                                          'file_type': 'ftype2'},
+                                 'lats': {'name': 'lats',
+                                          'file_type': 'ftype2'}}}
+
+        rec_up.return_value = res_dict
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader([__file__],
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2)})
+
+    def test_select_from_pathnames(self):
+        """Check select_files_from_pathnames."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+
+        res = self.reader.select_files_from_pathnames(filelist)
+        for expected in ['a001.bla', 'a002.bla', 'abcd.bla']:
+            self.assertIn(expected, res)
+        self.assertEqual(len(res), 3)
+
+    def test_fn_items_for_ft(self):
+        """Check filename_items_for_filetype."""
+        filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
+        ft_info = self.config['file_types']['ftype1']
+        fiter = self.reader.filename_items_for_filetype(filelist, ft_info)
+
+        filenames = dict(fname for fname in fiter)
+        self.assertEqual(len(filenames.keys()), 3)
+
+    def test_create_filehandlers(self):
+        """Check create_filehandlers."""
+        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
+                    'abcd.bla', 'k001.bla', 'a003.bli']
+
+        self.reader.create_filehandlers(filelist)
+        self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
@@ -207,35 +296,29 @@ class TestFileFileYAMLReader(unittest.TestCase):
             # only the first one should be false
             self.assertEqual(res, idx not in [0, 4])
 
-    @patch('satpy.resample.get_area_def')
-    def test_file_covers_area(self, gad):
+    @patch('satpy.readers.yaml_reader.get_area_def')
+    @patch('satpy.readers.yaml_reader.AreaDefBoundary')
+    @patch('satpy.readers.yaml_reader.Boundary')
+    def test_file_covers_area(self, bnd, adb, gad):
         """Test that area coverage is checked properly."""
         file_handler = FakeFH(datetime(1999, 12, 31, 10, 0),
                               datetime(2000, 1, 3, 12, 30))
 
-        trollsched = MagicMock()
-        adb = trollsched.boundary.AreaDefBoundary
-        bnd = trollsched.boundary.Boundary
+        self.reader.filter_parameters['area'] = True
+        bnd.return_value.contour_poly.intersection.return_value = True
+        adb.return_value.contour_poly.intersection.return_value = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
 
-        modules = {'trollsched': trollsched,
-                   'trollsched.boundary': trollsched.boundary}
+        bnd.return_value.contour_poly.intersection.return_value = False
+        adb.return_value.contour_poly.intersection.return_value = False
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertFalse(res)
 
-        with patch.dict('sys.modules', modules):
-            self.reader.filter_parameters['area'] = True
-            bnd.return_value.contour_poly.intersection.return_value = True
-            adb.return_value.contour_poly.intersection.return_value = True
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertTrue(res)
-
-            bnd.return_value.contour_poly.intersection.return_value = False
-            adb.return_value.contour_poly.intersection.return_value = False
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertFalse(res)
-
-            file_handler.get_bounding_box.side_effect = NotImplementedError()
-            self.reader.filter_parameters['area'] = True
-            res = self.reader.check_file_covers_area(file_handler, True)
-            self.assertTrue(res)
+        file_handler.get_bounding_box.side_effect = NotImplementedError()
+        self.reader.filter_parameters['area'] = True
+        res = self.reader.check_file_covers_area(file_handler, True)
+        self.assertTrue(res)
 
     def test_start_end_time(self):
         """Check start and end time behaviours."""
@@ -303,271 +386,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
         """Check supports_sensor."""
         self.assertTrue(self.reader.supports_sensor('canon'))
         self.assertFalse(self.reader.supports_sensor('nikon'))
-
-    def test_get_datasets_by_name(self):
-        """Check getting datasets by name."""
-        self.assertEqual(len(self.reader.get_ds_ids_by_name('ch01')), 1)
-
-        res = self.reader.get_ds_ids_by_name('ch01')[0]
-        for key, val in self.config['datasets']['ch1'].items():
-            if isinstance(val, list):
-                val = tuple(val)
-            if key not in DATASET_KEYS:
-                continue
-            self.assertEqual(getattr(res, key), val)
-
-        self.assertRaises(KeyError, self.reader.get_ds_ids_by_name, 'bla')
-
-    def test_get_datasets_by_wl(self):
-        """Check getting datasets by wavelength."""
-        res = self.reader.get_ds_ids_by_wavelength(.6)
-        self.assertEqual(len(res), 1)
-        res = res[0]
-        for key, val in self.config['datasets']['ch1'].items():
-            if isinstance(val, list):
-                val = tuple(val)
-            if key not in DATASET_KEYS:
-                continue
-            self.assertEqual(getattr(res, key), val)
-
-        res = self.reader.get_ds_ids_by_wavelength(.7)
-        self.assertEqual(len(res), 2)
-        self.assertEqual(res[0].name, 'ch02')
-
-        res = self.reader.get_ds_ids_by_wavelength((.7, .75, .8))
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, 'ch02')
-
-        res = self.reader.get_ds_ids_by_wavelength([.7, .75, .8])
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, 'ch02')
-
-        self.assertRaises(KeyError, self.reader.get_ds_ids_by_wavelength, 12)
-
-    def test_get_datasets_by_id(self):
-        """Check getting datasets by id."""
-        from satpy.dataset import DatasetID
-        dsid = DatasetID('ch01')
-        res = self.reader.get_ds_ids_by_id(dsid)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, 'ch01')
-
-        dsid = DatasetID(wavelength=.6)
-        res = self.reader.get_ds_ids_by_id(dsid)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, 'ch01')
-
-        dsid = DatasetID('ch01', .6)
-        res = self.reader.get_ds_ids_by_id(dsid)
-        self.assertEqual(len(res), 1)
-        self.assertEqual(res[0].name, 'ch01')
-
-        dsid = DatasetID('ch01', .1)
-        self.assertRaises(KeyError, self.reader.get_ds_ids_by_id, dsid)
-
-    def test_get_best_calibration(self):
-        """Test finding best calibration for datasets."""
-        calibration = None
-        self.assertListEqual(self.reader._get_best_calibration(calibration),
-                             ["brightness_temperature", "reflectance",
-                              'radiance', 'counts'])
-
-        calibration = ["reflectance", "radiance"]
-        self.assertListEqual(self.reader._get_best_calibration(calibration),
-                             ["reflectance", 'radiance'])
-
-        calibration = ["radiance", "reflectance"]
-        self.assertListEqual(self.reader._get_best_calibration(calibration),
-                             ["reflectance", 'radiance'])
-
-    def test_dataset_with_calibration(self):
-        """Test getting datasets with calibration."""
-        calibration = ["radiance", "reflectance"]
-
-        datasets = [yr.DatasetID(name=ds['name'],
-                                 wavelength=ds.get("wavelength"),
-                                 calibration=ds.get("calibration"))
-                    for ds in self.reader.datasets.values()]
-        ds = self.reader._ds_ids_with_best_calibration(datasets, calibration)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=[0.5, 0.6, 0.7],
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=tuple())])
-
-    def test_dfilter_from_key(self):
-        """Test creating a dfilter from a key."""
-        dfilter = None
-
-        key = yr.DatasetID(name='bla', calibration='radiance')
-
-        expected = {'polarization': None,
-                    'modifiers': None,
-                    'resolution': None,
-                    'calibration': ['radiance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-        key = yr.DatasetID(name='bla', calibration='reflectance')
-
-        expected = {'polarization': None,
-                    'modifiers': None,
-                    'resolution': None,
-                    'calibration': ['reflectance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-        key = yr.DatasetID(name='bla', calibration='reflectance',
-                           modifiers=('rayleigh_corrected'))
-
-        expected = {'polarization': None,
-                    'modifiers': ('rayleigh_corrected'),
-                    'resolution': None,
-                    'calibration': ['reflectance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-        dfilter = {'resolution': [1000]}
-
-        key = yr.DatasetID(name='bla', calibration='radiance')
-
-        expected = {'polarization': None,
-                    'modifiers': None,
-                    'resolution': [1000],
-                    'calibration': ['radiance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-        key = yr.DatasetID(name='bla', calibration='reflectance')
-
-        expected = {'polarization': None,
-                    'modifiers': None,
-                    'resolution': [1000],
-                    'calibration': ['reflectance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-        key = yr.DatasetID(name='bla', calibration='reflectance',
-                           modifiers=('rayleigh_corrected'))
-
-        expected = {'polarization': None,
-                    'modifiers': ('rayleigh_corrected'),
-                    'resolution': [1000],
-                    'calibration': ['reflectance']}
-        self.assertDictEqual(expected,
-                             self.reader.dfilter_from_key(dfilter, key))
-
-    def test_filter_datasets(self):
-        """Test filtering datasets."""
-        datasets = [yr.DatasetID(name=ds['name'],
-                                 wavelength=ds.get("wavelength"),
-                                 calibration=ds.get("calibration"))
-                    for ds in self.reader.datasets.values()]
-
-        dfilter = {'polarization': None,
-                   'modifiers': None,
-                   'resolution': None,
-                   'calibration': ['reflectance']}
-
-        ds = self.reader.filter_ds_ids(datasets, dfilter)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=[0.5, 0.6, 0.7],
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=tuple())])
-
-    def test_datasets_from_any_key(self):
-        """Test getting dataset from any key."""
-        ds = self.reader._ds_ids_from_any_key('ch01')
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-        ds = self.reader._ds_ids_from_any_key(0.51)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-        ds = self.reader._ds_ids_from_any_key(yr.DatasetID(name='ch01',
-                                                           wavelength=0.51))
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-    def test_get_dataset_key(self):
-        """Test get_dataset_key."""
-        ds = self.reader.get_dataset_key('ch01', aslist=True)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-        ds = self.reader.get_dataset_key(0.51, aslist=True)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-        ds = self.reader.get_dataset_key(yr.DatasetID(name='ch01',
-                                                      wavelength=0.51),
-                                         aslist=True)
-        self.assertListEqual(ds,
-                             [yr.DatasetID(name='ch01',
-                                           wavelength=(0.5, 0.6, 0.7),
-                                           resolution=None,
-                                           polarization=None,
-                                           calibration='reflectance',
-                                           modifiers=())])
-
-        ds = self.reader.get_dataset_key('ch01')
-        self.assertEqual(ds,
-                         yr.DatasetID(name='ch01',
-                                      wavelength=(0.5, 0.6, 0.7),
-                                      resolution=None,
-                                      polarization=None,
-                                      calibration='reflectance',
-                                      modifiers=()))
-
-        ds = self.reader.get_dataset_key(0.51)
-        self.assertEqual(ds,
-                         yr.DatasetID(name='ch01',
-                                      wavelength=(0.5, 0.6, 0.7),
-                                      resolution=None,
-                                      polarization=None,
-                                      calibration='reflectance',
-                                      modifiers=()))
-
-        ds = self.reader.get_dataset_key(yr.DatasetID(name='ch01',
-                                                      wavelength=0.51))
-        self.assertEqual(ds,
-                         yr.DatasetID(name='ch01',
-                                      wavelength=(0.5, 0.6, 0.7),
-                                      resolution=None,
-                                      polarization=None,
-                                      calibration='reflectance',
-                                      modifiers=()))
 
     @patch('satpy.readers.yaml_reader.StackedAreaDefinition')
     def test_load_area_def(self, sad):
@@ -657,39 +475,13 @@ class TestFileFileYAMLReader(unittest.TestCase):
                          calibration=None, modifiers=())
         self.assertEqual(self.reader._get_file_handlers(lons), None)
 
-    def test_get_shape_slices(self):
-        """Test getting the dataset shape and slices."""
-        all_shapes = [[2, 5], [3, 5], [4, 5]]
-
-        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes)
-
-        self.assertListEqual(shape, [9, 5])
-        self.assertEquals(xsl, slice(0, 5))
-        self.assertEquals(ysl, slice(0, 9))
-
-        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes,
-                                                         slice(0, 4),
-                                                         slice(0, 6))
-
-        self.assertListEqual(shape, [6, 4])
-        self.assertEquals(xsl, slice(0, 4))
-        self.assertEquals(ysl, slice(0, 6))
-
-        shape, xsl, ysl = self.reader.get_shape_n_slices(all_shapes,
-                                                         slice(0, 8),
-                                                         slice(0, 6))
-
-        self.assertListEqual(shape, [6, 5])
-        self.assertEquals(xsl, slice(0, 8))
-        self.assertEquals(ysl, slice(0, 6))
-
     @patch('satpy.readers.yaml_reader.xr')
     def test_load_entire_dataset(self, xarray):
         """Check loading an entire dataset."""
         file_handlers = [FakeFH(None, None), FakeFH(None, None),
                          FakeFH(None, None), FakeFH(None, None)]
 
-        proj = self.reader._load_entire_dataset(None, {}, file_handlers)
+        proj = self.reader._load_dataset(None, {}, file_handlers)
 
         self.assertIs(proj, xarray.concat.return_value)
 
@@ -700,6 +492,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReaderMultiplePatterns))
 
     return mysuite
 

@@ -26,20 +26,23 @@
 
 import logging
 import os
-import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
-from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
+from satpy.config import get_environ_config_dir
+from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
+                           replace_anc)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area
+from satpy.resample import (resample_dataset, get_frozen_area,
+                            prepare_resampler)
+from satpy.writers import load_writer
+from pyresample.geometry import AreaDefinition
+from xarray import DataArray
 
 try:
     import configparser
 except ImportError:
-    from six.moves import configparser
+    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
 
@@ -109,7 +112,7 @@ class Scene(MetadataObject):
         if not filenames and (start_time or end_time or base_dir):
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
+                "Deprecated: Use " +
                 "'from satpy import find_files_and_readers' to find files")
             from satpy import find_files_and_readers
             filenames = find_files_and_readers(
@@ -124,8 +127,8 @@ class Scene(MetadataObject):
         elif start_time or end_time or area:
             import warnings
             warnings.warn(
-                "Deprecated: Use " + \
-                "'filter_parameters' to filter loaded files by 'start_time', " + \
+                "Deprecated: Use " +
+                "'filter_parameters' to filter loaded files by 'start_time', " +
                 "'end_time', or 'area'.")
             fp = filter_parameters if filter_parameters else {}
             fp.update({
@@ -133,8 +136,14 @@ class Scene(MetadataObject):
                 'end_time': end_time,
                 'area': area,
             })
+            filter_parameters = fp
         if filter_parameters:
+            if reader_kwargs is None:
+                reader_kwargs = {}
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+
+        if filenames and isinstance(filenames, str):
+            raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     reader=reader,
@@ -145,14 +154,14 @@ class Scene(MetadataObject):
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
+        self.resamplers = {}
 
     def _ipython_key_completions_(self):
         return [x.name for x in self.datasets.keys()]
 
     def _compute_metadata_from_readers(self):
         """Determine pieces of metadata from the readers loaded."""
-        mda = {}
-        mda['sensor'] = self._get_sensor_names()
+        mda = {'sensor': self._get_sensor_names()}
 
         # overwrite the request start/end times with actual loaded data limits
         if self.readers:
@@ -199,6 +208,73 @@ class Scene(MetadataObject):
     def missing_datasets(self):
         """DatasetIDs that have not been loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
+
+    def _compare_areas(self, datasets=None, compare_func=max):
+        """Get  for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+            compare_func (callable): `min` or `max` or other function used to
+                                     compare the dataset's areas.
+
+        """
+        if datasets is None:
+            check_datasets = list(self.values())
+        else:
+            check_datasets = []
+            for ds in datasets:
+                if not isinstance(ds, DataArray):
+                    ds = self[ds]
+                check_datasets.append(ds)
+
+        if not check_datasets:
+            raise ValueError("No dataset areas available")
+
+        areas = [x.attrs['area'] for x in check_datasets]
+        if not all(isinstance(x, type(areas[0]))
+                   for x in areas[1:]):
+            raise ValueError("Can't compare areas of different types")
+        elif isinstance(areas[0], AreaDefinition):
+            first_pstr = areas[0].proj_str
+            if not all(ad.proj_str == first_pstr for ad in areas[1:]):
+                raise ValueError("Can't compare areas with different "
+                                 "projections.")
+
+            def key_func(ds):
+                return 1. / ds.pixel_size_x
+        else:
+            def key_func(ds):
+                return ds.shape
+
+        # find the highest/lowest area among the provided
+        return compare_func(areas, key=key_func)
+
+    def max_area(self, datasets=None):
+        """Get highest resolution area for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        return self._compare_areas(datasets=datasets, compare_func=max)
+
+    def min_area(self, datasets=None):
+        """Get lowest resolution area for the provided datasets.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        return self._compare_areas(datasets=datasets, compare_func=min)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get names of available datasets, globally or just for *reader_name*
@@ -274,8 +350,7 @@ class Scene(MetadataObject):
         # wishlist
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         dep_tree = DependencyTree(self.readers, comps, mods)
-        unknowns = dep_tree.find_dependencies(
-            set(available_datasets + all_comps))
+        dep_tree.find_dependencies(set(available_datasets + all_comps))
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
@@ -334,6 +409,9 @@ class Scene(MetadataObject):
     def keys(self, **kwargs):
         return self.datasets.keys(**kwargs)
 
+    def values(self):
+        return self.datasets.values()
+
     def __getitem__(self, key):
         """Get a dataset."""
         return self.datasets[key]
@@ -341,6 +419,7 @@ class Scene(MetadataObject):
     def __setitem__(self, key, value):
         """Add the item to the scene."""
         self.datasets[key] = value
+        # this could raise a KeyError but never should in this case
         ds_id = self.datasets.get_key(key)
         self.wishlist.add(ds_id)
         self.dep_tree.add_leaf(ds_id)
@@ -355,16 +434,22 @@ class Scene(MetadataObject):
         """Check if the dataset is in the scene."""
         return name in self.datasets
 
-    def read_datasets(self, dataset_nodes, **kwargs):
+    def _read_datasets(self, dataset_nodes, **kwargs):
         """Read the given datasets from file."""
         # Sort requested datasets by reader
         reader_datasets = {}
 
         for node in dataset_nodes:
             ds_id = node.name
-            if ds_id in self.datasets and self.datasets[ds_id].is_loaded():
+            # if we already have this node loaded or the node was assigned
+            # by the user (node data is None) then don't try to load from a
+            # reader
+            if ds_id in self.datasets or not isinstance(node.data, dict):
                 continue
-            reader_name = node.data['reader_name']
+            reader_name = node.data.get('reader_name')
+            if reader_name is None:
+                # This shouldn't be possible
+                raise RuntimeError("Dependency tree has a corrupt node.")
             reader_datasets.setdefault(reader_name, set()).add(ds_id)
 
         # load all datasets for one reader at a time
@@ -397,6 +482,7 @@ class Scene(MetadataObject):
 
         """
         prereq_datasets = []
+        delayed_gen = False
         for prereq_node in prereq_nodes:
             prereq_id = prereq_node.name
             if prereq_id not in self.datasets and prereq_id not in keepables \
@@ -405,19 +491,30 @@ class Scene(MetadataObject):
 
             if prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
+            elif not prereq_node.is_leaf and prereq_id in keepables:
+                delayed_gen = True
+                continue
+            elif not skip:
+                LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite")
             else:
-                if not prereq_node.is_leaf and prereq_id in keepables:
-                    keepables.add(comp_id)
-                    LOG.warning("Delaying generation of %s "
-                                "because of dependency's delayed generation: %s",
-                                comp_id, prereq_id)
-                if not skip:
-                    LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                        comp_id, prereq_id))
-                    raise KeyError("Missing composite prerequisite")
-                else:
-                    LOG.debug("Missing optional prerequisite for {}: {}".format(
-                        comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(
+                    comp_id, prereq_id))
+
+        if delayed_gen:
+            keepables.add(comp_id)
+            keepables.update([x.name for x in prereq_nodes])
+            LOG.warning("Delaying generation of %s "
+                        "because of dependency's delayed generation: %s",
+                        comp_id, prereq_id)
+            if not skip:
+                LOG.warning("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite")
+            else:
+                LOG.debug("Missing optional prerequisite for {}: {}".format(
+                    comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -479,9 +576,8 @@ class Scene(MetadataObject):
             keepables.add(comp_node.name)
             return
 
-    def read_composites(self, compositor_nodes):
-        """Read (generate) composites.
-        """
+    def _read_composites(self, compositor_nodes):
+        """Read (generate) composites."""
         keepables = set()
         for item in compositor_nodes:
             self._generate_composite(item, keepables)
@@ -501,16 +597,16 @@ class Scene(MetadataObject):
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = self.dep_tree.leaves(nodes=required_nodes)
-        return self.read_datasets(nodes, **kwargs)
+        return self._read_datasets(nodes, **kwargs)
 
-    def compute(self, nodes=None):
+    def generate_composites(self, nodes=None):
         """Compute all the composites contained in `requirements`.
         """
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
                 set(self.datasets.keys())
-        return self.read_composites(nodes)
+        return self._read_composites(nodes)
 
     def _remove_failed_datasets(self, keepables):
         keepables = keepables or set()
@@ -525,7 +621,7 @@ class Scene(MetadataObject):
 
         Datasets are considered unneeded if they weren't directly requested
         or added to the Scene by the user or they are no longer needed to
-        compute composites that have yet to be computed.
+        generate composites that have yet to be generated.
 
         Args:
             keepables (iterable): DatasetIDs to keep whether they are needed
@@ -536,6 +632,7 @@ class Scene(MetadataObject):
                   if ds_id not in self.wishlist and (not keepables or ds_id
                                                      not in keepables)]
         for ds_id in to_del:
+            LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
     def load(self,
@@ -543,10 +640,10 @@ class Scene(MetadataObject):
              calibration=None,
              resolution=None,
              polarization=None,
-             compute=True,
+             generate=True,
              unload=True,
              **kwargs):
-        """Read, compute and unload.
+        """Read, generate, and unload.
         """
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
@@ -561,9 +658,11 @@ class Scene(MetadataObject):
             raise KeyError("Unknown datasets: {}".format(unknown_str))
 
         self.read(**kwargs)
-        keepables = None
-        if compute:
-            keepables = self.compute()
+        if generate:
+            keepables = self.generate_composites()
+        else:
+            # don't lose datasets we loaded to try to generate composites
+            keepables = set(self.datasets.keys()) | self.wishlist
         if self.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
@@ -575,13 +674,13 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    @classmethod
-    def _resampled_scene(cls, datasets, destination, **resample_kwargs):
+    def _resampled_scene(self, datasets, destination, **resample_kwargs):
         """Generate a new scene with resampled *datasets*."""
-        new_scn = cls()
-
+        new_scn = self.__class__()
         new_datasets = {}
         destination_area = None
+        resamplers = {}
+        resampler = resample_kwargs.get('resampler')
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -597,32 +696,51 @@ class Scene(MetadataObject):
                     replace_anc(dataset, pres)
                 continue
             if destination_area is None:
+                # FIXME: We should allow users to freeze based with specific
+                #        dataset
                 destination_area = get_frozen_area(destination,
                                                    dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
+            source_area = dataset.attrs['area']
+            try:
+                slice_x, slice_y = source_area.get_area_slices(destination_area)
+                source_area = source_area[slice_y, slice_x]
+                dataset.data = dataset.data.rechunk(1024)
+                dataset = dataset.isel(x=slice_x, y=slice_y)
+                dataset.attrs['area'] = source_area
+            except NotImplementedError:
+                LOG.info("Not reducing data before resampling.")
+            if source_area not in resamplers:
+                key, resampler = prepare_resampler(
+                    source_area, destination_area, **resample_kwargs)
+                resamplers[source_area] = resampler
+                self.resamplers[key] = resampler
+            kwargs = resample_kwargs.copy()
+            kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
-                                   **resample_kwargs)
+                                   **kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
                 new_scn[ds_id] = res
             else:
                 replace_anc(res, pres)
 
-        return new_scn
-
+        return new_scn, destination_area
 
     def resample(self,
-                 destination,
+                 destination=None,
                  datasets=None,
-                 compute=True,
+                 generate=True,
                  unload=True,
                  **resample_kwargs):
         """Resample the datasets and return a new scene."""
         to_resample = [dataset for (dsid, dataset) in self.datasets.items()
                        if (not datasets) or dsid in datasets]
 
-        new_scn = self._resampled_scene(to_resample, destination,
-                                        **resample_kwargs)
+        if destination is None:
+            destination = self.max_area(to_resample)
+        new_scn, destination_area = self._resampled_scene(to_resample, destination,
+                                                          **resample_kwargs)
 
         new_scn.attrs = self.attrs.copy()
         new_scn.dep_tree = self.dep_tree.copy()
@@ -630,19 +748,20 @@ class Scene(MetadataObject):
         # MUST set this after assigning the resampled datasets otherwise
         # composite prereqs that were resampled will be considered "wishlisted"
         if datasets is None:
-            new_scn.wishlist = self.wishlist
+            new_scn.wishlist = self.wishlist.copy()
         else:
             new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
                                     for ds in new_scn])
 
-        # recompute anything from the wishlist that needs it (combining
+        # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        keepables = None
-        if compute:
-            nodes = [self.dep_tree[i]
-                     for i in new_scn.wishlist
-                     if i in self.dep_tree and not self.dep_tree[i].is_leaf]
-            keepables = new_scn.compute(nodes=nodes)
+        if generate:
+            keepables = new_scn.generate_composites()
+        else:
+            # don't lose datasets that we may need later for generating
+            # composites
+            keepables = set(new_scn.datasets.keys()) | new_scn.wishlist
+
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
@@ -670,52 +789,35 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def load_writer_config(self, config_files, **kwargs):
-        """Load the writer config for *config_files*."""
-        conf = {}
-        for conf_fn in config_files:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
-        writer = writer_class(ppp_config_dir=self.ppp_config_dir,
-                              config_files=config_files,
-                              **kwargs)
-        return writer
-
     def save_dataset(self, dataset_id, filename=None, writer=None,
-                     overlay=None, **kwargs):
+                     overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
-        if writer is None:
-            if filename is None:
-                writer = self.get_writer("geotiff", **kwargs)
-            else:
-                writer = self.get_writer_by_ext(
-                    os.path.splitext(filename)[1], **kwargs)
-        else:
-            writer = self.get_writer(writer, **kwargs)
-        writer.save_dataset(self[dataset_id],
-                            filename=filename,
-                            overlay=overlay, **kwargs)
+        if writer is None and filename is None:
+            writer = 'geotiff'
+        elif writer is None:
+            writer = self.get_writer_by_ext(os.path.splitext(filename)[1])
 
-    def save_datasets(self, writer="geotiff", datasets=None, **kwargs):
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
+        return writer.save_dataset(self[dataset_id], filename=filename,
+                                   overlay=overlay, compute=compute,
+                                   **save_kwargs)
+
+    def save_datasets(self, writer="geotiff", datasets=None, compute=True,
+                      **kwargs):
         """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
         else:
             datasets = self.datasets.values()
-        writer = self.get_writer(writer, **kwargs)
-        writer.save_datasets(datasets, **kwargs)
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
+        return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
-    def get_writer(self, writer="geotiff", **kwargs):
-        """Get the writer instance."""
-        config_fn = writer + ".yaml" if "." not in writer else writer
-        config_files = config_search_paths(
-            os.path.join("writers", config_fn), self.ppp_config_dir)
-        kwargs.setdefault("config_files", config_files)
-        return self.load_writer_config(**kwargs)
-
-    def get_writer_by_ext(self, extension, **kwargs):
+    @classmethod
+    def get_writer_by_ext(cls, extension):
         """Find the writer matching the *extension*."""
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
-        return self.get_writer(
-            mapping.get(extension.lower(), "simple_image"), **kwargs)
+        return mapping.get(extension.lower(), 'simple_image')
