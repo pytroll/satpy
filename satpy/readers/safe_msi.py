@@ -25,7 +25,6 @@
 
 import logging
 # import os
-# import xml.etree.ElementTree as ET
 
 import glymur
 import numpy as np
@@ -33,6 +32,9 @@ import numpy as np
 from xarray import DataArray
 from dask.array import from_delayed
 from dask import delayed
+import xml.etree.ElementTree as ET
+from pyresample import geometry
+
 
 from satpy import CHUNK_SIZE
 # from geotiepoints.geointerpolator import GeoInterpolator
@@ -43,13 +45,14 @@ logger = logging.getLogger(__name__)
 
 class SAFEMSIL1C(BaseFileHandler):
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, mda):
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
 
         self._start_time = filename_info['observation_time']
         self._end_time = None
         self._channel = filename_info['band_name']
+        self._mda = mda
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -81,3 +84,57 @@ class SAFEMSIL1C(BaseFileHandler):
     @property
     def end_time(self):
         return self._start_time
+
+    def get_area_def(self, dsid):
+        if self._channel != dsid.name:
+            return
+        return self._mda.get_area_def(dsid)
+
+
+class SAFEMSIMDXML(BaseFileHandler):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(SAFEMSIMDXML, self).__init__(filename, filename_info,
+                                           filetype_info)
+        self._start_time = filename_info['observation_time']
+        self._end_time = None
+        self.root = ET.parse(self.filename)
+        self.tile = filename_info['gtile_number']
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._start_time
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the dataset."""
+        geocoding = self.root.find('.//Tile_Geocoding')
+        epsg = geocoding.find('HORIZONTAL_CS_CODE').text
+        rows = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NCOLS').text)
+        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid.resolution) + '"]')
+        ulx = float(geoposition.find('ULX').text)
+        uly = float(geoposition.find('ULY').text)
+        xdim = float(geoposition.find('XDIM').text)
+        ydim = float(geoposition.find('YDIM').text)
+        area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
+        area = geometry.AreaDefinition(
+                    self.tile,
+                    "On-the-fly area",
+                    self.tile,
+                    proj_dict={'init': epsg},
+                    x_size=cols,
+                    y_size=rows,
+                    area_extent=area_extent)
+        return area
+
+    def get_dataset(self, key, info):
+        angles = self.root.find('.//Tile_Angles')
+        if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
+            elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
+            lines = np.array([[float(val) for val in elt.text.split()] for elt in elts])
+            # XXX: Not finished ! This needs to be interpolated !
+            return lines
