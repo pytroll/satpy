@@ -182,8 +182,8 @@ prologue = np.dtype([
   ("SGSProductCompleteness", "u1"),
   ("SGSProductTimeliness", "u1"),
   ("SGSProcessingInstanceId", "u1"),
-  ("BaseAlgorithmVersion", np.str_, 16),
-  ("ProductAlgorithmVersion", np.str_, 16),
+  ("BaseAlgorithmVersion", "S1", 16),
+  ("ProductAlgorithmVersion", "S1", 16),
   # product header
   ("ImageProductHeaderVersion", "u1"),
   ("Junk2", "u1", 3),
@@ -252,7 +252,6 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=prologue, count=1)[0]
-
             self.prologue.update(recarray2dict(data))
 
         self.process_prologue()
@@ -395,9 +394,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         params = {}
         idx_table = []
         val_table = []
-        for elt in self.mda['image_data_function'].split('\r\n'):
+        for elt in self.mda['image_data_function'].split(b'\r\n'):
             try:
-                key, val = elt.split(':=')
+                key, val = elt.split(b':=')
                 try:
                     idx_table.append(int(key))
                     val_table.append(float(val))
@@ -436,7 +435,7 @@ class HRITGOESFileHandler(HRITFileHandler):
                            coords=data.coords)
         res = res.clip(min=0)
         units = {'percent': '%'}
-        unit = self.mda['calibration_parameters']['_UNIT']
+        unit = self.mda['calibration_parameters'][b'_UNIT']
         res.attrs['units'] = units.get(unit, unit)
         return res
 
