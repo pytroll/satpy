@@ -15,6 +15,27 @@ datasets:
   B01:
     name: B01
     sensor: MSI
-    wavelength: [1, 2, 3]
-    resolution: 50
+    wavelength: [0.415, 0.443, 0.470]
+    resolution: 60
+    file_type: safe_granule
+
+  B02:
+    name: B02
+    sensor: MSI
+    wavelength: [0.440, 0.490, 0.540]
+    resolution: 10
+    file_type: safe_granule
+
+  B03:
+    name: B03
+    sensor: MSI
+    wavelength: [0.540, 0.560, 0.580]
+    resolution: 10
+    file_type: safe_granule
+
+  B04:
+    name: B04
+    sensor: MSI
+    wavelength: [0.645, 0.665, 0.685]
+    resolution: 10
     file_type: safe_granule
