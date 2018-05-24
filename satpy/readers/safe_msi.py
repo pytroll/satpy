@@ -30,7 +30,7 @@ import glymur
 import numpy as np
 # from osgeo import gdal
 from xarray import DataArray
-from dask.array import from_delayed
+import dask.array as da
 from dask import delayed
 import xml.etree.ElementTree as ET
 from pyresample import geometry
@@ -43,6 +43,12 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
+PLATFORMS = {'S2A': "Sentinel-2A",
+             'S2B': "Sentinel-2B",
+             'S2C': "Sentinel-2C",
+             'S2D': "Sentinel-2D"}
+
+
 class SAFEMSIL1C(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, mda):
@@ -53,6 +59,7 @@ class SAFEMSIL1C(BaseFileHandler):
         self._end_time = None
         self._channel = filename_info['band_name']
         self._mda = mda
+        self.platform_name = PLATFORMS[filename_info['fmission_id']]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -69,12 +76,13 @@ class SAFEMSIL1C(BaseFileHandler):
             except AttributeError:
                 pass
         jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-        data = from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
+        data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
         data = data.rechunk(CHUNK_SIZE) / QUANTIFICATION_VALUE * 100
 
         proj = DataArray(data, dims=['y', 'x'])
         proj.attrs = info.copy()
         proj.attrs['units'] = '%'
+        proj.attrs['platform_name'] = self.platform_name
         return proj
 
     @property
@@ -100,6 +108,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         self._end_time = None
         self.root = ET.parse(self.filename)
         self.tile = filename_info['gtile_number']
+        self.platform_name = PLATFORMS[filename_info['fmission_id']]
 
     @property
     def start_time(self):
@@ -132,9 +141,53 @@ class SAFEMSIMDXML(BaseFileHandler):
         return area
 
     def get_dataset(self, key, info):
+        geocoding = self.root.find('.//Tile_Geocoding')
+        rows = int(geocoding.find('Size[@resolution="' + str(key.resolution) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(key.resolution) + '"]/NCOLS').text)
+
         angles = self.root.find('.//Tile_Angles')
         if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
-            lines = np.array([[float(val) for val in elt.text.split()] for elt in elts])
-            # XXX: Not finished ! This needs to be interpolated !
-            return lines
+            lines = np.array([[val for val in elt.text.split()] for elt in elts],
+                             dtype=np.float)
+
+        elif key in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+            arrays = []
+            elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
+            for elt in elts:
+                items = elt.findall(info['xml_item'] + '/Values_List/VALUES')
+                arrays.append(np.array([[val for val in item.text.split()] for item in items],
+                                       dtype=np.float))
+            lines = np.nanmean(np.dstack(arrays), -1)
+        else:
+            return
+
+        # Fill gaps at edges of swath
+        darr = DataArray(lines, dims=['y', 'x'])
+        darr = darr.bfill('x')
+        darr = darr.ffill('x')
+        lines = darr.data
+
+        smin = [0, 0]
+        smax = np.array(lines.shape) - 1
+        orders = lines.shape
+        from geotiepoints.multilinear import MultilinearInterpolator
+        minterp = MultilinearInterpolator(smin, smax, orders)
+        minterp.set_values(da.atleast_2d(lines.ravel()))
+
+        def _do_interp(minterp, xcoord, ycoord):
+            interp_points2 = np.vstack((xcoord.ravel(),
+                                        ycoord.ravel()))
+            res = minterp(interp_points2)
+            return res.reshape(xcoord.shape)
+
+        x = da.arange(rows, dtype=lines.dtype, chunks=CHUNK_SIZE) / (rows-1) * (lines.shape[0] - 1)
+        y = da.arange(cols, dtype=lines.dtype, chunks=CHUNK_SIZE) / (cols-1) * (lines.shape[1] - 1)
+        xcoord, ycoord = da.meshgrid(x, y)
+        res = da.map_blocks(_do_interp, minterp, xcoord, ycoord, dtype=lines.dtype,
+                            chunks=xcoord.chunks)
+        proj = DataArray(res, dims=['y', 'x'])
+        proj.attrs = info.copy()
+        proj.attrs['units'] = 'degrees'
+        proj.attrs['platform_name'] = self.platform_name
+        return proj

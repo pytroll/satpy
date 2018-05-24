@@ -55,3 +55,17 @@ datasets:
     resolution: [10, 20, 60]
     file_type: safe_g_metadata
     xml_tag: Sun_Angles_Grid/Azimuth
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    resolution: [10, 20, 60]
+    file_type: safe_g_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Azimuth
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    resolution: [10, 20, 60]
+    file_type: safe_g_metadata
+    xml_tag: Viewing_Incidence_Angles_Grids
+    xml_item: Zenith
