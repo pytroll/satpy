@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Martin Raspaud
+# Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Sauli Joro <sauli.joro@eumetsat.int>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,14 +19,16 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
+"""The SEVIRI HRIT reader tests package.
 """
 
 import sys
 from datetime import datetime
 
-from satpy.readers.hrit_msg import (HRITMSGPrologueFileHandler,
-                                    make_time_cds_expanded)
+from satpy.readers.hrit_msg import HRITMSGPrologueFileHandler
+# make_time_cds_expanded)
+from satpy.readers.eum_base import make_time_cds
+
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -38,17 +41,11 @@ except ImportError:
     import mock
 
 
-class TestMakeTimeCDSExpanded(unittest.TestCase):
-    def test_fun(self):
-        tcds = {'days': 1, 'milliseconds': 2, 'microseconds': 3, 'nanoseconds': 4}
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2003)
-        self.assertEqual(make_time_cds_expanded(tcds), expected)
-
-
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.hrit_msg.make_time_cds_expanded')
+    @mock.patch('satpy.readers.eum_base.make_time_cds')
+    # @mock.patch('satpy.readers.hrit_msg.make_time_cds_expanded')
     @mock.patch('satpy.readers.hrit_msg.recarray2dict')
     @mock.patch('satpy.readers.hrit_msg.np.fromfile')
     @mock.patch('satpy.readers.hrit_msg.HRITFileHandler.__init__')
@@ -71,7 +68,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                 'filename', {'platform_shortname': 'MSG3',
                              'start_time': datetime(2016, 3, 3, 0, 0),
                              'service': 'test_service'},
-                {'filetype': 'info'})
+                {'filetype_info': 'info'})
 
         ret = {'ImageAcquisition': {'PlannedAcquisitionTime': {}}}
         ret["ImageAcquisition"]['PlannedAcquisitionTime']['TrueRepeatCycleStart'] = 'transstart'
@@ -86,7 +83,6 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITMSGPrologueFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeTimeCDSExpanded))
     return mysuite
 
 

@@ -38,8 +38,7 @@ import xarray as xr
 from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, time_cds_short,
-                                     recarray2dict)
+                                     image_data_function)
 
 
 class CalibrationError(Exception):
@@ -47,6 +46,30 @@ class CalibrationError(Exception):
 
 
 logger = logging.getLogger('hrit_goes')
+
+
+def recarray2dict(arr):
+    res = {}
+    for dtuple in arr.dtype.descr:
+        key = dtuple[0]
+        ntype = dtuple[1]
+        data = arr[key]
+        if isinstance(ntype, list):
+            res[key] = recarray2dict(data)
+        else:
+            res[key] = data
+
+    return res
+
+
+# FIXME: these variables should come from eum_base.py
+time_cds_short = np.dtype([('days', '>u2'),
+                           ('milliseconds', '>u4')])
+
+time_cds_expanded = np.dtype([('days', '>u2'),
+                              ('milliseconds', '>u4'),
+                              ('microseconds', '>u2'),
+                              ('nanoseconds', '>u2')])
 
 
 # goes implementation:
@@ -99,11 +122,6 @@ attitude_coef = np.dtype([('StartTime', time_cds_short),
 
 cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
-
-time_cds_expanded = np.dtype([('days', '>u2'),
-                              ('milliseconds', '>u4'),
-                              ('microseconds', '>u2'),
-                              ('nanoseconds', '>u2')])
 
 
 sgs_time = np.dtype([('century', 'u1'),
@@ -174,63 +192,63 @@ def make_gvar_float(float_val):
 
 
 prologue = np.dtype([
-  # common generic header
-  ("CommonHeaderVersion", "u1"),
-  ("Junk1", "u1", 3),
-  ("NominalSGSProductTime", time_cds_short),
-  ("SGSProductQuality", "u1"),
-  ("SGSProductCompleteness", "u1"),
-  ("SGSProductTimeliness", "u1"),
-  ("SGSProcessingInstanceId", "u1"),
-  ("BaseAlgorithmVersion", "S1", 16),
-  ("ProductAlgorithmVersion", "S1", 16),
-  # product header
-  ("ImageProductHeaderVersion", "u1"),
-  ("Junk2", "u1", 3),
-  ("ImageProductHeaderLength", ">u4"),
-  ("ImageProductVersion", "u1"),
-  # first block-0
-  ("SatelliteID", "u1"),
-  ("SPSID", "u1"),
-  ("IScan", "u1", 4),
-  ("IDSub", "u1", 16),
-  ("TCurr", sgs_time),
-  ("TCHED", sgs_time),
-  ("TCTRL", sgs_time),
-  ("TLHED", sgs_time),
-  ("TLTRL", sgs_time),
-  ("TIPFS", sgs_time),
-  ("TINFS", sgs_time),
-  ("TISPC", sgs_time),
-  ("TIECL", sgs_time),
-  ("TIBBC", sgs_time),
-  ("TISTR", sgs_time),
-  ("TLRAN", sgs_time),
-  ("TIIRT", sgs_time),
-  ("TIVIT", sgs_time),
-  ("TCLMT", sgs_time),
-  ("TIONA", sgs_time),
-  ("RelativeScanCount", '>u2'),
-  ("AbsoluteScanCount", '>u2'),
-  ("NorthernmostScanLine", '>u2'),
-  ("WesternmostPixel", '>u2'),
-  ("EasternmostPixel", '>u2'),
-  ("NorthernmostFrameLine", '>u2'),
-  ("SouthernmostFrameLine", '>u2'),
-  ("0Pixel", '>u2'),
-  ("0ScanLine", '>u2'),
-  ("0Scan", '>u2'),
-  ("SubSatScan", '>u2'),
-  ("SubSatPixel", '>u2'),
-  ("SubSatLatitude", gvar_float),
-  ("SubSatLongitude", gvar_float),
-  ("Junk4", "u1", 96),  # move to "word" 295
-  ("IMCIdentifier", "S4"),
-  ("Zeros", "u1", 12),
-  ("ReferenceLongitude", gvar_float),
-  ("ReferenceDistance",  gvar_float),
-  ("ReferenceLatitude",  gvar_float)
-  ])
+    # common generic header
+    ("CommonHeaderVersion", "u1"),
+    ("Junk1", "u1", 3),
+    ("NominalSGSProductTime", time_cds_short),
+    ("SGSProductQuality", "u1"),
+    ("SGSProductCompleteness", "u1"),
+    ("SGSProductTimeliness", "u1"),
+    ("SGSProcessingInstanceId", "u1"),
+    ("BaseAlgorithmVersion", "S1", 16),
+    ("ProductAlgorithmVersion", "S1", 16),
+    # product header
+    ("ImageProductHeaderVersion", "u1"),
+    ("Junk2", "u1", 3),
+    ("ImageProductHeaderLength", ">u4"),
+    ("ImageProductVersion", "u1"),
+    # first block-0
+    ("SatelliteID", "u1"),
+    ("SPSID", "u1"),
+    ("IScan", "u1", 4),
+    ("IDSub", "u1", 16),
+    ("TCurr", sgs_time),
+    ("TCHED", sgs_time),
+    ("TCTRL", sgs_time),
+    ("TLHED", sgs_time),
+    ("TLTRL", sgs_time),
+    ("TIPFS", sgs_time),
+    ("TINFS", sgs_time),
+    ("TISPC", sgs_time),
+    ("TIECL", sgs_time),
+    ("TIBBC", sgs_time),
+    ("TISTR", sgs_time),
+    ("TLRAN", sgs_time),
+    ("TIIRT", sgs_time),
+    ("TIVIT", sgs_time),
+    ("TCLMT", sgs_time),
+    ("TIONA", sgs_time),
+    ("RelativeScanCount", '>u2'),
+    ("AbsoluteScanCount", '>u2'),
+    ("NorthernmostScanLine", '>u2'),
+    ("WesternmostPixel", '>u2'),
+    ("EasternmostPixel", '>u2'),
+    ("NorthernmostFrameLine", '>u2'),
+    ("SouthernmostFrameLine", '>u2'),
+    ("0Pixel", '>u2'),
+    ("0ScanLine", '>u2'),
+    ("0Scan", '>u2'),
+    ("SubSatScan", '>u2'),
+    ("SubSatPixel", '>u2'),
+    ("SubSatLatitude", gvar_float),
+    ("SubSatLongitude", gvar_float),
+    ("Junk4", "u1", 96),  # move to "word" 295
+    ("IMCIdentifier", "S4"),
+    ("Zeros", "u1", 12),
+    ("ReferenceLongitude", gvar_float),
+    ("ReferenceDistance",  gvar_float),
+    ("ReferenceLatitude",  gvar_float)
+])
 
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
@@ -332,26 +350,26 @@ C1 = 1.19104273e-5
 C2 = 1.43877523
 
 SPACECRAFTS = {
-               # these are GP_SC_ID
-               18007: "GOES-7",
-               18008: "GOES-8",
-               18009: "GOES-9",
-               18010: "GOES-10",
-               18011: "GOES-11",
-               18012: "GOES-12",
-               18013: "GOES-13",
-               18014: "GOES-14",
-               18015: "GOES-15",
-               # these are in block-0
-               7: "GOES-7",
-               8: "GOES-8",
-               9: "GOES-9",
-               10: "GOES-10",
-               11: "GOES-11",
-               12: "GOES-12",
-               13: "GOES-13",
-               14: "GOES-14",
-               15: "GOES-15"}
+    # these are GP_SC_ID
+    18007: "GOES-7",
+    18008: "GOES-8",
+    18009: "GOES-9",
+    18010: "GOES-10",
+    18011: "GOES-11",
+    18012: "GOES-12",
+    18013: "GOES-13",
+    18014: "GOES-14",
+    18015: "GOES-15",
+    # these are in block-0
+    7: "GOES-7",
+    8: "GOES-8",
+    9: "GOES-9",
+    10: "GOES-10",
+    11: "GOES-11",
+    12: "GOES-12",
+    13: "GOES-13",
+    14: "GOES-14",
+    15: "GOES-15"}
 
 
 class HRITGOESFileHandler(HRITFileHandler):

@@ -38,17 +38,18 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample import geometry
+
+from satpy.readers.eum_base import (make_time_cds, time_cds_short,
+                                    recarray2dict)
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function,
-                                     time_cds_short, recarray2dict)
+                                     image_data_function)
 
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 
-from satpy.readers.native_msg_hdr import (HritPrologue,
-                                          L15DataHeaderRecord,
-                                          Msg15NativeTrailerRecord)
+from satpy.readers.native_msg_hdr import (hrit_prologue, hrit_epilogue,
+                                          impf_configuration)
 
 logger = logging.getLogger('hrit_msg')
 
@@ -103,17 +104,6 @@ attitude_coef = np.dtype([('StartTime', time_cds_short),
 cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
-time_cds_expanded = np.dtype([('days', '>u2'),
-                              ('milliseconds', '>u4'),
-                              ('microseconds', '>u2'),
-                              ('nanoseconds', '>u2')])
-
-
-def make_time_cds_short(tcds_array):
-    return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['Day']),
-                      milliseconds=int(tcds_array['MilliSecsOfDay'])))
-
 
 class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
@@ -126,8 +116,6 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                                                          (msg_hdr_map,
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
-
-        self.prologue = {}
         self.read_prologue()
 
         service = filename_info['service']
@@ -139,17 +127,10 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
     def read_prologue(self):
         """Read the prologue metadata."""
 
-        # TODO: this implementation should be revisited
-        prologue = HritPrologue().get()
-        impf_rec = L15DataHeaderRecord().impf_configuration
-        impf_configuration = np.dtype(impf_rec).newbyteorder('>')
-
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=prologue, count=1)[0]
-
-            self.prologue.update(recarray2dict(data))
-
+            data = np.fromfile(fp_, dtype=hrit_prologue, count=1)[0]
+            self.prologue = recarray2dict(data)
             try:
                 impf = np.fromfile(fp_, dtype=impf_configuration, count=1)[0]
             except IndexError:
@@ -169,7 +150,6 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
                                                          (msg_hdr_map,
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
-        self.epilogue = {}
         self.read_epilogue()
 
         service = filename_info['service']
@@ -181,15 +161,10 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
     def read_epilogue(self):
         """Read the epilogue metadata."""
 
-        # TODO: this implementation should be revisited
-        epi_rec = Msg15NativeTrailerRecord().seviri_l15_trailer
-        epilogue = np.dtype(epi_rec).newbyteorder('>')
-
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=epilogue, count=1)[0]
-
-            self.epilogue.update(recarray2dict(data))
+            data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
+            self.epilogue = recarray2dict(data)
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
@@ -239,18 +214,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     @property
     def start_time(self):
 
-        time = self.epilogue['ImageProductionStats'][
+        return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
-
-        return make_time_cds_short(time)
 
     @property
     def end_time(self):
 
-        time = self.epilogue['ImageProductionStats'][
+        return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
-
-        return make_time_cds_short(time)
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -382,7 +353,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-
         channel_name = self.channel_name
 
         if calibration == 'counts':
