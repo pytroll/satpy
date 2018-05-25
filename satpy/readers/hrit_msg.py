@@ -39,7 +39,7 @@ import numpy as np
 
 from pyresample import geometry
 
-from satpy.readers.eum_base import (make_time_cds, time_cds_short,
+from satpy.readers.eum_base import (time_cds_short,
                                     recarray2dict)
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,

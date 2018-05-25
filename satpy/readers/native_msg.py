@@ -43,10 +43,10 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import make_time_cds, recarray2dict
+from satpy.readers.eum_base import recarray2dict
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
                                     CHANNEL_NAMES, CALIB, SATNUM,
-                                    get_cds_time, dec10216)
+                                    dec10216)
 from satpy.readers.native_msg_hdr import (GSDTRecords, native_header,
                                           native_trailer)
 
@@ -134,8 +134,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
 
-        utc = data15hd['ImageAcquisition']['PlannedAcquisitionTime']
-
         # Set the list of available channels:
         self.available_channels = get_available_channels(self.header)
         self._channel_list = [i for i in CHANNEL_NAMES.values()
@@ -162,8 +160,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
         east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
-        north = int(sec15hd["NorthLineSelectedRectangle"]['Value'])
-        south = int(sec15hd["SouthLineSelectedRectangle"]['Value'])
         ncols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'])
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have

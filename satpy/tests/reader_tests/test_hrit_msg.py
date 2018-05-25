@@ -25,9 +25,8 @@
 import sys
 from datetime import datetime
 
-from satpy.readers.hrit_msg import HRITMSGPrologueFileHandler
-# make_time_cds_expanded)
-from satpy.readers.eum_base import make_time_cds
+from satpy.readers.hrit_msg import HRITMSGPrologueFileHandler  # , make_time_cds_expanded
+# from satpy.readers.eum_base import make_time_cds
 
 
 if sys.version_info < (2, 7):
@@ -44,7 +43,7 @@ except ImportError:
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.eum_base.make_time_cds')
+    # @mock.patch('satpy.readers.eum_base.make_time_cds')
     # @mock.patch('satpy.readers.hrit_msg.make_time_cds_expanded')
     @mock.patch('satpy.readers.hrit_msg.recarray2dict')
     @mock.patch('satpy.readers.hrit_msg.np.fromfile')
