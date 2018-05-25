@@ -56,7 +56,7 @@ class SAFEMSIL1C(BaseFileHandler):
                                          filetype_info)
 
         self._start_time = filename_info['observation_time']
-        self._end_time = None
+        self._end_time = filename_info['observation_time']
         self._channel = filename_info['band_name']
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
@@ -105,7 +105,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         super(SAFEMSIMDXML, self).__init__(filename, filename_info,
                                            filetype_info)
         self._start_time = filename_info['observation_time']
-        self._end_time = None
+        self._end_time = filename_info['observation_time']
         self.root = ET.parse(self.filename)
         self.tile = filename_info['gtile_number']
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
@@ -140,16 +140,40 @@ class SAFEMSIMDXML(BaseFileHandler):
                     area_extent=area_extent)
         return area
 
-    def get_dataset(self, key, info):
-        geocoding = self.root.find('.//Tile_Geocoding')
-        rows = int(geocoding.find('Size[@resolution="' + str(key.resolution) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(key.resolution) + '"]/NCOLS').text)
+    def interpolate_angles(self, angles, resolution):
+        # FIXME: interpolate in cartesian coordinates if the lons or lats are
+        # problematic
+        from geotiepoints.multilinear import MultilinearInterpolator
 
+        geocoding = self.root.find('.//Tile_Geocoding')
+        rows = int(geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
+
+        smin = [0, 0]
+        smax = np.array(angles.shape) - 1
+        orders = angles.shape
+        minterp = MultilinearInterpolator(smin, smax, orders)
+        minterp.set_values(da.atleast_2d(angles.ravel()))
+
+        def _do_interp(minterp, xcoord, ycoord):
+            interp_points2 = np.vstack((xcoord.ravel(),
+                                        ycoord.ravel()))
+            res = minterp(interp_points2)
+            return res.reshape(xcoord.shape)
+
+        x = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
+        y = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
+        xcoord, ycoord = da.meshgrid(x, y)
+        return da.map_blocks(_do_interp, minterp, xcoord, ycoord, dtype=angles.dtype,
+                             chunks=xcoord.chunks)
+
+    def _get_coarse_dataset(self, key, info):
+        """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find('.//Tile_Angles')
         if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
-            lines = np.array([[val for val in elt.text.split()] for elt in elts],
-                             dtype=np.float)
+            return np.array([[val for val in elt.text.split()] for elt in elts],
+                            dtype=np.float)
 
         elif key in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
@@ -158,34 +182,25 @@ class SAFEMSIMDXML(BaseFileHandler):
                 items = elt.findall(info['xml_item'] + '/Values_List/VALUES')
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
                                        dtype=np.float))
-            lines = np.nanmean(np.dstack(arrays), -1)
+            return np.nanmean(np.dstack(arrays), -1)
         else:
             return
 
+    def get_dataset(self, key, info):
+        """Get the dataset refered to by `key`."""
+
+        angles = self._get_coarse_dataset(key, info)
+        if angles is None:
+            return
+
         # Fill gaps at edges of swath
-        darr = DataArray(lines, dims=['y', 'x'])
+        darr = DataArray(angles, dims=['y', 'x'])
         darr = darr.bfill('x')
         darr = darr.ffill('x')
-        lines = darr.data
+        angles = darr.data
 
-        smin = [0, 0]
-        smax = np.array(lines.shape) - 1
-        orders = lines.shape
-        from geotiepoints.multilinear import MultilinearInterpolator
-        minterp = MultilinearInterpolator(smin, smax, orders)
-        minterp.set_values(da.atleast_2d(lines.ravel()))
+        res = self.interpolate_angles(angles, key.resolution)
 
-        def _do_interp(minterp, xcoord, ycoord):
-            interp_points2 = np.vstack((xcoord.ravel(),
-                                        ycoord.ravel()))
-            res = minterp(interp_points2)
-            return res.reshape(xcoord.shape)
-
-        x = da.arange(rows, dtype=lines.dtype, chunks=CHUNK_SIZE) / (rows-1) * (lines.shape[0] - 1)
-        y = da.arange(cols, dtype=lines.dtype, chunks=CHUNK_SIZE) / (cols-1) * (lines.shape[1] - 1)
-        xcoord, ycoord = da.meshgrid(x, y)
-        res = da.map_blocks(_do_interp, minterp, xcoord, ycoord, dtype=lines.dtype,
-                            chunks=xcoord.chunks)
         proj = DataArray(res, dims=['y', 'x'])
         proj.attrs = info.copy()
         proj.attrs['units'] = 'degrees'
