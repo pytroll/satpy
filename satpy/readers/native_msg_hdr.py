@@ -26,6 +26,9 @@
 
 import numpy as np
 
+from satpy.readers.eum_base import (time_cds_short, time_cds,
+                                    time_cds_expanded)
+
 
 class GSDTRecords(object):
     """MSG Ground Segment Data Type records.
@@ -46,27 +49,6 @@ class GSDTRecords(object):
         ('Qualifier_2', np.uint8),
         ('Qualifier_3', np.uint8),
         ('Qualifier_4', np.uint8)
-    ]
-
-    # 8 bytes
-    time_cds = [
-        ('Day', np.uint16),
-        ('MilliSecsOfDay', np.uint32),
-        ('MicrosecsOfMillisecs', np.uint16)
-    ]
-
-    # 10 bytes
-    time_cds_expanded = [
-        ('Day', np.uint16),
-        ('MilliSecsOfDay', np.uint32),
-        ('MicrosecsOfMillisecs', np.uint16),
-        ('NanosecsOfMicrosecs', np.uint16)
-    ]
-
-    # 6 bytes
-    time_cds_short = [
-        ('Day', np.uint16),
-        ('MilliSecsOfDay', np.uint32)
     ]
 
     # 22 bytes
@@ -234,8 +216,6 @@ class L15DataHeaderRecord(object):
     @property
     def satellite_status(self):
 
-        time_cds_short = GSDTRecords.time_cds_short
-
         # 7 bytes
         satellite_definition = [
             ('SatelliteId', np.uint16),
@@ -310,9 +290,6 @@ class L15DataHeaderRecord(object):
     @property
     def image_acquisition(self):
 
-        time_cds_expanded = GSDTRecords.time_cds_expanded
-        time_cds_short = GSDTRecords.time_cds_short
-
         planned_acquisition_time = [
             ('TrueRepeatCycleStart', time_cds_expanded),
             ('PlanForwardScanEnd', time_cds_expanded),
@@ -385,8 +362,6 @@ class L15DataHeaderRecord(object):
 
     @property
     def celestial_events(self):
-
-        time_cds_short = GSDTRecords.time_cds_short
 
         earth_moon_sun_coeff = [
             ('StartTime', time_cds_short),
@@ -472,8 +447,6 @@ class L15DataHeaderRecord(object):
 
     @property
     def radiometric_processing(self):
-
-        time_cds_expanded = GSDTRecords.time_cds_expanded
 
         rp_summary = [
             ('RadianceLinearization', (np.bool, 12)),
@@ -619,8 +592,6 @@ class L15DataHeaderRecord(object):
     @property
     def impf_configuration(self):
 
-        time_cds_short = GSDTRecords.time_cds_short
-
         overall_configuration = [
             ('Issue', np.uint16),
             ('Revision', np.uint16)
@@ -749,7 +720,6 @@ class Msg15NativeTrailerRecord(object):
     def image_production_stats(self):
 
         gp_sc_id = GSDTRecords.gp_sc_id
-        time_cds_short = GSDTRecords.time_cds_short
 
         actual_scanning_summary = [
             ('NominalImageScanning', np.uint8),
@@ -821,8 +791,6 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def navigation_extraction_results(self):
-
-        time_cds = GSDTRecords.time_cds
 
         horizon_observation = [
             ('HorizonId', np.uint8),
@@ -1056,5 +1024,10 @@ class HritPrologue(L15DataHeaderRecord):
         return np.dtype(record).newbyteorder('>')
 
 
-header_dtype = Msg15NativeHeaderRecord().get()
-trailer_dtype = Msg15NativeTrailerRecord().get()
+hrit_epilogue = np.dtype(
+    Msg15NativeTrailerRecord().seviri_l15_trailer).newbyteorder('>')
+hrit_prologue = HritPrologue().get()
+impf_configuration = np.dtype(
+    L15DataHeaderRecord().impf_configuration).newbyteorder('>')
+native_header = Msg15NativeHeaderRecord().get()
+native_trailer = Msg15NativeTrailerRecord().get()
