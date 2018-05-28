@@ -51,7 +51,7 @@ def read_writer_config(config_files, loader=yaml.Loader):
     """Read the writer `config_files` and return the info extracted."""
 
     conf = {}
-    LOG.debug('Reading ' + str(config_files))
+    LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
             conf.update(yaml.load(fd.read(), loader))
