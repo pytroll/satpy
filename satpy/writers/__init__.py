@@ -34,8 +34,8 @@ import dask
 import dask.array as da
 import xarray as xr
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
+from satpy.config import (config_search_paths, glob_config,
+                          get_environ_config_dir, recursive_dict_update)
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -47,15 +47,31 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
+def read_writer_config(config_files, loader=yaml.Loader):
+    """Read the writer `config_files` and return the info extracted."""
+
+    conf = {}
+    LOG.debug('Reading ' + str(config_files))
+    for config_file in config_files:
+        with open(config_file) as fd:
+            conf.update(yaml.load(fd.read(), loader))
+
+    try:
+        writer_info = conf['writer']
+    except KeyError:
+        raise KeyError(
+            "Malformed config file {}: missing writer 'writer'".format(
+                config_files))
+    writer_info['config_files'] = config_files
+    return writer_info
+
+
 def load_writer_configs(writer_configs, ppp_config_dir,
                         **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
-    conf = {}
     try:
-        for conf_fn in writer_configs:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
+        writer_info = read_writer_config(writer_configs)
+        writer_class = writer_info['writer']
     except (ValueError, KeyError, yaml.YAMLError):
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
@@ -85,6 +101,64 @@ def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
                          "loaded".format(writer))
+
+
+def configs_for_writer(writer=None, ppp_config_dir=None):
+    """Generator of writer configuration files for one or more writers
+
+    Args:
+        writer (Optional[str]): Yield configs only for this writer
+        ppp_config_dir (Optional[str]): Additional configuration directory
+            to search for writer configuration files.
+
+    Returns: Generator of lists of configuration files
+
+    """
+    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
+    if writer is not None:
+        if not isinstance(writer, (list, tuple)):
+            writer = [writer]
+        # given a config filename or writer name
+        config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
+    else:
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
+                                     *search_paths)
+        config_files = set(writer_configs)
+
+    for config_file in config_files:
+        config_basename = os.path.basename(config_file)
+        writer_configs = config_search_paths(
+            os.path.join("writers", config_basename), *search_paths)
+
+        if not writer_configs:
+            LOG.warning("No writer configs found for '%s'", writer)
+            continue
+
+        yield writer_configs
+
+
+def available_writers(as_dict=False):
+    """Available writers based on current configuration.
+
+    Args:
+        as_dict (bool): Optionally return writer information as a dictionary.
+                        Default: False
+
+    Returns: List of available writer names. If `as_dict` is `True` then
+             a list of dictionaries including additionally writer information
+             is returned.
+
+    """
+    writers = []
+    for writer_configs in configs_for_writer():
+        try:
+            writer_info = read_writer_config(writer_configs)
+        except (KeyError, IOError, yaml.YAMLError):
+            LOG.warning("Could not import writer config from: %s", writer_configs)
+            LOG.debug("Error loading YAML", exc_info=True)
+            continue
+        writers.append(writer_info if as_dict else writer_info['name'])
+    return writers
 
 
 def _determine_mode(dataset):
@@ -436,7 +510,7 @@ class Writer(Plugin):
                             If `False` return either a `dask.delayed.Delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
-            **kwargs: Other keyword arguments for this particular reader.
+            **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then

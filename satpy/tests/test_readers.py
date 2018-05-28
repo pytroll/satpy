@@ -447,6 +447,19 @@ class TestYAMLFiles(unittest.TestCase):
                              "Reader YAML filename doesn't match reader "
                              "name in the YAML file.")
 
+    def test_available_readers(self):
+        """Test the 'available_readers' function."""
+        from satpy import available_readers
+        reader_names = available_readers()
+        self.assertGreater(len(reader_names), 0)
+        self.assertIsInstance(reader_names[0], str)
+
+        reader_infos = available_readers(as_dict=True)
+        self.assertEqual(len(reader_names), len(reader_infos))
+        self.assertIsInstance(reader_infos[0], dict)
+        for reader_info in reader_infos:
+            self.assertIn('name', reader_info)
+
 
 def suite():
     """The test suite for test_scene.

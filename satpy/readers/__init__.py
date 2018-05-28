@@ -244,10 +244,6 @@ def get_key(key, key_container, num_results=1, best=True,
         return res[:num_results]
 
 
-class MalformedConfigError(IOError):
-    pass
-
-
 class DatasetDict(dict):
 
     """Special dictionary object that can handle dict operations based on
@@ -368,8 +364,7 @@ class DatasetDict(dict):
 
 
 def read_reader_config(config_files, loader=yaml.Loader):
-    """Read the reader *config_files* and return the info extracted.
-    """
+    """Read the reader `config_files` and return the info extracted."""
 
     conf = {}
     LOG.debug('Reading ' + str(config_files))
@@ -380,7 +375,7 @@ def read_reader_config(config_files, loader=yaml.Loader):
     try:
         reader_info = conf['reader']
     except KeyError:
-        raise MalformedConfigError(
+        raise KeyError(
             "Malformed config file {}: missing reader 'reader'".format(
                 config_files))
     reader_info['config_files'] = config_files
@@ -409,25 +404,51 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
     Returns: Generator of lists of configuration files
 
     """
+    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'), ppp_config_dir)
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'),
+                                     *search_paths)
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename), ppp_config_dir)
+            os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
             LOG.warning("No reader configs found for '%s'", reader)
             continue
 
         yield reader_configs
+
+
+def available_readers(as_dict=False):
+    """Available readers based on current configuration.
+
+    Args:
+        as_dict (bool): Optionally return reader information as a dictionary.
+                        Default: False
+
+    Returns: List of available reader names. If `as_dict` is `True` then
+             a list of dictionaries including additionally reader information
+             is returned.
+
+    """
+    readers = []
+    for reader_configs in configs_for_reader():
+        try:
+            reader_info = read_reader_config(reader_configs)
+        except (KeyError, IOError, yaml.YAMLError):
+            LOG.warning("Could not import reader config from: %s", reader_configs)
+            LOG.debug("Error loading YAML", exc_info=True)
+            continue
+        readers.append(reader_info if as_dict else reader_info['name'])
+    return readers
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
@@ -475,7 +496,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     for reader_configs in configs_for_reader(reader, ppp_config_dir):
         try:
             reader_instance = load_reader(reader_configs, **reader_kwargs)
-        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+        except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
             continue
@@ -543,7 +564,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
 
         try:
             reader_instance = load_reader(reader_configs, **reader_kwargs)
-        except (KeyError, MalformedConfigError, yaml.YAMLError) as err:
+        except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
             continue
