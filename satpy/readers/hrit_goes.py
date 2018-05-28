@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader.
+"""GOES HRIT format reader.
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012
@@ -36,6 +36,8 @@ import numpy as np
 import xarray as xr
 
 from pyresample import geometry
+
+from satpy.readers.eum_base import (time_cds_short, recarray2dict)
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
@@ -46,30 +48,6 @@ class CalibrationError(Exception):
 
 
 logger = logging.getLogger('hrit_goes')
-
-
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
-
-
-# FIXME: these variables should come from eum_base.py
-time_cds_short = np.dtype([('days', '>u2'),
-                           ('milliseconds', '>u4')])
-
-time_cds_expanded = np.dtype([('days', '>u2'),
-                              ('milliseconds', '>u4'),
-                              ('microseconds', '>u2'),
-                              ('nanoseconds', '>u2')])
 
 
 # goes implementation:
@@ -269,7 +247,7 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
         """Read the prologue metadata."""
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=prologue, count=1)[0]
+            data = np.fromfile(fp_, dtype=prologue, count=1)
             self.prologue.update(recarray2dict(data))
 
         self.process_prologue()

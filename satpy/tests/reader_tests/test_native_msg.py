@@ -47,9 +47,6 @@ AVAILABLE_CHANNELS = {}
 for item in CHANNEL_INDEX_LIST:
     AVAILABLE_CHANNELS[item] = True
 
-# # Calibration type = Effective radiances
-# CALIBRATION_TYPE = np.array(
-#     [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
 
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'

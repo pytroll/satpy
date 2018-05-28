@@ -68,13 +68,17 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
+        self.header = {}
         self.available_channels = {}
         self.mda = {}
+        self._read_header()
 
-        # Read header, prepare dask-array, read trailer
-        self._get_header()
+        # Prepare dask-array
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
-        self._get_trailer()
+
+        # Read trailer
+        self.trailer = {}
+        self._read_trailer()
 
     @property
     def start_time(self):
@@ -123,13 +127,25 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return np.dtype(drec)
 
-    def _get_header(self):
+    def _get_memmap(self):
+        """Get the memory map for the SEVIRI data"""
+
+        with open(self.filename) as fp:
+
+            data_dtype = self._get_data_dtype()
+            hdr_size = native_header.itemsize
+
+            return np.memmap(fp, dtype=data_dtype,
+                             shape=(self.mda['number_of_lines'],),
+                             offset=hdr_size, mode="r")
+
+    def _read_header(self):
         """Read the header info"""
 
         data = np.fromfile(self.filename,
                            dtype=native_header, count=1)
 
-        self.header = recarray2dict(data)
+        self.header.update(recarray2dict(data))
 
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
@@ -204,19 +220,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             logger.warning("Number of columns read from header = %d", ncols_hrv_hdr)
             logger.warning("Number of columns calculated from data = %d", ncols_hrv)
 
-    def _get_memmap(self):
-        """Get the memory map for the SEVIRI data"""
-
-        with open(self.filename) as fp:
-
-            data_dtype = self._get_data_dtype()
-            hdr_size = native_header.itemsize
-
-            return np.memmap(fp, dtype=data_dtype,
-                             shape=(self.mda['number_of_lines'],),
-                             offset=hdr_size, mode="r")
-
-    def _get_trailer(self):
+    def _read_trailer(self):
 
         hdr_size = native_header.itemsize
         data_size = (self._get_data_dtype().itemsize *
@@ -227,7 +231,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             fp.seek(hdr_size + data_size)
             data = np.fromfile(fp, dtype=native_trailer, count=1)
 
-        self.trailer = recarray2dict(data)
+        self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dsid):
 
@@ -382,15 +386,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                     'RadiometricProcessing']['Level15ImageCalibration']
                 gain = coeffs['CalSlope'][i]
                 offset = coeffs['CalOffset'][i]
-                # gain = coeffs['CalSlope'][0][i]
-                # offset = coeffs['CalOffset'][0][i]
             else:
                 coeffs = data15hdr[
                     'RadiometricProcessing']['MPEFCalFeedback']
                 gain = coeffs['GSICSCalCoeff'][i]
                 offset = coeffs['GSICSOffsetCount'][i]
-                # gain = coeffs['GSICSCalCoeff'][0][i]
-                # offset = coeffs['GSICSOffsetCount'][0][i]
                 offset = offset * gain
             res = self._convert_to_radiance(data, gain, offset)
 
@@ -401,8 +401,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         elif calibration == 'brightness_temperature':
             cal_type = data15hdr['ImageDescription'][
                 'Level15ImageProduction']['PlannedChanProcessing'][i]
-            # cal_type = data15hdr['ImageDescription'][
-            #     'Level15ImageProduction']['PlannedChanProcessing'][0][i]
             res = self._ir_calibrate(res, channel, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
