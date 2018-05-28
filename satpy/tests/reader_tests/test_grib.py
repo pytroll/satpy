@@ -51,11 +51,16 @@ class FakeGRIB(object):
                     pressureUnits='hPa',
                     cfName='air_temperature',
                     units='K',
-                    dataDate='20180504',
-                    dataTime='1200',
+                    dataDate=20180504,
+                    dataTime=1200,
+                    validityDate=20180504,
+                    validityTime=1800,
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
+                    minimum=100.,
+                    maximum=200.,
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -65,11 +70,16 @@ class FakeGRIB(object):
                     pressureUnits='hPa',
                     cfName='air_temperature',
                     units='K',
-                    dataDate='20180504',
-                    dataTime='1200',
+                    dataDate=20180504,
+                    dataTime=1200,
+                    validityDate=20180504,
+                    validityTime=1800,
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
+                    minimum=100.,
+                    maximum=200.,
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -79,17 +89,25 @@ class FakeGRIB(object):
                     pressureUnits='hPa',
                     cfName='air_temperature',
                     units='K',
-                    dataDate='20180504',
-                    dataTime='1200',
+                    dataDate=20180504,
+                    dataTime=1200,
+                    validityDate=20180504,
+                    validityTime=1800,
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
+                    modelName='unknown',
+                    minimum=100.,
+                    maximum=200.,
                 ),
             ]
         self.messages = len(self._messages)
 
     def message(self, msg_num):
         return self._messages[msg_num - 1]
+
+    def seek(self, loc):
+        return
 
     def __iter__(self):
         return iter(self._messages)

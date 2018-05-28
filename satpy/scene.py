@@ -640,10 +640,47 @@ class Scene(MetadataObject):
              calibration=None,
              resolution=None,
              polarization=None,
+             level=None,
              generate=True,
              unload=True,
              **kwargs):
-        """Read, generate, and unload.
+        """Read and generate requested datasets.
+
+        When the `wishlist` contains `DatasetID` objects they can either be
+        fully-specified `DatasetID` objects with every parameter specified
+        or they can not provide certain parameters and the "best" parameter
+        will be chosen. For example, if a dataset is available in multiple
+        resolutions and no resolution is specified in the wishlist's DatasetID
+        then the highest (smallest number) resolution will be chosen.
+
+        Loaded `DataArray`s are created and stored in the Scene object.
+
+        Args:
+            wishlist (iterable): Names (str), wavelengths (float), or
+                                 DatasetID objects of the requested datasets
+                                 to load. See `available_dataset_ids()` for
+                                 what datasets are available.
+            calibration (list, str): Calibration levels to limit available
+                                      datasets. This is a shortcut to
+                                      having to list each DatasetID in
+                                      `wishlist`.
+            resolution (list | float): Resolution to limit available datasets.
+                                       This is a shortcut similar to
+                                       calibration.
+            polarization (list | str): Polarization ('V', 'H') to limit
+                                       available datasets. This is a shortcut
+                                       similar to calibration.
+            level (list | str): Pressure level to limit available datasets.
+                                Pressure should be in hPa or mb. If an
+                                altitude is used it should be specified in
+                                inverse meters (1/m). The units of this
+                                parameter ultimately depend on the reader.
+            generate (bool): Generate composites from the loaded datasets
+                             (default: True)
+            unload (bool): Unload datasets that were required to generate
+                           the requested datasets (composite dependencies)
+                           but are no longer needed.
+
         """
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
@@ -651,7 +688,8 @@ class Scene(MetadataObject):
         unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
-                                                  resolution=resolution)
+                                                  resolution=resolution,
+                                                  level=level)
         self.wishlist |= needed_datasets
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
