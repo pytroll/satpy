@@ -116,6 +116,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                                                          (msg_hdr_map,
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
+        self.prologue = {}
         self.read_prologue()
 
         service = filename_info['service']
@@ -129,8 +130,8 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=hrit_prologue, count=1)[0]
-            self.prologue = recarray2dict(data)
+            data = np.fromfile(fp_, dtype=hrit_prologue, count=1)
+            self.prologue.update(recarray2dict(data))
             try:
                 impf = np.fromfile(fp_, dtype=impf_configuration, count=1)[0]
             except IndexError:
@@ -150,6 +151,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
                                                          (msg_hdr_map,
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
+        self.epilogue = {}
         self.read_epilogue()
 
         service = filename_info['service']
@@ -164,7 +166,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
-            self.epilogue = recarray2dict(data)
+            self.epilogue.update(recarray2dict(data))
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):

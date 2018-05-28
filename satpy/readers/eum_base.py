@@ -31,7 +31,7 @@ time_cds = time_cds_short + [('Microseconds', '>u2')]
 time_cds_expanded = time_cds + [('Nanoseconds', '>u2')]
 
 
-def make_time_cds(tcds):
+def timecds2datetime(tcds):
     """Method for converting time_cds-variables to datetime-objectsself.
     Works both with a dictionary and a numpy record_array.
     """
@@ -65,10 +65,10 @@ def recarray2dict(arr):
         data = arr[key]
         if ntype in tcds_types:
             if data.size > 1:
-                res[key] = np.array([make_time_cds(item)
+                res[key] = np.array([timecds2datetime(item)
                                      for item in data.ravel()]).reshape(data.shape)
             else:
-                res[key] = make_time_cds(data)
+                res[key] = timecds2datetime(data)
         elif isinstance(ntype, list):
             res[key] = recarray2dict(data)
         else:
