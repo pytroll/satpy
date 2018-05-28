@@ -370,7 +370,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         i = list(CHANNEL_NAMES.values()).index(channel)
 
         if calibration == 'counts':
-            return
+            return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             # you cant apply GSICS values to the VIS channels
