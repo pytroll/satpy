@@ -31,7 +31,6 @@ import numpy as np
 # from osgeo import gdal
 from xarray import DataArray
 import dask.array as da
-from dask import delayed
 import xml.etree.ElementTree as ET
 from pyresample import geometry
 
@@ -67,7 +66,8 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug('Reading %s.', key.name)
-        QUANTIFICATION_VALUE = 10000.
+        # FIXME: get this from MTD_MSIL1C.xml
+        quantification_value = 10000.
         jp2 = glymur.Jp2k(self.filename)
         bitdepth = 0
         for seg in jp2.codestream.segment:
@@ -75,9 +75,12 @@ class SAFEMSIL1C(BaseFileHandler):
                 bitdepth = max(bitdepth, seg.bitdepth[0])
             except AttributeError:
                 pass
+
+        # Initialize the jp2 reader
+        jp2[0, 0]
+
         jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-        data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
-        data = data.rechunk(CHUNK_SIZE) / QUANTIFICATION_VALUE * 100
+        data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
 
         proj = DataArray(data, dims=['y', 'x'])
         proj.attrs = info.copy()
