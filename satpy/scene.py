@@ -653,7 +653,7 @@ class Scene(MetadataObject):
         resolutions and no resolution is specified in the wishlist's DatasetID
         then the highest (smallest number) resolution will be chosen.
 
-        Loaded `DataArray`s are created and stored in the Scene object.
+        Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
             wishlist (iterable): Names (str), wavelengths (float), or

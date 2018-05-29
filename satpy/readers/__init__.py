@@ -73,7 +73,7 @@ def get_best_dataset_key(key, choices):
 
     Args:
         key (DatasetID): Query parameters to sort `choices` by.
-        choices (iterable): `DatasetID`s to sort through to determine
+        choices (iterable): `DatasetID` objects to sort through to determine
                             the best dataset.
 
     Returns: List of best `DatasetID`s from `choices`. If there is more
@@ -177,7 +177,7 @@ def get_key(key, key_container, num_results=1, best=True,
                                    (ex.'reflectance'). This can also be a
                                    list of these strings.
         polarization (str or list): Dataset polarization
-                                   (ex.'V'). This can also be a
+                                    (ex.'V'). This can also be a
                                     list of these strings.
         level (number or list): Dataset level (ex. 100). This can also be a
                                 list of these numbers.
