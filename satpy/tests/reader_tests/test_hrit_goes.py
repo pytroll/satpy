@@ -94,7 +94,7 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.__init__')
     def test_init(self, new_fh_init, fromfile, recarray2dict):
         """Setup the hrit file handler for testing."""
-        recarray2dict.side_effect = lambda x: x
+        recarray2dict.side_effect = lambda x: x[0]
         new_fh_init.return_value.filename = 'filename'
         HRITGOESPrologueFileHandler.filename = 'filename'
         HRITGOESPrologueFileHandler.mda = {'total_header_length': 1}
