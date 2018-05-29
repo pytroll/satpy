@@ -116,15 +116,14 @@ def logging_on(level=logging.WARNING):
 def logging_off():
     """Turn logging off.
     """
-    logging.getLogger('').handlers = [NullHandler()]
+    logging.getLogger('').handlers = [logging.NullHandler()]
 
 
 def get_logger(name):
     """Return logger with null handler added if needed."""
-    from logging import NullHandler
     log = logging.getLogger(name)
     if not log.handlers:
-        log.addHandler(NullHandler())
+        log.addHandler(logging.NullHandler())
     return log
 
 
