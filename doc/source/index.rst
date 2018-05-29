@@ -8,9 +8,13 @@ data file formats. SatPy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
 processing output. The
 `pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
-to resample data to different uniform areas or grids.
+to resample data to different uniform areas or grids. Various atmospheric
+corrections and visual enhancements are also provided, either directly in
+SatPy or from those in the
+`PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_ and
+`TrollImage <http://trollimage.readthedocs.io/en/latest/>`_ packages.
 
-Get to the project_ page for source code and downloads.
+Go to the project_ page for source code and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins (readers, compositors, writers, etc). The table at
