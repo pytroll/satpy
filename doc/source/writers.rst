@@ -41,6 +41,14 @@ One common parameter across almost all Writers is ``file_pattern`` and
       - :class:`scmi <satpy.writers.scmi.SCMIWriter>`
       - Beta
 
+Available Writers
+=================
+
+To get a list of available writers use the `available_writers` function::
+
+    >>> from satpy import available_writers
+    >>> available_writers()
+
 Colorizing and Palettizing using user-supplied colormaps
 ========================================================
 
