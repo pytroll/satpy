@@ -87,17 +87,6 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-class NullHandler(logging.Handler):
-
-    """Empty handler.
-    """
-
-    def emit(self, record):
-        """Record a message.
-        """
-        pass
-
-
 def debug_on():
     """Turn debugging logging on.
     """
@@ -131,9 +120,8 @@ def logging_off():
 
 
 def get_logger(name):
-    """Return logger with null handle
-    """
-
+    """Return logger with null handler added if needed."""
+    from logging import NullHandler
     log = logging.getLogger(name)
     if not log.handlers:
         log.addHandler(NullHandler())
