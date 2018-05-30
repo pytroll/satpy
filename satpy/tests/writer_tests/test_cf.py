@@ -50,11 +50,15 @@ class TestCFWriter(unittest.TestCase):
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        with tempfile.NamedTemporaryFile() as tmpfile:
-            scn.save_datasets(filename=tmpfile.name, writer='cf')
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(tmpfile.name)
+            f = nc4.File(filename)
             self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+        finally:
+            os.remove(filename)
 
     def test_bounds(self):
         from satpy import Scene
@@ -69,11 +73,15 @@ class TestCFWriter(unittest.TestCase):
                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        with tempfile.NamedTemporaryFile() as tmpfile:
-            scn.save_datasets(filename=tmpfile.name, writer='cf')
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(tmpfile.name)
+            f = nc4.File(filename)
             self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+        finally:
+            os.remove(filename)
 
     def test_encoding_kwarg(self):
         from satpy import Scene
@@ -85,19 +93,23 @@ class TestCFWriter(unittest.TestCase):
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        with tempfile.NamedTemporaryFile() as tmpfile:
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
             encoding = {'test-array': {'dtype': 'int8',
                                        'scale_factor': 0.1,
                                        'add_offset': 0.0,
                                        '_FillValue': 3}}
-            scn.save_datasets(filename=tmpfile.name, encoding=encoding, writer='cf')
+            scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(tmpfile.name)
+            f = nc4.File(filename)
             self.assertTrue(all(f['test-array'][:] == [10, 20, 30]))
             self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
             self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
             # check that dtype behave as int8
             self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+        finally:
+            os.remove(filename)
 
     def test_header_attrs(self):
         from satpy import Scene
@@ -109,17 +121,21 @@ class TestCFWriter(unittest.TestCase):
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        with tempfile.NamedTemporaryFile() as tmpfile:
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
             header_attrs = {'sensor': 'SEVIRI',
                             'orbit': None}
-            scn.save_datasets(filename=tmpfile.name,
+            scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
                               writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(tmpfile.name)
+            f = nc4.File(filename)
             self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
             self.assertTrue('sensor' in f.attrs.keys())
             self.assertTrue('orbit' not in f.attrs.keys())
+        finally:
+            os.remove(filename)
 
 
 def suite():
