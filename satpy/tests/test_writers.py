@@ -281,6 +281,7 @@ class TestYAMLFiles(unittest.TestCase):
         writer_names = available_writers()
         self.assertGreater(len(writer_names), 0)
         self.assertIsInstance(writer_names[0], str)
+        self.assertIn('geotiff', writer_names)
 
         writer_infos = available_writers(as_dict=True)
         self.assertEqual(len(writer_names), len(writer_infos))
