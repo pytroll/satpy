@@ -40,7 +40,65 @@ else:
 class TestCFWriter(unittest.TestCase):
     def test_init(self):
         from satpy.writers.cf_writer import CFWriter
-        w = CFWriter()
+        import satpy.config
+        w = CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH, 
+                                                'writers', 'cf.yaml')])
+        
+
+    def test_save_array(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        scn['test-array'] = xr.DataArray([1,2,3])
+        handle, filename = tempfile.mkstemp()
+        scn.save_datasets(filename=filename, writer='cf')
+        import h5netcdf as nc4
+        f = nc4.File(filename)
+        self.assertTrue(all(f['test-array'][:] == [1,2,3]))
+        os.remove(filename)
+
+    def test_encoding_kwarg(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        scn['test-array'] = xr.DataArray([1,2,3])
+        handle, filename = tempfile.mkstemp()
+        encoding = {'test-array': {'dtype': 'int8',
+                                   'scale_factor': 0.1,
+                                   'add_offset': 0.0,
+                                   '_FillValue': 3 }}
+        scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
+        import h5netcdf as nc4
+        f = nc4.File(filename)
+        self.assertTrue(all(f['test-array'][:] == [10,20,30]))
+        self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
+        self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
+        #check that dtype behave as int8
+        self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+        os.remove(filename)
+
+    def test_header_attrs(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        scn['test-array'] = xr.DataArray([1,2,3])
+        handle, filename = tempfile.mkstemp()
+        header_attrs= {'sensor': 'SEVIRI',
+                       'orbit': None}
+        scn.save_datasets(filename=filename,
+                          header_attrs=header_attrs,
+                          writer='cf')
+        import h5netcdf as nc4
+        f = nc4.File(filename)
+        self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
+        self.assertTrue('sensor' in f.attrs.keys())
+        self.assertTrue('orbit' not in f.attrs.keys())
+        os.remove(filename)
+
+
 
 
 def suite():
@@ -50,3 +108,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestCFWriter))
     return mysuite
+
+if __name__ == "__main__":
+    unittest.main()
