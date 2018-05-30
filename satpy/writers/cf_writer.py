@@ -218,7 +218,7 @@ class CFWriter(Writer):
                                                                     EPOCH))
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename, header_attrs=None, **kwargs):
+    def save_datasets(self, datasets, filename, **kwargs):
         """Save all datasets to one or more files."""
         logger.info('Saving datasets to NetCDF4/CF.')
 
@@ -232,6 +232,8 @@ class CFWriter(Writer):
             dataset['time'].attrs['bounds'] = "time_bnds"
         except KeyError:
             logger.warning('No time dimension in datasets, skipping time bounds creation.')
+
+        header_attrs = kwargs.pop('header_attrs', None)
 
         if header_attrs is not None:
             dataset.attrs.update({k: v for k, v in header_attrs.items() if v})
