@@ -234,7 +234,7 @@ class CFWriter(Writer):
             logger.warning('No time dimension in datasets, skipping time bounds creation.')
 
         if header_attrs is not None:
-            dataset.attrs.update({k: v for k, v in header_attrs.iteritems() if v})
+            dataset.attrs.update({k: v for k, v in header_attrs.items() if v})
 
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
