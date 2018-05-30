@@ -453,6 +453,8 @@ class TestYAMLFiles(unittest.TestCase):
         reader_names = available_readers()
         self.assertGreater(len(reader_names), 0)
         self.assertIsInstance(reader_names[0], str)
+        self.assertIn('viirs_sdr', reader_names)  # needs h5py
+        self.assertIn('abi_l1b', reader_names)  # needs netcdf4
 
         reader_infos = available_readers(as_dict=True)
         self.assertEqual(len(reader_names), len(reader_infos))
