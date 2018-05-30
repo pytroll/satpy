@@ -35,30 +35,28 @@ LOG = logging.getLogger(__name__)
 EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
 
 
-def omerc2cf(proj_dict):
+def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
-    if "no_rot" in proj_dict:
-        no_rotation = " "
-    else:
-        no_rotation = None
+    proj_dict = area.proj_dict
 
     args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lonc'),
                 grid_mapping_name='oblique_mercator',
-                # longitude_of_projection_origin=0.,
-                no_rotation=no_rotation,
-                # reference_ellipsoid_name=proj_dict.get('ellps'),
-                semi_major_axis=6378137.0,
-                semi_minor_axis=6356752.3142,
+                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
                 false_easting=0.,
-                false_northing=0.,
+                false_northing=0.
                 )
+    if "no_rot" in proj_dict:
+        args['no_rotation'] = 1
+    if "gamma" in proj_dict:
+        args['gamma'] = proj_dict['gamma']
     return args
 
 
-def geos2cf(proj_dict):
+def geos2cf(area):
     """Return the cf grid mapping for the geos projection."""
+    proj_dict = area.proj_dict
     args = dict(perspective_point_height=proj_dict.get('h'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
@@ -70,8 +68,9 @@ def geos2cf(proj_dict):
     return args
 
 
-def laea2cf(proj_dict):
+def laea2cf(area):
     """Return the cf grid mapping for the laea projection."""
+    proj_dict = area.proj_dict
     args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
                 grid_mapping_name='lambert_azimuthal_equal_area',
@@ -87,7 +86,7 @@ mappings = {'omerc': omerc2cf,
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     try:
-        grid_mapping = mappings[area.proj_dict['proj']](area.proj_dict)
+        grid_mapping = mappings[area.proj_dict['proj']](area)
         grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
         raise NotImplementedError
