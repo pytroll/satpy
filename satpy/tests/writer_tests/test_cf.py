@@ -55,8 +55,8 @@ class TestCFWriter(unittest.TestCase):
             os.close(handle)
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(filename)
-            self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
         finally:
             os.remove(filename)
 
@@ -78,8 +78,8 @@ class TestCFWriter(unittest.TestCase):
             os.close(handle)
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(filename)
-            self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
         finally:
             os.remove(filename)
 
@@ -102,12 +102,12 @@ class TestCFWriter(unittest.TestCase):
                                        '_FillValue': 3}}
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(filename)
-            self.assertTrue(all(f['test-array'][:] == [10, 20, 30]))
-            self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
-            self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
-            # check that dtype behave as int8
-            self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['test-array'][:] == [10, 20, 30]))
+                self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
+                self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
+                # check that dtype behave as int8
+                self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
         finally:
             os.remove(filename)
 
@@ -130,10 +130,10 @@ class TestCFWriter(unittest.TestCase):
                               header_attrs=header_attrs,
                               writer='cf')
             import h5netcdf as nc4
-            f = nc4.File(filename)
-            self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
-            self.assertTrue('sensor' in f.attrs.keys())
-            self.assertTrue('orbit' not in f.attrs.keys())
+            with nc4.File(filename) as f:
+                self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
+                self.assertTrue('sensor' in f.attrs.keys())
+                self.assertTrue('orbit' not in f.attrs.keys())
         finally:
             os.remove(filename)
 
