@@ -30,7 +30,7 @@ import xarray as xr
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
 
@@ -197,10 +197,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def save_datasets(self, datasets, filename, header_attrs=None, **kwargs):
-        """Save all datasets to one or more files."""
-        LOG.info('Saving datasets to NetCDF4/CF.')
-
+    def _collect_datasets(self, datasets, kwargs):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -219,19 +216,30 @@ class CFWriter(Writer):
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
                                                          kwargs.get('epoch',
                                                                     EPOCH))
+        return datas, start_times, end_times
+
+    def save_datasets(self, datasets, filename, header_attrs=None, **kwargs):
+        """Save all datasets to one or more files."""
+        logger.info('Saving datasets to NetCDF4/CF.')
+
+        datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
         dataset = xr.Dataset(datas)
-        dataset['time_bnds'] = make_time_bounds(dataset,
-                                                start_times,
-                                                end_times)
-        dataset['time'].attrs['bounds'] = "time_bnds"
+        try:
+            dataset['time_bnds'] = make_time_bounds(dataset,
+                                                    start_times,
+                                                    end_times)
+            dataset['time'].attrs['bounds'] = "time_bnds"
+        except KeyError:
+            logger.warning('No time dimension in datasets, skipping time bounds creation.')
 
         if header_attrs is not None:
-            for attribute in header_attrs.keys():
-                if header_attrs[attribute] is not None:
-                    dataset.attrs[attribute] = header_attrs[attribute]
+            dataset.attrs.update({k: v for k, v in header_attrs.iteritems() if v})
+
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
         engine = kwargs.pop("engine", 'h5netcdf')
+        kwargs.pop('config_files')
+        kwargs.pop('compute')
         dataset.to_netcdf(filename, engine=engine, **kwargs)
