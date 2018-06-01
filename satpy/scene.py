@@ -751,7 +751,8 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
-                slice_x, slice_y = source_area.get_area_slices(destination_area)
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area)
                 source_area = source_area[slice_y, slice_x]
                 dataset = dataset.isel(x=slice_x, y=slice_y)
                 assert dataset.shape == source_area.shape  # sanity check
