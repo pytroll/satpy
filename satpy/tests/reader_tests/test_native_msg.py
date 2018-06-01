@@ -6,6 +6,7 @@
 # Author(s):
 
 #   Adam.Dybbroe <adam.dybbroe@smhi.se>
+#   Sauli Joro <sauli.joro@eumetsat.int>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,10 +25,8 @@
 """
 
 import sys
-from datetime import datetime
 
 import numpy as np
-# from satpy.readers.native_msg import NativeMSGFileHandler
 from satpy.readers.native_msg import get_available_channels
 
 if sys.version_info < (2, 7):
@@ -48,19 +47,18 @@ AVAILABLE_CHANNELS = {}
 for item in CHANNEL_INDEX_LIST:
     AVAILABLE_CHANNELS[item] = True
 
-# # Calibration type = Effective radiances
-# CALIBRATION_TYPE = np.array(
-#     [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
 
-TEST1_HEADER_CHNLIST = {}
-TEST1_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
-TEST1_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XX--XX--XX-- ']]
-TEST2_HEADER_CHNLIST = {}
-TEST2_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
-TEST2_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XX-XXXX----X ']]
-TEST3_HEADER_CHNLIST = {}
-TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER'] = {}
-TEST3_HEADER_CHNLIST['15_SECONDARY_PRODUCT_HEADER']['SelectedBandIDs'] = [['XXXXXXXXXXXX ']]
+SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
+IDS = 'SelectedBandIDs'
+
+TEST1_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST1_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX--XX--XX--'
+
+TEST2_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST2_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX-XXXX----X'
+
+TEST3_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 
 # This should preferably be put in a helper-module
@@ -90,7 +88,6 @@ class TestNativeMSGFileHandler(unittest.TestCase):
             else:
                 self.assertFalse(available_chs[bandname])
 
-        # 'XX-XXXX----X '
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
         trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
         for bandname in AVAILABLE_CHANNELS.keys():
@@ -114,6 +111,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGFileHandler))
     return mysuite
+
 
 if __name__ == "__main__":
     # So you can run tests from this module individually.
