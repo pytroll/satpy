@@ -29,6 +29,7 @@ import os
 import numpy as np
 import dask
 import dask.array as da
+import xarray as xr
 import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
@@ -36,6 +37,14 @@ from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
+
+
+class IncompatibleAreas(Exception):
+
+    """
+    Error raised upon compositing things of different shapes.
+    """
+    pass
 
 
 class VIIRSFog(CompositeBase):
@@ -85,8 +94,24 @@ class ReflectanceCorrector(CompositeBase):
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 
-    def __call__(self, datasets, **info):
-        refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
+    def __call__(self, datasets, optional_datasets, **info):
+        if not optional_datasets or len(optional_datasets) != 4:
+            vis = self.check_areas(datasets[0])
+            sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
+        else:
+            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.check_areas(
+            datasets + optional_datasets)
+            # get the dask array underneath
+            sensor_aa = sensor_aa.data
+            sensor_za = sensor_za.data
+            solar_aa = solar_aa.data
+            solar_za = solar_za.data
+        # angles must be xarrays
+        sensor_aa = xr.DataArray(sensor_aa, dims=['y','x'])
+        sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
+        solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
+        solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
+        refl_data = datasets[0]
         if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
 
@@ -96,7 +121,11 @@ class ReflectanceCorrector(CompositeBase):
             from netCDF4 import Dataset as NCDataset
             # HDF4 file, NetCDF library needs to be compiled with HDF4 support
             nc = NCDataset(self.dem_file, "r")
-            avg_elevation = nc.variables[self.dem_sds][:]
+            # average elevation is stored as a 16-bit signed integer but with
+            # scale factor 1 and offset 0, convert it to float here
+            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float)
+            if isinstance(avg_elevation, np.ma.MaskedArray):
+                avg_elevation = avg_elevation.filled(np.nan)
         else:
             avg_elevation = None
 
@@ -107,17 +136,19 @@ class ReflectanceCorrector(CompositeBase):
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
                                         refl_data.attrs["resolution"])
-
+        use_abi = vis.attrs['sensor'] == 'abi'
+        lons, lats = vis.attrs['area'].get_lonlats_dask(chunks=vis.chunks)
         results = run_crefl(refl_data,
                             coefficients,
-                            sensor_aa.attrs["area"].lons,
-                            sensor_aa.attrs["area"].lats,
+                            lons,
+                            lats,
                             sensor_aa,
                             sensor_za,
                             solar_aa,
                             solar_za,
                             avg_elevation=avg_elevation,
-                            percent=percent, )
+                            percent=percent,
+                            use_abi=use_abi)
 
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
@@ -127,6 +158,25 @@ class ReflectanceCorrector(CompositeBase):
 
         self.apply_modifier_info(refl_data, results)
         return results
+
+    def get_angles(self, vis):
+        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+        from pyorbital.orbital import get_observer_look
+
+        lons, lats = vis.attrs['area'].get_lonlats_dask(
+            chunks=vis.data.chunks)
+
+        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
+        suna = xu.rad2deg(suna)
+        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        sata, satel = get_observer_look(
+            vis.attrs['satellite_longitude'],
+            vis.attrs['satellite_latitude'],
+            vis.attrs['satellite_altitude'],
+            vis.attrs['start_time'],
+            lons, lats, 0)
+        satz = 90 - satel
+        return sata, satz, suna, sunz
 
 
 class HistogramDNB(CompositeBase):
