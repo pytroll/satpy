@@ -281,17 +281,16 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         # count starts at 1
         cols = 1 - 0.5
-        lines = (self.total_segments - self.segment_number) * nlines + 1 - 0.5
-        ll_x = (cols - coff) / cfac * 2**16
-        ll_y = (lines - loff) / lfac * 2**16
-
+        left_x = (cols - coff) * (2.**16 / cfac)
         cols += ncols
-        lines += nlines
-        ur_x = (cols - coff) / cfac * 2**16
-        ur_y = (lines - loff) / lfac * 2**16
+        right_x = (cols - coff) * (2.**16 / cfac)
 
-        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-                       np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+        lines = (self.segment_number - 1) * nlines + 1 - 0.5
+        upper_y = -(lines - loff) * (2.**16 / lfac)
+        lines += nlines
+        lower_y = -(lines - loff) * (2.**16 / lfac)
+        area_extent = (np.deg2rad(left_x) * h, np.deg2rad(lower_y) * h,
+                       np.deg2rad(right_x) * h, np.deg2rad(upper_y) * h)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
