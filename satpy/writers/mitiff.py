@@ -47,6 +47,7 @@ LOG = logging.getLogger(__name__)
 
 KELVIN_TO_CELSIUS = -273.15
 
+
 class MITIFFWriter(ImageWriter):
 
     def __init__(self, floating_point=False, tags=None, **kwargs):
@@ -65,11 +66,12 @@ class MITIFFWriter(ImageWriter):
         self.mitiff_config = {}
         self.translate_channel_name = {}
         self.channel_order = {}
-        
+
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, base_dir=None, **kwargs):
         LOG.debug("Starting in mitiff save_dataset ... ")
-        def _delayed_create(create_opts, dataset):#, area, start_time, tags):
+
+        def _delayed_create(create_opts, dataset):
             LOG.debug("create_opts: {}"format(create_opts))
             try:
                 if 'platform_name' not in kwargs:
@@ -80,7 +82,7 @@ class MITIFFWriter(ImageWriter):
                     kwargs['start_time'] = dataset.attrs['start_time']
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = dataset.attrs['sensor']
-                
+
                 try:
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
                     self.channel_order[kwargs['sensor']] = dataset.attrs['metadata_requirements']['order']
@@ -103,8 +105,7 @@ class MITIFFWriter(ImageWriter):
             except:
                 raise
 
-
-        save_dir="./"
+        save_dir = "./"
         if 'mitiff_dir' in kwargs:
             save_dir = kwargs['mitiff_dir']
         elif 'base_dir' in kwargs:
@@ -113,18 +114,18 @@ class MITIFFWriter(ImageWriter):
             save_dir = base_dir
         else:
             LOG.warning("Unset save_dir. Use: {}".format(save_dir))
-        create_opts=(save_dir)
+        create_opts = (save_dir)
         delayed = dask.delayed(_delayed_create)(create_opts, dataset)
         delayed.compute()
         return delayed
-                     
+
     def save_datasets(self, datasets, **kwargs):
         """Save all datasets to one or more files.
         """
         LOG.debug("Starting in mitiff save_datasetsssssssssssssssss ... ")
         LOG.debug("kwargs: {}".format(kwargs))
 
-        def _delayed_create(create_opts, datasets):#, area, start_time, tags):
+        def _delayed_create(create_opts, datasets):
             try:
                 if 'platform_name' not in kwargs:
                     kwargs['platform_name'] = datasets.attrs['platform_name']
@@ -134,7 +135,7 @@ class MITIFFWriter(ImageWriter):
                     kwargs['start_time'] = datasets[0].attrs['start_time']
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = datasets[0].attrs['sensor']
-                
+
                 self.mitiff_config[kwargs['sensor']] = datasets['metadata_requistites']['config']
                 self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requistites']['translate']
                 self.channel_order[kwargs['sensor']] = datasets['metadata_requistites']['order']
@@ -152,15 +153,16 @@ class MITIFFWriter(ImageWriter):
             except:
                 raise
 
-        create_opts=()
+        create_opts = ()
         delayed = dask.delayed(_delayed_create)(create_opts, datasets)
         LOG.debug("About to call delayed compute ...")
         delayed.compute()
         return delayed
-            
+
     def _make_image_description(self, datasets, **kwargs):
-        #generate image desdcription for mitiff.
         """
+        generate image description for mitiff.
+
         Satellite: NOAA 18
         Date and Time: 06:58 31/05-2016
         SatDir: 0
@@ -168,7 +170,8 @@ class MITIFFWriter(ImageWriter):
         Xsize:  4720
         Ysize:  5544
         Map projection: Stereographic
-        Proj string: +proj=stere +lon_0=0 +lat_0=90 +lat_ts=60 +ellps=WGS84 +towgs84=0,0,0 +units=km +x_0=2526000.000000 +y_0=5806000.000000
+        Proj string: +proj=stere +lon_0=0 +lat_0=90 +lat_ts=60 +ellps=WGS84 +towgs84=0,0,0 +units=km
+        +x_0=2526000.000000 +y_0=5806000.000000
         TrueLat: 60 N
         GridRot: 0
         Xunit:1000 m Yunit: 1000 m
@@ -182,19 +185,22 @@ class MITIFFWriter(ImageWriter):
         Xsize:  <number of pixels x>
         Ysize:  <number of pixels y>
         Map projection: Stereographic
-        Proj string: <proj4 string with +x_0 and +y_0 which is the positive distance from proj origo to the lower left corner of the image data>
+        Proj string: <proj4 string with +x_0 and +y_0 which is the positive distance from proj origo
+        to the lower left corner of the image data>
         TrueLat: 60 N
         GridRot: 0
         Xunit:1000 m Yunit: 1000 m
         NPX: 0.000000 NPY: 0.000000
-        Ax: <pixels size x in km> Ay: <pixel size y in km> Bx: <left corner of upper right pixel in km> By: <upper corner of upper right pixel in km>
-     
-        
+        Ax: <pixels size x in km> Ay: <pixel size y in km> Bx: <left corner of upper right pixel in km>
+        By: <upper corner of upper right pixel in km>
+
+
         if palette image write special palette
         if normal channel write table calibration:
-        Table_calibration: <channel name>, <calibration type>, [<unit>], <no of bits of data>, [<calibration values space separated>]\n\n
+        Table_calibration: <channel name>, <calibration type>, [<unit>], <no of bits of data>,
+        [<calibration values space separated>]\n\n
         """
-    
+
         translate_platform_name = {'metop01': 'Metop-B',
                                    'metop02': 'Metop-A',
                                    'metop03': 'Metop-C',
@@ -208,23 +214,23 @@ class MITIFFWriter(ImageWriter):
         if type(datasets) in (list,):
             LOG.debug("Datasets is a list of dataset")
             first_dataset = datasets[0]
-            
+
         if 'platform_name' in first_dataset.attrs:
             _platform_name = translate_platform_name.get(first_dataset.attrs['platform_name'],first_dataset.attrs['platform_name'])
         elif 'platform_name' in kwargs:
             _platform_name = translate_platform_name.get(kwargs['platform_name'],kwargs['platform_name'])
         else:
             _platform_name = None
-            
+
         _image_description = ''
         _image_description.encode('utf-8')
 
         _image_description += ' Satellite: '
         if ( _platform_name != None ):
             _image_description += _platform_name
-    
+
         _image_description += '\n'
-        
+
         _image_description += ' Date and Time: '
         #Select earliest start_time
         first = True
@@ -238,9 +244,9 @@ class MITIFFWriter(ImageWriter):
             first=False
         LOG.debug("earliest start_time: {}".format(earliest))
         _image_description += earliest.strftime("%H:%M %d/%m-%Y\n")
-       
+
         _image_description += ' SatDir: 0\n'
-    
+
         _image_description += ' Channels: '
 
         if type(datasets) in (list,):
@@ -271,30 +277,30 @@ class MITIFFWriter(ImageWriter):
             cns = self.translate_channel_name.get(kwargs['sensor'],{})
         except KeyError:
             pass
-        
+
         for ch in channels:
             try:
                 _image_description += str(self.mitiff_config[kwargs['sensor']][cns.get(ch,ch)]['alias'])
             except KeyError:
                 _image_description += str(ch)
             _image_description += ' '
-        
+
         #Replace last char(space) with \n
         _image_description = _image_description[:-1]
         _image_description += '\n'
-       
+
         _image_description += ' Xsize: '
         if type(datasets) in (list,):
             _image_description += str(first_dataset.sizes['x']) + '\n'
         else:
             _image_description += str(datasets.sizes['x']) + '\n'
-    
+
         _image_description += ' Ysize: '
         if type(datasets) in (list,):
             _image_description += str(first_dataset.sizes['y']) + '\n'
         else:
             _image_description += str(datasets.sizes['y']) + '\n'
-            
+
         _image_description += ' Map projection: Stereographic\n'
         if type(datasets) in (list,):
             proj4_string = first_dataset.attrs['area'].proj4_string
@@ -307,13 +313,13 @@ class MITIFFWriter(ImageWriter):
                 proj4_string = proj4_string.replace("+a=6378137.0 +b=6356752.31414","+ellps=WGS84")
             if '+units=m' in proj4_string:
                 proj4_string = proj4_string.replace("+units=m","+units=km")
-                
+
         if not all( datum in proj4_string for datum in ['datum','towgs84']):
             proj4_string += ' +towgs84=0,0,0'
 
         if not 'units' in proj4_string:
             proj4_string += ' +units=km'
-        
+
         _image_description += ' Proj string: ' + proj4_string
         LOG.debug("proj4_string: {}".format(proj4_string))
         if type(datasets) in (list,):
@@ -326,7 +332,7 @@ class MITIFFWriter(ImageWriter):
         _image_description += '\n'
         _image_description += ' TrueLat: 60N\n'
         _image_description += ' GridRot: 0\n'
-    
+
         _image_description += ' Xunit:1000 m Yunit: 1000 m\n'
 
         _image_description += ' NPX: %.6f' % (0)
@@ -349,7 +355,7 @@ class MITIFFWriter(ImageWriter):
             _image_description += ' By: %.6f' % (datasets.attrs['area'].area_extent[3]/1000. - datasets.attrs['area'].pixel_size_y/1000./2.) #UR_y
 
         _image_description += '\n'
-    
+
         if type(datasets) in (list,):
             LOG.debug("Area extent: {}".format(first_dataset.attrs['area'].area_extent))
         else:
@@ -359,7 +365,7 @@ class MITIFFWriter(ImageWriter):
         skip_calibration =False
         for ch in channels:
             found_channel = False
-                    
+
             palette=False
             #Make calibration.
             if palette:
@@ -385,7 +391,7 @@ class MITIFFWriter(ImageWriter):
                         _table_calibration += ', BT, '
                         _table_calibration += u'\u00B0'#'\u2103'
                         _table_calibration += u'[C]'
-                        
+
                         _reverse_offset = 255.;
                         _reverse_scale = -1.;
                         _decimals = 2
@@ -415,7 +421,7 @@ class MITIFFWriter(ImageWriter):
                                     _table_calibration += ', BT, '
                                     _table_calibration += u'\u00B0'#'\u2103'
                                     _table_calibration += u'[C]'
-                        
+
                                     _reverse_offset = 255.;
                                     _reverse_scale = -1.;
                                     _decimals = 2
@@ -426,7 +432,7 @@ class MITIFFWriter(ImageWriter):
                                     _decimals = 2
                                 else:
                                     LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
-                            
+
                                 break;
                             else:
                                 continue
@@ -446,9 +452,9 @@ class MITIFFWriter(ImageWriter):
                         #Comma separated list of values
                         _table_calibration += '{0:.{1}f} '.format((float(self.mitiff_config[kwargs['sensor']][cns.get(ch,ch)]['min-val']) + ( (_reverse_offset + _reverse_scale*val) * ( float(self.mitiff_config[kwargs['sensor']][cns.get(ch,ch)]['max-val']) - float(self.mitiff_config[kwargs['sensor']][cns.get(ch,ch)]['min-val'])))/255.),_decimals)
                         #_table_calibration += '0.00000000 '
-                
+
                     _table_calibration += ']\n\n'
-                    
+
         _image_description += _table_calibration
         return _image_description
 
@@ -459,9 +465,9 @@ class MITIFFWriter(ImageWriter):
         from libtiff import TIFF
 
         tif = TIFF.open(gen_filename, mode ='w')
-        
+
         tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
-        
+
         cns = self.translate_channel_name.get(kwargs['sensor'],{})
         if type(datasets) in (list,):
             LOG.debug("Saving datasets as list")
@@ -513,5 +519,5 @@ class MITIFFWriter(ImageWriter):
                 data = chn.values*254. + 1
                 data = data.clip(0,255)
                 tif.write_image(data.astype(np.uint8), compression='deflate')
-            
+
         tif.close
