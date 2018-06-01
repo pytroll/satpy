@@ -743,8 +743,8 @@ class Scene(MetadataObject):
             try:
                 slice_x, slice_y = source_area.get_area_slices(destination_area)
                 source_area = source_area[slice_y, slice_x]
-                dataset.data = dataset.data.rechunk(1024)
                 dataset = dataset.isel(x=slice_x, y=slice_y)
+                assert dataset.shape == source_area.shape  # sanity check
                 dataset.attrs['area'] = source_area
             except NotImplementedError:
                 LOG.info("Not reducing data before resampling.")
