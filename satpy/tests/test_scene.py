@@ -264,6 +264,43 @@ class TestScene(unittest.TestCase):
                           DatasetID(name='1', modifiers=tuple()))
         self.assertEqual(len(list(scene.keys())), 2)
 
+    def test_getitem_slices(self):
+        """Test __getitem__ with slices"""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition, SwathDefinition
+        from pyresample.utils import proj4_str_to_dict
+        import numpy as np
+        scene = Scene()
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        swath_def = SwathDefinition(lons=np.zeros((5, 10)), lats=np.zeros((5, 10)))
+        scene["1"] = DataArray(np.zeros((5, 10)))
+        scene["2"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'))
+        scene["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                               attrs={'area': area_def})
+        scene["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                               attrs={'area': swath_def})
+        new_scn = scene[2:5, 2:8]
+        self.assertTupleEqual(new_scn['1'].shape, (3, 6))
+        self.assertTupleEqual(new_scn['2'].shape, (3, 6))
+        self.assertTupleEqual(new_scn['3'].shape, (3, 6))
+        self.assertTupleEqual(new_scn['4'].shape, (3, 6))
+        self.assertIn('area', new_scn['3'].attrs)
+        self.assertIn('area', new_scn['4'].attrs)
+        self.assertTupleEqual(new_scn['3'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn['4'].attrs['area'].shape, (3, 6))
+
     def test_contains(self):
         from satpy import Scene
         from xarray import DataArray
