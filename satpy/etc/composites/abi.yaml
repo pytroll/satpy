@@ -1,6 +1,15 @@
 sensor_name: visir/abi
 
 modifiers:
+  # TODO: fix
+  rayleigh_corrected_crefl:
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
 #  rayleigh_corrected:
 #    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
 #    atmosphere: us-standard
@@ -67,6 +76,34 @@ modifiers:
     - solar_zenith_angle
 
 composites:
+  green_crefl:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: C03
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: toa_bidirection_reflectance
+
+  green_raw:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
   green:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
@@ -102,6 +139,26 @@ composites:
 #    - name: C03
 #      modifiers: [reducer2, effective_solar_pathlength_corrected]
 #    standard_name: true_color
+
+  true_color_crefl:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: green_crefl
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: true_color
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: green_raw
+    - name: C01
+      modifiers: [sunz_corrected]
+    standard_name: true_color
 
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
