@@ -398,13 +398,10 @@ class Scene(MetadataObject):
         datasets_by_area = {}
         for ds in self:
             a = ds.attrs.get('area')
-            a_str = str(a) if a is not None else None
-            datasets_by_area.setdefault(
-                a_str, (a, []))
-            datasets_by_area[a_str][1].append(DatasetID.from_dict(ds.attrs))
+            datasets_by_area.setdefault(a, []).append(
+                DatasetID.from_dict(ds.attrs))
 
-        for area_name, (area_obj, ds_list) in datasets_by_area.items():
-            yield area_obj, ds_list
+        return datasets_by_area.items()
 
     def keys(self, **kwargs):
         return self.datasets.keys(**kwargs)
@@ -413,7 +410,20 @@ class Scene(MetadataObject):
         return self.datasets.values()
 
     def __getitem__(self, key):
-        """Get a dataset."""
+        """Get a dataset or create a new 'slice' of the Scene."""
+        if isinstance(key, tuple) and not isinstance(key, DatasetID):
+            # slice
+            new_scn = self.__class__()
+            for area, dataset_ids in self.iter_by_area():
+                new_area = area[key] if area is not None else None
+                for ds_id in dataset_ids:
+                    ds = self[ds_id]
+                    slices = dict(zip(ds.dims, key))
+                    new_ds = ds.isel(**slices)
+                    if new_area is not None:
+                        new_ds.attrs['area'] = new_area
+                    new_scn[ds_id] = new_ds
+            return new_scn
         return self.datasets[key]
 
     def __setitem__(self, key, value):
