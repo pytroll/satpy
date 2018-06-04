@@ -254,7 +254,6 @@ class EWAResampler(BaseResampler):
 
     def __init__(self, source_geo_def, target_geo_def):
         super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
-        self.resampler = None
         self.cache = {}
 
     def resample(self, *args, **kwargs):
@@ -311,13 +310,6 @@ class EWAResampler(BaseResampler):
 
         if cache_dir:
             LOG.warning("'cache_dir' is not used by EWA resampling")
-        cache_key = self.get_hash(source_geo_def=source_geo_def,
-                                  target_geo_def=target_geo_def)
-
-        # we've already loaded the cache
-        if cache_key in self.cache:
-            LOG.debug("Using previously computed EWA ll2cr results: %s", cache_key)
-            return cache_key
 
         # SatPy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
@@ -332,12 +324,12 @@ class EWAResampler(BaseResampler):
 
         # save the dask arrays in the class instance cache
         # the on-disk cache will store the numpy arrays
-        self.cache[cache_key] = {
+        self.cache = {
             "rows": rows,
             "cols": cols,
         }
 
-        return cache_key
+        return None
 
     def _call_fornav(self, cols, rows, target_geo_def, data,
                      grid_coverage=0, **kwargs):
@@ -372,8 +364,8 @@ class EWAResampler(BaseResampler):
                               covered with swath pixels
 
         """
-        rows = self.cache[cache_id]["rows"]
-        cols = self.cache[cache_id]["cols"]
+        rows = self.cache["rows"]
+        cols = self.cache["cols"]
 
         # if the data is scan based then check its metadata or the passed
         # kwargs otherwise assume the entire input swath is one large
