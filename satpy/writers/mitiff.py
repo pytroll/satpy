@@ -92,8 +92,7 @@ class MITIFFWriter(ImageWriter):
                 except KeyError:
                     pass
 
-                image_description = self._make_image_description(dataset,
-                                                                 **kwargs)
+                image_description = self._make_image_description(dataset, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
                 self.filename_parser = self.create_filename_parser(create_opts)
                 LOG.info("Saving mitiff to: %s ...", self.get_filename(**kwargs))
@@ -134,16 +133,11 @@ class MITIFFWriter(ImageWriter):
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = datasets[0].attrs['sensor']
 
-                self.mitiff_config[kwargs['sensor']] = \
-                    datasets['metadata_requistites']['config']
-                self.translate_channel_name[kwargs['sensor']] = \
-                    datasets['metadata_requistites']['translate']
-                self.channel_order[kwargs['sensor']] = \
-                    datasets['metadata_requistites']['order']
-                self.file_pattern = \
-                    datasets['metadata_requistites']['file_pattern']
-                image_description = self._make_image_description(datasets,
-                                                                 **kwargs)
+                self.mitiff_config[kwargs['sensor']] = datasets['metadata_requistites']['config']
+                self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requistites']['translate']
+                self.channel_order[kwargs['sensor']] = datasets['metadata_requistites']['order']
+                self.file_pattern = datasets['metadata_requistites']['file_pattern']
+                image_description = self._make_image_description(datasets, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
                 if isinstance(datasets, list):
                     kwargs['start_time'] = datasets[0].attrs['start_time']
@@ -162,6 +156,135 @@ class MITIFFWriter(ImageWriter):
         LOG.debug("About to call delayed compute ...")
         delayed.compute()
         return delayed
+
+    def _make_channel_list(self, datasets, **kwargs):
+        channels = []
+        try:
+            if self.channel_order:
+                for cn in self.channel_order[kwargs['sensor']]:
+                    for ch in xrange(len(datasets)):
+                        if datasets[ch].attrs['prerequisites'][ch][0] == cn:
+                            channels.append(
+                                datasets[ch].attrs['prerequisites'][ch][0])
+                            break
+            else:
+                for ch in xrange(len(datasets)):
+                    channels.append(ch + 1)
+        except KeyError:
+            for ch in xrange(len(datasets)):
+                channels.append(ch + 1)
+        return channels
+
+    def _channel_names(self, channels, cns, **kwargs):
+        _image_description = ""
+        for ch in channels:
+            try:
+                _image_description += str(
+                    self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['alias'])
+            except KeyError:
+                _image_description += str(ch)
+            _image_description += ' '
+
+        # Replace last char(space) with \n
+        _image_description = _image_description[:-1]
+        _image_description += '\n'
+
+        return _image_description
+
+    def _add_sizes(self, datasets, first_dataset):
+        _image_description = ' Xsize: '
+        if isinstance(datasets, list):
+            _image_description += str(first_dataset.sizes['x']) + '\n'
+        else:
+            _image_description += str(datasets.sizes['x']) + '\n'
+
+        _image_description += ' Ysize: '
+        if isinstance(datasets, list):
+            _image_description += str(first_dataset.sizes['y']) + '\n'
+        else:
+            _image_description += str(datasets.sizes['y']) + '\n'
+
+        return _image_description
+
+    def _add_proj4_string(self, datasets, first_dataset):
+        proj4_string = " Proj string: "
+
+        if isinstance(datasets, list):
+            proj4_string += first_dataset.attrs['area'].proj4_string
+        else:
+            proj4_string += datasets.attrs['area'].proj4_string
+
+        if 'geos' in proj4_string:
+            proj4_string = proj4_string.replace("+sweep=x ", "")
+            if '+a=6378137.0 +b=6356752.31414' in proj4_string:
+                proj4_string = proj4_string.replace("+a=6378137.0 +b=6356752.31414",
+                                                    "+ellps=WGS84")
+            if '+units=m' in proj4_string:
+                proj4_string = proj4_string.replace("+units=m", "+units=km")
+
+        if not all(datum in proj4_string for datum in ['datum', 'towgs84']):
+            proj4_string += ' +towgs84=0,0,0'
+
+        if 'units' not in proj4_string:
+            proj4_string += ' +units=km'
+
+        if isinstance(datasets, list):
+            proj4_string += ' +x_0=%.6f' % (
+                -first_dataset.attrs['area'].area_extent[0] +
+                first_dataset.attrs['area'].pixel_size_x)
+            proj4_string += ' +y_0=%.6f' % (
+                -first_dataset.attrs['area'].area_extent[1] +
+                first_dataset.attrs['area'].pixel_size_y)
+        else:
+            proj4_string += ' +x_0=%.6f' % (
+                -datasets.attrs['area'].area_extent[0] +
+                datasets.attrs['area'].pixel_size_x)
+            proj4_string += ' +y_0=%.6f' % (
+                -datasets.attrs['area'].area_extent[1] +
+                datasets.attrs['area'].pixel_size_y)
+
+        proj4_string += '\n'
+        LOG.debug("proj4_string: %s", proj4_string)
+
+        return proj4_string
+
+    def _add_pixel_sizes(self, datasets, first_dataset):
+        _image_description = ""
+        if isinstance(datasets, list):
+            _image_description += ' Ax: %.6f' % (
+                first_dataset.attrs['area'].pixel_size_x / 1000.)
+            _image_description += ' Ay: %.6f' % (
+                first_dataset.attrs['area'].pixel_size_y / 1000.)
+        else:
+            _image_description += ' Ax: %.6f' % (
+                datasets.attrs['area'].pixel_size_x / 1000.)
+            _image_description += ' Ay: %.6f' % (
+                datasets.attrs['area'].pixel_size_y / 1000.)
+
+        return _image_description
+
+    def _add_corners(self, datasets, first_dataset):
+        # But this ads up to upper left corner of upper left pixel.
+        # But need to use the center of the pixel.
+        # Therefor use the center of the upper left pixel.
+        _image_description = ""
+        if isinstance(datasets, list):
+            _image_description += ' Bx: %.6f' % (
+                first_dataset.attrs['area'].area_extent[0] / 1000. +
+                first_dataset.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
+            _image_description += ' By: %.6f' % (
+                first_dataset.attrs['area'].area_extent[3] / 1000. -
+                first_dataset.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
+        else:
+            _image_description += ' Bx: %.6f' % (
+                datasets.attrs['area'].area_extent[0] / 1000. +
+                datasets.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
+            _image_description += ' By: %.6f' % (
+                datasets.attrs['area'].area_extent[3] / 1000. -
+                datasets.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
+
+        _image_description += '\n'
+        return _image_description
 
     def _make_image_description(self, datasets, **kwargs):
         """
@@ -270,90 +393,21 @@ class MITIFFWriter(ImageWriter):
 
         _image_description += ' In this file: '
 
-        channels = []
-        try:
-            if self.channel_order:
-                for cn in self.channel_order[kwargs['sensor']]:
-                    for ch in xrange(len(datasets)):
-                        if datasets[ch].attrs['prerequisites'][ch][0] == cn:
-                            channels.append(
-                                datasets[ch].attrs['prerequisites'][ch][0])
-                            break
-            else:
-                for ch in xrange(len(datasets)):
-                    channels.append(ch + 1)
-        except KeyError:
-            for ch in xrange(len(datasets)):
-                channels.append(ch + 1)
+        channels = self._make_channel_list(datasets, **kwargs)
 
         try:
             cns = self.translate_channel_name.get(kwargs['sensor'], {})
         except KeyError:
             pass
 
-        for ch in channels:
-            try:
-                _image_description += str(
-                    self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['alias'])
-            except KeyError:
-                _image_description += str(ch)
-            _image_description += ' '
+        _image_description += self._channel_names(channels, cns, **kwargs)
 
-        # Replace last char(space) with \n
-        _image_description = _image_description[:-1]
-        _image_description += '\n'
-
-        _image_description += ' Xsize: '
-        if isinstance(datasets, list):
-            _image_description += str(first_dataset.sizes['x']) + '\n'
-        else:
-            _image_description += str(datasets.sizes['x']) + '\n'
-
-        _image_description += ' Ysize: '
-        if isinstance(datasets, list):
-            _image_description += str(first_dataset.sizes['y']) + '\n'
-        else:
-            _image_description += str(datasets.sizes['y']) + '\n'
+        _image_description += self._add_sizes(datasets, first_dataset)
 
         _image_description += ' Map projection: Stereographic\n'
-        if isinstance(datasets, list):
-            proj4_string = first_dataset.attrs['area'].proj4_string
-        else:
-            proj4_string = datasets.attrs['area'].proj4_string
 
-        if 'geos' in proj4_string:
-            proj4_string = proj4_string.replace("+sweep=x ", "")
-            if '+a=6378137.0 +b=6356752.31414' in proj4_string:
-                proj4_string = \
-                    proj4_string.replace("+a=6378137.0 +b=6356752.31414",
-                                         "+ellps=WGS84")
-            if '+units=m' in proj4_string:
-                proj4_string = proj4_string.replace("+units=m", "+units=km")
+        _image_description += self._add_proj4_string(datasets, first_dataset)
 
-        if not all(datum in proj4_string for datum in ['datum', 'towgs84']):
-            proj4_string += ' +towgs84=0,0,0'
-
-        if 'units' not in proj4_string:
-            proj4_string += ' +units=km'
-
-        _image_description += ' Proj string: ' + proj4_string
-        LOG.debug("proj4_string: %s", proj4_string)
-        if isinstance(datasets, list):
-            _image_description += ' +x_0=%.6f' % (
-                -first_dataset.attrs['area'].area_extent[0] +
-                first_dataset.attrs['area'].pixel_size_x)
-            _image_description += ' +y_0=%.6f' % (
-                -first_dataset.attrs['area'].area_extent[1] +
-                first_dataset.attrs['area'].pixel_size_y)
-        else:
-            _image_description += ' +x_0=%.6f' % (
-                -datasets.attrs['area'].area_extent[0] +
-                datasets.attrs['area'].pixel_size_x)
-            _image_description += ' +y_0=%.6f' % (
-                -datasets.attrs['area'].area_extent[1] +
-                datasets.attrs['area'].pixel_size_y)
-
-        _image_description += '\n'
         _image_description += ' TrueLat: 60N\n'
         _image_description += ' GridRot: 0\n'
 
@@ -362,36 +416,8 @@ class MITIFFWriter(ImageWriter):
         _image_description += ' NPX: %.6f' % (0)
         _image_description += ' NPY: %.6f' % (0) + '\n'
 
-        if isinstance(datasets, list):
-            _image_description += ' Ax: %.6f' % (
-                first_dataset.attrs['area'].pixel_size_x / 1000.)
-            _image_description += ' Ay: %.6f' % (
-                first_dataset.attrs['area'].pixel_size_y / 1000.)
-        else:
-            _image_description += ' Ax: %.6f' % (
-                datasets.attrs['area'].pixel_size_x / 1000.)
-            _image_description += ' Ay: %.6f' % (
-                datasets.attrs['area'].pixel_size_y / 1000.)
-
-        # But this ads up to upper left corner of upper left pixel.
-        # But need to use the center of the pixel.
-        # Therefor use the center of the upper left pixel.
-        if isinstance(datasets, list):
-            _image_description += ' Bx: %.6f' % (
-                first_dataset.attrs['area'].area_extent[0] / 1000. +
-                first_dataset.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
-            _image_description += ' By: %.6f' % (
-                first_dataset.attrs['area'].area_extent[3] / 1000. -
-                first_dataset.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
-        else:
-            _image_description += ' Bx: %.6f' % (
-                datasets.attrs['area'].area_extent[0] / 1000. +
-                datasets.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
-            _image_description += ' By: %.6f' % (
-                datasets.attrs['area'].area_extent[3] / 1000. -
-                datasets.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
-
-        _image_description += '\n'
+        _image_description += self._add_pixel_sizes(datasets, first_dataset)
+        _image_description += self._add_corners(datasets, first_dataset)
 
         if isinstance(datasets, list):
             LOG.debug("Area extent: %s", first_dataset.attrs['area'].area_extent)
