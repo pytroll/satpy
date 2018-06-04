@@ -230,10 +230,12 @@ class Scene(MetadataObject):
                     ds = self[ds]
                 check_datasets.append(ds)
 
-        if not check_datasets:
+        areas = [x.attrs.get('area') for x in check_datasets]
+        areas = [x for x in areas if x is not None]
+
+        if not areas:
             raise ValueError("No dataset areas available")
 
-        areas = [x.attrs['area'] for x in check_datasets]
         if not all(isinstance(x, type(areas[0]))
                    for x in areas[1:]):
             raise ValueError("Can't compare areas of different types")
@@ -409,11 +411,119 @@ class Scene(MetadataObject):
     def values(self):
         return self.datasets.values()
 
+    def copy(self, datasets=None):
+        """Create a copy of the Scene including dependency information.
+
+        Args:
+            datasets (list, tuple): `DatasetID` objects for the datasets
+                                    to include in the new Scene object.
+
+        """
+        new_scn = self.__class__()
+        new_scn.attrs = self.attrs.copy()
+        new_scn.dep_tree = self.dep_tree.copy()
+
+        for ds_id in (datasets or self.keys()):
+            # NOTE: Must use `.datasets` or side effects of `__setitem__`
+            #       could hurt us with regards to the wishlist
+            new_scn.datasets[ds_id] = self[ds_id]
+
+        if not datasets:
+            new_scn.wishlist = self.wishlist.copy()
+        else:
+            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
+                                    for ds in new_scn])
+        return new_scn
+
+    def crop(self, area=None, ll_bbox=None, xy_bbox=None, datasets=None):
+        """Crop Scene to a specific Area boundary or bounding box.
+
+        Args:
+            area (AreaDefinition): Area to crop the current Scene to
+            ll_bbox (tuple, list): 4-element tuple where values are in
+                                   lon/lat degrees. Elements are
+                                   ``(xmin, ymin, xmax, ymax)`` where X is
+                                   longitude and Y is latitude.
+            xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
+                                   projection units.
+            datasets (iterable): DatasetIDs to include in the returned
+                                 `Scene`. Defaults to all datasets.
+
+        .. note::
+
+            The `resample` method automatically crops input data before
+            resampling to save time/memory.
+
+        """
+        if len([x for x in [area, ll_bbox, xy_bbox] if x is not None]) != 1:
+            raise ValueError("One and only one of 'area', 'll_bbox', "
+                             "or 'xy_bbox' can be specified.")
+
+        new_scn = self.copy(datasets=datasets)
+        if not new_scn.all_same_proj and xy_bbox is not None:
+            raise ValueError("Can't crop when datasets are not all on the "
+                             "same projection.")
+
+        for src_area, datasets in new_scn.iter_by_area():
+            # convert filter parameter to area
+            if src_area is not None:
+                if ll_bbox is not None:
+                    area = AreaDefinition(
+                        'crop_area', 'crop_area', 'crop_latlong',
+                        {'proj': 'latlong'}, 100, 100, ll_bbox)
+                elif xy_bbox is not None:
+                    area = AreaDefinition(
+                        'crop_area', 'crop_area', 'crop_xy',
+                        src_area.proj_dict, src_area.x_size, src_area.y_size,
+                        xy_bbox)
+                x_slice, y_slice = src_area.get_area_slices(area)
+                new_area = src_area[y_slice, x_slice]
+
+                for ds_id in datasets:
+                    ds = new_scn[ds_id]
+                    if ds.attrs.get('area') is None:
+                        new_scn.datasets[ds_id] = ds
+                        continue
+
+                    if 'y' in ds.dims and 'x' in ds.dims:
+                        new_ds = ds.isel(y=y_slice, x=x_slice)
+                    else:
+                        new_ds = ds[y_slice, x_slice]
+
+                    if new_area is not None:
+                        new_ds.attrs['area'] = new_area
+                    # don't use `__setitem__` because we don't want this to
+                    # affect the existing wishlist/dep tree
+                    new_scn.datasets[ds_id] = new_ds
+            else:
+                for ds_id in datasets:
+                    new_scn.datasets[ds_id] = self[ds_id]
+
+        return new_scn
+
+    @property
+    def all_same_area(self):
+        """All contained data arrays are on the same area."""
+        all_areas = [x.attrs.get('area', None) for x in self.values()]
+        all_areas = [x for x in all_areas if x is not None]
+        return all(all_areas[0] == x for x in all_areas[1:])
+
+    @property
+    def all_same_proj(self):
+        """All contained data array are in the same projection."""
+        all_areas = [x.attrs.get('area', None) for x in self.values()]
+        all_areas = [x for x in all_areas if x is not None]
+        return all(all_areas[0].proj_str == x.proj_str for x in all_areas[1:])
+
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple) and not isinstance(key, DatasetID):
+            if not self.all_same_area:
+                raise RuntimeError("'Scene' has different areas and cannot "
+                                   "be usefully sliced.")
             # slice
             new_scn = self.__class__()
+            new_scn.wishlist = self.wishlist
             for area, dataset_ids in self.iter_by_area():
                 new_area = area[key] if area is not None else None
                 for ds_id in dataset_ids:
@@ -645,14 +755,8 @@ class Scene(MetadataObject):
             LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
-    def load(self,
-             wishlist,
-             calibration=None,
-             resolution=None,
-             polarization=None,
-             level=None,
-             generate=True,
-             unload=True,
+    def load(self, wishlist, calibration=None, resolution=None,
+             polarization=None, level=None, generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -722,13 +826,19 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _resampled_scene(self, datasets, destination, **resample_kwargs):
-        """Generate a new scene with resampled *datasets*."""
-        new_scn = self.__class__()
+    def _resampled_scene(self, new_scn, destination_area, **resample_kwargs):
+        """Resample `datasets` to the `destination` area."""
         new_datasets = {}
-        destination_area = None
+        datasets = list(new_scn.datasets.values())
+        if hasattr(destination_area, 'freeze'):
+            try:
+                max_area = new_scn.max_area()
+            except ValueError:
+                raise ValueError("No dataset areas available to freeze "
+                                 "DynamicAreaDefinition.")
+            destination_area = get_frozen_area(destination_area, max_area)
+
         resamplers = {}
-        resampler = resample_kwargs.get('resampler')
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -739,15 +849,10 @@ class Scene(MetadataObject):
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
-                    new_scn[ds_id] = dataset
+                    new_scn.datasets[ds_id] = dataset
                 else:
                     replace_anc(dataset, pres)
                 continue
-            if destination_area is None:
-                # FIXME: We should allow users to freeze based with specific
-                #        dataset
-                destination_area = get_frozen_area(destination,
-                                                   dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
@@ -770,37 +875,22 @@ class Scene(MetadataObject):
                                    **kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
-                new_scn[ds_id] = res
+                new_scn.datasets[ds_id] = res
             else:
                 replace_anc(res, pres)
 
-        return new_scn, destination_area
-
-    def resample(self,
-                 destination=None,
-                 datasets=None,
-                 generate=True,
-                 unload=True,
-                 **resample_kwargs):
+    def resample(self, destination=None, datasets=None, generate=True,
+                 unload=True, **resample_kwargs):
         """Resample the datasets and return a new scene."""
-        to_resample = [dataset for (dsid, dataset) in self.datasets.items()
+        to_resample_ids = [dsid for (dsid, dataset) in self.datasets.items()
                        if (not datasets) or dsid in datasets]
 
         if destination is None:
-            destination = self.max_area(to_resample)
-        new_scn, destination_area = self._resampled_scene(to_resample, destination,
-                                                          **resample_kwargs)
-
-        new_scn.attrs = self.attrs.copy()
-        new_scn.dep_tree = self.dep_tree.copy()
-
-        # MUST set this after assigning the resampled datasets otherwise
-        # composite prereqs that were resampled will be considered "wishlisted"
-        if datasets is None:
-            new_scn.wishlist = self.wishlist.copy()
-        else:
-            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
-                                    for ds in new_scn])
+            destination = self.max_area(to_resample_ids)
+        new_scn = self.copy(datasets=to_resample_ids)
+        # we may have some datasets we asked for but don't exist yet
+        new_scn.wishlist = self.wishlist.copy()
+        self._resampled_scene(new_scn, destination, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
