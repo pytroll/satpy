@@ -311,16 +311,13 @@ class EWAResampler(BaseResampler):
 
         if cache_dir:
             LOG.warning("'cache_dir' is not used by EWA resampling")
-            cache_dir = ''
-        filename = self._create_cache_filename(cache_dir,
-                                               source_geo_def=source_geo_def,
-                                               target_geo_def=target_geo_def)
-        fn = os.path.basename(filename)
+        cache_key = self.get_hash(source_geo_def=source_geo_def,
+                                  target_geo_def=target_geo_def)
 
         # we've already loaded the cache
-        if fn in self.cache:
-            LOG.debug("Using previously computed EWA ll2cr results: %s", fn)
-            return fn
+        if cache_key in self.cache:
+            LOG.debug("Using previously computed EWA ll2cr results: %s", cache_key)
+            return cache_key
 
         # SatPy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
@@ -335,12 +332,12 @@ class EWAResampler(BaseResampler):
 
         # save the dask arrays in the class instance cache
         # the on-disk cache will store the numpy arrays
-        self.cache[fn] = {
+        self.cache[cache_key] = {
             "rows": rows,
             "cols": cols,
         }
 
-        return fn
+        return cache_key
 
     def _call_fornav(self, cols, rows, target_geo_def, data,
                      grid_coverage=0, **kwargs):
