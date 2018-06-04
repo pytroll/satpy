@@ -98,8 +98,6 @@ class BaseResampler(object):
     The base resampler class. Abstract.
     """
 
-    cache = None
-
     def __init__(self, source_geo_def, target_geo_def):
         """
         :param source_geo_def: The source area
