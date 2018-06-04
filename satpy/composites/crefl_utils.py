@@ -100,21 +100,23 @@ else:
     aH2O = np.array(
         [0.000406601, 0.0015933, 0, 1.78644e-05, 0.00296457, 0.000617252,
          0.000996563, 0.00222253, 0.00094005, 0.000563288, 0, 0, 0, 0, 0, 0,
-         2.4111e-003, 7.8454e-003*rg_fudge,7.9258e-3, 9.3392e-003, 2.53e-2])
+         2.4111e-003, 7.8454e-003*rg_fudge, 7.9258e-3, 9.3392e-003, 2.53e-2])
     bH2O = np.array([0.812659, 0.832931, 1., 0.8677850, 0.806816, 0.944958,
                      0.78812, 0.791204, 0.900564, 0.942907, 0, 0, 0, 0, 0, 0,
                      # These are actually aO2 values for abi calculations
                      1.2360e-003, 3.7296e-003, 177.7161e-006, 10.4899e-003, 1.63e-2])
-    # /*const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
+    # /*const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244,
+    # 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
     aO3 = np.array([0.0433461, 0.0, 0.0178299, 0.0853012, 0, 0, 0, 0.0813531,
                     0, 0, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263,
                     4.2869e-003, 25.6509e-003*rg_fudge, 802.4319e-006, 0.0000e+000, 2e-5])
-    # /*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
+    # /*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,
+    # 0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
     taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740, 0.00369, 0.00132,
                       0.00033, 0.05373, 0.01561, 0.00129, 0.1131, 0.0994,
                       0.0446, 0.0416, 0.0286, 0.0155,
                       184.7200e-003, 52.3490e-003, 15.8450e-003, 1.3074e-003, 311.2900e-006])
-    # TODO: ADD LAST 5 FROM bH2O TO aO2
+    # add last 5 from bH2O to aO2
     aO2 = 0
 
 # Map of pixel resolutions -> wavelength -> coefficient index
@@ -364,13 +366,12 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
 def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     # coeffs = (ah2o, aO2, ao3, tau)
     (ah2o, ao2, ao3, tau) = coeffs
-    missing_value = -999.0
     log = logging.getLogger(__name__)
 
     xfd = 0.958725775
     xbeta2 = 0.5
     as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
-        -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
+           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
     as1 = [0.19666292, -5.439061e-02]
     as2 = [0.14545937, -2.910845e-02]
 
@@ -389,14 +390,14 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     fs02 = as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8] + (mus * mus * muv * muv)*as0[9]
 
     log.debug("Processing band:")
-    taur = tau * np.exp(-height / SCALEHEIGHT);
+    taur = tau * np.exp(-height / SCALEHEIGHT)
     xlntaur = np.log(taur)
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
     del xlntaur
     trdown = np.exp(-taur / mus)
-    trup= np.exp(-taur / muv)
+    trup = np.exp(-taur / muv)
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
     xitot1 = xph1 * (xitm1 + xitm2 * fs0)
@@ -408,11 +409,11 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
     if ao3 != 0:
-        tO3 =  np.exp(G_O3 * ao3)
+        tO3 = np.exp(G_O3 * ao3)
     if ah2o != 0:
         tH2O = np.exp(G_H2O * ah2o)
 
-    tO2 =  np.exp(G_O2 * ao2)
+    tO2 = np.exp(G_O2 * ao2)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
     tOG = tO3 * tO2
     return sphalb, rhoray, TtotraytH2O, tOG

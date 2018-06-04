@@ -100,14 +100,14 @@ class ReflectanceCorrector(CompositeBase):
             sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
         else:
             vis, sensor_aa, sensor_za, solar_aa, solar_za = self.check_areas(
-            datasets + optional_datasets)
+                datasets + optional_datasets)
             # get the dask array underneath
             sensor_aa = sensor_aa.data
             sensor_za = sensor_za.data
             solar_aa = solar_aa.data
             solar_za = solar_za.data
         # angles must be xarrays
-        sensor_aa = xr.DataArray(sensor_aa, dims=['y','x'])
+        sensor_aa = xr.DataArray(sensor_aa, dims=['y', 'x'])
         sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
         solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
         solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
@@ -166,7 +166,7 @@ class ReflectanceCorrector(CompositeBase):
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
 
-        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
+        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
         suna = xu.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
