@@ -286,10 +286,10 @@ class MITIFFWriter(ImageWriter):
                             break
             else:
                 for ch in xrange(len(datasets)):
-                    channels.append(ch+1)
+                    channels.append(ch + 1)
         except KeyError:
             for ch in xrange(len(datasets)):
-                channels.append(ch+1)
+                channels.append(ch + 1)
 
         try:
             cns = self.translate_channel_name.get(kwargs['sensor'], {})
@@ -369,32 +369,32 @@ class MITIFFWriter(ImageWriter):
 
         if type(datasets) in (list,):
             _image_description += ' Ax: %.6f' % (
-                first_dataset.attrs['area'].pixel_size_x/1000.)
+                first_dataset.attrs['area'].pixel_size_x / 1000.)
             _image_description += ' Ay: %.6f' % (
-                first_dataset.attrs['area'].pixel_size_y/1000.)
+                first_dataset.attrs['area'].pixel_size_y / 1000.)
         else:
             _image_description += ' Ax: %.6f' % (
-                datasets.attrs['area'].pixel_size_x/1000.)
+                datasets.attrs['area'].pixel_size_x / 1000.)
             _image_description += ' Ay: %.6f' % (
-                datasets.attrs['area'].pixel_size_y/1000.)
+                datasets.attrs['area'].pixel_size_y / 1000.)
 
         # But this ads up to upper left corner of upper left pixel.
         # But need to use the center of the pixel.
         # Therefor use the center of the upper left pixel.
         if type(datasets) in (list,):
             _image_description += ' Bx: %.6f' % (
-                first_dataset.attrs['area'].area_extent[0]/1000. +
-                first_dataset.attrs['area'].pixel_size_x/1000./2.)  # LL_x
+                first_dataset.attrs['area'].area_extent[0] / 1000. +
+                first_dataset.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
             _image_description += ' By: %.6f' % (
-                first_dataset.attrs['area'].area_extent[3]/1000. -
-                first_dataset.attrs['area'].pixel_size_y/1000./2.)  # UR_y
+                first_dataset.attrs['area'].area_extent[3] / 1000. -
+                first_dataset.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
         else:
             _image_description += ' Bx: %.6f' % (
-                datasets.attrs['area'].area_extent[0]/1000. +
-                datasets.attrs['area'].pixel_size_x/1000./2.)  # LL_x
+                datasets.attrs['area'].area_extent[0] / 1000. +
+                datasets.attrs['area'].pixel_size_x / 1000. / 2.)  # LL_x
             _image_description += ' By: %.6f' % (
-                datasets.attrs['area'].area_extent[3]/1000. -
-                datasets.attrs['area'].pixel_size_y/1000./2.)  # UR_y
+                datasets.attrs['area'].area_extent[3] / 1000. -
+                datasets.attrs['area'].pixel_size_y / 1000. / 2.)  # UR_y
 
         _image_description += '\n'
 
@@ -501,7 +501,12 @@ class MITIFFWriter(ImageWriter):
                     _table_calibration += ', 8, [ '
                     for val in range(0, 256):
                         # Comma separated list of values
-                        _table_calibration += '{0:.{1}f} '.format((float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['min-val']) + ((_reverse_offset + _reverse_scale*val) * (float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['max-val']) - float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['min-val'])))/255.), _decimals)
+                        _table_calibration += '{0:.{1}f} '.format((float(self.mitiff_config[
+                            kwargs['sensor']][cns.get(ch, ch)]['min-val']) +
+                            ((_reverse_offset + _reverse_scale * val) *
+                             (float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['max-val']) -
+                             float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['min-val']))) / 255.),
+                            _decimals)
                         # _table_calibration += '0.00000000 '
 
                     _table_calibration += ']\n\n'
@@ -536,7 +541,10 @@ class MITIFFWriter(ImageWriter):
 
                         # Need to possible translate channels names from satpy to mitiff
                         cn = cns.get(dataset.attrs['name'], dataset.attrs['name'])
-                        _data = reverse_offset + reverse_scale*(((dataset.data-float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))/(float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) - float(self.mitiff_config[kwargs['sensor']][cn]['min-val'])))*255.)
+                        _data = reverse_offset + reverse_scale * (((dataset.data - float(self.mitiff_config[
+                            kwargs['sensor']][cn]['min-val'])) /
+                            (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
+                             float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
                         data = _data.clip(0, 255)
 
                         tif.write_image(data.astype(np.uint8), compression='deflate')
@@ -558,7 +566,10 @@ class MITIFFWriter(ImageWriter):
                         # Need to possible translate channels names from satpy to mitiff
                         cn = cns.get(chn.attrs['prerequisites'][i][0],
                                      chn.attrs['prerequisites'][i][0])
-                        _data = reverse_offset + reverse_scale*(((chn.data-float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))/(float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) - float(self.mitiff_config[kwargs['sensor']][cn]['min-val'])))*255.)
+                        _data = reverse_offset + reverse_scale * (((chn.data - float(self.mitiff_config[
+                            kwargs['sensor']][cn]['min-val'])) /
+                            (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
+                             float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
                         data = _data.clip(0, 255)
 
                         tif.write_image(data.astype(np.uint8), compression='deflate')
@@ -569,7 +580,7 @@ class MITIFFWriter(ImageWriter):
             img = get_enhanced_image(datasets.squeeze(), self.enhancer)
             for i, band in enumerate(img.data['bands']):
                 chn = img.data.sel(bands=band)
-                data = chn.values*254. + 1
+                data = chn.values * 254. + 1
                 data = data.clip(0, 255)
                 tif.write_image(data.astype(np.uint8), compression='deflate')
 
