@@ -310,7 +310,7 @@ class TestScene(unittest.TestCase):
         """Test the crop method."""
         from satpy import Scene
         from xarray import DataArray
-        from pyresample.geometry import AreaDefinition, SwathDefinition
+        from pyresample.geometry import AreaDefinition
         import numpy as np
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
