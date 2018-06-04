@@ -23,7 +23,6 @@
 """
 
 import unittest
-from satpy.resample import KDTreeResampler
 import tempfile
 import shutil
 import os
@@ -39,6 +38,7 @@ class TestKDTreeResampler(unittest.TestCase):
 
     def test_kd_resampling(self):
         """Test the kd resampler."""
+        from satpy.resample import KDTreeResampler
         source_area = mock.MagicMock()
         target_area = mock.MagicMock()
 
@@ -93,6 +93,112 @@ class TestKDTreeResampler(unittest.TestCase):
             data.attrs = {'_FillValue': 8}
             resampler.compute(data)
             resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
+
+
+class TestEWAResampler(unittest.TestCase):
+    """Test EWA resampler class."""
+
+    @mock.patch('satpy.resample.fornav')
+    @mock.patch('satpy.resample.ll2cr')
+    def test_2d_ewa(self, ll2cr, fornav):
+        """Test EWA with a 2D dataset."""
+        import numpy as np
+        import dask.array as da
+        import xarray as xr
+        from satpy.resample import resample_dataset
+        from pyresample.geometry import SwathDefinition, AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        lons = xr.DataArray(da.zeros((10, 10), chunks=5))
+        lats = xr.DataArray(da.zeros((10, 10), chunks=5))
+        ll2cr.return_value = (100,
+                              np.zeros((10, 10), dtype=np.float32),
+                              np.zeros((10, 10), dtype=np.float32))
+        fornav.return_value = (100 * 200,
+                               np.zeros((200, 100), dtype=np.float32))
+        sgd = SwathDefinition(lons, lats)
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        tgd = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        input_data = xr.DataArray(
+            da.zeros((10, 10), chunks=5, dtype=np.float32),
+            dims=('y', 'x'), attrs={'area': sgd, 'test': 'test'})
+
+        new_data = resample_dataset(input_data, tgd, resampler='ewa')
+        self.assertTupleEqual(new_data.shape, (200, 100))
+        self.assertEqual(new_data.dtype, np.float32)
+        self.assertEqual(new_data.attrs['test'], 'test')
+        self.assertIs(new_data.attrs['area'], tgd)
+        # make sure we can actually compute everything
+        new_data.compute()
+        previous_calls = ll2cr.call_count
+
+        # resample a different dataset and make sure cache is used
+        input_data = xr.DataArray(
+            da.zeros((10, 10), chunks=5, dtype=np.float32),
+            dims=('y', 'x'), attrs={'area': sgd, 'test': 'test'})
+        new_data = resample_dataset(input_data, tgd, resampler='ewa')
+        self.assertEqual(ll2cr.call_count, previous_calls)
+        new_data.compute()
+
+    @mock.patch('satpy.resample.fornav')
+    @mock.patch('satpy.resample.ll2cr')
+    def test_3d_ewa(self, ll2cr, fornav):
+        """Test EWA with a 3D dataset."""
+        import numpy as np
+        import dask.array as da
+        import xarray as xr
+        from satpy.resample import resample_dataset
+        from pyresample.geometry import SwathDefinition, AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        lons = xr.DataArray(da.zeros((10, 10), chunks=5))
+        lats = xr.DataArray(da.zeros((10, 10), chunks=5))
+        ll2cr.return_value = (100,
+                              np.zeros((10, 10), dtype=np.float32),
+                              np.zeros((10, 10), dtype=np.float32))
+        fornav.return_value = ([100 * 200] * 3,
+                               [np.zeros((200, 100), dtype=np.float32)] * 3)
+        sgd = SwathDefinition(lons, lats)
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        tgd = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        input_data = xr.DataArray(
+            da.zeros((3, 10, 10), chunks=5, dtype=np.float32),
+            dims=('bands', 'y', 'x'), attrs={'area': sgd, 'test': 'test'})
+
+        new_data = resample_dataset(input_data, tgd, resampler='ewa')
+        self.assertTupleEqual(new_data.shape, (3, 200, 100))
+        self.assertEqual(new_data.dtype, np.float32)
+        self.assertEqual(new_data.attrs['test'], 'test')
+        self.assertIs(new_data.attrs['area'], tgd)
+        # make sure we can actually compute everything
+        new_data.compute()
+        previous_calls = ll2cr.call_count
+
+        # resample a different dataset and make sure cache is used
+        input_data = xr.DataArray(
+            da.zeros((3, 10, 10), chunks=5, dtype=np.float32),
+            dims=('bands', 'y', 'x'), attrs={'area': sgd, 'test': 'test'})
+        new_data = resample_dataset(input_data, tgd, resampler='ewa')
+        self.assertEqual(ll2cr.call_count, previous_calls)
+        new_data.compute()
 
 
 class TestNativeResampler(unittest.TestCase):
@@ -183,6 +289,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
 
     return mysuite
 
