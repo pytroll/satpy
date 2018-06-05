@@ -286,6 +286,124 @@ class MITIFFWriter(ImageWriter):
         _image_description += '\n'
         return _image_description
 
+    def _add_calibration_datasets(self, ch, datasets, reverse_offset, reverse_scale, decimals):
+        _reverse_offset = reverse_offset
+        _reverse_scale = reverse_scale
+        _decimals = decimals
+        _table_calibration = ""
+        found_calibration = False
+        skip_calibration = False
+        for i, ds in enumerate(datasets):
+            if isinstance(ds.attrs['prerequisites'][i], DatasetID):
+                if ds.attrs['prerequisites'][i][0] == ch:
+                    if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
+                        raise NotImplementedError(
+                            "Mitiff radiance calibration not implemented.")
+                    # _table_calibration += ', Radiance, '
+                    # _table_calibration += '[W/m²/µm/sr]'
+                    # _decimals = 8
+                    elif ds.attrs['prerequisites'][i][4] == 'brightness_temperature':
+                        found_calibration = True
+                        _table_calibration += ', BT, '
+                        _table_calibration += u'\u00B0'  # '\u2103'
+                        _table_calibration += u'[C]'
+
+                        _reverse_offset = 255.
+                        _reverse_scale = -1.
+                        _decimals = 2
+                    elif ds.attrs['prerequisites'][i][4] == 'reflectance':
+                        found_calibration = True
+                        _table_calibration += ', Reflectance(Albedo), '
+                        _table_calibration += '[%]'
+                        _decimals = 2
+                    else:
+                        LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
+
+                        break
+                else:
+                    continue
+            else:
+                _table_calibration = ""
+                skip_calibration = True
+                break
+        if not found_calibration:
+            _table_calibration = ""
+            skip_calibration = True
+            # How to format string by passing the format
+            # http://stackoverflow.com/questions/1598579/rounding-decimals-with-new-python-format-function
+        return skip_calibration, _table_calibration, _reverse_offset, _reverse_scale, _decimals
+
+    def _add_calibration(self, channels, cns, datasets, **kwargs):
+
+        _table_calibration = ""
+        skip_calibration = False
+        for ch in channels:
+            # TODO Fix found channel stuff
+            # found_channel = False
+
+            palette = False
+            # Make calibration.
+            if palette:
+                raise NotImplementedError("Mitiff palette saving is not implemented.")
+            else:
+                _table_calibration += 'Table_calibration: '
+                try:
+                    _table_calibration += str(
+                        self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['alias'])
+                except KeyError:
+                    _table_calibration += str(ch)
+
+                _reverse_offset = 0.
+                _reverse_scale = 1.
+                _decimals = 2
+                # FIXME need to correlate the configured calibration and the
+                # calibration for the dataset.
+                try:
+                    if ch.calibration == 'RADIANCE':
+                        raise NotImplementedError(
+                            "Mitiff radiance calibration not implemented.")
+                    # _table_calibration += ', Radiance, '
+                    # _table_calibration += '[W/m²/µm/sr]'
+                    # _decimals = 8
+                    elif ch.calibration == 'brightness_temperature':
+                        _table_calibration += ', BT, '
+                        _table_calibration += u'\u00B0'  # '\u2103'
+                        _table_calibration += u'[C]'
+
+                        _reverse_offset = 255.
+                        _reverse_scale = -1.
+                        _decimals = 2
+                    elif ch.calibration == 'reflectance':
+                        _table_calibration += ', Reflectance(Albedo), '
+                        _table_calibration += '[%]'
+                        _decimals = 2
+                    elif ch.calibration is None:
+                        LOG.warning("ch.calibration is None")
+                        _table_calibration = ""
+                        break
+                    else:
+                        LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
+                except AttributeError:
+                    skip_calibration, __table_calibration, _reverse_offset, _reverse_scale, _decimals = \
+                        self._add_calibration_datasets(ch, datasets, _reverse_offset, _reverse_scale, _decimals)
+                    _table_calibration += __table_calibration
+
+                if not skip_calibration:
+                    _table_calibration += ', 8, [ '
+                    for val in range(0, 256):
+                        # Comma separated list of values
+                        _table_calibration += '{0:.{1}f} '.format((float(self.mitiff_config[
+                            kwargs['sensor']][cns.get(ch, ch)]['min-val']) +
+                            ((_reverse_offset + _reverse_scale * val) *
+                             (float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['max-val']) -
+                             float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['min-val']))) / 255.),
+                            _decimals)
+                        # _table_calibration += '0.00000000 '
+
+                    _table_calibration += ']\n\n'
+
+        return _table_calibration
+
     def _make_image_description(self, datasets, **kwargs):
         """
         generate image description for mitiff.
@@ -424,111 +542,8 @@ class MITIFFWriter(ImageWriter):
         else:
             LOG.debug("Area extent: %s", datasets.attrs['area'].area_extent)
 
-        _table_calibration = ""
-        skip_calibration = False
-        for ch in channels:
-            # TODO Fix found channel stuff
-            # found_channel = False
+        _image_description += self._add_calibration(channels, cns, datasets, **kwargs)
 
-            palette = False
-            # Make calibration.
-            if palette:
-                raise NotImplementedError("Mitiff palette saving is not implemented.")
-            else:
-                _table_calibration += 'Table_calibration: '
-                try:
-                    _table_calibration += str(
-                        self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['alias'])
-                except KeyError:
-                    _table_calibration += str(ch)
-
-                _reverse_offset = 0.
-                _reverse_scale = 1.
-
-                # FIXME need to correlate the configured calibration and the
-                # calibration for the dataset.
-                try:
-                    if ch.calibration == 'RADIANCE':
-                        raise NotImplementedError(
-                            "Mitiff radiance calibration not implemented.")
-                    # _table_calibration += ', Radiance, '
-                    # _table_calibration += '[W/m²/µm/sr]'
-                    # _decimals = 8
-                    elif ch.calibration == 'brightness_temperature':
-                        _table_calibration += ', BT, '
-                        _table_calibration += u'\u00B0'  # '\u2103'
-                        _table_calibration += u'[C]'
-
-                        _reverse_offset = 255.
-                        _reverse_scale = -1.
-                        _decimals = 2
-                    elif ch.calibration == 'reflectance':
-                        _table_calibration += ', Reflectance(Albedo), '
-                        _table_calibration += '[%]'
-                        _decimals = 2
-                    elif ch.calibration is None:
-                        LOG.warning("ch.calibration is None")
-                        _table_calibration = ""
-                        break
-                    else:
-                        LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
-                except AttributeError:
-                    found_calibration = False
-                    for i, ds in enumerate(datasets):
-                        # if type(ds.attrs['prerequisites'][i]) is tuple:
-                        if isinstance(ds.attrs['prerequisites'][i], DatasetID):
-                            if ds.attrs['prerequisites'][i][0] == ch:
-                                if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
-                                    raise NotImplementedError(
-                                        "Mitiff radiance calibration not implemented.")
-                                # _table_calibration += ', Radiance, '
-                                # _table_calibration += '[W/m²/µm/sr]'
-                                # _decimals = 8
-                                elif ds.attrs['prerequisites'][i][4] == 'brightness_temperature':
-                                    found_calibration = True
-                                    _table_calibration += ', BT, '
-                                    _table_calibration += u'\u00B0'  # '\u2103'
-                                    _table_calibration += u'[C]'
-
-                                    _reverse_offset = 255.
-                                    _reverse_scale = -1.
-                                    _decimals = 2
-                                elif ds.attrs['prerequisites'][i][4] == 'reflectance':
-                                    found_calibration = True
-                                    _table_calibration += ', Reflectance(Albedo), '
-                                    _table_calibration += '[%]'
-                                    _decimals = 2
-                                else:
-                                    LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
-
-                                break
-                            else:
-                                continue
-                        else:
-                            _table_calibration = ""
-                            skip_calibration = True
-                            break
-                    if not found_calibration:
-                        _table_calibration = ""
-                        skip_calibration = True
-                        # How to format string by passing the format
-                        # http://stackoverflow.com/questions/1598579/rounding-decimals-with-new-python-format-function
-
-                if not skip_calibration:
-                    _table_calibration += ', 8, [ '
-                    for val in range(0, 256):
-                        # Comma separated list of values
-                        _table_calibration += '{0:.{1}f} '.format((float(self.mitiff_config[
-                            kwargs['sensor']][cns.get(ch, ch)]['min-val']) +
-                            ((_reverse_offset + _reverse_scale * val) *
-                             (float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['max-val']) -
-                             float(self.mitiff_config[kwargs['sensor']][cns.get(ch, ch)]['min-val']))) / 255.),
-                            _decimals)
-                        # _table_calibration += '0.00000000 '
-
-                    _table_calibration += ']\n\n'
-
-        _image_description += _table_calibration
         return _image_description
 
     def _save_datasets_as_mitiff(self, datasets, image_description,
