@@ -24,19 +24,16 @@
 """
 
 import logging
-# import os
 
 import glymur
 import numpy as np
-# from osgeo import gdal
 from xarray import DataArray
 import dask.array as da
 import xml.etree.ElementTree as ET
 from pyresample import geometry
-
+from dask import delayed
 
 from satpy import CHUNK_SIZE
-# from geotiepoints.geointerpolator import GeoInterpolator
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -76,11 +73,14 @@ class SAFEMSIL1C(BaseFileHandler):
             except AttributeError:
                 pass
 
-        # Initialize the jp2 reader
-        jp2[0, 0]
-
         jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-        data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
+
+        # Initialize the jp2 reader / doesn't work in a multi-threaded context.
+        # jp2[0, 0]
+        # data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
+
+        data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
+        data = data.rechunk(CHUNK_SIZE) / quantification_value * 100
 
         proj = DataArray(data, dims=['y', 'x'])
         proj.attrs = info.copy()
