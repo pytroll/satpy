@@ -31,6 +31,7 @@ from weakref import WeakValueDictionary
 
 import numpy as np
 import xarray as xr
+import dask
 import dask.array as da
 import xarray.ufuncs as xu
 import six
@@ -96,8 +97,6 @@ class BaseResampler(object):
     """
     The base resampler class. Abstract.
     """
-
-    cache = None
 
     def __init__(self, source_geo_def, target_geo_def):
         """
@@ -251,6 +250,44 @@ class KDTreeResampler(BaseResampler):
 
 class EWAResampler(BaseResampler):
 
+    def __init__(self, source_geo_def, target_geo_def):
+        super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
+        self.cache = {}
+
+    def resample(self, *args, **kwargs):
+        """Run precompute and compute methods.
+
+        .. note::
+
+            This sets the default of 'mask_area' to False since it is
+            not needed in EWA resampling currently.
+
+        """
+        kwargs.setdefault('mask_area', False)
+        return super(EWAResampler, self).resample(*args, **kwargs)
+
+    def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
+        """Wrapper around ll2cr for handling dask delayed calls better."""
+        new_src = SwathDefinition(lons, lats)
+
+        swath_points_in_grid, cols, rows = ll2cr(new_src, target_geo_def)
+        # FIXME: How do we check swath usage/coverage if we only do this
+        #        per-block
+        # # Determine if enough of the input swath was used
+        # grid_name = getattr(self.target_geo_def, "name", "N/A")
+        # fraction_in = swath_points_in_grid / float(lons.size)
+        # swath_used = fraction_in > swath_usage
+        # if not swath_used:
+        #     LOG.info("Data does not fit in grid %s because it only %f%% of "
+        #              "the swath is used" %
+        #              (grid_name, fraction_in * 100))
+        #     raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
+        # else:
+        #     LOG.debug("Data fits in grid %s and uses %f%% of the swath",
+        #               grid_name, fraction_in * 100)
+
+        return np.stack([cols, rows], axis=0)
+
     def precompute(self, mask=None, cache_dir=False, swath_usage=0,
                    **kwargs):
         """Generate row and column arrays and store it for later use.
@@ -262,68 +299,62 @@ class EWAResampler(BaseResampler):
               valid where data points are invalid. This defaults to the
               `mask` attribute of the `data` numpy masked array passed to
               the `resample` method.
+
         """
 
         del kwargs
-
         source_geo_def = self.source_geo_def
+        target_geo_def = self.target_geo_def
 
-        ewa_hash = self.get_hash(source_geo_def=source_geo_def)
-
-        filename = self._create_cache_filename(cache_dir, ewa_hash)
-        self._read_params_from_cache(cache_dir, ewa_hash, filename)
-
-        if self.cache is not None:
-            LOG.debug("Loaded ll2cr parameters")
-            return self.cache
-        else:
-            LOG.debug("Computing ll2cr parameters")
-
-        lons, lats = source_geo_def.get_lonlats()
-        grid_name = getattr(self.target_geo_def, "name", "N/A")
+        if cache_dir:
+            LOG.warning("'cache_dir' is not used by EWA resampling")
 
         # SatPy/PyResample don't support dynamic grids out of the box yet
-        is_static = True
-        if is_static:
-            # we are remapping to a static unchanging grid/area with all of
-            # its parameters specified
-            # inplace operation so lon_arr and lat_arr are written to
-            swath_points_in_grid, cols, rows = ll2cr(source_geo_def,
-                                                     self.target_geo_def)
-        else:
-            raise NotImplementedError(
-                "Dynamic ll2cr is not supported by satpy yet")
+        lons, lats = source_geo_def.get_lonlats()
+        # we are remapping to a static unchanging grid/area with all of
+        # its parameters specified
+        chunks = (2,) + lons.chunks
+        res = da.map_blocks(self._call_ll2cr, lons.data, lats.data,
+                            target_geo_def, swath_usage,
+                            dtype=lons.dtype, chunks=chunks, new_axis=[0])
+        cols = res[0]
+        rows = res[1]
 
-        # Determine if enough of the input swath was used
-        fraction_in = swath_points_in_grid / float(lons.size)
-        swath_used = fraction_in > swath_usage
-        if not swath_used:
-            LOG.info("Data does not fit in grid %s because it only %f%% of "
-                     "the swath is used" %
-                     (grid_name, fraction_in * 100))
-            raise RuntimeError("Data does not fit in grid %s" % (grid_name,))
-        else:
-            LOG.debug("Data fits in grid %s and uses %f%% of the swath",
-                      grid_name, fraction_in * 100)
-
-        # Can't save masked arrays to npz, so remove the mask
-        if hasattr(rows, 'mask'):
-            rows = rows.data
-            cols = cols.data
-
-        # it's important here not to modify the existing cache dictionary.
+        # save the dask arrays in the class instance cache
+        # the on-disk cache will store the numpy arrays
         self.cache = {
-            "source_geo_def": source_geo_def,
             "rows": rows,
             "cols": cols,
         }
 
-        self._update_caches(ewa_hash, cache_dir, filename)
+        return None
 
-        return self.cache
+    def _call_fornav(self, cols, rows, target_geo_def, data,
+                     grid_coverage=0, **kwargs):
+        """Wrapper to run fornav as a dask delayed."""
+        num_valid_points, res = fornav(cols, rows, target_geo_def,
+                                       data, **kwargs)
 
-    def compute(self, data, fill_value=0, weight_count=10000, weight_min=0.01,
-                weight_distance_max=1.0, weight_sum_min=-1.0,
+        if isinstance(data, tuple):
+            # convert 'res' from tuple of arrays to one array
+            res = np.stack(res)
+            num_valid_points = sum(num_valid_points)
+
+        grid_covered_ratio = num_valid_points / float(res.size)
+        grid_covered = grid_covered_ratio > grid_coverage
+        if not grid_covered:
+            msg = "EWA resampling only found %f%% of the grid covered " \
+                  "(need %f%%)" % (grid_covered_ratio * 100,
+                                   grid_coverage * 100)
+            raise RuntimeError(msg)
+        LOG.debug("EWA resampling found %f%% of the grid covered" %
+                  (grid_covered_ratio * 100))
+
+        return res
+
+    def compute(self, data, cache_id=None, fill_value=0, weight_count=10000,
+                weight_min=0.01, weight_distance_max=1.0,
+                weight_delta_max=1.0, weight_sum_min=-1.0,
                 maximum_weight_mode=False, grid_coverage=0, **kwargs):
         """Resample the data according to the precomputed X/Y coordinates.
 
@@ -337,43 +368,41 @@ class EWAResampler(BaseResampler):
         # if the data is scan based then check its metadata or the passed
         # kwargs otherwise assume the entire input swath is one large
         # "scanline"
-        rows_per_scan = getattr(data, "info", kwargs).get(
-            "rows_per_scan", data.shape[0])
-        if hasattr(data, 'mask'):
-            mask = data.mask
-            data = data.data
-            data[mask] = np.nan
+        rows_per_scan = kwargs.get('rows_per_scan',
+                                   data.attrs.get("rows_per_scan",
+                                                  data.shape[0]))
 
-        if data.ndim >= 3:
-            data_in = tuple(data[..., i] for i in range(data.shape[-1]))
+        if data.ndim == 3 and 'bands' in data.dims:
+            data_in = tuple(data.sel(bands=band).data
+                            for band in data['bands'])
+        elif data.ndim == 2:
+            data_in = data.data
         else:
-            data_in = data
+            raise ValueError("Unsupported data shape for EWA resampling.")
 
-        num_valid_points, res = fornav(cols, rows, self.target_geo_def,
-                                       data_in,
-                                       rows_per_scan=rows_per_scan,
-                                       weight_count=weight_count,
-                                       weight_min=weight_min,
-                                       weight_distance_max=weight_distance_max,
-                                       weight_sum_min=weight_sum_min,
-                                       maximum_weight_mode=maximum_weight_mode)
+        res = dask.delayed(self._call_fornav)(
+            cols, rows, self.target_geo_def, data_in,
+            grid_coverage=grid_coverage,
+            rows_per_scan=rows_per_scan, weight_count=weight_count,
+            weight_min=weight_min, weight_distance_max=weight_distance_max,
+            weight_delta_max=weight_delta_max, weight_sum_min=weight_sum_min,
+            maximum_weight_mode=maximum_weight_mode)
+        if isinstance(data_in, tuple):
+            new_shape = (len(data_in),) + self.target_geo_def.shape
+        else:
+            new_shape = self.target_geo_def.shape
+        data_arr = da.from_delayed(res, new_shape, data.dtype)
+        # from delayed creates one large chunk, break it up a bit if we can
+        data_arr = data_arr.rechunk([CHUNK_SIZE] * data_arr.ndim)
+        if data.ndim == 3 and data.dims[0] == 'bands':
+            dims = ('bands', 'y', 'x')
+        elif data.ndim == 2:
+            dims = ('y', 'x')
+        else:
+            dims = data.dims
 
-        if data.ndim >= 3:
-            # convert 'res' from tuple of arrays to one array
-            res = np.dstack(res)
-            num_valid_points = sum(num_valid_points)
-
-        grid_covered_ratio = num_valid_points / float(res.size)
-        grid_covered = grid_covered_ratio > grid_coverage
-        if not grid_covered:
-            msg = "EWA resampling only found %f%% of the grid covered "
-            "(need %f%%)" % (grid_covered_ratio * 100,
-                             grid_coverage * 100)
-            raise RuntimeError(msg)
-        LOG.debug("EWA resampling found %f%% of the grid covered" %
-                  (grid_covered_ratio * 100))
-
-        return np.ma.masked_invalid(res)
+        return xr.DataArray(data_arr, dims=dims,
+                            attrs=data.attrs.copy())
 
 
 class BilinearResampler(BaseResampler):
@@ -619,9 +648,10 @@ def resample(source_area, data, destination_area,
         resampler = kwargs.pop('resampler_class')
 
     if not isinstance(resampler, BaseResampler):
-        resampler_instance = prepare_resampler(source_area,
-                                               destination_area,
-                                               resampler)
+        # we don't use the first argument (cache key)
+        _, resampler_instance = prepare_resampler(source_area,
+                                                  destination_area,
+                                                  resampler)
     else:
         resampler_instance = resampler
 
