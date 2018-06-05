@@ -469,9 +469,11 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
-        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
+        refl = self._get_reflectance(projectables, optional_datasets) * 100
+        proj = xr.DataArray(refl.filled(np.nan), dims=_nir.dims,
+                            coords=_nir.coords, attrs=_nir.attrs)
 
-        proj.info['units'] = '%'
+        proj.attrs['units'] = '%'
         self.apply_modifier_info(_nir, proj)
 
         return proj
