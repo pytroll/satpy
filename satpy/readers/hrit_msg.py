@@ -33,7 +33,7 @@ TODO:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 
@@ -379,7 +379,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         elif calibration == 'brightness_temperature':
             cal_type = self.prologue['ImageDescription'][
-                'Level1_5ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
+                'Level15ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
             res = self._ir_calibrate(res, channel_name, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
