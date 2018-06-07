@@ -51,7 +51,6 @@ MAXAIRMASS = 18
 SCALEHEIGHT = 8000
 FILL_INT16 = 32767
 
-TAUSTEP4SPHALB = 0.0001
 MAXNUMSPHALBVALUES = 4000  # with no aerosol taur <= 0.4 in all bands everywhere
 REFLMIN = -0.01
 REFLMAX = 1.6
@@ -331,6 +330,7 @@ def chand(phi, muv, mus, taur):
 
 def get_atm_variables(mus, muv, phi, height, coeffs):
     (ah2o, bh2o, ao3, tau) = coeffs
+    TAUSTEP4SPHALB = .0001
     # From GetAtmVariables
     tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
                            MAXNUMSPHALBVALUES)
@@ -364,19 +364,18 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
 
 
 def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
+    import dask
     # coeffs = (ah2o, aO2, ao3, tau)
     (ah2o, ao2, ao3, tau) = coeffs
-    log = logging.getLogger(__name__)
-
+    TAUSTEP4SPHALB = .0003
     xfd = 0.958725775
     xbeta2 = 0.5
     as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
            -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
     as1 = [0.19666292, -5.439061e-02]
     as2 = [0.14545937, -2.910845e-02]
-
-    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
-                           MAXNUMSPHALBVALUES)
+    tau_step = da.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
+                           MAXNUMSPHALBVALUES, chunks=int(MAXNUMSPHALBVALUES/2))
     sphalb0 = csalbr(tau_step)
     # phios = phi + 180.0 DONE IN PREPROCESSOR
     xcos1 = 1.0
@@ -391,7 +390,7 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     fs02 = as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8] + \
            (mus * mus * muv * muv)*as0[9]
 
-    log.debug("Processing band:")
+    LOG.debug("Processing band:")
     taur = tau * np.exp(-height / SCALEHEIGHT)
     xlntaur = np.log(taur)
     fs0 = fs01 + fs02 * xlntaur
@@ -407,22 +406,27 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
 
-    sphalb = sphalb0[np.int32(taur / TAUSTEP4SPHALB + 0.5)]
+    def _sphalb_index(sphalb0, index_arr):
+        # FIXME: if/when dask can support lazy index arrays then remove this
+        return sphalb0[index_arr]
+    # sphalb = sphalb0[(taur / TAUSTEP4SPHALB + 0.5).astype(np.int32)]
+    sphalb_delayed = dask.delayed(_sphalb_index)(sphalb0, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32))
+    sphalb = da.from_delayed(sphalb_delayed, taur.shape, dtype=sphalb0.dtype)
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
     if ao3 != 0:
-        tO3 = np.exp(G_O3 * ao3)
+        tO3 = np.exp(-G_O3 * ao3)
     if ah2o != 0:
-        tH2O = np.exp(G_H2O * ah2o)
+        tH2O = np.exp(-G_H2O * ah2o)
 
-    tO2 = np.exp(G_O2 * ao2)
+    tO2 = np.exp(-G_O2 * ao2)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
     tOG = tO3 * tO2
     return sphalb, rhoray, TtotraytH2O, tOG
 
 
 def G_calc(zenith, a_coeff):
-    return (np.cos(xu.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+    return (xu.cos(xu.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 def run_crefl(refl, coeffs,
               lon,
@@ -496,20 +500,8 @@ def run_crefl(refl, coeffs,
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
 
     if rhoray.shape[1] != refl.shape[1]:
-        LOG.debug(
-            "Interpolating CREFL calculations for higher resolution bands")
-        # Assume we need to interpolate
-        # FIXME: Do real bilinear interpolation instead of "nearest"
-        factor = int(refl.shape[1] / rhoray.shape[1])
-        rhoray = np.repeat(np.repeat(rhoray, factor, axis=0), factor, axis=1)
-        tOG = np.repeat(np.repeat(tOG, factor, axis=0), factor, axis=1)
-        TtotraytH2O = np.repeat(
-            np.repeat(TtotraytH2O, factor, axis=0),
-            factor, axis=1)
-        # if average height wasn't provided then this should stay a scalar
-        if sphalb.size != 1:
-            # otherwise make it the same size as the other arrays
-            sphalb = np.repeat(np.repeat(sphalb, factor, axis=0), factor, axis=1)
+        from satpy.composites import IncompatibleAreas
+        raise IncompatibleAreas("")
 
     # Note: Assume that fill/invalid values are either NaN or we are dealing
     # with masked arrays
