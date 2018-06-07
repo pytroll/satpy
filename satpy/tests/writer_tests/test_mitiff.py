@@ -24,6 +24,13 @@ Based on the test for geotiff writer
 """
 import sys
 
+import logging
+
+logger = logging.getLogger()
+logger.level = logging.DEBUG
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -95,3 +102,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestMITIFFWriter))
     return mysuite
+
+if __name__ == '__main__':
+    unittest.main()
