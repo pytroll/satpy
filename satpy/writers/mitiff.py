@@ -113,7 +113,9 @@ class MITIFFWriter(ImageWriter):
             LOG.warning("Unset save_dir. Use: %s", save_dir)
         create_opts = (save_dir)
         delayed = dask.delayed(_delayed_create)(create_opts, dataset)
-        delayed.compute()
+
+        if compute:
+            return delayed.compute()
         return delayed
 
     def save_datasets(self, datasets, **kwargs):
