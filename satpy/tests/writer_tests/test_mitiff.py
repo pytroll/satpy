@@ -85,7 +85,7 @@ class TestMITIFFWriter(unittest.TestCase):
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
         w = MITIFFWriter(mitiff_dir=self.base_dir)
-        w.save_dataset(dataset)
+        w.save_dataset(dataset, writer='mitiff', mitiff_dir=self.base_dir)
 
 
 def suite():
