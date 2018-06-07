@@ -24,13 +24,6 @@ Based on the test for geotiff writer
 """
 import sys
 
-import numpy as np
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -85,13 +78,13 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_init(self):
         """Test creating the writer with no arguments."""
         from satpy.writers.mitiff import MITIFFWriter
-        w = MITIFFWriter()
+        MITIFFWriter()
 
     def test_simple_write(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
-        w = MITIFFWriter(base_dir=self.base_dir)
+        w = MITIFFWriter(mitiff_dir=self.base_dir)
         w.save_dataset(dataset)
 
 
