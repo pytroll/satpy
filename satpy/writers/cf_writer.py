@@ -244,4 +244,5 @@ class CFWriter(Writer):
         engine = kwargs.pop("engine", 'h5netcdf')
         kwargs.pop('config_files')
         kwargs.pop('compute')
+        kwargs.pop('overlay', None)
         dataset.to_netcdf(filename, engine=engine, **kwargs)
