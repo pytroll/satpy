@@ -162,6 +162,10 @@ class MITIFFWriter(ImageWriter):
     def _make_channel_list(self, datasets, **kwargs):
         channels = []
         try:
+            xrange
+        except NameError:
+            xrange = range
+        try:
             if self.channel_order:
                 for cn in self.channel_order[kwargs['sensor']]:
                     for ch in xrange(len(datasets)):
