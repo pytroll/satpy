@@ -83,14 +83,14 @@ class MITIFFWriter(ImageWriter):
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
                     self.channel_order[kwargs['sensor']] = dataset.attrs['metadata_requirements']['order']
                     self.file_pattern = dataset.attrs['metadata_requirements']['file_pattern']
-                except KeyError:
-                    LOG.warning("Something went wrong with assigning to various dicts")
+                except KeyError as ke:
+                    LOG.warning("Something went wrong with assigning to various dicts: %s", ke)
 
                 try:
                     self.translate_channel_name[kwargs['sensor']] = \
                         dataset.attrs['metadata_requirements']['translate']
-                except KeyError:
-                    pass
+                except KeyError as ke:
+                    LOG.warning("Something went wrong with assigning to translate: %s", ke)
 
                 image_description = self._make_image_description(dataset, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
@@ -118,10 +118,10 @@ class MITIFFWriter(ImageWriter):
             return delayed.compute()
         return delayed
 
-    def save_datasets(self, datasets, **kwargs):
+    def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
         """
-        LOG.debug("Starting in mitiff save_datasetsssssssssssssssss ... ")
+        LOG.debug("Starting in mitiff save_datasets ... ")
         LOG.debug("kwargs: %s", kwargs)
 
         def _delayed_create(create_opts, datasets):
@@ -135,10 +135,14 @@ class MITIFFWriter(ImageWriter):
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = datasets[0].attrs['sensor']
 
-                self.mitiff_config[kwargs['sensor']] = datasets['metadata_requistites']['config']
-                self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requistites']['translate']
-                self.channel_order[kwargs['sensor']] = datasets['metadata_requistites']['order']
-                self.file_pattern = datasets['metadata_requistites']['file_pattern']
+                try:
+                    self.mitiff_config[kwargs['sensor']] = datasets['metadata_requirements']['config']
+                    self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requirements']['translate']
+                    self.channel_order[kwargs['sensor']] = datasets['metadata_requirements']['order']
+                    self.file_pattern = datasets['metadata_requirements']['file_pattern']
+                except KeyError:
+                    LOG.warning("metadata requirements not given. This is ok for predefined composites in satpy")
+
                 image_description = self._make_image_description(datasets, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
                 if isinstance(datasets, list):
@@ -156,7 +160,8 @@ class MITIFFWriter(ImageWriter):
         create_opts = ()
         delayed = dask.delayed(_delayed_create)(create_opts, datasets)
         LOG.debug("About to call delayed compute ...")
-        delayed.compute()
+        if compute:
+            return delayed.compute()
         return delayed
 
     def _make_channel_list(self, datasets, **kwargs):
@@ -614,9 +619,8 @@ class MITIFFWriter(ImageWriter):
 
                         tif.write_image(data.astype(np.uint8), compression='deflate')
                         break
-        elif datasets.attrs['name'] == 'datasets':
-            LOG.debug("Saving datasets as datasets")
-            LOG.debug("kwargs : %s", kwargs)
+        elif 'dataset' in datasets.attrs['name']:
+            LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
             for _cn in self.channel_order[kwargs['sensor']]:
                 for i, band in enumerate(datasets['bands']):
                     if band == _cn:
