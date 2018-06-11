@@ -515,25 +515,44 @@ class Scene(MetadataObject):
         all_areas = [x for x in all_areas if x is not None]
         return all(all_areas[0].proj_str == x.proj_str for x in all_areas[1:])
 
+    def slice(self, key):
+        """Slice Scene by dataset index."""
+        if not self.all_same_area:
+            raise RuntimeError("'Scene' has different areas and cannot "
+                               "be usefully sliced.")
+        # slice
+        new_scn = self.__class__()
+        new_scn.wishlist = self.wishlist
+        new_datasets = {}
+        for area, dataset_ids in self.iter_by_area():
+            new_area = area[key] if area is not None else None
+            datasets = (self[ds_id] for ds_id in dataset_ids)
+            for ds, parent_ds in dataset_walker(datasets):
+                ds_id = DatasetID.from_dict(ds.attrs)
+                # handle ancillary variables
+                pres = None
+                if parent_ds is not None:
+                    pres = new_datasets[DatasetID.from_dict(parent_ds.attrs)]
+                if ds_id in new_datasets:
+                    replace_anc(ds, pres)
+                    continue
+
+                slices = dict(zip(ds.dims, key))
+                new_ds = ds.isel(**slices)
+                if new_area is not None:
+                    new_ds.attrs['area'] = new_area
+
+                new_datasets[ds_id] = new_ds
+                if parent_ds is None:
+                    new_scn.datasets[ds_id] = new_ds
+                else:
+                    replace_anc(new_ds, pres)
+        return new_scn
+
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple) and not isinstance(key, DatasetID):
-            if not self.all_same_area:
-                raise RuntimeError("'Scene' has different areas and cannot "
-                                   "be usefully sliced.")
-            # slice
-            new_scn = self.__class__()
-            new_scn.wishlist = self.wishlist
-            for area, dataset_ids in self.iter_by_area():
-                new_area = area[key] if area is not None else None
-                for ds_id in dataset_ids:
-                    ds = self[ds_id]
-                    slices = dict(zip(ds.dims, key))
-                    new_ds = ds.isel(**slices)
-                    if new_area is not None:
-                        new_ds.attrs['area'] = new_area
-                    new_scn[ds_id] = new_ds
-            return new_scn
+            return self.slice(key)
         return self.datasets[key]
 
     def __setitem__(self, key, value):

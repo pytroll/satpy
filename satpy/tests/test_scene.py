@@ -287,7 +287,18 @@ class TestScene(unittest.TestCase):
         )
         swath_def = SwathDefinition(lons=np.zeros((5, 10)), lats=np.zeros((5, 10)))
         scene1["1"] = scene2["1"] = DataArray(np.zeros((5, 10)))
-        scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'))
+        scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)),
+                                              dims=('y', 'x'))
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var'})]
+        attrs = {'ancillary_variables': anc_vars}
+        scene1["2a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
+        # make another copy of the anc variable
+        attrs = {'ancillary_variables': [anc_vars[0].copy()]}
+        scene2["2a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
         scene1["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
                                 attrs={'area': area_def})
         scene2["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
@@ -297,6 +308,9 @@ class TestScene(unittest.TestCase):
         for new_scn in [new_scn1, new_scn2]:
             self.assertTupleEqual(new_scn['1'].shape, (3, 6))
             self.assertTupleEqual(new_scn['2'].shape, (3, 6))
+            self.assertTupleEqual(new_scn['2a'].shape, (3, 6))
+            a_var = new_scn['2a'].attrs['ancillary_variables'][0]
+            self.assertTupleEqual(a_var.shape, (3, 6))
 
         self.assertTupleEqual(new_scn1['3'].shape, (3, 6))
         self.assertIn('area', new_scn1['3'].attrs)
