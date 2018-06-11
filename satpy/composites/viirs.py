@@ -96,7 +96,7 @@ class ReflectanceCorrector(CompositeBase):
 
     def __call__(self, datasets, optional_datasets, **info):
         if not optional_datasets or len(optional_datasets) != 4:
-            vis = self.check_areas(datasets[0])
+            vis = self.check_areas([datasets[0]])[0]
             sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
         else:
             vis, sensor_aa, sensor_za, solar_aa, solar_za = self.check_areas(
@@ -155,7 +155,6 @@ class ReflectanceCorrector(CompositeBase):
         factor = 100. if percent else 1.
         results = results * factor
         results.attrs = info
-
         self.apply_modifier_info(refl_data, results)
         return results
 
