@@ -379,10 +379,10 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     sphalb0 = csalbr(tau_step)
     # phios = phi + 180.0 DONE IN PREPROCESSOR
     xcos1 = 1.0
-    xcos2 = np.cos(xu.deg2rad(phi))
-    xcos3 = np.cos(xu.deg2rad(2.0 * phi))
+    xcos2 = da.cos(xu.deg2rad(phi))
+    xcos3 = da.cos(xu.deg2rad(2.0 * phi))
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
     fs01 = as0[0] + (mus + muv)*as0[1] + (mus * muv)*as0[2] + (mus * mus + muv * muv)*as0[3] + \
@@ -391,14 +391,14 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
            (mus * mus * muv * muv)*as0[9]
 
     LOG.debug("Processing band:")
-    taur = tau * np.exp(-height / SCALEHEIGHT)
-    xlntaur = np.log(taur)
+    taur = tau * da.exp(-height / SCALEHEIGHT)
+    xlntaur = da.log(taur)
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
     del xlntaur
-    trdown = np.exp(-taur / mus)
-    trup = np.exp(-taur / muv)
+    trdown = da.exp(-taur / mus)
+    trup = da.exp(-taur / muv)
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
     xitot1 = xph1 * (xitm1 + xitm2 * fs0)
@@ -406,20 +406,23 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
 
-    def _sphalb_index(sphalb0, index_arr):
-        # FIXME: if/when dask can support lazy index arrays then remove this
-        return sphalb0[index_arr]
-    # sphalb = sphalb0[(taur / TAUSTEP4SPHALB + 0.5).astype(np.int32)]
-    sphalb_delayed = dask.delayed(_sphalb_index)(sphalb0, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32))
-    sphalb = da.from_delayed(sphalb_delayed, taur.shape, dtype=sphalb0.dtype)
+    if isinstance(height, xr.DataArray):
+        def _sphalb_index(sphalb0, index_arr):
+            # FIXME: if/when dask can support lazy index arrays then remove this
+            return sphalb0[index_arr]
+        sphalb_delayed = dask.delayed(_sphalb_index)(sphalb0, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32))
+        sphalb = da.from_delayed(sphalb_delayed, taur.shape, dtype=sphalb0.dtype)
+    else:
+        sphalb = sphalb0[int(taur / TAUSTEP4SPHALB + 0.5)]
+
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
     if ao3 != 0:
-        tO3 = np.exp(-G_O3 * ao3)
+        tO3 = da.exp(-G_O3 * ao3)
     if ah2o != 0:
-        tH2O = np.exp(-G_H2O * ah2o)
+        tH2O = da.exp(-G_H2O * ah2o)
 
-    tO2 = np.exp(-G_O2 * ao2)
+    tO2 = da.exp(-G_O2 * ao2)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
     tOG = tO3 * tO2
     return sphalb, rhoray, TtotraytH2O, tOG
@@ -491,7 +494,7 @@ def run_crefl(refl, coeffs,
         G_O2 = G_calc(solar_zenith, a_O2) + G_calc(sensor_zenith, a_O2)
         # Note: bh2o values are actually ao2 values for abi
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(
-            mus, muv, phi, height, (ah2o, bh2o, ao3, tau), G_O3, G_H2O, G_O2)
+            mus, muv, (phi + 180.0), height, (ah2o, bh2o, ao3, tau), G_O3, G_H2O, G_O2)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(

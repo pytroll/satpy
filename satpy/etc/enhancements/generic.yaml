@@ -11,6 +11,12 @@ enhancements:
     operations:
     - name: cira_stretch
       method: !!python/name:satpy.enhancements.cira_stretch
+  true_color_crefl:
+    name: true_color_crefl
+    standard_name: true_color
+    operations:
+    - name: crefl_scaling
+      method: !!python/name:satpy.enhancements.crefl_scaling
   overview_default:
     standard_name: overview
     operations:
@@ -198,7 +204,7 @@ enhancements:
     operations:
     - name: stretch
       method: *stretchfun
-      kwargs: {stretch: linear}
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 120}
 
   sar-ice:
     standard_name: sar-ice
