@@ -69,10 +69,10 @@ class MultiScene(object):
 
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene."""
-        scn = Scene()
+        new_scn = Scene()
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
             datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
-            scn[ds_id] = blend_function(datasets)
+            new_scn[ds_id] = blend_function(datasets)
 
-        return scn
+        return new_scn
