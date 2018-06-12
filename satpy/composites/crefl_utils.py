@@ -385,10 +385,10 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
-    fs01 = as0[0] + (mus + muv)*as0[1] + (mus * muv)*as0[2] + (mus * mus + muv * muv)*as0[3] + \
-           (mus * mus * muv * muv)*as0[4]
-    fs02 = as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8] + \
-           (mus * mus * muv * muv)*as0[9]
+    fs01 = (as0[0] + (mus + muv)*as0[1] + (mus * muv)*as0[2] + (mus * mus + muv * muv)*as0[3]
+            + (mus * mus * muv * muv)*as0[4])
+    fs02 = (as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8]
+            + (mus * mus * muv * muv)*as0[9])
 
     LOG.debug("Processing band:")
     taur = tau * da.exp(-height / SCALEHEIGHT)
@@ -413,7 +413,7 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
         sphalb_delayed = dask.delayed(_sphalb_index)(sphalb0, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32))
         sphalb = da.from_delayed(sphalb_delayed, taur.shape, dtype=sphalb0.dtype)
     else:
-        sphalb = sphalb0[int(taur / TAUSTEP4SPHALB + 0.5)]
+        sphalb = sphalb0[(taur / TAUSTEP4SPHALB + 0.5).astype(np.int32)]
 
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
@@ -467,19 +467,19 @@ def run_crefl(refl, coeffs,
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")
-        lat[(lat < -90) | (lat > 90)] = np.nan
-        lon[(lon < -180) | (lat > 180)] = np.nan
+        lat[(lat <= -90) | (lat >= 90)] = np.nan
+        lon[(lon <= -180) | (lon >= 180)] = np.nan
         row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
         col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
         space_mask = da.isnull(lon) | da.isnull(lat)
         row[space_mask] = 0
         col[space_mask] = 0
+        row, col = da.compute(row, col)
         height = avg_elevation[row, col].astype(np.float64)
         height = xr.DataArray(height, dims=['y', 'x'])
         # negative heights aren't allowed, clip to 0
         height = height.where((height >= 0.) & ~space_mask, 0.0)
         del lat, lon, row, col
-
     mus = xu.cos(xu.deg2rad(solar_zenith))
     muv = xu.cos(xu.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
