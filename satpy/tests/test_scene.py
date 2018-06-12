@@ -264,6 +264,138 @@ class TestScene(unittest.TestCase):
                           DatasetID(name='1', modifiers=tuple()))
         self.assertEqual(len(list(scene.keys())), 2)
 
+    def test_getitem_slices(self):
+        """Test __getitem__ with slices"""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition, SwathDefinition
+        from pyresample.utils import proj4_str_to_dict
+        import numpy as np
+        scene1 = Scene()
+        scene2 = Scene()
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        swath_def = SwathDefinition(lons=np.zeros((5, 10)),
+                                    lats=np.zeros((5, 10)))
+        scene1["1"] = scene2["1"] = DataArray(np.zeros((5, 10)))
+        scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)),
+                                              dims=('y', 'x'))
+        scene1["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': area_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': area_def}
+        scene1["3a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
+        scene2["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                attrs={'area': swath_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': swath_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': swath_def}
+        scene2["4a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
+        new_scn1 = scene1[2:5, 2:8]
+        new_scn2 = scene2[2:5, 2:8]
+        for new_scn in [new_scn1, new_scn2]:
+            # datasets without an area don't get sliced
+            self.assertTupleEqual(new_scn['1'].shape, (5, 10))
+            self.assertTupleEqual(new_scn['2'].shape, (5, 10))
+
+        self.assertTupleEqual(new_scn1['3'].shape, (3, 6))
+        self.assertIn('area', new_scn1['3'].attrs)
+        self.assertTupleEqual(new_scn1['3'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn1['3a'].shape, (3, 6))
+        a_var = new_scn1['3a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
+
+        self.assertTupleEqual(new_scn2['4'].shape, (3, 6))
+        self.assertIn('area', new_scn2['4'].attrs)
+        self.assertTupleEqual(new_scn2['4'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn2['4a'].shape, (3, 6))
+        a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
+
+    def test_crop(self):
+        """Test the crop method."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=x_size,
+            y_size=y_size,
+            area_extent=area_extent,
+        )
+        scene1["1"] = DataArray(np.zeros((y_size, x_size)))
+        scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
+        scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+
+        # by area
+        crop_area = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=x_size,
+            y_size=y_size,
+            area_extent=(
+                area_extent[0] + 10000.,
+                area_extent[1] + 500000.,
+                area_extent[2] - 10000.,
+                area_extent[3] - 500000.)
+        )
+        new_scn1 = scene1.crop(crop_area)
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (3380, 3706))
+
+        # by lon/lat bbox
+        new_scn1 = scene1.crop(
+            ll_bbox=(-20., -5., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (183, 712))
+
+        # by x/y bbox
+        new_scn1 = scene1.crop(
+            xy_bbox=(-200000., -100000., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (34, 68))
+
     def test_contains(self):
         from satpy import Scene
         from xarray import DataArray

@@ -288,7 +288,6 @@ class LetteredTileGenerator(NumberedTileGenerator):
 
         # get original image's X/Y
         ad = self.area_definition
-        p = Proj(ad.proj4_string)
         x, y = ad.get_proj_coords()
         x = x[0].squeeze()  # all rows should have the same coordinates
         y = y[:, 0].squeeze()  # all columns should have the same coordinates
