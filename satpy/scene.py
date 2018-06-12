@@ -435,72 +435,6 @@ class Scene(MetadataObject):
                                     for ds in new_scn])
         return new_scn
 
-    def crop(self, area=None, ll_bbox=None, xy_bbox=None, datasets=None):
-        """Crop Scene to a specific Area boundary or bounding box.
-
-        Args:
-            area (AreaDefinition): Area to crop the current Scene to
-            ll_bbox (tuple, list): 4-element tuple where values are in
-                                   lon/lat degrees. Elements are
-                                   ``(xmin, ymin, xmax, ymax)`` where X is
-                                   longitude and Y is latitude.
-            xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
-                                   projection units.
-            datasets (iterable): DatasetIDs to include in the returned
-                                 `Scene`. Defaults to all datasets.
-
-        .. note::
-
-            The `resample` method automatically crops input data before
-            resampling to save time/memory.
-
-        """
-        if len([x for x in [area, ll_bbox, xy_bbox] if x is not None]) != 1:
-            raise ValueError("One and only one of 'area', 'll_bbox', "
-                             "or 'xy_bbox' can be specified.")
-
-        new_scn = self.copy(datasets=datasets)
-        if not new_scn.all_same_proj and xy_bbox is not None:
-            raise ValueError("Can't crop when datasets are not all on the "
-                             "same projection.")
-
-        for src_area, datasets in new_scn.iter_by_area():
-            # convert filter parameter to area
-            if src_area is not None:
-                if ll_bbox is not None:
-                    area = AreaDefinition(
-                        'crop_area', 'crop_area', 'crop_latlong',
-                        {'proj': 'latlong'}, 100, 100, ll_bbox)
-                elif xy_bbox is not None:
-                    area = AreaDefinition(
-                        'crop_area', 'crop_area', 'crop_xy',
-                        src_area.proj_dict, src_area.x_size, src_area.y_size,
-                        xy_bbox)
-                x_slice, y_slice = src_area.get_area_slices(area)
-                new_area = src_area[y_slice, x_slice]
-
-                for ds_id in datasets:
-                    ds = new_scn[ds_id]
-                    if ds.attrs.get('area') is None:
-                        new_scn.datasets[ds_id] = ds
-                        continue
-
-                    if 'y' in ds.dims and 'x' in ds.dims:
-                        new_ds = ds.isel(y=y_slice, x=x_slice)
-                    else:
-                        new_ds = ds[y_slice, x_slice]
-
-                    if new_area is not None:
-                        new_ds.attrs['area'] = new_area
-                    # don't use `__setitem__` because we don't want this to
-                    # affect the existing wishlist/dep tree
-                    new_scn.datasets[ds_id] = new_ds
-            else:
-                for ds_id in datasets:
-                    new_scn.datasets[ds_id] = self[ds_id]
-
-        return new_scn
-
     @property
     def all_same_area(self):
         """All contained data arrays are on the same area."""
@@ -515,38 +449,110 @@ class Scene(MetadataObject):
         all_areas = [x for x in all_areas if x is not None]
         return all(all_areas[0].proj_str == x.proj_str for x in all_areas[1:])
 
+    def _slice_area_from_bbox(self, src_area, dst_area, ll_bbox=None,
+                              xy_bbox=None):
+        """Slice the provided area using the bounds provided."""
+        if ll_bbox is not None:
+            dst_area = AreaDefinition(
+                'crop_area', 'crop_area', 'crop_latlong',
+                {'proj': 'latlong'}, 100, 100, ll_bbox)
+        elif xy_bbox is not None:
+            dst_area = AreaDefinition(
+                'crop_area', 'crop_area', 'crop_xy',
+                src_area.proj_dict, src_area.x_size, src_area.y_size,
+                xy_bbox)
+        x_slice, y_slice = src_area.get_area_slices(dst_area)
+        return src_area[y_slice, x_slice], y_slice, x_slice
+
+    def _slice_datasets(self, dataset_ids, slice_key, new_area, area_only=True):
+        """Slice scene in-place for the datasets specified."""
+        new_datasets = {}
+        datasets = (self[ds_id] for ds_id in dataset_ids)
+        for ds, parent_ds in dataset_walker(datasets):
+            ds_id = DatasetID.from_dict(ds.attrs)
+            # handle ancillary variables
+            pres = None
+            if parent_ds is not None:
+                pres = new_datasets[DatasetID.from_dict(parent_ds.attrs)]
+            if ds_id in new_datasets:
+                replace_anc(ds, pres)
+                continue
+            if area_only and ds.attrs.get('area') is None:
+                new_datasets[ds_id] = ds
+                replace_anc(ds, pres)
+                continue
+
+            if not isinstance(slice_key, dict):
+                # match dimension name to slice object
+                key = dict(zip(ds.dims, slice_key))
+            else:
+                key = slice_key
+            new_ds = ds.isel(**key)
+            if new_area is not None:
+                new_ds.attrs['area'] = new_area
+
+            new_datasets[ds_id] = new_ds
+            if parent_ds is None:
+                # don't use `__setitem__` because we don't want this to
+                # affect the existing wishlist/dep tree
+                self.datasets[ds_id] = new_ds
+            else:
+                replace_anc(new_ds, pres)
+
     def slice(self, key):
         """Slice Scene by dataset index."""
         if not self.all_same_area:
             raise RuntimeError("'Scene' has different areas and cannot "
                                "be usefully sliced.")
         # slice
-        new_scn = self.__class__()
+        new_scn = self.copy()
         new_scn.wishlist = self.wishlist
-        new_datasets = {}
         for area, dataset_ids in self.iter_by_area():
             new_area = area[key] if area is not None else None
-            datasets = (self[ds_id] for ds_id in dataset_ids)
-            for ds, parent_ds in dataset_walker(datasets):
-                ds_id = DatasetID.from_dict(ds.attrs)
-                # handle ancillary variables
-                pres = None
-                if parent_ds is not None:
-                    pres = new_datasets[DatasetID.from_dict(parent_ds.attrs)]
-                if ds_id in new_datasets:
-                    replace_anc(ds, pres)
-                    continue
+            new_scn._slice_datasets(dataset_ids, key, new_area,
+                                    area_only=False)
+        return new_scn
 
-                slices = dict(zip(ds.dims, key))
-                new_ds = ds.isel(**slices)
-                if new_area is not None:
-                    new_ds.attrs['area'] = new_area
+    def crop(self, area=None, ll_bbox=None, xy_bbox=None, dataset_ids=None):
+        """Crop Scene to a specific Area boundary or bounding box.
 
-                new_datasets[ds_id] = new_ds
-                if parent_ds is None:
-                    new_scn.datasets[ds_id] = new_ds
-                else:
-                    replace_anc(new_ds, pres)
+        Args:
+            area (AreaDefinition): Area to crop the current Scene to
+            ll_bbox (tuple, list): 4-element tuple where values are in
+                                   lon/lat degrees. Elements are
+                                   ``(xmin, ymin, xmax, ymax)`` where X is
+                                   longitude and Y is latitude.
+            xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
+                                   projection units.
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                 `Scene`. Defaults to all datasets.
+
+        .. note::
+
+            The `resample` method automatically crops input data before
+            resampling to save time/memory.
+
+        """
+        if len([x for x in [area, ll_bbox, xy_bbox] if x is not None]) != 1:
+            raise ValueError("One and only one of 'area', 'll_bbox', "
+                             "or 'xy_bbox' can be specified.")
+
+        new_scn = self.copy(datasets=dataset_ids)
+        if not new_scn.all_same_proj and xy_bbox is not None:
+            raise ValueError("Can't crop when dataset_ids are not all on the "
+                             "same projection.")
+
+        for src_area, dataset_ids in new_scn.iter_by_area():
+            if src_area is not None:
+                # convert filter parameter to area
+                new_area, y_slice, x_slice = self._slice_area_from_bbox(
+                    src_area, area, ll_bbox, xy_bbox)
+                slice_key = (y_slice, x_slice)
+                new_scn._slice_datasets(dataset_ids, slice_key, new_area)
+            else:
+                for ds_id in dataset_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+
         return new_scn
 
     def __getitem__(self, key):
