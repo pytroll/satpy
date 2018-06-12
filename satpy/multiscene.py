@@ -31,74 +31,48 @@ from satpy.scene import Scene
 
 def stack(datasets):
     """First dataset at the bottom."""
-
-    base = Dataset(datasets[0], copy=True)
+    base = datasets[0].copy()
     for dataset in datasets[1:]:
-        base_mask = np.ma.getmaskarray(base)
-        other_mask = np.ma.getmaskarray(dataset)
-        base.mask = np.logical_and(base_mask, other_mask)
-        not_masked = np.logical_not(other_mask)
-        base[not_masked] = dataset[not_masked]
-
+        base = base.where(dataset.isnull(), dataset)
     return base
 
 
-def stack_time(datasets):
-    """Oldest time at the bottom."""
-
-    return stack(sorted(datasets, key=lambda x: x.info['start_time']))
-
-
 class MultiScene(object):
+    """Container for multiple `Scene` objects."""
 
     def __init__(self, layers):
-        self.layers = layers
+        """Initialize MultiScene and validate sub-scenes"""
+        self.scenes = layers
+
+    @property
+    def loaded_dataset_ids(self):
+        """Union of all Dataset IDs loaded by all children."""
+        return set(ds_id for scene in self.scenes for ds_id in scene.keys())
+
+    @property
+    def shared_dataset_ids(self):
+        """Dataset IDs shared by all children."""
+        shared_ids = set(self.scenes[0].keys())
+        for scene in self.scenes[1:]:
+            shared_ids &= set(scene.keys())
+        return shared_ids
 
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
-        for layer in self.layers:
+        for layer in self.scenes:
             layer.load(*args, **kwargs)
 
     def resample(self, destination, **kwargs):
         """Resample the multiscene."""
-        return MultiScene([layer.resample(destination, **kwargs) for layer in self.layers])
+        return self.__class__([scn.resample(destination, **kwargs)
+                               for scn in self.scenes])
 
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene."""
         scn = Scene()
-        common_datasets = None
-        for layer in self.layers:
-            if common_datasets is None:
-                common_datasets = set(
-                    [dataset.id.name for dataset in layer])
-            else:
-                common_datasets &= set(
-                    [dataset.id.name for dataset in layer])
-        for dataset_id in common_datasets:
-            datasets = [layer[dataset_id] for layer in self.layers]
-            scn[dataset_id] = blend_function(datasets)
+        common_datasets = self.shared_dataset_ids
+        for ds_id in common_datasets:
+            datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
+            scn[ds_id] = blend_function(datasets)
 
         return scn
-
-
-if __name__ == '__main__':
-    from datetime import datetime
-    from satpy.utils import debug_on
-
-    debug_on()
-    scenes = [
-        Scene(platform_name="Meteosat-10", sensor="seviri",
-              start_time=datetime(2016, 9, 6, 11, 0),
-              base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT"),
-
-        Scene(platform_name="SNPP", sensor="viirs",
-              start_time=datetime(2016, 9, 6, 10, 51),
-              end_time=datetime(2016, 9, 6, 11, 0),
-              base_dir="/home/a001673/data/satellite/Suomi-NPP/viirs/lvl1b/2015/03/11/SDR")
-    ]
-
-    mscn = MultiScene(scenes)
-    mscn.load(['overview_sun'])
-    mscn = mscn.resample('eurol')
-    scn = mscn.blend()
-    scn.save_dataset('overview_sun', '/tmp/blend.png')
