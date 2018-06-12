@@ -37,14 +37,7 @@ from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
-
-
-class IncompatibleAreas(Exception):
-
-    """
-    Error raised upon compositing things of different shapes.
-    """
-    pass
+from satpy.composites import IncompatibleAreas
 
 
 class VIIRSFog(CompositeBase):
@@ -164,7 +157,6 @@ class ReflectanceCorrector(CompositeBase):
 
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
-
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
         suna = xu.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
