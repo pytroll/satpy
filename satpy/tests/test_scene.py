@@ -285,40 +285,47 @@ class TestScene(unittest.TestCase):
             y_size=400,
             area_extent=(-1000., -1500., 1000., 1500.),
         )
-        swath_def = SwathDefinition(lons=np.zeros((5, 10)), lats=np.zeros((5, 10)))
+        swath_def = SwathDefinition(lons=np.zeros((5, 10)),
+                                    lats=np.zeros((5, 10)))
         scene1["1"] = scene2["1"] = DataArray(np.zeros((5, 10)))
         scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)),
                                               dims=('y', 'x'))
-        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var'})]
-        attrs = {'ancillary_variables': anc_vars}
-        scene1["2a"] = DataArray(np.zeros((5, 10)),
-                                 dims=('y', 'x'),
-                                 attrs=attrs)
-        # make another copy of the anc variable
-        attrs = {'ancillary_variables': [anc_vars[0].copy()]}
-        scene2["2a"] = DataArray(np.zeros((5, 10)),
-                                 dims=('y', 'x'),
-                                 attrs=attrs)
         scene1["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
                                 attrs={'area': area_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': area_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': area_def}
+        scene1["3a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
         scene2["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
                                 attrs={'area': swath_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': swath_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': swath_def}
+        scene2["4a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
         new_scn1 = scene1[2:5, 2:8]
         new_scn2 = scene2[2:5, 2:8]
         for new_scn in [new_scn1, new_scn2]:
-            self.assertTupleEqual(new_scn['1'].shape, (3, 6))
-            self.assertTupleEqual(new_scn['2'].shape, (3, 6))
-            self.assertTupleEqual(new_scn['2a'].shape, (3, 6))
-            a_var = new_scn['2a'].attrs['ancillary_variables'][0]
-            self.assertTupleEqual(a_var.shape, (3, 6))
+            # datasets without an area don't get sliced
+            self.assertTupleEqual(new_scn['1'].shape, (5, 10))
+            self.assertTupleEqual(new_scn['2'].shape, (5, 10))
 
         self.assertTupleEqual(new_scn1['3'].shape, (3, 6))
         self.assertIn('area', new_scn1['3'].attrs)
         self.assertTupleEqual(new_scn1['3'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn1['3a'].shape, (3, 6))
+        a_var = new_scn1['3a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
 
         self.assertTupleEqual(new_scn2['4'].shape, (3, 6))
         self.assertIn('area', new_scn2['4'].attrs)
         self.assertTupleEqual(new_scn2['4'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn2['4a'].shape, (3, 6))
+        a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
 
     def test_crop(self):
         """Test the crop method."""

@@ -500,7 +500,14 @@ class Scene(MetadataObject):
                 replace_anc(new_ds, pres)
 
     def slice(self, key):
-        """Slice Scene by dataset index."""
+        """Slice Scene by dataset index.
+
+        .. note::
+
+            DataArrays that do not have an ``area`` attribute will not be
+            sliced.
+
+        """
         if not self.all_same_area:
             raise RuntimeError("'Scene' has different areas and cannot "
                                "be usefully sliced.")
@@ -509,8 +516,7 @@ class Scene(MetadataObject):
         new_scn.wishlist = self.wishlist
         for area, dataset_ids in self.iter_by_area():
             new_area = area[key] if area is not None else None
-            new_scn._slice_datasets(dataset_ids, key, new_area,
-                                    area_only=False)
+            new_scn._slice_datasets(dataset_ids, key, new_area)
         return new_scn
 
     def crop(self, area=None, ll_bbox=None, xy_bbox=None, dataset_ids=None):
@@ -855,13 +861,14 @@ class Scene(MetadataObject):
         """Resample `datasets` to the `destination` area."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
+        max_area = None
         if hasattr(destination_area, 'freeze'):
             try:
                 max_area = new_scn.max_area()
             except ValueError:
                 raise ValueError("No dataset areas available to freeze "
                                  "DynamicAreaDefinition.")
-            destination_area = get_frozen_area(destination_area, max_area)
+        destination_area = get_frozen_area(destination_area, max_area)
 
         resamplers = {}
         for dataset, parent_dataset in dataset_walker(datasets):
