@@ -235,6 +235,7 @@ intersphinx_mapping = {
     'https://docs.python.org/3.6': None,
     'https://docs.scipy.org/doc/numpy': None,
     'https://docs.scipy.org/doc/scipy/reference': None,
-    'http://xarray.pydata.org/en/stable/': None,
-    'http://pyresample.readthedocs.io/en/stable': None,
+    'https://xarray.pydata.org/en/stable/': None,
+    'https://dask.pydata.org/en/latest/': None,
+    'https://pyresample.readthedocs.io/en/stable': None,
 }
