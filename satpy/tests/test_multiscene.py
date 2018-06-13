@@ -159,7 +159,14 @@ class TestMultiSceneSave(unittest.TestCase):
         scenes[1]['ds3'] = _create_test_dataset('ds3')
         mscn = MultiScene(scenes)
         fn = os.path.join(self.base_dir, 'test_save_mp4.mp4')
-        mscn.save(fn)
+        writer_mock = mock.MagicMock()
+        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+            get_writer.return_value = writer_mock
+            mscn.save(fn)
+
+        # 2 saves for the first scene + 1 black frame
+        # 3 for the second scene
+        self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
 
 
 def suite():

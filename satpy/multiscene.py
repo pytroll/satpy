@@ -24,12 +24,53 @@
 """
 
 import logging
+import dask
 import dask.array as da
 import xarray as xr
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 
+try:
+    import imageio
+except ImportError:
+    imageio = None
+
 log = logging.getLogger(__name__)
+
+
+def cascaded_compute(callback, arrays, optimize=True):
+    """Dask helper function for iterating over computed dask arrays.
+
+    Args:
+        callback (callable): Called with a single numpy array computed from
+                             the provided dask arrays.
+        arrays (list, tuple): Dask arrays to pass to callback.
+        optimize (bool): Whether to try to optimize the dask graphs of the
+                         provided arrays.
+
+    Returns: `dask.Delayed` object to be computed
+
+    """
+    if optimize:
+        # optimize Dask graph over all objects
+        dsk = da.Array.__dask_optimize__(
+            # combine all Dask Array graphs
+            dask.sharedict.merge(*[e.__dask_graph__() for e in arrays]),
+            # get Dask Array keys in result
+            list(dask.core.flatten([e.__dask_keys__() for e in arrays]))
+        )
+        # rebuild Dask Arrays
+        arrays = [da.Array(dsk, e.name, e.chunks, e.dtype) for e in arrays]
+
+    def _callback_wrapper(arr, cb=callback, previous_call=None):
+        del previous_call  # used only for task ordering
+        return cb(arr)
+
+    current_write = None
+    for dask_arr in arrays:
+        current_write = dask.delayed(_callback_wrapper)(
+            dask_arr, previous_call=current_write)
+    return current_write
 
 
 def stack(datasets):
@@ -127,18 +168,24 @@ class MultiScene(object):
                      `imageio.get_writer`.
 
         """
-        import imageio
         if not self.all_same_area:
             raise ValueError("Sub-scenes must all be on the same area "
                              "(see the 'resample' method).")
+        if imageio is None:
+            raise ImportError("Missing required 'imageio' library")
 
         dataset_ids = datasets or self.loaded_dataset_ids
+
         for dataset_id in dataset_ids:
             all_datasets = [scn.datasets.get(dataset_id) for scn in self.scenes]
             this_fn, shape, fill_value = self._get_animation_info(
                 all_datasets, filename, fill_value=fill_value)
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
 
+            def _append_wrapper(data):
+                writer.append_data(data)
+
+            data_to_write = []
             for ds in all_datasets:
                 if ds is None and ignore_missing:
                     continue
@@ -153,5 +200,6 @@ class MultiScene(object):
                         # we need arrays grouped by pixel so
                         # transpose if needed
                         data = data.transpose('y', 'x', 'bands')
-                writer.append_data(data.values)
+                data_to_write.append(data.data)
+            cascaded_compute(_append_wrapper, data_to_write).compute()
             writer.close()
