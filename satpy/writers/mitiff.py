@@ -171,9 +171,9 @@ class MITIFFWriter(ImageWriter):
             if self.channel_order:
                 for cn in self.channel_order[kwargs['sensor']]:
                     for ch, ds in enumerate(datasets):
-                        if datasets[ch].attrs['prerequisites'][ch][0] == cn:
+                        if ds.attrs['prerequisites'][ch][0] == cn:
                             channels.append(
-                                datasets[ch].attrs['prerequisites'][ch][0])
+                                ds.attrs['prerequisites'][ch][0])
                             break
             else:
                 for ch, ds in enumerate(datasets):
