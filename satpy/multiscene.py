@@ -130,7 +130,9 @@ class MultiScene(object):
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
-        first_dataset = [ds for ds in all_datasets if ds is not None][0]
+        valid_datasets = [ds for ds in all_datasets if ds is not None]
+        first_dataset = valid_datasets[0]
+        last_dataset = valid_datasets[-1]
         first_img = get_enhanced_image(first_dataset)
         first_img_data = first_img._finalize(fill_value=fill_value)[0]
         shape = tuple(first_img_data.sizes.get(dim_name)
@@ -140,8 +142,30 @@ class MultiScene(object):
             fill_value = 0
             shape = shape[:2]
 
-        this_fn = filename.format(**first_dataset.attrs)
+        attrs = first_dataset.attrs.copy()
+        if 'end_time' in last_dataset.attrs:
+            attrs['end_time'] = last_dataset.attrs['end_time']
+        this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
+
+    def _get_animation_frames(self, all_datasets, shape, fill_value=None,
+                              ignore_missing=False):
+        """Create enhanced image frames to save to a file."""
+        for ds in all_datasets:
+            if ds is None and ignore_missing:
+                continue
+            elif ds is None:
+                data = da.zeros(shape, chunks=shape)
+                data = xr.DataArray(data)
+            else:
+                img = get_enhanced_image(ds)
+                data, mode = img._finalize(fill_value=fill_value)
+                if data.ndim == 3:
+                    # assume all other shapes are (y, x)
+                    # we need arrays grouped by pixel so
+                    # transpose if needed
+                    data = data.transpose('y', 'x', 'bands')
+            yield data.data
 
     def save(self, filename, datasets=None, fps=10, fill_value=None,
              ignore_missing=False, **kwargs):
@@ -175,31 +199,13 @@ class MultiScene(object):
             raise ImportError("Missing required 'imageio' library")
 
         dataset_ids = datasets or self.loaded_dataset_ids
-
         for dataset_id in dataset_ids:
             all_datasets = [scn.datasets.get(dataset_id) for scn in self.scenes]
             this_fn, shape, fill_value = self._get_animation_info(
                 all_datasets, filename, fill_value=fill_value)
+            data_to_write = list(self._get_animation_frames(
+                all_datasets, shape, fill_value, ignore_missing))
+
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-
-            def _append_wrapper(data):
-                writer.append_data(data)
-
-            data_to_write = []
-            for ds in all_datasets:
-                if ds is None and ignore_missing:
-                    continue
-                elif ds is None:
-                    data = da.zeros(shape, chunks=shape)
-                    data = xr.DataArray(data)
-                else:
-                    img = get_enhanced_image(ds)
-                    data, mode = img._finalize(fill_value=fill_value)
-                    if data.ndim == 3:
-                        # assume all other shapes are (y, x)
-                        # we need arrays grouped by pixel so
-                        # transpose if needed
-                        data = data.transpose('y', 'x', 'bands')
-                data_to_write.append(data.data)
-            cascaded_compute(_append_wrapper, data_to_write).compute()
+            cascaded_compute(writer.append_data, data_to_write).compute()
             writer.close()

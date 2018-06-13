@@ -25,6 +25,7 @@ import os
 import sys
 import tempfile
 import shutil
+from datetime import datetime
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -84,8 +85,8 @@ def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
     scenes = []
     for scn_idx in range(num_scenes):
         scn = Scene()
-        scn['ds1'] = ds1
-        scn['ds2'] = ds2
+        scn['ds1'] = ds1.copy()
+        scn['ds2'] = ds2.copy()
         scenes.append(scn)
     return scenes
 
@@ -157,16 +158,36 @@ class TestMultiSceneSave(unittest.TestCase):
 
         # Add a dataset to only one of the Scenes
         scenes[1]['ds3'] = _create_test_dataset('ds3')
+        # Add a start and end time
+        for ds_id in ['ds1', 'ds2', 'ds3']:
+            scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
+            if ds_id == 'ds3':
+                continue
+            scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
+
         mscn = MultiScene(scenes)
-        fn = os.path.join(self.base_dir, 'test_save_mp4.mp4')
+        fn = os.path.join(
+            self.base_dir,
+            'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_'
+            '{end_time:%Y%m%d_%H}.mp4')
         writer_mock = mock.MagicMock()
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
             get_writer.return_value = writer_mock
-            mscn.save(fn)
+            # force order of datasets by specifying them
+            mscn.save(fn, datasets=['ds1', 'ds2', 'ds3'])
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
         self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
+        filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
+        self.assertEqual(filenames[0],
+                         'test_save_mp4_ds1_20180101_00_20180102_12.mp4')
+        self.assertEqual(filenames[1],
+                         'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
+        self.assertEqual(filenames[2],
+                         'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
 
 
 def suite():
