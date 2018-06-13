@@ -125,6 +125,7 @@ class MITIFFWriter(ImageWriter):
         LOG.debug("kwargs: %s", kwargs)
 
         def _delayed_create(create_opts, datasets):
+            LOG.debug("create_opts: %s", create_opts)
             try:
                 if 'platform_name' not in kwargs:
                     kwargs['platform_name'] = datasets.attrs['platform_name']
@@ -167,22 +168,18 @@ class MITIFFWriter(ImageWriter):
     def _make_channel_list(self, datasets, **kwargs):
         channels = []
         try:
-            xrange
-        except NameError:
-            xrange = range
-        try:
             if self.channel_order:
                 for cn in self.channel_order[kwargs['sensor']]:
-                    for ch in xrange(len(datasets)):
+                    for ch, ds in enumerate(datasets):
                         if datasets[ch].attrs['prerequisites'][ch][0] == cn:
                             channels.append(
                                 datasets[ch].attrs['prerequisites'][ch][0])
                             break
             else:
-                for ch in xrange(len(datasets)):
+                for ch, ds in enumerate(datasets):
                     channels.append(ch + 1)
         except KeyError:
-            for ch in xrange(len(datasets)):
+            for ch, ds in enumerate(datasets):
                 channels.append(ch + 1)
         return channels
 
@@ -374,8 +371,6 @@ class MITIFFWriter(ImageWriter):
         _table_calibration = ""
         skip_calibration = False
         for ch in channels:
-            # TODO Fix found channel stuff
-            # found_channel = False
 
             palette = False
             # Make calibration.
@@ -392,8 +387,6 @@ class MITIFFWriter(ImageWriter):
                 _reverse_offset = 0.
                 _reverse_scale = 1.
                 _decimals = 2
-                # FIXME need to correlate the configured calibration and the
-                # calibration for the dataset.
                 try:
                     if ch.calibration == 'RADIANCE':
                         raise NotImplementedError(
