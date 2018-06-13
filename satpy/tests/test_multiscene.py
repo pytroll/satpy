@@ -151,8 +151,7 @@ class TestMultiSceneSave(unittest.TestCase):
     @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_mp4(self):
         """Save a series of fake scenes to an mp4 video."""
-        from satpy import MultiScene, DatasetID
-
+        from satpy import MultiScene
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
