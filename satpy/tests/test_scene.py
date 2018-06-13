@@ -229,6 +229,8 @@ class TestScene(unittest.TestCase):
         self.assertIs(scene['2'], ds2)
         self.assertIs(scene['3'], ds3)
         self.assertRaises(KeyError, scene.__getitem__, '4')
+        self.assertIs(scene.get('3'), ds3)
+        self.assertIs(scene.get('4'), None)
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers"""
@@ -1657,8 +1659,7 @@ class TestSceneSaving(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
@@ -1667,6 +1668,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
 
     return mysuite
+
 
 if __name__ == "__main__":
     unittest.main()

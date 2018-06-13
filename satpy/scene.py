@@ -561,6 +561,10 @@ class Scene(MetadataObject):
 
         return new_scn
 
+    def get(self, key, default=None):
+        """Return value from DatasetDict with optional default."""
+        return self.datasets.get(key, default)
+
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple) and not isinstance(key, DatasetID):

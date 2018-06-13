@@ -296,6 +296,14 @@ class DatasetDict(dict):
             key = self.get_key(item)
             return super(DatasetDict, self).__getitem__(key)
 
+    def get(self, key, default=None):
+        """Get value with optional default."""
+        try:
+            key = self.get_key(key)
+        except KeyError:
+            return default
+        return super(DatasetDict, self).get(key, default)
+
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
