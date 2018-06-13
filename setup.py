@@ -41,7 +41,7 @@ requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.9.2', 'trollsift',
             'dask[array] >=0.17.1']
 
 # pyhdf (conda) == python-hdf4 (pip)
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'ffmpeg']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio']
 
 if sys.version < '3.0':
     test_requires.append('mock')
