@@ -24,6 +24,7 @@
 """
 
 import logging
+import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
@@ -101,12 +102,21 @@ class MultiScene(object):
             shared_ids &= set(scene.keys())
         return shared_ids
 
-    @property
-    def all_same_area(self):
-        all_areas = [ds.attrs.get('area', None)
-                     for scn in self.scenes for ds in scn]
+    def _all_same_area(self, dataset_ids):
+        """Return True if all areas for the provided IDs are equal."""
+        all_areas = []
+        for ds_id in dataset_ids:
+            for scn in self.scenes:
+                ds = scn.get(ds_id)
+                if ds is None:
+                    continue
+                all_areas.append(ds.attrs.get('area'))
         all_areas = [area for area in all_areas if area is not None]
         return all(all_areas[0] == area for area in all_areas[1:])
+
+    @property
+    def all_same_area(self):
+        return self._all_same_area(self.loaded_dataset_ids)
 
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
@@ -151,11 +161,12 @@ class MultiScene(object):
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
                               ignore_missing=False):
         """Create enhanced image frames to save to a file."""
-        for ds in all_datasets:
+        for idx, ds in enumerate(all_datasets):
             if ds is None and ignore_missing:
                 continue
             elif ds is None:
-                data = da.zeros(shape, chunks=shape)
+                log.debug("Missing frame: %d", idx)
+                data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
                 img = get_enhanced_image(ds)
@@ -192,20 +203,30 @@ class MultiScene(object):
                      `imageio.get_writer`.
 
         """
-        if not self.all_same_area:
-            raise ValueError("Sub-scenes must all be on the same area "
-                             "(see the 'resample' method).")
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
         dataset_ids = datasets or self.loaded_dataset_ids
+        writers = []
+        delayeds = []
         for dataset_id in dataset_ids:
+            if not self._all_same_area([dataset_id]):
+                raise ValueError("Sub-scene datasets must all be on the same "
+                                 "area (see the 'resample' method).")
+
             all_datasets = [scn.datasets.get(dataset_id) for scn in self.scenes]
-            this_fn, shape, fill_value = self._get_animation_info(
+            this_fn, shape, this_fill = self._get_animation_info(
                 all_datasets, filename, fill_value=fill_value)
             data_to_write = list(self._get_animation_frames(
-                all_datasets, shape, fill_value, ignore_missing))
+                all_datasets, shape, this_fill, ignore_missing))
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-            cascaded_compute(writer.append_data, data_to_write).compute()
+            delayed = cascaded_compute(writer.append_data, data_to_write)
+            # Save delayeds and writers to compute and close later
+            delayeds.append(delayed)
+            writers.append(writer)
+        # compute all the datasets at once to combine any computations that
+        # can be shared
+        dask.compute(delayeds)
+        for writer in writers:
             writer.close()
