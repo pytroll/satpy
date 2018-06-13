@@ -70,6 +70,8 @@ extras_require = {
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['gdal', 'trollimage[geotiff]'],
+    # MultiScene:
+    'animations': ['imageio'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

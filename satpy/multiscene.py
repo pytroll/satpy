@@ -25,6 +25,7 @@
 
 import logging
 import dask.array as da
+import xarray as xr
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 
@@ -42,9 +43,9 @@ def stack(datasets):
 class MultiScene(object):
     """Container for multiple `Scene` objects."""
 
-    def __init__(self, layers):
+    def __init__(self, scenes=None):
         """Initialize MultiScene and validate sub-scenes"""
-        self.scenes = layers
+        self.scenes = scenes or []
 
     @property
     def loaded_dataset_ids(self):
@@ -101,7 +102,8 @@ class MultiScene(object):
         this_fn = filename.format(**first_dataset.attrs)
         return this_fn, shape, fill_value
 
-    def save(self, filename, datasets=None, fps=10, fill_value=None, **kwargs):
+    def save(self, filename, datasets=None, fps=10, fill_value=None,
+             ignore_missing=False, **kwargs):
         """Helper method for saving to movie or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
@@ -117,8 +119,10 @@ class MultiScene(object):
                             formatting keys from dataset ``.attrs``
                             (ex. "{name}_{start_time:%Y%m%d_%H%M%S.gif")
             datasets (list): DatasetIDs to save (default: all datasets)
-            fill_value (int): Value to use instead creating an alpha band.
             fps (int): Frames per second for produced animation
+            fill_value (int): Value to use instead creating an alpha band.
+            ignore_missing (bool): Don't include a black frame when a dataset
+                                   is missing from a child scene.
             **kwargs: Additional keyword arguments to pass to
                      `imageio.get_writer`.
 
@@ -130,14 +134,17 @@ class MultiScene(object):
 
         dataset_ids = datasets or self.loaded_dataset_ids
         for dataset_id in dataset_ids:
-            all_datasets = [scn[dataset_id] for scn in self.scenes]
+            all_datasets = [scn.datasets.get(dataset_id) for scn in self.scenes]
             this_fn, shape, fill_value = self._get_animation_info(
                 all_datasets, filename, fill_value=fill_value)
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
 
             for ds in all_datasets:
-                if ds is None:
-                    data = da.zeros(shape)
+                if ds is None and ignore_missing:
+                    continue
+                elif ds is None:
+                    data = da.zeros(shape, chunks=shape)
+                    data = xr.DataArray(data)
                 else:
                     img = get_enhanced_image(ds)
                     data, mode = img._finalize(fill_value=fill_value)
