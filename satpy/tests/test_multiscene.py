@@ -96,13 +96,13 @@ class TestMultiScene(unittest.TestCase):
     def test_init_empty(self):
         """Test creating a multiscene with no children."""
         from satpy import MultiScene
-        mscn = MultiScene()
+        MultiScene()
 
     def test_init_children(self):
         """Test creating a multiscene with children."""
         from satpy import MultiScene
         scenes = _create_test_scenes()
-        mscn = MultiScene(scenes)
+        MultiScene(scenes)
 
     def test_properties(self):
         """Test basic properties/attributes of the MultiScene."""
@@ -126,7 +126,7 @@ class TestMultiScene(unittest.TestCase):
 
         bigger_area = _create_test_area(shape=(20, 40))
         scenes[0]['ds4'] = _create_test_dataset('ds4', shape=(20, 40),
-                                                     area=bigger_area)
+                                                area=bigger_area)
 
         self.assertSetEqual(mscn.loaded_dataset_ids,
                             {ds1_id, ds2_id, ds3_id, ds4_id})
@@ -155,10 +155,6 @@ class TestMultiSceneSave(unittest.TestCase):
 
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
-        ds1_id = DatasetID(name='ds1')
-        ds2_id = DatasetID(name='ds2')
-        ds3_id = DatasetID(name='ds3')
-        ds4_id = DatasetID(name='ds4')
 
         # Add a dataset to only one of the Scenes
         scenes[1]['ds3'] = _create_test_dataset('ds3')
