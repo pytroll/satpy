@@ -19,9 +19,10 @@
 import os, sys
 from satpy.utils import debug_on
 import pyninjotiff
-debug_on()
+from pyresample.utils import get_area_def
 from satpy import Scene
-from mpop.projector import get_area_def
+debug_on()
+
 import argparse
 import yaml
 
