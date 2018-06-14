@@ -178,8 +178,8 @@ class MultiScene(object):
                     data = data.transpose('y', 'x', 'bands')
             yield data.data
 
-    def save(self, filename, datasets=None, fps=10, fill_value=None,
-             ignore_missing=False, **kwargs):
+    def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
+                       ignore_missing=False, **kwargs):
         """Helper method for saving to movie or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are

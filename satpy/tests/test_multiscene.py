@@ -176,7 +176,7 @@ class TestMultiSceneSave(unittest.TestCase):
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
-            mscn.save(fn, datasets=['ds1', 'ds2', 'ds3'])
+            mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
