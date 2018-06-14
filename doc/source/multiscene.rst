@@ -47,10 +47,22 @@ also be installed. The below example saves a series of GOES-EAST ABI channel
     >>> from glob import glob
     >>> scenes = [
     ...     Scene(reader='abi_l1b', filenames=[fn]) for fn in sorted(glob('/data/abi/day_1/*C0[12]*.nc'))
+        ... ]
+        >>> mscn = MultiScene(scenes)
+        >>> mscn.load(['C01', 'C02'])
+        >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
+
+
+        ... ]
+        >>> mscn = MultiScene(scenes)
+        >>> mscn.load(['C01', 'C02'])
+        >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
+
+
     ... ]
     >>> mscn = MultiScene(scenes)
     >>> mscn.load(['C01', 'C02'])
-    >>> mscn.save('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
+    >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
 
 .. warning::
 
