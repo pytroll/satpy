@@ -252,6 +252,20 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
+    def test_filenames_as_dict_with_reader(self):
+        """Test loading from a filenames dict with a single reader specified.
+
+        This can happen in the deprecated Scene behavior of passing a reader
+        and a base_dir.
+
+        """
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+        }
+        ri = load_readers(reader='viirs_sdr', filenames=filenames)
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
 
 class TestFindFilesAndReaders(unittest.TestCase):
     def setUp(self):
