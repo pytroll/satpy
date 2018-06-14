@@ -38,6 +38,7 @@ installation.
     composites
     resample
     writers
+    multiscene
     dev_guide/index
     SatPy API <api/satpy>
 
