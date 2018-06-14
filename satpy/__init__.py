@@ -55,5 +55,6 @@ from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
                            available_readers)  # noqa
 from satpy.writers import available_writers  # noqa
 from satpy.scene import Scene  # noqa
+from satpy.multiscene import MultiScene  # noqa
 
 log = get_logger('satpy')
