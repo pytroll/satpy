@@ -442,7 +442,7 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the emissive part an NIR channel after having derived the reflectance. 
+        """Get the emissive part an NIR channel after having derived the reflectance.
         Not supposed to be used for wavelength outside [3, 4] µm.
         """
         self._init_refl3x(projectables)
@@ -703,9 +703,9 @@ class DayNightCompositor(RGBCompositor):
 
             full_data = []
 
-            # Apply enhancements
-            day_data = enhance2dataset(day_data)
-            night_data = enhance2dataset(night_data)
+            # Apply enhancements and clip data to interval [0, 1]
+            day_data = enhance2dataset(day_data).clip(min=0.0, max=1.0)
+            night_data = enhance2dataset(night_data).clip(min=0.0, max=1.0)
 
             # Match dimensions to the data with more channels
             # There are only 1-channel and 3-channel composites
