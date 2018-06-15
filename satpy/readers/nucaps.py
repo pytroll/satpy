@@ -100,7 +100,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             return res
 
     @property
-    def sensor_name(self):
+    def sensor_names(self):
         """Return standard sensor or instrument name for the file's data.
         """
         res = self['/attr/instrument_name']
@@ -142,7 +142,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "sensor": self.sensor_names,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
