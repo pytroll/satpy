@@ -19,8 +19,9 @@
 import os, sys
 from satpy.utils import debug_on
 import pyninjotiff
-from pyresample.utils import get_area_def
+from satpy.resample import get_area_def
 from satpy import Scene
+from glob import glob
 debug_on()
 
 import argparse
@@ -60,17 +61,16 @@ if (args.cfg != None):
         cfg = yaml.load(ymlfile)
 
 narea = get_area_def(args.areadef)
-global_data = Scene(sensor="images", reader="generic_image", area=narea)
+fnames = glob("*.*")
+global_data = Scene(reader="generic_image", filenames=fnames)
+
 global_data.load(['image'])
 
-global_data['image'].info['area'] = narea
-fname = global_data['image'].info['filename']
+fname = global_data['image'].attrs['filename']
 ofname = fname[:-3] + "tif"
-
-#global_data.save_dataset('image', filename="out.png", writer="simple_image")
-global_data.save_dataset('image', filename=ofname, writer="ninjotiff",
-                      sat_id=cfg['sat_id'],
-                      chan_id=cfg['chan_id'],
-                      data_cat=cfg['data_cat'],
-                      data_source=cfg['data_src'],
-                      physic_unit=cfg['ph_unit'])
+global_data.save_dataset('image', 
+                         filename=ofname,
+                         writer="ninjotiff",
+                         fill_value=None,
+                         enhancement_config=False,
+                         **cfg)

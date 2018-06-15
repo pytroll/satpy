@@ -26,9 +26,12 @@ from PIL import Image
 import numpy as np
 import os
 import logging
-from satpy.dataset import Dataset, DatasetID
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
+from xarray import DataArray
+import dask.array as da
+
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +66,13 @@ class GenericImageFileHandler(BaseFileHandler):
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
         selected = np.array(values)
-        out = np.rot90(np.fliplr(np.transpose(selected)))
+        selected = da.from_array(selected, chunks=CHUNK_SIZE) 
         info['filename'] = self.finfo['filename']
-        ds = Dataset(out, copy=False, **info)
+        info['file_type']
+        info['mode'] = self.file_content['image'].mode
+        info['name'] = 'image'
+        info['fill_value'] = 0
+        ds = DataArray(selected, dims=['y', 'x', 'bands'], attrs=info, 
+                       coords={'bands': list(self.file_content['image'].getbands())})
         return ds
 
