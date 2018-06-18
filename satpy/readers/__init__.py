@@ -296,6 +296,14 @@ class DatasetDict(dict):
             key = self.get_key(item)
             return super(DatasetDict, self).__getitem__(key)
 
+    def get(self, key, default=None):
+        """Get value with optional default."""
+        try:
+            key = self.get_key(key)
+        except KeyError:
+            return default
+        return super(DatasetDict, self).get(key, default)
+
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
         """
@@ -553,11 +561,17 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    elif reader and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        # but they only want one of the readers
+        filenames = filenames[reader]
+        remaining_filenames = set(filenames or [])
     else:
         remaining_filenames = set(filenames or [])
 
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
+            print(idx, reader_configs, reader)
             readers_files = set(filenames[reader[idx]])
         else:
             readers_files = remaining_filenames

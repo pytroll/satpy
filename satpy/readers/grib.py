@@ -213,6 +213,7 @@ class GRIBFileHandler(BaseFileHandler):
             'shortName': msg['shortName'],
             'long_name': msg['name'],
             'pressureUnits': msg['pressureUnits'],
+            'typeOfLevel': msg['typeOfLevel'],
             'standard_name': msg['cfName'],
             'units': msg['units'],
             'modelName': msg['modelName'],
