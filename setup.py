@@ -41,7 +41,7 @@ requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.9.2', 'trollsift',
             'dask[array] >=0.17.1']
 
 # pyhdf (conda) == python-hdf4 (pip)
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -70,6 +70,7 @@ extras_require = {
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
 }

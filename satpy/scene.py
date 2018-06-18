@@ -994,5 +994,6 @@ class Scene(MetadataObject):
     @classmethod
     def get_writer_by_ext(cls, extension):
         """Find the writer matching the *extension*."""
-        mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
+        mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
+                   ".mitiff": "mitiff"}
         return mapping.get(extension.lower(), 'simple_image')
