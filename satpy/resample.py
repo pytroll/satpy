@@ -410,7 +410,7 @@ class BilinearResampler(BaseResampler):
     """Resample using bilinear."""
 
     def precompute(self, mask=None, radius_of_influence=50000,
-                   reduce_data=True, nprocs=1, segments=None,
+                   reduce_data=True, segments=None,
                    cache_dir=None, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
@@ -440,7 +440,7 @@ class BilinearResampler(BaseResampler):
 
         bilinear_t, bilinear_s, input_idxs, idx_arr = get_bil_info(source_geo_def, self.target_geo_def,
                                                                    radius_of_influence, neighbours=32,
-                                                                   nprocs=nprocs, masked=False)
+                                                                   masked=False)
         self.cache = {'bilinear_s': bilinear_s,
                       'bilinear_t': bilinear_t,
                       'input_idxs': input_idxs,
