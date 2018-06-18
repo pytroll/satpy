@@ -176,7 +176,7 @@ class KDTreeResampler(BaseResampler):
         self.resampler = None
 
     def precompute(self, mask=None, radius_of_influence=None, epsilon=0,
-                   reduce_data=True, cache_dir=None, **kwargs):
+                   cache_dir=None, **kwargs):
         """Create a KDTree structure and store it for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
@@ -202,8 +202,7 @@ class KDTreeResampler(BaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=1,
-                          epsilon=epsilon,
-                          reduce_data=reduce_data)
+                          epsilon=epsilon)
 
             self.resampler = XArrayResamplerNN(**kwargs)
             try:
@@ -410,8 +409,7 @@ class BilinearResampler(BaseResampler):
     """Resample using bilinear."""
 
     def precompute(self, mask=None, radius_of_influence=50000,
-                   reduce_data=True, segments=None,
-                   cache_dir=None, **kwargs):
+                   segments=None, cache_dir=None, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
