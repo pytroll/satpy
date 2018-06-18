@@ -27,6 +27,7 @@ import os
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
+import numpy as np
 import xarray as xr
 
 logger = logging.getLogger(__name__)
@@ -82,11 +83,14 @@ class SAFENC(BaseFileHandler):
         else:
             logger.debug("Read data")
             res = self.nc[key.name]
-            res.attrs.update({'platform_name': self.nc.attrs['missionName'],
-                          'sensor': 'tullball'})
-            
             res.attrs.update(info)
-        
+            if '_FillValue' in res.attrs:
+                res = res.where(res != res.attrs['_FillValue'])
+                res.attrs['_FillValue'] = np.nan
+
+            
+            print "DATA:", self.nc[key.name]
+            print "END"
         if not self._shape:
             self._shape = res.shape
 
