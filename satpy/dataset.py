@@ -138,6 +138,13 @@ class DatasetID(DatasetID):
                            etc). `None` or empty tuple if not applicable.
     """
 
+    def __new__(cls, *args, **kwargs):
+        ret = super(DatasetID, cls).__new__(cls, *args, **kwargs)
+        if ret.modifiers is not None and not isinstance(ret.modifiers, tuple):
+            raise TypeError("'DatasetID' modifiers must be a tuple or None, "
+                            "not {}".format(type(ret.modifiers)))
+        return ret
+
     @staticmethod
     def name_match(a, b):
         """Return if two string names are equal.

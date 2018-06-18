@@ -61,6 +61,7 @@ class FakeGRIB(object):
                     modelName='unknown',
                     minimum=100.,
                     maximum=200.,
+                    typeOfLevel='isobaricInhPa',
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -80,6 +81,7 @@ class FakeGRIB(object):
                     modelName='unknown',
                     minimum=100.,
                     maximum=200.,
+                    typeOfLevel='isobaricInhPa',
                 ),
                 FakeMessage(
                     values=np.arange(25.).reshape((5, 5)),
@@ -99,6 +101,7 @@ class FakeGRIB(object):
                     modelName='unknown',
                     minimum=100.,
                     maximum=200.,
+                    typeOfLevel='isobaricInhPa',
                 ),
             ]
         self.messages = len(self._messages)
