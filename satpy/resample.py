@@ -423,8 +423,7 @@ class BilinearResampler(BaseResampler):
                                   "converted to XArray/Dask yet.")
 
         del kwargs
-
-        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
+        source_geo_def = self.source_geo_def
 
         bil_hash = self.get_hash(source_geo_def=source_geo_def,
                                  radius_of_influence=radius_of_influence,
