@@ -133,7 +133,7 @@ class BaseResampler(object):
         """
         raise NotImplementedError
 
-    def resample(self, data, cache_dir=False, mask_area=True, **kwargs):
+    def resample(self, data, cache_dir=None, mask_area=None, **kwargs):
         """Resample data.
 
         If the resampler supports precomputing then that information can be
@@ -141,25 +141,24 @@ class BaseResampler(object):
 
         Args:
             data (xarray.DataArray): Data to be resampled
-            cache_dir (bool): directory to cache precomputed results
-                              (default False, optional)
+            cache_dir (str): directory to cache precomputed results
+                             (default False, optional)
             mask_area (bool): Mask geolocation data where data values are
                               invalid. This should be used when data values
                               may affect what neighbors are considered valid.
 
         """
+        # default is to mask areas for SwathDefinitions
+        if mask_area is None and isinstance(
+                self.source_geo_def, SwathDefinition):
+            mask_area = True
+
         if mask_area:
             flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
             # xarray <= 0.10.1 computes dask arrays during isnull
             kwargs['mask'] = data.isnull().all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
-
-    # FIXME: there should be only one obvious way to resample
-    def __call__(self, *args, **kwargs):
-        """Shortcut for the :meth:`resample` method
-        """
-        self.resample(*args, **kwargs)
 
     def _create_cache_filename(self, cache_dir=None, **kwargs):
         """Create filename for the cached resampling parameters"""
@@ -170,10 +169,7 @@ class BaseResampler(object):
 
 
 class KDTreeResampler(BaseResampler):
-
-    """
-    Resample using nearest neighbour.
-    """
+    """Resample using nearest neighbour."""
 
     def __init__(self, source_geo_def, target_geo_def):
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
@@ -184,12 +180,17 @@ class KDTreeResampler(BaseResampler):
         """Create a KDTree structure and store it for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
-        where data points are invalid. This defaults to the `mask` attribute of
-        the `data` numpy masked array passed to the `resample` method.
-        """
+        where data points are invalid.
 
+        """
         del kwargs
-        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
+        source_geo_def = self.source_geo_def
+
+        if mask is not None and cache_dir is not None:
+            LOG.warning("Mask and cache_dir both provided to nearest "
+                        "resampler. Cached parameters are affected by "
+                        "masked pixels. Will not cache results.")
+            cache_dir = None
 
         if radius_of_influence is None:
             try:
@@ -210,7 +211,7 @@ class KDTreeResampler(BaseResampler):
                 LOG.debug("Read pre-computed kd-tree parameters")
             except IOError:
                 LOG.debug("Computing kd-tree parameters")
-                self.resampler.get_neighbour_info()
+                self.resampler.get_neighbour_info(mask=mask)
                 self.save_neighbour_info(cache_dir, **kwargs)
 
     def load_neighbour_info(self, cache_dir, **kwargs):
@@ -288,19 +289,18 @@ class EWAResampler(BaseResampler):
 
         return np.stack([cols, rows], axis=0)
 
-    def precompute(self, mask=None, cache_dir=False, swath_usage=0,
-                   **kwargs):
+    def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
         """Generate row and column arrays and store it for later use.
 
-        :param swath_usage: minimum ratio of number of input pixels to
-                            number of pixels used in output
-
-        Note: The `mask` keyword should be provided if geolocation may be
-              valid where data points are invalid. This defaults to the
-              `mask` attribute of the `data` numpy masked array passed to
-              the `resample` method.
+        Args:
+            swath_usage (float): (Deprecated) Specify the ratio of input
+                                 swath data that must be used before
+                                 resampling takes place.
 
         """
+        if kwargs.get('mask') is not None:
+            LOG.warning("'mask' parameter has no affect during EWA "
+                        "resampling")
 
         del kwargs
         source_geo_def = self.source_geo_def
@@ -411,13 +411,16 @@ class BilinearResampler(BaseResampler):
 
     def precompute(self, mask=None, radius_of_influence=50000,
                    reduce_data=True, nprocs=1, segments=None,
-                   cache_dir=False, **kwargs):
+                   cache_dir=None, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
         where data points are invalid. This defaults to the `mask` attribute of
         the `data` numpy masked array passed to the `resample` method.
         """
+
+        raise NotImplementedError("Bilinear interpolation has not been "
+                                  "converted to XArray/Dask yet.")
 
         del kwargs
 
@@ -484,7 +487,7 @@ class NativeResampler(BaseResampler):
 
     """Expand or reduce input datasets to be the same shape."""
 
-    def resample(self, data, cache_dir=False, mask_area=False, **kwargs):
+    def resample(self, data, cache_dir=None, mask_area=False, **kwargs):
         # use 'mask_area' with a default of False. It wouldn't do anything.
         return super(NativeResampler, self).resample(data,
                                                      cache_dir=cache_dir,
@@ -690,27 +693,3 @@ def resample_dataset(dataset, destination_area, **kwargs):
     new_data.attrs['area'] = destination_area
 
     return new_data
-
-
-def mask_source_lonlats(source_def, mask):
-    """Mask source longitudes and latitudes to match data mask."""
-    source_geo_def = source_def
-
-    # the data may have additional masked pixels
-    # let's compare them to see if we can use the same area
-    # assume lons and lats mask are the same
-    if mask is not None and mask is not False and isinstance(source_geo_def, SwathDefinition):
-        if np.issubsctype(mask.dtype, np.bool):
-            # copy the source area and use it for the rest of the calculations
-            LOG.debug("Copying source area to mask invalid dataset points")
-            if mask.ndim != source_geo_def.lons.ndim:
-                raise ValueError("Can't mask area, mask has different number "
-                                 "of dimensions.")
-
-            return SwathDefinition(source_geo_def.lons.where(~mask),
-                                   source_geo_def.lats.where(~mask))
-        else:
-            return SwathDefinition(source_geo_def.lons.where(~xu.isnan(mask)),
-                                   source_geo_def.lats.where(~xu.isnan(mask)))
-
-    return source_geo_def
