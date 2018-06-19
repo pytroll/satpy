@@ -25,26 +25,27 @@
 import glob
 import itertools
 import logging
-import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import deque, namedtuple
+from collections import deque, OrderedDict
 from fnmatch import fnmatch
 
-import numpy as np
 import six
+import xarray as xr
 import yaml
+from weakref import WeakValueDictionary
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
+from pyresample.boundary import AreaDefBoundary, Boundary
+from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, Dataset, DatasetID
-from satpy.readers import DatasetDict
-from satpy.readers.helper_functions import get_area_slices, get_sub_area
+from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.readers import DatasetDict, get_key
+from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
-
-Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
 def listify_string(something):
@@ -65,7 +66,7 @@ def listify_string(something):
 def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
-    tail_len = len(pattern.split(os.path.sep))
+    tail_len = len(pattern.split('/'))
     return os.path.join(*path.split(os.path.sep)[-tail_len:])
 
 
@@ -97,15 +98,19 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             # correct separator if needed
             file_patterns = [os.path.join(*pattern.split('/'))
                              for pattern in filetype_info['file_patterns']]
+            filetype_info['file_patterns'] = file_patterns
             self.file_patterns.extend(file_patterns)
 
         if not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
-        self.sensor_names = self.info['sensors']
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
         self.ids = {}
         self.load_ds_ids_from_config()
+
+    @property
+    def sensor_names(self):
+        return self.info['sensors']
 
     @property
     def all_dataset_ids(self):
@@ -176,159 +181,20 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
         for pattern in self.file_patterns:
             matching = match_filenames(filenames, pattern)
-            selected_filenames.extend(matching)
+            for fname in matching:
+                if fname not in selected_filenames:
+                    selected_filenames.append(fname)
         if len(selected_filenames) == 0:
             logger.warning("No filenames found for reader: %s", self.name)
-
         return selected_filenames
 
-    def get_ds_ids_by_wavelength(self, wavelength, ids=None):
-        """Get the dataset ids matching a given a *wavelength*."""
-        if ids is None:
-            ids = self.ids
-        if isinstance(wavelength, (tuple, list)):
-            datasets = [ds for ds in ids
-                        if ds.wavelength == tuple(wavelength)]
-        else:
-            datasets = [ds for ds in ids if ds.wavelength
-                        and ds.wavelength[0] <= wavelength <= ds.wavelength[2]]
-            datasets = sorted(datasets,
-                              key=lambda ch: abs(ch.wavelength[1] - wavelength))
-        if not datasets:
-            raise KeyError("Can't find any projectable at %sum" %
-                           str(wavelength))
+    def get_dataset_key(self, key, **kwargs):
+        """Get the fully qualified `DatasetID` matching `key`.
 
-        return datasets
+        See `satpy.readers.get_key` for more information about kwargs.
 
-    def get_ds_ids_by_id(self, dsid, ids=None):
-        """Get the dataset ids matching a given a dataset id."""
-        if ids is None:
-            ids = self.ids.keys()
-        for key in DATASET_KEYS:
-            value = getattr(dsid, key)
-            if value is None or (key == 'modifiers' and not value):
-                # filter everything else except modifiers if it isn't
-                # specified (None or tuple())
-                continue
-            if key == "wavelength":
-                ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
-            else:
-                ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
-        if len(ids) == 0:
-            raise KeyError(
-                "Can't find any projectable matching '{}'".format(dsid))
-        return ids
-
-    def get_ds_ids_by_name(self, name, ids=None):
-        """Get the datasets ids by *name*."""
-        if ids is None:
-            ids = self.ids
-        datasets = [ds_id for ds_id in ids if ds_id.name == name]
-        if not datasets:
-            raise KeyError("Can't find any projectable called '{}'".format(
-                name))
-
-        return datasets
-
-    @staticmethod
-    def dfilter_from_key(dfilter, key):
-        """Create a dataset filter from a *key*."""
-        if dfilter is None:
-            dfilter = {}
-        else:
-            dfilter = dfilter.copy()
-        for attr in ['calibration', 'polarization', 'resolution']:
-            dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
-        # modifiers default is an empty tuple so handle it specially
-        dfilter['modifiers'] = dfilter.get('modifiers',
-                                           getattr(key, 'modifiers', None) or None)
-
-        for attr in ['calibration', 'polarization', 'resolution']:
-            if (dfilter[attr] is not None
-                    and not isinstance(dfilter[attr], (list, tuple, set))):
-                dfilter[attr] = [dfilter[attr]]
-        return dfilter
-
-    @staticmethod
-    def _get_best_calibration(calibration):
-        # default calibration choices
-        if calibration is None:
-            calibration = ["brightness_temperature", "reflectance", 'radiance',
-                           'counts']
-        else:
-            calibration = [x
-                           for x in ["brightness_temperature", "reflectance",
-                                     "radiance", "counts"] if x in calibration]
-        return calibration
-
-    def _ds_ids_with_best_calibration(self, datasets, calibration):
-        """Get the datasets with the best available calibration."""
-
-        calibrations = self._get_best_calibration(calibration)
-
-        new_datasets = []
-
-        for cal in calibrations:
-            for ds_id in datasets:
-                if ds_id.calibration == cal:
-                    new_datasets.append(ds_id)
-        for ds_id in datasets:
-            if (ds_id not in new_datasets and
-                    (ds_id.calibration is None and calibration is None)):
-                new_datasets.append(ds_id)
-        return new_datasets
-
-    def _ds_ids_from_any_key(self, key):
-        """Return a dataset ids from any type of key."""
-        if isinstance(key, numbers.Number):
-            datasets = self.get_ds_ids_by_wavelength(key)
-        elif isinstance(key, DatasetID):
-            datasets = self.get_ds_ids_by_id(key)
-        else:
-            datasets = self.get_ds_ids_by_name(key)
-
-        return datasets
-
-    def filter_ds_ids(self, dataset_ids, dfilter):
-        """Filter *dataset_ids* based on *dfilter*."""
-        # sort by resolution, highest resolution first (lowest number)
-        dataset_ids = sorted(dataset_ids, key=lambda x: x.resolution or -1)
-
-        for attr in ['resolution', 'polarization']:
-            if dfilter.get(attr) is not None:
-                dataset_ids = [ds_id for ds_id in dataset_ids
-                               if getattr(ds_id, attr) in dfilter[attr]]
-
-        calibration = dfilter.get('calibration')
-        dataset_ids = self._ds_ids_with_best_calibration(dataset_ids,
-                                                         calibration)
-
-        if dfilter.get('modifiers') is not None:
-            dataset_ids = [ds_id for ds_id in dataset_ids
-                           if ds_id.modifiers == dfilter['modifiers']]
-
-        return dataset_ids
-
-    def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset id corresponding to *key*.
-
-        Can be either by name or centerwavelength. If `key` is a `DatasetID`
-        object its name is searched if it exists, otherwise its wavelength is
-        used.
         """
-        datasets = self._ds_ids_from_any_key(key)
-
-        dfilter = self.dfilter_from_key(dfilter, key)
-
-        datasets = self.filter_ds_ids(datasets, dfilter)
-
-        if not datasets:
-            raise KeyError("Can't find any projectable matching '{}'".format(
-                str(key)))
-        if aslist:
-            return datasets
-        else:
-            return datasets[0]
+        return get_key(key, self.ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -390,6 +256,24 @@ class FileYAMLReader(AbstractYAMLReader):
         self.filter_parameters = filter_parameters or {}
         if kwargs:
             logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
+        self.coords_cache = WeakValueDictionary()
+
+    @property
+    def sensor_names(self):
+        if not self.file_handlers:
+            return self.info['sensors']
+
+        file_handlers = (handlers[0] for handlers in
+                         self.file_handlers.values())
+        sensor_names = set()
+        for fh in file_handlers:
+            try:
+                sensor_names.update(fh.sensor_names)
+            except NotImplementedError:
+                continue
+        if not sensor_names:
+            return self.info['sensors']
+        return sorted(sensor_names)
 
     @property
     def available_dataset_ids(self):
@@ -419,12 +303,11 @@ class FileYAMLReader(AbstractYAMLReader):
         If the file doesn't provide any bounding box information or 'area'
         was not provided in `filter_parameters`, the check returns True.
         """
-        from trollsched.boundary import AreaDefBoundary, Boundary
-        from satpy.resample import get_area_def
         try:
             gbb = Boundary(*file_handler.get_bounding_box())
-        except NotImplementedError:
-            pass
+        except NotImplementedError as err:
+            logger.debug("Bounding box computation not implemented: %s",
+                         str(err))
         else:
             abb = AreaDefBoundary(get_area_def(check_area), frequency=1000)
 
@@ -476,15 +359,18 @@ class FileYAMLReader(AbstractYAMLReader):
     @staticmethod
     def filename_items_for_filetype(filenames, filetype_info):
         """Iterator over the filenames matching *filetype_info*."""
+        matched_files = []
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
+                if filename in matched_files:
+                    continue
                 try:
                     filename_info = parse(
                         pattern, get_filebase(filename, pattern))
                 except ValueError:
                     logger.debug("Can't parse %s with %s.", filename, pattern)
                     continue
-
+                matched_files.append(filename)
                 yield filename, filename_info
 
     def new_filehandler_instances(self, filetype_info, filename_items):
@@ -518,18 +404,18 @@ class FileYAMLReader(AbstractYAMLReader):
         if not self.time_matches(
                 sample_dict.get('start_time'), sample_dict.get('end_time')):
             return False
-
         for key, val in self.filter_parameters.items():
-            if key not in sample_dict:
+            if key != 'area' and key not in sample_dict:
                 continue
 
-            fval = sample_dict[key]
             if key in ['start_time', 'end_time']:
                 continue
-            elif key == 'area' and file_handler and \
-                    not self.check_file_covers_area(file_handler, val):
-                break
-            elif val != fval:
+            elif key == 'area' and file_handler:
+                if not self.check_file_covers_area(file_handler, val):
+                    logger.info('Filtering out %s based on area',
+                                file_handler.filename)
+                    break
+            elif key in sample_dict and val != sample_dict[key]:
                 # don't use this file
                 break
         else:
@@ -589,11 +475,13 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
+        filenames = list(OrderedDict.fromkeys(filenames))
         logger.debug("Assigning to %s: %s", self.info['name'], filenames)
 
         self.info.setdefault('filenames', []).extend(filenames)
         filename_set = set(filenames)
 
+        # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
@@ -604,99 +492,79 @@ class FileYAMLReader(AbstractYAMLReader):
                     filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
-    @staticmethod
-    def get_shape_n_slices(all_shapes, xslice=slice(None), yslice=slice(None)):
-        """Get the shape and slices to use."""
-        # rows accumlate, columns stay the same
-        overall_shape = [sum([x[0]
-                              for x in all_shapes]), ] + all_shapes[0][1:]
-        if xslice.start is not None and yslice.start is not None:
-            slice_shape = [yslice.stop - yslice.start,
-                           xslice.stop - xslice.start]
-            overall_shape[0] = min(overall_shape[0], slice_shape[0])
-            overall_shape[1] = min(overall_shape[1], slice_shape[1])
-        elif len(overall_shape) == 1:
-            yslice = slice(0, overall_shape[0])
-        else:
-            xslice = slice(0, overall_shape[1])
-            yslice = slice(0, overall_shape[0])
-        return overall_shape, xslice, yslice
+        # update existing dataset IDs with information from the file handler
+        self.update_ds_ids_from_file_handlers()
 
-    @staticmethod
-    def _load_entire_dataset(dsid, ds_info, file_handlers):
-        """Load the entire dataset as inplace loading isn't an option."""
-        # can't optimize by using inplace loading
-        projectables = []
-        for fh in file_handlers:
-            projectable = fh.get_dataset(dsid, ds_info)
-            if projectable is not None:
-                projectables.append(projectable)
+        # load any additional dataset IDs determined dynamically from the file
+        self.add_ds_ids_from_files()
 
-        # Join them all together
-        combined_info = file_handlers[0].combine_info(
-            [p.info for p in projectables])
-        cls = ds_info.get("container", Dataset)
-        return cls(np.ma.vstack(projectables), **combined_info)
+    def update_ds_ids_from_file_handlers(self):
+        """Update DatasetIDs with information from loaded files.
 
-    def _load_sliced_dataset(self, dsid, ds_info, file_handlers, xslice, yslice):
-        """Load only a piece of the dataset."""
-        # we can optimize
-        cls = ds_info.get("container", Dataset)
-        all_shapes = [list(fhd.get_shape(dsid, ds_info))
-                      for fhd in file_handlers]
-        overall_shape, xslice, yslice = self.get_shape_n_slices(all_shapes,
-                                                                xslice,
-                                                                yslice)
+        This is useful, for example, if dataset resolution may change
+        depending on what files were loaded.
 
-        out_info = {'reader': self.name}
-        data = np.empty(overall_shape,
-                        dtype=ds_info.get('dtype', np.float32))
-        mask = np.ma.make_mask_none(overall_shape)
-
-        offset = 0
-        out_offset = 0
-        failure = True
-        for idx, fh in enumerate(file_handlers):
-            segment_height = all_shapes[idx][0]
-            # XXX: Does this work with masked arrays and subclasses of them?
-            # Otherwise, have to send in separate data, mask, and info parameters to be filled in
-            # TODO: Combine info in a sane way
-
-            if (yslice.start >= offset + segment_height or
-                    yslice.stop <= offset):
-                offset += segment_height
+        """
+        for file_handlers in self.file_handlers.values():
+            fh = file_handlers[0]
+            # update resolution in the dataset IDs for this files resolution
+            res = getattr(fh, 'resolution', None)
+            if res is None:
                 continue
-            start = max(yslice.start - offset, 0)
-            stop = min(yslice.stop - offset, segment_height)
 
-            shuttle = Shuttle(data[out_offset:out_offset + stop - start],
-                              mask[out_offset:out_offset + stop - start],
-                              out_info)
+            for ds_id, ds_info in list(self.ids.items()):
+                if fh.filetype_info['file_type'] != ds_info['file_type']:
+                    continue
+                if ds_id.resolution is not None:
+                    continue
+                ds_info['resolution'] = res
+                new_id = DatasetID.from_dict(ds_info)
+                self.ids[new_id] = ds_info
+                del self.ids[ds_id]
 
-            kwargs = {}
-            if stop - start != segment_height:
-                kwargs['yslice'] = slice(start, stop)
-            if (xslice.start is not None and
-                    xslice.stop - xslice.start != all_shapes[idx][1]):
-                kwargs['xslice'] = xslice
-
+    def add_ds_ids_from_files(self):
+        """Check files for more dynamically discovered datasets."""
+        for file_handlers in self.file_handlers.values():
             try:
-                fh.get_dataset(dsid, ds_info, out=shuttle, **kwargs)
-                failure = False
-            except KeyError:
-                logger.warning(
-                    "Failed to load {} from {}".format(dsid, fh), exc_info=True)
-                mask[out_offset:out_offset + stop - start] = True
+                fh = file_handlers[0]
+                avail_ids = fh.available_datasets()
+            except NotImplementedError:
+                continue
 
-            out_offset += stop - start
-            offset += segment_height
+            # dynamically discover other available datasets
+            for ds_id, ds_info in avail_ids:
+                # don't overwrite an existing dataset
+                # especially from the yaml config
+                self.ids.setdefault(ds_id, ds_info)
+
+    @staticmethod
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
+        """Load only a piece of the dataset."""
+        slice_list = []
+        failure = True
+        for fh in file_handlers:
+            try:
+                projectable = fh.get_dataset(dsid, ds_info)
+                if projectable is not None:
+                    slice_list.append(projectable)
+                    failure = False
+            except KeyError:
+                logger.warning("Failed to load {} from {}".format(dsid, fh),
+                               exc_info=True)
 
         if failure:
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        out_info.pop('area', None)
-        return cls(data, mask=mask, copy=False, **out_info)
+        if dim not in slice_list[0].dims:
+            return slice_list[0]
+        res = xr.concat(slice_list, dim=dim)
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
+        return res
 
     def _load_dataset_data(self,
                            file_handlers,
@@ -704,20 +572,11 @@ class FileYAMLReader(AbstractYAMLReader):
                            xslice=slice(None),
                            yslice=slice(None)):
         ds_info = self.ids[dsid]
-        try:
-            # Can we allow the file handlers to do inplace data writes?
-            [list(fhd.get_shape(dsid, ds_info)) for fhd in file_handlers]
-        except NotImplementedError:
-            # FIXME: Is NotImplementedError included in Exception for all
-            # versions of Python?
-            proj = self._load_entire_dataset(dsid, ds_info, file_handlers)
-        else:
-            proj = self._load_sliced_dataset(dsid, ds_info, file_handlers,
-                                             xslice, yslice)
+        proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
         # Update the metadata
-        proj.info['start_time'] = file_handlers[0].start_time
-        proj.info['end_time'] = file_handlers[-1].end_time
+        proj.attrs['start_time'] = file_handlers[0].start_time
+        proj.attrs['end_time'] = file_handlers[-1].end_time
 
         return proj
 
@@ -726,7 +585,6 @@ class FileYAMLReader(AbstractYAMLReader):
 
         At the moment, it just returns the first filetype that has been loaded.
         """
-
         if not isinstance(filetypes, list):
             filetypes = [filetypes]
 
@@ -751,11 +609,12 @@ class FileYAMLReader(AbstractYAMLReader):
         cids = []
 
         for cinfo in ds_info.get('coordinates', []):
-            if isinstance(cinfo, dict):
-                cinfo['resolution'] = ds_info['resolution']
-            else:
-                # cid = self.get_dataset_key(cinfo)
-                cinfo = {'name': cinfo, 'resolution': ds_info['resolution']}
+            if not isinstance(cinfo, dict):
+                cinfo = {'name': cinfo}
+
+            cinfo['resolution'] = ds_info['resolution']
+            if 'polarization' in ds_info:
+                cinfo['polarization'] = ds_info['polarization']
             cid = DatasetID(**cinfo)
             cids.append(self.get_dataset_key(cid))
 
@@ -781,17 +640,26 @@ class FileYAMLReader(AbstractYAMLReader):
             return self.file_handlers[filetype]
 
     def _make_area_from_coords(self, coords):
-        """Create an apropriate area with the given *coords*."""
+        """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].info.get('standard_name')
-            lat_sn = coords[1].info.get('standard_name')
+            lon_sn = coords[0].attrs.get('standard_name')
+            lat_sn = coords[1].attrs.get('standard_name')
             if lon_sn == 'longitude' and lat_sn == 'latitude':
-                sdef = SwathDefinition(*coords)
-                sensor_str = sdef.name = '_'.join(self.info['sensors'])
+                key = None
+                try:
+                    key = (coords[0].data.name, coords[1].data.name)
+                    sdef = self.coords_cache.get(key)
+                except AttributeError:
+                    sdef = None
+                if sdef is None:
+                    sdef = SwathDefinition(*coords)
+                    if key is not None:
+                        self.coords_cache[key] = sdef
+                sensor_str = '_'.join(self.info['sensors'])
                 shape_str = '_'.join(map(str, coords[0].shape))
                 sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                 coords[0].info['name'],
-                                                 coords[1].info['name'])
+                                                 coords[0].attrs['name'],
+                                                 coords[1].attrs['name'])
                 return sdef
             else:
                 raise ValueError(
@@ -856,12 +724,44 @@ class FileYAMLReader(AbstractYAMLReader):
             return None
 
         if area is not None:
-            ds.info['area'] = area
+            ds.attrs['area'] = area
+            if (('x' not in ds.coords) or('y' not in ds.coords)) and \
+                    hasattr(area, 'get_proj_vectors_dask'):
+                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
         return ds
 
-    def load(self, dataset_keys):
-        """Load *dataset_keys*."""
-        all_datasets = DatasetDict()
+    def _load_ancillary_variables(self, datasets):
+        """Load the ancillary variables of `datasets`."""
+        all_av_ids = set()
+        for dataset in datasets.values():
+            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            if not isinstance(ancillary_variables, (list, tuple, set)):
+                ancillary_variables = ancillary_variables.split(',')
+            av_ids = []
+            for key in ancillary_variables:
+                try:
+                    av_ids.append(self.get_dataset_key(key))
+                except KeyError:
+                    logger.warning("Can't load ancillary dataset %s", str(key))
+
+            all_av_ids |= set(av_ids)
+            dataset.attrs['ancillary_variables'] = av_ids
+        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        if not all_av_ids:
+            return
+        av_ds = self.load(all_av_ids, datasets)
+        for dataset in datasets.values():
+            new_vars = []
+            for av_id in dataset.attrs.get('ancillary_variables', []):
+                new_vars.append(av_ds.get(av_id, datasets.get(av_id, av_id)))
+            dataset.attrs['ancillary_variables'] = new_vars
+        datasets.update(av_ds)
+
+    def load(self, dataset_keys, previous_datasets=None):
+        """Load `dataset_keys`.
+
+        If `previous_datasets` is provided, do not reload those."""
+        all_datasets = previous_datasets or DatasetDict()
         datasets = DatasetDict()
 
         # Include coordinates in the list of datasets to load
@@ -870,6 +770,8 @@ class FileYAMLReader(AbstractYAMLReader):
         all_dsids = list(set().union(*coordinates.values())) + dsids
 
         for dsid in all_dsids:
+            if dsid in all_datasets:
+                continue
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
             ds = self._load_dataset_with_area(dsid, coords)
@@ -877,5 +779,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
+        self._load_ancillary_variables(all_datasets)
 
         return datasets

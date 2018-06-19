@@ -1,5 +1,5 @@
 reader:
-    name: avhrr_hrpt
+    name: avhrr_hrpt_l1b
     description: HRPT Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
     sensors: [avhrr-3, avhrr-2]

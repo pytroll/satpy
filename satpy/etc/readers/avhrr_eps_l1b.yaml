@@ -1,5 +1,5 @@
 reader:
-    name: avhrr_eps
+    name: avhrr_eps_l1b
     description: EPS Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
     sensors: [avhrr-3]
@@ -130,4 +130,6 @@ datasets:
 file_types:
     avhrr_eps:
         file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''
-        file_patterns: ['AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}']
+        file_patterns: [
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}',
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}.nat']

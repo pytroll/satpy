@@ -102,7 +102,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
-        return self[var_path + "/shape"]
+        return self.get(var_path + '/shape', 1)
 
     @property
     def start_time(self):
@@ -112,23 +112,102 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
-    def _load_and_slice(self, dtype, var_path, shape, xslice, yslice):
+    def _load_and_slice(self, var_path, shape, xslice, yslice):
         if isinstance(shape, tuple) and len(shape) == 2:
-            return np.require(self[var_path][yslice, xslice], dtype=dtype)
+            return self[var_path][yslice, xslice]
         elif isinstance(shape, tuple) and len(shape) == 1:
-            return np.require(self[var_path][yslice], dtype=dtype)
+            return self[var_path][yslice]
         else:
-            return np.require(self[var_path][:], dtype=dtype)
+            return self[var_path]
 
-    def get_dataset(self, dataset_id, ds_info, out=None, xslice=slice(None), yslice=slice(None)):
+    def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
+        file_units = ds_info.get('file_units')
+        if file_units is None:
+            file_units = self.get(var_path + '/attr/units')
+            # they were almost completely CF compliant...
+            if file_units == "none":
+                file_units = "1"
+
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+            rad_units_path = var_path + '/attr/radiance_units'
+            if rad_units_path in self:
+                if file_units is None:
+                    file_units = self[var_path + '/attr/radiance_units']
+                if file_units == 'Watts/meter^2/steradian/micrometer':
+                    file_units = 'W m-2 um-1 sr-1'
+        elif ds_info.get('units') == '%' and file_units is None:
+            # v1.1 and above of level 1 processing removed 'units' attribute
+            # for all reflectance channels
+            file_units = "1"
+
+        return file_units
+
+    def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+            rad_units_path = var_path + '/attr/radiance_units'
+            if rad_units_path in self:
+                # we are getting a reflectance band but we want the radiance values
+                # special scaling parameters
+                scale_factor = self[var_path + '/attr/radiance_scale_factor']
+                scale_offset = self[var_path + '/attr/radiance_add_offset']
+            else:
+                # we are getting a btemp band but we want the radiance values
+                # these are stored directly in the primary variable
+                scale_factor = self[var_path + '/attr/scale_factor']
+                scale_offset = self[var_path + '/attr/add_offset']
+            valid_min = self[var_path + '/attr/valid_min']
+            valid_max = self[var_path + '/attr/valid_max']
+        elif ds_info.get('units') == '%':
+            # normal reflectance
+            valid_min = self[var_path + '/attr/valid_min']
+            valid_max = self[var_path + '/attr/valid_max']
+            scale_factor = self[var_path + '/attr/scale_factor']
+            scale_offset = self[var_path + '/attr/add_offset']
+        elif ds_info.get('units') == 'K':
+            # normal brightness temperature
+            # use a special LUT to get the actual values
+            lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
+            # we get the BT values from a look up table using the scaled radiance integers
+            valid_min = self[lut_var_path + '/attr/valid_min']
+            valid_max = self[lut_var_path + '/attr/valid_max']
+            scale_factor = scale_offset = None
+        else:
+            valid_min = self.get(var_path + '/attr/valid_min')
+            valid_max = self.get(var_path + '/attr/valid_max')
+            scale_factor = self.get(var_path + '/attr/scale_factor')
+            scale_offset = self.get(var_path + '/attr/add_offset')
+
+        return valid_min, valid_max, scale_factor, scale_offset
+
+    def get_metadata(self, dataset_id, ds_info):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
-        dtype = ds_info.get('dtype', np.float32)
-        if var_path + '/shape' not in self:
-            # loading a scalar value
-            shape = 1
-        else:
-            shape = self[var_path + '/shape']
+        shape = self.get_shape(dataset_id, ds_info)
+        file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
+        # Get extra metadata
+        if '/dimension/number_of_scans' in self:
+            rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
+            ds_info.setdefault('rows_per_scan', rows_per_scan)
+
+        i = getattr(self[var_path], 'attrs', {})
+        i.update(ds_info)
+        i.update(dataset_id.to_dict())
+        i.update({
+            "shape": shape,
+            "units": ds_info.get("units", file_units),
+            "file_units": file_units,
+            "platform_name": self.platform_name,
+            "sensor": self.sensor_name,
+            "start_orbit": self.start_orbit_number,
+            "end_orbit": self.end_orbit_number,
+        })
+        i.update(dataset_id.to_dict())
+        return i
+
+    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        metadata = self.get_metadata(dataset_id, ds_info)
+        shape = metadata['shape']
         if isinstance(shape, tuple) and len(shape) == 2:
             # 2D array
             if xslice.start is not None:
@@ -137,101 +216,40 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
                 shape = (yslice.stop - yslice.start, shape[1])
         elif isinstance(shape, tuple) and len(shape) == 1 and yslice.start is not None:
             shape = ((yslice.stop - yslice.start) / yslice.step,)
+        metadata['shape'] = shape
 
-        file_units = ds_info.get('file_units')
-        if file_units is None:
-            try:
-                file_units = self[var_path + '/attr/units']
-                # they were almost completely CF compliant...
-                if file_units == "none":
-                    file_units = "1"
-            except KeyError:
-                # no file units specified
-                file_units = None
-
-        if out is None:
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
-
+        valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
         if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
-            rad_units_path = var_path + '/attr/radiance_units'
-            if rad_units_path in self:
-                # we are getting a reflectance band but we want the radiance values
-                # special scaling parameters
-                scale_factor = self[var_path + '/attr/radiance_scale_factor']
-                scale_offset = self[var_path + '/attr/radiance_add_offset']
-                if file_units is None:
-                    file_units = self[var_path + '/attr/radiance_units']
-                if file_units == 'Watts/meter^2/steradian/micrometer':
-                    file_units = 'W m-2 um-1 sr-1'
-            else:
-                # we are getting a btemp band but we want the radiance values
-                # these are stored directly in the primary variable
-                scale_factor = self[var_path + '/attr/scale_factor']
-                scale_offset = self[var_path + '/attr/add_offset']
-            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
+            data = self._load_and_slice(var_path, shape, xslice, yslice)
         elif ds_info.get('units') == '%':
-            # normal reflectance
-            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
-            scale_factor = self[var_path + '/attr/scale_factor']
-            scale_offset= self[var_path + '/attr/add_offset']
-            # v1.1 and above of level 1 processing removed 'units' attribute
-            # for all reflectance channels
-            if file_units is None:
-                file_units = "1"
+            data = self._load_and_slice(var_path, shape, xslice, yslice)
         elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             # we get the BT values from a look up table using the scaled radiance integers
-            out.data[:] = np.require(self[lut_var_path][:][self[var_path][yslice, xslice].ravel()], dtype=dtype).reshape(shape)
-            valid_min = self[lut_var_path + '/attr/valid_min']
-            valid_max = self[lut_var_path + '/attr/valid_max']
-            scale_factor = scale_offset = None
+            # .flatten() currently not supported, workaround: https://github.com/pydata/xarray/issues/1029
+            data = self[var_path][yslice, xslice]
+            data = data.stack(name=data.dims).astype(np.int)
+            coords = data.coords
+            data = self[lut_var_path][data]
+            if 'dim_0' in data:
+                # seems like older versions of xarray take the dims from
+                # 'lut_var_path'. newer versions take 'data' dims
+                data = data.rename({'dim_0': 'name'})
+            data = data.assign_coords(**coords).unstack('name')
         elif shape == 1:
-            out.data[:] = self[var_path]
-            scale_factor = None
-            scale_offset = None
-            valid_min = None
-            valid_max = None
+            data = self[var_path]
         else:
-            out.data[:] = self._load_and_slice(dtype, var_path, shape, xslice, yslice)
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
-            try:
-                scale_factor = self[var_path + '/attr/scale_factor']
-                scale_offset = self[var_path + '/attr/add_offset']
-            except KeyError:
-                scale_factor = scale_offset = None
+            data = self._load_and_slice(var_path, shape, xslice, yslice)
 
         if valid_min is not None and valid_max is not None:
-            out.mask[:] |= (out.data < valid_min) | (out.data > valid_max)
+            data = data.where((data >= valid_min) & (data <= valid_max))
 
         factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
+        factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
-            out.data[:] *= factors[0]
-            out.data[:] += factors[1]
+            data = data * factors[0] + factors[1]
 
-        # Get extra metadata
-        if '/dimension/number_of_scans' in self:
-            rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
-            ds_info.setdefault('rows_per_scan', rows_per_scan)
-
-        i = getattr(out, 'info', {})
-        i.update(ds_info)
-        i.update(dataset_id.to_dict())
-        i.update({
-            "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
-            "sensor": self.sensor_name,
-            "start_orbit": self.start_orbit_number,
-            "end_orbit": self.end_orbit_number,
-        })
-        ds_info.update(dataset_id.to_dict())
-        cls = ds_info.pop("container", Dataset)
-        return cls(out.data, mask=out.mask, copy=False, **i)
+        data.attrs.update(metadata)
+        return data

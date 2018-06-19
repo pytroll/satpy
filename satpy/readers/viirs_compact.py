@@ -22,19 +22,18 @@
 """Compact viirs format.
 """
 
-import bz2
-import glob
 import logging
-import os
 from datetime import datetime, timedelta
 
 import h5py
 import numpy as np
+import xarray as xr
+import xarray.ufuncs as xu
+import dask.array as da
 
-from pyresample.geometry import SwathDefinition
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
+from satpy import CHUNK_SIZE
 
 try:
     import tables
@@ -97,7 +96,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         # FIXME:  this supposes  there is  only one  tiepoint zone  in the
         # track direction
         self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" %
-                                  channel].attrs["TiePointZoneSizeTrack"][0]
+                                  channel].attrs["TiePointZoneSizeTrack"]
+        self.scan_size = np.asscalar(self.scan_size)
         self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
                                      channel].attrs["PixelOffsetTrack"]
         self.scan_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
@@ -129,7 +129,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             m_data = self.read_dataset(key, info)
         else:
             m_data = self.read_geo(key, info)
-        m_data.info.update(info)
+        m_data.attrs.update(info)
         return m_data
 
     def get_bounding_box(self):
@@ -176,11 +176,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                     angles = self.angles(*fkeys)
                     self.cache[pair[0]], self.cache[pair[1]] = angles
                 if key.name == pair[0]:
-                    return Dataset(self.cache[pair[0]],
-                                   copy=False, name=key.name, **self.mda)
+                    return xr.DataArray(self.cache[pair[0]], name=key.name,
+                                        attrs=self.mda, dims=('y', 'x'))
                 else:
-                    return Dataset(self.cache[pair[1]],
-                                   copy=False, name=key.name, **self.mda)
+                    return xr.DataArray(self.cache[pair[1]], name=key.name,
+                                        attrs=self.mda, dims=('y', 'x'))
 
         if info.get('standard_name') in ['latitude', 'longitude']:
             if self.lons is None or self.lats is None:
@@ -188,14 +188,15 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             mda = self.mda.copy()
             mda.update(info)
             if info['standard_name'] == 'longitude':
-                return Dataset(self.lons, copy=False, id=key, **mda)
+                return xr.DataArray(self.lons, attrs=mda, dims=('y', 'x'))
             else:
-                return Dataset(self.lats, copy=False, id=key, **mda)
+                return xr.DataArray(self.lats, attrs=mda, dims=('y', 'x'))
 
         if key.name == 'dnb_moon_illumination_fraction':
             mda = self.mda.copy()
             mda.update(info)
-            return Dataset(self.geostuff["MoonIllumFraction"].value, **info)
+            return xr.DataArray(self.geostuff["MoonIllumFraction"].value,
+                                attrs=info)
 
     def read_dataset(self, dataset_key, info):
         h5f = self.h5f
@@ -204,27 +205,27 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                           for key in h5f["All_Data"].keys()
                           if key.startswith("VIIRS")])
 
-        scans = h5f["All_Data"]["NumberOfScans"][0]
-        res = []
-        units = []
-        arr_mask = np.ma.nomask
-
-        rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
-
-        if channel in ("M9", ):
-            arr = rads[:scans * 16, :].astype(np.float32)
-            arr[arr > 65526] = np.nan
-            arr = np.ma.masked_array(arr, mask=arr_mask)
-        else:
-            arr = np.ma.masked_greater(rads[:scans * 16, :].astype(np.float32),
-                                       65526)
+        h5rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
+        chunks = h5rads.chunks or CHUNK_SIZE
+        rads = xr.DataArray(da.from_array(h5rads, chunks=chunks),
+                            name=dataset_key.name,
+                            dims=['y', 'x']).astype(np.float32)
+        h5attrs = h5rads.attrs
+        # scans = h5f["All_Data"]["NumberOfScans"][0]
+        # if channel in ("M9", ):
+        #     arr = rads[:scans * 16, :].astype(np.float32)
+        #     arr[arr > 65526] = np.nan
+        #     arr = np.ma.masked_array(arr, mask=arr_mask)
+        # else:
+        #     arr = np.ma.masked_greater(rads[:scans * 16, :].astype(np.float32),
+        #                                65526)
+        rads = rads.where(rads <= 65526)
         try:
-            arr = np.ma.where(arr <= rads.attrs['Threshold'],
-                              arr * rads.attrs['RadianceScaleLow'] +
-                              rads.attrs['RadianceOffsetLow'],
-                              arr * rads.attrs['RadianceScaleHigh'] +
-                              rads.attrs['RadianceOffsetHigh'],)
-            arr_mask = arr.mask
+            rads = xr.where(rads <= h5attrs['Threshold'],
+                            rads * h5attrs['RadianceScaleLow'] +
+                            h5attrs['RadianceOffsetLow'],
+                            rads * h5attrs['RadianceScaleHigh'] +
+                            h5attrs['RadianceOffsetHigh'])
         except (KeyError, AttributeError):
             logger.info("Missing attribute for scaling of %s.", channel)
             pass
@@ -235,24 +236,24 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             # do calibrate
             try:
                 # First guess: VIS or NIR data
-                a_vis = rads.attrs['EquivalentWidth']
-                b_vis = rads.attrs['IntegratedSolarIrradiance']
-                dse = rads.attrs['EarthSunDistanceNormalised']
-                arr *= 100 * np.pi * a_vis / b_vis * (dse**2)
+                a_vis = h5attrs['EquivalentWidth']
+                b_vis = h5attrs['IntegratedSolarIrradiance']
+                dse = h5attrs['EarthSunDistanceNormalised']
+                rads *= 100 * np.pi * a_vis / b_vis * (dse**2)
                 unit = "%"
             except KeyError:
                 # Maybe it's IR data?
                 try:
-                    a_ir = rads.attrs['BandCorrectionCoefficientA']
-                    b_ir = rads.attrs['BandCorrectionCoefficientB']
-                    lambda_c = rads.attrs['CentralWaveLength']
-                    arr *= 1e6
-                    arr = (h * c) / (k * lambda_c *
-                                     np.log(1 +
-                                            (2 * h * c ** 2) /
-                                            ((lambda_c ** 5) * arr)))
-                    arr *= a_ir
-                    arr += b_ir
+                    a_ir = h5attrs['BandCorrectionCoefficientA']
+                    b_ir = h5attrs['BandCorrectionCoefficientB']
+                    lambda_c = h5attrs['CentralWaveLength']
+                    rads *= 1e6
+                    rads = (h * c) / (k * lambda_c *
+                                      xu.log(1 +
+                                             (2 * h * c ** 2) /
+                                             ((lambda_c ** 5) * rads)))
+                    rads *= a_ir
+                    rads += b_ir
                     unit = "K"
                 except KeyError:
                     logger.warning("Calibration failed.")
@@ -260,9 +261,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         elif dataset_key.calibration != 'radiance':
             raise ValueError("Calibration parameter should be radiance, "
                              "reflectance or brightness_temperature")
-        arr[arr < 0] = 0
-
-        return Dataset(arr, units=unit, copy=False, name=dataset_key.name, **self.mda)
+        rads = rads.clip(min=0)
+        rads.attrs = self.mda
+        rads.attrs['units'] = unit
+        return rads
 
     def navigate(self):
 
@@ -270,7 +272,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         all_lat = self.geostuff["Latitude"].value
 
         res = []
-
         param_start = 0
         for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
                                            self.group_locations):
@@ -283,24 +284,26 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
             param_start += nb_tpz
 
-            if (np.max(lon) - np.min(lon) > 90) or (np.max(abs(lat)) > 60):
-                expanded = []
-                for data in lonlat2xyz(lon, lat):
-                    expanded.append(expand_array(
-                        data, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+            expanded = []
+            switch_to_cart = ((np.max(lon) - np.min(lon) > 90) or
+                              (np.max(abs(lat)) > 60))
+
+            if switch_to_cart:
+                arrays = lonlat2xyz(lon, lat)
+            else:
+                arrays = (lon, lat)
+
+            for data in arrays:
+                expanded.append(expand_array(
+                    data, self.scans, c_align, c_exp, self.scan_size,
+                    tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+
+            if switch_to_cart:
                 res.append(xyz2lonlat(*expanded))
             else:
-                expanded = []
-                for data in (lon, lat):
-                    expanded.append(expand_array(
-                        data, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
                 res.append(expanded)
-
         lons, lats = zip(*res)
-
-        return np.hstack(lons), np.hstack(lats)
+        return da.hstack(lons), da.hstack(lats)
 
     def angles(self, azi_name, zen_name):
 
@@ -341,7 +344,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 res.append(expanded)
 
         azi, zen = zip(*res)
-        return np.hstack(azi), np.hstack(zen)
+        return da.hstack(azi), da.hstack(zen)
 
 
 def read_dnb(h5f):
@@ -369,7 +372,11 @@ def expand_array(data,
                  nties=200,
                  track_offset=0.5,
                  scan_offset=0.5):
-    s_track, s_scan = np.mgrid[0:scans * scan_size, 0:nties * tpz_size]
+    """Expand *data* according to alignment and expansion."""
+    nties = np.asscalar(nties)
+    tpz_size = np.asscalar(tpz_size)
+    s_scan, s_track = da.meshgrid(np.arange(nties * tpz_size),
+                                  np.arange(scans * scan_size))
     s_track = (s_track.reshape(scans, scan_size, nties, tpz_size) % scan_size +
                track_offset) / scan_size
     s_scan = (s_scan.reshape(scans, scan_size, nties, tpz_size) % tpz_size +
@@ -445,4 +452,4 @@ def navigate_dnb(h5f):
                  expand_array(lat, scans, c_align, c_exp, scan_size, tpz_size,
                               nties, track_offset, scan_offset)))
     lons, lats = zip(*res)
-    return np.hstack(lons), np.hstack(lats)
+    return da.hstack(lons), da.hstack(lats)

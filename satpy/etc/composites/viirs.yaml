@@ -17,7 +17,7 @@ modifiers:
   rayleigh_corrected_iband:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: I01
       resolution: 371
@@ -35,7 +35,7 @@ modifiers:
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
-    aerosol_type: marine_clean_aerosol
+    aerosol_type: rayleigh_only
     prerequisites:
     - name: M05
       resolution: 742
@@ -133,7 +133,7 @@ modifiers:
 composites:
 
   true_color:
-    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
@@ -148,7 +148,7 @@ composites:
     high_resolution_band: red
 
   true_color_lowres:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected]
@@ -159,7 +159,7 @@ composites:
     standard_name: true_color
 
   true_color_lowres_crefl:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected_crefl]
@@ -170,7 +170,7 @@ composites:
     standard_name: true_color
 
   true_color_lowres_land:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected_land]
@@ -181,7 +181,7 @@ composites:
     standard_name: true_color
 
   true_color_lowres_marine_tropical:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
@@ -192,7 +192,7 @@ composites:
     standard_name: true_color
 
   natural_color:
-    compositor: !!python/name:satpy.composites.viirs.RatioSharpenedRGB
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M11
       modifiers: [sunz_corrected]
@@ -206,8 +206,30 @@ composites:
     standard_name: natural_color
     high_resolution_band: blue
 
-  true_color_raw:
+  natural_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: I03
+      modifiers: [sunz_corrected_iband]
+    - name: I02
+      modifiers: [sunz_corrected_iband]
+    - name: I01
+      modifiers: [sunz_corrected_iband]
+    standard_name: natural
+
+  natural_sun_lowres:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M05
+      modifiers: [sunz_corrected]
+    standard_name: natural
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M05
       modifiers: [sunz_corrected]
@@ -218,7 +240,7 @@ composites:
     standard_name: true_color
 
   night_overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - DNB
     - DNB
@@ -226,7 +248,7 @@ composites:
     standard_name: night_overview
 
   overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - M05
     - M07
@@ -234,7 +256,7 @@ composites:
     standard_name: overview
 
   hr_overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - I01
     - I02
@@ -242,7 +264,7 @@ composites:
     standard_name: overview
 
   night_microphysics:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - hncc_dnb
     - M12
@@ -256,6 +278,22 @@ composites:
     - M15
     - M16
     standard_name: fog
+
+  dust:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: dust
+
+  ash:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - M14
+    - M15
+    - M16
+    standard_name: ash
 
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
@@ -273,7 +311,7 @@ composites:
     standard_name: temperature_difference
 
   cloudtop_daytime:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M12
       modifiers: [nir_emissive_lowres]
@@ -282,7 +320,7 @@ composites:
     standard_name: cloudtop
 
   hr_cloudtop_daytime:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: I04
       modifiers: [nir_emissive_hires]
@@ -291,7 +329,7 @@ composites:
     standard_name: cloudtop
 
   snow_lowres:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M07
       modifiers: [sunz_corrected]
@@ -302,7 +340,7 @@ composites:
     standard_name: snow
 
   snow_hires:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: I02
       modifiers: [sunz_corrected_iband]
@@ -349,7 +387,7 @@ composites:
     units: "1"
 
   night_overview:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - hncc_dnb
     - hncc_dnb

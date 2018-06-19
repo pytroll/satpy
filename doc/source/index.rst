@@ -8,9 +8,13 @@ data file formats. SatPy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
 processing output. The
 `pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
-to resample data to different uniform areas or grids.
+to resample data to different uniform areas or grids. Various atmospheric
+corrections and visual enhancements are also provided, either directly in
+SatPy or from those in the
+`PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_ and
+`TrollImage <http://trollimage.readthedocs.io/en/latest/>`_ packages.
 
-Get to the project_ page for source code and downloads.
+Go to the project_ page for source code and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins (readers, compositors, writers, etc). The table at
@@ -34,6 +38,8 @@ installation.
     composites
     resample
     writers
+    multiscene
+    dev_guide/index
     SatPy API <api/satpy>
 
 
@@ -68,16 +74,16 @@ installation.
       - `hrit_electrol`
       - Nominal
     * - NOAA 15 to 19, Metop A to C AVHRR data in AAPP format
-      - `aapp_l1b`
+      - `avhrr_aapp_l1b`
       - Nominal
     * - Metop A to C AVHRR in native level 1 format
-      - `epsl1b`
+      - `avhrr_eps_l1b`
       - Nominal
     * - Tiros-N, NOAA 7 to 19 AVHRR data in GAC and LAC format
       - `gac_lac_l1b`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `hrpt`
+      - `avhrr_hrpt`
       - Nominal
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
@@ -100,7 +106,7 @@ installation.
         | Only the standard swath based output is supported.
         | CPP products not supported yet
     * - Sentinel-1 A and B SAR-C data in SAFE format
-      - `sar_c`
+      - `safe_sar_c`
       - Nominal
     * - Sentinel-2 A and B MSI data in SAFE format
       - `safe_msi`
@@ -138,6 +144,9 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - GRIB2 format
+      - `grib`
+      - Beta
 
 Indices and tables
 ==================

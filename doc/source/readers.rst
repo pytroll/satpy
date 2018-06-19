@@ -12,6 +12,14 @@ around all the complexity of these various formats through its ``load``
 method. The following sections describe the different way data can be loaded,
 requested, or added to a Scene object.
 
+Available Readers
+=================
+
+To get a list of available readers use the `available_readers` function::
+
+    >>> from satpy import available_readers
+    >>> available_readers()
+
 Filter loaded files
 ===================
 

@@ -6,7 +6,13 @@
 import os
 import sys
 import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
+
+try:
+    from satpy.readers.hdf5_utils import HDF5FileHandler
+except ImportError:
+    # fake the import so we can at least run the tests in this file
+    HDF5FileHandler = object
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -15,8 +21,12 @@ else:
 
 class FakeHDF5FileHandler(HDF5FileHandler):
     """Swap-in HDF5 File Handler for reader tests to use"""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
+        if HDF5FileHandler is object:
+            raise ImportError("Base 'HDF5FileHandler' could not be "
+                              "imported.")
         super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
@@ -38,6 +48,7 @@ class FakeHDF5FileHandler(HDF5FileHandler):
 
         """
         raise NotImplementedError("Fake File Handler subclass must implement 'get_test_content'")
+
 
 class TestHDF5FileHandler(unittest.TestCase):
     """Test HDF5 File Handler Utility class"""
@@ -67,9 +78,11 @@ class TestHDF5FileHandler(unittest.TestCase):
                                  data=np.arange(10 * 100).reshape((10, 100)))
 
         # Add attributes
+        # shows up as a scalar array of bytes (shape=(), size=1)
         h.attrs['test_attr_str'] = 'test_string'
         h.attrs['test_attr_int'] = 0
         h.attrs['test_attr_float'] = 1.2
+        # shows up as a numpy bytes object
         h.attrs['test_attr_str_arr'] = np.array(b"test_string2")
         g1.attrs['test_attr_str'] = 'test_string'
         g1.attrs['test_attr_int'] = 0
@@ -88,6 +101,7 @@ class TestHDF5FileHandler(unittest.TestCase):
     def test_all_basic(self):
         """Test everything about the HDF5 class"""
         from satpy.readers.hdf5_utils import HDF5FileHandler
+        import xarray as xr
         file_handler = HDF5FileHandler('test.h5', {}, {})
 
         for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
@@ -102,7 +116,7 @@ class TestHDF5FileHandler(unittest.TestCase):
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
-        self.assertIsInstance(file_handler.get('ds2_f'), np.ndarray)
+        self.assertIsInstance(file_handler.get('ds2_f'), xr.DataArray)
         self.assertIsNone(file_handler.get('fake_ds'))
         self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
 

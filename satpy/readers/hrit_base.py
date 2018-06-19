@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -28,13 +28,15 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
+import dask.array as da
 from pyresample import geometry
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.eum_base import time_cds_short
+from satpy.readers.msg_base import dec10216
 
 logger = logging.getLogger('hrit_base')
-
 
 common_hdr = np.dtype([('hdr_id', 'u1'),
                        ('record_length', '>u2')])
@@ -57,15 +59,6 @@ image_navigation = np.dtype([('projection_name', 'S32'),
 image_data_function = np.dtype([('function', '|S1')])
 
 annotation_header = np.dtype([('annotation', '|S1')])
-
-time_cds_short = np.dtype([('days', '>u2'),
-                           ('milliseconds', '>u4')])
-
-
-def make_time_cds_short(tcds_array):
-    return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['days']),
-                      milliseconds=int(tcds_array['milliseconds'])))
 
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
@@ -92,37 +85,6 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def dec10216(inbuf):
-    arr10 = inbuf.astype(np.uint16)
-    arr16 = np.zeros((int(len(arr10) * 4 / 5),), dtype=np.uint16)
-    arr10_len = int((len(arr16) * 5) / 4)
-    arr10 = arr10[:arr10_len]  # adjust size
-    """
-    /*
-     * pack 4 10-bit words in 5 bytes into 4 16-bit words
-     *
-     * 0       1       2       3       4       5
-     * 01234567890123456789012345678901234567890
-     * 0         1         2         3         4
-     */
-    ip = &in_buffer[i];
-    op = &out_buffer[j];
-    op[0] = ip[0]*4 + ip[1]/64;
-    op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
-    op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
-    op[3] = (ip[3] & 0x03)*256 +ip[4];
-    """
-    arr16.flat[::4] = np.left_shift(arr10[::5], 2) + \
-        np.right_shift((arr10[1::5]), 6)
-    arr16.flat[1::4] = np.left_shift((arr10[1::5] & 63), 4) + \
-        np.right_shift((arr10[2::5]), 4)
-    arr16.flat[2::4] = np.left_shift(arr10[2::5] & 15, 6) + \
-        np.right_shift((arr10[3::5]), 2)
-    arr16.flat[3::4] = np.left_shift(arr10[3::5] & 3, 8) + \
-        arr10[4::5]
-    return arr16
-
-
 class HRITFileHandler(BaseFileHandler):
 
     """HRIT standard format reader."""
@@ -133,6 +95,16 @@ class HRITFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self.mda = {}
+
+        self._get_hd(hdr_info)
+
+        self._start_time = filename_info['start_time']
+        self._end_time = self._start_time + timedelta(minutes=15)
+
+    def _get_hd(self, hdr_info):
+        """Open the file, read and get the basic file header info and set the mda
+           dictionary
+        """
 
         hdr_map, variable_length_headers, text_headers = hdr_info
 
@@ -147,8 +119,13 @@ class HRITFileHandler(BaseFileHandler):
                     current_hdr = np.fromfile(fp,
                                               dtype=the_type,
                                               count=field_length)
-                    self.mda[variable_length_headers[
-                        the_type]] = current_hdr
+                    key = variable_length_headers[the_type]
+                    if key in self.mda:
+                        if not isinstance(self.mda[key], list):
+                            self.mda[key] = [self.mda[key]]
+                        self.mda[key].append(current_hdr)
+                    else:
+                        self.mda[key] = current_hdr
                 elif the_type in text_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
@@ -167,16 +144,13 @@ class HRITFileHandler(BaseFileHandler):
 
                 total_header_length = self.mda['total_header_length']
 
-            self._start_time = filename_info['start_time']
-            self._end_time = self._start_time + timedelta(minutes=15)
+        self.mda.setdefault('number_of_bits_per_pixel', 10)
 
-            self.mda.setdefault('number_of_bits_per_pixel', 10)
-
-            self.mda['projection_parameters'] = {'a': 6378169.00,
-                                                 'b': 6356583.80,
-                                                 'h': 35785831.00,
-                                                 # FIXME: find a reasonable SSP
-                                                 'SSP_longitude': 0.0}
+        self.mda['projection_parameters'] = {'a': 6378169.00,
+                                             'b': 6356583.80,
+                                             'h': 35785831.00,
+                                             # FIXME: find a reasonable SSP
+                                             'SSP_longitude': 0.0}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
@@ -189,18 +163,15 @@ class HRITFileHandler(BaseFileHandler):
     def end_time(self):
         return self._end_time
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
-        to_return = out is None
-        if out is None:
-            nlines = int(self.mda['number_of_lines'])
-            ncols = int(self.mda['number_of_columns'])
-            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        # Read bands
+        data = self.read_band(key, info)
 
-        self.read_band(key, info, out, xslice, yslice)
+        # Convert to xarray
+        xdata = xr.DataArray(data, dims=['y', 'x'])
 
-        if to_return:
-            from satpy.yaml_reader import Shuttle
-            return Shuttle(out.data, out.mask, out.info)
+        return xdata
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -242,13 +213,8 @@ class HRITFileHandler(BaseFileHandler):
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
-
-        segment_number = self.mda['segment_sequence_number']
-        total_segments = (self.mda['planned_end_segment_number'] -
-                          self.mda['planned_start_segment_number'] + 1)
 
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
@@ -274,44 +240,22 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def read_band(self, key, info,
-                  out=None, xslice=slice(None), yslice=slice(None)):
-        """Read the data"""
-        # TODO slicing !
-        tic = datetime.now()
-
-        with open(self.filename, "rb") as fp_:
-            fp_.seek(self.mda['total_header_length'])
-            if self.mda['number_of_bits_per_pixel'] == 10:
-                data = np.fromfile(fp_, dtype=np.uint8, count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = dec10216(data).reshape((self.mda['number_of_lines'],
-                                                      self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            elif self.mda['number_of_bits_per_pixel'] == 16:
-                data = np.fromfile(fp_, dtype='>u2', count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
-                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            elif self.mda['number_of_bits_per_pixel'] == 8:
-                data = np.fromfile(fp_, dtype='>u1', count=int(np.ceil(
-                    self.mda['data_field_length'] / 8.)))
-                out.data[:] = data.reshape((self.mda['number_of_lines'],
-                                            self.mda['number_of_columns']))[yslice, xslice] * 1.0
-            out.mask[:] = out.data == 0
-        logger.debug("Reading time " + str(datetime.now() - tic))
-
-        # new_info = dict(units=info['units'],
-        #                 standard_name=info['standard_name'],
-        #                 wavelength=info['wavelength'],
-        #                 resolution='resolution',
-        #                 id=key,
-        #                 name=key.name,
-        #                 platform_name=self.platform_name,
-        #                 sensor=self.sensor,
-        #                 satellite_longitude=float(
-        #                     self.nav_info['SSP_longitude']),
-        #                 satellite_latitude=float(
-        #                     self.nav_info['SSP_latitude']),
-        #                 satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-        #                                          self.proj_info['earth_equatorial_radius']) * 1000)
-        # out.info.update(new_info)
+    def read_band(self, key, info):
+        """Read the data."""
+        shape = int(np.ceil(self.mda['data_field_length'] / 8.))
+        if self.mda['number_of_bits_per_pixel'] == 16:
+            dtype = '>u2'
+            shape /= 2
+        elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
+            dtype = np.uint8
+        shape = (shape, )
+        data = np.memmap(self.filename, mode='r',
+                         offset=self.mda['total_header_length'],
+                         dtype=dtype,
+                         shape=shape)
+        data = da.from_array(data, chunks=shape[0])
+        if self.mda['number_of_bits_per_pixel'] == 10:
+            data = dec10216(data)
+        data = data.reshape((self.mda['number_of_lines'],
+                             self.mda['number_of_columns']))
+        return data
