@@ -92,7 +92,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
     def end_time(self):
         return self.filename_info.get('end_time', self.start_time)
 
-    def available_dataset_ids(self):
+    def available_datasets(self):
         """Automatically determine datasets provided by this file"""
         sensor = self.get_sensor(self['/attr/sensor'])
         nadir_resolution = self.get_nadir_resolution(sensor)
@@ -109,25 +109,13 @@ class CLAVRXFileHandler(HDF4FileHandler):
         var_name = ds_info.get('file_key', dataset_id.name)
         return self[var_name + '/shape']
 
-    def get_data_type(self, dataset_id, ds_info):
-        base_default = super(CLAVRXFileHandler, self).get_data_type(
-            dataset_id, ds_info)
-        var_name = ds_info.get('file_key', dataset_id.name)
-        if self.get(var_name + '/attr/SCALED', 1) or self.get(var_name + '/attr/flag_meanings'):
-            return self.get(var_name + '/attr/dtype', base_default)
-        return base_default
-
-    def get_metadata(self, dataset_id, ds_info):
-        var_name = ds_info.get('file_key', dataset_id.name)
+    def get_metadata(self, data_arr, ds_info):
         i = {}
+        i.update(data_arr.attrs)
         i.update(ds_info)
-        for a in ['standard_name', 'units', 'long_name', 'actual_range', 'flag_meanings', 'flag_values', 'flag_masks']:
-            attr_path = var_name + '/attr/' + a
-            if attr_path in self:
-                i[a] = self[attr_path]
 
         flag_meanings = i.get('flag_meanings')
-        if not self.get(var_name + '/attr/SCALED', 1) and not flag_meanings:
+        if not i.get('SCALED', 1) and not flag_meanings:
             i['flag_meanings'] = '<flag_meanings_unknown>'
             i.setdefault('flag_values', [None])
 
@@ -138,47 +126,28 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
         i['sensor'] = self.get_sensor(self['/attr/sensor'])
         i['platform'] = self.get_platform(self['/attr/platform'])
-        i['resolution'] = dataset_id.resolution or self.get_nadir_resolution(i['sensor'])
+        i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
         i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
         i['reader'] = 'clavrx'
 
         return i
 
-    def get_dataset(self, dataset_id, ds_info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
-        # FUTURE: Metadata retrieval may be separate
-        i = self.get_metadata(dataset_id, ds_info)
-        data = self[var_name][yslice, xslice]
-        fill = self[var_name + '/attr/_FillValue']
-        factor = self.get(var_name + '/attr/scale_factor')
-        offset = self.get(var_name + '/attr/add_offset')
-        valid_range = self.get(var_name + '/attr/valid_range')
+        data = self[var_name]
+        if dataset_id.resolution:
+            data.attrs['resolution'] = dataset_id.resolution
+        data.attrs = self.get_metadata(data, ds_info)
+        fill = data.attrs.get('_FillValue')
+        factor = data.attrs.get('scale_factor')
+        offset = data.attrs.get('add_offset')
+        valid_range = data.attrs.get('valid_range')
 
-        mask = data == fill
+        data = data.where(data != fill)
         if valid_range is not None:
-            mask |= (data < valid_range[0]) | (data > valid_range[1])
-        data = data.astype(out.data.dtype)
+            data = data.where((data >= valid_range[0]) & (data <= valid_range[1]))
         if factor is not None and offset is not None:
             data *= factor
             data += offset
 
-        out.data[:] = data
-        out.mask[:] |= mask
-        out.info.update(i)
-        return out
-
-
-class CLAVRXYAMLReader(FileYAMLReader):
-    def create_filehandlers(self, filenames):
-        super(CLAVRXYAMLReader, self).create_filehandlers(filenames)
-        self.load_ds_ids_from_files()
-
-    def load_ds_ids_from_files(self):
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            for ds_id, ds_info in fh.available_dataset_ids():
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                self.ids.setdefault(ds_id, ds_info)
-
+        return data

@@ -24,12 +24,13 @@ file_types:
 
 
 datasets:
+
   latitude:
     name: latitude
     resolution: 80
     file_type: safe_measurement
     standard_name: latitude
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     units: degree
 
   longitude:
@@ -37,7 +38,7 @@ datasets:
     resolution: 80
     file_type: safe_measurement
     standard_name: longitude
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     units: degree
 
   measurement:
@@ -45,7 +46,7 @@ datasets:
     sensor: sar-c
     wavelength: [5.400, 5.405, 5.410]
     resolution: 80
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     # navigation: esa_geo
     # calibration:
     #   radiance:
@@ -61,16 +62,20 @@ datasets:
     name: noise
     sensor: sar-c
     resolution: 80
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     file_type: safe_noise
-    xml_item: noiseVector
-    xml_tag: noiseLut
+    xml_item:
+    - noiseVector
+    - noiseRangeVector
+    xml_tag:
+    - noiseLut
+    - noiseRangeLut
 
   sigma:
     name: sigma_squared
     sensor: sar-c
     resolution: 80
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: sigma
@@ -79,7 +84,7 @@ datasets:
     name: beta_squared
     sensor: sar-c
     resolution: 80
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: beta
@@ -88,7 +93,7 @@ datasets:
     name: gamma_squared
     sensor: sar-c
     resolution: 80
-    polarization: [hh, hv]
+    polarization: [hh, hv, vv, vh]
     file_type: safe_calibration
     xml_item: calibrationVector
     xml_tag: gamma

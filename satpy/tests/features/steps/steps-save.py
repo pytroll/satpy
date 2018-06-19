@@ -1,4 +1,4 @@
-from behave import *
+from behave import given, when, then, use_step_matcher
 
 try:
     from unittest.mock import patch
@@ -9,29 +9,29 @@ except ImportError:
 use_step_matcher("re")
 
 
-@given("a dataset is available")
+@given("a dataset is available")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
     from satpy import Scene
-    from satpy.dataset import Dataset
+    from xarray import DataArray
     scn = Scene()
-    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
     context.scene = scn
 
 
-@when("the show command is called")
+@when("the show command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    with patch('trollimage.image.Image.show') as mock_show:
+    with patch('trollimage.xrimage.XRImage.show') as mock_show:
         context.scene.show("MyDataset")
         mock_show.assert_called_once_with()
 
 
-@then("an image should pop up")
+@then("an image should pop up")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -39,7 +39,7 @@ def step_impl(context):
     pass
 
 
-@when("the save_dataset command is called")
+@when("the save_dataset command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -48,7 +48,7 @@ def step_impl(context):
     context.scene.save_dataset("MyDataset", context.filename)
 
 
-@then("a file should be saved on disk")
+@then("a file should be saved on disk")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -58,20 +58,20 @@ def step_impl(context):
     os.remove(context.filename)
 
 
-@given("a bunch of datasets are available")
+@given("a bunch of datasets are available")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
     from satpy import Scene
-    from satpy.dataset import Dataset
+    from xarray import DataArray
     scn = Scene()
-    scn["MyDataset"] = Dataset([[1, 2], [3, 4]])
-    scn["MyDataset2"] = Dataset([[5, 6], [7, 8]])
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
+    scn["MyDataset2"] = DataArray([[5, 6], [7, 8]], dims=['y', 'x'])
     context.scene = scn
 
 
-@when("the save_datasets command is called")
+@when("the save_datasets command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -79,7 +79,7 @@ def step_impl(context):
     context.scene.save_datasets(writer="simple_image", file_pattern="{name}.png")
 
 
-@then("a bunch of files should be saved on disk")
+@then("a bunch of files should be saved on disk")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context

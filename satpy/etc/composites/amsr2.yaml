@@ -2,7 +2,7 @@ sensor_name: amsr2
 
 composites:
   rgb_color:
-    compositor: !!python/name:satpy.composites.RGBCompositor
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: 'btemp_10.7h'
     - name: 'btemp_36.5h'

@@ -232,9 +232,10 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'https://docs.python.org/3.6': None,
-    'https://docs.scipy.org/doc/numpy': None,
-    'https://docs.scipy.org/doc/scipy/reference': None,
-    'http://xarray.pydata.org/en/stable/': None,
-    'http://pyresample.readthedocs.io/en/stable': None,
+    'python': ('https://docs.python.org/3', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'xarray': ('https://xarray.pydata.org/en/stable', None),
+    'dask': ('https://dask.pydata.org/en/latest', None),
+    'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
 }

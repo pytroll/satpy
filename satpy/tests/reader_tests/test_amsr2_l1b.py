@@ -84,6 +84,16 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[lat_k + '/shape'] = DEFAULT_FILE_SHAPE
             file_content[lat_k + '/attr/SCALE FACTOR'] = 1
             file_content[lat_k + '/attr/UNIT'] = 'deg'
+
+        # convert to xarrays
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                if val.ndim > 1:
+                    file_content[key] = DataArray(val, dims=('y', 'x'))
+                else:
+                    file_content[key] = DataArray(val)
+
         return file_content
 
 
@@ -142,13 +152,13 @@ class TestAMSR2L1BReader(unittest.TestCase):
         ])
         self.assertEqual(len(ds), 12)
         for d in ds.values():
-            self.assertEqual(d.info['calibration'], 'brightness_temperature')
+            self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
             self.assertTupleEqual(d.shape, (DEFAULT_FILE_SHAPE[0], int(DEFAULT_FILE_SHAPE[1] // 2)))
-            self.assertIn('area', d.info)
-            self.assertIsNotNone(d.info['area'])
-            self.assertTupleEqual(d.info['area'].lons.shape,
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+            self.assertTupleEqual(d.attrs['area'].lons.shape,
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
-            self.assertTupleEqual(d.info['area'].lats.shape,
+            self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
 
     def test_load_89ghz(self):
@@ -168,13 +178,13 @@ class TestAMSR2L1BReader(unittest.TestCase):
         ])
         self.assertEqual(len(ds), 4)
         for d in ds.values():
-            self.assertEqual(d.info['calibration'], 'brightness_temperature')
+            self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
             self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-            self.assertIn('area', d.info)
-            self.assertIsNotNone(d.info['area'])
-            self.assertTupleEqual(d.info['area'].lons.shape,
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+            self.assertTupleEqual(d.attrs['area'].lons.shape,
                                   DEFAULT_FILE_SHAPE)
-            self.assertTupleEqual(d.info['area'].lats.shape,
+            self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   DEFAULT_FILE_SHAPE)
 
 

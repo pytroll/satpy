@@ -99,14 +99,15 @@ def step_impl(context):
 def step_impl(context):
     """Datasets with the same name but different other ID parameters"""
     from satpy import Scene
-    from satpy.dataset import Dataset, DatasetID
+    from xarray import DataArray
+    from satpy.dataset import DatasetID
     scn = Scene()
-    scn[DatasetID('ds1', calibration='radiance')] = Dataset([[1, 2], [3, 4]])
-    scn[DatasetID('ds1', resolution=500, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
-    scn[DatasetID('ds1', resolution=250, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
-    scn[DatasetID('ds1', resolution=1000, calibration='reflectance')] = Dataset([[5, 6], [7, 8]])
-    scn[DatasetID('ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = Dataset([[5, 6], [7, 8]])
-    scn[DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))] = Dataset([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', calibration='radiance')] = DataArray([[1, 2], [3, 4]])
+    scn[DatasetID('ds1', resolution=500, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=250, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=1000, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = DataArray([[5, 6], [7, 8]])
+    scn[DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))] = DataArray([[5, 6], [7, 8]])
     context.scene = scn
 
 
@@ -119,4 +120,4 @@ def step_impl(context):
 @then("the least modified version of the dataset is returned")
 def step_impl(context):
     """The dataset should be one of the least modified datasets"""
-    assert(len(context.returned_dataset.id.modifiers) == 0)
+    assert(len(context.returned_dataset.attrs['modifiers']) == 0)

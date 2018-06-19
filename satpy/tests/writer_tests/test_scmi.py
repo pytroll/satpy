@@ -62,7 +62,7 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_numbered_1_tile(self):
         """Test creating a single numbered tile"""
         from satpy.writers.scmi import SCMIWriter
-        from satpy import Dataset
+        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         w = SCMIWriter(base_dir=self.base_dir, compress=True)
@@ -76,23 +76,24 @@ class TestSCMIWriter(unittest.TestCase):
             area_extent=(-1000., -1500., 1000., 1500.),
         )
         now = datetime.utcnow()
-        ds = Dataset(
+        ds = DataArray(
             np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)),
-            name='test_ds',
-            platform='PLAT',
-            sensor='SENSOR',
-            units='1',
-            area=area_def,
-            start_time=now,
-            end_time=now + timedelta(minutes=20),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
         )
-        fn = w.save_dataset(ds, sector_id='TEST', source_name="TESTS")
+        fn = w.save_datasets([ds], sector_id='TEST', source_name="TESTS")
         self.assertTrue(os.path.isfile(fn))
 
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles"""
         from satpy.writers.scmi import SCMIWriter
-        from satpy import Dataset
+        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         w = SCMIWriter(base_dir=self.base_dir, compress=True)
@@ -106,20 +107,21 @@ class TestSCMIWriter(unittest.TestCase):
             area_extent=(-1000., -1500., 1000., 1500.),
         )
         now = datetime.utcnow()
-        ds = Dataset(
+        ds = DataArray(
             np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)),
-            name='test_ds',
-            platform='PLAT',
-            sensor='SENSOR',
-            units='1',
-            area=area_def,
-            start_time=now,
-            end_time=now + timedelta(minutes=20),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
         )
-        fn = w.save_dataset(ds,
-                            sector_id='TEST',
-                            source_name="TESTS",
-                            tile_count=(3, 3))
+        fn = w.save_datasets([ds],
+                             sector_id='TEST',
+                             source_name="TESTS",
+                             tile_count=(3, 3))
         # `fn` is currently the last file created
         self.assertTrue(os.path.isfile(fn))
         self.assertIn('T009', fn)
@@ -127,7 +129,7 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid"""
         from satpy.writers.scmi import SCMIWriter
-        from satpy import Dataset
+        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         w = SCMIWriter(base_dir=self.base_dir, compress=True)
@@ -141,28 +143,29 @@ class TestSCMIWriter(unittest.TestCase):
             area_extent=(-1000000., -1500000., 1000000., 1500000.),
         )
         now = datetime.utcnow()
-        ds = Dataset(
+        ds = DataArray(
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
-            name='test_ds',
-            platform='PLAT',
-            sensor='SENSOR',
-            units='1',
-            area=area_def,
-            start_time=now,
-            end_time=now + timedelta(minutes=20),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
         )
-        fn = w.save_dataset(ds,
-                            sector_id='LCC',
-                            source_name="TESTS",
-                            tile_count=(3, 3),
-                            lettered_grid=True)
+        fn = w.save_datasets([ds],
+                             sector_id='LCC',
+                             source_name="TESTS",
+                             tile_count=(3, 3),
+                             lettered_grid=True)
         # `fn` is currently the last file created
         self.assertTrue(os.path.isfile(fn))
 
     def test_lettered_tiles_no_fit(self):
         """Test creating a lettered grid with no data"""
         from satpy.writers.scmi import SCMIWriter
-        from satpy import Dataset
+        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         w = SCMIWriter(base_dir=self.base_dir, compress=True)
@@ -176,21 +179,22 @@ class TestSCMIWriter(unittest.TestCase):
             area_extent=(4000000., 5000000., 5000000., 6000000.),
         )
         now = datetime.utcnow()
-        ds = Dataset(
+        ds = DataArray(
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
-            name='test_ds',
-            platform='PLAT',
-            sensor='SENSOR',
-            units='1',
-            area=area_def,
-            start_time=now,
-            end_time=now + timedelta(minutes=20),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
         )
-        fn = w.save_dataset(ds,
-                               sector_id='LCC',
-                               source_name="TESTS",
-                               tile_count=(3, 3),
-                               lettered_grid=True)
+        fn = w.save_datasets([ds],
+                             sector_id='LCC',
+                             source_name="TESTS",
+                             tile_count=(3, 3),
+                             lettered_grid=True)
         # `fn` is currently the last file created
         # No files created
         self.assertIsNone(fn)
@@ -198,7 +202,7 @@ class TestSCMIWriter(unittest.TestCase):
     def test_lettered_tiles_bad_filename(self):
         """Test creating a lettered grid with a bad filename"""
         from satpy.writers.scmi import SCMIWriter
-        from satpy import Dataset
+        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         w = SCMIWriter(base_dir=self.base_dir, compress=True, file_pattern="{Bad Key}.nc")
@@ -212,18 +216,19 @@ class TestSCMIWriter(unittest.TestCase):
             area_extent=(-1000000., -1500000., 1000000., 1500000.),
         )
         now = datetime.utcnow()
-        ds = Dataset(
+        ds = DataArray(
             np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)),
-            name='test_ds',
-            platform='PLAT',
-            sensor='SENSOR',
-            units='1',
-            area=area_def,
-            start_time=now,
-            end_time=now + timedelta(minutes=20),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
         )
-        self.assertRaises(KeyError, w.save_dataset,
-                          ds,
+        self.assertRaises(KeyError, w.save_datasets,
+                          [ds],
                           sector_id='LCC',
                           source_name="TESTS",
                           tile_count=(3, 3),

@@ -39,9 +39,11 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
-from satpy.dataset import Dataset
+import dask.array as da
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,12 @@ CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
 ANGLES = {'sensor_zenith_angle': 'satz',
           'solar_zenith_angle': 'sunz',
           'sun_sensor_azimuth_difference_angle': 'azidiff'}
+
+
+def create_xarray(arr):
+    res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
+    res = xr.DataArray(res, dims=['y', 'x'])
+    return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
@@ -92,20 +100,18 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate([key])[0]
-            # dataset.info.update(info)
         elif key.name in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
             if key.name == 'longitude':
-                return Dataset(self.lons, id=key, **info)
+                dataset = create_xarray(self.lons)
             else:
-                return Dataset(self.lats, id=key, **info)
+                dataset = create_xarray(self.lats)
+            dataset.attrs = info
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = Dataset(
-                        getattr(self, ANGLES[key.name]),
-                        copy=False)
+                    dataset = getattr(self, ANGLES[key.name])
                 else:
                     dataset = self.get_angles(key.name)
             else:
@@ -166,7 +172,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             logger.debug("Interpolate sun-sat angles: time %s",
                          str(datetime.now() - tic))
 
-        return Dataset(getattr(self, ANGLES[angle_id]), copy=False)
+        return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
         """Return the longitudes and latitudes of the scene.
@@ -230,30 +236,30 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             if name in chns:
                 coeffs = calib_coeffs.get('ch' + name)
                 # FIXME data should be masked before calibration
-                ds = Dataset(
+                ds = create_xarray(
                     _vis_calibrate(self._data,
                                    idx,
                                    chns[name].calibration,
                                    pre_launch_coeffs,
                                    coeffs,
-                                   mask=(name == '3a' and self._is3b)),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
+                                   mask=(name == '3a' and self._is3b)).filled(np.nan))
+
+                ds.attrs['units'] = units[chns[name].calibration]
+                ds.attrs.update(chns[name]._asdict())
                 res.append(ds)
 
         for idx, name in enumerate(['3b', '4', '5']):
             if name in chns:
-                ds = Dataset(
+                ds = create_xarray(
                     _ir_calibrate(self._header,
                                   self._data,
                                   idx,
                                   chns[name].calibration,
                                   mask=(name == '3b' and
-                                        (np.logical_not(self._is3b)))),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
+                                        (np.logical_not(self._is3b)))).filled(np.nan))
+
+                ds.attrs['units'] = units[chns[name].calibration]
+                ds.attrs.update(chns[name]._asdict())
                 res.append(ds)
 
         logger.debug("Calibration time %s", str(datetime.now() - tic))
@@ -504,7 +510,7 @@ def _vis_calibrate(data,
 
     channel[mask2] = (channel * slope2 + intercept2)[mask2]
 
-    channel[channel < 0] = np.nan
+    channel = channel.clip(min=0)
     return np.ma.masked_invalid(channel)
 
 
@@ -585,22 +591,3 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
         tb_ = np.ma.masked_less(tb_, 0.1, copy=False)
 
     return tb_
-
-
-if __name__ == '__main__':
-
-    def norm255(a__):
-        """normalize array to uint8.
-        """
-        arr = a__ * 1.0
-        arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
-        return arr.astype(np.uint8)
-
-    def show(a__):
-        """show array.
-        """
-        from PIL import Image
-        Image.fromarray(norm255(a__), "L").show()
-
-    import sys
-    res = read_raw(sys.argv[1])

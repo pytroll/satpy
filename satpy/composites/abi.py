@@ -23,63 +23,24 @@
 """
 
 import logging
-import numpy as np
-
-from satpy.composites import RGBCompositor
+from satpy.composites import GenericCompositor, IncompatibleAreas
 
 LOG = logging.getLogger(__name__)
 
 
-def four_element_average(d):
-    """Average every 4 elements (2x2) in a 2D array"""
-    rows, cols = d.shape
-    new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
-    return np.ma.mean(d.reshape(new_shape), axis=(1, 3))
+class SimulatedGreen(GenericCompositor):
 
+    """A single-band dataset resembles a Green (0.55 µm)."""
 
-def simulated_green(c01, c02, c03):
-    # Kaba:
-    # return (c01 + c02) * 0.45 + 0.1 * c03
-    # EDC:
-    # return c01 * 0.45706946 + c02 * 0.48358168 + 0.06038137 * c03
-    # Original:
-    return (c01 + c02) / 2 * 0.93 + 0.07 * c03
+    def __call__(self, projectables, optional_datasets=None, **attrs):
+        c01, c02, c03 = self.check_areas(projectables)
 
+        # Kaba:
+        # res = (c01 + c02) * 0.45 + 0.1 * c03
+        # EDC:
+        # res = c01 * 0.45706946 + c02 * 0.48358168 + 0.06038137 * c03
+        # Original attempt:
+        res = (c01 + c02) / 2 * 0.93 + 0.07 * c03
+        res.attrs = c03.attrs.copy()
 
-class TrueColor2km(RGBCompositor):
-    """True Color ABI compositor assuming all bands are the same resolution"""
-
-    def __call__(self, projectables, **info):
-
-        c01, c02, c03 = projectables
-
-        r = c02
-        b = c01
-        g = simulated_green(c01, c02, c03)
-
-        return super(TrueColor2km, self).__call__((r, g, b), **info)
-
-
-class TrueColor(RGBCompositor):
-    """Ratio sharpened full resolution true color"""
-
-    def __call__(self, projectables, **info):
-        c01, c02, c03 = projectables
-        r = c02
-        b = np.repeat(np.repeat(c01, 2, axis=0), 2, axis=1)
-        c03_high = np.repeat(np.repeat(c03, 2, axis=0), 2, axis=1)
-        g = simulated_green(b, r, c03_high)
-
-        low_res_red = four_element_average(r)
-        low_res_red = np.repeat(np.repeat(low_res_red, 2, axis=0), 2, axis=1)
-        ratio = r / low_res_red
-
-        # make sure metadata is copied over
-        # copy red channel area to get correct resolution
-        g *= ratio
-        g.info = c03.info.copy()
-        g.info['area'] = r.info['area']
-        b *= ratio
-        b.info = c01.info.copy()
-        b.info['area'] = r.info['area']
-        return super(TrueColor, self).__call__((r, g, b), **info)
+        return super(SimulatedGreen, self).__call__((res,), **attrs)

@@ -35,7 +35,8 @@ from pyresample.geometry import SwathDefinition
 from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
-from satpy.dataset import Dataset
+import xarray as xr
+import dask.array as da
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,7 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
 
+
     def get_dataset(self, key, info):
 
         if self.reader is None:
@@ -82,17 +84,21 @@ class GACLACFile(BaseFileHandler):
 
         if key.name in ['latitude', 'longitude']:
             if self.reader.lons is None or self.reader.lats is None:
-                self.reader.get_lonlat(clock_drift_adjust=False)
+                #self.reader.get_lonlat(clock_drift_adjust=False)
+                self.reader.get_lonlat()
             if key.name == 'latitude':
-                return Dataset(self.reader.lats, id=key, **info)
+                return xr.DataArray(da.from_array(self.reader.lats, chunks=1000),
+                                    dims=['y', 'x'], attrs=info)
             else:
-                return Dataset(self.reader.lons, id=key, **info)
+                return xr.DataArray(da.from_array(self.reader.lons, chunks=1000),
+                                    dims=['y', 'x'], attrs=info)
 
         if self.channels is None:
             self.channels = self.reader.get_calibrated_channels()
 
         data = self.channels[:, :, self.chn_dict[key.name]]
-        return Dataset(data, id=key, **info)
+        return xr.DataArray(da.from_array(data, chunks=1000),
+                            dims=['y', 'x'], attrs=info)
 
     @property
     def start_time(self):
