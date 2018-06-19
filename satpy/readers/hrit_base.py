@@ -245,7 +245,7 @@ class HRITFileHandler(BaseFileHandler):
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         if self.mda['number_of_bits_per_pixel'] == 16:
             dtype = '>u2'
-            shape /= 2
+            shape //= 2
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
