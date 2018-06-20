@@ -26,11 +26,13 @@ import logging
 import os
 from datetime import datetime
 
-import h5netcdf
 import numpy as np
+import xarray as xr
+import dask.array as da
 
-from satpy.dataset import Dataset, DatasetID
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,13 @@ class NCSLSTRGeo(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRGeo, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
+        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+
         self.cache = {}
 
     def get_dataset(self, key, info):
@@ -57,16 +65,10 @@ class NCSLSTRGeo(BaseFileHandler):
         except KeyError:
             return
 
-        ds = (np.ma.masked_equal(variable[:],
-                                 variable.attrs['_FillValue']) *
-              (variable.attrs.get('scale_factor', 1) * 1.0) +
-              variable.attrs.get('add_offset', 0))
-        ds.mask = np.ma.getmaskarray(ds)
+        info.update(variable.attrs)
 
-        proj = Dataset(ds,
-                       copy=False,
-                       **info)
-        return proj
+        variable.attrs = info
+        return variable
 
     @property
     def start_time(self):
@@ -82,15 +84,28 @@ class NCSLSTR1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
+        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
         self.view = 'n'  # n for nadir, o for oblique
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
-        self.cal = h5netcdf.File(cal_file, 'r')
+        self.cal = xr.open_dataset(cal_file,
+                                   decode_cf=True,
+                                   mask_and_scale=True,
+                                   chunks={'views': CHUNK_SIZE})
         indices_file = os.path.join(os.path.dirname(filename),
                                     'indices_a{}.nc'.format(self.view))
-        self.indices = h5netcdf.File(indices_file, 'r')
+        self.indices = xr.open_dataset(indices_file,
+                                       decode_cf=True,
+                                       mask_and_scale=True,
+                                       chunks={'columns': CHUNK_SIZE,
+                                               'rows': CHUNK_SIZE})
+        self.indices = self.indices.rename({'columns': 'x', 'rows': 'y'})
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
@@ -105,34 +120,32 @@ class NCSLSTR1B(BaseFileHandler):
         else:
             variable = self.nc[self.channel + '_radiance_a' + self.view]
 
-        radiances = (np.ma.masked_equal(variable[:],
-                                        variable.attrs['_FillValue'], copy=False) *
-                     variable.attrs.get('scale_factor', 1) +
-                     variable.attrs.get('add_offset', 0))
+        radiances = variable
         units = variable.attrs['units']
         if key.calibration == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[key.name + '_solar_irradiances'][:]
-            d_index = np.ma.masked_equal(self.indices['detector_a'
-                                                      + self.view][:],
-                                         self.indices['detector_a'
-                                                      + self.view].attrs[
-                                             '_FillValue'],
-                                         copy=False)
+            solar_flux = self.cal[key.name + '_solar_irradiances']
+            d_index = self.indices['detector_a' + self.view]
             idx = 0  # Nadir view
-            radiances[np.logical_not(np.ma.getmaskarray(
-                d_index))] /= solar_flux[d_index.compressed(), idx]
+
+            def cal_rad(rad, didx, solar_flux=None):
+                indices = np.isfinite(didx)
+                rad[indices] /= solar_flux[didx[indices].astype(int)]
+                return rad
+
+            radiances.data = da.map_blocks(cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
+
             radiances *= np.pi * 100
             units = '%'
 
-        proj = Dataset(radiances,
-                       name=key.name,
-                       copy=False,
-                       units=units,
-                       platform_name=self.platform_name,
-                       sensor=self.sensor)
-        proj.info.update(key.to_dict())
-        return proj
+        info.update(radiances.attrs)
+        info.update(key.to_dict())
+        info.update(dict(units=units,
+                         platform_name=self.platform_name,
+                         sensor=self.sensor))
+
+        radiances.attrs = info
+        return radiances
 
     @property
     def start_time(self):
@@ -155,7 +168,11 @@ class NCSLSTRAngles(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
-        self.nc = None
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
@@ -163,19 +180,24 @@ class NCSLSTRAngles(BaseFileHandler):
         self._end_time = filename_info['end_time']
         cart_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
-        self.cart = h5netcdf.File(cart_file, 'r')
+        self.cart = xr.open_dataset(cart_file,
+                                    decode_cf=True,
+                                    mask_and_scale=True,
+                                    chunks={'columns': CHUNK_SIZE,
+                                            'rows': CHUNK_SIZE})
         cartx_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_tx.nc')
-        self.cartx = h5netcdf.File(cartx_file, 'r')
+        self.cartx = xr.open_dataset(cartx_file,
+                                     decode_cf=True,
+                                     mask_and_scale=True,
+                                     chunks={'columns': CHUNK_SIZE,
+                                             'rows': CHUNK_SIZE})
 
     def get_dataset(self, key, info):
         """Load a dataset
         """
         if key.name not in self.datasets:
             return
-
-        if self.nc is None:
-            self.nc = h5netcdf.File(self.filename, 'r')
 
         logger.debug('Reading %s.', key.name)
         variable = self.nc[self.datasets[key.name]]
