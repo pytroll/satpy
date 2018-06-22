@@ -109,8 +109,8 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 
     return data
 
-
-def crefl_scaling(img, **kwargs):
+# pointed to by generic.yaml
+def crefl_scaling(img):
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data):

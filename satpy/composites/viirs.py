@@ -37,7 +37,6 @@ from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)
-from satpy.composites import IncompatibleAreas
 
 
 class VIIRSFog(CompositeBase):
@@ -67,6 +66,9 @@ class ReflectanceCorrector(CompositeBase):
     """
 
     def __init__(self, *args, **kwargs):
+        print('args: ', args)
+        print()
+        print('kwargs: ', kwargs)
         """Initialize the compositor with values from the user or from the configuration file.
 
         If `dem_filename` can't be found or opened then correction is done
@@ -88,6 +90,11 @@ class ReflectanceCorrector(CompositeBase):
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 
     def __call__(self, datasets, optional_datasets, **info):
+        print('datasets: ', datasets)
+        print()
+        print('optional_datasets: ', optional_datasets)
+        print()
+        print('info: ', info)
         if not optional_datasets or len(optional_datasets) != 4:
             vis = self.check_areas([datasets[0]])[0]
             sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
@@ -107,7 +114,6 @@ class ReflectanceCorrector(CompositeBase):
         refl_data = datasets[0]
         if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
-
         if os.path.isfile(self.dem_file):
             LOG.debug("Loading CREFL averaged elevation information from: %s",
                       self.dem_file)
@@ -131,6 +137,9 @@ class ReflectanceCorrector(CompositeBase):
                                         refl_data.attrs["resolution"])
         use_abi = vis.attrs['sensor'] == 'abi'
         lons, lats = vis.attrs['area'].get_lonlats_dask(chunks=vis.chunks)
+        # np.array(lats).tofile('{}{}{}'.format('/Users/wroberts/Documents/satpy/lats', datasets[0].attrs['name'], '.pnz'))
+        # np.array(lons).tofile('{}{}{}'.format('/Users/wroberts/Documents/satpy/lons', datasets[0].attrs['name'], '.pnz'))
+        # print('lons, lats: ', np.nanmean(lons), np.nanmean(lats))
         results = run_crefl(refl_data,
                             coefficients,
                             lons,
@@ -142,7 +151,6 @@ class ReflectanceCorrector(CompositeBase):
                             avg_elevation=avg_elevation,
                             percent=percent,
                             use_abi=use_abi)
-
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
@@ -157,6 +165,9 @@ class ReflectanceCorrector(CompositeBase):
 
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
+        # lats[(lats <= -90) | (lats >= 90)] = np.nan
+        # lons[(lons <= -180) | (lons >= 180)] = np.nan
+        # print('lons, lats: ', np.nanmean(lons), np.nanmean(lats))
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
         suna = xu.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
