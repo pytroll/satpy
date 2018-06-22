@@ -240,9 +240,9 @@ class TestVIIRSComposites(unittest.TestCase):
             DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
                       level=None, modifiers=None),
             DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
-                      level=None, modifiers=None)], name='C01', prerequisites=[],
-             wavelength=(0.45, 0.47, 0.49), resolution=1000, calibration='reflectance',
-                      modifiers=('sunz_corrected', 'rayleigh_corrected_crefl',), sensor='abi')
+                      level=None, modifiers=None)], name='C01', prerequisites=[], wavelength=(0.45, 0.47, 0.49),
+                                       resolution=1000, calibration='reflectance',
+                                       modifiers=('sunz_corrected', 'rayleigh_corrected_crefl',), sensor='abi')
 
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl',))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
@@ -334,12 +334,18 @@ class TestVIIRSComposites(unittest.TestCase):
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
         ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
-         DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None)],
-        name='I01', prerequisites=[], wavelength=(0.6, 0.64, 0.68), resolution=371, calibration='reflectance',
-        modifiers=('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'), sensor='viirs')
+         DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                   level=None, modifiers=None),
+         DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                   level=None, modifiers=None),
+         DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                   level=None, modifiers=None),
+         DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                   level=None, modifiers=None)],
+                                       name='I01', prerequisites=[], wavelength=(0.6, 0.64, 0.68), resolution=371,
+                                       calibration='reflectance', modifiers=('sunz_corrected_iband',
+                                                                             'rayleigh_corrected_crefl_iband'),
+                                       sensor='viirs')
 
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
