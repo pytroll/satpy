@@ -154,7 +154,11 @@ class BaseResampler(object):
             mask_area = True
 
         if mask_area:
-            flat_dims = [dim for dim in data.dims if dim not in ['x', 'y']]
+            if isinstance(self.source_geo_def, SwathDefinition):
+                geo_dims = self.source_geo_def.lons.dims
+            else:
+                geo_dims = ('y', 'x')
+            flat_dims = [dim for dim in data.dims if dim not in geo_dims]
             # xarray <= 0.10.1 computes dask arrays during isnull
             kwargs['mask'] = data.isnull().all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
@@ -409,7 +413,7 @@ class BilinearResampler(BaseResampler):
     """Resample using bilinear."""
 
     def precompute(self, mask=None, radius_of_influence=50000,
-                   segments=None, cache_dir=None, **kwargs):
+                   cache_dir=None, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
