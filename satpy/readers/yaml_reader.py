@@ -736,7 +736,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             ancillary_variables = dataset.attrs.get('ancillary_variables', [])
             if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(',')
+                ancillary_variables = ancillary_variables.split(' ')
             av_ids = []
             for key in ancillary_variables:
                 try:
@@ -746,16 +746,17 @@ class FileYAMLReader(AbstractYAMLReader):
 
             all_av_ids |= set(av_ids)
             dataset.attrs['ancillary_variables'] = av_ids
-        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        loadable_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
         if not all_av_ids:
             return
-        av_ds = self.load(all_av_ids, datasets)
+        if loadable_av_ids:
+            self.load(loadable_av_ids, previous_datasets=datasets)
+
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                new_vars.append(av_ds.get(av_id, datasets.get(av_id, av_id)))
+                new_vars.append(datasets.get(av_id, av_id))
             dataset.attrs['ancillary_variables'] = new_vars
-        datasets.update(av_ds)
 
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.
