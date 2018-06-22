@@ -223,7 +223,6 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(
             unique, [3.484797e-04, 9.507845e-03, 4.500016e+03])
 
-
     def test_ReflectanceCorrector_abi(self):
         import xarray as xr
         import dask.array as da
@@ -231,7 +230,7 @@ class TestVIIRSComposites(unittest.TestCase):
         from pyresample.geometry import AreaDefinition
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
-        ref_cor = ReflectanceCorrector(dem_filename= '_fake.hdf', optional_prerequisites= [
+        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
             DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
                       calibration=None,
                       level=None, modifiers=None),
@@ -241,9 +240,9 @@ class TestVIIRSComposites(unittest.TestCase):
             DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
                       level=None, modifiers=None),
             DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
-                      level=None, modifiers=None)], name= 'C01', prerequisites= [],
-             wavelength= (0.45, 0.47, 0.49), resolution= 1000, calibration= 'reflectance',
-                                       modifiers= ('sunz_corrected', 'rayleigh_corrected_crefl',), sensor= 'abi')
+                      level=None, modifiers=None)], name='C01', prerequisites=[],
+             wavelength=(0.45, 0.47, 0.49), resolution=1000, calibration='reflectance',
+                      modifiers=('sunz_corrected', 'rayleigh_corrected_crefl',), sensor='abi')
 
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl',))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
@@ -334,13 +333,13 @@ class TestVIIRSComposites(unittest.TestCase):
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
-        ref_cor = ReflectanceCorrector(dem_filename= '_fake.hdf', optional_prerequisites=[
+        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
          DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
          DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
          DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
          DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None)],
-        name= 'I01', prerequisites= [], wavelength= (0.6, 0.64, 0.68), resolution= 371, calibration= 'reflectance',
-        modifiers= ('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'), sensor= 'viirs')
+        name='I01', prerequisites=[], wavelength=(0.6, 0.64, 0.68), resolution=371, calibration='reflectance',
+        modifiers=('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'), sensor='viirs')
 
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
@@ -393,8 +392,8 @@ class TestVIIRSComposites(unittest.TestCase):
                                 'polarization':         None,
                                 'sensor':               'viirs',
                                 'units':                units,
-                                'start_time':           datetime.datetime(2012,2,25,18,1,24,570942),
-                                'end_time':             datetime.datetime(2012,2,25,18,11,21,175760),
+                                'start_time':           datetime.datetime(2012, 2, 25, 18, 1, 24, 570942),
+                                'end_time':             datetime.datetime(2012, 2, 25, 18, 11, 21, 175760),
                                 'area':                 area,
                                 'ancillary_variables':  []})
         c01 = make_xarray((0.6, 0.64, 0.68), None, 'reflectance', 'svi01', None, 'I01', 'toa_bidirectional_reflectance',
@@ -421,8 +420,8 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['platform_name'], 'Suomi-NPP')
         self.assertEqual(res.attrs['sensor'], 'viirs')
         self.assertEqual(res.attrs['units'], '%')
-        self.assertEqual(res.attrs['start_time'], datetime.datetime(2012,2,25,18,1,24,570942))
-        self.assertEqual(res.attrs['end_time'], datetime.datetime(2012,2,25,18,11,21,175760))
+        self.assertEqual(res.attrs['start_time'], datetime.datetime(2012, 2, 25, 18, 1, 24, 570942))
+        self.assertEqual(res.attrs['end_time'], datetime.datetime(2012, 2, 25, 18, 11, 21, 175760))
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
