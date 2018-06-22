@@ -437,6 +437,111 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
 
 
+    def test_ReflectanceCorrector_modis(self):
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+        from pyresample.geometry import AreaDefinition
+        import datetime
+        from satpy.composites.viirs import ReflectanceCorrector
+        from satpy import DatasetID
+        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
+         DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
+         DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
+         DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None),
+         DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None, level=None, modifiers=None)],
+        name='2', prerequisites=[], wavelength=(0.841, 0.8585, 0.876), resolution=371, calibration='reflectance',
+        modifiers=('true_color',), sensor='modis')
+        self.assertEqual(ref_cor.attrs['modifiers'], ('true_color',))
+        self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
+        self.assertEqual(ref_cor.attrs['wavelength'], (0.841, 0.8585, 0.876))
+        self.assertEqual(ref_cor.attrs['name'], '2')
+        self.assertEqual(ref_cor.attrs['resolution'], 371)
+        self.assertEqual(ref_cor.attrs['sensor'], 'modis')
+        self.assertEqual(ref_cor.attrs['prerequisites'], [])
+        self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
+            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                      level=None, modifiers=None),
+            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                      level=None, modifiers=None),
+            DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                      level=None, modifiers=None),
+            DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
+                      level=None, modifiers=None)
+            ])
+
+        rows = 5
+        cols = 10
+        area = AreaDefinition(
+            'some_area_name', 'On-the-fly area', 'geosabii',
+            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
+             'units': 'm'},
+            cols, rows,
+            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
+
+        dnb = np.zeros((rows, cols)) + 25
+        dnb[3, :] += 25
+        dnb[4:, :] += 50
+        dnb = da.from_array(dnb, chunks=100)
+
+        def make_xarray(wavelength, modifiers, calibration, file_type, file_key, name, standard_name, units):
+            return xr.DataArray(dnb,
+                           dims=('y', 'x'),
+                           attrs={
+                                'start_orbit':          1708,
+                                'end_orbit':            1708,
+                                'wavelength':           wavelength,
+                                'level':                None,
+                                'modifiers':            modifiers,
+                                'calibration':          calibration,
+                                'file_key':             file_key,
+                                'resolution':           371,
+                                'file_type':            file_type,
+                                'name':                 name,
+                                'standard_name':        standard_name,
+                                'platform_name':        'Suomi-NPP',
+                                'polarization':         None,
+                                'sensor':               'modis',
+                                'units':                units,
+                                'start_time':           datetime.datetime(2012, 2, 25, 18, 1, 24, 570942),
+                                'end_time':             datetime.datetime(2012, 2, 25, 18, 11, 21, 175760),
+                                'area':                 area,
+                                'ancillary_variables':  []})
+        c01 = make_xarray((0.841, 0.8585, 0.876), None, 'reflectance', None, None, '2', 'toa_bidirectional_reflectance',
+                          '%')
+        c02 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SatelliteAzimuthAngle',
+                          'satellite_azimuth_angle', 'sensor_azimuth_angle', 'degrees')
+        c03 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SatelliteZenithAngle',
+                          'satellite_zenith_angle', 'sensor_zenith_angle', 'degrees')
+        c04 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SolarAzimuthAngle',
+                          'solar_azimuth_angle', 'solar_azimuth_angle', 'degrees')
+        c05 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SolarZenithAngle',
+                          'solar_zenith_angle', 'solar_zenith_angle', 'degrees')
+        res = ref_cor([c01], [c02, c03, c04, c05])
+
+        self.assertIsInstance(res, xr.DataArray)
+        self.assertIsInstance(res.data, da.Array)
+        self.assertEqual(res.attrs['wavelength'], (0.841, 0.8585, 0.876))
+        self.assertEqual(res.attrs['modifiers'], ('true_color',))
+        self.assertEqual(res.attrs['calibration'], 'reflectance')
+        self.assertEqual(res.attrs['resolution'], 371)
+        self.assertEqual(res.attrs['file_type'], None)
+        self.assertEqual(res.attrs['name'], '2')
+        self.assertEqual(res.attrs['standard_name'], 'toa_bidirectional_reflectance')
+        self.assertEqual(res.attrs['platform_name'], 'Suomi-NPP')
+        self.assertEqual(res.attrs['sensor'], 'modis')
+        self.assertEqual(res.attrs['units'], '%')
+        self.assertEqual(res.attrs['start_time'], datetime.datetime(2012, 2, 25, 18, 1, 24, 570942))
+        self.assertEqual(res.attrs['end_time'], datetime.datetime(2012, 2, 25, 18, 11, 21, 175760))
+        self.assertEqual(res.attrs['area'], area)
+        self.assertEqual(res.attrs['ancillary_variables'], [])
+        data = res.values
+        self.assertEqual(np.mean(data), 39.130159045205154)
+        self.assertEqual(data.shape, (5, 10))
+        unique = np.unique(data)
+        np.testing.assert_allclose(unique, [24.798016, 49.896776, 71.359973])
+
+
 def suite():
     """The test suite for test_ahi.
     """

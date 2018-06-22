@@ -407,11 +407,11 @@ def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
 
     if isinstance(height, xr.DataArray):
-        def _sphalb_index(sphalb0, index_arr):
+        def _sphalb_index(index_arr, sphalb0):
             # FIXME: if/when dask can support lazy index arrays then remove this
             return sphalb0[index_arr]
-        sphalb_delayed = dask.delayed(_sphalb_index)(sphalb0, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32))
-        sphalb = da.from_delayed(sphalb_delayed, taur.shape, dtype=sphalb0.dtype)
+        sphalb = da.map_blocks(_sphalb_index, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32).data, sphalb0.compute(),
+                               dtype=sphalb0.dtype)
     else:
         sphalb = sphalb0[(taur / TAUSTEP4SPHALB + 0.5).astype(np.int32)]
 
@@ -474,8 +474,10 @@ def run_crefl(refl, coeffs,
         space_mask = da.isnull(lon) | da.isnull(lat)
         row[space_mask] = 0
         col[space_mask] = 0
-        row, col = da.compute(row, col)
-        height = avg_elevation[row, col].astype(np.float64)
+
+        def _avg_elevation_index(avg_elevation, row, col):
+            return avg_elevation[row, col]
+        height = da.map_blocks(_avg_elevation_index, avg_elevation, row, col, dtype=avg_elevation.dtype)
         height = xr.DataArray(height, dims=['y', 'x'])
         # negative heights aren't allowed, clip to 0
         height = height.where((height >= 0.) & ~space_mask, 0.0)
