@@ -412,7 +412,7 @@ class TestVIIRSComposites(unittest.TestCase):
                           'solar_azimuth_angle', 'solar_azimuth_angle', 'degrees')
         c05 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SolarZenithAngle',
                           'solar_zenith_angle', 'solar_zenith_angle', 'degrees')
-        res = ref_cor([c01], [c02,c03,c04,c05])
+        res = ref_cor([c01], [c02, c03, c04, c05])
 
         self.assertIsInstance(res, xr.DataArray)
         self.assertIsInstance(res.data, da.Array)
