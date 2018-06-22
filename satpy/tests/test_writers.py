@@ -252,12 +252,51 @@ sensor_name: visir/test_sensor2
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
+class TestYAMLFiles(unittest.TestCase):
+    """Test and analyze the writer configuration files."""
+
+    def test_filename_matches_reader_name(self):
+        """Test that every writer filename matches the name in the YAML."""
+        import yaml
+
+        class IgnoreLoader(yaml.SafeLoader):
+            def _ignore_all_tags(self, tag_suffix, node):
+                return tag_suffix + ' ' + node.value
+        IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
+
+        from satpy.config import glob_config
+        from satpy.writers import read_writer_config
+        for writer_config in glob_config('writers/*.yaml'):
+            writer_fn = os.path.basename(writer_config)
+            writer_fn_name = os.path.splitext(writer_fn)[0]
+            writer_info = read_writer_config([writer_config],
+                                             loader=IgnoreLoader)
+            self.assertEqual(writer_fn_name, writer_info['name'],
+                             "Writer YAML filename doesn't match writer "
+                             "name in the YAML file.")
+
+    def test_available_writers(self):
+        """Test the 'available_writers' function."""
+        from satpy import available_writers
+        writer_names = available_writers()
+        self.assertGreater(len(writer_names), 0)
+        self.assertIsInstance(writer_names[0], str)
+        self.assertIn('geotiff', writer_names)
+
+        writer_infos = available_writers(as_dict=True)
+        self.assertEqual(len(writer_names), len(writer_infos))
+        self.assertIsInstance(writer_infos[0], dict)
+        for writer_info in writer_infos:
+            self.assertIn('name', writer_info)
+
+
 def suite():
-    """The test suite for test_projector."""
+    """The test suite for test_writers."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
 
     return my_suite

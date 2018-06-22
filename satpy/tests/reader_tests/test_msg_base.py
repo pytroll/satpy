@@ -42,8 +42,8 @@ except ImportError:
 
 class TestDec10216(unittest.TestCase):
 
-    """Test the dec10216 function. Currently there is another 'replica' 
-    function in hrit_base.py. FIXME!"""
+    """Test the dec10216 function.
+    """
 
     def test_dec10216(self):
         res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
@@ -61,6 +61,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
     return mysuite
+
 
 if __name__ == "__main__":
     # So you can run tests from this module individually.
