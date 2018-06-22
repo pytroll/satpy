@@ -18,7 +18,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit base reader tests package.
+"""The HRIT base reader tests package.
 """
 
 import sys
@@ -26,7 +26,7 @@ from datetime import datetime
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, dec10216, make_time_cds_short
+from satpy.readers.hrit_base import HRITFileHandler
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,25 +37,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-
-class TestDec10216(unittest.TestCase):
-    """Test the dec10216 function."""
-
-    def test_dec10216(self):
-        res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
-        exp = (np.ones((4, )) * 1023).astype(np.uint16)
-        self.assertTrue(np.all(res == exp))
-        res = dec10216(np.array([1, 1, 1, 1, 1], dtype=np.uint8))
-        exp = np.array([4,  16,  64, 257], dtype=np.uint16)
-        self.assertTrue(np.all(res == exp))
-
-
-class TestMakeTimeCDSShort(unittest.TestCase):
-    def test_fun(self):
-        tcds = {'days': 1, 'milliseconds': 2}
-        expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
-        self.assertEqual(make_time_cds_short(tcds), expected)
 
 
 class TestHRITFileHandler(unittest.TestCase):
@@ -138,9 +119,7 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeTimeCDSShort))
     return mysuite
 
 

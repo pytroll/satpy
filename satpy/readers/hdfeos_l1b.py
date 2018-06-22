@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 class HDFEOSFileReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        self.filename = filename
+        super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
         try:
             self.sd = SD(str(self.filename))
         except HDF4Error as err:
