@@ -37,7 +37,12 @@ class TestEnhancementStretch(unittest.TestCase):
         """Setup the test"""
         data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
         data[0, 0] = np.nan  # one bad value for testing
+        crefl_data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
+        crefl_data /= 5.605
+        crefl_data[0, 0] = np.nan  # one bad value for testing
+        crefl_data[0, 1] = 0.
         self.ch1 = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
+        self.ch2 = xr.DataArray(crefl_data, dims=('y', 'x'), attrs={'test': 'test'})
         rgb_data = np.stack([data, data, data])
         self.rgb = xr.DataArray(rgb_data, dims=('bands', 'y', 'x'),
                                 coords={'bands': ['R', 'G', 'B']})
@@ -104,6 +109,13 @@ class TestEnhancementStretch(unittest.TestCase):
             [np.nan, np.nan, -389.5, -294.5, 826.5],
             [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
         self._test_enhancement(three_d_effect, self.ch1, expected)
+
+    def test_crefl_scaling(self):
+        from satpy.enhancements import crefl_scaling
+        expected = np.array([[
+            [np.nan, 0., 0., 0.489531, 0.699734],
+            [0.832502, 0.905142, 0.960887, 1., 1.]]])
+        self._test_enhancement(crefl_scaling, self.ch2, expected)
 
     def tearDown(self):
         """Clean up"""
