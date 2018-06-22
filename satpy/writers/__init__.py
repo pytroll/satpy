@@ -250,13 +250,12 @@ def add_text(orig, dc, img, text=None):
 
     dc.add_text(**text)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -270,13 +269,12 @@ def add_logo(orig, dc, img, logo=None):
 
     dc.add_logo(**logo)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_decorate(orig, **decorate):
