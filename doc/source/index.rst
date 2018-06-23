@@ -33,6 +33,7 @@ installation.
 
     overview
     install
+    examples
     quickstart
     readers
     composites
