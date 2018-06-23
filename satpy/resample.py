@@ -195,23 +195,24 @@ def get_frozen_area(to_freeze, ref):
 
 
 class BaseResampler(object):
-
-    """
-    The base resampler class. Abstract.
-    """
+    """Base abstract resampler class."""
 
     def __init__(self, source_geo_def, target_geo_def):
-        """
-        :param source_geo_def: The source area
-        :param target_geo_def: The destination area
+        """Initialize resampler with geolocation information.
+
+        Args:
+            source_geo_def (SwathDefinition, AreaDefinition):
+                Geolocation definition for the data to be resampled
+            target_geo_def (CoordinateDefinition, AreaDefinition):
+                Geolocation definition for the area to resample data to.
+
         """
 
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
 
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
-        """Get hash for the current resample with the given *kwargs*.
-        """
+        """Get hash for the current resample with the given *kwargs*."""
         if source_geo_def is None:
             source_geo_def = self.source_geo_def
         if target_geo_def is None:
@@ -227,19 +228,27 @@ class BaseResampler(object):
         This is an optional step if the subclass wants to implement more
         complex features like caching or can share some calculations
         between multiple datasets to be processed.
+
         """
         return None
 
     def compute(self, data, **kwargs):
-        """Do the actual resampling
+        """Do the actual resampling.
+
+        This must be implemented by subclasses.
+
         """
         raise NotImplementedError
 
     def resample(self, data, cache_dir=None, mask_area=None, **kwargs):
-        """Resample data.
+        """Resample `data` by calling `precompute` and `compute` methods.
 
-        If the resampler supports precomputing then that information can be
-        cached on disk (if the `precompute` method returns `True`).
+        Only certain resampling classes may use `cache_dir` and the `mask`
+        provided when `mask_area` is True. The return value of calling the
+        `precompute` method is passed as the `cache_id` keyword argument
+        of the `compute` method, but may not be used directly for caching. It
+        is up to the individual resampler subclasses to determine how this
+        is used.
 
         Args:
             data (xarray.DataArray): Data to be resampled
@@ -248,6 +257,8 @@ class BaseResampler(object):
             mask_area (bool): Mask geolocation data where data values are
                               invalid. This should be used when data values
                               may affect what neighbors are considered valid.
+
+        Returns (xarray.DataArray): Data resampled to the target area
 
         """
         # default is to mask areas for SwathDefinitions
@@ -275,7 +286,28 @@ class BaseResampler(object):
 
 
 class KDTreeResampler(BaseResampler):
-    """Resample using nearest neighbour."""
+    """Resample using a KDTree-based nearest neighbor algorithm.
+
+    This resampler implements on-disk caching when the `cache_dir` argument
+    is provided to the `resample` method. This should provide significant
+    performance improvements on consecutive resampling of geostationary data.
+    It is not recommended to provide `cache_dir` when the `mask` keyword
+    argument is provided to `precompute` which occurs by default for
+    `SwathDefinition` source areas.
+
+    Args:
+        cache_dir (str): Long term storage directory for intermediate
+                         results. By default only 10 different source/target
+                         combinations are cached to save space.
+        mask_area (bool): Force resampled data's invalid pixel mask to be used
+                          when searching for nearest neighbor pixels. By
+                          default this is True for SwathDefinition source
+                          areas and False for all other area definition types.
+        radius_of_influence (float): Search radius cut off distance in meters
+        epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
+                         reduces execution time.
+
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
@@ -353,6 +385,48 @@ class KDTreeResampler(BaseResampler):
 
 
 class EWAResampler(BaseResampler):
+    """Resample using an elliptical weighted averaging algorithm.
+
+    This algorithm does **not** use caching or any externally provided data
+    mask (unlike the 'nearest' resampler).
+
+    This algorithm works under the assumption that the data is observed
+    one scan line at a time. However, good results can still be achieved
+    for non-scan based data provided `rows_per_scan` is set to the
+    number of rows in the entire swath or by setting it to `None`.
+
+    Args:
+        rows_per_scan (int, None):
+            Number of data rows for every observed scanline. If None then the
+            entire swath is treated as one large scanline.
+        weight_count (int):
+            number of elements to create in the gaussian weight table.
+            Default is 10000. Must be at least 2
+        weight_min (float):
+            the minimum value to store in the last position of the
+            weight table. Default is 0.01, which, with a
+            `weight_distance_max` of 1.0 produces a weight of 0.01
+            at a grid cell distance of 1.0. Must be greater than 0.
+        weight_distance_max (float):
+            distance in grid cell units at which to
+            apply a weight of `weight_min`. Default is
+            1.0. Must be greater than 0.
+        weight_delta_max (float):
+            maximum distance in grid cells in each grid
+            dimension over which to distribute a single swath cell.
+            Default is 10.0.
+        weight_sum_min (float):
+            minimum weight sum value. Cells whose weight sums
+            are less than `weight_sum_min` are set to the grid fill value.
+            Default is EPSILON.
+        maximum_weight_mode (bool):
+            If False (default), a weighted average of
+            all swath cells that map to a particular grid cell is used.
+            If True, the swath cell having the maximum weight of all
+            swath cells that map to a particular grid cell is used. This
+            option should be used for coded/category data, i.e. snow cover.
+
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
         super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
@@ -393,14 +467,7 @@ class EWAResampler(BaseResampler):
         return np.stack([cols, rows], axis=0)
 
     def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
-        """Generate row and column arrays and store it for later use.
-
-        Args:
-            swath_usage (float): (Deprecated) Specify the ratio of input
-                                 swath data that must be used before
-                                 resampling takes place.
-
-        """
+        """Generate row and column arrays and store it for later use."""
         if kwargs.get('mask') is not None:
             LOG.warning("'mask' parameter has no affect during EWA "
                         "resampling")
@@ -459,12 +526,7 @@ class EWAResampler(BaseResampler):
                 weight_min=0.01, weight_distance_max=1.0,
                 weight_delta_max=1.0, weight_sum_min=-1.0,
                 maximum_weight_mode=False, grid_coverage=0, **kwargs):
-        """Resample the data according to the precomputed X/Y coordinates.
-
-        :param grid_coverage: minimum ratio of number of output grid pixels
-                              covered with swath pixels
-
-        """
+        """Resample the data according to the precomputed X/Y coordinates."""
         rows = self.cache["rows"]
         cols = self.cache["cols"]
 
@@ -509,7 +571,6 @@ class EWAResampler(BaseResampler):
 
 
 class BilinearResampler(BaseResampler):
-
     """Resample using bilinear."""
 
     def precompute(self, mask=None, radius_of_influence=50000,
@@ -585,8 +646,18 @@ class BilinearResampler(BaseResampler):
 
 
 class NativeResampler(BaseResampler):
+    """Expand or reduce input datasets to be the same shape.
 
-    """Expand or reduce input datasets to be the same shape."""
+    If data is higher resolution (more pixels) than the destination area
+    then data is averaged to match the destination resolution.
+
+    If data is lower resolution (less pixels) than the destination area
+    then data is repeated to match the destination resolution.
+
+    This resampler does not perform any caching or masking due to the
+    simplicity of the operations.
+
+    """
 
     def resample(self, data, cache_dir=None, mask_area=False, **kwargs):
         # use 'mask_area' with a default of False. It wouldn't do anything.
@@ -718,7 +789,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
 
 
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
-    """Instanciate and return a resampler."""
+    """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
@@ -771,13 +842,14 @@ def resample_dataset(dataset, destination_area, **kwargs):
     """Resample the current projectable and return the resampled one.
 
     Args:
+        dataset (xarray.DataArray): Data to be resampled.
         destination_area: The destination onto which to project the data,
           either a full blown area definition or a string corresponding to
           the name of the area as defined in the area file.
-        **kwargs: The extra parameters to pass to the resampling functions.
+        **kwargs: The extra parameters to pass to the resampler objects.
 
     Returns:
-        A resampled projectable, with updated .attrs["area"] field.
+        A resampled DataArray with updated ``.attrs["area"]`` field.
 
     """
     # call the projection stuff here
