@@ -91,6 +91,11 @@ class SAFENC(BaseFileHandler):
             
             print "DATA:", self.nc[key.name]
             print "END"
+
+        #print self.nc.attrs
+        if 'missionName' in self.nc.attrs:
+            res.attrs.update({'platform_name': self.nc.attrs['missionName']})
+
         if not self._shape:
             self._shape = res.shape
 
