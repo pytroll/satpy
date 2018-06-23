@@ -45,7 +45,7 @@ class TestKDTreeResampler(unittest.TestCase):
         with mock.patch('satpy.resample.XArrayResamplerNN'):
             resampler = KDTreeResampler(source_area, target_area)
             resampler.precompute()
-            resampler.resampler.get_neighbour_info.assert_called_with()
+            resampler.resampler.get_neighbour_info.assert_called_with(mask=None)
 
             try:
                 the_dir = tempfile.mkdtemp()
