@@ -26,6 +26,7 @@
 import logging
 
 import numpy as np
+import xarray as xr
 
 from satpy.writers import ImageWriter
 
@@ -533,9 +534,14 @@ class MITIFFWriter(ImageWriter):
 
         _image_description += ' Channels: '
 
+        print "dataset: ", datasets
+        print "type dataset: ", type(datasets)
         if isinstance(datasets, list):
             LOG.debug("len datasets: %s", len(datasets))
             _image_description += str(len(datasets))
+        elif isinstance(datasets, xr.core.dataarray.DataArray):
+            LOG.debug("len datasets: xarray 1", )
+            _image_description += str(1)
         else:
             LOG.debug("len datasets: %s", datasets.sizes['bands'])
             _image_description += str(datasets.sizes['bands'])
