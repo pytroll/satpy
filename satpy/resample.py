@@ -610,7 +610,7 @@ class NativeResampler(BaseResampler):
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
-              "bilinear": BilinearResampler,
+              # "bilinear": BilinearResampler,
               "native": NativeResampler,
               }
 
