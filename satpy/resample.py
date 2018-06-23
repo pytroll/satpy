@@ -1,26 +1,129 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015
-
+#
+# Copyright (c) 2015-2018
+#
 # Author(s):
-
+#
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""SatPy provides multiple resampling algorithms for resampling geolocated
+data to uniform projected grids. The easiest way to perform resampling in
+SatPy is through the :class:`~satpy.scene.Scene` object's
+:meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
+also available to assist in resampling data. Below is more information on
+resampling with SatPy as well as links to the relevant API documentation for
+available keyword arguments.
 
-"""Shortcuts to resampling stuff.
+Resampling algorithms
+---------------------
+
+.. csv-table:: Available Resampling Algorithms
+    :header-rows: 1
+    :align: center
+
+    "Resampler", "Description", "Related"
+    "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
+    "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
+    "native", "Native", :class:`~satpy.resample.NativeResampler`
+
+The resampling algorithm used can be specified with the ``resampler`` keyword
+argument and defaults to ``nearest``:
+
+.. code-block:: python
+
+    >>> scn = Scene(...)
+    >>> euro_scn = global_scene.resample('euro4', resampler='nearest')
+
+.. warning::
+
+    Some resampling algorithms expect certain forms of data. For example, the
+    EWA resampling expects polar-orbiting swath data and prefers if the data
+    can be broken in to "scan lines". See the API documentation for a specific
+    algorithm for more information.
+
+Resampling for comparison and composites
+----------------------------------------
+
+While all the resamplers can be used to put datasets of different resolutions
+on to a common area, the 'native' resampler is designed to match datasets to
+one resolution in the dataset's original projection. This is extremely useful
+when generating composites between bands of different resolutions.
+
+.. code-block:: python
+
+    >>> new_scn = scn.resample(resampler='native')
+
+By default this resamples to the
+:meth:`highest resolution area <satpy.scene.Scene.max_area>` (smallest footprint per
+pixel) shared between the loaded datasets. You can easily specify the lower
+resolution area:
+
+.. code-block:: python
+
+    >>> new_scn = scn.resample(scn.min_area(), resampler='native')
+
+Providing an area that is neither the minimum or maximum resolution area
+may work, but behavior is currently undefined.
+
+Caching for geostationary data
+------------------------------
+
+SatPy will do its best to reuse calculations performed to resample datasets,
+but it can only do this for the current processing and will lose this
+information when the process/script ends. Some resampling algorithms, like
+``nearest``, can benefit by caching intermediate data on disk in the directory
+specified by `cache_dir` and using it next time. This is most beneficial with
+geostationary satellite data where the locations of the source data and the
+target pixels don't change over time.
+
+    >>> new_scn = scn.resample('euro4', cache_dir='/path/to/cache_dir')
+
+See the documentation for specific algorithms to see availability and
+limitations of caching for that algorithm.
+
+Create custom area definition
+-----------------------------
+
+See :class:`pyresample.geometry.AreaDefinition` for information on creating
+areas that can be passed to the resample method::
+
+    >>> from pyresample.geometry import AreaDefinition
+    >>> my_area = AreaDefinition(...)
+    >>> local_scene = global_scene.resample(my_area)
+
+Create dynamic area definition
+------------------------------
+
+See :class:`pyresample.geometry.DynamicAreaDefinition` for more information.
+
+Examples coming soon...
+
+Store area definitions
+----------------------
+
+Area definitions can be added to a custom YAML file (see
+`pyresample's documentation <http://pyresample.readthedocs.io/en/stable/geo_def.html#pyresample-utils>`_
+for more information)
+and loaded using pyresample's utility methods::
+
+    >>> from pyresample.utils import parse_area_file
+    >>> my_area = parse_area_file('my_areas.yaml', 'my_area')[0]
+
+Examples coming soon...
+
 """
 
 import hashlib
@@ -33,7 +136,6 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
-import xarray.ufuncs as xu
 import six
 
 from pyresample.bilinear import get_bil_info, get_sample_from_bil_info

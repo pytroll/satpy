@@ -916,17 +916,41 @@ class Scene(MetadataObject):
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, **resample_kwargs):
-        """Resample the datasets and return a new scene."""
+                 unload=True, resampler=None, **resample_kwargs):
+        """Resample datasets and return a new scene.
+
+        Args:
+            destination (AreaDefinition, GridDefinition): area definition to
+                resample to. If not specified then the area returned by
+                `Scene.max_area()` will be used.
+            datasets (list): Limit datasets to resample to these specified
+                `DatasetID` objects . By default all currently loaded
+                datasets are resampled.
+            generate (bool): Generate any requested composites that could not
+                be previously due to incompatible areas (default: True).
+            unload (bool): Remove any datasets no longer needed after
+                requested composites have been generated (default: True).
+            resampler (str): Name of resampling method to use. By default,
+                this is a nearest neighbor KDTree-based resampling
+                ('nearest'). Other possible values include 'native', 'ewa',
+                etc. See the :mod:`~satpy.resample` documentation for more
+                information.
+            resample_kwargs: Remaining keyword arguments to pass to individual
+                resampler classes. See the individual resampler class
+                documentation :mod:`here <satpy.resample>` for available
+                arguments.
+
+        """
         to_resample_ids = [dsid for (dsid, dataset) in self.datasets.items()
-                       if (not datasets) or dsid in datasets]
+                           if (not datasets) or dsid in datasets]
 
         if destination is None:
             destination = self.max_area(to_resample_ids)
         new_scn = self.copy(datasets=to_resample_ids)
         # we may have some datasets we asked for but don't exist yet
         new_scn.wishlist = self.wishlist.copy()
-        self._resampled_scene(new_scn, destination, **resample_kwargs)
+        self._resampled_scene(new_scn, destination, resampler=resampler,
+                              **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
