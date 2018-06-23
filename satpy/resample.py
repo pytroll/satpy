@@ -242,12 +242,10 @@ class KDTreeResampler(BaseResampler):
 
             np.savez(filename, **cache)
 
-    def compute(self, data, weight_funcs=None, fill_value=None,
+    def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
         del kwargs
         LOG.debug("Resampling " + str(data.name))
-        if fill_value is None:
-            fill_value = data.attrs.get('_FillValue', np.nan)
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
         return res
 
@@ -690,7 +688,9 @@ def resample_dataset(dataset, destination_area, **kwargs):
         return dataset
 
     new_data = resample(source_area, dataset, destination_area, **kwargs)
+    new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()
-    new_data.attrs['area'] = destination_area
+    new_data.attrs.update(new_attrs)
+    new_data.attrs.update(area=destination_area)
 
     return new_data
