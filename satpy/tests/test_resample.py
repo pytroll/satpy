@@ -90,10 +90,6 @@ class TestKDTreeResampler(unittest.TestCase):
             resampler.compute(data, fill_value=fill_value)
             resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
 
-            data.attrs = {'_FillValue': 8}
-            resampler.compute(data)
-            resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
-
 
 class TestEWAResampler(unittest.TestCase):
     """Test EWA resampler class."""
