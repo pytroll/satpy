@@ -312,6 +312,7 @@ class KDTreeResampler(BaseResampler):
     def __init__(self, source_geo_def, target_geo_def):
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
+        self._index_caches = {}
 
     def precompute(self, mask=None, radius_of_influence=None, epsilon=0,
                    cache_dir=None, **kwargs):
@@ -335,53 +336,71 @@ class KDTreeResampler(BaseResampler):
                 radius_of_influence = source_geo_def.lons.resolution * 3
             except (AttributeError, TypeError):
                 radius_of_influence = 10000
+
+        kwargs = dict(source_geo_def=source_geo_def,
+                      target_geo_def=self.target_geo_def,
+                      radius_of_influence=radius_of_influence,
+                      neighbours=1,
+                      epsilon=epsilon)
+
         if self.resampler is None:
-            kwargs = dict(source_geo_def=source_geo_def,
-                          target_geo_def=self.target_geo_def,
-                          radius_of_influence=radius_of_influence,
-                          neighbours=1,
-                          epsilon=epsilon)
-
+            # FIXME: We need to move all of this caching logic to pyresample
             self.resampler = XArrayResamplerNN(**kwargs)
-            try:
-                self.load_neighbour_info(cache_dir, mask=mask, **kwargs)
-                LOG.debug("Read pre-computed kd-tree parameters")
-            except IOError:
-                LOG.debug("Computing kd-tree parameters")
-                self.resampler.get_neighbour_info(mask=mask)
-                self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
-    def load_neighbour_info(self, cache_dir, **kwargs):
-        if cache_dir:
-            filename = self._create_cache_filename(cache_dir, **kwargs)
+        try:
+            self.load_neighbour_info(cache_dir, mask=mask, **kwargs)
+            LOG.debug("Read pre-computed kd-tree parameters")
+        except IOError:
+            LOG.debug("Computing kd-tree parameters")
+            self.resampler.get_neighbour_info(mask=mask)
+            self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
+
+    def _apply_cached_indexes(self, cached_indexes, persist=False):
+        """Reassign various resampler index attributes."""
+        for elt in ['valid_input_index', 'valid_output_index',
+                    'index_array', 'distance_array']:
+            val = cached_indexes[elt]
+            if isinstance(val, tuple):
+                val = cached_indexes[elt][0]
+            elif isinstance(cached_indexes[elt], np.ndarray):
+                val = da.from_array(cached_indexes[elt], chunks=CHUNK_SIZE)
+            elif persist and isinstance(cached_indexes[elt], da.Array):
+                val = cached_indexes[elt].persist()
+                cached_indexes[elt] = val
+            setattr(self.resampler, elt, val)
+
+    def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
+        """Read index arrays from either the in-memory or disk cache."""
+        mask_name = getattr(mask, 'name', None)
+        filename = self._create_cache_filename(cache_dir,
+                                               mask=mask_name, **kwargs)
+        if kwargs.get('mask') in self._index_caches:
+            self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
+        elif cache_dir:
             cache = np.load(filename)
-            for elt in ['valid_input_index', 'valid_output_index', 'index_array', 'distance_array']:
-                if isinstance(cache[elt], tuple):
-                    setattr(self.resampler, elt, cache[elt][0])
-                elif isinstance(cache[elt], np.ndarray):
-                    arr = da.from_array(cache[elt], chunks=CHUNK_SIZE)
-                    setattr(self.resampler, elt, arr)
-                else:
-                    setattr(self.resampler, elt, cache[elt])
+            self._apply_cached_indexes(cache)
             cache.close()
         else:
             raise IOError
 
-    def save_neighbour_info(self, cache_dir, **kwargs):
+    def save_neighbour_info(self, cache_dir, mask=None, **kwargs):
+        """Cache resampler's index arrays if there is a cache dir."""
         if cache_dir:
-            filename = self._create_cache_filename(cache_dir, **kwargs)
+            mask_name = getattr(mask, 'name', None)
+            filename = self._create_cache_filename(
+                cache_dir, mask=mask_name, **kwargs)
             LOG.info('Saving kd_tree neighbour info to %s', filename)
-            cache = {}
-            for attr_name in ['valid_input_index', 'valid_output_index',
-                              'index_array', 'distance_array']:
-                val = getattr(self.resampler, attr_name)
-                if isinstance(val, da.Array):
-                    # keep the objects in memory so they don't have to be
-                    # recomputed again later
-                    val = val.persist()
-                    setattr(self.resampler, attr_name, val)
-                cache[attr_name] = val
+            cache = self._read_resampler_attrs()
+            # update the cache in place with persisted dask arrays
+            self._apply_cached_indexes(cache, persist=True)
             np.savez(filename, **cache)
+
+    def _read_resampler_attrs(self):
+        """Read certain attributes from the resampler for caching."""
+        return {attr_name: getattr(self.resampler, attr_name)
+                for attr_name in [
+                    'valid_input_index', 'valid_output_index',
+                    'index_array', 'distance_array']}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
