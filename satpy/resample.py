@@ -344,21 +344,23 @@ class KDTreeResampler(BaseResampler):
 
             self.resampler = XArrayResamplerNN(**kwargs)
             try:
-                self.load_neighbour_info(cache_dir, **kwargs)
+                self.load_neighbour_info(cache_dir, mask=mask, **kwargs)
                 LOG.debug("Read pre-computed kd-tree parameters")
             except IOError:
                 LOG.debug("Computing kd-tree parameters")
                 self.resampler.get_neighbour_info(mask=mask)
-                self.save_neighbour_info(cache_dir, **kwargs)
+                self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
     def load_neighbour_info(self, cache_dir, **kwargs):
-
         if cache_dir:
             filename = self._create_cache_filename(cache_dir, **kwargs)
             cache = np.load(filename)
             for elt in ['valid_input_index', 'valid_output_index', 'index_array', 'distance_array']:
                 if isinstance(cache[elt], tuple):
                     setattr(self.resampler, elt, cache[elt][0])
+                elif isinstance(cache[elt], np.ndarray):
+                    arr = da.from_array(cache[elt], chunks=CHUNK_SIZE)
+                    setattr(self.resampler, elt, arr)
                 else:
                     setattr(self.resampler, elt, cache[elt])
             cache.close()
@@ -369,11 +371,16 @@ class KDTreeResampler(BaseResampler):
         if cache_dir:
             filename = self._create_cache_filename(cache_dir, **kwargs)
             LOG.info('Saving kd_tree neighbour info to %s', filename)
-            cache = {'valid_input_index': self.resampler.valid_input_index,
-                     'valid_output_index': self.resampler.valid_output_index,
-                     'index_array': self.resampler.index_array,
-                     'distance_array': self.resampler.distance_array}
-
+            cache = {}
+            for attr_name in ['valid_input_index', 'valid_output_index',
+                              'index_array', 'distance_array']:
+                val = getattr(self.resampler, attr_name)
+                if isinstance(val, da.Array):
+                    # keep the objects in memory so they don't have to be
+                    # recomputed again later
+                    val = val.persist()
+                    setattr(self.resampler, attr_name, val)
+                cache[attr_name] = val
             np.savez(filename, **cache)
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
