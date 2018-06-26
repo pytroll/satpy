@@ -38,7 +38,7 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
+from satpy.dataset import (DATASET_KEYS, DatasetID, MetadataObject,
                            combine_metadata)
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
