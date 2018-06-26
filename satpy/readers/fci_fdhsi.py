@@ -25,15 +25,12 @@
 """Interface to MTG-FCI Retrieval NetCDF files
 
 """
-from datetime import datetime, timedelta
 import numpy as np
 from pyresample import geometry
 import h5py
 import xarray as xr
 import logging
-from collections import defaultdict
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)

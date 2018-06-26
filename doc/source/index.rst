@@ -84,23 +84,23 @@ installation.
       - `gac_lac_l1b`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `avhrr_hrpt`
-      - Nominal
+      - `avhrr_hrpt_l1b`
+      - In development
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
     * - MTG FCI data in netcdf format
       - `fci_fdhsi`
-      - Nominal
+      - In development
     * - Callipso Caliop data in EOS-hdf4 format
       - `hdf4_caliopv3`
-      - Nominal
+      - In development
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
     * - NWCSAF MSG 2016 products in netCDF4 format
       - `nc_nwcsaf_msg`
-      - Nominal
+      - In development
     * - NWCSAF PPS 2014 products in netCDF4 format
       - `nc_nwcsaf_pps`
       - | Not yet support for remapped netCDF products. 
@@ -117,10 +117,10 @@ installation.
       - Nominal
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
       - `nc_slstr`
-      - Nominal
+      - In development
     * - OSISAF SST data in GHRSST (netcdf) format
       - `ghrsst_osisaf`
-      - Nominal
+      - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
       - Nominal

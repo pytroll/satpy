@@ -1,7 +1,7 @@
 reader:
   description: CLAVR-X Reader
   name: clavrx
-  reader: !!python/name:satpy.readers.clavrx.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs, modis, avhrr]
 
 file_types:
