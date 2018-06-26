@@ -393,6 +393,7 @@ class KDTreeResampler(BaseResampler):
             cache = self._read_resampler_attrs()
             # update the cache in place with persisted dask arrays
             self._apply_cached_indexes(cache, persist=True)
+            self._index_caches[mask_name] = cache
             np.savez(filename, **cache)
 
     def _read_resampler_attrs(self):
