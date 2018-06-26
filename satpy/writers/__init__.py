@@ -476,6 +476,7 @@ class Writer(Plugin):
 
         # we have targets, we should save sources to targets
         if targets and compute:
+            LOG.info("Computing and writing results...")
             res = da.store(sources, targets)
             for target in targets:
                 if hasattr(target, 'close'):
@@ -486,6 +487,7 @@ class Writer(Plugin):
 
         delayed = dask.delayed(sources)
         if compute:
+            LOG.info("Computing and writing results...")
             return delayed.compute()
         return delayed
 
