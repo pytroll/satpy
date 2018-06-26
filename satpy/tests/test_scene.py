@@ -201,7 +201,7 @@ class TestScene(unittest.TestCase):
                 self.assertSetEqual(ds_list_names, {'3'})
 
     def test_bad_setitem(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
         import numpy as np
         scene = Scene()
         self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))

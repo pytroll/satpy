@@ -21,13 +21,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to NUCAPS Retrieval NetCDF files
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 import xarray as xr
 import numpy as np
 import logging
 from collections import defaultdict
 
-from satpy.dataset import Dataset
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 

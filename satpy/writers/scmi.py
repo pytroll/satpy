@@ -1074,7 +1074,7 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
 
 
 def create_debug_lettered_tiles(init_args, create_args):
-    from satpy import Dataset
+    import xarray as xr
     create_args['lettered_grid'] = True
     create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
 
@@ -1085,8 +1085,7 @@ def create_debug_lettered_tiles(init_args, create_args):
     area_def, arr = _create_debug_array(sector_info, create_args['num_subtiles'])
 
     now = datetime.utcnow()
-    product = Dataset(
-        arr,
+    product = xr.DataArray(arr, attrs=dict(
         mask=np.isnan(arr),
         name='debug_{}'.format(sector_id),
         platform='DEBUG',
@@ -1098,7 +1097,7 @@ def create_debug_lettered_tiles(init_args, create_args):
         units='1',
         valid_min=0,
         valid_max=255,
-    )
+    ))
     created_files = writer.save_dataset(
         product,
         **create_args
