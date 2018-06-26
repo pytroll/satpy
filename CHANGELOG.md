@@ -1,3 +1,66 @@
+###############################################################################
+## Version 0.9.0b0 (2018/06/26)
+
+### Issues Closed
+
+* [Issue 328](https://github.com/pytroll/satpy/issues/328) - hrit reader bugs ([PR 329](https://github.com/pytroll/satpy/pull/329))
+* [Issue 323](https://github.com/pytroll/satpy/issues/323) - "Manual" application of corrections
+* [Issue 320](https://github.com/pytroll/satpy/issues/320) - Overview of code layout
+* [Issue 279](https://github.com/pytroll/satpy/issues/279) - Add 'level' to DatasetID ([PR 283](https://github.com/pytroll/satpy/pull/283))
+* [Issue 272](https://github.com/pytroll/satpy/issues/272) - How to save region of interest from Band 3 Himawari Data as png image ([PR 276](https://github.com/pytroll/satpy/pull/276))
+* [Issue 267](https://github.com/pytroll/satpy/issues/267) - Missing dependency causes strange error during unit tests ([PR 273](https://github.com/pytroll/satpy/pull/273))
+* [Issue 244](https://github.com/pytroll/satpy/issues/244) - Fix NUCAPS reader for NUCAPS EDR v2 files ([PR 326](https://github.com/pytroll/satpy/pull/326))
+* [Issue 236](https://github.com/pytroll/satpy/issues/236) - scene.resample(cache_dir=) fails with TypeError: Unicode-objects must be encoded before hashing
+* [Issue 233](https://github.com/pytroll/satpy/issues/233) - IOError: Unable to read attribute (no appropriate function for conversion path)
+* [Issue 211](https://github.com/pytroll/satpy/issues/211) - Fix OLCI and other readers' file patterns to work on Windows
+* [Issue 207](https://github.com/pytroll/satpy/issues/207) - Method not fully documented in terms of possible key word arguments
+* [Issue 199](https://github.com/pytroll/satpy/issues/199) - Reading Modis file produce a double image
+* [Issue 168](https://github.com/pytroll/satpy/issues/168) - Cannot read MODIS data
+* [Issue 167](https://github.com/pytroll/satpy/issues/167) - KeyError 'v' using Scene(base_dir=, reader=) ([PR 325](https://github.com/pytroll/satpy/pull/325))
+* [Issue 165](https://github.com/pytroll/satpy/issues/165) - HRIT GOES reader is broken ([PR 303](https://github.com/pytroll/satpy/pull/303))
+* [Issue 160](https://github.com/pytroll/satpy/issues/160) - Inconsistent naming of optional datasets in composite configs and compositors
+* [Issue 157](https://github.com/pytroll/satpy/issues/157) - Add animation example ([PR 322](https://github.com/pytroll/satpy/pull/322))
+* [Issue 156](https://github.com/pytroll/satpy/issues/156) - Add cartopy example
+* [Issue 146](https://github.com/pytroll/satpy/issues/146) - Add default null log handler
+* [Issue 123](https://github.com/pytroll/satpy/issues/123) - NetCDF writer doesn't work ([PR 307](https://github.com/pytroll/satpy/pull/307))
+* [Issue 114](https://github.com/pytroll/satpy/issues/114) - Print a list of available sensors/readers
+* [Issue 82](https://github.com/pytroll/satpy/issues/82) - Separate file discovery from Scene init
+* [Issue 61](https://github.com/pytroll/satpy/issues/61) - Creating composites post-load
+* [Issue 10](https://github.com/pytroll/satpy/issues/10) - Optimize CREFL for memory
+
+In this release 24 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 331](https://github.com/pytroll/satpy/pull/331) - Adapt slstr reader to xarray&dask
+* [PR 329](https://github.com/pytroll/satpy/pull/329) - issue#328: fixed bugs loading JMA HRIT files ([328](https://github.com/pytroll/satpy/issues/328))
+* [PR 326](https://github.com/pytroll/satpy/pull/326) - Fix nucaps reader for NUCAPS EDR v2 files ([244](https://github.com/pytroll/satpy/issues/244), [244](https://github.com/pytroll/satpy/issues/244))
+* [PR 325](https://github.com/pytroll/satpy/pull/325) - Fix exception when Scene is given reader and base_dir ([167](https://github.com/pytroll/satpy/issues/167))
+* [PR 319](https://github.com/pytroll/satpy/pull/319) - Fix msi reader delayed
+* [PR 318](https://github.com/pytroll/satpy/pull/318) - Fix nir reflectance to use XArray
+* [PR 312](https://github.com/pytroll/satpy/pull/312) - Allow custom regions in ahi-hsd file patterns
+* [PR 311](https://github.com/pytroll/satpy/pull/311) - Allow valid_range to be a tuple for cloud product colorization
+* [PR 303](https://github.com/pytroll/satpy/pull/303) - Fix hrit goes to support python 3 ([165](https://github.com/pytroll/satpy/issues/165))
+* [PR 288](https://github.com/pytroll/satpy/pull/288) - Fix hrit-goes reader
+* [PR 192](https://github.com/pytroll/satpy/pull/192) - Clip day and night composites after enhancement
+
+#### Features added
+
+* [PR 315](https://github.com/pytroll/satpy/pull/315) - Add slicing to Scene
+* [PR 314](https://github.com/pytroll/satpy/pull/314) - Feature mitiff writer
+* [PR 307](https://github.com/pytroll/satpy/pull/307) - Fix projections in cf writer ([123](https://github.com/pytroll/satpy/issues/123))
+* [PR 305](https://github.com/pytroll/satpy/pull/305) - Add support for geolocation and angles to msi reader
+* [PR 302](https://github.com/pytroll/satpy/pull/302) - Workaround the LinearNDInterpolator thread-safety issue for Sentinel 1 SAR geolocation
+* [PR 301](https://github.com/pytroll/satpy/pull/301) - Factorize header definitions between hrit_msg and native_msg. Fix a bug in header definition.
+* [PR 298](https://github.com/pytroll/satpy/pull/298) - Implement sentinel 2 MSI reader
+* [PR 294](https://github.com/pytroll/satpy/pull/294) - Add the ocean color product to olci
+* [PR 153](https://github.com/pytroll/satpy/pull/153) - [WIP] Improve compatibility of cf_writer with CF-conventions
+
+In this release 20 pull requests were closed.
+
+
 ## Version 0.9.0a2 (2018/05/14)
 
 ### Issues Closed
@@ -46,6 +109,7 @@ In this release 11 issues were closed.
 
 In this release 20 pull requests were closed.
 
+
 ## Version 0.9.0a1 (2018/04/22)
 
 ### Issues Closed
@@ -78,6 +142,7 @@ In this release 6 issues were closed.
 * [PR 239](https://github.com/pytroll/satpy/pull/239) - Add CSPP Geo (geocat) AHI reading support
 
 In this release 10 pull requests were closed.
+
 
 ## Version 0.9.0a0 (2018-03-20)
 
