@@ -357,6 +357,7 @@ class KDTreeResampler(BaseResampler):
 
     def _apply_cached_indexes(self, cached_indexes, persist=False):
         """Reassign various resampler index attributes."""
+        # cacheable_dict = {}
         for elt in ['valid_input_index', 'valid_output_index',
                     'index_array', 'distance_array']:
             val = cached_indexes[elt]
@@ -376,9 +377,12 @@ class KDTreeResampler(BaseResampler):
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
         elif cache_dir:
-            cache = np.load(filename)
-            self._apply_cached_indexes(cache)
+            cache = np.load(filename, mmap_mode='r')
+            # copy the dict so we can modify it's keys
+            new_cache = dict(cache.items())
             cache.close()
+            self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
+            self._index_caches[mask_name] = new_cache
         else:
             raise IOError
 

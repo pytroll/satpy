@@ -92,6 +92,8 @@ class TestKDTreeResampler(unittest.TestCase):
             self.assertEqual(len(savez.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
             self.assertEqual(len(load.mock_calls), 1)
+            # we should have cached things in-memory
+            self.assertEqual(len(resampler._index_caches), 1)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
 
             # test loading saved resampler
@@ -99,6 +101,8 @@ class TestKDTreeResampler(unittest.TestCase):
             resampler.precompute(cache_dir=the_dir)
             self.assertEqual(len(load.mock_calls), 2)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
+            # we should have cached things in-memory now
+            self.assertEqual(len(resampler._index_caches), 1)
         finally:
             shutil.rmtree(the_dir)
 
