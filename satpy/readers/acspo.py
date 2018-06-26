@@ -29,12 +29,9 @@ https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
 """
 import logging
-from datetime import datetime, timedelta
-
+from datetime import datetime
 import numpy as np
-
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 

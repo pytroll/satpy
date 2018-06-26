@@ -24,11 +24,9 @@ It returns a dataset without coordinates and calibration.
 
 from PIL import Image
 import numpy as np
-import os
 import logging
-from satpy.dataset import Dataset, DatasetID
+from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.yaml_reader import FileYAMLReader
 
 logger = logging.getLogger(__name__)
 
