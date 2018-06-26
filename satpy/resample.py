@@ -362,11 +362,10 @@ class KDTreeResampler(BaseResampler):
             val = cached_indexes[elt]
             if isinstance(val, tuple):
                 val = cached_indexes[elt][0]
-            elif isinstance(cached_indexes[elt], np.ndarray):
-                val = da.from_array(cached_indexes[elt], chunks=CHUNK_SIZE)
-            elif persist and isinstance(cached_indexes[elt], da.Array):
-                val = cached_indexes[elt].persist()
-                cached_indexes[elt] = val
+            elif isinstance(val, np.ndarray):
+                val = da.from_array(val, chunks=CHUNK_SIZE)
+            elif persist and isinstance(val, da.Array):
+                cached_indexes[elt] = val = val.persist()
             setattr(self.resampler, elt, val)
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
