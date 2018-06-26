@@ -56,8 +56,12 @@ class TestKDTreeResampler(unittest.TestCase):
             create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
             load.side_effect = IOError()
             resampler.precompute(cache_dir=the_dir)
-            # assert saving
+            # assert data was saved to the on-disk cache
             self.assertEqual(len(savez.mock_calls), 1)
+            # assert that load was called to try to load something from disk
+            self.assertEqual(len(load.mock_calls), 1)
+            # we should have cached things in-memory
+            self.assertEqual(len(resampler._index_caches), 1)
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
             load.side_effect = None
@@ -70,8 +74,10 @@ class TestKDTreeResampler(unittest.TestCase):
                                         valid_output_index=2,
                                         index_array=3,
                                         distance_array=4)
-            self.assertEqual(len(savez.mock_calls), 1)
             resampler.precompute(cache_dir=the_dir)
+            # we already have things cached in-memory, no need to save again
+            self.assertEqual(len(savez.mock_calls), 1)
+            # we already have things cached in-memory, don't need to load
             self.assertEqual(len(load.mock_calls), 1)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
 
