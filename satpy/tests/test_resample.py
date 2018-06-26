@@ -42,9 +42,22 @@ class TestKDTreeResampler(unittest.TestCase):
     @mock.patch('satpy.resample.XArrayResamplerNN')
     def test_kd_resampling(self, resampler, create_filename, load, savez):
         """Test the kd resampler."""
+        import numpy as np
+        import dask.array as da
         from satpy.resample import KDTreeResampler
+        from pyresample.geometry import SwathDefinition
         source_area = mock.MagicMock()
+        source_swath = SwathDefinition(
+            da.arange(5, chunks=5), da.arange(5, chunks=5))
         target_area = mock.MagicMock()
+
+        resampler = KDTreeResampler(source_swath, target_area)
+        resampler.precompute(
+            mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
+        resampler.resampler.get_neighbour_info.assert_called()
+        # swath definitions should not be cached
+        self.assertFalse(len(savez.mock_calls), 0)
+        resampler.resampler.reset_mock()
 
         resampler = KDTreeResampler(source_area, target_area)
         resampler.precompute()
