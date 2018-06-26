@@ -36,63 +36,82 @@ except ImportError:
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    def test_kd_resampling(self):
+    @mock.patch('satpy.resample.np.savez')
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
+    @mock.patch('satpy.resample.XArrayResamplerNN')
+    def test_kd_resampling(self, resampler, create_filename, load, savez):
         """Test the kd resampler."""
+        import numpy as np
+        import dask.array as da
         from satpy.resample import KDTreeResampler
+        from pyresample.geometry import SwathDefinition
         source_area = mock.MagicMock()
+        source_swath = SwathDefinition(
+            da.arange(5, chunks=5), da.arange(5, chunks=5))
         target_area = mock.MagicMock()
 
-        with mock.patch('satpy.resample.XArrayResamplerNN'):
+        resampler = KDTreeResampler(source_swath, target_area)
+        resampler.precompute(
+            mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
+        resampler.resampler.get_neighbour_info.assert_called()
+        # swath definitions should not be cached
+        self.assertFalse(len(savez.mock_calls), 0)
+        resampler.resampler.reset_mock()
+
+        resampler = KDTreeResampler(source_area, target_area)
+        resampler.precompute()
+        resampler.resampler.get_neighbour_info.assert_called_with(mask=None)
+
+        try:
+            the_dir = tempfile.mkdtemp()
             resampler = KDTreeResampler(source_area, target_area)
-            resampler.precompute()
-            resampler.resampler.get_neighbour_info.assert_called_with()
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
+            load.side_effect = IOError()
+            resampler.precompute(cache_dir=the_dir)
+            # assert data was saved to the on-disk cache
+            self.assertEqual(len(savez.mock_calls), 1)
+            # assert that load was called to try to load something from disk
+            self.assertEqual(len(load.mock_calls), 1)
+            # we should have cached things in-memory
+            self.assertEqual(len(resampler._index_caches), 1)
+            nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
+            # test reusing the resampler
+            load.side_effect = None
 
-            try:
-                the_dir = tempfile.mkdtemp()
-                with mock.patch('satpy.resample.KDTreeResampler._create_cache_filename') as create_filename:
-                    resampler = KDTreeResampler(source_area, target_area)
-                    create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
-                    with mock.patch('satpy.resample.np.load') as load:
-                        with mock.patch('satpy.resample.np.savez') as savez:
-                            load.side_effect = IOError()
-                            resampler.precompute(cache_dir=the_dir)
-                            # assert saving
-                            self.assertEqual(len(savez.mock_calls), 1)
-                            nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
-                            # test reusing the resampler
-                            load.side_effect = None
+            class FakeNPZ(dict):
+                def close(self):
+                    pass
 
-                            class FakeNPZ(dict):
-                                def close(self):
-                                    pass
+            load.return_value = FakeNPZ(valid_input_index=1,
+                                        valid_output_index=2,
+                                        index_array=3,
+                                        distance_array=4)
+            resampler.precompute(cache_dir=the_dir)
+            # we already have things cached in-memory, no need to save again
+            self.assertEqual(len(savez.mock_calls), 1)
+            # we already have things cached in-memory, don't need to load
+            self.assertEqual(len(load.mock_calls), 1)
+            # we should have cached things in-memory
+            self.assertEqual(len(resampler._index_caches), 1)
+            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
 
-                            load.return_value = FakeNPZ(valid_input_index=1,
-                                                        valid_output_index=2,
-                                                        index_array=3,
-                                                        distance_array=4)
-                            self.assertEqual(len(savez.mock_calls), 1)
-                            resampler.precompute(cache_dir=the_dir)
-                            self.assertEqual(len(load.mock_calls), 1)
-                            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
+            # test loading saved resampler
+            resampler = KDTreeResampler(source_area, target_area)
+            resampler.precompute(cache_dir=the_dir)
+            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
+            # we should have cached things in-memory now
+            self.assertEqual(len(resampler._index_caches), 1)
+        finally:
+            shutil.rmtree(the_dir)
 
-                            # test loading saved resampler
-                            resampler = KDTreeResampler(source_area, target_area)
-                            resampler.precompute(cache_dir=the_dir)
-                            self.assertEqual(len(load.mock_calls), 2)
-                            self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
-            finally:
-                shutil.rmtree(the_dir)
-
-            data = mock.MagicMock()
-            data.name = 'hej'
-            data.data = [1, 2, 3]
-            fill_value = 8
-            resampler.compute(data, fill_value=fill_value)
-            resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
-
-            data.attrs = {'_FillValue': 8}
-            resampler.compute(data)
-            resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
+        data = mock.MagicMock()
+        data.name = 'hej'
+        data.data = [1, 2, 3]
+        fill_value = 8
+        resampler.compute(data, fill_value=fill_value)
+        resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
 
 
 class TestEWAResampler(unittest.TestCase):
