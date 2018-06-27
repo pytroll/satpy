@@ -28,7 +28,8 @@
 References:
     MSG Level 1.5 Native Format File Definition
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
-
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import os
@@ -272,6 +273,17 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         if dsid.name != 'HRV':
 
+            # following calculations assume grid origin is south-east corner
+            # section 7.2.4 of MSG Level 1.5 Image Data Format Description
+            origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
+            grid_origin = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["GridOrigin"]
+            if grid_origin != 2:
+                raise NotImplementedError(
+                    'Grid origin not supported number: {}, {} corner'
+                    .format(grid_origin, origins[grid_origin])
+                )
+
             center_point = 3712/2
 
             north = int(sec15hd["NorthLineSelectedRectangle"]['Value'])
@@ -283,11 +295,25 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 "ReferenceGridVIS_IR"]["ColumnDirGridStep"] * 1000.0
             line_step = data15hd['ImageDescription'][
                 "ReferenceGridVIS_IR"]["LineDirGridStep"] * 1000.0
+            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
+            earth_model = data15hd['GeometricProcessing']['EarthModel'][
+                'TypeOfEarthModel']
+            if earth_model == 2:
+                ns_offset = 0  # north +ve
+                we_offset = 0  # west +ve
+            elif earth_model == 1:
+                ns_offset = 0.5  # north +ve
+                we_offset = 0.5  # west +ve
+            else:
+                raise NotImplementedError(
+                    'unrecognised earth model: {}'.format(earth_model)
+                )
 
-            ll_c = (center_point - west - 0.5) * column_step
-            ll_l = (south - center_point + 1.5) * line_step
-            ur_c = (center_point - east + 0.5) * column_step
-            ur_l = (north - center_point + 0.5) * line_step
+            # section 3.1.5 of MSG Level 1.5 Image Data Format Description
+            ll_c = (center_point - west - 0.5 + we_offset) * column_step
+            ll_l = (south - center_point - 0.5 + ns_offset) * line_step
+            ur_c = (center_point - east + 0.5 + we_offset) * column_step
+            ur_l = (north - center_point + 0.5 + ns_offset) * line_step
 
             area_extent = (ll_c, ll_l, ur_c, ur_l)
 
