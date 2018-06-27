@@ -211,7 +211,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                             name=dataset_key.name,
                             dims=['y', 'x']).astype(np.float32)
         h5attrs = h5rads.attrs
-        # scans = h5f["All_Data"]["NumberOfScans"][0]
+        scans = h5f["All_Data"]["NumberOfScans"][0]
+        rads = rads[:scans * 16, :]
         # if channel in ("M9", ):
         #     arr = rads[:scans * 16, :].astype(np.float32)
         #     arr[arr > 65526] = np.nan
