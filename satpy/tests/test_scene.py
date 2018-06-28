@@ -1621,7 +1621,7 @@ class TestSceneSaving(unittest.TestCase):
             os.path.join(self.base_dir, 'test_20180101_000000.tif')))
 
     def test_save_datasets_bad_writer(self):
-        """Save a dataset using 'save_datasets'."""
+        """Save a dataset using 'save_datasets' and a bad writer."""
         from satpy.scene import Scene
         import xarray as xr
         import dask.array as da
@@ -1638,6 +1638,19 @@ class TestSceneSaving(unittest.TestCase):
                           scn.save_datasets,
                           writer='_bad_writer_',
                           base_dir=self.base_dir)
+
+    def test_save_datasets_missing_wishlist(self):
+        """Calling 'save_datasets' with no valid datasets."""
+        from satpy.scene import Scene, DatasetID
+        scn = Scene()
+        scn.wishlist.add(DatasetID(name='true_color'))
+        self.assertRaises(RuntimeError,
+                          scn.save_datasets,
+                          writer='geotiff',
+                          base_dir=self.base_dir)
+        self.assertRaises(KeyError,
+                          scn.save_datasets,
+                          datasets=['no_exist'])
 
     def test_save_dataset_default(self):
         """Save a dataset using 'save_dataset'."""
