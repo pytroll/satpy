@@ -200,6 +200,9 @@ def get_key(key, key_container, num_results=1, best=True,
     elif isinstance(key, (str, six.text_type)):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
+    elif not isinstance(key, DatasetID):
+        raise ValueError("Expected 'DatasetID', str, or number dict key, "
+                         "not {}".format(str(type(key))))
 
     res = filter_keys_by_dataset_id(key, key_container)
 
