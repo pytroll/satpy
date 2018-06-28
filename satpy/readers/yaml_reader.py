@@ -755,7 +755,10 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                new_vars.append(datasets.get(av_id, av_id))
+                if isinstance(av_id, DatasetID):
+                    new_vars.append(datasets[av_id])
+                else:
+                    new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
     def load(self, dataset_keys, previous_datasets=None):
