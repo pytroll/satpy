@@ -136,7 +136,6 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
-import six
 
 from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
@@ -179,19 +178,6 @@ def get_area_def(area_name):
     """
     from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
-
-
-def get_frozen_area(to_freeze, ref):
-    """Freeze the *to_freeze* area according to *ref* if applicable, otherwise
-    return *to_freeze* as an area definition instance.
-    """
-    if isinstance(to_freeze, (str, six.text_type)):
-        to_freeze = get_area_def(to_freeze)
-
-    try:
-        return to_freeze.freeze(ref)
-    except AttributeError:
-        return to_freeze
 
 
 class BaseResampler(object):
