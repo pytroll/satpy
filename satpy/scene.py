@@ -866,12 +866,12 @@ class Scene(MetadataObject):
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
         max_area = None
-        if hasattr(destination_area, 'freeze'):
-            try:
-                max_area = new_scn.max_area()
-            except ValueError:
-                raise ValueError("No dataset areas available to freeze "
-                                 "DynamicAreaDefinition.")
+
+        try:
+            max_area = new_scn.max_area()
+        except ValueError:
+            raise ValueError("No dataset areas available to freeze "
+                             "DynamicAreaDefinition.")
         destination_area = get_frozen_area(destination_area, max_area)
 
         resamplers = {}
