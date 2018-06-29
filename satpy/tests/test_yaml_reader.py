@@ -296,6 +296,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
             # only the first one should be false
             self.assertEqual(res, idx not in [0, 4])
 
+        for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
+            res = self.reader.time_matches(fh.start_time, None)
+            self.assertEqual(res, idx not in [0, 1, 4, 5])
+
     @patch('satpy.readers.yaml_reader.get_area_def')
     @patch('satpy.readers.yaml_reader.AreaDefBoundary')
     @patch('satpy.readers.yaml_reader.Boundary')
