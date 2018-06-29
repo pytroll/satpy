@@ -200,6 +200,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get the dataset ids from the config."""
         ids = []
         for dataset in self.datasets.values():
+            # xarray doesn't like concatenating attributes that are lists
+            # https://github.com/pydata/xarray/issues/2060
+            if 'coordinates' in dataset and \
+                    isinstance(dataset['coordinates'], list):
+                dataset['coordinates'] = tuple(dataset['coordinates'])
             # Build each permutation/product of the dataset
             id_kwargs = []
             for key in DATASET_KEYS:
@@ -535,6 +540,11 @@ class FileYAMLReader(AbstractYAMLReader):
             for ds_id, ds_info in avail_ids:
                 # don't overwrite an existing dataset
                 # especially from the yaml config
+                coordinates = ds_info.get('coordinates')
+                if isinstance(coordinates, list):
+                    # xarray doesn't like concatenating attributes that are
+                    # lists: https://github.com/pydata/xarray/issues/2060
+                    ds_info['coordinates'] = tuple(ds_info['coordinates'])
                 self.ids.setdefault(ds_id, ds_info)
 
     @staticmethod
