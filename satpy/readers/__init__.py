@@ -476,6 +476,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     The returned dictionary can be passed directly to the `Scene` object
     through the `filenames` keyword argument.
 
+    The behaviour of time-based filtering depends on whether or not the filename
+    contains information about the end time of the data or not:
+
+      - if the end time is not present in the filename, the start time of the filename
+        is used and has to fall between (inclusive) the requested start and end times
+      - otherwise, the timespan of the filename has to overlap the requested timespan
+
     Args:
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
