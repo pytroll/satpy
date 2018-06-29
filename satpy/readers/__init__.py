@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017.
+# Copyright (c) 2015-2018.
 
 # Author(s):
 
@@ -574,7 +574,6 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
 
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
-            print(idx, reader_configs, reader)
             readers_files = set(filenames[reader[idx]])
         else:
             readers_files = remaining_filenames
