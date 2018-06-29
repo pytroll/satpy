@@ -48,7 +48,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, np.string_) and value.size == 1:
+            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
