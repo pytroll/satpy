@@ -393,6 +393,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
         end_time = self.filter_parameters.get('end_time')
+        fend = fend or fstart
         if start_time and fend and fend < start_time:
             return False
         if end_time and fstart and fstart > end_time:
