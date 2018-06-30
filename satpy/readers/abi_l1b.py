@@ -70,6 +70,7 @@ class NC_ABI_L1B(BaseFileHandler):
 
         """
         data = self.nc[item]
+        attrs = data.attrs
         factor = data.attrs.get('scale_factor')
         offset = data.attrs.get('add_offset')
         fill = data.attrs.get('_FillValue')
@@ -77,8 +78,10 @@ class NC_ABI_L1B(BaseFileHandler):
             data = data.where(data != fill)
         if factor is not None:
             # make sure the factor is a 64-bit float
-            data *= float(factor)
-            data += offset
+            # can't do this in place since data is most likely uint16
+            # and we are making it a 64-bit float
+            data = data * float(factor) + offset
+        data.attrs = attrs
         return data
 
     def get_shape(self, key, info):
