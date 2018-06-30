@@ -100,6 +100,9 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
                                 [391.68679226, 407.74064808, 422.69329105,
                                  436.77021913, np.nan]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        # make sure the attributes from the file are in the data array
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
 
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
@@ -167,6 +170,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                                 [0.91593702, 1.06859319, 1.22124936,
                                  np.nan, 1.52656171]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
