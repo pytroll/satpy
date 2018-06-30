@@ -77,7 +77,8 @@ class NC_ABI_L1B(BaseFileHandler):
             data = data.where(data != fill)
         if factor is not None:
             # make sure the factor is a 64-bit float
-            data = data * float(factor) + offset
+            data *= float(factor)
+            data += offset
         return data
 
     def get_shape(self, key, info):
@@ -98,10 +99,12 @@ class NC_ABI_L1B(BaseFileHandler):
             res = self._ir_calibrate(radiances)
         elif key.calibration != 'radiance':
             raise ValueError("Unknown calibration '{}'".format(key.calibration))
+        else:
+            res = radiances
 
         # convert to satpy standard units
         if res.attrs['units'] == '1':
-            res = res * 100
+            res *= 100
             res.attrs['units'] = '%'
 
         res.attrs.update({'platform_name': self.platform_name,
