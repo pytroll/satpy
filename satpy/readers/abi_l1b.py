@@ -60,6 +60,7 @@ class NC_ABI_L1B(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
         self.nlines, self.ncols = self.nc["Rad"].shape
+        self.coords = {}
 
     def __getitem__(self, item):
         """Wrapper around `self.nc[item]`.
@@ -82,6 +83,17 @@ class NC_ABI_L1B(BaseFileHandler):
             # and we are making it a 64-bit float
             data = data * float(factor) + offset
         data.attrs = attrs
+
+        # handle coordinates (and recursive fun)
+        coords = list(data.coords.items())
+        new_coords = {}
+        if item in data.coords:
+            self.coords[item] = data
+        for coord_name, coord_arr in coords:
+            if coord_name not in self.coords:
+                self.coords[coord_name] = self[coord_name]
+            new_coords[coord_name] = self.coords[coord_name]
+        data.coords.update(new_coords)
         return data
 
     def get_shape(self, key, info):
