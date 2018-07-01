@@ -184,7 +184,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res = data * factor
         res.attrs = data.attrs
         res.attrs['units'] = '1'
-
+        res.attrs['standard_name'] = 'toa_bidirectional_reflectance'
         return res
 
     def _ir_calibrate(self, data):
@@ -197,7 +197,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res = (fk2 / xu.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
         res.attrs['units'] = 'K'
-
+        res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
 
     @property
