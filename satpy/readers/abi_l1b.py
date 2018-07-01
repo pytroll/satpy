@@ -85,11 +85,10 @@ class NC_ABI_L1B(BaseFileHandler):
         data.attrs = attrs
 
         # handle coordinates (and recursive fun)
-        coords = list(data.coords.items())
         new_coords = {}
         if item in data.coords:
             self.coords[item] = data
-        for coord_name, coord_arr in coords:
+        for coord_name in data.coords.keys():
             if coord_name not in self.coords:
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
