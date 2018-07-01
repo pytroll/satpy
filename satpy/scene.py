@@ -33,11 +33,12 @@ from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
                            replace_anc)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import (resample_dataset, get_frozen_area,
-                            prepare_resampler)
+from satpy.resample import (resample_dataset,
+                            prepare_resampler, get_area_def)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition
 from xarray import DataArray
+import six
 
 try:
     import configparser
@@ -866,13 +867,15 @@ class Scene(MetadataObject):
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
         max_area = None
+        if isinstance(destination_area, (str, six.text_type)):
+            destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
             try:
                 max_area = new_scn.max_area()
+                destination_area = destination_area.freeze(max_area)
             except ValueError:
                 raise ValueError("No dataset areas available to freeze "
                                  "DynamicAreaDefinition.")
-        destination_area = get_frozen_area(destination_area, max_area)
 
         resamplers = {}
         for dataset, parent_dataset in dataset_walker(datasets):
