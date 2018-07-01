@@ -425,7 +425,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             ncols = int(header["block2"]['number_of_columns'][0])
 
             res = da.from_array(np.memmap(self.filename, offset=fp_.tell(),
-                                          dtype='<u2',  shape=(nlines, ncols)),
+                                          dtype='<u2',  shape=(nlines, ncols), mode='r'),
                                 chunks=CHUNK_SIZE)
         res = da.where(res == 65535, np.float32(np.nan), res)
 
