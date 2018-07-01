@@ -96,7 +96,6 @@ class NC_ABI_L1B(BaseFileHandler):
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
         data.coords.update(new_coords)
-        print(data.coords.keys())
         return data
 
     def get_shape(self, key, info):
