@@ -28,9 +28,14 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
-from itertools import zip_longest
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
+
+try:
+    from itertools import zip_longest
+except ImportError:
+    # python 2.7
+    from itertools import izip_longest as zip_longest
 
 try:
     import imageio
