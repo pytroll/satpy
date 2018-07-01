@@ -32,6 +32,12 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 
 try:
+    from itertools import zip_longest
+except ImportError:
+    # python 2.7
+    from itertools import izip_longest as zip_longest
+
+try:
     import imageio
 except ImportError:
     imageio = None
@@ -39,39 +45,51 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def cascaded_compute(callback, arrays, optimize=True):
+def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
     """Dask helper function for iterating over computed dask arrays.
 
     Args:
         callback (callable): Called with a single numpy array computed from
                              the provided dask arrays.
         arrays (list, tuple): Dask arrays to pass to callback.
+        batch_size (int): Group computation in to this many arrays at a time.
         optimize (bool): Whether to try to optimize the dask graphs of the
                          provided arrays.
 
     Returns: `dask.Delayed` object to be computed
 
     """
-    if optimize:
-        # optimize Dask graph over all objects
-        dsk = da.Array.__dask_optimize__(
-            # combine all Dask Array graphs
-            dask.sharedict.merge(*[e.__dask_graph__() for e in arrays]),
-            # get Dask Array keys in result
-            list(dask.core.flatten([e.__dask_keys__() for e in arrays]))
-        )
-        # rebuild Dask Arrays
-        arrays = [da.Array(dsk, e.name, e.chunks, e.dtype) for e in arrays]
-
-    def _callback_wrapper(arr, cb=callback, previous_call=None):
+    def _callback_wrapper(arr, previous_call, cb=callback):
         del previous_call  # used only for task ordering
         return cb(arr)
 
-    current_write = None
-    for dask_arr in arrays:
-        current_write = dask.delayed(_callback_wrapper)(
-            dask_arr, previous_call=current_write)
-    return current_write
+    array_batches = []
+    if not batch_size:
+        array_batches.append(arrays)
+    else:
+        arr_gens = iter(arrays)
+        array_batches = [arrs for arrs in zip_longest(*([arr_gens] * batch_size))]
+
+    current_writes = []
+    for batch_arrs in array_batches:
+        batch_arrs = [x for x in batch_arrs if x is not None]
+        if optimize:
+            # optimize Dask graph over all objects
+            dsk = da.Array.__dask_optimize__(
+                # combine all Dask Array graphs
+                dask.sharedict.merge(*[e.__dask_graph__() for e in batch_arrs]),
+                # get Dask Array keys in result
+                list(dask.core.flatten([e.__dask_keys__() for e in batch_arrs]))
+            )
+            # rebuild Dask Arrays
+            batch_arrs = [da.Array(dsk, e.name, e.chunks, e.dtype) for e in batch_arrs]
+
+        current_write = None
+        for dask_arr in batch_arrs:
+            current_write = dask.delayed(_callback_wrapper)(
+                dask_arr, current_write)
+        current_writes.append(current_write)
+    return current_writes
 
 
 def stack(datasets):
@@ -123,7 +141,7 @@ class MultiScene(object):
         for layer in self.scenes:
             layer.load(*args, **kwargs)
 
-    def resample(self, destination, **kwargs):
+    def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
         return self.__class__([scn.resample(destination, **kwargs)
                                for scn in self.scenes])
@@ -179,7 +197,7 @@ class MultiScene(object):
             yield data.data
 
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
-                       ignore_missing=False, **kwargs):
+                       batch_size=None, ignore_missing=False, **kwargs):
         """Helper method for saving to movie or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
@@ -197,10 +215,13 @@ class MultiScene(object):
             datasets (list): DatasetIDs to save (default: all datasets)
             fps (int): Frames per second for produced animation
             fill_value (int): Value to use instead creating an alpha band.
+            batch_size (int): Group array computation in to this many arrays
+                              at a time. This is useful to avoid memory
+                              issues. Defaults to all of the arrays at once.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
-            **kwargs: Additional keyword arguments to pass to
-                     `imageio.get_writer`.
+            kwargs: Additional keyword arguments to pass to
+                   `imageio.get_writer`.
 
         """
         if imageio is None:
@@ -221,12 +242,16 @@ class MultiScene(object):
                 all_datasets, shape, this_fill, ignore_missing))
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-            delayed = cascaded_compute(writer.append_data, data_to_write)
+            delayed = cascaded_compute(writer.append_data, data_to_write,
+                                       batch_size=batch_size)
             # Save delayeds and writers to compute and close later
             delayeds.append(delayed)
             writers.append(writer)
         # compute all the datasets at once to combine any computations that
         # can be shared
-        dask.compute(delayeds)
+        iter_delayeds = [iter(x) for x in delayeds]
+        for delayed_batch in zip_longest(*iter_delayeds):
+            delayed_batch = [x for x in delayed_batch if x is not None]
+            dask.compute(delayed_batch)
         for writer in writers:
             writer.close()
