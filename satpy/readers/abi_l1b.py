@@ -86,6 +86,9 @@ class NC_ABI_L1B(BaseFileHandler):
 
         # handle coordinates (and recursive fun)
         new_coords = {}
+        # 'time' dimension causes issues in other processing
+        if 'time' in data.coords:
+            del data.coords['time']
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -93,6 +96,7 @@ class NC_ABI_L1B(BaseFileHandler):
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
         data.coords.update(new_coords)
+        print(data.coords.keys())
         return data
 
     def get_shape(self, key, info):
