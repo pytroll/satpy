@@ -102,6 +102,8 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
         # make sure the attributes from the file are in the data array
         self.assertIn('scale_factor', res.attrs)
         self.assertIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_brightness_temperature')
 
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
@@ -184,6 +186,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
         self.assertIn('scale_factor', res.attrs)
         self.assertIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_bidirectional_reflectance')
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
