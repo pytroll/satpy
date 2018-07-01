@@ -60,6 +60,7 @@ class NC_ABI_L1B(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
         self.nlines, self.ncols = self.nc["Rad"].shape
+        self.coords = {}
 
     def __getitem__(self, item):
         """Wrapper around `self.nc[item]`.
@@ -70,6 +71,7 @@ class NC_ABI_L1B(BaseFileHandler):
 
         """
         data = self.nc[item]
+        attrs = data.attrs
         factor = data.attrs.get('scale_factor')
         offset = data.attrs.get('add_offset')
         fill = data.attrs.get('_FillValue')
@@ -77,7 +79,23 @@ class NC_ABI_L1B(BaseFileHandler):
             data = data.where(data != fill)
         if factor is not None:
             # make sure the factor is a 64-bit float
+            # can't do this in place since data is most likely uint16
+            # and we are making it a 64-bit float
             data = data * float(factor) + offset
+        data.attrs = attrs
+
+        # handle coordinates (and recursive fun)
+        new_coords = {}
+        # 'time' dimension causes issues in other processing
+        if 'time' in data.coords:
+            del data.coords['time']
+        if item in data.coords:
+            self.coords[item] = data
+        for coord_name in data.coords.keys():
+            if coord_name not in self.coords:
+                self.coords[coord_name] = self[coord_name]
+            new_coords[coord_name] = self.coords[coord_name]
+        data.coords.update(new_coords)
         return data
 
     def get_shape(self, key, info):
@@ -98,10 +116,12 @@ class NC_ABI_L1B(BaseFileHandler):
             res = self._ir_calibrate(radiances)
         elif key.calibration != 'radiance':
             raise ValueError("Unknown calibration '{}'".format(key.calibration))
+        else:
+            res = radiances
 
         # convert to satpy standard units
         if res.attrs['units'] == '1':
-            res = res * 100
+            res *= 100
             res.attrs['units'] = '%'
 
         res.attrs.update({'platform_name': self.platform_name,
