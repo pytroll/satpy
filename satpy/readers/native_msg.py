@@ -302,7 +302,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 ns_offset = 0  # north +ve
                 we_offset = 0  # west +ve
             elif earth_model == 1:
-                ns_offset = 0.5  # north +ve
+                ns_offset = -0.5  # north +ve
                 we_offset = 0.5  # west +ve
             else:
                 raise NotImplementedError(
