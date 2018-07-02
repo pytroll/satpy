@@ -164,9 +164,9 @@ class NC_ABI_L1B(BaseFileHandler):
                      'sweep': sweep_axis}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosabii',
+            'abi_geos',
+            "ABI L1B file area",
+            'abi_geos',
             proj_dict,
             self.ncols,
             self.nlines,
