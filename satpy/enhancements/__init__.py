@@ -135,12 +135,12 @@ def lookup(img, **kwargs):
 
     def func(band_data, luts=luts, index=-1):
         # NaN/null values will become 0
-        band_data = band_data.clip(0, luts.size - 1).astype(np.uint8)
+        lut = luts[:, index] if len(luts.shape) == 2 else luts
+        band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
         def _delayed(luts, band_data):
             # can't use luts.__getitem__ for some reason
             return luts[band_data]
-        lut = luts[:, index] if len(luts.shape) == 2 else luts
         new_delay = dask.delayed(_delayed)(lut, band_data)
         new_data = da.from_delayed(new_delay, shape=band_data.shape,
                                    dtype=luts.dtype)
