@@ -74,6 +74,16 @@ class TestEnhancementStretch(unittest.TestCase):
         lut = np.arange(256.)
         self._test_enhancement(lookup, self.ch1, expected, luts=lut)
 
+        expected = np.array([[[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]],
+                             [[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]],
+                             [[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]]])
+        lut = np.arange(256.)
+        lut = np.vstack((lut, lut, lut)).T
+        self._test_enhancement(lookup, self.rgb, expected, luts=lut)
+
     def test_colorize(self):
         from satpy.enhancements import colorize
         from trollimage.colormap import brbg
