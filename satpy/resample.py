@@ -689,7 +689,7 @@ class NativeResampler(BaseResampler):
             rows, cols = data.shape
             new_shape = (int(rows / y_size), int(y_size),
                          int(cols / x_size), int(x_size))
-            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
             return data_mean
 
         if d.ndim != 2:

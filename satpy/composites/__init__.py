@@ -528,7 +528,9 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
+                            dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
         self.apply_modifier_info(_nir, proj)
@@ -611,7 +613,9 @@ class DifferenceCompositor(CompositeBase):
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
-        return Dataset(projectables[0] - projectables[1], **info)
+        proj = projectables[0] - projectables[1]
+        proj.attrs = info
+        return proj
 
 
 class GenericCompositor(CompositeBase):
@@ -757,11 +761,13 @@ class ColorizeCompositor(ColormapCompositor):
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
 
-        return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
+        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
+        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        #
+        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -1190,7 +1196,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
             av_data = np.pad(data, pad, 'edge')
             new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-            data_mean = np.ma.mean(av_data.reshape(new_shape), axis=(1, 3))
+            data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
             data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
             data_mean = data_mean[row_offset:row_offset + rows,
                                   col_offset:col_offset + cols]
