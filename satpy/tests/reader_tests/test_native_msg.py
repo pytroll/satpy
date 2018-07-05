@@ -27,7 +27,10 @@
 import sys
 
 import numpy as np
-from satpy.readers.native_msg import get_available_channels
+from satpy.readers.native_msg import (
+    NativeMSGFileHandler,
+    get_available_channels,
+)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -99,6 +102,75 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
         for bandname in AVAILABLE_CHANNELS.keys():
             self.assertTrue(available_chs[bandname])
+
+    def tearDown(self):
+        pass
+
+
+class TestNativeMSGAreaExtent(unittest.TestCase):
+    """Test NativeMSGFileHandler.get_area_extent
+    The expected results have been verified by manually
+    inspecting the output of geoferenced imagery.
+    """
+    @staticmethod
+    def get_mock_file_handler(earth_model):
+        """
+        Mocked NativeMSGFileHandler with sufficient attributes for
+        NativeMSGFileHandler.get_area_extent to be able to execute.
+        """
+        header = {
+            '15_DATA_HEADER': {
+                'ImageDescription': {
+                    'ReferenceGridVIS_IR': {
+                        'ColumnDirGridStep': 3.0004032,
+                        'LineDirGridStep': 3.0004032,
+                        'GridOrigin': 2,  # south-east corner
+                    }
+                },
+                'GeometricProcessing': {
+                    'EarthModel': {'TypeOfEarthModel': earth_model}
+                }
+            },
+            '15_SECONDARY_PRODUCT_HEADER': {
+                'NorthLineSelectedRectangle': {'Value': 3712},
+                'EastColumnSelectedRectangle': {'Value': 1},
+                'WestColumnSelectedRectangle': {'Value': 3712},
+                'SouthLineSelectedRectangle': {'Value': 1},
+            }
+
+        }
+        return mock.Mock(header=header)
+
+    def setUp(self):
+        pass
+
+    def test_earthmodel1(self):
+        """TypeOfEarthModel = 1, need to offset by 0.5 pixels"""
+        calc_area_extent = NativeMSGFileHandler.get_area_extent(
+            self.get_mock_file_handler(earth_model=1),
+            mock.Mock(name='VIS006')  # mocked dsid (not 'HRV')
+        )
+        expected_area_extent = (
+            -5568748.275756836, -5568748.275756836,
+            5568748.275756836, 5568748.275756836
+        )
+        assertNumpyArraysEqual(
+            np.array(calc_area_extent), np.array(expected_area_extent)
+        )
+
+    def test_earthmodel2(self):
+        """TypeOfEarthModel = 2, do not offset"""
+        calc_area_extent = NativeMSGFileHandler.get_area_extent(
+            self.get_mock_file_handler(earth_model=2),
+            mock.Mock(name='VIS006')  # mocked dsid (not 'HRV')
+        )
+        expected_area_extent = (
+            -5570248.477339745, -5567248.074173927,
+            5567248.074173927, 5570248.477339745
+        )
+        assertNumpyArraysEqual(
+            np.array(calc_area_extent), np.array(expected_area_extent)
+        )
 
     def tearDown(self):
         pass
