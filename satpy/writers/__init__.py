@@ -386,7 +386,8 @@ def compute_writer_results(results):
     saved.
 
     Args:
-        results (iterable): Iterable of dask graphs
+        results (iterable): Iterable of dask graphs resulting from call to
+                            `scn.save_datasets(..., compute=False)
     """
     sources = []
     targets = []
@@ -394,8 +395,15 @@ def compute_writer_results(results):
     for res in results:
         if isinstance(res, tuple):
             # source, target to be passed to da.store
-            sources.append(res[0])
-            targets.append(res[1])
+            # Check for empty results
+            if len(res) == 0:
+                continue
+            num = len(res[0])
+            if num == 0:
+                continue
+            for i in range(num):
+                sources.append(res[0][i])
+                targets.append(res[1][i])
         else:
             # delayed object
             delayeds.append(res)
