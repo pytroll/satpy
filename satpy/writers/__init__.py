@@ -381,6 +381,38 @@ def to_image(dataset, copy=False, **kwargs):
         return XRImage(dataset)
 
 
+def compute_writer_results(results):
+    """Compute all the given dask graphs `results` so that the files are
+    saved.
+
+    Args:
+        results (iterable): Iterable of dask graphs
+    """
+    sources = []
+    targets = []
+    delayeds = []
+    for res in results:
+        if isinstance(res, tuple):
+            # source, target to be passed to da.store
+            sources.append(res[0])
+            targets.append(res[1])
+        else:
+            # delayed object
+            delayeds.append(res)
+
+    # one or more writers have targets that we need to close in the future
+    if targets:
+        delayeds.append(da.store(sources, targets, compute=False))
+
+    if delayeds:
+        da.compute(delayeds)
+
+    if targets:
+        for target in targets:
+            if hasattr(target, 'close'):
+                target.close()
+
+
 class Writer(Plugin):
 
     """Writer plugins. They must implement the *save_image* method. This is an
