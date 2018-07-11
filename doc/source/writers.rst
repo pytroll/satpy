@@ -111,8 +111,10 @@ and save them all at once.
 
     >>> from satpy.writers import compute_writer_results
     >>> res1 = scn.save_datasets(file_pattern="/tmp/{name}.png",
-    ...                          writer='simple_image')
+    ...                          writer='simple_image',
+    ...                          compute=False)
     >>> res2 = scn.save_datasets(file_pattern="/tmp/{name}.tif",
-    ...                          writer='geotiff')
+    ...                          writer='geotiff',
+    ...                          compute=False)
     >>> results = [res1, res2]
     >>> compute_writer_results(results)
