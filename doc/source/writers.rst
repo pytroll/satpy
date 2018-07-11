@@ -101,4 +101,18 @@ The above example can be used in enhancements YAML config like this:
 
 .. _trollimage: http://trollimage.readthedocs.io/en/latest/
 
+Saving multiple Scenes in one go
+================================
 
+As mentioned earlier, it is possible to save ``Scene`` datasets directly
+using :meth:`~satpy.scene.Scene.save_datasets` method:.  However,
+sometimes it is beneficial to collect more ``Scene``s together and process
+and save them all at once.
+
+    >>> from satpy.writers import compute_writer_results
+    >>> res1 = scn.save_datasets(file_pattern="/tmp/{name}.png",
+    ...                          writer='simple_image')
+    >>> res2 = scn.save_datasets(file_pattern="/tmp/{name}.tif",
+    ...                          writer='geotiff')
+    >>> results = [res1, res2]
+    >>> compute_writer_results(results)
