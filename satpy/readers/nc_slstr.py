@@ -133,7 +133,8 @@ class NCSLSTR1B(BaseFileHandler):
                 rad[indices] /= solar_flux[didx[indices].astype(int)]
                 return rad
 
-            radiances.data = da.map_blocks(cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
+            radiances.data = da.map_blocks(
+                cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
 
             radiances *= np.pi * 100
             units = '%'
@@ -160,8 +161,8 @@ class NCSLSTRAngles(BaseFileHandler):
 
     view = 'n'
 
-    datasets = {'satellite_azimuth_angle': 'satellite_azimuth_t' + view,
-                'satellite_zenith_angle': 'satellite_zenith_t' + view,
+    datasets = {'satellite_azimuth_angle': 'sat_azimuth_t' + view,
+                'satellite_zenith_angle': 'sat_zenith_t' + view,
                 'solar_azimuth_angle': 'solar_azimuth_t' + view,
                 'solar_zenith_angle': 'solar_zenith_t' + view}
 
@@ -203,7 +204,7 @@ class NCSLSTRAngles(BaseFileHandler):
         variable = self.nc[self.datasets[key.name]]
 
         values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs['_FillValue'], copy=False) *
+                                     variable.attrs.get('_FillValue', np.nan), copy=False) *
                   variable.attrs.get('scale_factor', 1) +
                   variable.attrs.get('add_offset', 0))
         values = np.ma.masked_invalid(values, copy=False)
@@ -219,28 +220,32 @@ class NCSLSTRAngles(BaseFileHandler):
             # possible
             tie_x_var = self.cartx['x_tx']
             tie_x = (np.ma.masked_equal(tie_x_var[0, :],
-                                        tie_x_var.attrs['_FillValue'],
+                                        tie_x_var.attrs.get(
+                                            '_FillValue', np.nan),
                                         copy=False) *
                      tie_x_var.attrs.get('scale_factor', 1) +
                      tie_x_var.attrs.get('add_offset', 0))
 
             tie_y_var = self.cartx['y_tx']
             tie_y = (np.ma.masked_equal(tie_y_var[:, 0],
-                                        tie_y_var.attrs['_FillValue'],
+                                        tie_y_var.attrs.get(
+                                            '_FillValue', np.nan),
                                         copy=False) *
                      tie_y_var.attrs.get('scale_factor', 1) +
                      tie_y_var.attrs.get('add_offset', 0))
 
             full_x_var = self.cart['x_i' + self.view]
             full_x = (np.ma.masked_equal(full_x_var[:],
-                                         full_x_var.attrs['_FillValue'],
+                                         full_x_var.attrs.get(
+                                             '_FillValue', np.nan),
                                          copy=False) *
                       full_x_var.attrs.get('scale_factor', 1) +
                       full_x_var.attrs.get('add_offset', 0))
 
             full_y_var = self.cart['y_i' + self.view]
             full_y = (np.ma.masked_equal(full_y_var[:],
-                                         full_y_var.attrs['_FillValue'],
+                                         full_y_var.attrs.get(
+                                             '_FillValue', np.nan),
                                          copy=False) *
                       full_y_var.attrs.get('scale_factor', 1) +
                       full_y_var.attrs.get('add_offset', 0))
@@ -257,12 +262,14 @@ class NCSLSTRAngles(BaseFileHandler):
             values[np.logical_not(np.ma.getmaskarray(full_y))] = interpolated
             values.mask = full_y.mask
 
-        proj = Dataset(values,
-                       copy=False,
-                       units=units,
-                       platform_name=self.platform_name,
-                       standard_name=variable.attrs['standard_name'],
-                       sensor=self.sensor)
+        proj = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                            dims=['y', 'x'])
+
+        proj.attrs['platform_name'] = self.platform_name
+        proj.attrs['sensor'] = self.sensor
+
+        proj.attrs.update(key.to_dict())
+
         return proj
 
     @property
