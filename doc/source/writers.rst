@@ -105,9 +105,11 @@ Saving multiple Scenes in one go
 ================================
 
 As mentioned earlier, it is possible to save ``Scene`` datasets directly
-using :meth:`~satpy.scene.Scene.save_datasets` method:.  However,
+using :meth:`~satpy.scene.Scene.save_datasets` method.  However,
 sometimes it is beneficial to collect more ``Scene``s together and process
 and save them all at once.
+
+::
 
     >>> from satpy.writers import compute_writer_results
     >>> res1 = scn.save_datasets(file_pattern="/tmp/{name}.png",
