@@ -30,7 +30,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from satpy.writers import show, to_image
+from satpy.writers import show, to_image, compute_writer_results
 
 try:
     from unittest import mock
@@ -56,6 +56,7 @@ def mkdir_p(path):
 
 
 class TestWritersModule(unittest.TestCase):
+
     """Test the writers module."""
 
     def test_to_image_1D(self):
@@ -100,6 +101,7 @@ class TestWritersModule(unittest.TestCase):
 
 
 class TestEnhancer(unittest.TestCase):
+
     """Test basic `Enhancer` functionality with builtin configs."""
 
     def test_basic_init_no_args(self):
@@ -135,6 +137,7 @@ class TestEnhancer(unittest.TestCase):
 
 
 class TestEnhancerUserConfigs(unittest.TestCase):
+
     """Test `Enhancer` functionality when user's custom configurations are present."""
 
     ENH_FN = 'test_sensor.yaml'
@@ -253,6 +256,7 @@ sensor_name: visir/test_sensor2
 
 
 class TestYAMLFiles(unittest.TestCase):
+
     """Test and analyze the writer configuration files."""
 
     def test_filename_matches_reader_name(self):
@@ -260,6 +264,7 @@ class TestYAMLFiles(unittest.TestCase):
         import yaml
 
         class IgnoreLoader(yaml.SafeLoader):
+
             def _ignore_all_tags(self, tag_suffix, node):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
@@ -290,6 +295,127 @@ class TestYAMLFiles(unittest.TestCase):
             self.assertIn('name', writer_info)
 
 
+class TestComputeWriterResults(unittest.TestCase):
+
+    """Test compute_writer_results()."""
+
+    def setUp(self):
+        """Create temporary directory to save files to and a mock scene"""
+        import tempfile
+        from datetime import datetime
+
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        self.scn = Scene()
+        self.scn['test'] = ds1
+
+        # Temp dir
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_empty(self):
+        """Test empty result list"""
+        fname = os.path.join(self.base_dir, 'geotiff.tif')
+        compute_writer_results([])
+
+    def test_simple_image(self):
+        """Test writing to PNG file"""
+        fname = os.path.join(self.base_dir, 'simple_image.png')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='simple_image',
+                                     compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+    def test_geotiff(self):
+        """Test writing to mitiff file"""
+        fname = os.path.join(self.base_dir, 'geotiff.tif')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='geotiff', compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_mitiff(self):
+#        """Test writing to mitiff file"""
+#        fname = os.path.join(self.base_dir, 'mitiff.tif')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='mitiff')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_cf(self):
+#        """Test writing to NetCDF4 file"""
+#        fname = os.path.join(self.base_dir, 'cf.nc')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='cf')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+    def test_multiple_geotiff(self):
+        """Test writing to mitiff file"""
+        fname1 = os.path.join(self.base_dir, 'geotiff1.tif')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff2.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_multiple_simple(self):
+        """Test writing to geotiff files"""
+        fname1 = os.path.join(self.base_dir, 'simple_image1.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'simple_image2.png')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_mixed(self):
+        """Test writing to multiple mixed-type files"""
+        fname1 = os.path.join(self.base_dir, 'simple_image3.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff3.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        res3 = []
+        compute_writer_results([res1, res2, res3])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -298,5 +424,6 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
 
     return my_suite
