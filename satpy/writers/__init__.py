@@ -396,14 +396,9 @@ def compute_writer_results(results):
         if isinstance(res, tuple):
             # source, target to be passed to da.store
             # Check for empty results
-            if len(res) == 0:
-                continue
-            num = len(res[0])
-            if num == 0:
-                continue
-            for i in range(num):
-                sources.append(res[0][i])
-                targets.append(res[1][i])
+            for src, tgt in zip(*res):
+                sources.append(src)
+                targets.append(tgt)
         else:
             # delayed object
             delayeds.append(res)
