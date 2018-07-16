@@ -330,7 +330,6 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_empty(self):
         """Test empty result list"""
-        fname = os.path.join(self.base_dir, 'geotiff.tif')
         compute_writer_results([])
 
     def test_simple_image(self):
