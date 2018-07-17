@@ -456,8 +456,9 @@ class TestVIIRSComposites(unittest.TestCase):
                    level=None, modifiers=None),
          DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
                    level=None, modifiers=None)], name='1', prerequisites=[], wavelength=(0.62, 0.645, 0.67),
-                                       resolution=250, calibration='reflectance',
-                                       modifiers=('sunz_corrected', 'rayleigh_corrected_crefl'), sensor='modis')
+                                       resolution=250, calibration='reflectance', modifiers=('sunz_corrected',
+                                                                                             'rayleigh_corrected_crefl'),
+                                       sensor='modis')
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl'))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
         self.assertEqual(ref_cor.attrs['wavelength'], (0.62, 0.645, 0.67))
