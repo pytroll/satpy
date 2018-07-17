@@ -21,7 +21,9 @@ datasets:
       250: {file_type: hdf_eos_data_250m}
       500: {file_type: hdf_eos_data_500m}
       1000: {file_type: hdf_eos_data_1000m}
-    calibration: reflectance
+    calibration:
+      reflectance:
+        units: "%"
     coordinates: [longitude, latitude]
     wavelength:
     - 0.62
@@ -33,7 +35,9 @@ datasets:
       250: {file_type: hdf_eos_data_250m}
       500: {file_type: hdf_eos_data_500m}
       1000: {file_type: hdf_eos_data_1000m}
-    calibration: reflectance
+    calibration:
+      reflectance:
+        units: "%"
     coordinates: [longitude, latitude]
     wavelength:
     - 0.841
@@ -44,6 +48,9 @@ datasets:
     resolution:
       500: {file_type: hdf_eos_data_500m}
       1000: {file_type: hdf_eos_data_1000m}
+    calibration:
+      reflectance:
+        units: "%"
     coordinates: [longitude, latitude]
     wavelength:
     - 0.459
@@ -54,6 +61,9 @@ datasets:
     resolution:
       500: {file_type: hdf_eos_data_500m}
       1000: {file_type: hdf_eos_data_1000m}
+    calibration:
+      reflectance:
+        units: "%"
     coordinates: [longitude, latitude]
     wavelength:
     - 0.545

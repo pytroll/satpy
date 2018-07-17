@@ -1,4 +1,13 @@
 sensor_name: visir/modis
+modifiers:
+  rayleigh_corrected_crefl:
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
 
 composites:
   true_color_uncorrected:
@@ -12,15 +21,15 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: true_color
 
-  true_color:
+  true_color_crefl:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: '1'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     - name: '4'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     - name: '3'
-      modifiers: [sunz_corrected, rayleigh_corrected]
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     standard_name: true_color
 
   overview:
