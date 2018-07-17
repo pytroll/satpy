@@ -252,10 +252,14 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'abi')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-            DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-            DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None)
+            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None),
+            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None),
+            DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None),
+            DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None)
         ])
 
         rows = 5
@@ -324,7 +328,6 @@ class TestVIIRSComposites(unittest.TestCase):
                                             51.909142813383916, 58.8234273736508, 68.84706145641482, 69.91085190887961,
                                             71.10179768327806, 71.33161009169649, 78.81291424983952])
 
-
     def test_ReflectanceCorrector_viirs(self):
         import xarray as xr
         import dask.array as da
@@ -355,10 +358,10 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'viirs')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
-                      level=None, modifiers=None),
-            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
-                      level=None, modifiers=None),
+            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=371, polarization=None,
+                      calibration=None, level=None, modifiers=None),
+            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=371, polarization=None,
+                      calibration=None, level=None, modifiers=None),
             DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
                       level=None, modifiers=None),
             DatasetID(name='solar_zenith_angle', wavelength=None, resolution=371, polarization=None, calibration=None,
@@ -436,7 +439,6 @@ class TestVIIRSComposites(unittest.TestCase):
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
 
-
     def test_ReflectanceCorrector_modis(self):
         import xarray as xr
         import dask.array as da
@@ -446,10 +448,14 @@ class TestVIIRSComposites(unittest.TestCase):
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
         ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
-         DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None),
-         DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None, level=None, modifiers=None)],
+         DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
+                   calibration=None, level=None, modifiers=None),
+         DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
+                   level=None, modifiers=None),
+         DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
+                   level=None, modifiers=None),
+         DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
+                   level=None, modifiers=None)],
         name='1', prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250, calibration='reflectance',
         modifiers=('sunz_corrected', 'rayleigh_corrected_crefl'), sensor='modis')
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl'))
@@ -460,10 +466,10 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'modis')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
-                      level=None, modifiers=None),
-            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
-                      level=None, modifiers=None),
+            DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None),
+            DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None,
+                      calibration=None, level=None, modifiers=None),
             DatasetID(name='solar_azimuth_angle', wavelength=None, resolution=None, polarization=None, calibration=None,
                       level=None, modifiers=None),
             DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None, calibration=None,

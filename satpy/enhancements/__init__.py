@@ -109,6 +109,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 
     return data
 
+
 # pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
     LOG.debug("Applying the crefl_scaling")
