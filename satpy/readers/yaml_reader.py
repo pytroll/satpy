@@ -95,7 +95,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.file_patterns = []
         for file_type, filetype_info in self.config['file_types'].items():
             filetype_info.setdefault('file_type', file_type)
-            # correct separator if needed
+            # correct separator if needed            
             file_patterns = [os.path.join(*pattern.split('/'))
                              for pattern in filetype_info['file_patterns']]
             filetype_info['file_patterns'] = file_patterns
