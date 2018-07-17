@@ -207,7 +207,6 @@ class NCSLSTRAngles(BaseFileHandler):
                   variable.attrs.get('scale_factor', 1) +
                   variable.attrs.get('add_offset', 0))
         values = np.ma.masked_invalid(values, copy=False)
-        units = variable.attrs['units']
 
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
