@@ -364,7 +364,6 @@ def get_atm_variables(mus, muv, phi, height, coeffs):
 
 
 def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
-    import dask
     # coeffs = (ah2o, aO2, ao3, tau)
     (ah2o, ao2, ao3, tau) = coeffs
     TAUSTEP4SPHALB = .0003
