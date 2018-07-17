@@ -455,11 +455,10 @@ class TestVIIRSComposites(unittest.TestCase):
                               calibration=None, level=None, modifiers=None)
         solza_did = DatasetID(name='solar_zenith_angle', wavelength=None, resolution=None, polarization=None,
                               calibration=None, level=None, modifiers=None)
-        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf',
-                                       optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did],
-                                       name='1', prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250,
-                                       calibration='reflectance', modifiers=('sunz_corrected', 'rayleigh_corrected_crefl'),
-                                       sensor='modis')
+        ref_cor = ReflectanceCorrector(
+            dem_filename='_fake.hdf', optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did], name='1',
+            prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250, calibration='reflectance',
+            modifiers=('sunz_corrected','rayleigh_corrected_crefl'), sensor='modis')
         self.assertEqual(ref_cor.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl'))
         self.assertEqual(ref_cor.attrs['calibration'], 'reflectance')
         self.assertEqual(ref_cor.attrs['wavelength'], (0.62, 0.645, 0.67))
