@@ -24,5 +24,3 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(testCreflUtils))
     return mysuite
-
-
