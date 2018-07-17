@@ -17,6 +17,9 @@ enhancements:
     operations:
     - name: crefl_scaling
       method: !!python/name:satpy.enhancements.crefl_scaling
+      kwargs:
+       idx: [0., 30., 60., 120., 190., 255.]
+       sc: [0., 100., 128., 188., 223., 255.]
   overview_default:
     standard_name: overview
     operations:
