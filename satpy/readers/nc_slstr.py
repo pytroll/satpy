@@ -30,7 +30,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
