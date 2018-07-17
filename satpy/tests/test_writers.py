@@ -56,7 +56,6 @@ def mkdir_p(path):
 
 
 class TestWritersModule(unittest.TestCase):
-
     """Test the writers module."""
 
     def test_to_image_1D(self):
@@ -101,7 +100,6 @@ class TestWritersModule(unittest.TestCase):
 
 
 class TestEnhancer(unittest.TestCase):
-
     """Test basic `Enhancer` functionality with builtin configs."""
 
     def test_basic_init_no_args(self):
@@ -137,7 +135,6 @@ class TestEnhancer(unittest.TestCase):
 
 
 class TestEnhancerUserConfigs(unittest.TestCase):
-
     """Test `Enhancer` functionality when user's custom configurations are present."""
 
     ENH_FN = 'test_sensor.yaml'
@@ -256,7 +253,6 @@ sensor_name: visir/test_sensor2
 
 
 class TestYAMLFiles(unittest.TestCase):
-
     """Test and analyze the writer configuration files."""
 
     def test_filename_matches_reader_name(self):
@@ -296,7 +292,6 @@ class TestYAMLFiles(unittest.TestCase):
 
 
 class TestComputeWriterResults(unittest.TestCase):
-
     """Test compute_writer_results()."""
 
     def setUp(self):
