@@ -11,10 +11,14 @@ class testCreflUtils(unittest.TestCase):
                                                                  (0.0043149700000000004, 0.0037296,
                                                                   0.014107995000000002, 0.052349), 21.71342113,
                                                                  77.14385758, 56.21456696)
-        self.assertEqual(np.array(sphalb), 0.045213532544630494)
-        self.assertEqual(rhoray, 2.2030281148621356)
-        self.assertEqual(TtotraytH2O, 0.30309880915889087)
-        self.assertEqual(tOG, 0.5969089524560548)
+        if abs(np.array(sphalb) - 0.045213532544630494) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(np.array(sphalb), 1e-10, 0.045213532544630494))
+        if abs(rhoray - 2.2030281148621356) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(rhoray, 1e-10, 2.2030281148621356))
+        if abs(TtotraytH2O - 0.30309880915889087) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(TtotraytH2O, 1e-10, 0.30309880915889087))
+        if abs(tOG - 0.5969089524560548) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(tOG, 1e-10, 0.5969089524560548))
 
 
 def suite():

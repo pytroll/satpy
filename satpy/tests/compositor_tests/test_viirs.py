@@ -309,7 +309,8 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
-        self.assertEqual(np.mean(data), 29.907390988422513)
+        if abs(np.mean(data) - 29.907390988422513) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 29.907390988422513))
         self.assertEqual(data.shape, (5, 10))
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [-1.0, 4.210745457958135, 6.7833906076177595, 8.730371329824473,
@@ -405,7 +406,8 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
-        self.assertEqual(np.mean(data), 40.7578684169142)
+        if abs(np.mean(data) - 40.7578684169142) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 40.7578684169142))
         self.assertEqual(data.shape, (5, 10))
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
@@ -482,7 +484,8 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
-        self.assertEqual(np.mean(data), 38.734365117099145)
+        if abs(np.mean(data) - 38.734365117099145) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 38.734365117099145))
         self.assertEqual(data.shape, (5, 10))
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [24.641586, 50.431692, 69.315375])
