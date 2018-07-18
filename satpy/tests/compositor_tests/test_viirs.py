@@ -30,6 +30,25 @@ else:
 class TestVIIRSComposites(unittest.TestCase):
     """Test VIIRS-specific composites."""
 
+    def data_area_ref_corrector(self):
+        import dask.array as da
+        import numpy as np
+        from pyresample.geometry import AreaDefinition
+        rows = 5
+        cols = 10
+        area = AreaDefinition(
+            'some_area_name', 'On-the-fly area', 'geosabii',
+            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
+             'units': 'm'},
+            cols, rows,
+            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
+
+        dnb = np.zeros((rows, cols)) + 25
+        dnb[3, :] += 25
+        dnb[4:, :] += 50
+        dnb = da.from_array(dnb, chunks=100)
+        return area, dnb
+
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
         from satpy.composites import CompositorLoader
@@ -262,19 +281,7 @@ class TestVIIRSComposites(unittest.TestCase):
                       calibration=None, level=None, modifiers=None)
         ])
 
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'some_area_name', 'On-the-fly area', 'geosabii',
-            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
-             'units': 'm'},
-            cols, rows,
-            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
-
-        dnb = np.zeros((rows, cols)) + 25
-        dnb[3, :] += 25
-        dnb[4:, :] += 50
-        dnb = da.from_array(dnb, chunks=100)
+        area, dnb = self.data_area_ref_corrector()
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={
@@ -368,19 +375,7 @@ class TestVIIRSComposites(unittest.TestCase):
                       level=None, modifiers=None)
             ])
 
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'some_area_name', 'On-the-fly area', 'geosabii',
-            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
-             'units': 'm'},
-            cols, rows,
-            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
-
-        dnb = np.zeros((rows, cols)) + 25
-        dnb[3, :] += 25
-        dnb[4:, :] += 50
-        dnb = da.from_array(dnb, chunks=100)
+        area, dnb = self.data_area_ref_corrector()
 
         def make_xarray(wavelength, modifiers, calibration, file_type, file_key, name, standard_name, units):
             return xr.DataArray(dnb,
@@ -447,12 +442,6 @@ class TestVIIRSComposites(unittest.TestCase):
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
-        rows = 5
-        cols = 10
-        dnb = np.zeros((rows, cols)) + 25
-        dnb[3, :] += 25
-        dnb[4:, :] += 50
-        dnb = da.from_array(dnb, chunks=100)
         sataa_did = DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
                               calibration=None, level=None, modifiers=None)
         satza_did = DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None,
@@ -483,13 +472,7 @@ class TestVIIRSComposites(unittest.TestCase):
                       level=None, modifiers=None)
             ])
 
-        area = AreaDefinition(
-            'some_area_name', 'On-the-fly area', 'geosabii',
-            {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
-             'units': 'm'},
-            cols, rows,
-            (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
-
+        area, dnb = self.data_area_ref_corrector()
 
         def make_xarray(wavelength, modifiers, resolution, file_type, name, calibration):
             return xr.DataArray(dnb,
