@@ -452,13 +452,13 @@ class TestVIIRSComposites(unittest.TestCase):
         def make_xarray(wavelength, modifiers, resolution, file_type, name, calibration):
             return xr.DataArray(dnb,
                                 dims=('y', 'x'),
-                                attrs={ 'wavelength': wavelength, 'level': None, 'modifiers': modifiers,
-                                        'calibration': calibration, 'resolution': resolution, 'file_type': file_type,
-                                        'name': name, 'coordinates': ['longitude', 'latitude'],
-                                        'platform_name': 'EOS-Aqua', 'polarization': None, 'sensor': 'modis',
-                                        'units': '%', 'start_time': datetime.datetime(2012, 8, 13, 18, 46, 1, 439838),
-                                        'end_time': datetime.datetime(2012, 8, 13, 18, 57, 47, 746296), 'area': area,
-                                        'ancillary_variables': []})
+                                attrs={'wavelength': wavelength, 'level': None, 'modifiers': modifiers,
+                                       'calibration': calibration, 'resolution': resolution, 'file_type': file_type,
+                                       'name': name, 'coordinates': ['longitude', 'latitude'],
+                                       'platform_name': 'EOS-Aqua', 'polarization': None, 'sensor': 'modis',
+                                       'units': '%', 'start_time': datetime.datetime(2012, 8, 13, 18, 46, 1, 439838),
+                                       'end_time': datetime.datetime(2012, 8, 13, 18, 57, 47, 746296), 'area': area,
+                                       'ancillary_variables': []})
         c01 = make_xarray((0.62, 0.645, 0.67), 'sunz_corrected', 500, 'hdf_eos_data_500m', '1', 'reflectance')
         c02 = make_xarray(None, (), 1000, 'hdf_eos_geo', 'satellite_azimuth_angle', None)
         c03 = make_xarray(None, (), 1000, 'hdf_eos_geo', 'satellite_zenith_angle', None)
