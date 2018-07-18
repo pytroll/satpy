@@ -246,7 +246,6 @@ class TestVIIRSComposites(unittest.TestCase):
         import xarray as xr
         import dask.array as da
         import numpy as np
-        from pyresample.geometry import AreaDefinition
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
         ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
@@ -284,21 +283,12 @@ class TestVIIRSComposites(unittest.TestCase):
         area, dnb = self.data_area_ref_corrector()
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
-                           attrs={
-                                'satellite_longitude':  -89.5,
-                                'satellite_latitude':   0.0,
-                                'satellite_altitude':   35786.0234375,
-                                'platform_name':        'GOES-16',
-                                'calibration':          'reflectance',
-                                'units':                '%',
-                                'wavelength':           (0.45, 0.47, 0.49),
-                                'name':                 'C01',
-                                'resolution':           1000,
-                                'sensor':               'abi',
-                                'start_time':           '2017-09-20 17:30:40.800000',
-                                'end_time':             '2017-09-20 17:41:17.500000',
-                                'area':                 area,
-                                'ancillary_variables':  []})
+                           attrs={'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
+                                  'satellite_altitude': 35786.0234375, 'platform_name': 'GOES-16',
+                                  'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
+                                  'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
+                                  'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
+                                  'area': area, 'ancillary_variables': []})
         res = ref_cor([c01], [])
 
         self.assertIsInstance(res, xr.DataArray)
@@ -339,7 +329,6 @@ class TestVIIRSComposites(unittest.TestCase):
         import xarray as xr
         import dask.array as da
         import numpy as np
-        from pyresample.geometry import AreaDefinition
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
@@ -378,28 +367,15 @@ class TestVIIRSComposites(unittest.TestCase):
         area, dnb = self.data_area_ref_corrector()
 
         def make_xarray(wavelength, modifiers, calibration, file_type, file_key, name, standard_name, units):
-            return xr.DataArray(dnb,
-                           dims=('y', 'x'),
-                           attrs={
-                                'start_orbit':          1708,
-                                'end_orbit':            1708,
-                                'wavelength':           wavelength,
-                                'level':                None,
-                                'modifiers':            modifiers,
-                                'calibration':          calibration,
-                                'file_key':             file_key,
-                                'resolution':           371,
-                                'file_type':            file_type,
-                                'name':                 name,
-                                'standard_name':        standard_name,
-                                'platform_name':        'Suomi-NPP',
-                                'polarization':         None,
-                                'sensor':               'viirs',
-                                'units':                units,
-                                'start_time':           datetime.datetime(2012, 2, 25, 18, 1, 24, 570942),
-                                'end_time':             datetime.datetime(2012, 2, 25, 18, 11, 21, 175760),
-                                'area':                 area,
-                                'ancillary_variables':  []})
+            return xr.DataArray(dnb, dims=('y', 'x'),
+                                attrs={'start_orbit': 1708, 'end_orbit': 1708, 'wavelength': wavelength, 'level': None,
+                                       'modifiers': modifiers, 'calibration': calibration, 'file_key': file_key,
+                                       'resolution': 371, 'file_type': file_type, 'name': name,
+                                       'standard_name': standard_name, 'platform_name': 'Suomi-NPP',
+                                       'polarization': None, 'sensor': 'viirs', 'units': units,
+                                       'start_time': datetime.datetime(2012, 2, 25, 18, 1, 24, 570942),
+                                       'end_time': datetime.datetime(2012, 2, 25, 18, 11, 21, 175760), 'area': area,
+                                       'ancillary_variables': []})
         c01 = make_xarray((0.6, 0.64, 0.68), None, 'reflectance', 'svi01', None, 'I01', 'toa_bidirectional_reflectance',
                           '%')
         c02 = make_xarray(None, (), None, ['gitco', 'gimgo'], 'All_Data/{file_group}_All/SatelliteAzimuthAngle',
@@ -438,7 +414,6 @@ class TestVIIRSComposites(unittest.TestCase):
         import xarray as xr
         import dask.array as da
         import numpy as np
-        from pyresample.geometry import AreaDefinition
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
@@ -477,23 +452,13 @@ class TestVIIRSComposites(unittest.TestCase):
         def make_xarray(wavelength, modifiers, resolution, file_type, name, calibration):
             return xr.DataArray(dnb,
                                 dims=('y', 'x'),
-                                attrs={
-                                    'wavelength':           wavelength,
-                                    'level':                None,
-                                    'modifiers':            modifiers,
-                                    'calibration':          calibration,
-                                    'resolution':           resolution,
-                                    'file_type':            file_type,
-                                    'name':                 name,
-                                    'coordinates':          ['longitude', 'latitude'],
-                                    'platform_name':        'EOS-Aqua',
-                                    'polarization':         None,
-                                    'sensor':               'modis',
-                                    'units':                '%',
-                                    'start_time':           datetime.datetime(2012, 8, 13, 18, 46, 1, 439838),
-                                    'end_time':             datetime.datetime(2012, 8, 13, 18, 57, 47, 746296),
-                                    'area':                 area,
-                                    'ancillary_variables':  []})
+                                attrs={ 'wavelength': wavelength, 'level': None, 'modifiers': modifiers,
+                                        'calibration': calibration, 'resolution': resolution, 'file_type': file_type,
+                                        'name': name, 'coordinates': ['longitude', 'latitude'],
+                                        'platform_name': 'EOS-Aqua', 'polarization': None, 'sensor': 'modis',
+                                        'units': '%', 'start_time': datetime.datetime(2012, 8, 13, 18, 46, 1, 439838),
+                                        'end_time': datetime.datetime(2012, 8, 13, 18, 57, 47, 746296), 'area': area,
+                                        'ancillary_variables': []})
         c01 = make_xarray((0.62, 0.645, 0.67), 'sunz_corrected', 500, 'hdf_eos_data_500m', '1', 'reflectance')
         c02 = make_xarray(None, (), 1000, 'hdf_eos_geo', 'satellite_azimuth_angle', None)
         c03 = make_xarray(None, (), 1000, 'hdf_eos_geo', 'satellite_zenith_angle', None)
