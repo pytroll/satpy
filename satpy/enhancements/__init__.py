@@ -114,7 +114,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 def crefl_scaling(img, **kwargs):
     LOG.debug("Applying the crefl_scaling")
 
-    def func(band_data):
+    def func(band_data, index=None):
         idx = np.array(kwargs['idx']) / 255
         sc = np.array(kwargs['sc']) / 255
         band_data *= .01
