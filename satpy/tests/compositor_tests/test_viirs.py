@@ -447,6 +447,12 @@ class TestVIIRSComposites(unittest.TestCase):
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy import DatasetID
+        rows = 5
+        cols = 10
+        dnb = np.zeros((rows, cols)) + 25
+        dnb[3, :] += 25
+        dnb[4:, :] += 50
+        dnb = da.from_array(dnb, chunks=100)
         sataa_did = DatasetID(name='satellite_azimuth_angle', wavelength=None, resolution=None, polarization=None,
                               calibration=None, level=None, modifiers=None)
         satza_did = DatasetID(name='satellite_zenith_angle', wavelength=None, resolution=None, polarization=None,
@@ -477,8 +483,6 @@ class TestVIIRSComposites(unittest.TestCase):
                       level=None, modifiers=None)
             ])
 
-        rows = 5
-        cols = 10
         area = AreaDefinition(
             'some_area_name', 'On-the-fly area', 'geosabii',
             {'a': '6378137.0', 'b': '6356752.31414', 'h': '35786023.0', 'lon_0': '-89.5', 'proj': 'geos', 'sweep': 'x',
@@ -486,10 +490,6 @@ class TestVIIRSComposites(unittest.TestCase):
             cols, rows,
             (-5434894.954752679, -5434894.964451744, 5434894.964451744, 5434894.954752679))
 
-        dnb = np.zeros((rows, cols)) + 25
-        dnb[3, :] += 25
-        dnb[4:, :] += 50
-        dnb = da.from_array(dnb, chunks=100)
 
         def make_xarray(wavelength, modifiers, resolution, file_type, name, calibration):
             return xr.DataArray(dnb,
