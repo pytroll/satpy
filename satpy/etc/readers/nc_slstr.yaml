@@ -181,13 +181,14 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_tir
 
-
+    
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: slstr
     resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
+    file_key: solar_zenith_tn
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
@@ -195,6 +196,7 @@ datasets:
     resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
+    file_key: solar_azimuth_tn
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
@@ -202,6 +204,7 @@ datasets:
     resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
+    file_key: sat_zenith_tn
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
@@ -209,3 +212,4 @@ datasets:
     resolution: 1000
     coordinates: [longitude, latitude]
     file_type: esa_angles
+    file_key: sat_azimuth_tn
