@@ -230,16 +230,16 @@ class NCSLSTRAngles(BaseFileHandler):
 
             values[valid] = interpolated
             values = np.ma.masked_invalid(values, copy=False)
+            
+            variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                dims=['y', 'x'])
 
-        proj = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                            dims=['y', 'x'])
+        variable.attrs['platform_name'] = self.platform_name
+        variable.attrs['sensor'] = self.sensor
 
-        proj.attrs['platform_name'] = self.platform_name
-        proj.attrs['sensor'] = self.sensor
+        variable.attrs.update(key.to_dict())
 
-        proj.attrs.update(key.to_dict())
-
-        return proj
+        return variable
 
     @property
     def start_time(self):
