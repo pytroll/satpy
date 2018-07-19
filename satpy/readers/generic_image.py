@@ -47,7 +47,7 @@ class GenericImageFileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
         self.finfo = filename_info
         try:
-            self.finfo['end_time'] =  self.finfo['start_time']
+            self.finfo['end_time'] = self.finfo['start_time']
         except KeyError:
             pass
         self.finfo['filename'] = filename
