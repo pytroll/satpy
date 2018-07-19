@@ -16,8 +16,12 @@ file_types:
     graphic:
         file_reader: !!python/name:satpy.readers.generic_image.GenericImageFileHandler
         file_patterns:
-         - '{start_time:%Y%m%d%H%M}{filename}.{format}'
-         - '{start_time:%Y%m%d_%H%M}{filename}.{format}'
-         - '{filename}{start_time:%Y%m%d%H%M}.{format}'
-         - '{filename}{start_time:%Y%m%d_%H%M}.{format}'
-         - '{filename}.{format}'
+         - '{start_time:%Y%m%d%H%M}{filename}.png'
+         - '{start_time:%Y%m%d_%H%M}{filename}.jpg'
+         - '{start_time:%Y%m%d_%H%M}{filename}.tif'
+         - '{filename}{start_time:%Y%m%d%H%M}.png'
+         - '{filename}{start_time:%Y%m%d_%H%M}.jpg'
+         - '{filename}{start_time:%Y%m%d_%H%M}.tif'
+         - '{filename}.png'
+         - '{filename}.jpg'
+         - '{filename}.tif'
