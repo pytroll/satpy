@@ -83,6 +83,16 @@ class NCSLSTR1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
+
+        file_base = os.path.splitext(os.path.basename(filename))[0]
+
+        if file_base[-1] == 'n':
+            self.view = 'n'
+        elif file_base[-1] == 'o':
+            self.view = 'o'
+        else:
+            raise Exception('Unknown view type', file_base[-1])  
+
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
@@ -90,7 +100,7 @@ class NCSLSTR1B(BaseFileHandler):
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-        self.view = 'n'  # n for nadir, o for oblique
+
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
@@ -158,26 +168,30 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
-    view = 'n'
-
-    datasets = {'satellite_azimuth_angle': 'sat_azimuth_t' + view,
-                'satellite_zenith_angle': 'sat_zenith_t' + view,
-                'solar_azimuth_angle': 'solar_azimuth_t' + view,
-                'solar_zenith_angle': 'solar_zenith_t' + view}
-
     def __init__(self, filename, filename_info, filetype_info):
+        
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
+
+        file_base = os.path.splitext(os.path.basename(filename))[0]
+
+        if file_base[-1] == 'n':
+            self.view = 'n'
+        elif file_base[-1] == 'o':
+            self.view = 'o'
+        else:
+            raise Exception('Unknown view type', file_base[-1])        
+
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
+
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+
         cart_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
         self.cart = xr.open_dataset(cart_file,
@@ -196,17 +210,12 @@ class NCSLSTRAngles(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset
         """
-        if key.name not in self.datasets:
-            return
-
         logger.debug('Reading %s.', key.name)
-        variable = self.nc[self.datasets[key.name]]
 
-        values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs.get('_FillValue', np.nan), copy=False) *
-                  variable.attrs.get('scale_factor', 1) +
-                  variable.attrs.get('add_offset', 0))
-        values = np.ma.masked_invalid(values, copy=False)
+        # Check if file_key is specified in the yaml
+        file_key = info.get('file_key', key.name)
+
+        variable = self.nc[file_key]
 
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
@@ -216,49 +225,27 @@ class NCSLSTRAngles(BaseFileHandler):
 
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
-            tie_x_var = self.cartx['x_tx']
-            tie_x = (np.ma.masked_equal(tie_x_var[0, :],
-                                        tie_x_var.attrs.get(
-                                            '_FillValue', np.nan),
-                                        copy=False) *
-                     tie_x_var.attrs.get('scale_factor', 1) +
-                     tie_x_var.attrs.get('add_offset', 0))
+            tie_x = self.cartx['x_tx'].data[0,:][::-1]
+            tie_y = self.cartx['y_tx'].data[:,0]
+            full_x = self.cart['x_i' + self.view].data
+            full_y = self.cart['y_i' + self.view].data
 
-            tie_y_var = self.cartx['y_tx']
-            tie_y = (np.ma.masked_equal(tie_y_var[:, 0],
-                                        tie_y_var.attrs.get(
-                                            '_FillValue', np.nan),
-                                        copy=False) *
-                     tie_y_var.attrs.get('scale_factor', 1) +
-                     tie_y_var.attrs.get('add_offset', 0))
-
-            full_x_var = self.cart['x_i' + self.view]
-            full_x = (np.ma.masked_equal(full_x_var[:],
-                                         full_x_var.attrs.get(
-                                             '_FillValue', np.nan),
-                                         copy=False) *
-                      full_x_var.attrs.get('scale_factor', 1) +
-                      full_x_var.attrs.get('add_offset', 0))
-
-            full_y_var = self.cart['y_i' + self.view]
-            full_y = (np.ma.masked_equal(full_y_var[:],
-                                         full_y_var.attrs.get(
-                                             '_FillValue', np.nan),
-                                         copy=False) *
-                      full_y_var.attrs.get('scale_factor', 1) +
-                      full_y_var.attrs.get('add_offset', 0))
+            variable = variable.fillna(0)
 
             from scipy.interpolate import RectBivariateSpline
             spl = RectBivariateSpline(
-                tie_y, tie_x[::-1], values[:, ::-1].filled(0))
+                tie_y, tie_x, variable.data[:, ::-1])
 
-            interpolated = spl.ev(full_y.compressed(),
-                                  full_x.compressed())
-            interpolated = np.ma.masked_invalid(interpolated, copy=False)
-            values = np.ma.empty(full_y.shape,
-                                 dtype=values.dtype)
-            values[np.logical_not(np.ma.getmaskarray(full_y))] = interpolated
-            values.mask = full_y.mask
+            valid = np.isfinite(full_y)
+
+            interpolated = spl.ev(full_y[valid],
+                                  full_x[valid])
+
+            values = np.full_like(full_y, np.nan,
+                                 dtype=variable.dtype)
+
+            values[valid] = interpolated
+            values = np.ma.masked_invalid(values, copy=False)
 
         proj = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                             dims=['y', 'x'])
@@ -272,8 +259,8 @@ class NCSLSTRAngles(BaseFileHandler):
 
     @property
     def start_time(self):
-        return self._start_time
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return self._end_time
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
