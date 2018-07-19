@@ -84,15 +84,6 @@ class NCSLSTR1B(BaseFileHandler):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
 
-        file_base = os.path.splitext(os.path.basename(filename))[0]
-
-        if file_base[-1] == 'n':
-            self.view = 'n'
-        elif file_base[-1] == 'o':
-            self.view = 'o'
-        else:
-            raise Exception('Unknown view type', file_base[-1])  
-
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
@@ -100,7 +91,7 @@ class NCSLSTR1B(BaseFileHandler):
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-
+        self.view = 'n'  # n for nadir, o for oblique
         cal_file = os.path.join(os.path.dirname(
             filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
@@ -168,19 +159,12 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
+    view = 'n'
+
     def __init__(self, filename, filename_info, filetype_info):
         
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
-
-        file_base = os.path.splitext(os.path.basename(filename))[0]
-
-        if file_base[-1] == 'n':
-            self.view = 'n'
-        elif file_base[-1] == 'o':
-            self.view = 'o'
-        else:
-            raise Exception('Unknown view type', file_base[-1])        
 
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
