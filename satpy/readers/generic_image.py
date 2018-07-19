@@ -47,7 +47,7 @@ class GenericImageFileHandler(BaseFileHandler):
             filename, filename_info, filetype_info)
         self.finfo = filename_info
         try:
-            self.finfo['end_time'] = self.finfo['start_time']
+            self.finfo['end_time'] =  self.finfo['start_time']
         except KeyError:
             pass
         self.finfo['filename'] = filename
@@ -71,11 +71,13 @@ class GenericImageFileHandler(BaseFileHandler):
         data['bands'] = BANDS[data.bands.size]
 
         # Mask data if alpha channel is present
-        try:
-            data = mask_image_data(data)
-        except ValueError as err:
-            logger.warning(err)
-
+        if data.bands.size in (2, 4):
+            mask = data.data[-1, :, :] == np.iinfo(data.dtype).min
+            data = data.astype(np.float64)
+            masked_data = da.stack([da.where(mask, np.nan, data.data[i, :, :])
+                                    for i in range(data.shape[0])])
+            data.data = masked_data
+            data = data.sel(bands=BANDS[data.bands.size - 1])
         data.attrs = attrs
         self.file_content['image'] = data
 
@@ -101,7 +103,7 @@ class GenericImageFileHandler(BaseFileHandler):
 
 
 def get_geotiff_area_def(filename, crs):
-    """Read area definition from a geotiff."""
+    """"""
     from osgeo import gdal
     from pyresample.geometry import AreaDefinition
     from pyresample.utils import proj4_str_to_dict
@@ -119,17 +121,3 @@ def get_geotiff_area_def(filename, crs):
                               proj4_str_to_dict(crs),
                               x_size, y_size, area_extent)
     return area_def
-
-
-def mask_image_data(data):
-    """Mask image data if alpha channel is present."""
-    if data.bands.size in (2, 4):
-        if not np.issubdtype(data.dtype, np.integer):
-            raise ValueError("Only integer datatypes can be used as a mask.")
-        mask = data.data[-1, :, :] == np.iinfo(data.dtype).min
-        data = data.astype(np.float64)
-        masked_data = da.stack([da.where(mask, np.nan, data.data[i, :, :])
-                                for i in range(data.shape[0])])
-        data.data = masked_data
-        data = data.sel(bands=BANDS[data.bands.size - 1])
-    return data
