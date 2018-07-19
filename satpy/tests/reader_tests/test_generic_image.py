@@ -29,7 +29,6 @@ import xarray as xr
 import dask.array as da
 import numpy as np
 
-
 class TestGenericImage(unittest.TestCase):
     """Test generic image reader."""
 
