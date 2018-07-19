@@ -162,7 +162,7 @@ class NCSLSTRAngles(BaseFileHandler):
     view = 'n'
 
     def __init__(self, filename, filename_info, filetype_info):
-        
+
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
 
@@ -209,8 +209,8 @@ class NCSLSTRAngles(BaseFileHandler):
 
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
-            tie_x = self.cartx['x_tx'].data[0,:][::-1]
-            tie_y = self.cartx['y_tx'].data[:,0]
+            tie_x = self.cartx['x_tx'].data[0, :][::-1]
+            tie_y = self.cartx['y_tx'].data[:, 0]
             full_x = self.cart['x_i' + self.view].data
             full_y = self.cart['y_i' + self.view].data
 
@@ -226,13 +226,13 @@ class NCSLSTRAngles(BaseFileHandler):
                                   full_x[valid])
 
             values = np.full_like(full_y, np.nan,
-                                 dtype=variable.dtype)
+                                  dtype=variable.dtype)
 
             values[valid] = interpolated
             values = np.ma.masked_invalid(values, copy=False)
-            
+
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                                dims=['y', 'x'])
+                                    dims=['y', 'x'])
 
         variable.attrs['platform_name'] = self.platform_name
         variable.attrs['sensor'] = self.sensor
