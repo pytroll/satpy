@@ -30,6 +30,9 @@ import dask.array as da
 import numpy as np
 
 from satpy.scene import Scene
+from satpy.readers.generic_image import GenericImageFileHandler
+from satpy.readers.generic_image import get_geotiff_area_def
+from satpy import CHUNK_SIZE
 
 
 class TestGenericImage(unittest.TestCase):
@@ -119,8 +122,8 @@ class TestGenericImage(unittest.TestCase):
         except OSError:
             pass
 
-    def test_png(self):
-        """Test reading PNG images."""
+    def test_png_scene(self):
+        """Test reading PNG images via satpy.Scene()."""
         fname = os.path.join(self.base_dir, 'test_l.png')
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
@@ -139,8 +142,8 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['end_time'], self.date)
         self.assertEqual(np.sum(np.isnan(data)), 100)
 
-    def test_geotiff(self):
-        """Test reading PNG images."""
+    def test_geotiff_scene(self):
+        """Test reading PNG images via satpy.Scene()."""
         fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
@@ -158,6 +161,40 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
         self.assertEqual(scn['image'].area, self.area_def)
+
+    def test_get_geotiff_area_def(self):
+        """Test reading area definition from a geotiff"""
+        fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
+        data = xr.open_rasterio(fname,
+                                chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
+        adef = get_geotiff_area_def(fname, data.crs)
+        self.assertEqual(adef, self.area_def)
+
+    def test_GenericImageFileHandler(self):
+        """Test direct use of the reader."""
+        fname = os.path.join(self.base_dir, 'test_rgba.tif')
+        fname_info = {'start_time': self.date}
+        ftype_info = {}
+        reader = GenericImageFileHandler(fname, fname_info, ftype_info)
+        class Foo(object):
+            """Mock class for dataset id"""
+            def __init__(self):
+                self.name = 'image'
+        foo = Foo()
+        self.assertTrue(reader.file_content)
+        self.assertEqual(reader.finfo['filename'], fname)
+        self.assertEqual(reader.finfo['start_time'], self.date)
+        self.assertEqual(reader.finfo['end_time'], self.date)
+        self.assertEqual(reader.area, self.area_def)
+        self.assertEqual(reader.get_area_def(None), self.area_def)
+        self.assertEqual(reader.start_time, self.date)
+        self.assertEqual(reader.end_time, self.date)
+
+        dataset = reader.get_dataset(foo, None)
+        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue('crs' in dataset.attrs)
+        self.assertTrue('transform' in dataset.attrs)
+        self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
 
 def suite():
