@@ -92,11 +92,11 @@ class TestGenericImage(unittest.TestCase):
         scn['l'] = ds_l
         scn['l'].attrs['area'] = self.area_def
         scn['la'] = ds_la
-        scn['l'].attrs['area'] = self.area_def
+        scn['la'].attrs['area'] = self.area_def
         scn['rgb'] = ds_rgb
-        scn['l'].attrs['area'] = self.area_def
+        scn['rgb'].attrs['area'] = self.area_def
         scn['rgba'] = ds_rgba
-        scn['l'].attrs['area'] = self.area_def
+        scn['rgba'].attrs['area'] = self.area_def
 
         # Save the images.  Two images in PNG and two in GeoTIFF
         scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'),
@@ -148,7 +148,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], self.date)
         self.assertEqual(scn.attrs['end_time'], self.date)
-        # self.assertEqual(scn['image'].area, self.area_def)
+        self.assertEqual(scn['image'].area, self.area_def)
 
         fname = os.path.join(self.base_dir, 'test_rgba.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
@@ -157,7 +157,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
-        # self.assertEqual(scn['image'].area, self.area_def)
+        self.assertEqual(scn['image'].area, self.area_def)
 
 
 def suite():
