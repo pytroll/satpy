@@ -32,6 +32,7 @@ import numpy as np
 from satpy.scene import Scene
 from satpy.readers.generic_image import GenericImageFileHandler
 from satpy.readers.generic_image import get_geotiff_area_def
+from satpy.readers.generic_image import mask_image_data
 from satpy import CHUNK_SIZE
 
 
@@ -113,6 +114,8 @@ class TestGenericImage(unittest.TestCase):
         scn.save_dataset('rgba', os.path.join(self.base_dir,
                                               'test_rgba.tif'),
                          writer='geotiff')
+
+        self.scn = scn
 
     def tearDown(self):
         """Remove the temporary directory created for a test"""
@@ -197,6 +200,14 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue('crs' in dataset.attrs)
         self.assertTrue('transform' in dataset.attrs)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
+
+        # Test masking
+        data = self.scn['rgba']
+        self.assertRaises(ValueError, mask_image_data, data)
+        data = data.astype(np.uint32)
+        self.assertTrue(data.bands.size == 4)
+        data = mask_image_data(data)
+        self.assertTrue(data.bands.size == 3)
 
 
 def suite():
