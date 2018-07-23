@@ -176,10 +176,12 @@ class TestGenericImage(unittest.TestCase):
         fname_info = {'start_time': self.date}
         ftype_info = {}
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
+
         class Foo(object):
             """Mock class for dataset id"""
             def __init__(self):
                 self.name = 'image'
+
         foo = Foo()
         self.assertTrue(reader.file_content)
         self.assertEqual(reader.finfo['filename'], fname)
