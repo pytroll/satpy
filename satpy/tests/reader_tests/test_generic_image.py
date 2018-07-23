@@ -214,7 +214,6 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue(data.bands.size == 3)
 
 
-
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
