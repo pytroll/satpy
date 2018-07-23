@@ -23,7 +23,6 @@
 """
 
 import os
-import shutil
 import unittest
 
 import xarray as xr
@@ -116,7 +115,7 @@ class TestGenericImage(unittest.TestCase):
         """Remove the temporary directory created for a test"""
         try:
             import shutil
-            # shutil.rmtree(self.base_dir, ignore_errors=True)
+            shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
             pass
 
@@ -159,6 +158,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
         # self.assertEqual(scn['image'].area, self.area_def)
+
 
 def suite():
     """The test suite for test_writers."""
