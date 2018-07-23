@@ -103,7 +103,7 @@ class GenericImageFileHandler(BaseFileHandler):
 
 
 def get_geotiff_area_def(filename, crs):
-    """"""
+    """Read area definition from a geotiff."""
     from osgeo import gdal
     from pyresample.geometry import AreaDefinition
     from pyresample.utils import proj4_str_to_dict
