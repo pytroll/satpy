@@ -502,11 +502,6 @@ def run_crefl(refl, coeffs,
         mus, muv, phi, height, (ah2o, bh2o, ao3, tau))
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
-
-    if rhoray.shape[1] != refl.shape[1]:
-        from satpy.composites import IncompatibleAreas
-        raise IncompatibleAreas("")
-
     # Note: Assume that fill/invalid values are either NaN or we are dealing
     # with masked arrays
     if percent:
