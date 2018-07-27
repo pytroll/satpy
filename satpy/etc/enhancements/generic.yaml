@@ -18,8 +18,15 @@ enhancements:
     - name: crefl_scaling
       method: !!python/name:satpy.enhancements.crefl_scaling
       kwargs:
-       idx: [0., 30., 60., 120., 190., 255.]
-       sc: [0., 100., 128., 188., 223., 255.]
+#      Polar 2 Grid's scaling: "Preffered".
+       idx: [0., 25., 55., 100., 255.]
+       sc: [0., 90., 140., 175., 255.]
+#       Ralph's new scaling: Looks darker.
+#       idx: [0., 30., 60., 120., 190., 255.]
+#       sc: [0., 100., 128., 188., 223., 255.]
+#       Ralph's old scaling: Looks lighter.
+#       idx: [0., 30., 60., 120., 190., 255.]
+#       sc: [0, 110, 160, 210, 240, 255]
   overview_default:
     standard_name: overview
     operations:

@@ -482,6 +482,7 @@ def run_crefl(refl, coeffs,
         height = height.where((height >= 0.) & ~space_mask, 0.0)
         del lat, lon, row, col
     mus = xu.cos(xu.deg2rad(solar_zenith))
+    mus = mus.where(mus >= 0)
     muv = xu.cos(xu.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
@@ -510,5 +511,3 @@ def run_crefl(refl, coeffs,
         corr_refl = (refl / tOG - rhoray) / TtotraytH2O
     corr_refl /= (1.0 + corr_refl * sphalb)
     return corr_refl.clip(REFLMIN, REFLMAX)
-
-    # return odata
