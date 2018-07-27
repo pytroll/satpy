@@ -249,8 +249,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                      'units': 'm'}
 
         if dsid.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+            ref_grid = self.header['15_DATA_HEADER']['ImageDescription'][
+                'ReferenceGridHRV']
+            nlines = ref_grid['NumberOfLines']
+            ncols = ref_grid['NumberOfColumns']
         else:
             nlines = self.mda['number_of_lines']
             ncols = self.mda['number_of_columns']
@@ -271,18 +273,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
 
-        if dsid.name != 'HRV':
+        # following calculations assume grid origin is south-east corner
+        # section 7.2.4 of MSG Level 1.5 Image Data Format Description
+        origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
+        grid_origin = data15hd['ImageDescription'][
+            "ReferenceGridVIS_IR"]["GridOrigin"]
+        if grid_origin != 2:
+            raise NotImplementedError(
+                'Grid origin not supported number: {}, {} corner'
+                .format(grid_origin, origins[grid_origin])
+            )
 
-            # following calculations assume grid origin is south-east corner
-            # section 7.2.4 of MSG Level 1.5 Image Data Format Description
-            origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
-            grid_origin = data15hd['ImageDescription'][
-                "ReferenceGridVIS_IR"]["GridOrigin"]
-            if grid_origin != 2:
-                raise NotImplementedError(
-                    'Grid origin not supported number: {}, {} corner'
-                    .format(grid_origin, origins[grid_origin])
-                )
+        if dsid.name != 'HRV':
 
             center_point = 3712/2
 
@@ -295,31 +297,48 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 "ReferenceGridVIS_IR"]["ColumnDirGridStep"] * 1000.0
             line_step = data15hd['ImageDescription'][
                 "ReferenceGridVIS_IR"]["LineDirGridStep"] * 1000.0
-            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-            earth_model = data15hd['GeometricProcessing']['EarthModel'][
-                'TypeOfEarthModel']
-            if earth_model == 2:
-                ns_offset = 0  # north +ve
-                we_offset = 0  # west +ve
-            elif earth_model == 1:
-                ns_offset = -0.5  # north +ve
-                we_offset = 0.5  # west +ve
-            else:
-                raise NotImplementedError(
-                    'unrecognised earth model: {}'.format(earth_model)
-                )
 
-            # section 3.1.5 of MSG Level 1.5 Image Data Format Description
-            ll_c = (center_point - west - 0.5 + we_offset) * column_step
-            ll_l = (south - center_point - 0.5 + ns_offset) * line_step
-            ur_c = (center_point - east + 0.5 + we_offset) * column_step
-            ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+            pre_Dec2017_ns_offset = -0.5
+            pre_Dec2017_we_offset = 0.5
 
-            area_extent = (ll_c, ll_l, ur_c, ur_l)
+        else:  # HRV
+            center_point = 5566
 
+            reference_grid = data15hd['ImageDescription']["ReferenceGridHRV"]
+
+            # assuming grid_origin==2, i.e. (1,1) is south-east corner
+            east = 1
+            west = reference_grid['NumberOfColumns']  # 11136
+            south = 1
+            north = reference_grid['NumberOfLines']   # 11136
+
+            column_step = reference_grid["ColumnDirGridStep"] * 1000.0
+            line_step = reference_grid["LineDirGridStep"] * 1000.0
+
+            pre_Dec2017_ns_offset = -1.5
+            pre_Dec2017_we_offset = 1.5
+
+        # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
+        earth_model = data15hd['GeometricProcessing']['EarthModel'][
+            'TypeOfEarthModel']
+        if earth_model == 2:
+            ns_offset = 0  # north +ve
+            we_offset = 0  # west +ve
+        elif earth_model == 1:
+            ns_offset = pre_Dec2017_ns_offset  # north +ve
+            we_offset = pre_Dec2017_we_offset  # west +ve
         else:
+            raise NotImplementedError(
+                'unrecognised earth model: {}'.format(earth_model)
+            )
 
-            raise NotImplementedError('HRV not supported!')
+        # section 3.1.5 of MSG Level 1.5 Image Data Format Description
+        ll_c = (center_point - west - 0.5 + we_offset) * column_step
+        ll_l = (south - center_point - 0.5 + ns_offset) * line_step
+        ur_c = (center_point - east + 0.5 + we_offset) * column_step
+        ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+
+        area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         return area_extent
 
@@ -346,6 +365,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             data = da.flipud(da.fliplr((data.reshape(shape))))
 
         else:
+            # Upper HRV stacked directly on top of Lower HRV
+            # (in actuality, these two are offset to eachother)
             shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
 
             raw2 = self.dask_array['hrv']['line_data'][:, 2, :]
@@ -367,6 +388,28 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             data[idx, :] = data1
             idx = range(2, shape[0], 3)
             data[idx, :] = data0
+
+            # Full disk area (ReferenceGridHRV), with HRV-UPPER and
+            # HRV-Lower embedded inside.
+            # see section 3.1.5 of MSG Level 1.5 Image Data Format Description
+            ref_grid = self.header['15_DATA_HEADER']['ImageDescription'][
+                'ReferenceGridHRV']
+            ysize = ref_grid['NumberOfLines']
+            xsize = ref_grid['NumberOfColumns']
+            fulldisk = np.zeros((ysize, xsize))
+            hrv_coverage = self.trailer['15TRAILER'][
+                'ImageProductionStats']['ActualL15CoverageHRV']
+            un = ysize - hrv_coverage['UpperNorthLineActual']
+            uw = xsize - hrv_coverage['UpperWestColumnActual']
+            us = ysize - hrv_coverage['UpperSouthLineActual']
+            ue = xsize - hrv_coverage['UpperEastColumnActual']
+            fulldisk[un:us+1, uw:ue+1] = data[:us+1-un, :]
+            ln = ysize - hrv_coverage['LowerNorthLineActual']
+            lw = xsize - hrv_coverage['LowerWestColumnActual']
+            ls = ysize - hrv_coverage['LowerSouthLineActual']
+            le = xsize - hrv_coverage['LowerEastColumnActual']
+            fulldisk[ln:ls+1, lw:le+1] = data[ln:, :]
+            data = fulldisk
 
         xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
