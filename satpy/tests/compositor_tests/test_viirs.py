@@ -242,7 +242,7 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(
             unique, [3.484797e-04, 9.507845e-03, 4.500016e+03])
 
-    def test_ReflectanceCorrector_abi(self):
+    def test_reflectance_corrector_abi(self):
         import xarray as xr
         import dask.array as da
         import numpy as np
@@ -326,7 +326,7 @@ class TestVIIRSComposites(unittest.TestCase):
                                             51.909142813383916, 58.8234273736508, 68.84706145641482, 69.91085190887961,
                                             71.10179768327806, 71.33161009169649, 78.81291424983952])
 
-    def test_ReflectanceCorrector_viirs(self):
+    def test_reflectance_corrector_viirs(self):
         import xarray as xr
         import dask.array as da
         import numpy as np
@@ -412,7 +412,7 @@ class TestVIIRSComposites(unittest.TestCase):
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
 
-    def test_ReflectanceCorrector_modis(self):
+    def test_reflectance_corrector_modis(self):
         import xarray as xr
         import dask.array as da
         import numpy as np

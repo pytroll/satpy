@@ -423,10 +423,12 @@ class DependencyTree(Node):
         except KeyError:
             # exact dataset isn't loaded, let's load it below
             pass
+
         # 1 try to get *best* dataset from reader
         node = self._find_reader_dataset(dataset_key, **dfilter)
         if node is not None:
             return node, set()
+
         # 2 try to find a composite by name (any version of it is good enough)
         try:
             # assume that there is no such thing as a "better" composite
@@ -436,12 +438,14 @@ class DependencyTree(Node):
         except KeyError:
             # composite hasn't been loaded yet, let's load it below
             pass
+
         # 3 try to find a composite that matches
         try:
             node, unknowns = self._find_compositor(dataset_key, **dfilter)
         except KeyError:
             node = None
             unknowns = set([dataset_key])
+
         return node, unknowns
 
     def find_dependencies(self, dataset_keys, **dfilter):
@@ -459,6 +463,7 @@ class DependencyTree(Node):
         unknown_datasets = set()
         for key in dataset_keys.copy():
             n, unknowns = self._find_dependencies(key, **dfilter)
+
             dataset_keys.discard(key)  # remove old non-DatasetID
             if n is not None:
                 dataset_keys.add(n.name)  # add equivalent DatasetID
@@ -467,4 +472,5 @@ class DependencyTree(Node):
                 continue
 
             self.add_child(self, n)
+            
         return unknown_datasets

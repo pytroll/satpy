@@ -1,7 +1,6 @@
 sensor_name: visir/abi
 
 modifiers:
-  # TODO: fix
   rayleigh_corrected_crefl:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
