@@ -26,5 +26,5 @@ def suite():
 
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(testCreflUtils))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestCreflUtils))
     return mysuite

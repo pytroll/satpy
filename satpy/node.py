@@ -472,5 +472,5 @@ class DependencyTree(Node):
                 continue
 
             self.add_child(self, n)
-            
+
         return unknown_datasets
