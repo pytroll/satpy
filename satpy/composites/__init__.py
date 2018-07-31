@@ -885,8 +885,8 @@ def enhance2dataset(dset):
     array of the image."""
     attrs = dset.attrs
     img = get_enhanced_image(dset)
-    # Clip image data to interval [0.0, 1.0] and replace nan values
-    data = img.data.clip(0.0, 1.0).fillna(0.0)
+    # Clip image data to interval [0.0, 1.0]
+    data = img.data.clip(0.0, 1.0)
     data.attrs = attrs
 
     return data
