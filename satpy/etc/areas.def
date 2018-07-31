@@ -396,6 +396,15 @@ REGION: baws {
 	AREA_EXTENT:    (-475617, 5324430, 924383, 6724430)
 };
 
+REGION: baws_merc {
+        NAME:		BAWS3
+	PCS_ID: 	merc
+	PCS_DEF:	proj=merc,ellps=WGS84,lon_0=14,lat_1=60,lat_2=60
+	XSIZE:		1400
+	YSIZE:		1400
+	AREA_EXTENT:    (-475617, 5324430, 924383, 6724430)
+};
+
 REGION: eurotv {
         NAME:           Europe TV -  6.2x5.0km
         PCS_ID:         eurotv
