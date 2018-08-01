@@ -34,6 +34,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from pyresample import geometry
 
@@ -425,6 +426,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         """Calibrate *data*."""
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
+        data.data = da.where(data.data == 0, np.nan, data.data)
         ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
         res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
