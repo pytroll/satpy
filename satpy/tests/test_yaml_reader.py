@@ -73,6 +73,7 @@ class TestUtils(unittest.TestCase):
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        pattern = os.path.join(*pattern.split('/'))
         filename = os.path.join(base_dir, 'Oa05_radiance.nc')
         expected = os.path.join(base_data, 'Oa05_radiance.nc')
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
@@ -90,6 +91,7 @@ class TestUtils(unittest.TestCase):
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        pattern = os.path.join(*pattern.split('/'))
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
                      os.path.join(base_dir, 'geo_coordinates.nc')]
         expected = os.path.join(base_dir, 'geo_coordinates.nc')
@@ -219,7 +221,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
-                                        })
+        })
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
@@ -496,7 +498,8 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReaderMultiplePatterns))
+    mysuite.addTest(loader.loadTestsFromTestCase(
+        TestFileFileYAMLReaderMultiplePatterns))
 
     return mysuite
 
