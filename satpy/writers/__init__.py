@@ -328,12 +328,10 @@ def add_decorate(orig, **decorate):
 
 def get_enhanced_image(dataset,
                        enhancer=None,
-                       fill_value=None,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
                        decorate=None):
-    mode = _determine_mode(dataset)
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -341,7 +339,7 @@ def get_enhanced_image(dataset,
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
     # Create an image for enhancement
-    img = to_image(dataset, mode=mode, fill_value=fill_value)
+    img = to_image(dataset)
 
     if enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
@@ -368,13 +366,8 @@ def show(dataset, **kwargs):
     return img
 
 
-def to_image(dataset, copy=False, **kwargs):
-    # Only add keywords if they are present
-    for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.attrs:
-            kwargs.setdefault(key, dataset.attrs[key])
+def to_image(dataset):
     dataset = dataset.squeeze()
-
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
@@ -565,10 +558,10 @@ class ImageWriter(Writer):
 
         """
         img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            dataset.squeeze(), self.enhancer, overlay=overlay,
             decorate=decorate)
         return self.save_image(img, filename=filename, compute=compute,
-                               **kwargs)
+                               fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
