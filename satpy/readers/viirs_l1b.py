@@ -109,14 +109,6 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
-    def _load_and_slice(self, var_path, shape, xslice, yslice):
-        if isinstance(shape, tuple) and len(shape) == 2:
-            return self[var_path][yslice, xslice]
-        elif isinstance(shape, tuple) and len(shape) == 1:
-            return self[var_path][yslice]
-        else:
-            return self[var_path]
-
     def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
         file_units = ds_info.get('file_units')
         if file_units is None:
@@ -201,52 +193,44 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         i.update(dataset_id.to_dict())
         return i
 
-    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         shape = metadata['shape']
-        if isinstance(shape, tuple) and len(shape) == 2:
-            # 2D array
-            if xslice.start is not None:
-                shape = (shape[0], xslice.stop - xslice.start)
-            if yslice.start is not None:
-                shape = (yslice.stop - yslice.start, shape[1])
-        elif isinstance(shape, tuple) and len(shape) == 1 and yslice.start is not None:
-            shape = ((yslice.stop - yslice.start) / yslice.step,)
-        metadata['shape'] = shape
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
         if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
-            data = self._load_and_slice(var_path, shape, xslice, yslice)
+            data = self[var_path]
         elif ds_info.get('units') == '%':
-            data = self._load_and_slice(var_path, shape, xslice, yslice)
+            data = self[var_path]
         elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
+            data = self[var_path]
             # we get the BT values from a look up table using the scaled radiance integers
-            # .flatten() currently not supported, workaround: https://github.com/pydata/xarray/issues/1029
-            data = self[var_path][yslice, xslice]
-            data = data.stack(name=data.dims).astype(np.int)
+            index_arr = data.data.astype(np.int)
             coords = data.coords
-            data = self[lut_var_path][data]
-            if 'dim_0' in data:
-                # seems like older versions of xarray take the dims from
-                # 'lut_var_path'. newer versions take 'data' dims
-                data = data.rename({'dim_0': 'name'})
-            data = data.assign_coords(**coords).unstack('name')
+            data.data = self[lut_var_path].data[index_arr.ravel()].reshape(data.shape)
+            data = data.assign_coords(**coords)
         elif shape == 1:
             data = self[var_path]
         else:
-            data = self._load_and_slice(var_path, shape, xslice, yslice)
+            data = self[var_path]
+        data.attrs.update(metadata)
 
         if valid_min is not None and valid_max is not None:
             data = data.where((data >= valid_min) & (data <= valid_max))
+        if data.attrs.get('units') in ['%', 'K', '1', 'W m-2 um-1 sr-1'] and \
+                'flag_meanings' in data.attrs:
+            # flag meanings don't mean anything anymore for these variables
+            # these aren't category products
+            data.attrs.pop('flag_meanings', None)
+            data.attrs.pop('flag_values', None)
 
         factors = (scale_factor, scale_offset)
         factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
         if factors[0] != 1 or factors[1] != 0:
-            data = data * factors[0] + factors[1]
-
-        data.attrs.update(metadata)
+            data *= factors[0]
+            data += factors[1]
         return data
