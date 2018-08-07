@@ -232,10 +232,13 @@ class NCSLSTRAngles(BaseFileHandler):
             values = np.ma.masked_invalid(values, copy=False)
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                                    dims=['y', 'x'])
+                                    dims=['y', 'x'], attrs=variable.attrs)
 
         variable.attrs['platform_name'] = self.platform_name
         variable.attrs['sensor'] = self.sensor
+
+        if 'units' not in variable.attrs:
+            variable.attrs['units'] = 'degrees'
 
         variable.attrs.update(key.to_dict())
 
