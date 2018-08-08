@@ -214,7 +214,7 @@ enhancements:
     operations:
     - name: stretch
       method: *stretchfun
-      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 120}
+      kwargs: {stretch: linear}
 
   sar-ice:
     standard_name: sar-ice
