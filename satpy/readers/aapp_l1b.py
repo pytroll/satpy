@@ -53,6 +53,33 @@ ANGLES = {'sensor_zenith_angle': 'satz',
           'solar_zenith_angle': 'sunz',
           'sun_sensor_azimuth_difference_angle': 'azidiff'}
 
+PLATFORM_NAMES = {'noaa7': 'NOAA-7',
+                  'noaa8': 'NOAA-8',
+                  'noaa9': 'NOAA-9',
+                  'noaa10': 'NOAA-10',
+                  'noaa11': 'NOAA-11',
+                  'noaa12': 'NOAA-12',
+                  'noaa13': 'NOAA-13',
+                  'noaa14': 'NOAA-14',
+                  'noaa15': 'NOAA-15',
+                  'noaa16': 'NOAA-16',
+                  'noaa17': 'NOAA-17',
+                  'noaa18': 'NOAA-18',
+                  'noaa19': 'NOAA-19',
+                  'm01': 'Metop-B',
+                  'm02': 'Metop-A',
+                  'm03': 'Metop-C',
+                  'M01': 'Metop-B',
+                  'M02': 'Metop-A',
+                  'M03': 'Metop-C',
+                  'metop01': 'Metop-B',
+                  'metop02': 'Metop-A',
+                  'metop03': 'Metop-C',
+}
+
+AVHRR2_PLATFORM_NAMES = ['NOAA-7', 'NOAA-8', 'NOAA-9', 'NOAA-10', 'NOAA-11',
+                         'NOAA-12', 'NOAA-13', 'NOAA-14']
+
 
 def create_xarray(arr):
     res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
@@ -67,6 +94,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                                filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
+
+        platform_shortname = filename_info['platform_shortname']
+        self.platform_name = PLATFORM_NAMES.get(platform_shortname)
+        if self.platform_name in AVHRR2_PLATFORM_NAMES:
+            self.sensor = 'avhrr-2'
+        else:
+            self.sensor = 'avhrr-3'
 
         self._data = None
         self._header = None
@@ -119,7 +153,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                     "Not a supported sun-sensor viewing angle: %s", key.name)
                 raise
 
-        # TODO get metadata
+        # FIXME get metadata from the header
+        dataset.attrs.update({'platform_name': self.platform_name,
+                              'sensor': self.sensor})
+        dataset.attrs.update(key.to_dict())
 
         if not self._shape:
             self._shape = dataset.shape
