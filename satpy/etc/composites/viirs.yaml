@@ -203,7 +203,7 @@ composites:
     optional_prerequisites:
     - name: I01
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
-    standard_name: natural_color
+    standard_name: false_color
     high_resolution_band: blue
 
   natural_color:
