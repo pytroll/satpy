@@ -70,7 +70,7 @@ modifiers:
 
 
 composites:
-  natural_sun:
+  natural_color_sun:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: 'B11'
@@ -78,7 +78,7 @@ composites:
       modifiers: [effective_solar_pathlength_corrected]
     - name: 'B04'
       modifiers: [effective_solar_pathlength_corrected]
-    standard_name: natural
+    standard_name: natural_color
     
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
