@@ -26,6 +26,9 @@ matrix:
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
+    # See https://github.com/conda/conda/issues/7626#issuecomment-412922028
+    - conda config --remove channels defaults
+    - conda install -y $CONDA_DEPENDENCIES
 script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
