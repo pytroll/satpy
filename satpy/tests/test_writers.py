@@ -141,6 +141,7 @@ class TestEnhancerUserConfigs(unittest.TestCase):
     ENH_ENH_FN = os.path.join('enhancements', ENH_FN)
     ENH_FN2 = 'test_sensor2.yaml'
     ENH_ENH_FN2 = os.path.join('enhancements', ENH_FN2)
+    ENH_FN3 = 'test_empty.yaml'
 
     TEST_CONFIGS = {
         ENH_FN: """
@@ -175,6 +176,7 @@ sensor_name: visir/test_sensor2
 sensor_name: visir/test_sensor2
 
         """,
+        ENH_FN3: """""",
     }
 
     @classmethod
@@ -195,6 +197,19 @@ sensor_name: visir/test_sensor2
                 shutil.rmtree(base_dir)
             elif os.path.isfile(fn):
                 os.remove(fn)
+
+    def test_enhance_empty_config(self):
+        """Test Enhancer doesn't fail with empty enhancement file."""
+        from satpy.writers import Enhancer, get_enhanced_image
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(sensor='test_empty', mode='L'),
+                       dims=['y', 'x'])
+        e = Enhancer()
+        self.assertIsNotNone(e.enhancement_tree)
+        get_enhanced_image(ds, enhancer=e)
+        self.assertSetEqual(set(e.sensor_enhancement_configs),
+                            {self.ENH_FN3})
 
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections."""
