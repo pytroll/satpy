@@ -682,7 +682,12 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_section = yaml.load(fd).get(self.prefix, {})
+                    enhancement_config = yaml.load(fd)
+                    if enhancement_config is None:
+                        # empty file
+                        continue
+                    enhancement_section = enhancement_config.get(
+                        self.prefix, {})
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
