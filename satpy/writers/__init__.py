@@ -383,17 +383,28 @@ def to_image(dataset, copy=False, **kwargs):
 
 def split_results(results):
     """Get sources, targets and delayed objects to separate lists from a
-    list of lists of results collected from multiple writers."""
+    list of results collected from (multiple) writer(s)."""
+    from dask.delayed import Delayed
+
+    def flatten(results):
+        out = []
+        if isinstance(results, (list, tuple)):
+            for itm in results:
+                out.extend(flatten(itm))
+            return out
+        return [results]
+
     sources = []
     targets = []
     delayeds = []
-    for res in results:
-        if isinstance(res, tuple):
-            for src, tgt in zip(*res):
-                sources.append(src)
-                targets.append(tgt)
-        else:
+
+    for res in flatten(results):
+        if isinstance(res, da.Array):
+            sources.append(res)
+        elif isinstance(res, Delayed):
             delayeds.append(res)
+        else:
+            targets.append(res)
     return sources, targets, delayeds
 
 
@@ -405,6 +416,9 @@ def compute_writer_results(results):
         results (iterable): Iterable of dask graphs resulting from calls to
                             `scn.save_datasets(..., compute=False)
     """
+    if not results:
+        return
+
     sources, targets, delayeds = split_results(results)
 
     # one or more writers have targets that we need to close in the future
