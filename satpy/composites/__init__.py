@@ -461,7 +461,6 @@ class PSPRayleighReflectance(CompositeBase):
 
 
 class NIRReflectance(CompositeBase):
-    # TODO: Daskify
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel. Not supposed to be used
