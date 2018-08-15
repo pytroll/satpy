@@ -12,7 +12,7 @@ try:
     from satpy.readers.hdf4_utils import HDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    HDF4FileHandler = None
+    HDF4FileHandler = object
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
