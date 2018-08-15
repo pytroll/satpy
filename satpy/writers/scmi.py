@@ -110,16 +110,6 @@ UNIT_CONV = {
 }
 
 
-# Lettered Grids are predefined/static tile grids starting with A
-# in the upper-left cell, going right until all cells are filled
-# Map proj_type -> (upper_left_extent, lower_right_extent, tile_width, tile_height)
-LETTERED_GRIDS = {
-    'lcc': ((-140, 55), (-50, 15), 5000, 5000),
-    'stere': ((130, 80), (-120, 50), 5000, 5000),
-    'mercator': ((-180, 50), (-50, 10), 5000, 5000),
-}
-
-
 class NumberedTileGenerator(object):
     def __init__(self, area_definition,
                  tile_shape=None, tile_count=None):
@@ -285,6 +275,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
     def _get_tile_properties(self, tile_shape, tile_count):
         # ignore tile_shape and tile_count
         # they come from the base class, but aren't used here
+        del tile_shape, tile_count
 
         # get original image's X/Y
         ad = self.area_definition
@@ -366,7 +357,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
     def _tile_identifier(self, ty, tx):
         st = self.num_subtiles
         ttc = self.total_tile_count
-        alpha_num = int((ty / st[0]) * (ttc[1] / st[1]) + (tx / st[1]))
+        alpha_num = int((ty // st[0]) * (ttc[1] // st[1]) + (tx // st[1]))
         alpha = string.ascii_uppercase[alpha_num]
         tile_num = int((ty % st[0]) * st[1] + (tx % st[1])) + 1
         return "T{}{:02d}".format(alpha, tile_num)
