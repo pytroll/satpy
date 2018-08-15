@@ -30,8 +30,6 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from satpy.writers import show, to_image, compute_writer_results
-
 try:
     from unittest import mock
 except ImportError:
@@ -61,12 +59,14 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_1D(self):
         """Conversion to image."""
         # 1D
+        from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.XRImage')
     def test_to_image_2D(self, mock_geoimage):
         """Conversion to image."""
+        from satpy.writers import to_image
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -82,6 +82,7 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_3D(self, mock_geoimage):
         """Conversion to image."""
         # 3D
+        from satpy.writers import to_image
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=['bands', 'y', 'x'])
         p['bands'] = ['R', 'G', 'B']
@@ -93,6 +94,8 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         """Check showing."""
+        from satpy.writers import show
+
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
@@ -325,10 +328,12 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_empty(self):
         """Test empty result list"""
+        from satpy.writers import compute_writer_results
         compute_writer_results([])
 
     def test_simple_image(self):
         """Test writing to PNG file"""
+        from satpy.writers import compute_writer_results
         fname = os.path.join(self.base_dir, 'simple_image.png')
         res = self.scn.save_datasets(filename=fname,
                                      datasets=['test'],
@@ -339,6 +344,7 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_geotiff(self):
         """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
         fname = os.path.join(self.base_dir, 'geotiff.tif')
         res = self.scn.save_datasets(filename=fname,
                                      datasets=['test'],
@@ -368,6 +374,7 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_multiple_geotiff(self):
         """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'geotiff1.tif')
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=['test'],
@@ -382,6 +389,7 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_multiple_simple(self):
         """Test writing to geotiff files"""
+        from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'simple_image1.png')
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=['test'],
@@ -396,6 +404,7 @@ class TestComputeWriterResults(unittest.TestCase):
 
     def test_mixed(self):
         """Test writing to multiple mixed-type files"""
+        from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'simple_image3.png')
         res1 = self.scn.save_datasets(filename=fname1,
                                       datasets=['test'],
