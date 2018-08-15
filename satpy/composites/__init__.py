@@ -499,9 +499,9 @@ class NIRReflectance(CompositeBase):
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if ('units' in dataset.attrs and dataset.attrs['units'] == 'K' and
-                "wavelengh" in dataset.attrs and
-                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
+            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
+            if (dataset.attrs.get('units') == 'K' and
+                wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset
             elif ("standard_name" in dataset.attrs and
                   dataset.attrs["standard_name"] == "solar_zenith_angle"):
