@@ -437,6 +437,16 @@ class TestFindFilesAndReaders(unittest.TestCase):
         self.assertRaises(ValueError, find_files_and_readers,
                           sensor='viirs')
 
+    def test_reader_load_failed(self):
+        """Test that an exception is raised when a reader can't be loaded."""
+        from satpy.readers import find_files_and_readers
+        import yaml
+        # touch the file so it exists on disk
+        with mock.patch('yaml.load') as load:
+            load.side_effect = yaml.YAMLError("Import problems")
+            self.assertRaises(yaml.YAMLError, find_files_and_readers,
+                              reader='viirs_sdr')
+
 
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the reader configuration files."""
