@@ -517,6 +517,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
+            if reader and (isinstance(reader, str) or len(reader) == 1):
+                # if it is a single reader then give a more usable error
+                raise
             continue
 
         if not reader_instance.supports_sensor(sensor):
