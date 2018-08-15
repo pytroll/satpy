@@ -29,12 +29,6 @@ import xarray as xr
 import dask.array as da
 import numpy as np
 
-from satpy.scene import Scene
-from satpy.readers.generic_image import GenericImageFileHandler
-from satpy.readers.generic_image import get_geotiff_area_def
-from satpy.readers.generic_image import mask_image_data
-from satpy import CHUNK_SIZE
-
 
 class TestGenericImage(unittest.TestCase):
     """Test generic image reader."""
@@ -45,6 +39,7 @@ class TestGenericImage(unittest.TestCase):
         from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
+        from satpy.scene import Scene
 
         self.date = datetime(2018, 1, 1)
 
@@ -127,6 +122,8 @@ class TestGenericImage(unittest.TestCase):
 
     def test_png_scene(self):
         """Test reading PNG images via satpy.Scene()."""
+        from satpy import Scene
+
         fname = os.path.join(self.base_dir, 'test_l.png')
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
@@ -147,6 +144,8 @@ class TestGenericImage(unittest.TestCase):
 
     def test_geotiff_scene(self):
         """Test reading PNG images via satpy.Scene()."""
+        from satpy import Scene
+
         fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
@@ -167,6 +166,9 @@ class TestGenericImage(unittest.TestCase):
 
     def test_get_geotiff_area_def(self):
         """Test reading area definition from a geotiff"""
+        from satpy.readers.generic_image import get_geotiff_area_def
+        from satpy import CHUNK_SIZE
+
         fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
         data = xr.open_rasterio(fname,
                                 chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
@@ -175,6 +177,9 @@ class TestGenericImage(unittest.TestCase):
 
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
+        from satpy.readers.generic_image import GenericImageFileHandler
+        from satpy.readers.generic_image import mask_image_data
+
         fname = os.path.join(self.base_dir, 'test_rgba.tif')
         fname_info = {'start_time': self.date}
         ftype_info = {}
