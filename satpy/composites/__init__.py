@@ -461,7 +461,6 @@ class PSPRayleighReflectance(CompositeBase):
 
 
 class NIRReflectance(CompositeBase):
-    # TODO: Daskify
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel. Not supposed to be used
@@ -499,11 +498,12 @@ class NIRReflectance(CompositeBase):
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if (dataset.attrs['units'] == 'K' and
-                    "wavelengh" in dataset.attrs and
-                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
+            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
+            if (dataset.attrs.get('units') == 'K' and
+                    wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset
-            elif dataset.attrs["standard_name"] == "solar_zenith_angle":
+            elif ("standard_name" in dataset.attrs and
+                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
                 sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
