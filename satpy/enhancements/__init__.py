@@ -239,3 +239,29 @@ def three_d_effect(img, **kwargs):
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+
+
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
+                    **kwargs):
+    """Scale data linearly in two separate regions.
+
+    This enhancement scales the input data linearly by splitting the data
+    into two regions; min_in to threshold and threshold to max_in. These
+    regions are mapped to 0 to threshold_out and threshold_out to 1. A
+    default threshold_out is set to `176.0 / 255.0` to match the behavior
+    of the US National Weather Service's forecasting tool called AWIPS.
+
+    """
+    threshold_out = threshold_out if threshold_out is not None else (176 / 255.0)
+    low_factor = (threshold_out - 1.) / (min_in - threshold)
+    low_offset = 1. + (low_factor * min_in)
+    high_factor = threshold_out / (max_in - threshold)
+    high_offset = high_factor * max_in
+
+    def _bt_threshold(band_data):
+        # expects dask array to be passed
+        return da.where(band_data >= threshold,
+                        high_offset - high_factor * band_data,
+                        low_offset - low_factor * band_data)
+
+    return apply_enhancement(img.data, _bt_threshold, pass_dask=True)
