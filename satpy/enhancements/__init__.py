@@ -247,9 +247,19 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
 
     This enhancement scales the input data linearly by splitting the data
     into two regions; min_in to threshold and threshold to max_in. These
-    regions are mapped to 0 to threshold_out and threshold_out to 1. A
-    default threshold_out is set to `176.0 / 255.0` to match the behavior
-    of the US National Weather Service's forecasting tool called AWIPS.
+    regions are mapped to 1 to threshold_out and threshold_out to 0
+    respectively, resulting in the data being "flipped" around the
+    threshold. A default threshold_out is set to `176.0 / 255.0` to
+    match the behavior of the US National Weather Service's forecasting
+    tool called AWIPS.
+
+    Args:
+        img (XRImage): Image object to be scaled
+        min_in (float): Minimum input value to scale
+        max_in (float): Maximum input value to scale
+        threshold (float): Input value where to split data in to two regions
+        threshold_out (float): Output value to map the input `threshold`
+            to. Optional, defaults to 176.0 / 255.0.
 
     """
     threshold_out = threshold_out if threshold_out is not None else (176 / 255.0)
