@@ -832,6 +832,9 @@ class DayNightCompositor(GenericCompositor):
         day_data = projectables[0]
         night_data = projectables[1]
 
+        if day_data.shape != night_data.shape:
+            raise IncompatibleAreas
+
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
