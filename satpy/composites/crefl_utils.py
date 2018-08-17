@@ -375,7 +375,7 @@ def get_atm_variables_abi(mus, muv, phi, height, ah2o, ao2, ao3, tau, G_O3, G_H2
     if ah2o != 0:
         tH2O = da.exp(-G_H2O * ah2o)
     tO2 = da.exp(-G_O2 * ao2)
-    # Returns sphalb, rhoray, TtotraytH2O, tOG
+    # Returns sphalb, rhoray, TtotraytH2O, tOG.
     return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
 
 
