@@ -50,6 +50,8 @@ MAXSOLZ = 86.5
 MAXAIRMASS = 18
 SCALEHEIGHT = 8000
 FILL_INT16 = 32767
+TAUSTEP4SPHALB_ABI = .0003
+TAUSTEP4SPHALB = .0001
 
 MAXNUMSPHALBVALUES = 4000  # with no aerosol taur <= 0.4 in all bands everywhere
 REFLMIN = -0.01
@@ -276,8 +278,8 @@ def chand(phi, muv, mus, taur):
     #         int i, ib;
 
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
-        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(
+        1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
     # pl[0] = 1.0
@@ -301,15 +303,15 @@ def chand(phi, muv, mus, taur):
     # if ib is None:
     #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
-    xlntaur = np.log(taur)
+    xlntaur = da.log(taur)
 
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
     del xlntaur, fs01, fs02
 
-    trdown = np.exp(-taur / mus)
-    trup = np.exp(-taur / muv)
+    trdown = da.exp(-taur / mus)
+    trup = da.exp(-taur / muv)
 
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
@@ -318,117 +320,68 @@ def chand(phi, muv, mus, taur):
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
     del xph1, xph2, xph3, xitm1, xitm2, fs0, fs1, fs2
 
-    phios = np.deg2rad(phi + 180.0)
+    phios = da.deg2rad(phi + 180.0)
     xcos1 = 1.0
-    xcos2 = np.cos(phios)
-    xcos3 = np.cos(2.0 * phios)
+    xcos2 = da.cos(phios)
+    xcos3 = da.cos(2.0 * phios)
     del phios
 
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
     return rhoray, trdown, trup
 
 
-def get_atm_variables(mus, muv, phi, height, coeffs):
-    (ah2o, bh2o, ao3, tau) = coeffs
-    TAUSTEP4SPHALB = .0001
-    # From GetAtmVariables
-    tau_step = np.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
-                           MAXNUMSPHALBVALUES)
+def atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
+    tau_step = da.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
+                           chunks=int(MAXNUMSPHALBVALUES / 2))
     sphalb0 = csalbr(tau_step)
-
-    air_mass = 1.0 / mus + 1 / muv
-    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
-
-    taur = tau * xu.exp(-height / SCALEHEIGHT)
-
-    rhoray, trdown, trup = chand(phi, muv, mus, taur)
-
-    sphalb = sphalb0[np.int32(taur / TAUSTEP4SPHALB + 0.5)]
-    Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
-    Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
-    tO3 = 1.0
-    tO2 = 1.0
-    tH2O = 1.0
-
-    if ao3 != 0:
-        tO3 = xu.exp(-air_mass * UO3 * ao3)
-    if bh2o != 0:
-        if bUseV171:
-            tH2O = xu.exp(-xu.exp(ah2o + bh2o * xu.log(air_mass * UH2O)))
-        else:
-            tH2O = xu.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
-    #t02 = exp(-m * aO2)
-    TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
-    tOG = tO3 * tO2
-    return sphalb, rhoray, TtotraytH2O, tOG
-
-
-def get_atm_variables_abi(mus, muv, phi, height, coeffs, G_O3, G_H2O, G_O2):
-    # coeffs = (ah2o, aO2, ao3, tau)
-    (ah2o, ao2, ao3, tau) = coeffs
-    TAUSTEP4SPHALB = .0003
-    xfd = 0.958725775
-    xbeta2 = 0.5
-    as0 = [0.33243832, 0.16285370, -0.30924818, -0.10324388, 0.11493334,
-           -6.777104e-02, 1.577425e-03, -1.240906e-02, 3.241678e-02, -3.503695e-02]
-    as1 = [0.19666292, -5.439061e-02]
-    as2 = [0.14545937, -2.910845e-02]
-    tau_step = da.linspace(TAUSTEP4SPHALB, MAXNUMSPHALBVALUES * TAUSTEP4SPHALB,
-                           MAXNUMSPHALBVALUES, chunks=int(MAXNUMSPHALBVALUES/2))
-    sphalb0 = csalbr(tau_step)
-    # phios = phi + 180.0 DONE IN PREPROCESSOR
-    xcos1 = 1.0
-    xcos2 = da.cos(xu.deg2rad(phi))
-    xcos3 = da.cos(xu.deg2rad(2.0 * phi))
-    xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
-    xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
-
-    fs01 = (as0[0] + (mus + muv)*as0[1] + (mus * muv)*as0[2] + (mus * mus + muv * muv)*as0[3]
-            + (mus * mus * muv * muv)*as0[4])
-    fs02 = (as0[5] + (mus + muv)*as0[6] + (mus * muv)*as0[7] + (mus * mus + muv * muv)*as0[8]
-            + (mus * mus * muv * muv)*as0[9])
-
-    LOG.debug("Processing band:")
     taur = tau * da.exp(-height / SCALEHEIGHT)
-    xlntaur = da.log(taur)
-    fs0 = fs01 + fs02 * xlntaur
-    fs1 = as1[0] + xlntaur * as1[1]
-    fs2 = as2[0] + xlntaur * as2[1]
-    del xlntaur
-    trdown = da.exp(-taur / mus)
-    trup = da.exp(-taur / muv)
-    xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
-    xitm2 = (1.0 - trdown) * (1.0 - trup)
-    xitot1 = xph1 * (xitm1 + xitm2 * fs0)
-    xitot2 = xph2 * (xitm1 + xitm2 * fs1)
-    xitot3 = xph3 * (xitm1 + xitm2 * fs2)
-    rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
-
+    rhoray, trdown, trup = chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
         def _sphalb_index(index_arr, sphalb0):
             # FIXME: if/when dask can support lazy index arrays then remove this
             return sphalb0[index_arr]
-        sphalb = da.map_blocks(_sphalb_index, (taur / TAUSTEP4SPHALB + 0.5).astype(np.int32).data, sphalb0.compute(),
+        sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
                                dtype=sphalb0.dtype)
     else:
-        sphalb = sphalb0[(taur / TAUSTEP4SPHALB + 0.5).astype(np.int32)]
-
+        sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
-    if ao3 != 0:
-        tO3 = da.exp(-G_O3 * ao3)
-    if ah2o != 0:
-        tH2O = da.exp(-G_H2O * ah2o)
-
-    tO2 = da.exp(-G_O2 * ao2)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
     tOG = tO3 * tO2
     return sphalb, rhoray, TtotraytH2O, tOG
 
 
+def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
+    air_mass = 1.0 / mus + 1 / muv
+    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
+    tO3 = 1.0
+    tH2O = 1.0
+    if ao3 != 0:
+        tO3 = da.exp(-air_mass * UO3 * ao3)
+    if bh2o != 0:
+        if bUseV171:
+            tH2O = da.exp(-da.exp(ah2o + bh2o * da.log(air_mass * UH2O)))
+        else:
+            tH2O = da.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
+    # Returns sphalb, rhoray, TtotraytH2O, tOG
+    return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
+
+
+def get_atm_variables_abi(mus, muv, phi, height, ah2o, ao2, ao3, tau, G_O3, G_H2O, G_O2):
+    tO3 = 1.0
+    tH2O = 1.0
+    if ao3 != 0:
+        tO3 = da.exp(-G_O3 * ao3)
+    if ah2o != 0:
+        tH2O = da.exp(-G_H2O * ah2o)
+    tO2 = da.exp(-G_O2 * ao2)
+    # Returns sphalb, rhoray, TtotraytH2O, tOG
+    return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
+
+
 def G_calc(zenith, a_coeff):
-    return (xu.cos(xu.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+    return (da.cos(da.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+
 
 def run_crefl(refl, coeffs,
               lon,
@@ -458,7 +411,6 @@ def run_crefl(refl, coeffs,
 
     """
     # FUTURE: Find a way to compute the average elevation before hand
-    (ah2o, bh2o, ao3, tau) = coeffs
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
@@ -481,9 +433,9 @@ def run_crefl(refl, coeffs,
         # negative heights aren't allowed, clip to 0
         height = height.where((height >= 0.) & ~space_mask, 0.0)
         del lat, lon, row, col
-    mus = xu.cos(xu.deg2rad(solar_zenith))
+    mus = da.cos(da.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
-    muv = xu.cos(xu.deg2rad(sensor_zenith))
+    muv = da.cos(da.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
     if use_abi:
@@ -495,12 +447,10 @@ def run_crefl(refl, coeffs,
         G_H2O = G_calc(solar_zenith, a_H2O) + G_calc(sensor_zenith, a_H2O)
         G_O2 = G_calc(solar_zenith, a_O2) + G_calc(sensor_zenith, a_O2)
         # Note: bh2o values are actually ao2 values for abi
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(
-            mus, muv, (phi + 180.0), height, (ah2o, bh2o, ao3, tau), G_O3, G_H2O, G_O2)
+        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, *coeffs, G_O3, G_H2O, G_O2)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(
-        mus, muv, phi, height, (ah2o, bh2o, ao3, tau))
+        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
     # Note: Assume that fill/invalid values are either NaN or we are dealing
