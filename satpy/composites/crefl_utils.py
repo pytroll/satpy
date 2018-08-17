@@ -367,7 +367,7 @@ def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
     return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
 
-def get_atm_variables_abi(mus, muv, phi, height, ah2o, ao2, ao3, tau, G_O3, G_H2O, G_O2):
+def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, ao3, tau):
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
@@ -447,7 +447,7 @@ def run_crefl(refl, coeffs,
         G_H2O = G_calc(solar_zenith, a_H2O) + G_calc(sensor_zenith, a_H2O)
         G_O2 = G_calc(solar_zenith, a_O2) + G_calc(sensor_zenith, a_O2)
         # Note: bh2o values are actually ao2 values for abi
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, *coeffs, G_O3, G_H2O, G_O2)
+        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
