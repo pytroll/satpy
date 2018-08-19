@@ -35,7 +35,7 @@ In this release 9 issues were closed.
 
 In this release 10 pull requests were closed.
 
-###############################################################################
+
 ## Version 0.9.0 (2018/07/02)
 
 ### Issues Closed
