@@ -115,6 +115,16 @@ class TestEnhancementStretch(unittest.TestCase):
             [np.nan, np.nan, 85.5, 180.5, 1301.5]]])
         self._test_enhancement(three_d_effect, self.ch1, expected)
 
+    def test_btemp_threshold(self):
+        """Test applying the cira_stretch"""
+        from satpy.enhancements import btemp_threshold
+
+        expected = np.array([[
+            [np.nan, 0.946207, 0.892695, 0.839184, 0.785672],
+            [0.73216, 0.595869, 0.158745, -0.278379, -0.715503]]])
+        self._test_enhancement(btemp_threshold, self.ch1, expected,
+                               min_in=-200, max_in=500, threshold=350)
+
     def tearDown(self):
         """Clean up"""
         pass
