@@ -113,7 +113,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
-  natural:
+  natural_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 1.63
@@ -123,15 +123,15 @@ composites:
     - wavelength: 0.635
       modifiers: [sunz_corrected]
     high_resolution_band: blue
-    standard_name: natural
+    standard_name: natural_color
 
-  natural_raw:
+  natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
     - wavelength: 0.85
     - wavelength: 0.635
-    standard_name: natural
+    standard_name: natural_color
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor

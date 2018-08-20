@@ -83,15 +83,15 @@ composites:
     - 10.8
     standard_name: day_microphysics_winter
 
-  natural:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
     - name: VIS008
     - name: VIS006
-    standard_name: natural
+    standard_name: natural_color
 
-  natural_sun:
+  natural_color_sun:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
@@ -100,7 +100,7 @@ composites:
       modifiers: [sunz_corrected]
     - name: VIS006
       modifiers: [sunz_corrected]
-    standard_name: natural
+    standard_name: natural_color
 
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
