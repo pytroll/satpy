@@ -21,9 +21,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products.
 """
+import os
 import logging
+import numpy as np
+import netCDF4
+from glob import glob
 from satpy.dataset import DatasetID
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
+from pyresample import geometry
 
 LOG = logging.getLogger(__name__)
 
@@ -38,9 +43,15 @@ class CLAVRXFileHandler(HDF4FileHandler):
         'MODIS': 'modis',
         'VIIRS': 'viirs',
         'AVHRR': 'avhrr',
+        'AHI': 'ahi',
+        # 'ABI': 'abi',
     }
     platforms = {
         'SNPP': 'npp',
+        'HIM8': 'himawari8',
+        'HIM9': 'himawari9',
+        # 'G16': 'GOES-16',
+        # 'G17': 'GOES-17'
     }
     rows_per_scan = {
         'viirs': 16,
@@ -50,6 +61,8 @@ class CLAVRXFileHandler(HDF4FileHandler):
         'viirs': 742,
         'modis': 1000,
         'avhrr': 1050,
+        'ahi': 2000,
+        # 'abi': 2004,
     }
 
     def get_sensor(self, sensor):
@@ -119,10 +132,11 @@ class CLAVRXFileHandler(HDF4FileHandler):
             # CF compliance
             i['units'] = CF_UNITS[u]
 
-        i['sensor'] = self.get_sensor(self['/attr/sensor'])
+        i['sensor'] = sensor = self.get_sensor(self['/attr/sensor'])
         i['platform'] = self.get_platform(self['/attr/platform'])
         i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
-        i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
+        if sensor not in {'ahi', 'abi'}:  # rows per scan not needed for AxI
+            i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
         i['reader'] = 'clavrx'
 
         return i
@@ -146,3 +160,98 @@ class CLAVRXFileHandler(HDF4FileHandler):
             data += offset
 
         return data
+
+    @staticmethod
+    def _area_extent(x, y, h):
+        x_l = h * x[0]
+        x_r = h * x[-1]
+        y_l = h * y[-1]
+        y_u = h * y[0]
+        ncols = x.shape[0]
+        nlines = y.shape[0]
+        x_half = (x_r - x_l) / (ncols - 1) / 2.
+        y_half = (y_u - y_l) / (nlines - 1) / 2.
+        area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
+        return area_extent, ncols, nlines
+
+    @staticmethod
+    def _read_pug_fixed_grid(projection, distance_multiplier=1.0):
+        """Read from recent PUG format, where axes are in meters
+        """
+        a = projection.attrs['semi_major_axis']
+        h = projection.attrs['perspective_point_height']
+        b = projection.attrs['semi_minor_axis']
+
+        lon_0 = projection.attrs['longitude_of_projection_origin']
+        sweep_axis = projection.attrs['sweep_angle_axis'][0]
+
+        proj_dict = {'a': float(a) * distance_multiplier,
+                     'b': float(b) * distance_multiplier,
+                     'lon_0': float(lon_0),
+                     'h': float(h) * distance_multiplier,
+                     'proj': 'geos',
+                     'units': 'm',
+                     'sweep': sweep_axis}
+        return proj_dict
+
+    def _find_input_nc(self, l1b_base):
+        dirname = os.path.split(self.filename)[0]
+        l1b_filenames = list(glob(os.path.join(dirname, l1b_base + '*.nc')))
+        if len(l1b_filenames) == 0:
+            raise IOError("Could not find navigation donor for {0} in same directory as CLAVR-x data".format(l1b_base))
+        if len(l1b_filenames) > 1:
+            raise IOError("Ambiguous navigation donor for {0} in same directory as CLAVR-x data: {1}".format(
+                l1b_base, repr(l1b_filenames)))
+        return l1b_filenames[0]
+
+    def _read_axi_fixed_grid(self, l1b_attr):
+        """CLAVR-x does not transcribe fixed grid parameters to its output
+        We have to recover that information from the original input file, which is partially named as L1B attribute
+
+        example attributes found in L2 CLAVR-x files:
+        sensor = "AHI" ;
+        platform = "HIM8" ;
+        FILENAME = "clavrx_H08_20180719_1300.level2.hdf" ;
+        L1B = "clavrx_H08_20180719_1300" ;
+        """
+        LOG.debug("looking for corresponding input file for {0} to act as fixed grid navigation donor".format(l1b_attr))
+        l1b_path = self._find_input_nc(l1b_attr)
+        LOG.info("Since CLAVR-x does not include fixed-grid parameters, using input file {0} as donor".format(l1b_path))
+        l1b = netCDF4.Dataset(l1b_path)
+        proj = None
+        proj_var = l1b.variables.get("Projection", None)
+        if proj_var is not None:
+            # hsd2nc input typically used by CLAVR-x uses old-form km for axes/height
+            LOG.debug("found hsd2nc-style draft PUG fixed grid specification")
+            proj = self._read_pug_fixed_grid(proj_var, 1000.0)
+        if proj is None:  # most likely to come into play for ABI cases
+            proj_var = l1b.variables.get("goes_imager_projection", None)
+            if proj_var is not None:
+                LOG.debug("found cmip-style final PUG fixed grid specification")
+                proj = self._read_pug_fixed_grid(proj_var)
+        if not proj:
+            raise ValueError("Unable to recover projection information for {0}".format(self.filename))
+
+        h = float(proj['h'])
+        x, y = l1b['x'], l1b['y']
+        area_extent, ncols, nlines = self._area_extent(x, y, h)
+
+        area = geometry.AreaDefinition(
+            'ahi_geos',
+            "AHI L2 file area",
+            'ahi_geos',
+            proj,
+            ncols,
+            nlines,
+            np.asarray(area_extent))
+
+        return area
+
+    def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
+        l1b_att, inst_att = self.file_content.get('/attr/L1B', None), self.file_content.get('/attr/sensor', None)
+
+        if (inst_att != 'AHI') or (l1b_att is None):  # then it doesn't have a fixed grid
+            return super(CLAVRXFileHandler, self).get_area_def(key)
+
+        return self._read_axi_fixed_grid(l1b_att)
