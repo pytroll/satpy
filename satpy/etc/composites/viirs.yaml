@@ -191,7 +191,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     standard_name: true_color
 
-  natural_color:
+  false_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M11
@@ -203,10 +203,25 @@ composites:
     optional_prerequisites:
     - name: I01
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+    standard_name: false_color
+    high_resolution_band: blue
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    optional_prerequisites:
+    - name: I01
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: natural_color
     high_resolution_band: blue
 
-  natural_sun:
+  natural_color_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: I03
@@ -215,9 +230,9 @@ composites:
       modifiers: [sunz_corrected_iband]
     - name: I01
       modifiers: [sunz_corrected_iband]
-    standard_name: natural
+    standard_name: natural_color
 
-  natural_sun_lowres:
+  natural_color_sun_lowres:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: M10
@@ -226,7 +241,7 @@ composites:
       modifiers: [sunz_corrected]
     - name: M05
       modifiers: [sunz_corrected]
-    standard_name: natural
+    standard_name: natural_color
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
