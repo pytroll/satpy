@@ -79,6 +79,16 @@ class TestEnhancementStretch(unittest.TestCase):
         lut = np.arange(256.)
         self._test_enhancement(lookup, self.ch1, expected, luts=lut)
 
+        expected = np.array([[[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]],
+                             [[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]],
+                             [[0., 0., 0., 0.333333, 0.705882],
+                              [1., 1., 1., 1., 1.]]])
+        lut = np.arange(256.)
+        lut = np.vstack((lut, lut, lut)).T
+        self._test_enhancement(lookup, self.rgb, expected, luts=lut)
+
     def test_colorize(self):
         from satpy.enhancements import colorize
         from trollimage.colormap import brbg
@@ -118,6 +128,15 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
                                sc=[0., 90., 140., 175., 255.])
 
+    def test_btemp_threshold(self):
+        """Test applying the cira_stretch"""
+        from satpy.enhancements import btemp_threshold
+
+        expected = np.array([[
+            [np.nan, 0.946207, 0.892695, 0.839184, 0.785672],
+            [0.73216, 0.595869, 0.158745, -0.278379, -0.715503]]])
+        self._test_enhancement(btemp_threshold, self.ch1, expected,
+                               min_in=-200, max_in=500, threshold=350)
 
     def tearDown(self):
         """Clean up"""

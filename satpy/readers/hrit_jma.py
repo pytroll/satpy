@@ -115,7 +115,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.mda['planned_end_segment_number'] = self.mda['total_no_image_segm']
         self.mda['planned_start_segment_number'] = 1
 
-        items = self.mda['image_data_function'].split('\r')
+        items = self.mda['image_data_function'].decode().split('\r')
         if items[0].startswith('$HALFTONE'):
             self.calibration_table = []
             for item in items[1:]:
@@ -133,7 +133,8 @@ class HRITJMAFileHandler(HRITFileHandler):
 
             self.calibration_table = np.array(self.calibration_table)
 
-        sublon = float(self.mda['projection_name'].strip().split('(')[1][:-1])
+        projection_name = self.mda['projection_name'].decode()
+        sublon = float(projection_name.strip().split('(')[1][:-1])
         self.mda['projection_parameters']['SSP_longitude'] = sublon
 
     def get_area_def(self, dsid):

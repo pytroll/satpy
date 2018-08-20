@@ -61,8 +61,8 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.6}
-  natural_default:
-    standard_name: natural
+  natural_color_default:
+    standard_name: natural_color
     operations:
     - name: stretch
       method: *stretchfun

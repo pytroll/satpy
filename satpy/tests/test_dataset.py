@@ -27,8 +27,27 @@ import unittest
 
 
 class TestDatasetID(unittest.TestCase):
+
+    def test_basic_init(self):
+        """Test basic ways of creating a DatasetID."""
+        from satpy.dataset import DatasetID
+        DatasetID(name="a")
+        DatasetID(name="a", wavelength=0.86)
+        DatasetID(name="a", resolution=1000)
+        DatasetID(name="a", calibration='radiance')
+        DatasetID(name="a", wavelength=0.86, resolution=250,
+                  calibration='radiance')
+        DatasetID(name="a", wavelength=0.86, resolution=250,
+                       calibration='radiance', modifiers=('sunz_corrected',))
+        DatasetID(wavelength=0.86)
+
+    def test_init_bad_modifiers(self):
+        """Test that modifiers are a tuple."""
+        from satpy.dataset import DatasetID
+        self.assertRaises(TypeError, DatasetID, name="a", modifiers="str")
+
     def test_compare_no_wl(self):
-        """Compare fully qualified wavelength ID to no wavelength ID"""
+        """Compare fully qualified wavelength ID to no wavelength ID."""
         from satpy.dataset import DatasetID
         d1 = DatasetID(name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DatasetID(name="a", wavelength=None)

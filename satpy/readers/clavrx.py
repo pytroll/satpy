@@ -21,13 +21,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products.
 """
-from datetime import datetime, timedelta
-import numpy as np
 import logging
-from collections import defaultdict
-
-from satpy.dataset import DatasetID, Dataset
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.dataset import DatasetID
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
 
 LOG = logging.getLogger(__name__)

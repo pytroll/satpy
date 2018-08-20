@@ -68,7 +68,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 
     if separate:
         data_arrs = []
-        for band_name in bands:
+        for idx, band_name in enumerate(bands):
             band_data = data.sel(bands=[band_name])
             if band_name in exclude:
                 # don't modify alpha
@@ -78,10 +78,10 @@ def apply_enhancement(data, func, exclude=None, separate=False,
             if pass_dask:
                 dims = band_data.dims
                 coords = band_data.coords
-                d_arr = func(band_data.data)
+                d_arr = func(band_data.data, index=idx)
                 band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
             else:
-                band_data = func(band_data)
+                band_data = func(band_data, index=idx)
             data_arrs.append(band_data)
             # we assume that the func can add attrs
             attrs.update(band_data.attrs)
@@ -149,21 +149,21 @@ def cira_stretch(img, **kwargs):
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
-    luts = luts.ravel()
 
-    def func(band_data, luts=luts):
+    def func(band_data, luts=luts, index=-1):
         # NaN/null values will become 0
-        band_data = band_data.clip(0, luts.size - 1).astype(np.uint8)
+        lut = luts[:, index] if len(luts.shape) == 2 else luts
+        band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
         def _delayed(luts, band_data):
             # can't use luts.__getitem__ for some reason
             return luts[band_data]
-        new_delay = dask.delayed(_delayed)(luts, band_data)
+        new_delay = dask.delayed(_delayed)(lut, band_data)
         new_data = da.from_delayed(new_delay, shape=band_data.shape,
                                    dtype=luts.dtype)
         return new_data
 
-    return apply_enhancement(img.data, func, pass_dask=True)
+    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
 
 
 def colorize(img, **kwargs):
@@ -223,7 +223,7 @@ def create_colormap(palette):
             cmap.append((value, tuple(color)))
         return Colormap(*cmap)
 
-    if isinstance(colors, basestring):
+    if isinstance(colors, str):
         from trollimage import colormap
         import copy
         return copy.copy(getattr(colormap, colors))
@@ -241,7 +241,9 @@ def three_d_effect(img, **kwargs):
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
 
-    def func(band_data, kernel=kernel, mode=mode):
+    def func(band_data, kernel=kernel, mode=mode, index=None):
+        del index
+
         def _delayed(band_data, kernel, mode):
             band_data = band_data.reshape(band_data.shape[1:])
             new_data = convolve2d(band_data, kernel, mode=mode)
@@ -254,3 +256,39 @@ def three_d_effect(img, **kwargs):
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+
+
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
+                    **kwargs):
+    """Scale data linearly in two separate regions.
+
+    This enhancement scales the input data linearly by splitting the data
+    into two regions; min_in to threshold and threshold to max_in. These
+    regions are mapped to 1 to threshold_out and threshold_out to 0
+    respectively, resulting in the data being "flipped" around the
+    threshold. A default threshold_out is set to `176.0 / 255.0` to
+    match the behavior of the US National Weather Service's forecasting
+    tool called AWIPS.
+
+    Args:
+        img (XRImage): Image object to be scaled
+        min_in (float): Minimum input value to scale
+        max_in (float): Maximum input value to scale
+        threshold (float): Input value where to split data in to two regions
+        threshold_out (float): Output value to map the input `threshold`
+            to. Optional, defaults to 176.0 / 255.0.
+
+    """
+    threshold_out = threshold_out if threshold_out is not None else (176 / 255.0)
+    low_factor = (threshold_out - 1.) / (min_in - threshold)
+    low_offset = 1. + (low_factor * min_in)
+    high_factor = threshold_out / (max_in - threshold)
+    high_offset = high_factor * max_in
+
+    def _bt_threshold(band_data):
+        # expects dask array to be passed
+        return da.where(band_data >= threshold,
+                        high_offset - high_factor * band_data,
+                        low_offset - low_factor * band_data)
+
+    return apply_enhancement(img.data, _bt_threshold, pass_dask=True)

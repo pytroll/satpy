@@ -250,13 +250,12 @@ def add_text(orig, dc, img, text=None):
 
     dc.add_text(**text)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -270,13 +269,12 @@ def add_logo(orig, dc, img, logo=None):
 
     dc.add_logo(**logo)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_decorate(orig, **decorate):
@@ -330,12 +328,10 @@ def add_decorate(orig, **decorate):
 
 def get_enhanced_image(dataset,
                        enhancer=None,
-                       fill_value=None,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
                        decorate=None):
-    mode = _determine_mode(dataset)
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -343,7 +339,7 @@ def get_enhanced_image(dataset,
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
     # Create an image for enhancement
-    img = to_image(dataset, mode=mode, fill_value=fill_value)
+    img = to_image(dataset)
 
     if enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
@@ -370,17 +366,65 @@ def show(dataset, **kwargs):
     return img
 
 
-def to_image(dataset, copy=False, **kwargs):
-    # Only add keywords if they are present
-    for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.attrs:
-            kwargs.setdefault(key, dataset.attrs[key])
+def to_image(dataset):
     dataset = dataset.squeeze()
-
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
         return XRImage(dataset)
+
+
+def split_results(results):
+    """Get sources, targets and delayed objects to separate lists from a
+    list of results collected from (multiple) writer(s)."""
+    from dask.delayed import Delayed
+
+    def flatten(results):
+        out = []
+        if isinstance(results, (list, tuple)):
+            for itm in results:
+                out.extend(flatten(itm))
+            return out
+        return [results]
+
+    sources = []
+    targets = []
+    delayeds = []
+
+    for res in flatten(results):
+        if isinstance(res, da.Array):
+            sources.append(res)
+        elif isinstance(res, Delayed):
+            delayeds.append(res)
+        else:
+            targets.append(res)
+    return sources, targets, delayeds
+
+
+def compute_writer_results(results):
+    """Compute all the given dask graphs `results` so that the files are
+    saved.
+
+    Args:
+        results (iterable): Iterable of dask graphs resulting from calls to
+                            `scn.save_datasets(..., compute=False)
+    """
+    if not results:
+        return
+
+    sources, targets, delayeds = split_results(results)
+
+    # one or more writers have targets that we need to close in the future
+    if targets:
+        delayeds.append(da.store(sources, targets, compute=False))
+
+    if delayeds:
+        da.compute(delayeds)
+
+    if targets:
+        for target in targets:
+            if hasattr(target, 'close'):
+                target.close()
 
 
 class Writer(Plugin):
@@ -464,32 +508,20 @@ class Writer(Plugin):
             close any objects that have a "close" method.
 
         """
-        sources = []
-        targets = []
+        results = []
         for ds in datasets:
-            res = self.save_dataset(ds, compute=False, **kwargs)
-            if isinstance(res, tuple):
-                # source, target to be passed to da.store
-                sources.append(res[0])
-                targets.append(res[1])
-            else:
-                # delayed object
-                sources.append(res)
+            results.append(self.save_dataset(ds, compute=False, **kwargs))
 
-        # we have targets, we should save sources to targets
-        if targets and compute:
-            res = da.store(sources, targets)
-            for target in targets:
-                if hasattr(target, 'close'):
-                    target.close()
-            return res
-        elif targets:
-            return sources, targets
-
-        delayed = dask.delayed(sources)
         if compute:
-            return delayed.compute()
-        return delayed
+            LOG.info("Computing and writing results...")
+            return compute_writer_results([results])
+
+        targets, sources, delayeds = split_results([results])
+        if delayeds:
+            # This writer had only delayed writes
+            return delayeds
+        else:
+            return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
@@ -565,10 +597,10 @@ class ImageWriter(Writer):
 
         """
         img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            dataset.squeeze(), self.enhancer, overlay=overlay,
             decorate=decorate)
         return self.save_image(img, filename=filename, compute=compute,
-                               **kwargs)
+                               fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
@@ -689,7 +721,12 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_section = yaml.load(fd).get(self.prefix, {})
+                    enhancement_config = yaml.load(fd)
+                    if enhancement_config is None:
+                        # empty file
+                        continue
+                    enhancement_section = enhancement_config.get(
+                        self.prefix, {})
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
