@@ -133,7 +133,7 @@ class GeoTIFFWriter(ImageWriter):
             dst_ds.SetGeoTransform(geotransform)
             srs = osr.SpatialReference()
 
-            srs.ImportFromProj4(area.proj4_string)
+            srs.ImportFromProj4(area.proj_str)
             srs.SetProjCS(area.proj_id)
             try:
                 srs.SetWellKnownGeogCS(area.proj_dict['ellps'])

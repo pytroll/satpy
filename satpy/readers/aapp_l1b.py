@@ -53,6 +53,16 @@ ANGLES = {'sensor_zenith_angle': 'satz',
           'solar_zenith_angle': 'sunz',
           'sun_sensor_azimuth_difference_angle': 'azidiff'}
 
+PLATFORM_NAMES = {4: 'NOAA-15',
+                  2: 'NOAA-16',
+                  6: 'NOAA-17',
+                  7: 'NOAA-18',
+                  8: 'NOAA-19',
+                  11: 'Metop-B',
+                  12: 'Metop-A',
+                  13: 'Metop-C',
+                  14: 'Metop simulator'}
+
 
 def create_xarray(arr):
     res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
@@ -75,7 +85,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self.lons = None
         self.lats = None
         self.area = None
+        self.sensor = 'avhrr-3'
         self.read()
+
+        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
+
+        if self.platform_name is None:
+            raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
         self.sunz, self.satz, self.azidiff = None, None, None
 
@@ -119,7 +135,9 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                     "Not a supported sun-sensor viewing angle: %s", key.name)
                 raise
 
-        # TODO get metadata
+        dataset.attrs.update({'platform_name': self.platform_name,
+                              'sensor': self.sensor})
+        dataset.attrs.update(key.to_dict())
 
         if not self._shape:
             self._shape = dataset.shape

@@ -28,7 +28,6 @@ import numpy as np
 import logging
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
-from satpy.dataset import Dataset
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)

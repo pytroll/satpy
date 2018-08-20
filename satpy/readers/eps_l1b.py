@@ -25,7 +25,6 @@
 
 import logging
 import os
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -33,7 +32,6 @@ import xarray as xr
 import dask.array as da
 from pyresample.geometry import SwathDefinition
 from satpy.config import CONFIG_PATH
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 

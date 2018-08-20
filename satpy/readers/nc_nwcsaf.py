@@ -109,7 +109,7 @@ class NcNWCSAF(BaseFileHandler):
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
 
-        if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc.keys():
+        if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
             dsid_name = dsid_name + '_reduced'
 
         logger.debug('Reading %s.', dsid_name)

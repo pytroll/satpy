@@ -23,8 +23,6 @@
 
 import sys
 import numpy as np
-
-from satpy.readers.abi_l1b import NC_ABI_L1B
 import xarray as xr
 
 if sys.version_info < (2, 7):
@@ -62,6 +60,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
@@ -100,6 +99,11 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
                                 [391.68679226, 407.74064808, 422.69329105,
                                  436.77021913, np.nan]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        # make sure the attributes from the file are in the data array
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_brightness_temperature')
 
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
@@ -108,16 +112,27 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
+        x_image = xr.DataArray(0.)
+        y_image = xr.DataArray(0.)
+        time = xr.DataArray(0.)
         rad = xr.DataArray(
             rad_data,
+            dims=('y', 'x'),
             attrs={
                 'scale_factor': 0.5,
                 'add_offset': -1.,
                 '_FillValue': 20,
-            })
+            },
+            coords={
+                'time': time,
+                'x_image': x_image,
+                'y_image': y_image,
+            }
+        )
         xr_.open_dataset.return_value = FakeDataset({
             'band_id': np.array(5),
             'Rad': rad,
@@ -126,6 +141,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             "planck_bc1": np.array(0.09102),
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
+            "x_image": x_image,
+            "y_image": y_image,
             "nominal_satellite_subpoint_lat": np.array(0.0),
             "nominal_satellite_subpoint_lon": np.array(-89.5),
             "nominal_satellite_height": np.array(35786.02),
@@ -167,6 +184,10 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                                 [0.91593702, 1.06859319, 1.22124936,
                                  np.nan, 1.52656171]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_bidirectional_reflectance')
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
@@ -174,7 +195,7 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        import xarray as xr
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         proj = xr.DataArray(
             [],
             attrs={
