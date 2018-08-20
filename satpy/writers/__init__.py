@@ -374,6 +374,59 @@ def to_image(dataset):
         return XRImage(dataset)
 
 
+def split_results(results):
+    """Get sources, targets and delayed objects to separate lists from a
+    list of results collected from (multiple) writer(s)."""
+    from dask.delayed import Delayed
+
+    def flatten(results):
+        out = []
+        if isinstance(results, (list, tuple)):
+            for itm in results:
+                out.extend(flatten(itm))
+            return out
+        return [results]
+
+    sources = []
+    targets = []
+    delayeds = []
+
+    for res in flatten(results):
+        if isinstance(res, da.Array):
+            sources.append(res)
+        elif isinstance(res, Delayed):
+            delayeds.append(res)
+        else:
+            targets.append(res)
+    return sources, targets, delayeds
+
+
+def compute_writer_results(results):
+    """Compute all the given dask graphs `results` so that the files are
+    saved.
+
+    Args:
+        results (iterable): Iterable of dask graphs resulting from calls to
+                            `scn.save_datasets(..., compute=False)
+    """
+    if not results:
+        return
+
+    sources, targets, delayeds = split_results(results)
+
+    # one or more writers have targets that we need to close in the future
+    if targets:
+        delayeds.append(da.store(sources, targets, compute=False))
+
+    if delayeds:
+        da.compute(delayeds)
+
+    if targets:
+        for target in targets:
+            if hasattr(target, 'close'):
+                target.close()
+
+
 class Writer(Plugin):
 
     """Writer plugins. They must implement the *save_image* method. This is an
@@ -455,34 +508,20 @@ class Writer(Plugin):
             close any objects that have a "close" method.
 
         """
-        sources = []
-        targets = []
+        results = []
         for ds in datasets:
-            res = self.save_dataset(ds, compute=False, **kwargs)
-            if isinstance(res, tuple):
-                # source, target to be passed to da.store
-                sources.append(res[0])
-                targets.append(res[1])
-            else:
-                # delayed object
-                sources.append(res)
+            results.append(self.save_dataset(ds, compute=False, **kwargs))
 
-        # we have targets, we should save sources to targets
-        if targets and compute:
-            LOG.info("Computing and writing results...")
-            res = da.store(sources, targets)
-            for target in targets:
-                if hasattr(target, 'close'):
-                    target.close()
-            return res
-        elif targets:
-            return sources, targets
-
-        delayed = dask.delayed(sources)
         if compute:
             LOG.info("Computing and writing results...")
-            return delayed.compute()
-        return delayed
+            return compute_writer_results([results])
+
+        targets, sources, delayeds = split_results([results])
+        if delayeds:
+            # This writer had only delayed writes
+            return delayeds
+        else:
+            return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
