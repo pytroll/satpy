@@ -25,7 +25,6 @@
 import h5py
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask.array as da
 import datetime as dt
 import logging
@@ -115,15 +114,15 @@ class IASIL2HDF5(BaseFileHandler):
         with h5py.File(self.filename, 'r') as fid:
             LOGGER.debug('Reading %s.', key.name)
             if key.name in DSET_NAMES:
-                m_data = read_dataset(fid, key, info)
+                m_data = read_dataset(fid, key)
             else:
-                m_data = read_geo(fid, key, info)
+                m_data = read_geo(fid, key)
         m_data.attrs.update(info)
 
         return m_data
 
 
-def read_dataset(fid, key, info):
+def read_dataset(fid, key):
     """Read dataset"""
     dsid = DSET_NAMES[key.name]
     dset = fid["/PWLR/" + dsid]
@@ -145,7 +144,7 @@ def read_dataset(fid, key, info):
     return data
 
 
-def read_geo(fid, key, info):
+def read_geo(fid, key):
     """Read geolocation and related datasets."""
     dsid = GEO_NAMES[key.name]
     add_epoch = False
@@ -156,12 +155,9 @@ def read_geo(fid, key, info):
         add_epoch = True
     else:
         data = fid["/L1C/" + dsid].value
-        units = fid["/L1C/" + dsid].attrs['units']
 
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
                         name=key.name, dims=['y', 'x']).astype(np.float32)
-    # The units are taken from the reader configuration YAML file
-    # data.attrs['units'] = units
     if add_epoch:
         data.attrs['sensing_time_epoch'] = EPOCH
 
