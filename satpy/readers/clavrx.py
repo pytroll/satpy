@@ -50,6 +50,8 @@ class CLAVRXFileHandler(HDF4FileHandler):
         'SNPP': 'npp',
         'HIM8': 'himawari8',
         'HIM9': 'himawari9',
+        'H08': 'himawari8',
+        'H09': 'himawari9',
         # 'G16': 'GOES-16',
         # 'G17': 'GOES-17'
     }
