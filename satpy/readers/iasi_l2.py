@@ -163,7 +163,7 @@ def read_geo(fid, key, info):
     # The units are taken from the reader configuration YAML file
     # data.attrs['units'] = units
     if add_epoch:
-        data.attrs['scan_time_epoch'] = EPOCH
+        data.attrs['sensing_time_epoch'] = EPOCH
 
     return data
 
