@@ -63,8 +63,7 @@ DSET_NAMES = {'ozone_mixing_ratio': 'O',
               'surface_skin_temperature': 'Ts',
               'surface_skin_temperature_quality': 'QTs',
               'emissivity': 'E',
-              'emissivity_quality': 'QE'
-}
+              'emissivity_quality': 'QE'}
 
 GEO_NAMES = {'latitude': 'Latitude',
              'longitude': 'Longitude',
