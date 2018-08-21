@@ -24,11 +24,14 @@
 
 import h5py
 import numpy as np
+import xarray as xr
+import xarray.ufuncs as xu
+import dask.array as da
 import datetime as dt
 import logging
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
@@ -108,7 +111,7 @@ class IASIL2HDF5(BaseFileHandler):
                 m_data = read_dataset(fid, key, info)
             else:
                 m_data = read_geo(fid, key, info)
-        m_data.info.update(info)
+        m_data.attrs.update(info)
 
         return m_data
 
@@ -116,18 +119,25 @@ class IASIL2HDF5(BaseFileHandler):
 def read_dataset(fid, key, info):
     """Read dataset"""
     dsid = DSET_NAMES[key.name]
-    data = fid["/PWLR/" + dsid].value
+    dset = fid["/PWLR/" + dsid]
+    if dset.ndim == 3:
+        dims = ['y', 'x', 'level']
+    else:
+        dims = ['y', 'x']
+    data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
+                        name=key.name, dims=dims).astype(np.float32)
     try:
-        unit = fid["/PWLR/" + dsid].attrs['units']
-        long_name = fid["/PWLR/" + dsid].attrs['long_name']
+        units = dset.attrs['units']
+        long_name = dset.attrs['long_name']
     except KeyError:
-        unit = ''
+        units = ''
         long_name = ''
+    data.attrs['units'] = units
+    data.attrs['long_name'] = long_name
 
-    data = np.ma.masked_where(data > 1e30, data)
+    data = xr.where(data > 1e30, np.nan, data)
 
-    return Dataset(data, copy=False, long_name=long_name,
-                   **info)
+    return data
 
 
 def read_geo(fid, key, info):
@@ -136,13 +146,15 @@ def read_geo(fid, key, info):
     if "time" in key.name:
         days = fid["/L1C/" + dsid["day"]].value
         msecs = fid["/L1C/" + dsid["msec"]].value
-        unit = ""
+        units = ""
         data = _form_datetimes(days, msecs)
     else:
         data = fid["/L1C/" + dsid].value
-        unit = fid["/L1C/" + dsid].attrs['units']
+        units = fid["/L1C/" + dsid].attrs['units']
 
-    data = Dataset(data, copy=False, **info)
+    data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
+                        name=key.name, dims=['y', 'x']).astype(np.float32)
+    data.attrs['uints'] = units
 
     return data
 
@@ -156,7 +168,7 @@ def _form_datetimes(days, msecs):
         day = int(days[i])
         msec = msecs[i]
         scanline_datetimes = []
-        for j in range(VALUES_PER_SCAN_LINE / 4):
+        for j in range(int(VALUES_PER_SCAN_LINE / 4)):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
             for k in range(4):
                 delta = (dt.timedelta(days=day, microseconds=usec))
