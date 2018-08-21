@@ -58,7 +58,14 @@ DSET_NAMES = {'ozone_mixing_ratio': 'O',
               'temperature': 'T',
               'temperature_quality': 'QT',
               'water_mixing_ratio': 'W',
-              'water_mixing_ratio_quality': 'QW'}
+              'water_mixing_ratio_quality': 'QW',
+              'water_total_column': 'WC',
+              'ozone_total_column': 'OC',
+              'surface_skin_temperature': 'Ts',
+              'surface_skin_temperature_quality': 'QTs',
+              'emissivity': 'E',
+              'emissivity_quality': 'EQ'
+}
 
 GEO_NAMES = {'latitude': 'Latitude',
              'longitude': 'Longitude',
@@ -126,16 +133,14 @@ def read_dataset(fid, key, info):
         dims = ['y', 'x']
     data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
                         name=key.name, dims=dims).astype(np.float32)
-    try:
-        units = dset.attrs['units']
-        long_name = dset.attrs['long_name']
-    except KeyError:
-        units = ''
-        long_name = ''
-    data.attrs['units'] = units
-    data.attrs['long_name'] = long_name
-
     data = xr.where(data > 1e30, np.nan, data)
+
+    try:
+        dset_attrs = dict(dset.attrs)
+    except KeyError:
+        dset_attrs = {}
+
+    data.attrs.update(dset_attrs)
 
     return data
 
