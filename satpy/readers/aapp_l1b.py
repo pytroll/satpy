@@ -127,7 +127,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = getattr(self, ANGLES[key.name])
+                    dataset = create_xarray(getattr(self, ANGLES[key.name]))
                 else:
                     dataset = self.get_angles(key.name)
             else:
