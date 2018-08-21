@@ -143,25 +143,28 @@ def read_dataset(fid, key, info):
 def read_geo(fid, key, info):
     """Read geolocation and related datasets."""
     dsid = GEO_NAMES[key.name]
+    add_epoch = False
     if "time" in key.name:
         days = fid["/L1C/" + dsid["day"]].value
         msecs = fid["/L1C/" + dsid["msec"]].value
-        units = ""
         data = _form_datetimes(days, msecs)
+        add_epoch = True
     else:
         data = fid["/L1C/" + dsid].value
         units = fid["/L1C/" + dsid].attrs['units']
 
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
                         name=key.name, dims=['y', 'x']).astype(np.float32)
-    data.attrs['uints'] = units
+    # The units are taken from the reader configuration YAML file
+    # data.attrs['units'] = units
+    if add_epoch:
+        data.attrs['scan_time_epoch'] = EPOCH
 
     return data
 
 
 def _form_datetimes(days, msecs):
-    """Form datetimes from days and milliseconds relative to EPOCH for
-    each of IASI scans."""
+    """Calculate seconds since EPOCH from days and milliseconds for each of IASI scan."""
 
     all_datetimes = []
     for i in range(days.size):
@@ -172,7 +175,7 @@ def _form_datetimes(days, msecs):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
             for k in range(4):
                 delta = (dt.timedelta(days=day, microseconds=usec))
-                scanline_datetimes.append(EPOCH + delta)
+                scanline_datetimes.append(delta.total_seconds())
         all_datetimes.append(np.array(scanline_datetimes))
 
     return np.array(all_datetimes)
