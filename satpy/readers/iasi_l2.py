@@ -152,11 +152,13 @@ def read_geo(fid, key):
         msecs = fid["/L1C/" + dsid["msec"]].value
         data = _form_datetimes(days, msecs)
         add_epoch = True
+        dtype = np.float64
     else:
         data = fid["/L1C/" + dsid].value
-
+        dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key.name, dims=['y', 'x']).astype(np.float32)
+                        name=key.name, dims=['y', 'x']).astype(dtype)
+
     if add_epoch:
         data.attrs['sensing_time_epoch'] = EPOCH
 
@@ -173,9 +175,9 @@ def _form_datetimes(days, msecs):
         scanline_datetimes = []
         for j in range(int(VALUES_PER_SCAN_LINE / 4)):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
+            delta = (dt.timedelta(days=day, microseconds=usec))
             for k in range(4):
-                delta = (dt.timedelta(days=day, microseconds=usec))
                 scanline_datetimes.append(delta.total_seconds())
-        all_datetimes.append(np.array(scanline_datetimes))
+        all_datetimes.append(scanline_datetimes)
 
-    return np.array(all_datetimes)
+    return np.array(all_datetimes, dtype=np.float64)
