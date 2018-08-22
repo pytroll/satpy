@@ -37,6 +37,11 @@ CF_UNITS = {
     'none': '1',
 }
 
+# SCMI preferred platform names, which really doesn't belong here in readerland
+# SCMI_PLATFORM = {
+#     'himawari8': 'GH8',
+#     'himawari9': 'GH9',
+# }
 
 class CLAVRXFileHandler(HDF4FileHandler):
     sensors = {
@@ -135,11 +140,14 @@ class CLAVRXFileHandler(HDF4FileHandler):
             i['units'] = CF_UNITS[u]
 
         i['sensor'] = sensor = self.get_sensor(self['/attr/sensor'])
-        i['platform'] = self.get_platform(self['/attr/platform'])
+        i['platform'] = platform = self.get_platform(self['/attr/platform'])
         i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
         if sensor not in {'ahi', 'abi'}:  # rows per scan not needed for AxI
             i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
-        i['reader'] = 'clavrx'
+        i['source_name'] = i['reader'] = 'clavrx'
+        i['sector_id'] = '{0}_{1}'.format(sensor, platform).upper()
+        # i['platform_name'] = SCMI_PLATFORM[platform]  # for output SCMI filenames but let's not do this until it makes sense
+
 
         return i
 
@@ -180,12 +188,12 @@ class CLAVRXFileHandler(HDF4FileHandler):
     def _read_pug_fixed_grid(projection, distance_multiplier=1.0):
         """Read from recent PUG format, where axes are in meters
         """
-        a = projection.attrs['semi_major_axis']
-        h = projection.attrs['perspective_point_height']
-        b = projection.attrs['semi_minor_axis']
+        a = projection.semi_major_axis
+        h = projection.perspective_point_height
+        b = projection.semi_minor_axis
 
-        lon_0 = projection.attrs['longitude_of_projection_origin']
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
+        lon_0 = projection.longitude_of_projection_origin
+        sweep_axis = projection.sweep_angle_axis[0]
 
         proj_dict = {'a': float(a) * distance_multiplier,
                      'b': float(b) * distance_multiplier,
@@ -198,12 +206,15 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     def _find_input_nc(self, l1b_base):
         dirname = os.path.split(self.filename)[0]
-        l1b_filenames = list(glob(os.path.join(dirname, l1b_base + '*.nc')))
+        glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
+        LOG.debug("searching for {0}".format(glob_pat))
+        l1b_filenames = list(glob(glob_pat))
         if len(l1b_filenames) == 0:
             raise IOError("Could not find navigation donor for {0} in same directory as CLAVR-x data".format(l1b_base))
-        if len(l1b_filenames) > 1:
-            raise IOError("Ambiguous navigation donor for {0} in same directory as CLAVR-x data: {1}".format(
-                l1b_base, repr(l1b_filenames)))
+        # if len(l1b_filenames) > 1:
+        #     raise IOError("Ambiguous navigation donor for {0} in same directory as CLAVR-x data: {1}".format(
+        #         l1b_base, repr(l1b_filenames)))
+        LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))
         return l1b_filenames[0]
 
     def _read_axi_fixed_grid(self, l1b_attr):
@@ -238,6 +249,9 @@ class CLAVRXFileHandler(HDF4FileHandler):
         x, y = l1b['x'], l1b['y']
         area_extent, ncols, nlines = self._area_extent(x, y, h)
 
+        # LOG.debug(repr(proj))
+        # LOG.debug(repr(area_extent))
+
         area = geometry.AreaDefinition(
             'ahi_geos',
             "AHI L2 file area",
@@ -251,7 +265,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
-        l1b_att, inst_att = self.file_content.get('/attr/L1B', None), self.file_content.get('/attr/sensor', None)
+        l1b_att, inst_att = str(self.file_content.get('/attr/L1B', None)), str(self.file_content.get('/attr/sensor', None))
 
         if (inst_att != 'AHI') or (l1b_att is None):  # then it doesn't have a fixed grid
             return super(CLAVRXFileHandler, self).get_area_def(key)
