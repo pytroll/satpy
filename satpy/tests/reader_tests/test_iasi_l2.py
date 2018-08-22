@@ -227,6 +227,19 @@ class TestIasiL2(unittest.TestCase):
         self.assertEqual(emis.y.size, NUM_SCANLINES)
         self.assertTrue('emissivity_wavenumbers' in emis.attrs)
 
+    def test_load_sensing_times(self):
+        """Test loading sensing times"""
+        from satpy import Scene
+        fname = os.path.join(self.base_dir, FNAME)
+        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn.load(['sensing_time'])
+        times = scn['sensing_time'].compute()
+        # Times should be equal in blocks of four, but not beyond, so
+        # there should be SCAN_WIDTH/4 different values
+        for i in range(int(SCAN_WIDTH / 4)):
+            self.assertTrue(np.unique(times[0, i*4:i*4+4]).size == 1)
+        self.assertTrue(np.unique(times[0, :]).size == SCAN_WIDTH / 4)
+
 
 def suite():
     """The test suite for test_scene.
