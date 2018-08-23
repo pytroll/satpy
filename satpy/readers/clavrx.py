@@ -140,14 +140,14 @@ class CLAVRXFileHandler(HDF4FileHandler):
             i['units'] = CF_UNITS[u]
 
         i['sensor'] = sensor = self.get_sensor(self['/attr/sensor'])
-        i['platform'] = platform = self.get_platform(self['/attr/platform'])
+        i['platform'] = i['platform_name'] = platform = self.get_platform(self['/attr/platform'])
         i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
-        if sensor not in {'ahi', 'abi'}:  # rows per scan not needed for AxI
-            i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
-        i['source_name'] = i['reader'] = 'clavrx'
-        i['sector_id'] = '{0}_{1}'.format(sensor, platform).upper()
+        rps = self.get_rows_per_scan(sensor)
+        if rps:
+            i['rows_per_scan'] = rps
+        i['reader'] = 'clavrx'
+        # i['sector_id'] = '{0}_{1}'.format(sensor, platform).upper()
         # i['platform_name'] = SCMI_PLATFORM[platform]  # for output SCMI filenames but let's not do this until it makes sense
-
 
         return i
 
