@@ -52,7 +52,7 @@ sectors:
     lower_left_xy: [-5499999.901174725, -5499999.901174725]
     upper_right_xy: [5499999.901174725, 5499999.901174725]
     resolution: [2500000, 2500000]
-    projection: '+proj=geos +lon_0=140.7 +h=35785863.0 +a=6378137.0 +b=6356752.31414 +sweep=y +units=m +no_defs'
+    projection: '+proj=geos +lon_0=140.7 +h=35785863.0 +a=6378137.0 +b=6356752.3 +sweep=y +units=m +no_defs'
 datasets:
     default:
        physical_element: '{name}'
