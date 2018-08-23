@@ -811,8 +811,6 @@ class SCMIWriter(Writer):
             return awips_info
         except KeyError as e:
             LOG.error("Could not get information on dataset from backend configuration file")
-            # LOG.debug(repr(awips_info))
-            # LOG.debug(repr(ds_info))
             raise
 
     def save_dataset(self, dataset, **kwargs):
