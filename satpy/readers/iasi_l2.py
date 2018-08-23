@@ -133,11 +133,7 @@ def read_dataset(fid, key):
                         name=key.name, dims=dims).astype(np.float32)
     data = xr.where(data > 1e30, np.nan, data)
 
-    try:
-        dset_attrs = dict(dset.attrs)
-    except KeyError:
-        dset_attrs = {}
-
+    dset_attrs = dict(dset.attrs)
     data.attrs.update(dset_attrs)
 
     return data
