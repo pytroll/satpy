@@ -21,6 +21,17 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: true_color
 
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '4'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '3'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
   true_color_crefl:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
