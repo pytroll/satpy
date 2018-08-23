@@ -120,7 +120,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
             i['units'] = CF_UNITS[u]
 
         i['sensor'] = self.get_sensor(self['/attr/sensor'])
-        i['platform'] = self.get_platform(self['/attr/platform'])
+        i['platform_name'] = self.get_platform(self['/attr/platform'])
         i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
         i['rows_per_scan'] = self.get_rows_per_scan(i['sensor'])
         i['reader'] = 'clavrx'
