@@ -309,6 +309,10 @@ class TestIasiL2(unittest.TestCase):
             key = DatasetID(name='emissivity')
             data = read_dataset(fid, key).compute()
             self.check_emissivity(data)
+            # This dataset doesn't have any attributes
+            key = DatasetID(name='ozone_total_column')
+            data = read_dataset(fid, key).compute()
+            self.assertEqual(len(data.attrs), 0)
 
     def test_read_geo(self):
         """Test read_geo() function"""
