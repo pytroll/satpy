@@ -115,7 +115,7 @@ TEST_DATA = {
         'QO': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                'attrs': {}
         },
-        'QO': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
+        'QP': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                'attrs': {}
         },
         'QT': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
