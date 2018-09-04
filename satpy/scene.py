@@ -564,6 +564,7 @@ class Scene(MetadataObject):
             if src_area is None:
                 for ds_id in dataset_ids:
                     new_scn.datasets[ds_id] = self[ds_id]
+                continue
 
             y_factor, y_remainder = np.divmod(float(src_area.shape[0]),
                                               min_area.shape[0])
