@@ -36,8 +36,9 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition
+from pyresample.geometry import AreaDefinition, BaseDefinition
 from xarray import DataArray
+import numpy as np
 import six
 
 try:
@@ -218,22 +219,26 @@ class Scene(MetadataObject):
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
+                                 This can also be a series of area objects,
+                                 typically AreaDefinitions.
             compare_func (callable): `min` or `max` or other function used to
                                      compare the dataset's areas.
 
         """
         if datasets is None:
-            check_datasets = list(self.values())
-        else:
-            check_datasets = []
-            for ds in datasets:
-                if not isinstance(ds, DataArray):
-                    ds = self[ds]
-                check_datasets.append(ds)
+            datasets = list(self.values())
 
-        areas = [x.attrs.get('area') for x in check_datasets]
+        areas = []
+        for ds in datasets:
+            if isinstance(ds, BaseDefinition):
+                areas.append(ds)
+                continue
+            elif not isinstance(ds, DataArray):
+                ds = self[ds]
+            area = ds.attrs.get('area')
+            areas.append(area)
+
         areas = [x for x in areas if x is not None]
-
         if not areas:
             raise ValueError("No dataset areas available")
 
@@ -549,16 +554,35 @@ class Scene(MetadataObject):
             raise ValueError("Can't crop when dataset_ids are not all on the "
                              "same projection.")
 
+        # get the lowest resolution area, use it as the base of the slice
+        # this makes sure that the other areas *should* be a consistent factor
+        min_area = new_scn.min_area()
+        new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
+            min_area, area, ll_bbox, xy_bbox)
+        new_target_areas = {}
         for src_area, dataset_ids in new_scn.iter_by_area():
-            if src_area is not None:
-                # convert filter parameter to area
-                new_area, y_slice, x_slice = self._slice_area_from_bbox(
-                    src_area, area, ll_bbox, xy_bbox)
+            if src_area is None:
+                for ds_id in dataset_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+
+            y_factor, y_remainder = np.divmod(float(src_area.shape[0]),
+                                              min_area.shape[0])
+            x_factor, x_remainder = np.divmod(float(src_area.shape[1]),
+                                              min_area.shape[1])
+            y_factor = int(y_factor)
+            x_factor = int(x_factor)
+            if y_remainder == 0 and x_remainder == 0:
+                y_slice = slice(min_y_slice.start * y_factor,
+                                min_y_slice.stop * y_factor)
+                x_slice = slice(min_x_slice.start * x_factor,
+                                min_x_slice.stop * x_factor)
+                new_area = src_area[y_slice, x_slice]
                 slice_key = (y_slice, x_slice)
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
-                for ds_id in dataset_ids:
-                    new_scn.datasets[ds_id] = self[ds_id]
+                new_target_areas[src_area] = self._slice_area_from_bbox(
+                    src_area, area, ll_bbox, xy_bbox
+                )
 
         return new_scn
 
