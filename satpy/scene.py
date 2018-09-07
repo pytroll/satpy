@@ -539,6 +539,24 @@ class Scene(MetadataObject):
             dataset_ids (iterable): DatasetIDs to include in the returned
                                  `Scene`. Defaults to all datasets.
 
+        This method will attempt to intelligently slice the data to preserve
+        relationships between datasets. For example, if we are cropping two
+        DataArrays of 500m and 1000m pixel resolution then this method will
+        assume that exactly 4 pixels of the 500m array cover the same
+        geographic area as a single 1000m pixel. It handles these cases based
+        on the shapes of the input arrays and adjusting slicing indexes
+        accordingly. This method will have trouble handling cases where data
+        arrays seem related but don't cover the same geographic area or if the
+        coarsest resolution data is not related to the other arrays which are
+        related.
+
+        It can be useful to follow cropping with a call to the native
+        resampler to resolve all datasets to the same resolution and compute
+        any composites that could not be generated previously::
+
+        >>> cropped_scn = scn.crop(ll_bbox=(-105., 40., -95., 50.))
+        >>> remapped_scn = cropped_scn.resample(resampler='native')
+
         .. note::
 
             The `resample` method automatically crops input data before
