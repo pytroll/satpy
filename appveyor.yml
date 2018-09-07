@@ -4,7 +4,7 @@ environment:
     MINICONDA_VERSION: "latest"
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci-helpers\\appveyor\\windows_sdk.cmd"
     CONDA_DEPENDENCIES: "xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coverage netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff"
-    PIP_DEPENDENCIES: "trollsift trollimage pyspectral pyorbital"
+    PIP_DEPENDENCIES: "trollsift trollimage pyspectral pyorbital libtiff"
     CONDA_CHANNELS: "conda-forge"
 
   matrix:
