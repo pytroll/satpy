@@ -351,10 +351,21 @@ class TestScene(unittest.TestCase):
             y_size=y_size,
             area_extent=area_extent,
         )
+        area_def2 = AreaDefinition(
+            'test2',
+            'test2',
+            'test2',
+            proj_dict,
+            x_size=x_size // 2,
+            y_size=y_size // 2,
+            area_extent=area_extent,
+        )
         scene1["1"] = DataArray(np.zeros((y_size, x_size)))
         scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
         scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
                                 attrs={'area': area_def})
+        scene1["4"] = DataArray(np.zeros((y_size // 2, x_size // 2)), dims=('y', 'x'),
+                                attrs={'area': area_def2})
 
         # by area
         crop_area = AreaDefinition(
@@ -376,7 +387,8 @@ class TestScene(unittest.TestCase):
         self.assertIn('3', new_scn1)
         self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
         self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (3380, 3706))
+        self.assertTupleEqual(new_scn1['3'].shape, (3380, 3708))
+        self.assertTupleEqual(new_scn1['4'].shape, (1690, 1854))
 
         # by lon/lat bbox
         new_scn1 = scene1.crop(
@@ -386,7 +398,8 @@ class TestScene(unittest.TestCase):
         self.assertIn('3', new_scn1)
         self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
         self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (183, 712))
+        self.assertTupleEqual(new_scn1['3'].shape, (184, 714))
+        self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
 
         # by x/y bbox
         new_scn1 = scene1.crop(
@@ -396,7 +409,8 @@ class TestScene(unittest.TestCase):
         self.assertIn('3', new_scn1)
         self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
         self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (34, 68))
+        self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
+        self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
     def test_contains(self):
         from satpy import Scene

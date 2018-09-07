@@ -9,7 +9,6 @@ modifiers:
   effective_solar_pathlength_corrected:
     compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
 
-
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
@@ -177,14 +176,14 @@ composites:
     - 0.635
     - 10.8
     standard_name: green_snow
-  natural:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
     - 0.85
     - 0.635
-    standard_name: natural
-  natural_sun:
+    standard_name: natural_color
+  natural_color_sun:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
@@ -193,7 +192,7 @@ composites:
       modifiers: [sunz_corrected]
     - wavelength: 0.635
       modifiers: [sunz_corrected]
-    standard_name: natural
+    standard_name: natural_color
   night_fog:
     compositor: !!python/name:satpy.composites.Dust
     prerequisites:
@@ -230,7 +229,7 @@ composites:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_with_night_fog
     prerequisites:
-      - natural
+      - natural_color
       - night_fog
       - solar_zenith_angle
 
@@ -303,7 +302,8 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: ir108_3d
     prerequisites:
-      - name: IR_108
+      - wavelength: 10.8
+    #  - name: IR_108
 
   ir_cloud_day:
     standard_name: ir_cloud_day
