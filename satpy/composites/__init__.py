@@ -829,6 +829,8 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
 
+        projectables = self.check_areas(projectables)
+
         day_data = projectables[0]
         night_data = projectables[1]
 

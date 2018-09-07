@@ -31,7 +31,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
@@ -85,6 +84,7 @@ class NCSLSTR1B(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
+
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
@@ -137,7 +137,8 @@ class NCSLSTR1B(BaseFileHandler):
                 rad[indices] /= solar_flux[didx[indices].astype(int)]
                 return rad
 
-            radiances.data = da.map_blocks(cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
+            radiances.data = da.map_blocks(
+                cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
 
             radiances *= np.pi * 100
             units = '%'
@@ -164,20 +165,25 @@ class NCSLSTR1B(BaseFileHandler):
 class NCSLSTRAngles(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
+
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
+
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
+
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
+
         self.view = filename_info['view']
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+
         cart_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
         self.cart = xr.open_dataset(cart_file,
@@ -202,18 +208,12 @@ class NCSLSTRAngles(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset
         """
-        if key.name not in self.datasets:
-            return
-
         logger.debug('Reading %s.', key.name)
-        variable = self.nc[self.datasets[key.name]]
 
-        values = (np.ma.masked_equal(variable[:],
-                                     variable.attrs['_FillValue'], copy=False) *
-                  variable.attrs.get('scale_factor', 1) +
-                  variable.attrs.get('add_offset', 0))
-        values = np.ma.masked_invalid(values, copy=False)
-        units = variable.attrs['units']
+        # Check if file_key is specified in the yaml
+        file_key = info.get('file_key', key.name)
+
+        variable = self.nc[file_key]
 
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
@@ -223,61 +223,48 @@ class NCSLSTRAngles(BaseFileHandler):
 
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
-            tie_x_var = self.cartx['x_tx']
-            tie_x = (np.ma.masked_equal(tie_x_var[0, :],
-                                        tie_x_var.attrs['_FillValue'],
-                                        copy=False) *
-                     tie_x_var.attrs.get('scale_factor', 1) +
-                     tie_x_var.attrs.get('add_offset', 0))
+            tie_x = self.cartx['x_tx'].data[0, :][::-1]
+            tie_y = self.cartx['y_tx'].data[:, 0]
+            full_x = self.cart['x_i' + self.view].data
+            full_y = self.cart['y_i' + self.view].data
 
-            tie_y_var = self.cartx['y_tx']
-            tie_y = (np.ma.masked_equal(tie_y_var[:, 0],
-                                        tie_y_var.attrs['_FillValue'],
-                                        copy=False) *
-                     tie_y_var.attrs.get('scale_factor', 1) +
-                     tie_y_var.attrs.get('add_offset', 0))
-
-            full_x_var = self.cart['x_i' + self.view]
-            full_x = (np.ma.masked_equal(full_x_var[:],
-                                         full_x_var.attrs['_FillValue'],
-                                         copy=False) *
-                      full_x_var.attrs.get('scale_factor', 1) +
-                      full_x_var.attrs.get('add_offset', 0))
-
-            full_y_var = self.cart['y_i' + self.view]
-            full_y = (np.ma.masked_equal(full_y_var[:],
-                                         full_y_var.attrs['_FillValue'],
-                                         copy=False) *
-                      full_y_var.attrs.get('scale_factor', 1) +
-                      full_y_var.attrs.get('add_offset', 0))
+            variable = variable.fillna(0)
 
             from scipy.interpolate import RectBivariateSpline
             spl = RectBivariateSpline(
-                tie_y, tie_x[::-1], values[:, ::-1].filled(0))
+                tie_y, tie_x, variable.data[:, ::-1])
 
-            interpolated = spl.ev(full_y.compressed(),
-                                  full_x.compressed())
-            interpolated = np.ma.masked_invalid(interpolated, copy=False)
-            values = np.ma.empty(full_y.shape,
-                                 dtype=values.dtype)
-            values[np.logical_not(np.ma.getmaskarray(full_y))] = interpolated
-            values.mask = full_y.mask
+            valid = np.isfinite(full_y)
 
-        proj = Dataset(values,
-                       copy=False,
-                       units=units,
-                       platform_name=self.platform_name,
-                       standard_name=variable.attrs['standard_name'],
-                       sensor=self.sensor)
-        return proj
+            interpolated = spl.ev(full_y[valid],
+                                  full_x[valid])
+
+            values = np.full_like(full_y, np.nan,
+                                  dtype=variable.dtype)
+
+            values[valid] = interpolated
+            values = np.ma.masked_invalid(values, copy=False)
+
+            variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                    dims=['y', 'x'], attrs=variable.attrs)
+
+        variable.attrs['platform_name'] = self.platform_name
+        variable.attrs['sensor'] = self.sensor
+
+        if 'units' not in variable.attrs:
+            variable.attrs['units'] = 'degrees'
+
+        variable.attrs.update(key.to_dict())
+
+        return variable
 
     @property
     def start_time(self):
-        return self._start_time
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
-        return self._end_time
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 class NCSLSTRFlag(BaseFileHandler):
 

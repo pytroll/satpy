@@ -501,28 +501,36 @@ datasets:
     sensor: slstr
     resolution: 1000
     coordinates: [longitude, latitude]
+    standard_name: solar_zenith_angle    
     file_type: esa_angles
+    file_key: solar_zenith_tn
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: slstr
     resolution: 1000
     coordinates: [longitude, latitude]
+    standard_name: solar_azimuth_angle
     file_type: esa_angles
+    file_key: solar_azimuth_tn
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: slstr
     resolution: 1000
     coordinates: [longitude, latitude]
+    standard_name: satellite_zenith_angle
     file_type: esa_angles
+    file_key: sat_zenith_tn
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: slstr
     resolution: 1000
     coordinates: [longitude, latitude]
+    standard_name: satellite_azimuth_angle
     file_type: esa_angles
+    file_key: sat_azimuth_tn
 
 # CloudFlags are all bitfields. They are available in nadir (default) and oblique view for
 # each of the a,b,c,i stripes.
@@ -750,3 +758,4 @@ datasets:
     resolution: 1000
     file_type: esa_l1b_flag_io
     coordinates: [longitude, latitude]
+
