@@ -169,6 +169,12 @@ class CLAVRXFileHandler(HDF4FileHandler):
             data *= factor
             data += offset
 
+        actual_range = data.attrs.get('actual_range')
+        if actual_range is not None:
+            data = data.where((data >= actual_range[0]) & (data <= actual_range[1]))
+        else:  # TODO: resolve whether this is appropriate, for now this is debug
+            raise ValueError("CLAVR-x data should have actual_range attribute set")
+
         return data
 
     @staticmethod
