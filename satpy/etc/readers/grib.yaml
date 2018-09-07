@@ -12,9 +12,11 @@ file_types:
      # gfs.t18z.sfluxgrbf106.grib2
      - '{stem}.grib2'
      - 'gfs{stem}.f{forecast_time:3d}'
+     - 'gdas{stem}.f{forecast_time:3d}'
      # EUMETSAT:
      # S-OSI_-NOR_-MULT-AHLDLI_FIELD-201805011200Z.grb.gz
      - '{stem}.grb'
+     - '{stem}.grb2'
 #  grib_ncep:
 #    file_reader: !!python/name:satpy.readers.grib.GRIBFileHandler
 #    file_patterns:

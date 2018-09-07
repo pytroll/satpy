@@ -109,7 +109,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         info.update({
             'shape': shape,
             'units': units,
-            'platform': self.platform_name,
+            'platform_name': self.platform_name,
             'sensor': self.sensor_name,
             'standard_name': standard_name,
             'resolution': resolution,

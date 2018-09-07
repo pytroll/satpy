@@ -110,6 +110,23 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     return data
 
 
+# pointed to by generic.yaml
+def crefl_scaling(img, **kwargs):
+    LOG.debug("Applying the crefl_scaling")
+
+    def func(band_data, index=None):
+        idx = np.array(kwargs['idx']) / 255
+        sc = np.array(kwargs['sc']) / 255
+        band_data *= .01
+        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
+        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=idx, fp=sc), 0, 1),
+                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
+                                 attrs=band_data.attrs)
+        return band_data
+
+    return apply_enhancement(img.data, func, separate=True)
+
+
 def cira_stretch(img, **kwargs):
     """Logarithmic stretch adapted to human vision.
 
@@ -239,3 +256,39 @@ def three_d_effect(img, **kwargs):
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+
+
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
+                    **kwargs):
+    """Scale data linearly in two separate regions.
+
+    This enhancement scales the input data linearly by splitting the data
+    into two regions; min_in to threshold and threshold to max_in. These
+    regions are mapped to 1 to threshold_out and threshold_out to 0
+    respectively, resulting in the data being "flipped" around the
+    threshold. A default threshold_out is set to `176.0 / 255.0` to
+    match the behavior of the US National Weather Service's forecasting
+    tool called AWIPS.
+
+    Args:
+        img (XRImage): Image object to be scaled
+        min_in (float): Minimum input value to scale
+        max_in (float): Maximum input value to scale
+        threshold (float): Input value where to split data in to two regions
+        threshold_out (float): Output value to map the input `threshold`
+            to. Optional, defaults to 176.0 / 255.0.
+
+    """
+    threshold_out = threshold_out if threshold_out is not None else (176 / 255.0)
+    low_factor = (threshold_out - 1.) / (min_in - threshold)
+    low_offset = 1. + (low_factor * min_in)
+    high_factor = threshold_out / (max_in - threshold)
+    high_offset = high_factor * max_in
+
+    def _bt_threshold(band_data):
+        # expects dask array to be passed
+        return da.where(band_data >= threshold,
+                        high_offset - high_factor * band_data,
+                        low_offset - low_factor * band_data)
+
+    return apply_enhancement(img.data, _bt_threshold, pass_dask=True)

@@ -37,12 +37,6 @@ CF_UNITS = {
     'none': '1',
 }
 
-# SCMI preferred platform names, which really doesn't belong here in readerland
-# SCMI_PLATFORM = {
-#     'himawari8': 'GH8',
-#     'himawari9': 'GH9',
-# }
-
 
 class CLAVRXFileHandler(HDF4FileHandler):
     sensors = {
@@ -119,8 +113,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
                     'coordinates': ['longitude', 'latitude'],
                     'resolution': nadir_resolution,
                 }
-                yield DatasetID(name=var_name,
-                                resolution=nadir_resolution), ds_info
+                yield DatasetID(name=var_name, resolution=nadir_resolution), ds_info
 
     def get_shape(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)

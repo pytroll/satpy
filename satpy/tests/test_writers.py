@@ -30,8 +30,6 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from satpy.writers import show, to_image
-
 try:
     from unittest import mock
 except ImportError:
@@ -61,12 +59,14 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_1D(self):
         """Conversion to image."""
         # 1D
+        from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.XRImage')
     def test_to_image_2D(self, mock_geoimage):
         """Conversion to image."""
+        from satpy.writers import to_image
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -82,6 +82,7 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_3D(self, mock_geoimage):
         """Conversion to image."""
         # 3D
+        from satpy.writers import to_image
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=['bands', 'y', 'x'])
         p['bands'] = ['R', 'G', 'B']
@@ -93,6 +94,8 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         """Check showing."""
+        from satpy.writers import show
+
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
@@ -275,6 +278,7 @@ class TestYAMLFiles(unittest.TestCase):
         import yaml
 
         class IgnoreLoader(yaml.SafeLoader):
+
             def _ignore_all_tags(self, tag_suffix, node):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
@@ -305,6 +309,129 @@ class TestYAMLFiles(unittest.TestCase):
             self.assertIn('name', writer_info)
 
 
+class TestComputeWriterResults(unittest.TestCase):
+    """Test compute_writer_results()."""
+
+    def setUp(self):
+        """Create temporary directory to save files to and a mock scene"""
+        import tempfile
+        from datetime import datetime
+
+        from satpy.scene import Scene
+        import dask.array as da
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        self.scn = Scene()
+        self.scn['test'] = ds1
+
+        # Temp dir
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_empty(self):
+        """Test empty result list"""
+        from satpy.writers import compute_writer_results
+        compute_writer_results([])
+
+    def test_simple_image(self):
+        """Test writing to PNG file"""
+        from satpy.writers import compute_writer_results
+        fname = os.path.join(self.base_dir, 'simple_image.png')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='simple_image',
+                                     compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+    def test_geotiff(self):
+        """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
+        fname = os.path.join(self.base_dir, 'geotiff.tif')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='geotiff', compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_mitiff(self):
+#        """Test writing to mitiff file"""
+#        fname = os.path.join(self.base_dir, 'mitiff.tif')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='mitiff')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_cf(self):
+#        """Test writing to NetCDF4 file"""
+#        fname = os.path.join(self.base_dir, 'cf.nc')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='cf')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+    def test_multiple_geotiff(self):
+        """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'geotiff1.tif')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff2.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_multiple_simple(self):
+        """Test writing to geotiff files"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'simple_image1.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'simple_image2.png')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_mixed(self):
+        """Test writing to multiple mixed-type files"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'simple_image3.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff3.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        res3 = []
+        compute_writer_results([res1, res2, res3])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -313,5 +440,6 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
 
     return my_suite
