@@ -43,6 +43,7 @@ CF_UNITS = {
 #     'himawari9': 'GH9',
 # }
 
+
 class CLAVRXFileHandler(HDF4FileHandler):
     sensors = {
         'MODIS': 'modis',
@@ -118,7 +119,8 @@ class CLAVRXFileHandler(HDF4FileHandler):
                     'coordinates': ['longitude', 'latitude'],
                     'resolution': nadir_resolution,
                 }
-                yield DatasetID(name=var_name, resolution=nadir_resolution), ds_info
+                yield DatasetID(name=var_name,
+                                resolution=nadir_resolution), ds_info
 
     def get_shape(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
@@ -140,14 +142,13 @@ class CLAVRXFileHandler(HDF4FileHandler):
             i['units'] = CF_UNITS[u]
 
         i['sensor'] = sensor = self.get_sensor(self['/attr/sensor'])
-        i['platform'] = i['platform_name'] = platform = self.get_platform(self['/attr/platform'])
+        platform = self.get_platform(self['/attr/platform'])
+        i['platform'] = i['platform_name'] = platform
         i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
         rps = self.get_rows_per_scan(sensor)
         if rps:
             i['rows_per_scan'] = rps
         i['reader'] = 'clavrx'
-        # i['sector_id'] = '{0}_{1}'.format(sensor, platform).upper()
-        # i['platform_name'] = SCMI_PLATFORM[platform]  # for output SCMI filenames but let's not do this until it makes sense
 
         return i
 
@@ -163,7 +164,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
         valid_range = data.attrs.get('valid_range')
 
         if factor is not None and offset is not None:
-            def rescale_inplace(data):
+            def scale_inplace(data):
                 data *= factor
                 data += offset
                 return data
@@ -172,9 +173,9 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 return data
 
         data = data.where(data != fill)
-        rescale_inplace(data)
+        scale_inplace(data)
         if valid_range is not None:
-            valid_min, valid_max = rescale_inplace(valid_range[0]), rescale_inplace(valid_range[1])
+            valid_min, valid_max = scale_inplace(valid_range[0]), scale_inplace(valid_range[1])
             data = data.where((data >= valid_min) & (data <= valid_max))
             data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
 
@@ -219,16 +220,15 @@ class CLAVRXFileHandler(HDF4FileHandler):
         LOG.debug("searching for {0}".format(glob_pat))
         l1b_filenames = list(glob(glob_pat))
         if len(l1b_filenames) == 0:
-            raise IOError("Could not find navigation donor for {0} in same directory as CLAVR-x data".format(l1b_base))
-        # if len(l1b_filenames) > 1:
-        #     raise IOError("Ambiguous navigation donor for {0} in same directory as CLAVR-x data: {1}".format(
-        #         l1b_base, repr(l1b_filenames)))
+            raise IOError("Could not find navigation donor for {0}"
+                          " in same directory as CLAVR-x data".format(l1b_base))
         LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))
         return l1b_filenames[0]
 
     def _read_axi_fixed_grid(self, l1b_attr):
         """CLAVR-x does not transcribe fixed grid parameters to its output
-        We have to recover that information from the original input file, which is partially named as L1B attribute
+        We have to recover that information from the original input file,
+        which is partially named as L1B attribute
 
         example attributes found in L2 CLAVR-x files:
         sensor = "AHI" ;
@@ -236,9 +236,11 @@ class CLAVRXFileHandler(HDF4FileHandler):
         FILENAME = "clavrx_H08_20180719_1300.level2.hdf" ;
         L1B = "clavrx_H08_20180719_1300" ;
         """
-        LOG.debug("looking for corresponding input file for {0} to act as fixed grid navigation donor".format(l1b_attr))
+        LOG.debug("looking for corresponding input file for {0}"
+                  " to act as fixed grid navigation donor".format(l1b_attr))
         l1b_path = self._find_input_nc(l1b_attr)
-        LOG.info("Since CLAVR-x does not include fixed-grid parameters, using input file {0} as donor".format(l1b_path))
+        LOG.info("Since CLAVR-x does not include fixed-grid parameters,"
+                 " using input file {0} as donor".format(l1b_path))
         l1b = netCDF4.Dataset(l1b_path)
         proj = None
         proj_var = l1b.variables.get("Projection", None)
@@ -252,7 +254,8 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 LOG.debug("found cmip-style final PUG fixed grid specification")
                 proj = self._read_pug_fixed_grid(proj_var)
         if not proj:
-            raise ValueError("Unable to recover projection information for {0}".format(self.filename))
+            raise ValueError("Unable to recover projection information"
+                             " for {0}".format(self.filename))
 
         h = float(proj['h'])
         x, y = l1b['x'], l1b['y']
@@ -274,7 +277,8 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
-        l1b_att, inst_att = str(self.file_content.get('/attr/L1B', None)), str(self.file_content.get('/attr/sensor', None))
+        l1b_att, inst_att = (str(self.file_content.get('/attr/L1B', None)),
+                             str(self.file_content.get('/attr/sensor', None)))
 
         if (inst_att != 'AHI') or (l1b_att is None):  # then it doesn't have a fixed grid
             return super(CLAVRXFileHandler, self).get_area_def(key)
