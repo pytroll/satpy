@@ -162,18 +162,21 @@ class CLAVRXFileHandler(HDF4FileHandler):
         offset = data.attrs.get('add_offset')
         valid_range = data.attrs.get('valid_range')
 
-        data = data.where(data != fill)
-        if valid_range is not None:
-            data = data.where((data >= valid_range[0]) & (data <= valid_range[1]))
         if factor is not None and offset is not None:
-            data *= factor
-            data += offset
+            def rescale_inplace(data):
+                data *= factor
+                data += offset
+                return data
+        else:
+            def rescale_inplace(data):
+                return data
 
-        actual_range = data.attrs.get('actual_range')
-        if actual_range is not None:
-            data = data.where((data >= actual_range[0]) & (data <= actual_range[1]))
-        else:  # TODO: resolve whether this is appropriate, for now this is debug
-            raise ValueError("CLAVR-x data should have actual_range attribute set")
+        data = data.where(data != fill)
+        rescale_inplace(data)
+        if valid_range is not None:
+            valid_min, valid_max = rescale_inplace(valid_range[0]), rescale_inplace(valid_range[1])
+            data = data.where((data >= valid_min) & (data <= valid_max))
+            data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
 
         return data
 
