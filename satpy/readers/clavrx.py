@@ -169,7 +169,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 data += offset
                 return data
         else:
-            def rescale_inplace(data):
+            def scale_inplace(data):
                 return data
 
         data = data.where(data != fill)
