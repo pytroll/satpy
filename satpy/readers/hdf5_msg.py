@@ -22,7 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader.
+"""HDF5 format reader.
 
 References:
     MSG Level 1.5 Image Data FormatDescription
@@ -38,15 +38,12 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from pyresample import geometry
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short, recarray2dict)
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 
-logger = logging.getLogger('hrit_msg')
+logger = logging.getLogger('hdf5_msg')
 
 
 # MSG implementation:
@@ -590,9 +587,9 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
         pacqtime['ForwardScanStart'] = start
 
 
-class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
+class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
-    """MSG HRIT format reader
+    """MSG HDF5 format reader
     """
 
     def __init__(self, filename, filename_info, filetype_info,

@@ -1,78 +1,16 @@
 reader:
-  description: MSG HRIT Reader
-  name: hrit_msg
+  description: MSG HDF5 Reader
+  name: hdf5_msg
   sensors: [seviri]
   default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    HRIT_HRV:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
+    HDF5_MSG:
+        file_reader: !!python/name:satpy.readers.hdf5_msg.HDF5MSGFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}.h5']
+        file_patterns: ['MSG{num:1s}-SEVI-{platform_shortname:4s}_{service:_<7s}-0100-NA-{start_time:%Y%m%d%H%M}.[0-9][0-9][0-9]000000Z-{start_date:%Y%m%d%}{time}-{order_number:7s}.h5.{compressed:_<2s}']
 
-    HRIT_IR_016:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_016___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_039:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_039___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_087:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_087___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_097:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_097___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_108:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_108___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_120:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_120___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_IR_134:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_134___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_VIS006:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS006___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_VIS008:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS008___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_WV_062:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_062___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_WV_073:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_073___-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-        requires: [HRIT_PRO, HRIT_EPI]
-
-    HRIT_PRO:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
-
-    HRIT_EPI:
-        file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
 
 datasets:
   HRV:
@@ -88,7 +26,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_HRV
+    file_type: HDF5_MSG
+    file_key:
 
   IR_016:
     name: IR_016
@@ -103,7 +42,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_016
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_039:
     name: IR_039
@@ -118,7 +58,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_039
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_087:
     name: IR_087
@@ -133,7 +74,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_087
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_097:
     name: IR_097
@@ -148,7 +90,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_097
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_108:
     name: IR_108
@@ -163,7 +106,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_108
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_120:
     name: IR_120
@@ -178,7 +122,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_120
+    file_type: HDF5_MSG
+    file_ley:
 
   IR_134:
     name: IR_134
@@ -193,7 +138,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_IR_134
+    file_type: HDF5_MSG
+    file_ley:
 
   VIS006:
     name: VIS006
@@ -208,7 +154,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_VIS006
+    file_type: HDF5_MSG
+    file_ley:
 
   VIS008:
     name: VIS008
@@ -223,7 +170,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_VIS008
+    file_type: HDF5_MSG
+    file_ley:
 
   WV_062:
     name: WV_062
@@ -238,7 +186,8 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_WV_062
+    file_type: HDF5_MSG
+    file_ley:
 
   WV_073:
     name: WV_073
@@ -253,4 +202,5 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
-    file_type: HRIT_WV_073
+    file_type: HDF5_MSG
+    file_ley:
