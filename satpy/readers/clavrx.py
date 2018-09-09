@@ -110,9 +110,10 @@ class CLAVRXFileHandler(HDF4FileHandler):
             if isinstance(val, SDS):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
-                    'coordinates': ['longitude', 'latitude'],
                     'resolution': nadir_resolution,
                 }
+                if self._is_polar():
+                    ds_info['coordinates'] = ['longitude', 'latitude']
                 yield DatasetID(name=var_name, resolution=nadir_resolution), ds_info
 
     def get_shape(self, dataset_id, ds_info):
@@ -268,12 +269,16 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
         return area
 
-    def get_area_def(self, key):
-        """Get the area definition of the data at hand."""
+    def _is_polar(self):
         l1b_att, inst_att = (str(self.file_content.get('/attr/L1B', None)),
                              str(self.file_content.get('/attr/sensor', None)))
 
-        if (inst_att != 'AHI') or (l1b_att is None):  # then it doesn't have a fixed grid
+        return (inst_att != 'AHI') or (l1b_att is None)
+
+    def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
+        if self._is_polar():  # then it doesn't have a fixed grid
             return super(CLAVRXFileHandler, self).get_area_def(key)
 
+        l1b_att = str(self.file_content.get('/attr/L1B', None))
         return self._read_axi_fixed_grid(l1b_att)
