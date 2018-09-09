@@ -261,7 +261,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
                 'clavrx_H08_20180806_1800.level2.hdf',
             ])
             r.create_filehandlers(loadables)
-        self.assertRaises(OSError, r.load, ['variable1', 'variable2', 'variable3'])
+        self.assertRaises(IOError, r.load, ['variable1', 'variable2', 'variable3'])
 
     def test_load_all_old_donor(self):
         """Test loading all test datasets with old donor."""
