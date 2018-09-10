@@ -125,7 +125,13 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
                         'ColumnDirGridStep': 3.0004032,
                         'LineDirGridStep': 3.0004032,
                         'GridOrigin': 2,  # south-east corner
-                    }
+                    },
+                    'ReferenceGridHRV': {
+                        'ColumnDirGridStep': 1.0001343,
+                        'LineDirGridStep': 1.0001343,
+                        'NumberOfLines': 11136,
+                        'NumberOfColumns': 11136,
+                    },
                 },
                 'GeometricProcessing': {
                     'EarthModel': {'TypeOfEarthModel': earth_model}
@@ -167,6 +173,21 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         expected_area_extent = (
             -5570248.477339745, -5567248.074173927,
             5567248.074173927, 5570248.477339745
+        )
+        assertNumpyArraysEqual(
+            np.array(calc_area_extent), np.array(expected_area_extent)
+        )
+
+    def test_HRV(self):
+        """HRV area extent"""
+        dsid = mock.Mock()
+        dsid.name = 'HRV'
+        calc_area_extent = NativeMSGFileHandler.get_area_extent(
+            self.get_mock_file_handler(earth_model=2), dsid
+        )
+        expected_area_extent = (
+            -5571248.390376568, -5566247.718632221,
+            5566247.718632221, 5571248.390376568
         )
         assertNumpyArraysEqual(
             np.array(calc_area_extent), np.array(expected_area_extent)
