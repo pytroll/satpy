@@ -122,20 +122,19 @@ class NCSLSTR1B(BaseFileHandler):
 
         logger.debug('Reading %s.', key.name)
         if key.calibration == 'brightness_temperature':
-            variable = self.nc['{}_BT_{}{}'.format(self.channel,self.stripe,self.view)]
+            variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view)]
         else:
-            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe,self.view)]
-
+            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view)]
 
         radiances = variable
         units = variable.attrs['units']
 
         if key.calibration == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[re.sub('_[^_]*$','',key.name) + '_solar_irradiances']
+            solar_flux = self.cal[re.sub('_[^_]*$', '', key.name) + '_solar_irradiances']
             d_index = self.indices['detector_{}{}'.format(self.stripe, self.view)]
             idx = 0 if self.view == 'n' else 1   # 0: Nadir view, 1: oblique (check).
-                
+
             def cal_rad(rad, didx, solar_flux=None):
                 indices = np.isfinite(didx)
                 rad[indices] /= solar_flux[didx[indices].astype(int)]
@@ -183,7 +182,6 @@ class NCSLSTRAngles(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
-
         self.view = filename_info['view']
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -203,12 +201,7 @@ class NCSLSTRAngles(BaseFileHandler):
                                      chunks={'columns': CHUNK_SIZE,
                                              'rows': CHUNK_SIZE})
 
-        datasets = {'satellite_azimuth_angle': 'satellite_azimuth_t' + self.view,
-                    'satellite_zenith_angle': 'satellite_zenith_t' + self.view,
-                    'solar_azimuth_angle': 'solar_azimuth_t' + self.view,
-                    'solar_zenith_angle': 'solar_zenith_t' + self.view}
 
-        
     def get_dataset(self, key, info):
         """Load a dataset
         """
@@ -270,11 +263,12 @@ class NCSLSTRAngles(BaseFileHandler):
     def end_time(self):
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
+
 class NCSLSTRFlag(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRFlag, self).__init__(filename, filename_info,
-                                        filetype_info)
+                                          filetype_info)
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
