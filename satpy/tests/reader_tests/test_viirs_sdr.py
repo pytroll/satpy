@@ -103,8 +103,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         # convert to xarrays
         from xarray import DataArray
+        import dask.array as da
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
+                val = da.from_array(val, chunks=val.shape)
                 if val.ndim > 1:
                     file_content[key] = DataArray(val, dims=('y', 'x'))
                 else:
