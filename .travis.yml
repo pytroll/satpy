@@ -30,7 +30,7 @@ install:
     - conda config --remove channels defaults
     - conda install -y $CONDA_DEPENDENCIES
 script:
-- coverage run --source=satpy --omit=versioneer.py setup.py test
+- coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success:
 - if [[ $PYTHON_VERSION == 3.6 ]]; then coveralls; codecov; fi
