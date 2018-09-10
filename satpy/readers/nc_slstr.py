@@ -25,6 +25,8 @@
 
 import logging
 import os
+import re
+
 from datetime import datetime
 
 import numpy as np
@@ -124,11 +126,13 @@ class NCSLSTR1B(BaseFileHandler):
         else:
             variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe,self.view)]
 
+
         radiances = variable
         units = variable.attrs['units']
+
         if key.calibration == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[key.name + '_solar_irradiances']
+            solar_flux = self.cal[re.sub('_[^_]*$','',key.name) + '_solar_irradiances']
             d_index = self.indices['detector_{}{}'.format(self.stripe, self.view)]
             idx = 0 if self.view == 'n' else 1   # 0: Nadir view, 1: oblique (check).
                 
