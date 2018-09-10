@@ -17,16 +17,12 @@ def mock_dataset():
 
 class TestSLSTRReader(TestCase):
 
-    def test_import(self):
-        from satpy.readers.nc_slstr import *
-
-    @mock.patch('xarray.open_dataset')   
+    @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_Dataset):
 
         mocked_Dataset.return_value = mock_dataset()
 
-        from satpy.readers.nc_slstr import NCSLSTR1B, NCSLSTRGeo, NCSLSTR1B
-        from satpy.readers.nc_slstr import NCSLSTRAngles, NCSLSTRFlag
+        from satpy.readers.nc_slstr import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
 
         class base():
             def copy(self):
