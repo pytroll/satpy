@@ -34,8 +34,8 @@ import dask
 import dask.array as da
 import xarray as xr
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
+from satpy.config import (config_search_paths, glob_config,
+                          get_environ_config_dir, recursive_dict_update)
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -47,15 +47,31 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
+def read_writer_config(config_files, loader=yaml.Loader):
+    """Read the writer `config_files` and return the info extracted."""
+
+    conf = {}
+    LOG.debug('Reading %s', str(config_files))
+    for config_file in config_files:
+        with open(config_file) as fd:
+            conf.update(yaml.load(fd.read(), loader))
+
+    try:
+        writer_info = conf['writer']
+    except KeyError:
+        raise KeyError(
+            "Malformed config file {}: missing writer 'writer'".format(
+                config_files))
+    writer_info['config_files'] = config_files
+    return writer_info
+
+
 def load_writer_configs(writer_configs, ppp_config_dir,
                         **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
-    conf = {}
     try:
-        for conf_fn in writer_configs:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
+        writer_info = read_writer_config(writer_configs)
+        writer_class = writer_info['writer']
     except (ValueError, KeyError, yaml.YAMLError):
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
@@ -85,6 +101,64 @@ def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
                          "loaded".format(writer))
+
+
+def configs_for_writer(writer=None, ppp_config_dir=None):
+    """Generator of writer configuration files for one or more writers
+
+    Args:
+        writer (Optional[str]): Yield configs only for this writer
+        ppp_config_dir (Optional[str]): Additional configuration directory
+            to search for writer configuration files.
+
+    Returns: Generator of lists of configuration files
+
+    """
+    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
+    if writer is not None:
+        if not isinstance(writer, (list, tuple)):
+            writer = [writer]
+        # given a config filename or writer name
+        config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
+    else:
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
+                                     *search_paths)
+        config_files = set(writer_configs)
+
+    for config_file in config_files:
+        config_basename = os.path.basename(config_file)
+        writer_configs = config_search_paths(
+            os.path.join("writers", config_basename), *search_paths)
+
+        if not writer_configs:
+            LOG.warning("No writer configs found for '%s'", writer)
+            continue
+
+        yield writer_configs
+
+
+def available_writers(as_dict=False):
+    """Available writers based on current configuration.
+
+    Args:
+        as_dict (bool): Optionally return writer information as a dictionary.
+                        Default: False
+
+    Returns: List of available writer names. If `as_dict` is `True` then
+             a list of dictionaries including additionally writer information
+             is returned.
+
+    """
+    writers = []
+    for writer_configs in configs_for_writer():
+        try:
+            writer_info = read_writer_config(writer_configs)
+        except (KeyError, IOError, yaml.YAMLError):
+            LOG.warning("Could not import writer config from: %s", writer_configs)
+            LOG.debug("Error loading YAML", exc_info=True)
+            continue
+        writers.append(writer_info if as_dict else writer_info['name'])
+    return writers
 
 
 def _determine_mode(dataset):
@@ -176,13 +250,12 @@ def add_text(orig, dc, img, text=None):
 
     dc.add_text(**text)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -196,13 +269,12 @@ def add_logo(orig, dc, img, logo=None):
 
     dc.add_logo(**logo)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)})
 
 
 def add_decorate(orig, **decorate):
@@ -256,12 +328,10 @@ def add_decorate(orig, **decorate):
 
 def get_enhanced_image(dataset,
                        enhancer=None,
-                       fill_value=None,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
                        decorate=None):
-    mode = _determine_mode(dataset)
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -269,7 +339,7 @@ def get_enhanced_image(dataset,
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
 
     # Create an image for enhancement
-    img = to_image(dataset, mode=mode, fill_value=fill_value)
+    img = to_image(dataset)
 
     if enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
@@ -296,17 +366,65 @@ def show(dataset, **kwargs):
     return img
 
 
-def to_image(dataset, copy=False, **kwargs):
-    # Only add keywords if they are present
-    for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.attrs:
-            kwargs.setdefault(key, dataset.attrs[key])
+def to_image(dataset):
     dataset = dataset.squeeze()
-
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
         return XRImage(dataset)
+
+
+def split_results(results):
+    """Get sources, targets and delayed objects to separate lists from a
+    list of results collected from (multiple) writer(s)."""
+    from dask.delayed import Delayed
+
+    def flatten(results):
+        out = []
+        if isinstance(results, (list, tuple)):
+            for itm in results:
+                out.extend(flatten(itm))
+            return out
+        return [results]
+
+    sources = []
+    targets = []
+    delayeds = []
+
+    for res in flatten(results):
+        if isinstance(res, da.Array):
+            sources.append(res)
+        elif isinstance(res, Delayed):
+            delayeds.append(res)
+        else:
+            targets.append(res)
+    return sources, targets, delayeds
+
+
+def compute_writer_results(results):
+    """Compute all the given dask graphs `results` so that the files are
+    saved.
+
+    Args:
+        results (iterable): Iterable of dask graphs resulting from calls to
+                            `scn.save_datasets(..., compute=False)
+    """
+    if not results:
+        return
+
+    sources, targets, delayeds = split_results(results)
+
+    # one or more writers have targets that we need to close in the future
+    if targets:
+        delayeds.append(da.store(sources, targets, compute=False))
+
+    if delayeds:
+        da.compute(delayeds)
+
+    if targets:
+        for target in targets:
+            if hasattr(target, 'close'):
+                target.close()
 
 
 class Writer(Plugin):
@@ -390,32 +508,20 @@ class Writer(Plugin):
             close any objects that have a "close" method.
 
         """
-        sources = []
-        targets = []
+        results = []
         for ds in datasets:
-            res = self.save_dataset(ds, compute=False, **kwargs)
-            if isinstance(res, tuple):
-                # source, target to be passed to da.store
-                sources.append(res[0])
-                targets.append(res[1])
-            else:
-                # delayed object
-                sources.append(res)
+            results.append(self.save_dataset(ds, compute=False, **kwargs))
 
-        # we have targets, we should save sources to targets
-        if targets and compute:
-            res = da.store(sources, targets)
-            for target in targets:
-                if hasattr(target, 'close'):
-                    target.close()
-            return res
-        elif targets:
-            return sources, targets
-
-        delayed = dask.delayed(sources)
         if compute:
-            return delayed.compute()
-        return delayed
+            LOG.info("Computing and writing results...")
+            return compute_writer_results([results])
+
+        targets, sources, delayeds = split_results([results])
+        if delayeds:
+            # This writer had only delayed writes
+            return delayeds
+        else:
+            return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
@@ -436,7 +542,7 @@ class Writer(Plugin):
                             If `False` return either a `dask.delayed.Delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
-            **kwargs: Other keyword arguments for this particular reader.
+            **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
@@ -491,10 +597,10 @@ class ImageWriter(Writer):
 
         """
         img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
+            dataset.squeeze(), self.enhancer, overlay=overlay,
             decorate=decorate)
         return self.save_image(img, filename=filename, compute=compute,
-                               **kwargs)
+                               fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
@@ -615,7 +721,12 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_section = yaml.load(fd).get(self.prefix, {})
+                    enhancement_config = yaml.load(fd)
+                    if enhancement_config is None:
+                        # empty file
+                        continue
+                    enhancement_section = enhancement_config.get(
+                        self.prefix, {})
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue

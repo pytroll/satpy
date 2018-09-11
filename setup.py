@@ -36,12 +36,12 @@ version = imp.load_source('satpy.version', 'satpy/version.py')
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.9.2', 'trollsift',
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.10.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
 # pyhdf (conda) == python-hdf4 (pip)
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff', 'rasterio']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -70,6 +70,9 @@ extras_require = {
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'mitiff': ['libtiff'],
+    # MultiScene:
+    'animations': ['imageio'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

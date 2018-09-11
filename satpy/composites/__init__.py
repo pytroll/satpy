@@ -38,7 +38,7 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
+from satpy.dataset import (DATASET_KEYS, DatasetID, MetadataObject,
                            combine_metadata)
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
@@ -448,7 +448,7 @@ class PSPRayleighReflectance(CompositeBase):
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
                                                       vis.attrs['name'],
                                                       red.data)
-        except KeyError:
+        except (KeyError, IOError):
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
@@ -461,7 +461,6 @@ class PSPRayleighReflectance(CompositeBase):
 
 
 class NIRReflectance(CompositeBase):
-    # TODO: Daskify
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel. Not supposed to be used
@@ -469,9 +468,11 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
-        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
+        refl = self._get_reflectance(projectables, optional_datasets) * 100
+        proj = xr.DataArray(refl.filled(np.nan), dims=_nir.dims,
+                            coords=_nir.coords, attrs=_nir.attrs)
 
-        proj.info['units'] = '%'
+        proj.attrs['units'] = '%'
         self.apply_modifier_info(_nir, proj)
 
         return proj
@@ -497,11 +498,12 @@ class NIRReflectance(CompositeBase):
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if (dataset.attrs['units'] == 'K' and
-                    "wavelengh" in dataset.attrs and
-                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
+            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
+            if (dataset.attrs.get('units') == 'K' and
+                    wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset
-            elif dataset.attrs["standard_name"] == "solar_zenith_angle":
+            elif ("standard_name" in dataset.attrs and
+                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
                 sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
@@ -526,7 +528,9 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
+                            dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
         self.apply_modifier_info(_nir, proj)
@@ -609,7 +613,9 @@ class DifferenceCompositor(CompositeBase):
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
-        return Dataset(projectables[0] - projectables[1], **info)
+        proj = projectables[0] - projectables[1]
+        proj.attrs = info
+        return proj
 
 
 class GenericCompositor(CompositeBase):
@@ -755,11 +761,13 @@ class ColorizeCompositor(ColormapCompositor):
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
 
-        return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
+        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
+        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        #
+        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -821,6 +829,8 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
 
+        projectables = self.check_areas(projectables)
+
         day_data = projectables[0]
         night_data = projectables[1]
 
@@ -877,8 +887,8 @@ def enhance2dataset(dset):
     array of the image."""
     attrs = dset.attrs
     img = get_enhanced_image(dset)
-    # Clip image data to interval [0.0, 1.0] and replace nan values
-    data = img.data.clip(0.0, 1.0).fillna(0.0)
+    # Clip image data to interval [0.0, 1.0]
+    data = img.data.clip(0.0, 1.0)
     data.attrs = attrs
 
     return data
@@ -1188,7 +1198,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
             av_data = np.pad(data, pad, 'edge')
             new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-            data_mean = np.ma.mean(av_data.reshape(new_shape), axis=(1, 3))
+            data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
             data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
             data_mean = data_mean[row_offset:row_offset + rows,
                                   col_offset:col_offset + cols]

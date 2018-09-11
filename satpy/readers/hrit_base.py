@@ -33,24 +33,10 @@ import xarray as xr
 import dask.array as da
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.eum_base import time_cds_short
 from satpy.readers.msg_base import dec10216
 
 logger = logging.getLogger('hrit_base')
-
-
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
-
 
 common_hdr = np.dtype([('hdr_id', 'u1'),
                        ('record_length', '>u2')])
@@ -73,16 +59,6 @@ image_navigation = np.dtype([('projection_name', 'S32'),
 image_data_function = np.dtype([('function', '|S1')])
 
 annotation_header = np.dtype([('annotation', '|S1')])
-
-time_cds_short = np.dtype([('days', '>u2'),
-                           ('milliseconds', '>u4')])
-
-
-def make_time_cds_short(tcds_array):
-    return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['days']),
-                      milliseconds=int(tcds_array['milliseconds'])))
-
 
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
@@ -269,7 +245,7 @@ class HRITFileHandler(BaseFileHandler):
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         if self.mda['number_of_bits_per_pixel'] == 16:
             dtype = '>u2'
-            shape /= 2
+            shape //= 2
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )

@@ -26,7 +26,7 @@ import sys
 
 from satpy.tests.writer_tests import (test_cf, test_geotiff,
                                       test_ninjotiff, test_simple_image,
-                                      test_scmi)
+                                      test_scmi, test_mitiff)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,9 +37,10 @@ else:
 def suite():
     """Test suite for all writer tests"""
     mysuite = unittest.TestSuite()
-    # mysuite.addTests(test_cf.suite())
+    mysuite.addTests(test_cf.suite())
     mysuite.addTests(test_geotiff.suite())
     # mysuite.addTests(test_ninjotiff.suite())
     mysuite.addTests(test_simple_image.suite())
     mysuite.addTests(test_scmi.suite())
+    mysuite.addTests(test_mitiff.suite())
     return mysuite
