@@ -110,6 +110,23 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     return data
 
 
+# pointed to by generic.yaml
+def crefl_scaling(img, **kwargs):
+    LOG.debug("Applying the crefl_scaling")
+
+    def func(band_data, index=None):
+        idx = np.array(kwargs['idx']) / 255
+        sc = np.array(kwargs['sc']) / 255
+        band_data *= .01
+        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
+        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=idx, fp=sc), 0, 1),
+                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
+                                 attrs=band_data.attrs)
+        return band_data
+
+    return apply_enhancement(img.data, func, separate=True)
+
+
 def cira_stretch(img, **kwargs):
     """Logarithmic stretch adapted to human vision.
 

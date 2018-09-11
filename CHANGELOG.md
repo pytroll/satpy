@@ -1,3 +1,33 @@
+## Version 0.9.3 (2018/09/10)
+
+### Issues Closed
+
+* [Issue 336](https://github.com/pytroll/satpy/issues/336) - Scene crop does not compare all dataset areas ([PR 406](https://github.com/pytroll/satpy/pull/406))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 409](https://github.com/pytroll/satpy/pull/409) - Fix viirs_sdr reading of aggregated files
+* [PR 406](https://github.com/pytroll/satpy/pull/406) - Fix Scene crop so new areas are consistent with resolution ([336](https://github.com/pytroll/satpy/issues/336))
+
+In this release 2 pull requests were closed.
+
+
+## Version 0.9.2 (2018/08/23)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 402](https://github.com/pytroll/satpy/pull/402) - Fix 'platform_name' metadata in ACSPO and CLAVR-x readers
+* [PR 401](https://github.com/pytroll/satpy/pull/401) - Wrap solar and satellite angles in xarray in AVHRR AAPP reader
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.9.1 (2018/08/19)
 
 ### Issues Closed

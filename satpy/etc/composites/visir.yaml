@@ -9,7 +9,6 @@ modifiers:
   effective_solar_pathlength_corrected:
     compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
 
-
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector
     prerequisites:
