@@ -27,27 +27,38 @@ single continuous time range. It is possible to combine Scenes to
 form a Scene with multiple regions or multiple time observations, but
 it is not guaranteed that all functionality works in these situations.
 
-Datasets
-========
+DataArrays
+==========
 
-SatPy's lowest-level container for data is the
-:class:`~satpy.dataset.Dataset`. ``Dataset`` is a subclass of NumPy's
-:class:`~numpy.ma.MaskedArray` with an additional ``.info`` dictionary
-attribute for various metadata. In most use cases these objects can be
-operated on like normal NumPy arrays with special care taken to make
-sure the metadata dictionary contains expected values.
+SatPy's lower-level container for data is the
+:class:`xarray.DataArray`. For historical reasons DataArrays are often
+referred to as "Datasets" in SatPy. These objects act similar to normal
+numpy arrays, but add additional metadata and attributes for describing the
+data. Metadata is stored in a ``.attrs`` dictionary and named dimensions can
+be accessed in a ``.dims`` attribute, along with other attributes.
+In most use cases these objects can be operated on like normal NumPy arrays
+with special care taken to make sure the metadata dictionary contains
+expected values. See the XArray documentation for more info on handling
+:class:`xarray.DataArray` objects.
 
-.. warning::
+Additionally, SatPy uses a special form of DataArrays where data is stored
+in :class:`dask.array.Array` objects which allows SatPy to perform
+multi-threaded lazy operations vastly improving the performance of processing.
+For help on developing with dask and xarray see
+:doc:`dev_guide/xarray_migration` or the documentation for the specific
+project.
 
-    Starting with version 0.9, SatPy will replace ``Dataset`` with the
-    :class:`xarray.DataArray` object. The main difference will be that the
-    ``.info`` metadata dictionary will be accessed via ``.attrs``.
-
-``Datasets`` are identified throughout SatPy by a ``DatasetID``. A
+To uniquely identify ``DataArray`` objects SatPy uses `DatasetID`. A
 ``DatasetID`` consists of various pieces of available metadata. This usually
 includes `name` and `wavelength` as identifying metadata, but also includes
 `resolution`, `calibration`, `polarization`, and additional `modifiers`
 to further distinguish one dataset from another.
+
+.. warning::
+
+    XArray includes other object types called "Datasets". These are different
+    from the "Datasets" mentioned in SatPy.
+
 
 Reading
 =======

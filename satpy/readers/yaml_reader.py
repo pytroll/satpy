@@ -66,7 +66,7 @@ def listify_string(something):
 def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
-    tail_len = len(pattern.split('/'))
+    tail_len = len(pattern.split(os.path.sep))
     return os.path.join(*path.split(os.path.sep)[-tail_len:])
 
 
@@ -200,6 +200,11 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get the dataset ids from the config."""
         ids = []
         for dataset in self.datasets.values():
+            # xarray doesn't like concatenating attributes that are lists
+            # https://github.com/pydata/xarray/issues/2060
+            if 'coordinates' in dataset and \
+                    isinstance(dataset['coordinates'], list):
+                dataset['coordinates'] = tuple(dataset['coordinates'])
             # Build each permutation/product of the dataset
             id_kwargs = []
             for key in DATASET_KEYS:
@@ -393,6 +398,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
         end_time = self.filter_parameters.get('end_time')
+        fend = fend or fstart
         if start_time and fend and fend < start_time:
             return False
         if end_time and fstart and fstart > end_time:
@@ -535,6 +541,11 @@ class FileYAMLReader(AbstractYAMLReader):
             for ds_id, ds_info in avail_ids:
                 # don't overwrite an existing dataset
                 # especially from the yaml config
+                coordinates = ds_info.get('coordinates')
+                if isinstance(coordinates, list):
+                    # xarray doesn't like concatenating attributes that are
+                    # lists: https://github.com/pydata/xarray/issues/2060
+                    ds_info['coordinates'] = tuple(ds_info['coordinates'])
                 self.ids.setdefault(ds_id, ds_info)
 
     @staticmethod
@@ -736,7 +747,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             ancillary_variables = dataset.attrs.get('ancillary_variables', [])
             if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(',')
+                ancillary_variables = ancillary_variables.split(' ')
             av_ids = []
             for key in ancillary_variables:
                 try:
@@ -746,16 +757,20 @@ class FileYAMLReader(AbstractYAMLReader):
 
             all_av_ids |= set(av_ids)
             dataset.attrs['ancillary_variables'] = av_ids
-        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        loadable_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
         if not all_av_ids:
             return
-        av_ds = self.load(all_av_ids, datasets)
+        if loadable_av_ids:
+            self.load(loadable_av_ids, previous_datasets=datasets)
+
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                new_vars.append(av_ds.get(av_id, datasets.get(av_id, av_id)))
+                if isinstance(av_id, DatasetID):
+                    new_vars.append(datasets[av_id])
+                else:
+                    new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
-        datasets.update(av_ds)
 
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017, 2018 Adam.Dybbroe
+# Copyright (c) 2017, 2018 PyTroll Community
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c20671.ad.smhi.se>
+#   Adam.Dybbroe <adam.dybbroe@smhi.se>
+#   Sauli.Joro <sauli.joro@eumetsat.int>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,9 +32,6 @@ import xarray.ufuncs as xu
 C1 = 1.19104273e-5
 C2 = 1.43877523
 
-# CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
-#                'WV_062', 'WV_073', 'IR_087', 'IR_097',
-#                'IR_108', 'IR_120', 'IR_134', 'HRV']
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
                  3: "IR_016",
@@ -238,13 +236,16 @@ def dec10216(inbuf):
 
 
 class SEVIRICalibrationHandler(object):
+    """Calibration handler for SEVIRI HRIT- and native-formats.
+    """
 
     def _convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
+
         return (data * gain + offset).clip(0.0, None)
 
     def _erads2bt(self, data, channel_name):
-        """computation based on effective radiance."""
+        """Computation based on effective radiance."""
         cal_info = CALIB[self.platform_id][channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
@@ -253,7 +254,7 @@ class SEVIRICalibrationHandler(object):
         return (self._tl15(data, wavenumber) - beta) / alpha
 
     def _ir_calibrate(self, data, channel_name, cal_type):
-        """IR calibration."""
+        """Calibrate to brightness temperature."""
         if cal_type == 1:
             # spectral radiances
             return self._srads2bt(data, channel_name)
@@ -264,7 +265,7 @@ class SEVIRICalibrationHandler(object):
             raise NotImplementedError('Unknown calibration type')
 
     def _srads2bt(self, data, channel_name):
-        """computation based on spectral radiance."""
+        """Computation based on spectral radiance."""
         a__, b__, c__ = BTFIT[channel_name]
         wavenumber = CALIB[self.platform_id][channel_name]["VC"]
         temp = self._tl15(data, wavenumber)
@@ -273,8 +274,11 @@ class SEVIRICalibrationHandler(object):
 
     def _tl15(self, data, wavenumber):
         """Compute the L15 temperature."""
+
         return ((C2 * wavenumber) /
                 xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
+        """Calibrate to reflectance."""
+
         return data * 100.0 / solar_irradiance

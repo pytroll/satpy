@@ -8,9 +8,13 @@ data file formats. SatPy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
 processing output. The
 `pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
-to resample data to different uniform areas or grids.
+to resample data to different uniform areas or grids. Various atmospheric
+corrections and visual enhancements are also provided, either directly in
+SatPy or from those in the
+`PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_ and
+`TrollImage <http://trollimage.readthedocs.io/en/latest/>`_ packages.
 
-Get to the project_ page for source code and downloads.
+Go to the project_ page for source code and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins (readers, compositors, writers, etc). The table at
@@ -29,11 +33,13 @@ installation.
 
     overview
     install
+    examples
     quickstart
     readers
     composites
     resample
     writers
+    multiscene
     dev_guide/index
     SatPy API <api/satpy>
 
@@ -78,23 +84,23 @@ installation.
       - `gac_lac_l1b`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `avhrr_hrpt`
-      - Nominal
+      - `avhrr_hrpt_l1b`
+      - In development
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
     * - MTG FCI data in netcdf format
       - `fci_fdhsi`
-      - Nominal
+      - In development
     * - Callipso Caliop data in EOS-hdf4 format
       - `hdf4_caliopv3`
-      - Nominal
+      - In development
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
     * - NWCSAF MSG 2016 products in netCDF4 format
       - `nc_nwcsaf_msg`
-      - Nominal
+      - In development
     * - NWCSAF PPS 2014 products in netCDF4 format
       - `nc_nwcsaf_pps`
       - | Not yet support for remapped netCDF products. 
@@ -111,10 +117,10 @@ installation.
       - Nominal
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
       - `nc_slstr`
-      - Nominal
+      - In development
     * - OSISAF SST data in GHRSST (netcdf) format
       - `ghrsst_osisaf`
-      - Nominal
+      - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
       - Nominal

@@ -77,12 +77,14 @@ class TestPillowWriter(unittest.TestCase):
     def test_simple_delayed_write(self):
         from dask.delayed import Delayed
         from satpy.writers.simple_image import PillowWriter
+        from satpy.writers import compute_writer_results
         datasets = self._get_test_datasets()
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)
-        self.assertIsInstance(res, Delayed)
-        res.compute()
-
+        for r__ in res:
+            self.assertIsInstance(r__, Delayed)
+            r__.compute()
+        compute_writer_results(res)
 
 def suite():
     """The test suite for this writer's tests.

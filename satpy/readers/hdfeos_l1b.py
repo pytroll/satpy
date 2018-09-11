@@ -313,7 +313,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
         datasets = datadict[self.resolution]
         for dataset in datasets:
             subdata = self.sd.select(dataset)
-            band_names = subdata.attributes()["band_names"].split(",")
+            var_attrs = subdata.attributes()
+            band_names = var_attrs["band_names"].split(",")
 
             # get the relative indices of the desired channel
             try:
@@ -323,15 +324,32 @@ class HDFEOSBandReader(HDFEOSFileReader):
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
             array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
                                  dims=['y', 'x']).astype(np.float32)
-            valid_range = subdata.attributes()['valid_range']
+            valid_range = var_attrs['valid_range']
             array = array.where(array >= np.float32(valid_range[0]))
             array = array.where(array <= np.float32(valid_range[1]))
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
-            if dataset.endswith('Emissive'):
-                projectable = calibrate_tb(array, subdata.attributes(), index, key.name)
+            if key.calibration == 'brightness_temperature':
+                projectable = calibrate_bt(array, var_attrs, index, key.name)
+                info.setdefault('units', 'K')
+                info.setdefault('standard_name', 'toa_brightness_temperature')
+            elif key.calibration == 'reflectance':
+                projectable = calibrate_refl(array, var_attrs, index)
+                info.setdefault('units', '%')
+                info.setdefault('standard_name',
+                                'toa_bidirectional_reflectance')
+            elif key.calibration == 'radiance':
+                projectable = calibrate_radiance(array, var_attrs, index)
+                info.setdefault('units', var_attrs.get('radiance_units'))
+                info.setdefault('standard_name',
+                                'toa_outgoing_radiance_per_unit_wavelength')
+            elif key.calibration == 'counts':
+                projectable = calibrate_counts(array, var_attrs, index)
+                info.setdefault('units', 'counts')
+                info.setdefault('standard_name', 'counts')  # made up
             else:
-                projectable = calibrate_refl(array, subdata.attributes(), index)
+                raise ValueError("Unknown calibration for "
+                                 "key: {}".format(key))
             projectable.attrs = info
 
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
@@ -386,17 +404,32 @@ class HDFEOSBandReader(HDFEOSFileReader):
         return self.data.select("SensorAzimuth")
 
 
+def calibrate_counts(array, attributes, index):
+    """Calibration for counts channels."""
+    offset = np.float32(attributes["corrected_counts_offsets"][index])
+    scale = np.float32(attributes["corrected_counts_scales"][index])
+    array = (array - offset) * scale
+    return array
+
+
+def calibrate_radiance(array, attributes, index):
+    """Calibration for radiance channels."""
+    offset = np.float32(attributes["radiance_offsets"][index])
+    scale = np.float32(attributes["radiance_scales"][index])
+    array = (array - offset) * scale
+    return array
+
+
 def calibrate_refl(array, attributes, index):
     """Calibration for reflective channels."""
     offset = np.float32(attributes["reflectance_offsets"][index])
     scale = np.float32(attributes["reflectance_scales"][index])
-
+    # convert to reflectance and convert from 1 to %
     array = (array - offset) * scale * 100
-
     return array
 
 
-def calibrate_tb(array, attributes, index, band_name):
+def calibrate_bt(array, attributes, index, band_name):
     """Calibration for the emissive channels."""
     offset = np.float32(attributes["radiance_offsets"][index])
     scale = np.float32(attributes["radiance_scales"][index])
