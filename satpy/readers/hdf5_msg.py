@@ -595,7 +595,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue):
         """Initialize the reader."""
-        super(HRITMSGFileHandler, self).__init__(filename, filename_info,
+        super(HDF5MSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
                                                  (msg_hdr_map,
                                                   msg_variable_length_headers,

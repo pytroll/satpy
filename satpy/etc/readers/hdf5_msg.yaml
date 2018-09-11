@@ -9,138 +9,10 @@ file_types:
     HDF5_MSG:
         file_reader: !!python/name:satpy.readers.hdf5_msg.HDF5MSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}.h5']
-        file_patterns: ['MSG{num:1s}-SEVI-{platform_shortname:4s}_{service:_<7s}-0100-NA-{start_time:%Y%m%d%H%M}.[0-9][0-9][0-9]000000Z-{start_date:%Y%m%d%}{time}-{order_number:7s}.h5.{compressed:_<2s}']
+        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M}.[0-9][0-9][0-9]000000Z-{processing_start_time:%Y%m%d%%H%M}-{order_number:7s}.h5.{compressed:_<2s}']
 
 
 datasets:
-  HRV:
-    name: HRV
-    resolution: 1000.134348869
-    wavelength: [0.5, 0.7, 0.9]
-    calibration:
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_key:
-
-  IR_016:
-    name: IR_016
-    resolution: 3000.403165817
-    wavelength: [1.5, 1.64, 1.78]
-    calibration:
-      reflectance:
-        standard_name: reflectance
-        units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_039:
-    name: IR_039
-    resolution: 3000.403165817
-    wavelength: [3.48, 3.92, 4.36]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_087:
-    name: IR_087
-    resolution: 3000.403165817
-    wavelength: [8.3, 8.7, 9.1]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_097:
-    name: IR_097
-    resolution: 3000.403165817
-    wavelength: [9.38, 9.66, 9.94]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_108:
-    name: IR_108
-    resolution: 3000.403165817
-    wavelength: [9.8, 10.8, 11.8]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_120:
-    name: IR_120
-    resolution: 3000.403165817
-    wavelength: [11.0, 12.0, 13.0]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
-  IR_134:
-    name: IR_134
-    resolution: 3000.403165817
-    wavelength: [12.4, 13.4, 14.4]
-    calibration:
-      brightness_temperature:
-        standard_name: brightness_temperature
-        units: K
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-      counts:
-        standard_name: counts
-    file_type: HDF5_MSG
-    file_ley:
-
   VIS006:
     name: VIS006
     resolution: 3000.403165817
@@ -155,7 +27,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley:
+    file_ley: "DATA/Channel 01"
 
   VIS008:
     name: VIS008
@@ -171,9 +43,41 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley:
+    file_ley: "DATA/Channel 02"
 
-  WV_062:
+  IR_016:
+    name: IR_016
+    resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
+    calibration:
+      reflectance:
+        standard_name: reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 03"
+
+  IR_039:
+    name: IR_039
+    resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 04"
+
+   WV_062:
     name: WV_062
     resolution: 3000.403165817
     wavelength: [5.35, 6.25, 7.15]
@@ -187,7 +91,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley:
+    file_ley: "DATA/Channel 05"
 
   WV_073:
     name: WV_073
@@ -203,4 +107,100 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley:
+    file_ley: "DATA/Channel 06"
+
+  IR_087:
+    name: IR_087
+    resolution: 3000.403165817
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 07"
+
+  IR_097:
+    name: IR_097
+    resolution: 3000.403165817
+    wavelength: [9.38, 9.66, 9.94]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 08"
+
+  IR_108:
+    name: IR_108
+    resolution: 3000.403165817
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 09"
+
+  IR_120:
+    name: IR_120
+    resolution: 3000.403165817
+    wavelength: [11.0, 12.0, 13.0]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 10"
+
+  IR_134:
+    name: IR_134
+    resolution: 3000.403165817
+    wavelength: [12.4, 13.4, 14.4]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_ley: "DATA/Channel 11"
+
+  HRV:
+    name: HRV
+    resolution: 1000.134348869
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: HDF5_MSG
+    file_key: "DATA/Channel 12"
