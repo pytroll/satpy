@@ -1,5 +1,8 @@
 from satpy.readers.hdf4_utils import HDF4FileHandler
+from pyresample import geometry
+from satpy import CHUNK_SIZE
 import numpy as np
+import xarray as xr
 
 
 class VIIRSEDRFlood(HDF4FileHandler):
@@ -36,7 +39,7 @@ class VIIRSEDRFlood(HDF4FileHandler):
             'platform_name' : self.platform_name,
          #  'resolution' : self['/attr/Resolution'],
             'start_time' : self.start_time,
-            'end_time' : self.end_time
+            'end_time' : self.end_time,
         })
 
         return metadata
@@ -48,8 +51,13 @@ class VIIRSEDRFlood(HDF4FileHandler):
        #     data.attrs['resolution'] = ds_id.resolution
 
         data.attrs = self.get_metadata(data, ds_info)
+
+        data.attrs.update({
+            "flag_values" : "1 15 16 17 20 27 30 88 150 199 200-300",
+            "flag_meanings" : "no_valid_data water_surface_no_fraction_retrieval bare_land vegetation snow_or_ice river_ice cloud supra_snow_ice_water cloud_shadow normal_open_water floodwater_fraction"
+        })
         
-        fill = data.attrs.get('_Fillvalue')
+        fill = data.attrs.pop('_Fillvalue')
         offset = data.attrs.get('add_offset')
         scale_factor = data.attrs.get('scale_factor')
 
@@ -59,3 +67,32 @@ class VIIRSEDRFlood(HDF4FileHandler):
             data += offset
 
         return data
+
+    def get_area_def(self, ds_id):
+        data = self[ds_id.name]        
+
+        proj_dict = {
+            'proj': 'latlong',
+            'datum': 'WGS84',
+            'ellps':'WGS84', 
+            'no_defs': True
+        }
+
+        area_extent = [data.attrs.get('ProjectionMinLongitude'), data.attrs.get('ProjectionMinLatitude'), 
+                       data.attrs.get('ProjectionMaxLongitude'), data.attrs.get('ProjectionMaxLatitude')]
+        
+        x_size = int(self.filename_info['dim0'])
+        y_size = int(self.filename_info['dim1'])
+
+        area = geometry.AreaDefinition(
+            'viirs_flood_area',
+            'name_of_proj',
+            'id_of_proj',
+            proj_dict,
+            x_size,
+            y_size,
+            np.asarray(area_extent)
+        )
+        
+        return area
+
