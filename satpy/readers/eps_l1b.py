@@ -228,10 +228,16 @@ class EPSAVHRRFile(BaseFileHandler):
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
             from geotiepoints import metop20kmto1km
+            #Note: interpolation asumes lat values values between -90 and 90
+            #Solar and satellite zenith is between 0 and 180.
+            solar_zenith -= 90
             self.sun_azi, self.sun_zen = metop20kmto1km(
                 solar_azimuth, solar_zenith)
+            self.sun_zen += 90
+            sat_zenith -= 90
             self.sat_azi, self.sat_zen = metop20kmto1km(
                 sat_azimuth, sat_zenith)
+            self.sat_zen -= 90
         else:
             raise NotImplementedError("Angles expansion not implemented for " +
                                       "sample rate = " + str(nav_sample_rate) +
