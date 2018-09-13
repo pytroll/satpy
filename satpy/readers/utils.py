@@ -189,3 +189,19 @@ def unzip_file(filename):
         return tmpfilepath
 
     return None
+
+
+def bbox(img):
+    """Find the bounding box around nonzero elements in the given array
+
+    Copied from https://stackoverflow.com/a/31402351/5703449 .
+
+    Returns:
+        rowmin, rowmax, colmin, colmax
+    """
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
