@@ -219,7 +219,6 @@ class EPSAVHRRFile(BaseFileHandler):
         solar_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [2]],
                                    self["ANGULAR_RELATIONS"][:, :, 2],
                                    self["ANGULAR_RELATIONS_LAST"][:, [2]]))
-
         sat_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [3]],
                                  self["ANGULAR_RELATIONS"][:, :, 3],
                                  self["ANGULAR_RELATIONS_LAST"][:, [3]]))
@@ -237,7 +236,7 @@ class EPSAVHRRFile(BaseFileHandler):
             sat_zenith -= 90
             self.sat_azi, self.sat_zen = metop20kmto1km(
                 sat_azimuth, sat_zenith)
-            self.sat_zen -= 90
+            self.sat_zen += 90
         else:
             raise NotImplementedError("Angles expansion not implemented for " +
                                       "sample rate = " + str(nav_sample_rate) +
