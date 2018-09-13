@@ -359,6 +359,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
             dataset = create_xarray(array.data).where(~array.mask)
 
+        dataset.attrs['platform_name'] = self.platform_name
+        dataset.attrs['sensor'] = self.sensor_name
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
         return dataset
