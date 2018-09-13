@@ -227,8 +227,8 @@ class EPSAVHRRFile(BaseFileHandler):
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
             from geotiepoints import metop20kmto1km
-            #Note: interpolation asumes lat values values between -90 and 90
-            #Solar and satellite zenith is between 0 and 180.
+            # Note: interpolation asumes lat values values between -90 and 90
+            # Solar and satellite zenith is between 0 and 180.
             solar_zenith -= 90
             self.sun_azi, self.sun_zen = metop20kmto1km(
                 solar_azimuth, solar_zenith)
