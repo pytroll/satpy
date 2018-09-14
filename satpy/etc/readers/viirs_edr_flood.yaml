@@ -16,5 +16,3 @@ datasets:
         name: 'WaterDetection'
         file_type: viirs_edr
         sensor: viirs
-        #resolution: 
-        #coordinates:
