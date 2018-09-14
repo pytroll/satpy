@@ -43,6 +43,7 @@ There are two forms of these files that this reader supports:
 import logging
 from datetime import datetime
 
+import os
 import numpy as np
 import xarray as xr
 
@@ -50,6 +51,9 @@ from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
+# NetCDF doesn't support multi-threaded reading, trick it by opening
+# as one whole chunk then split it up before we do any calculations
+LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
 logger = logging.getLogger(__name__)
 
 
@@ -62,8 +66,7 @@ class SCMIFileHandler(BaseFileHandler):
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
-                                  chunks={'x': -1, 'y': -1})
-                                  # chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
+                                  chunks={'x': LOAD_CHUNK_SIZE, 'y': LOAD_CHUNK_SIZE})
         self.platform_name = self.nc.attrs['satellite_id']
         # sometimes Himawari-8 (or 9) data is stored in SCMI format
         is_h8 = 'H8' in self.platform_name
