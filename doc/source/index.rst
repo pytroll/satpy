@@ -145,6 +145,9 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - VIIRS EDR Flood data in hdf4 format
+      - `viirs_edr_flood`
+      - Beta
     * - GRIB2 format
       - `grib`
       - Beta
