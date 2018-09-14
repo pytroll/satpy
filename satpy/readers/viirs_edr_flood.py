@@ -52,11 +52,6 @@ class VIIRSEDRFlood(HDF4FileHandler):
 
         data.attrs = self.get_metadata(data, ds_info)
 
-        data.attrs.update({
-            "flag_values" : "1 15 16 17 20 27 30 88 150 199 200-300",
-            "flag_meanings" : "no_valid_data water_surface_no_fraction_retrieval bare_land vegetation snow_or_ice river_ice cloud supra_snow_ice_water cloud_shadow normal_open_water floodwater_fraction"
-        })
-        
         fill = data.attrs.pop('_Fillvalue')
         offset = data.attrs.get('add_offset')
         scale_factor = data.attrs.get('scale_factor')
