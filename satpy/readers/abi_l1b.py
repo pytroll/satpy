@@ -130,6 +130,10 @@ class NC_ABI_L1B(BaseFileHandler):
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           'satellite_altitude': float(self['nominal_satellite_height'])})
         res.attrs.update(key.to_dict())
+        # remove attributes that could be confusing later
+        res.attrs.pop('_FillValue', None)
+        res.attrs.pop('scale_factor', None)
+        res.attrs.pop('add_offset', None)
 
         return res
 
