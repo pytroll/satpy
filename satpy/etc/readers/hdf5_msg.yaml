@@ -27,7 +27,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 01"
+    file_key: "Channel 01"
 
   VIS008:
     name: VIS008
@@ -43,7 +43,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 02"
+    file_key: "Channel 02"
 
   IR_016:
     name: IR_016
@@ -59,7 +59,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 03"
+    file_key: "Channel 03"
 
   IR_039:
     name: IR_039
@@ -75,7 +75,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 04"
+    file_key: "Channel 04"
 
    WV_062:
     name: WV_062
@@ -91,7 +91,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 05"
+    file_key: "Channel 05"
 
   WV_073:
     name: WV_073
@@ -107,7 +107,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 06"
+    file_key: "Channel 06"
 
   IR_087:
     name: IR_087
@@ -123,7 +123,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 07"
+    file_key: "Channel 07"
 
   IR_097:
     name: IR_097
@@ -139,7 +139,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 08"
+    file_key: "Channel 08"
 
   IR_108:
     name: IR_108
@@ -155,7 +155,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 09"
+    file_key: "Channel 09"
 
   IR_120:
     name: IR_120
@@ -171,7 +171,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 10"
+    file_key: "Channel 10"
 
   IR_134:
     name: IR_134
@@ -187,7 +187,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_ley: "DATA/Channel 11"
+    file_key: "Channel 11"
 
   HRV:
     name: HRV
@@ -203,4 +203,4 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "DATA/Channel 12"
+    file_key: "Channel 12"
