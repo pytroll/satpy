@@ -58,6 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 class SCMIFileHandler(BaseFileHandler):
+    """Handle a single SCMI NetCDF4 file."""
 
     def __init__(self, filename, filename_info, filetype_info):
         super(SCMIFileHandler, self).__init__(filename, filename_info,
@@ -68,18 +69,21 @@ class SCMIFileHandler(BaseFileHandler):
                                   mask_and_scale=False,
                                   chunks={'x': LOAD_CHUNK_SIZE, 'y': LOAD_CHUNK_SIZE})
         self.platform_name = self.nc.attrs['satellite_id']
-        # sometimes Himawari-8 (or 9) data is stored in SCMI format
-        is_h8 = 'H8' in self.platform_name
-        is_h9 = 'H9' in self.platform_name
-        is_ahi = is_h8 or is_h9
-        self.sensor = 'ahi' if is_ahi else 'abi'
+        self.sensor = self._get_sensor()
         self.nlines = self.nc.dims['y']
         self.ncols = self.nc.dims['x']
         self.coords = {}
 
+    def _get_sensor(self):
+        """Determine the sensor for this file."""
+        # sometimes Himawari-8 (or 9) data is stored in SCMI format
+        is_h8 = 'H8' in self.platform_name
+        is_h9 = 'H9' in self.platform_name
+        is_ahi = is_h8 or is_h9
+        return 'ahi' if is_ahi else 'abi'
+
     @property
     def sensor_names(self):
-        # FUTURE: Figure out what sensor the data is from
         return [self.sensor]
 
     def __getitem__(self, item):
@@ -181,14 +185,8 @@ class SCMIFileHandler(BaseFileHandler):
                 return self.nc[grid_mapping]
         raise KeyError("Can't find grid mapping variable in SCMI file")
 
-    def get_area_def(self, key):
-        """Get the area definition of the data at hand."""
-        # FIXME: Can't we pass dataset info to the get_area_def?
-        projection = self._get_cf_grid_mapping_var()
-        a = projection.attrs['semi_major_axis']
-        b = projection.attrs['semi_minor_axis']
-
-        # Map CF projection name to PROJ.4 name
+    def _get_proj4_name(self, projection):
+        """Map CF projection name to PROJ.4 name."""
         gmap_name = projection.attrs['grid_mapping_name']
         proj = {
             'geostationary': 'geos',
@@ -196,17 +194,19 @@ class SCMIFileHandler(BaseFileHandler):
             'polar_stereographic': 'stere',
             'mercator': 'merc',
         }.get(gmap_name, gmap_name)
+        return proj
 
+    def _get_proj_specific_params(self, projection):
+        """Convert CF projection parameters to PROJ.4 dict."""
+        proj = self._get_proj4_name(projection)
         proj_dict = {
             'proj': proj,
-            'a': float(a),
-            'b': float(b),
+            'a': float(projection.attrs['semi_major_axis']),
+            'b': float(projection.attrs['semi_minor_axis']),
             'units': 'm',
         }
-
-        h = 1.
         if proj == 'geos':
-            proj_dict['h'] = h = float(projection.attrs['perspective_point_height'])
+            proj_dict['h'] = float(projection.attrs['perspective_point_height'])
             proj_dict['sweep'] = projection.attrs.get('sweep_angle_axis', 'y')
             proj_dict['lon_0'] = float(projection.attrs['longitude_of_projection_origin'])
             proj_dict['lat_0'] = float(projection.attrs.get('latitude_of_projection_origin', 0.0))
@@ -224,9 +224,11 @@ class SCMIFileHandler(BaseFileHandler):
             proj_dict['lon_0'] = float(projection.attrs['longitude_of_projection_origin'])
         else:
             raise ValueError("Can't handle projection '{}'".format(proj))
+        return proj_dict
 
-        # x and y extents in m
-        h = float(h)
+    def _calc_extents(self, proj_dict):
+        """Calculate area extents from x/y variables."""
+        h = float(proj_dict.get('h', 1.))  # force to 64-bit float
         x = self['x']
         y = self['y']
         x_units = x.attrs.get('units', 'rad')
@@ -245,10 +247,16 @@ class SCMIFileHandler(BaseFileHandler):
         y_u = h_factor * y[0] / factor
         x_half = (x_r - x_l) / (self.ncols - 1) / 2.
         y_half = (y_u - y_l) / (self.nlines - 1) / 2.
-        area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
+        return x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half
 
-        area_name = '{}_{}'.format(self.sensor, proj)
-        area = geometry.AreaDefinition(
+    def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
+        # FIXME: Can't we pass dataset info to the get_area_def?
+        projection = self._get_cf_grid_mapping_var()
+        proj_dict = self._get_proj_specific_params(projection)
+        area_extent = self._calc_extents(proj_dict)
+        area_name = '{}_{}'.format(self.sensor, proj_dict['proj'])
+        return geometry.AreaDefinition(
             area_name,
             "SCMI file area",
             area_name,
@@ -256,8 +264,6 @@ class SCMIFileHandler(BaseFileHandler):
             self.ncols,
             self.nlines,
             np.asarray(area_extent))
-
-        return area
 
     @property
     def start_time(self):
