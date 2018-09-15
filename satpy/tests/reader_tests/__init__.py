@@ -67,5 +67,6 @@ def suite():
     mysuite.addTests(test_ahi_hsd.suite())
     mysuite.addTests(test_iasi_l2.suite())
     mysuite.addTests(test_generic_image.suite())
+    mysuite.addTests(test_scmi.suite())
 
     return mysuite
