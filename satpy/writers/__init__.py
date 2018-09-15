@@ -30,9 +30,9 @@ import os
 
 import numpy as np
 import yaml
-import dask
 import dask.array as da
 import xarray as xr
+import warnings
 
 from satpy.config import (config_search_paths, glob_config,
                           get_environ_config_dir, recursive_dict_update)
@@ -435,18 +435,27 @@ class Writer(Plugin):
 
     def __init__(self,
                  name=None,
-                 file_pattern=None,
+                 filename=None,
                  base_dir=None,
                  **kwargs):
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config['writer']
 
+        if 'file_pattern' in self.info:
+            warnings.warn("Writer YAML config is using 'file_pattern' which "
+                          "has been deprecated, use 'filename' instead.")
+            self.info['filename'] = self.info.pop('file_pattern')
+
+        if 'file_pattern' in kwargs:
+            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            filename = kwargs.pop('file_pattern')
+
         # Use options from the config file if they weren't passed as arguments
         self.name = self.info.get("name",
                                   None) if name is None else name
         self.file_pattern = self.info.get(
-            "file_pattern", None) if file_pattern is None else file_pattern
+            "filename", None) if filename is None else filename
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
@@ -458,7 +467,7 @@ class Writer(Plugin):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs = {}
         kwargs = kwargs.copy()
-        for kw in ['base_dir', 'file_pattern']:
+        for kw in ['base_dir', 'filename', 'file_pattern']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
@@ -564,11 +573,11 @@ class ImageWriter(Writer):
 
     def __init__(self,
                  name=None,
-                 file_pattern=None,
+                 filename=None,
                  enhancement_config=None,
                  base_dir=None,
                  **kwargs):
-        Writer.__init__(self, name, file_pattern, base_dir,
+        Writer.__init__(self, name, filename, base_dir,
                         **kwargs)
         enhancement_config = self.info.get(
             "enhancement_config",
