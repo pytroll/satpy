@@ -125,7 +125,7 @@ class SCMIFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
-        var_name = self.filetype_info.get('variable_name')
+        var_name = info.get('file_key', self.filetype_info.get('file_key'))
         if var_name:
             data = self[var_name]
         elif 'Sectorized_CMI' in self.nc:
@@ -139,21 +139,22 @@ class SCMIFileHandler(BaseFileHandler):
         # convert to satpy standard units
         factor = data.attrs.pop('scale_factor', 1)
         offset = data.attrs.pop('add_offset', 0)
-        if data.attrs['units'] == '1':
+        units = data.attrs.get('units', 1)
+        # the '*1' unit is some weird convention added/needed by AWIPS
+        if units in ['1', '*1'] and key.calibration == 'reflectance':
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs['units'] = '%'
 
         # set up all the attributes that might be useful to the user/satpy
-        sat_lon = self.nc.attrs['satellite_longitude']
-        sat_lat = self.nc.attrs['satellite_latitude']
-        sat_alt = self.nc.attrs['satellite_altitude']
         data.attrs.update({'platform_name': self.platform_name,
                            'sensor': data.attrs.get('sensor', self.sensor),
-                           'satellite_latitude': sat_lat,
-                           'satellite_longitude': sat_lon,
-                           'satellite_altitude': sat_alt,
                            })
+        if 'satellite_longitude' in self.nc.attrs:
+            data.attrs['satellite_longitude'] = self.nc.attrs['satellite_longitude']
+            data.attrs['satellite_latitude'] = self.nc.attrs['satellite_latitude']
+            data.attrs['satellite_altitude'] = self.nc.attrs['satellite_altitude']
+
         scene_id = self.nc.attrs.get('scene_id')
         if scene_id is not None:
             data.attrs['scene_id'] = scene_id
@@ -188,12 +189,13 @@ class SCMIFileHandler(BaseFileHandler):
         b = projection.attrs['semi_minor_axis']
 
         # Map CF projection name to PROJ.4 name
+        gmap_name = projection.attrs['grid_mapping_name']
         proj = {
             'geostationary': 'geos',
             'lambert_conformal_conic': 'lcc',
             'polar_stereographic': 'stere',
             'mercator': 'merc',
-        }[projection.attrs['grid_mapping_name']]
+        }.get(gmap_name, gmap_name)
 
         proj_dict = {
             'proj': proj,
@@ -208,7 +210,7 @@ class SCMIFileHandler(BaseFileHandler):
             proj_dict['sweep'] = projection.attrs.get('sweep_angle_axis', 'y')
             proj_dict['lon_0'] = float(projection.attrs['longitude_of_projection_origin'])
             proj_dict['lat_0'] = float(projection.attrs.get('latitude_of_projection_origin', 0.0))
-        elif proj == 'lcc ':
+        elif proj == 'lcc':
             proj_dict['lat_0'] = float(projection.attrs['standard_parallel'])
             proj_dict['lon_0'] = float(projection.attrs['longitude_of_central_meridian'])
             proj_dict['lat_1'] = float(projection.attrs['latitude_of_projection_origin'])
@@ -227,16 +229,17 @@ class SCMIFileHandler(BaseFileHandler):
         h = float(h)
         x = self['x']
         y = self['y']
-        if x.attrs['units'] == 'meters':
+        x_units = x.attrs.get('units', 'rad')
+        if x_units == 'meters':
             h_factor = 1.
             factor = 1.
-        elif x.attrs['units'] == 'microradian':
+        elif x_units == 'microradian':
             h_factor = h
             factor = 1e6
         else:  # radians
             h_factor = h
             factor = 1.
-        x_l = h_factor * x[0] / factor  # microradians
+        x_l = h_factor * x[0] / factor
         x_r = h_factor * x[-1] / factor
         y_l = h_factor * y[-1] / factor
         y_u = h_factor * y[0] / factor
