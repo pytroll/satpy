@@ -541,7 +541,7 @@ class Writer(Plugin):
         Args:
             dataset (xarray.DataArray): Dataset to save using this writer.
             filename (str): Optionally specify the filename to save this
-                            dataset to. If not provided then `file_pattern`
+                            dataset to. If not provided then `filename`
                             which can be provided to the init method will be
                             used and formatted by dataset attributes.
             fill_value (int or float): Replace invalid values in the dataset

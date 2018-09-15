@@ -10,12 +10,17 @@ the table below. Most use cases will want to save datasets using the
     >>> scn.save_datasets(writer='simple_image')
 
 The ``writer`` parameter defaults to using the ``geotiff`` writer.
-One common parameter across almost all Writers is ``file_pattern`` and
+One common parameter across almost all Writers is ``filename`` and
 ``base_dir`` to help automate saving files with custom filenames::
 
     >>> scn.save_datasets(
-    ...     file_pattern='{name}_{start_time:%Y%m%d_%H%M%S}.tif',
+    ...     filename='{name}_{start_time:%Y%m%d_%H%M%S}.tif',
     ...     base_dir='/tmp/my_ouput_dir')
+
+.. versionchanged:: 0.10
+
+    The `file_pattern` keyword argument was renamed to `filename` to match
+    the `save_dataset` method's keyword argument.
 
 .. _writer_table:
 
@@ -112,10 +117,10 @@ and save them all at once.
 ::
 
     >>> from satpy.writers import compute_writer_results
-    >>> res1 = scn.save_datasets(file_pattern="/tmp/{name}.png",
+    >>> res1 = scn.save_datasets(filename="/tmp/{name}.png",
     ...                          writer='simple_image',
     ...                          compute=False)
-    >>> res2 = scn.save_datasets(file_pattern="/tmp/{name}.tif",
+    >>> res2 = scn.save_datasets(filename="/tmp/{name}.tif",
     ...                          writer='geotiff',
     ...                          compute=False)
     >>> results = [res1, res2]
