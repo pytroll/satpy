@@ -151,6 +151,9 @@ installation.
     * - GRIB2 format
       - `grib`
       - Beta
+    * - SCMI ABI L1B format
+      - `scmi_abi_l1b`
+      - Beta
 
 Indices and tables
 ==================
