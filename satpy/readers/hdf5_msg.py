@@ -36,6 +36,7 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import h5py
 
 from pyresample import geometry
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -74,7 +75,7 @@ def subdict(keys, value):
 
     """
     tdict = {}
-    key = keys[0]
+    key = keys[0].strip()
     if len(keys) == 1:
         tdict[key] = value
     else:
@@ -134,123 +135,15 @@ def rec2dict(arr):
         dict_merge(res, ndict)
     return res
 
-
-
-class HRITMSGPrologueFileHandler(HRITFileHandler):
-
-    """MSG HRIT format reader
-    """
-
-    def __init__(self, filename, filename_info, filetype_info):
-        """Initialize the reader."""
-        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
-
-        self.prologue = {}
-        self.read_prologue()
-
-        service = filename_info["service"]
-        if service == "":
-            self.mda["service"] = "0DEG"
-        else:
-            self.mda["service"] = service
-
-    def read_prologue(self):
-        """Read the prologue metadata."""
-        with open(self.filename, "rb") as fp_:
-            fp_.seek(self.mda["total_header_length"])
-            data = np.fromfile(fp_, dtype=prologue, count=1)[0]
-
-            self.prologue.update(recarray2dict(data))
-
-            try:
-                impf = np.fromfile(fp_, dtype=impf_configuration, count=1)[0]
-            except IndexError:
-                logger.info("No IMPF configuration field found in prologue.")
-            else:
-                self.prologue.update(recarray2dict(impf))
-
-        self.process_prologue()
-
-    def process_prologue(self):
-        """Reprocess prologue to correct types."""
-        pacqtime = self.prologue["ImageAcquisition"]["PlannedAcquisitionTime"]
-
-        start = pacqtime["TrueRepeatCycleStart"]
-        psend = pacqtime["PlannedForwardScanEnd"]
-        prend = pacqtime["PlannedRepeatCycleEnd"]
-
-        start = make_time_cds_expanded(start)
-        psend = make_time_cds_expanded(psend)
-        prend = make_time_cds_expanded(prend)
-
-        pacqtime["TrueRepeatCycleStart"] = start
-        pacqtime["PlannedForwardScanEnd"] = psend
-        pacqtime["PlannedRepeatCycleEnd"] = prend
-
-
-
-class HRITMSGEpilogueFileHandler(HRITFileHandler):
-
-    """MSG HRIT format reader
-    """
-
-    def __init__(self, filename, filename_info, filetype_info):
-        """Initialize the reader."""
-        super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
-        self.epilogue = {}
-        self.read_epilogue()
-
-        service = filename_info["service"]
-        if service == "":
-            self.mda["service"] = "0DEG"
-        else:
-            self.mda["service"] = service
-
-    def read_epilogue(self):
-        """Read the prologue metadata."""
-        with open(self.filename, "rb") as fp_:
-            fp_.seek(self.mda["total_header_length"])
-            data = np.fromfile(fp_, dtype=epilogue, count=1)[0]
-
-            self.epilogue.update(recarray2dict(data))
-
-        pacqtime = self.epilogue["ImageProductionStats"][
-            "ActualScanningSummary"]
-
-        start = pacqtime["ForwardScanStart"]
-        end = pacqtime["ForwardScanEnd"]
-
-        start = make_time_cds_short(start)
-        end = make_time_cds_short(end)
-
-        pacqtime["ForwardScanEnd"] = end
-        pacqtime["ForwardScanStart"] = start
-
-
 class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
     """MSG HDF5 format reader
     """
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue):
+    def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
-        super(HDF5MSGFileHandler, self).__init__(filename, filename_info,
-                                                 filetype_info,
-                                                 (msg_hdr_map,
-                                                  msg_variable_length_headers,
-                                                  msg_text_headers))
+        super(HDF5MSGFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        self.prologue = prologue.prologue
-        self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
 
         self._get_header()
@@ -276,28 +169,29 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             if isinstance(d, h5py.Dataset) and k.endswith("DESCR") or k.endswith("SUBSET"):
                 group = k.split("/")[-2]
                 key = k.split("/")[-1]
-                dset = self[k]
+                dset = np.array(self[k])
                 self.mda[group][key] = rec2dict(dset)
 
-        self.calib_coeffs = np.array(self["U-MARF/MSG/Level1.5/RadiometricProcessing/Level15ImageCalibration_ARRAY"])
+        self.calib_coeffs = np.array(self["U-MARF/MSG/Level1.5/METADATA/HEADER/RadiometricProcessing/Level15ImageCalibration_ARRAY"])
 
         earth_model = self.mda["GeometricProcessing"]["GeometricProcessing_DESCR"]["EarthModel"]
-        self.mda["offset_corrected"] = earth_model["TypeOfEarthModel"] == 1
-        b = (earth_model["NorthPolarRadius"] + earth_model["SouthPolarRadius"]) / 2.0 * 1000
-        self.mda["projection_parameters"]["a"] = earth_model["EquatorialRadius"] * 1000
+        self.mda["offset_corrected"] = int(earth_model["TypeOfEarthModel"]) == 1
+        b = (float(earth_model["NorthPolarRadius"]) + float(earth_model["SouthPolarRadius"])) / 2.0 * 1000
+        self.mda["projection_parameters"]["a"] = float(earth_model["EquatorialRadius"]) * 1000
         self.mda["projection_parameters"]["b"] = b
+        self.mda["projection_parameters"]["h"] = 35785831.0
         ssp = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ProjectionDescription"]["LongitudeOfSSP"]
-        self.mda["projection_parameters"]["SSP_longitude"] = ssp
+        self.mda["projection_parameters"]["SSP_longitude"] = float(ssp)
         self.mda["projection_parameters"]["SSP_latitude"] = 0.0
-        self.platform_id = self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["SatelliteID"]
+        self.platform_id = int(self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["SatelliteId"])
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda["platform_name"] = self.platform_name
-        service = self._filename_info["service"]
-        if service == "":
-            self.mda["service"] = "0DEG"
-        else:
-            self.mda["service"] = service
-        self.channel_name = CHANNEL_NAMES[self.mda["spectral_channel_id"]]
+        #service = self._filename_info["service"]
+        #if service == "":
+        self.mda["service"] = "0DEG"
+        #else:
+         #   self.mda["service"] = service
+        #self.channel_name = CHANNEL_NAMES[self.mda["spectral_channel_id"]]
 
     @property
     def start_time(self):
@@ -323,79 +217,92 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
         return x__, y__
 
-    def get_area_extent(self, size, offsets, factors, platform_height):
+    def from_msg_space_coordinate(self, x, y, gridsteps):
+        COLUMN_DIR_GRID_STEP, LINE_DIR_GRID_STEP = gridsteps
+        return x * LINE_DIR_GRID_STEP, y * COLUMN_DIR_GRID_STEP
+
+    def from_top_left_of_north_west_pixel_zero_based(self, msg_x, msg_y, offsets, gridsteps):
+        """
+        Calculate coordinates based on pixel count and gridstep.
+
+        Parameters
+        ----------
+        msg_x : int
+            Pixel count in x direction with origin top left
+        msg_y : int
+            Pixel count in y direction with origin top left
+        offsets : tuple of int
+            (column offset, line offset)
+        gridsteps : tuple of int
+            (column gridstep, line gridstep)
+
+        Returns
+        -------
+        tuple of float
+            Coordinates in geostationary projection (x,y)
+
+        """
+        COFF, LOFF = offsets
+        msg_x_coord = (msg_x - COFF) - 0.5
+        msg_y_coord = (LOFF - msg_y) + 0.5
+        return self.from_msg_space_coordinate(msg_x_coord, msg_y_coord, gridsteps)
+
+    def get_area_extent(self, bounds, offsets, gridsteps):
         """Get the area extent of the file."""
-        nlines, ncols = size
-        h = platform_height
 
-        loff, coff = offsets
-        loff -= nlines
-        offsets = loff, coff
-        # count starts at 1
-        cols = 1 - 0.5
-        lines = 1 - 0.5
-        ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
+        ll_x, ll_y = self.from_top_left_of_north_west_pixel_zero_based(bounds[0], bounds[1], offsets, gridsteps)
 
-        cols += ncols
-        lines += nlines
-        ur_x, ur_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
+        ur_x, ur_y = self.from_top_left_of_north_west_pixel_zero_based(bounds[2], bounds[3], offsets, gridsteps)
 
-        aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-               np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
-
-        #offset corrected?
-        if not self.mda["offset_corrected"]:
-            xadj = 1500
-            yadj = 1500
-            aex = (aex[0] + xadj, aex[1] + yadj,
-                   aex[2] + xadj, aex[3] + yadj)
-
-        return aex
+        return ll_x, ll_y, ur_x, ur_y
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-        if dsid.name != "HRV":
-            return super(HRITMSGFileHandler, self).get_area_def(dsid)
+        ds_type = "VIS_IR"
+        #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridVIS_IR"]
 
-        cfac = np.int32(self.mda["cfac"])
-        lfac = np.int32(self.mda["lfac"])
-        loff = np.float32(self.mda["loff"])
+        if dsid.name == "HRV":
+            ds_type = "HRV"
+            #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridHRV"]
 
+        refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGrid" + ds_type]
+
+        nlines = int(refGrid["NumberOfLines"])
+        ncols = int(refGrid["NumberOfColumns"])
+        linegridstep = float(refGrid["LineDirGridStep"]) * 1000
+        colgridstep = float(refGrid["ColumnDirGridStep"]) * 1000
+        gridsteps = (colgridstep, linegridstep)
+
+        #cfac = np.int32(self.mda["cfac"])
+        #lfac = np.int32(self.mda["lfac"])
+        #loff = np.float32(self.mda["loff"])
+        loff = nlines/2
+        coff = ncols/2
+        offsets = (coff, loff)
+
+        #cases: - file contains fulldisk load fulldisk x
+        #       - file contains fulldisk and subset defined
+        #       - file contains subset load full subset x
+        #       - file contains subset and load subset of subset
+
+        bounds = (0, 0, ncols, nlines)
+        if "METADATA" in self.mda.keys():
+            subset = self.mda["METADATA"]["SUBSET"]
+            ul_x = int(subset[ds_type + "WestColumnSelectedRectangle"])
+            ul_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
+            lr_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
+            lr_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
+            bounds = (ncols - ul_x, nlines - ul_y, ncols - lr_x, nlines - lr_y)
+            ncols = bounds[2] - bounds[0] + 1
+            nlines = bounds[3] - bounds[1] + 1
+
+
+        area_extent = self.get_area_extent(bounds, offsets, gridsteps)
 
         b = self.mda["projection_parameters"]["b"]
         a = self.mda["projection_parameters"]["a"]
         h = self.mda["projection_parameters"]["h"]
         lon_0 = self.mda["projection_parameters"]["SSP_longitude"]
-
-
-
-        nlines = int(self.mda["number_of_lines"])
-        ncols = int(self.mda["number_of_columns"])
-
-        segment_number = self.mda["segment_sequence_number"]
-
-        current_first_line = (segment_number -
-                              self.mda["planned_start_segment_number"]) * nlines
-        bounds = self.epilogue["ImageProductionStats"]["ActualL15CoverageHRV"]
-
-        upper_south_line = bounds[
-            "LowerNorthLineActual"] - current_first_line - 1
-        upper_south_line = min(max(upper_south_line, 0), nlines)
-
-        lower_coff = (5566 - bounds["LowerEastColumnActual"] + 1)
-        upper_coff = (5566 - bounds["UpperEastColumnActual"] + 1)
-
-        lower_area_extent = self.get_area_extent((upper_south_line, ncols),
-                                                 (loff, lower_coff),
-                                                 (lfac, cfac),
-                                                 h)
-
-        upper_area_extent = self.get_area_extent((nlines - upper_south_line,
-                                                  ncols),
-                                                 (loff - upper_south_line,
-                                                  upper_coff),
-                                                 (lfac, cfac),
-                                                 h)
 
         proj_dict = {"a": float(a),
                      "b": float(b),
@@ -404,38 +311,27 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
                      "proj": "geos",
                      "units": "m"}
 
-        lower_area = geometry.AreaDefinition(
+        area = geometry.AreaDefinition(
             "some_area_name",
             "On-the-fly area",
             "geosmsg",
             proj_dict,
             ncols,
-            upper_south_line,
-            lower_area_extent)
+            nlines,
+            area_extent)
 
-        upper_area = geometry.AreaDefinition(
-            "some_area_name",
-            "On-the-fly area",
-            "geosmsg",
-            proj_dict,
-            ncols,
-            nlines - upper_south_line,
-            upper_area_extent)
-
-        area = geometry.StackedAreaDefinition(lower_area, upper_area)
-
-        self.area = area.squeeze()
+        self.area = area
         return area
 
     def get_dataset(self, dataset_id, ds_info):
-        #res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         ds_path = ds_info.get("file_key", "{}".format(dataset_id))
-        res = self.["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"]
-
-        res = self.calibrate(res, key.calibration)
-        res.attrs["units"] = info["units"]
-        res.attrs["wavelength"] = info["wavelength"]
-        res.attrs["standard_name"] = info["standard_name"]
+        channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
+        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"]
+        calib = ds_info.get("calibration", "{}".format(dataset_id))
+        res = self.calibrate(res, calib, channel_id) #key.calibration)
+        res.attrs["units"] = ds_info["units"]
+        res.attrs["wavelength"] = ds_info["wavelength"]
+        res.attrs["standard_name"] = ds_info["standard_name"]
         res.attrs["platform_name"] = self.platform_name
         res.attrs["sensor"] = "seviri"
         res.attrs["satellite_longitude"] = self.mda["projection_parameters"]["SSP_longitude"]
@@ -443,11 +339,11 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         res.attrs["satellite_altitude"] = self.mda["projection_parameters"]["h"]
         return res
 
-    def calibrate(self, data, calibration):
+    def calibrate(self, data, calibration, channel_id):
         """Calibrate the data."""
         tic = datetime.now()
 
-        channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelID"])
+
         channel_name = CHANNEL_NAMES[channel_id]
 
         if calibration == "counts":
@@ -468,7 +364,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == "brightness_temperature":
-            cal_type = self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"][channel_id - 1]
+            cal_type = int(self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"][channel_id - 1])
             res = self._ir_calibrate(res, channel_name, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))

@@ -8,9 +8,7 @@ reader:
 file_types:
     HDF5_MSG:
         file_reader: !!python/name:satpy.readers.hdf5_msg.HDF5MSGFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}.h5']
-        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M}.[0-9][0-9][0-9]000000Z-{processing_start_time:%Y%m%d%%H%M}-{order_number:7s}.h5.{compressed:_<2s}']
-
+        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M%S}.{subseconds:9s}Z-{processing_start_time:%Y%m%d%H%M%S}-{order_number:7s}.h5']
 
 datasets:
   VIS006:
@@ -77,7 +75,7 @@ datasets:
     file_type: HDF5_MSG
     file_key: "Channel 04"
 
-   WV_062:
+  WV_062:
     name: WV_062
     resolution: 3000.403165817
     wavelength: [5.35, 6.25, 7.15]
