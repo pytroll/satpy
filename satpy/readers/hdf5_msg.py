@@ -289,12 +289,12 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         if "METADATA" in self.mda.keys():
             subset = self.mda["METADATA"]["SUBSET"]
             ul_x = int(subset[ds_type + "WestColumnSelectedRectangle"])
-            ul_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
+            ul_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
             lr_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
-            lr_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
+            lr_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
             bounds = (ncols - ul_x, nlines - ul_y, ncols - lr_x, nlines - lr_y)
             ncols = bounds[2] - bounds[0] + 1
-            nlines = bounds[3] - bounds[1] + 1
+            nlines = bounds[1] - bounds[3] + 1
 
 
         area_extent = self.get_area_extent(bounds, offsets, gridsteps)
@@ -326,7 +326,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, dataset_id, ds_info):
         ds_path = ds_info.get("file_key", "{}".format(dataset_id))
         channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
-        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"]
+        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"][::-1,::-1]
         calib = ds_info.get("calibration", "{}".format(dataset_id))
         res = self.calibrate(res, calib, channel_id) #key.calibration)
         res.attrs["units"] = ds_info["units"]
@@ -364,7 +364,8 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == "brightness_temperature":
-            cal_type = int(self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"][channel_id - 1])
+            cal_type_list = list(int(x) for x in mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"].split(","))
+            cal_type = cal_type_list[channel_id - 1]
             res = self._ir_calibrate(res, channel_name, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
