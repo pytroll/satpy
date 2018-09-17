@@ -6,7 +6,7 @@ import numpy as np
 class VIIRSEDRFlood(HDF4FileHandler):
     @property
     def start_time(self):
-        return self.filename_info['start_time'] 
+        return self.filename_info['start_time']
 
     @property
     def end_time(self):
@@ -17,16 +17,14 @@ class VIIRSEDRFlood(HDF4FileHandler):
         sensor = self['/attr/SensorIdentifyCode']
         if isinstance(sensor, np.ndarray):
             return str(sensor.astype(str))
-        else:
-            return sensor
+        return sensor
 
     @property
     def platform_name(self):
         platform_name = self['/attr/Satellitename']
         if isinstance(platform_name, np.ndarray):
             return str(platform_name.astype(str))
-        else:
-            return platform_name
+        return platform_name
 
     def get_metadata(self, data, ds_info):
         metadata = {}
@@ -35,7 +33,6 @@ class VIIRSEDRFlood(HDF4FileHandler):
         metadata.update({
             'sensor': self.sensor_name,
             'platform_name': self.platform_name,
-         #  'resolution': self['/attr/Resolution'],
             'start_time': self.start_time,
             'end_time': self.end_time,
         })
@@ -44,9 +41,6 @@ class VIIRSEDRFlood(HDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         data = self[ds_id.name]
-
-       #if ds_id.resolution:
-       #    data.attrs['resolution'] = ds_id.resolution
 
         data.attrs = self.get_metadata(data, ds_info)
 
@@ -67,11 +61,11 @@ class VIIRSEDRFlood(HDF4FileHandler):
         proj_dict = {
             'proj': 'latlong',
             'datum': 'WGS84',
-            'ellps': 'WGS84', 
+            'ellps': 'WGS84',
             'no_defs': True
         }
 
-        area_extent = [data.attrs.get('ProjectionMinLongitude'), data.attrs.get('ProjectionMinLatitude'), 
+        area_extent = [data.attrs.get('ProjectionMinLongitude'), data.attrs.get('ProjectionMinLatitude'),
                        data.attrs.get('ProjectionMaxLongitude'), data.attrs.get('ProjectionMaxLatitude')]
 
         x_size = int(self.filename_info['dim0'])
