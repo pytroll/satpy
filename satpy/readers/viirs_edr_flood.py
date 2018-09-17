@@ -68,16 +68,13 @@ class VIIRSEDRFlood(HDF4FileHandler):
         area_extent = [data.attrs.get('ProjectionMinLongitude'), data.attrs.get('ProjectionMinLatitude'),
                        data.attrs.get('ProjectionMaxLongitude'), data.attrs.get('ProjectionMaxLatitude')]
 
-        x_size = int(self.filename_info['dim0'])
-        y_size = int(self.filename_info['dim1'])
-
         area = geometry.AreaDefinition(
             'viirs_flood_area',
             'name_of_proj',
             'id_of_proj',
             proj_dict,
-            x_size,
-            y_size,
+            int(self.filename_info['dim0']),
+            int(self.filename_info['dim1']),
             np.asarray(area_extent)
         )
 
