@@ -32,6 +32,7 @@ import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
+import h5py
 
 LOGGER = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def np2str(value):
     if hasattr(value, 'dtype') and \
             issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
         value = np.asscalar(value)
-        if not isinstance(value, str):
+        if not isinstance(value, str) and not isinstance(value, h5py.h5r.Reference):
             # python 3 - was scalar numpy array of bytes
             # otherwise python 2 - scalar numpy array of 'str'
             value = value.decode()
