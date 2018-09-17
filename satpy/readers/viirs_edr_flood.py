@@ -1,14 +1,12 @@
 from satpy.readers.hdf4_utils import HDF4FileHandler
 from pyresample import geometry
-from satpy import CHUNK_SIZE
 import numpy as np
-import xarray as xr
 
 
 class VIIRSEDRFlood(HDF4FileHandler):
     @property
     def start_time(self):
-       return self.filename_info['start_time'] 
+        return self.filename_info['start_time'] 
 
     @property
     def end_time(self):
@@ -33,22 +31,22 @@ class VIIRSEDRFlood(HDF4FileHandler):
     def get_metadata(self, data, ds_info):
         metadata = {}
         metadata.update(data.attrs)
-        metadata.update(ds_info) 
+        metadata.update(ds_info)
         metadata.update({
             'sensor': self.sensor_name,
-            'platform_name' : self.platform_name,
-         #  'resolution' : self['/attr/Resolution'],
-            'start_time' : self.start_time,
-            'end_time' : self.end_time,
+            'platform_name': self.platform_name,
+         #  'resolution': self['/attr/Resolution'],
+            'start_time': self.start_time,
+            'end_time': self.end_time,
         })
 
         return metadata
-        
+
     def get_dataset(self, ds_id, ds_info):
         data = self[ds_id.name]
-        
-       # if ds_id.resolution:
-       #     data.attrs['resolution'] = ds_id.resolution
+
+       #if ds_id.resolution:
+       #    data.attrs['resolution'] = ds_id.resolution
 
         data.attrs = self.get_metadata(data, ds_info)
 
@@ -64,18 +62,18 @@ class VIIRSEDRFlood(HDF4FileHandler):
         return data
 
     def get_area_def(self, ds_id):
-        data = self[ds_id.name]        
+        data = self[ds_id.name]
 
         proj_dict = {
             'proj': 'latlong',
             'datum': 'WGS84',
-            'ellps':'WGS84', 
+            'ellps': 'WGS84', 
             'no_defs': True
         }
 
         area_extent = [data.attrs.get('ProjectionMinLongitude'), data.attrs.get('ProjectionMinLatitude'), 
                        data.attrs.get('ProjectionMaxLongitude'), data.attrs.get('ProjectionMaxLatitude')]
-        
+
         x_size = int(self.filename_info['dim0'])
         y_size = int(self.filename_info['dim1'])
 
@@ -88,6 +86,5 @@ class VIIRSEDRFlood(HDF4FileHandler):
             y_size,
             np.asarray(area_extent)
         )
-        
-        return area
 
+        return area
