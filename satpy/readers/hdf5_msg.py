@@ -286,15 +286,17 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         #       - file contains subset and load subset of subset
 
         bounds = (0, 0, ncols, nlines)
+        #bounds = (ncols, nlines, 0, 0)
         if "METADATA" in self.mda.keys():
             subset = self.mda["METADATA"]["SUBSET"]
-            ul_x = int(subset[ds_type + "WestColumnSelectedRectangle"])
-            ul_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
-            lr_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
-            lr_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
-            bounds = (ncols - ul_x, nlines - ul_y, ncols - lr_x, nlines - lr_y)
-            ncols = bounds[2] - bounds[0] + 1
-            nlines = bounds[1] - bounds[3] + 1
+            ll_x = int(subset[ds_type + "WestColumnSelectedRectangle"])
+            ll_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
+            ur_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
+            ur_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
+            bounds = (ncols - ll_x, nlines - ll_y, ncols - ur_x, nlines - ur_y)
+            ncols = ll_x - ur_x + 1
+            nlines = ur_y - ll_y + 1
+
 
 
         area_extent = self.get_area_extent(bounds, offsets, gridsteps)
@@ -326,7 +328,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, dataset_id, ds_info):
         ds_path = ds_info.get("file_key", "{}".format(dataset_id))
         channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
-        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"][::-1,::-1]
+        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"][::-1,:]
         calib = ds_info.get("calibration", "{}".format(dataset_id))
         res = self.calibrate(res, calib, channel_id) #key.calibration)
         res.attrs["units"] = ds_info["units"]
