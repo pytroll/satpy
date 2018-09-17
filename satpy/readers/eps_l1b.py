@@ -219,7 +219,6 @@ class EPSAVHRRFile(BaseFileHandler):
         solar_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [2]],
                                    self["ANGULAR_RELATIONS"][:, :, 2],
                                    self["ANGULAR_RELATIONS_LAST"][:, [2]]))
-
         sat_azimuth = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [3]],
                                  self["ANGULAR_RELATIONS"][:, :, 3],
                                  self["ANGULAR_RELATIONS_LAST"][:, [3]]))
@@ -228,10 +227,16 @@ class EPSAVHRRFile(BaseFileHandler):
         earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
         if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
             from geotiepoints import metop20kmto1km
+            # Note: interpolation asumes lat values values between -90 and 90
+            # Solar and satellite zenith is between 0 and 180.
+            solar_zenith -= 90
             self.sun_azi, self.sun_zen = metop20kmto1km(
                 solar_azimuth, solar_zenith)
+            self.sun_zen += 90
+            sat_zenith -= 90
             self.sat_azi, self.sat_zen = metop20kmto1km(
                 sat_azimuth, sat_zenith)
+            self.sat_zen += 90
         else:
             raise NotImplementedError("Angles expansion not implemented for " +
                                       "sample rate = " + str(nav_sample_rate) +
@@ -359,6 +364,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
             dataset = create_xarray(array.data).where(~array.mask)
 
+        dataset.attrs['platform_name'] = self.platform_name
+        dataset.attrs['sensor'] = self.sensor_name
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
         return dataset
