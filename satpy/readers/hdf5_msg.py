@@ -293,7 +293,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             ll_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
             ur_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
             ur_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
-            bounds = (ncols - ll_x, nlines - ll_y, ncols - ur_x, nlines - ur_y)
+            bounds = (ncols - ll_x, nlines - ur_y, ncols - ur_x, nlines - ll_y)
             ncols = ll_x - ur_x + 1
             nlines = ur_y - ll_y + 1
 
