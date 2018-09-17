@@ -364,7 +364,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == "brightness_temperature":
-            cal_type_list = list(int(x) for x in mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"].split(","))
+            cal_type_list = list(int(x) for x in self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"].split(","))
             cal_type = cal_type_list[channel_id - 1]
             res = self._ir_calibrate(res, channel_name, cal_type)
 
