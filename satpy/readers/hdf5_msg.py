@@ -5,9 +5,7 @@
 
 # Author(s):
 
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Bybbroe <adam.dybbroe@smhi.se>
-#   Sauli Joro <sauli.joro@eumetsat.int>
+#   Benjamin Roesner <benjamin.roesner@geo.uni-marburg.de>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
