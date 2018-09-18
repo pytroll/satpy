@@ -246,29 +246,29 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                    self._data['hrpt'][0].shape[0], axis=1)
 
         try:
-            idx = ['1', '2', '3a'].index(dataset_id.name)
+            vis_idx = ['1', '2', '3a'].index(dataset_id.name)
+            ir_idx = None
+        except ValueError:
+            vis_idx = None
+            ir_idx = ['3b', '4', '5'].index(dataset_id.name)
+
+        if vis_idx is not None:
             coeffs = calib_coeffs.get('ch' + dataset_id.name)
             ds = create_xarray(
                 _vis_calibrate(self._data,
-                               idx,
+                               vis_idx,
                                dataset_id.calibration,
                                pre_launch_coeffs,
                                coeffs,
                                mask=(dataset_id.name == '3a' and self._is3b)))
-        except ValueError:
-            pass
-
-        try:
-            idx = ['3b', '4', '5'].index(dataset_id.name)
+        else:
             ds = create_xarray(
                 _ir_calibrate(self._header,
                               self._data,
-                              idx,
+                              ir_idx,
                               dataset_id.calibration,
                               mask=(dataset_id.name == '3b' and
                                     np.logical_not(self._is3b))))
-        except ValueError:
-            pass
 
         if dataset_id.name == '3a' and np.all(np.isnan(ds)):
             raise ValueError("Empty dataset for channel 3A")
