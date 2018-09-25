@@ -354,7 +354,7 @@ def get_enhanced_image(dataset,
         add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, fille_value=fill_value, **decorate)
+        add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
