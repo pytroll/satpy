@@ -189,6 +189,9 @@ class HRITJMAFileHandler(HRITFileHandler):
         res.attrs.update(info)
         res.attrs['platform_name'] = 'Himawari-8'
         res.attrs['sensor'] = 'ahi'
+        res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
+        res.attrs['satellite_latitude'] = 0.
+        res.attrs['satellite_altitude'] = float(self.mda['projection_parameters']['h'])
         return res
 
     def calibrate(self, data, calibration):
