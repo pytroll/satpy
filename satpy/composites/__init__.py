@@ -1236,3 +1236,81 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         return super(SelfSharpenedRGB, self).__call__(
             (red, green, blue), optional_datasets=(high_res,), **attrs)
+##
+class Airmasstr(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make an tropical airmass RGB image composite.
+
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | WV7.3 - WV6.2      |   0.6 to 26.2 K    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR10.4 - IR9.7     | -26.2 to 27.4 K    | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | WV6.2              | 208.5 to 243.9 K   | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        ch1 = sub_arrays(projectables[1], projectables[0])
+        ch2 = sub_arrays(projectables[3], projectables[2])
+        res = super(Airmasstr, self).__call__((ch1, ch2,
+                                             projectables[0]),
+                                            *args, **kwargs)
+        return res
+
+
+class volcanic_gas(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make an tropical airmass RGB image composite.
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        |  WV6.9 - WV7.3     |    -4 to 2 K       | gamma 1            |→ SO2, water vapor
+        +--------------------+--------------------+--------------------+
+        | IR10.4 - IR8.6     |    -4 to 5 K       | gamma 1            |→ SO2 (water vapor)
+        +--------------------+--------------------+--------------------+
+        | IR10.4             |   243 to 303 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        ch1 = sub_arrays(projectables[0], projectables[1])
+        ch2 = sub_arrays(projectables[3], projectables[2])
+        res = super(volcanic_gas, self).__call__((ch1, ch2,
+                                             projectables[3]),
+                                            *args, **kwargs)
+        return res
+
+class Dustabi(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a dust (or fog or night_fog) RGB image composite.
+        Fog:
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.30 - IR10.35  |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR11.20 - IR8.50   |      0 to 6 K      | gamma 2.0          |
+        +--------------------+--------------------+--------------------+
+        | IR10.35            |   243 to 283 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+
+        Dust:
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.30 - IR10.35  |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR11.20 - IR8.50   |     0 to 15 K      | gamma 2.5          |
+        +--------------------+--------------------+--------------------+
+        | IR10.35            |   261 to 289 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        ch1 = sub_arrays(projectables[3], projectables[1])
+        ch2 = sub_arrays(projectables[2], projectables[0])
+        res = super(Dustabi, self).__call__((ch1, ch2,
+                                          projectables[1]),
+                                         *args, **kwargs)
+        return res
+

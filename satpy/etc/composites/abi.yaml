@@ -215,3 +215,264 @@ composites:
     - 9.7
     - 10.3
     standard_name: airmass
+###
+  night_microphysics:
+    compositor: !!python/name:satpy.composites.Dust
+    prerequisites:
+    - name: C07
+    - name: C14
+    - name: C15
+    standard_name: night_microphysics
+
+  convection:
+    compositor: !!python/name:satpy.composites.Convection
+    prerequisites:
+    - name: C02
+    - name: C05
+    - name: C07
+    - name: C08
+    - name: C10
+    - name: C14
+    standard_name: convection
+
+  cloud_phase_distinction_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C13
+    - name: C02
+    - name: C05
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C13
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C05
+      modifiers: [sunz_corrected]
+    standard_name: cloud_phase_distinction
+
+  water_vapors1:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C13
+    - name: C08
+    - name: C10
+    standard_name: water_vapors1
+
+  mid_vapor:
+    compositor: !!python/name:satpy.composites.DifferenceCompositor
+    prerequisites:
+    - name: C10
+    - name: C08
+    standard_name: mid_vapor
+
+  water_vapors2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: mid_vapor
+    - name: C10
+    - name: C08
+    standard_name: water_vapors2
+
+  cloud_phase_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C05
+    - name: C06
+    - name: C02
+    standard_name: natural
+
+  cloud_phase:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C06
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: natural
+
+  ir_overview:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C05
+      modifiers: [co2_corrected]
+    - name: C14
+    - name: C15
+    standard_name: ir_overview
+
+  airmass_C14:
+    compositor: !!python/name:satpy.composites.Airmass
+    prerequisites:
+    - name: C08
+    - name: C10
+    - name: C12
+    - name: C14
+    standard_name: airmass
+
+  airmass_tropical:
+    compositor: !!python/name:satpy.composites.Airmasstr
+    prerequisites:
+    - name: C08
+    - name: C10
+    - name: C12
+    - name: C13
+    standard_name: airmass_tropical
+
+  ash_abi:
+    compositor: !!python/name:satpy.composites.Dustabi
+    prerequisites:
+    - name: C11
+    - name: C13
+    - name: C14
+    - name: C15
+    standard_name: ash
+
+  dust_abi:
+    compositor: !!python/name:satpy.composites.Dustabi
+    prerequisites:
+    - name: C11
+    - name: C13
+    - name: C14
+    - name: C15
+    standard_name: dust
+
+  fog_abi:
+    compositor: !!python/name:satpy.composites.Dustabi
+    prerequisites:
+    - name: C11
+    - name: C13
+    - name: C14
+    - name: C15
+    standard_name: fog
+
+  natural_fire:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: C06
+    - name: C03
+    - name: C02
+    standard_name: natural_fire
+
+  simple_fire_and_smoke:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C07
+    - name: C02
+    - name: C13
+    standard_name: simple_fire_and_smoke
+
+  fire_temperature_aki:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C07
+    - name: C06
+    - name: C05
+    standard_name: fire_temperature_aki
+
+  fire_temperature_joche:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C07
+    - name: C06
+    - name: C05
+    standard_name: fire_temperature_joche
+
+  smoke_haze:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C02
+    - name: C03
+    - name: C13
+    standard_name: smoke_haze
+
+  fire_hotspots:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C07
+    - name: C06
+    - name: C05
+    standard_name: fire_hotspots
+
+  dif_conv:
+    compositor: !!python/name:satpy.composites.DifferenceCompositor
+    prerequisites:
+    - name: C13
+    - name: C08
+    standard_name: dif_conv
+
+  day_conv_v1:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: dif_conv
+    - name: C02
+    - name: C13
+    standard_name: day_conv_v1
+
+  day_conv_v2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: dif_conv
+    - name: C02
+    - name: C13
+    standard_name: day_conv_v2
+
+  day_conv_v3_midlat:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C02
+    - name: dif_conv
+    - name: C13
+    standard_name: day_conv_v3_midlat
+
+  day_conv_v3_tropcl:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C02
+    - name: dif_conv
+    - name: C13
+    standard_name: day_conv_v3_tropcl
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C07
+      modifiers: [nir_reflectance]
+    - name: C14
+    standard_name: day_microphysics
+
+  snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C07
+      modifiers: [nir_reflectance]
+    standard_name: snow
+
+  volcanic_gas:
+    compositor: !!python/name:satpy.composites.volcanic_gas
+    prerequisites:
+    - name: C09
+    - name: C10
+    - name: C11
+    - name: C13
+    standard_name: volcanic_gas
+
+  fire_detection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C02
+    - name: C06
+    - name: C14
+    standard_name: fire_detection
+
+
+
