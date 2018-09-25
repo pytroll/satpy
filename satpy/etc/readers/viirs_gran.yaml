@@ -1,6 +1,6 @@
 reader:
   description: Generic NASA VIIRS L1B Reader
-  name: viirs_l1b
+  name: viirs_gran
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs]
   default_datasets:
