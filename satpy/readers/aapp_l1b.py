@@ -237,7 +237,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                  'counts': '',
                  'radiance': 'W*m-2*sr-1*cm ?'}
 
-        if dataset_id.name in ("3a","3b") and self._is3b is None:
+        if dataset_id.name in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
             is3b = np.expand_dims(
                 np.bitwise_and(
