@@ -179,7 +179,7 @@ def _determine_mode(dataset):
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1):
+                level_coast=1, level_borders=1, fill_value=None):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -224,7 +224,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    img = orig.pil_image()
+    img = orig.pil_image(fill_value=fill_value)
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
@@ -277,7 +277,7 @@ def add_logo(orig, dc, img, logo=None):
                                      'bands': list(img.mode)})
 
 
-def add_decorate(orig, **decorate):
+def add_decorate(orig, fill_value=None, **decorate):
     """Decorate an image with text and/or logos/images.
 
     This call adds text/logos in order as given in the input to keep the
@@ -312,7 +312,7 @@ def add_decorate(orig, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
-    img_orig = orig.pil_image()
+    img_orig = orig.pil_image(fill_value=fill_value)
     from pydecorate import DecoratorAGG
     dc = DecoratorAGG(img_orig)
 
@@ -331,7 +331,8 @@ def get_enhanced_image(dataset,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
-                       decorate=None):
+                       decorate=None,
+                       fill_value=None):
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -350,10 +351,10 @@ def get_enhanced_image(dataset,
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.attrs['area'], **overlay)
+        add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, **decorate)
+        add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
@@ -598,7 +599,7 @@ class ImageWriter(Writer):
         """
         img = get_enhanced_image(
             dataset.squeeze(), self.enhancer, overlay=overlay,
-            decorate=decorate)
+            decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute,
                                fill_value=fill_value, **kwargs)
 
