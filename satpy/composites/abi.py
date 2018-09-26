@@ -73,7 +73,7 @@ class DustABI(GenericCompositor):
         """
         ch1 = sub_arrays(projectables[3], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[0])
-        res = super(Dustabi, self).__call__((ch1, ch2,
+        res = super(DustABI, self).__call__((ch1, ch2,
                                           projectables[1]),
                                          *args, **kwargs)
         return res

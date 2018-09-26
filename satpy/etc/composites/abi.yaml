@@ -326,7 +326,7 @@ composites:
     standard_name: airmass_tropical
 ## Ash, Dust and fog using RGB Dust recipe
   ash_abi:
-    compositor: !!python/name:satpy.abi.DustABI
+    compositor: !!python/name:satpy.composites.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
@@ -335,7 +335,7 @@ composites:
     standard_name: ash
 
   dust_abi:
-    compositor: !!python/name:satpy.abi.DustABI
+    compositor: !!python/name:satpy.composites.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
@@ -344,7 +344,7 @@ composites:
     standard_name: dust
 ## CIRA’s Natural Fire Color RGB (False color RGB)
   fog_abi:
-    compositor: !!python/name:satpy.abi.DustABI
+    compositor: !!python/name:satpy.composites.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
