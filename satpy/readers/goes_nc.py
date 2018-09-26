@@ -568,35 +568,32 @@ class GOESNCFileHandler(BaseFileHandler):
             Mask (1=earth, 0=space)
         """
         logger.debug('Computing earth mask')
-        return da.fabs(lat.values) <= 90
+        return xu.fabs(lat) <= 90
 
     @staticmethod
-    def _get_lon0(lon, earth_mask, sector):
-        """Estimate subsatellite point
-
-        Since the actual subsatellite point is not stored in the netCDF files,
-        try to estimate it using the longitude coordinates (full disc images
-        only).
+    def _get_nadir_pixel(earth_mask, sector):
+        """Find the nadir pixel
 
         Args:
-            lon: Longitudes [degrees east]
             earth_mask: Mask identifying earth and space pixels
             sector: Specifies the scanned sector
+        Returns:
+            nadir row, nadir column
         """
         if sector == FULL_DISC:
-            logger.debug('Computing subsatellite point')
+            logger.debug('Computing nadir pixel')
 
             # The earth is not centered in the image, compute bounding box
             # of the earth disc first
             rmin, rmax, cmin, cmax = bbox(earth_mask)
 
-            # The subsatellite point is approximately at the centre of the
-            # earth disk
-            crow = rmin + (rmax - rmin) // 2
-            ccol = cmin + (cmax - cmin) // 2
-            return lon[crow, ccol]
+            # The nadir pixel is approximately at the centre of the earth disk
+            nadir_row = rmin + (rmax - rmin) // 2
+            nadir_col = cmin + (cmax - cmin) // 2
 
-        return None
+            return nadir_row, nadir_col
+
+        return None, None
 
     @staticmethod
     def _is_yaw_flip(lat, delta=10):
@@ -608,11 +605,11 @@ class GOESNCFileHandler(BaseFileHandler):
         crow, ccol = np.array(lat.shape) // 2
         return (lat[crow+delta, ccol] - lat[crow, ccol]).values > 0
 
-    def _get_area_def_uniform_sampling(self, lon0, channel, sector):
+    def _get_area_def_uniform_sampling(self, lon0, channel):
         """Get area definition with uniform sampling"""
         logger.debug('Computing area definition')
 
-        if sector == FULL_DISC:
+        if lon0 is not None:
             # Define proj4 projection parameters
             proj_dict = {'a': EQUATOR_RADIUS,
                          'b': POLE_RADIUS,
@@ -649,7 +646,7 @@ class GOESNCFileHandler(BaseFileHandler):
 
             return area_def
         else:
-            return None, None
+            return None
 
     @property
     def start_time(self):
@@ -682,19 +679,24 @@ class GOESNCFileHandler(BaseFileHandler):
         if self._meta is None:
             lat = self.nc['lat']
             earth_mask = self._get_earth_mask(lat)
+            crow, ccol = self._get_nadir_pixel(earth_mask=earth_mask,
+                                               sector=self.sector)
+            lat0 = lat.values[crow, ccol] if crow is not None else None
             yaw_flip = self._is_yaw_flip(lat)
             del lat
 
-            lon = self.nc['lon'].values
-            lon0 = self._get_lon0(lon=lon, earth_mask=earth_mask,
-                                  sector=self.sector)
+            lon = self.nc['lon']
+            lon0 = lon.values[crow, ccol] if crow is not None else None
             area_def_uni = self._get_area_def_uniform_sampling(
-                lon0=lon0, channel=self.gvar_channel, sector=self.sector)
+                lon0=lon0, channel=self.gvar_channel)
             del lon
 
             self._meta = {'earth_mask': earth_mask,
                           'yaw_flip': yaw_flip,
+                          'lat0': lat0,
                           'lon0': lon0,
+                          'nadir_row': crow,
+                          'nadir_col': ccol,
                           'area_def_uni': area_def_uni}
         return self._meta
 
@@ -727,7 +729,11 @@ class GOESNCFileHandler(BaseFileHandler):
             {'platform_name': self.platform_name,
              'sensor': self.sensor,
              'sector': self.sector,
-             'lon0': self.meta['lon0'],
+             'satellite_longitude': self.meta['lon0'],
+             'satellite_latitude': self.meta['lat0'],
+             'satellite_altitude': ALTITUDE,
+             'nadir_row': self.meta['nadir_row'],
+             'nadir_col': self.meta['nadir_col'],
              'area_def_uniform_sampling': self.meta['area_def_uni'],
              'yaw_flip': self.meta['yaw_flip']}
         )

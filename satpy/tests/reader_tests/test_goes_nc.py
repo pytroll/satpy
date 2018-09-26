@@ -320,8 +320,8 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         self.assertTrue(len(arr.attrs) > 1, msg='Transfer to output array '
                                                 'does not update attributes')
 
-    def test_get_lon0(self):
-        """Test estimation of subsatellite point"""
+    def test_get_nadir_pixel(self):
+        """Test identification of the nadir pixel"""
         from satpy.readers.goes_nc import FULL_DISC
 
         earth_mask = np.array([[0, 0, 0, 0],
@@ -329,13 +329,10 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                [1, 1, 1, 0],
                                [0, 1, 0, 0],
                                [0, 0, 0, 0]])
-        lon = np.zeros(earth_mask.shape)
-        lon0_ref = 99
-        lon[2, 1] = lon0_ref
-
-        lon0 = self.reader._get_lon0(earth_mask=earth_mask, lon=lon,
-                                     sector=FULL_DISC)
-        self.assertEqual(lon0, lon0_ref, msg='Incorrect subsatellite point')
+        nadir_row, nadir_col = self.reader._get_nadir_pixel(
+            earth_mask=earth_mask, sector=FULL_DISC)
+        self.assertEqual((nadir_row, nadir_col), (2, 1),
+                         msg='Incorrect nadir pixel')
 
     def test_get_earth_mask(self):
         """Test identification of earth/space pixels"""
