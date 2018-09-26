@@ -44,3 +44,37 @@ class SimulatedGreen(GenericCompositor):
         res.attrs = c03.attrs.copy()
 
         return super(SimulatedGreen, self).__call__((res,), **attrs)
+
+class DustABI(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make a dust (or fog or night_fog) RGB image composite.
+        Fog:
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.30 - IR10.35  |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR11.20 - IR8.50   |      0 to 6 K      | gamma 2.0          |
+        +--------------------+--------------------+--------------------+
+        | IR10.35            |   243 to 283 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+
+        Dust:
+        +--------------------+--------------------+--------------------+
+        | Channels           | Temp               | Gamma              |
+        +====================+====================+====================+
+        | IR12.30 - IR10.35  |     -4 to 2 K      | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        | IR11.20 - IR8.50   |     0 to 15 K      | gamma 2.5          |
+        +--------------------+--------------------+--------------------+
+        | IR10.35            |   261 to 289 K     | gamma 1            |
+        +--------------------+--------------------+--------------------+
+        """
+        ch1 = sub_arrays(projectables[3], projectables[1])
+        ch2 = sub_arrays(projectables[2], projectables[0])
+        res = super(Dustabi, self).__call__((ch1, ch2,
+                                          projectables[1]),
+                                         *args, **kwargs)
+        return res
+
