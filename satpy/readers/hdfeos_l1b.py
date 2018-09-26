@@ -45,11 +45,268 @@ import dask.array as da
 import xarray.ufuncs as xu
 import xarray as xr
 from satpy import CHUNK_SIZE
-from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
+
+
+# TODO on interpolation:
+# - factorize !!!
+# - for 500m and 250m use all 1km pixels as base
+# - go over to cartesian coordinates for tricky situation (eg poles, dateline)
+# - test !!!
+
+R = 6371.
+# Aqua scan width and altitude in km
+scan_width = 10.00017
+H = 705.
+
+
+def compute_phi(zeta):
+    return np.arcsin(R * np.sin(zeta) / (R + H))
+
+
+def compute_theta(zeta, phi):
+    return zeta - phi
+
+
+def compute_zeta(phi):
+    return np.arcsin((R + H) * np.sin(phi) / R)
+
+
+def compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d):
+    """All angles in radians."""
+    zeta_a = satz_a
+    zeta_b = satz_b
+
+    phi_a = compute_phi(zeta_a)
+    phi_b = compute_phi(zeta_b)
+    theta_a = compute_theta(zeta_a, phi_a)
+    theta_b = compute_theta(zeta_b, phi_b)
+    phi = (phi_a + phi_b) / 2
+    zeta = compute_zeta(phi)
+    theta = compute_theta(zeta, phi)
+
+    c_expansion = 4 * (((theta_a + theta_b) / 2 - theta) / (theta_a - theta_b))
+
+    sin_beta_2 = scan_width / (2 * H)
+
+    d = ((R + H) / R * np.cos(phi) - np.cos(zeta)) * sin_beta_2
+    e = np.cos(zeta) - np.sqrt(np.cos(zeta) ** 2 - d ** 2)
+
+    c_alignment = 4 * e * np.sin(zeta) / (theta_a - theta_b)
+
+    return c_expansion, c_alignment
+
+
+def modis_1km_to_500m(lon1, lat1, satz1):
+
+    scans = lat1.shape[0] // 10
+
+    lats_a = lat1[::10, :-1]
+    lons_a = lon1[::10, :-1]
+    satz_a = np.deg2rad(satz1[::10, :-1])
+    lats_b = lat1[::10, 1:]
+    lons_b = lon1[::10, 1:]
+    satz_b = np.deg2rad(satz1[::10, 1:])
+    lats_c = lat1[9::10, 1:]
+    lons_c = lon1[9::10, 1:]
+    satz_c = np.deg2rad(satz1[9::10, 1:])
+    lats_d = lat1[9::10, :-1]
+    lons_d = lon1[9::10, :-1]
+    satz_d = np.deg2rad(satz1[9::10, :-1])
+    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
+
+    y = ((np.arange(scans * 20) % 20) - .5)
+    x = np.arange(1354*2) % 2
+    x[-2] = 2
+    x[-1] = 3
+    i_rs, i_rt = da.meshgrid(x, y)
+
+    p_os = 0
+    p_ot = 0
+
+    s_s = (p_os + i_rs) / 2.
+    s_t = (p_ot + i_rt) / 18.
+
+    cols = 2
+    lines = 20
+
+    c_exp_full = da.repeat(da.repeat(c_exp.data, lines, axis=0), cols, axis=1)
+    c_exp_full = da.hstack((c_exp_full, c_exp_full[:, -2:]))
+    c_ali_full = da.repeat(da.repeat(c_ali.data, lines, axis=0), cols, axis=1)
+    c_ali_full = da.hstack((c_ali_full, c_ali_full[:, -2:]))
+
+    a_track = s_t
+    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
+
+    lats_a = da.repeat(da.repeat(lats_a.data, lines, axis=0), cols, axis=1)
+    lats_a = da.hstack((lats_a, lats_a[:, -2:]))
+    lats_b = da.repeat(da.repeat(lats_b.data, lines, axis=0), cols, axis=1)
+    lats_b = da.hstack((lats_b, lats_b[:, -2:]))
+    lats_c = da.repeat(da.repeat(lats_c.data, lines, axis=0), cols, axis=1)
+    lats_c = da.hstack((lats_c, lats_c[:, -2:]))
+    lats_d = da.repeat(da.repeat(lats_d.data, lines, axis=0), cols, axis=1)
+    lats_d = da.hstack((lats_d, lats_d[:, -2:]))
+    lons_a = da.repeat(da.repeat(lons_a.data, lines, axis=0), cols, axis=1)
+    lons_a = da.hstack((lons_a, lons_a[:, -2:]))
+    lons_b = da.repeat(da.repeat(lons_b.data, lines, axis=0), cols, axis=1)
+    lons_b = da.hstack((lons_b, lons_b[:, -2:]))
+    lons_c = da.repeat(da.repeat(lons_c.data, lines, axis=0), cols, axis=1)
+    lons_c = da.hstack((lons_c, lons_c[:, -2:]))
+    lons_d = da.repeat(da.repeat(lons_d.data, lines, axis=0), cols, axis=1)
+    lons_d = da.hstack((lons_d, lons_d[:, -2:]))
+
+    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
+    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
+    lats = (1 - a_track) * lats_1 + a_track * lats_2
+
+    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
+    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
+    lons = (1 - a_track) * lons_1 + a_track * lons_2
+
+    return (xr.DataArray(lons, attrs=lon1.attrs, dims=lon1.dims),
+            xr.DataArray(lats, attrs=lat1.attrs, dims=lat1.dims))
+
+
+def modis_5km_to_1km(lon5, lat5, satz5):
+    lats_a = lat5[::2, :-1]
+    lons_a = lon5[::2, :-1]
+    satz_a = np.deg2rad(satz5[::2, :-1])
+    lats_b = lat5[::2, 1:]
+    lons_b = lon5[::2, 1:]
+    satz_b = np.deg2rad(satz5[::2, 1:])
+    lats_c = lat5[1::2, 1:]
+    lons_c = lon5[1::2, 1:]
+    satz_c = np.deg2rad(satz5[1::2, 1:])
+    lats_d = lat5[1::2, :-1]
+    lons_d = lon5[1::2, :-1]
+    satz_d = np.deg2rad(satz5[1::2, :-1])
+
+    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
+    c_exp = c_exp.mean(axis=0)
+    c_ali = c_ali.mean(axis=0)
+
+    y = ((np.arange(lat5.shape[0] * 5) % 10) - 2) * 2  # why x2 ???
+    x = np.arange(-2, 1354 - 2) % 5
+    x[0] = -2
+    x[1] = -1
+    x[-2] = 5
+    x[-1] = 6
+
+    i_rs, i_rt = np.meshgrid(x, y)
+
+    p_os = 0
+    p_ot = 0
+
+    s_s = (p_os + i_rs) / 5.
+    s_t = (p_ot + i_rt) / 10.
+
+    c_exp = c_exp.values
+    c_ali = c_ali.values
+    c_exp_full = np.zeros(1354)
+    c_ali_full = np.zeros(1354)
+    c_exp_full[2:-2] = np.repeat(c_exp, 5)
+    c_ali_full[2:-2] = np.repeat(c_ali, 5)
+    c_exp_full[:2] = c_exp[0]
+    c_exp_full[-2:] = c_exp[-1]
+    c_ali_full[:2] = c_ali[0]
+    c_ali_full[-2:] = c_ali[-1]
+
+    a_track = s_t
+    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
+
+    cols = [7] + 268 * [5] + [7]
+    lats_a = np.repeat(np.repeat(lats_a, 10, axis=0), cols, axis=1)
+    lats_b = np.repeat(np.repeat(lats_b, 10, axis=0), cols, axis=1)
+    lats_c = np.repeat(np.repeat(lats_c, 10, axis=0), cols, axis=1)
+    lats_d = np.repeat(np.repeat(lats_d, 10, axis=0), cols, axis=1)
+    lons_a = np.repeat(np.repeat(lons_a, 10, axis=0), cols, axis=1)
+    lons_b = np.repeat(np.repeat(lons_b, 10, axis=0), cols, axis=1)
+    lons_c = np.repeat(np.repeat(lons_c, 10, axis=0), cols, axis=1)
+    lons_d = np.repeat(np.repeat(lons_d, 10, axis=0), cols, axis=1)
+
+    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
+    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
+    lats = (1 - a_track) * lats_1 + a_track * lats_2
+
+    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
+    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
+    lons = (1 - a_track) * lons_1 + a_track * lons_2
+
+    return lons, lats
+
+
+def modis_1km_to_250m(lon1, lat1, satz1):
+
+    scans = lat1.shape[0] // 10
+
+    lats_a = lat1[::10, :-1]
+    lons_a = lon1[::10, :-1]
+    satz_a = np.deg2rad(satz1[::10, :-1])
+    lats_b = lat1[::10, 1:]
+    lons_b = lon1[::10, 1:]
+    satz_b = np.deg2rad(satz1[::10, 1:])
+    lats_c = lat1[9::10, 1:]
+    lons_c = lon1[9::10, 1:]
+    satz_c = np.deg2rad(satz1[9::10, 1:])
+    lats_d = lat1[9::10, :-1]
+    lons_d = lon1[9::10, :-1]
+    satz_d = np.deg2rad(satz1[9::10, :-1])
+    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
+
+    y = ((np.arange(scans * 40) % 40) - 1.5)
+    x = np.arange(1354*4) % 4
+    x[-4] = 4
+    x[-3] = 5
+    x[-2] = 6
+    x[-1] = 7
+    i_rs, i_rt = da.meshgrid(x, y)
+
+    p_os = 0
+    p_ot = 0
+
+    s_s = (p_os + i_rs) / 4.
+    s_t = (p_ot + i_rt) / 36.
+
+    cols = 4
+    lines = 40
+    c_exp_full = da.repeat(da.repeat(c_exp.data, lines, axis=0), cols, axis=1)
+    c_exp_full = da.hstack((c_exp_full, c_exp_full[:, -4:]))
+    c_ali_full = da.repeat(da.repeat(c_ali.data, lines, axis=0), cols, axis=1)
+    c_ali_full = da.hstack((c_ali_full, c_ali_full[:, -4:]))
+
+    a_track = s_t
+    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
+
+    lats_a = da.repeat(da.repeat(lats_a.data, lines, axis=0), cols, axis=1)
+    lats_a = da.hstack((lats_a, lats_a[:, -4:]))
+    lats_b = da.repeat(da.repeat(lats_b.data, lines, axis=0), cols, axis=1)
+    lats_b = da.hstack((lats_b, lats_b[:, -4:]))
+    lats_c = da.repeat(da.repeat(lats_c.data, lines, axis=0), cols, axis=1)
+    lats_c = da.hstack((lats_c, lats_c[:, -4:]))
+    lats_d = da.repeat(da.repeat(lats_d.data, lines, axis=0), cols, axis=1)
+    lats_d = da.hstack((lats_d, lats_d[:, -4:]))
+    lons_a = da.repeat(da.repeat(lons_a.data, lines, axis=0), cols, axis=1)
+    lons_a = da.hstack((lons_a, lons_a[:, -4:]))
+    lons_b = da.repeat(da.repeat(lons_b.data, lines, axis=0), cols, axis=1)
+    lons_b = da.hstack((lons_b, lons_b[:, -4:]))
+    lons_c = da.repeat(da.repeat(lons_c.data, lines, axis=0), cols, axis=1)
+    lons_c = da.hstack((lons_c, lons_c[:, -4:]))
+    lons_d = da.repeat(da.repeat(lons_d.data, lines, axis=0), cols, axis=1)
+    lons_d = da.hstack((lons_d, lons_d[:, -4:]))
+
+    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
+    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
+    lats = (1 - a_track) * lats_1 + a_track * lats_2
+
+    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
+    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
+    lons = (1 - a_track) * lons_1 + a_track * lons_2
+
+    return (xr.DataArray(lons, attrs=lon1.attrs, dims=lon1.dims),
+            xr.DataArray(lats, attrs=lat1.attrs, dims=lat1.dims))
 
 
 class HDFEOSFileReader(BaseFileHandler):
@@ -127,153 +384,96 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             self.resolution = 5000
         self.cache = {}
-        self.cache[250] = {}
-        self.cache[250]['lons'] = None
-        self.cache[250]['lats'] = None
 
-        self.cache[500] = {}
-        self.cache[500]['lons'] = None
-        self.cache[500]['lats'] = None
-
-        self.cache[1000] = {}
-        self.cache[1000]['lons'] = None
-        self.cache[1000]['lats'] = None
-
-    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
+    def get_dataset(self, key, info):
         """Get the dataset designated by *key*."""
-        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
-                        'satellite_zenith_angle', 'satellite_azimuth_angle']:
-
-            if key.name == 'solar_zenith_angle':
-                var = self.sd.select('SolarZenith')
-            if key.name == 'solar_azimuth_angle':
-                var = self.sd.select('SolarAzimuth')
-            if key.name == 'satellite_zenith_angle':
-                var = self.sd.select('SensorZenith')
-            if key.name == 'satellite_azimuth_angle':
-                var = self.sd.select('SensorAzimuth')
-
-            data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
-                                dims=['y', 'x']).astype(np.float32)
-            data = data.where(data != var._FillValue)
-            data = data * np.float32(var.scale_factor)
-
-            data.attrs = info
-            return data
-
-        if key.name not in ['longitude', 'latitude']:
+        if key.name == 'solar_zenith_angle':
+            data = self.load('SolarZenith')
+        elif key.name == 'solar_azimuth_angle':
+            data = self.load('SolarAzimuth')
+        elif key.name == 'satellite_zenith_angle':
+            data = self.load('SensorZenith')
+        elif key.name == 'satellite_azimuth_angle':
+            data = self.load('SensorAzimuth')
+        elif key.name == 'longitude':
+            data = self.load('Longitude')
+        elif key.name == 'latitude':
+            data = self.load('Latitude')
+        else:
             return
 
-        if (self.cache[key.resolution]['lons'] is None or
-                self.cache[key.resolution]['lats'] is None):
+        if key.resolution != self.resolution:
+            # let's see if we have something in the cache
+            try:
+                data = self.cache[key.resolution][key.name]
+                data.attrs.update(info)
+                data.attrs['standard_name'] = data.attrs['name']
+                return data
+            except KeyError:
+                self.cache.setdefault(key.resolution, {})
 
-            lons_id = DatasetID('longitude',
-                                resolution=key.resolution)
-            lats_id = DatasetID('latitude',
-                                resolution=key.resolution)
+            # too bad, now we need to interpolate
+            satz = self.load('SensorZenith')
+            if key.name in ['longitude', 'latitude']:
+                data_a = self.load('Longitude')
+                data_b = self.load('Latitude')
+            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+                data_a = self.load('SensorAzimuth')
+                data_b = self.load('SensorZenith') - 90
+            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+                data_a = self.load('SolarAzimuth')
+                data_b = self.load('SolarZenith') - 90
 
-            lons, lats = self.load(
-                [lons_id, lats_id], interpolate=False, raw=True)
-            if key.resolution != self.resolution:
-                from geotiepoints.geointerpolator import GeoInterpolator
-                lons, lats = self._interpolate([lons, lats],
-                                               self.resolution,
-                                               lons_id.resolution,
-                                               GeoInterpolator)
-                lons = np.ma.masked_invalid(np.ascontiguousarray(lons))
-                lats = np.ma.masked_invalid(np.ascontiguousarray(lats))
-            self.cache[key.resolution]['lons'] = lons
-            self.cache[key.resolution]['lats'] = lats
+            data_a, data_b = self._interpolate(data_a, data_b, satz,
+                                               self.resolution, key.resolution)
 
-        if key.name == 'latitude':
-            data = self.cache[key.resolution]['lats'].filled(np.nan)
-            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                                dims=['y', 'x'])
-        else:
-            data = self.cache[key.resolution]['lons'].filled(np.nan)
-            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
-                                                            CHUNK_SIZE)),
-                                dims=['y', 'x'])
-        data.attrs = info
+            if key.name in ['longitude', 'latitude']:
+                self.cache[key.resolution]['longitude'] = data_a
+                self.cache[key.resolution]['latitude'] = data_b
+            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+                self.cache[key.resolution]['satellite_azimuth_angle'] = data_a
+                self.cache[key.resolution]['satellite_zenith_angle'] = data_b + 90
+            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+                self.cache[key.resolution]['solar_azimuth_angle'] = data_a
+                self.cache[key.resolution]['solar_zenith_angle'] = data_b + 90
+
+            data = self.cache[key.resolution][key.name]
+
+        data.attrs.update(info)
+        data.attrs['standard_name'] = data.attrs['name']
         return data
 
-    def load(self, keys, interpolate=True, raw=False):
+    def load(self, file_key):
         """Load the data."""
-        projectables = []
-        for key in keys:
-            dataset = self.sd.select(key.name.capitalize())
-            fill_value = dataset.attributes()["_FillValue"]
-            try:
-                scale_factor = dataset.attributes()["scale_factor"]
-            except KeyError:
-                scale_factor = 1
-            data = np.ma.masked_equal(dataset.get(), fill_value) * scale_factor
-
-            # TODO: interpolate if needed
-            if (key.resolution is not None and
-                    key.resolution < self.resolution and
-                    interpolate):
-                data = self._interpolate(data, self.resolution, key.resolution)
-            if not raw:
-                data = data.filled(np.nan)
-                data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
-                                                                CHUNK_SIZE)),
-                                    dims=['y', 'x'])
-            projectables.append(data)
-
-        return projectables
+        var = self.sd.select(file_key)
+        data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
+                            dims=['y', 'x']).astype(np.float32)
+        data = data.where(data != var._FillValue)
+        try:
+            data = data * np.float32(var.scale_factor)
+        except AttributeError:
+            pass
+        return data
 
     @staticmethod
-    def _interpolate(data, coarse_resolution, resolution, interpolator=None):
+    def _interpolate(clons, clats, csatz, coarse_resolution, resolution):
         if resolution == coarse_resolution:
-            return data
+            return clons, clats
 
-        if interpolator is None:
-            from geotiepoints.interpolator import Interpolator
-            interpolator = Interpolator
+        funs = {(5000, 1000): modis_5km_to_1km,
+                (1000, 500): modis_1km_to_500m,
+                (1000, 250): modis_1km_to_250m}
+
+        try:
+            fun = funs[(coarse_resolution, resolution)]
+        except KeyError:
+            raise NotImplementedError('Interpolation from {}m to {}m not implemented'.format(
+                                      coarse_resolution, resolution))
 
         logger.debug("Interpolating from " + str(coarse_resolution)
                      + " to " + str(resolution))
 
-        if isinstance(data, (tuple, list, set)):
-            lines = data[0].shape[0]
-        else:
-            lines = data.shape[0]
-
-        if coarse_resolution == 5000:
-            coarse_cols = np.arange(2, 1354, 5)
-            lines *= 5
-            coarse_rows = np.arange(2, lines, 5)
-
-        elif coarse_resolution == 1000:
-            coarse_cols = np.arange(1354)
-            coarse_rows = np.arange(lines)
-
-        if resolution == 1000:
-            fine_cols = np.arange(1354)
-            fine_rows = np.arange(lines)
-            chunk_size = 10
-        elif resolution == 500:
-            fine_cols = np.arange(1354 * 2) / 2.0
-            fine_rows = (np.arange(lines * 2) - 0.5) / 2.0
-            chunk_size = 20
-        elif resolution == 250:
-            fine_cols = np.arange(1354 * 4) / 4.0
-            fine_rows = (np.arange(lines * 4) - 1.5) / 4.0
-            chunk_size = 40
-
-        along_track_order = 1
-        cross_track_order = 3
-
-        satint = interpolator(data,
-                              (coarse_rows, coarse_cols),
-                              (fine_rows, fine_cols),
-                              along_track_order,
-                              cross_track_order,
-                              chunk_size=chunk_size)
-
-        satint.fill_borders("y", "x")
-        return satint.interpolate()
+        return fun(clons, clats, csatz)
 
 
 class HDFEOSBandReader(HDFEOSFileReader):
