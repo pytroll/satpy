@@ -86,20 +86,6 @@ time_cds_expanded = np.dtype([('days', '>u2'),
                               ('nanoseconds', '>u2')])
 
 
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
-
-
 class HRITJMAFileHandler(HRITFileHandler):
     """JMA HRIT format reader."""
 
@@ -176,9 +162,6 @@ class HRITJMAFileHandler(HRITFileHandler):
             ncols,
             nlines,
             area_extent)
-
-        self.area = area
-
         return area
 
     def get_dataset(self, key, info):
