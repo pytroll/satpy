@@ -24,7 +24,6 @@ except ImportError:
     import mock
 
 
-
 class GOESCoefficientCollector(object):
     """Read GOES Imager calibration coefficients from NOAA websites"""
 
