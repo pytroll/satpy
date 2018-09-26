@@ -132,6 +132,7 @@ import re
 import dask.array as da
 import numpy as np
 import xarray as xr
+import xarray.ufuncs as xu
 
 import pyresample.geometry
 from satpy import CHUNK_SIZE
@@ -834,11 +835,11 @@ class GOESNCFileHandler(BaseFileHandler):
 
         # Compute brightness temperature using inverse Planck formula
         radiance = radiance.where(radiance > 0)
-        bteff = C2 * n / da.log(1 + C1 * n**3 / radiance)
+        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance)
         bt = xr.DataArray(bteff * b + a)
 
         # Apply BT threshold
-        bt = bt.where(xr.ufuncs.logical_and(bt >= btmin, bt <= btmax))
+        bt = bt.where(xu.logical_and(bt >= btmin, bt <= btmax))
 
         return bt
 
