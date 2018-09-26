@@ -452,12 +452,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         for ch in sorted(rad.keys()):
             coefs = self.coefs[ch]
             for det in [0, 1]:
-                bt = self.reader._calibrate_ir(
-                    radiance=rad[ch],
-                    a=coefs['a'][det],
-                    b=coefs['b'][det],
-                    n=coefs['n'][det],
-                    btmin=coefs['btmin'], btmax=coefs['btmax'])
+                bt = self.reader._calibrate_ir(radiance=rad[ch],
+                                               coefs={'a': coefs['a'][det],
+                                                      'b': coefs['b'][det],
+                                                      'n': coefs['n'][det],
+                                                      'btmin': coefs['btmin'],
+                                                      'btmax': coefs['btmax']})
                 self.assertTrue(
                     np.allclose(bt.data, bt_expected[ch][det], equal_nan=True,
                                 atol=atol[ch]),

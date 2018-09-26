@@ -528,12 +528,7 @@ class GOESNCFileHandler(BaseFileHandler):
         self.sector = self._get_sector(channel=self.gvar_channel,
                                        nlines=self.nlines,
                                        ncols=self.ncols)
-        self.earth_mask = None
-        self.yaw_flip = None
-        self.bbox = Init()
-        self.lon0 = Init()
-        self.area_def = Init()
-        self.area_def_uni = Init()
+        self._meta = None
 
     @staticmethod
     def _get_platform_name(ncattr):
@@ -685,26 +680,33 @@ class GOESNCFileHandler(BaseFileHandler):
         """
         return self.nlines, self.ncols
 
+    @property
+    def meta(self):
+        """Derive metadata from the coordinates"""
+        # Use buffered data if available
+        if self._meta is None:
+            lat = self.nc['lat']
+            earth_mask = self._get_earth_mask(lat)
+            yaw_flip = self._is_yaw_flip(lat)
+            del lat
+
+            lon = self.nc['lon'].values
+            lon0 = self._get_lon0(lon=lon, earth_mask=earth_mask,
+                                  sector=self.sector)
+            area_def_uni = self._get_area_def_uniform_sampling(
+                lon0=lon0, channel=self.gvar_channel, sector=self.sector)
+            del lon
+
+            self._meta = {'earth_mask': earth_mask,
+                          'yaw_flip': yaw_flip,
+                          'lon0': lon0,
+                          'area_def_uni': area_def_uni}
+        return self._meta
+
     def get_dataset(self, key, info, out=None, xslice=slice(None),
                     yslice=slice(None)):
         """Load dataset designated by the given key from file"""
         logger.debug('Reading dataset {}'.format(key.name))
-
-        # Derive some metadata from the coordinates. Use buffered data, if
-        # possible
-        if self.earth_mask is None:
-            lat = self.nc['lat']
-            self.earth_mask = self._get_earth_mask(lat)
-            self.yaw_flip = self._is_yaw_flip(lat)
-            del lat
-        if isinstance(self.lon0, Init):
-            lon = self.nc['lon'].values
-            self.lon0 = self._get_lon0(lon=lon,
-                                       earth_mask=self.earth_mask,
-                                       sector=self.sector)
-            self.area_def_uni = self._get_area_def_uniform_sampling(
-                lon0=self.lon0, channel=self.gvar_channel, sector=self.sector)
-            del lon
 
         # Read data from file and calibrate if necessary
         if 'longitude' in key.name:
@@ -719,19 +721,21 @@ class GOESNCFileHandler(BaseFileHandler):
             logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
-        data = data.where(self.earth_mask)
+        data = data.where(self.meta['earth_mask'])
 
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
 
         # Update metadata
         data.attrs.update(info)
-        data.attrs.update({'platform_name': self.platform_name,
-                           'sensor': self.sensor,
-                           'sector': self.sector,
-                           'lon0': self.lon0,
-                           'area_def_uniform_sampling': self.area_def_uni,
-                           'yaw_flip': self.yaw_flip})
+        data.attrs.update(
+            {'platform_name': self.platform_name,
+             'sensor': self.sensor,
+             'sector': self.sector,
+             'lon0': self.meta['lon0'],
+             'area_def_uniform_sampling': self.meta['area_def_uni'],
+             'yaw_flip': self.meta['yaw_flip']}
+        )
 
         if out is None:
             return data
@@ -790,12 +794,12 @@ class GOESNCFileHandler(BaseFileHandler):
 
             # Since the scanline-detector assignment is unknown, use the average
             # coefficients for all scanlines.
-            a = np.array(coefs['a']).mean()
-            b = np.array(coefs['b']).mean()
-            n = np.array(coefs['n']).mean()
-            return self._calibrate_ir(radiance=radiance, a=a, b=b, n=n,
-                                      btmin=coefs['btmin'],
-                                      btmax=coefs['btmax'])
+            mean_coefs = {'a': np.array(coefs['a']).mean(),
+                          'b': np.array(coefs['b']).mean(),
+                          'n': np.array(coefs['n']).mean(),
+                          'btmin': coefs['btmin'],
+                          'btmax': coefs['btmax']}
+            return self._calibrate_ir(radiance=radiance, coefs=mean_coefs)
 
     @staticmethod
     def _ircounts2radiance(counts, scale, offset):
@@ -815,18 +819,19 @@ class GOESNCFileHandler(BaseFileHandler):
         return rad.clip(min=0)
 
     @staticmethod
-    def _calibrate_ir(radiance, n, a, b, btmin, btmax):
+    def _calibrate_ir(radiance, coefs):
         """Convert IR radiance to brightness temperature
 
         Reference: [IR]
 
         Args:
             radiance: Radiance [mW m-2 cm-1 sr-1]
-            n: The channel's central wavenumber [cm-1]
-            a: Offset [K]
-            b: Slope [1]
-            btmin: Minimum brightness temperature threshold [K]
-            btmax: Maximum brightness temperature threshold [K]
+            coefs: Dictionary of calibration coefficients. Keys:
+                   n: The channel's central wavenumber [cm-1]
+                   a: Offset [K]
+                   b: Slope [1]
+                   btmin: Minimum brightness temperature threshold [K]
+                   btmax: Maximum brightness temperature threshold [K]
 
         Returns:
             Brightness temperature [K]
@@ -834,14 +839,13 @@ class GOESNCFileHandler(BaseFileHandler):
         logger.debug('Calibrating to brightness temperature')
 
         # Compute brightness temperature using inverse Planck formula
-        radiance = radiance.where(radiance > 0)
-        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance)
-        bt = xr.DataArray(bteff * b + a)
+        n = coefs['n']
+        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance.where(radiance > 0))
+        bt = xr.DataArray(bteff * coefs['b'] + coefs['a'])
 
         # Apply BT threshold
-        bt = bt.where(xu.logical_and(bt >= btmin, bt <= btmax))
-
-        return bt
+        return bt.where(xu.logical_and(bt >= coefs['btmin'],
+                                       bt <= coefs['btmax']))
 
     @staticmethod
     def _viscounts2radiance(counts, slope, offset):
