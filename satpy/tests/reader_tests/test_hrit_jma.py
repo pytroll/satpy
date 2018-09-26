@@ -46,7 +46,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 'b': 6356583.80,
                 'h': 35785831.00,
             },
-            'image_data_function': b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r',
+            'image_data_function': b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r'
+                                   b'0:=-0.10\r1023:=100.00\r65535:=100.00\r',
             'image_segm_seq_no': 0,
             'total_no_image_segm': 1,
             'projection_name': b'GEOS(140.70)                    ',
@@ -83,7 +84,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             'loff': 5500,
             'number_of_columns': 11000,
             'number_of_lines': 11000,
-            'image_data_function': b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r0:=-0.10\r1023:=100.00\r65535:=100.00\r',
+            'image_data_function': b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r'
+                                   b'0:=-0.10\r1023:=100.00\r65535:=100.00\r',
         }
         self.assertEqual(self.reader.mda, mda)
 
