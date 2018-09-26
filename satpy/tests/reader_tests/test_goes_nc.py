@@ -74,8 +74,8 @@ class GOESCoefficientCollector(object):
     def get_coefs(self, platform, channel):
         if channel == '00_7':
             return self._get_vis_coefs(platform=platform)
-        else:
-            return self._get_ir_coefs(platform=platform, channel=channel)
+
+        return self._get_ir_coefs(platform=platform, channel=channel)
 
     def _get_ir_coefs(self, platform, channel):
         coefs = defaultdict(list)
@@ -140,7 +140,7 @@ class GOESCoefficientCollector(object):
         # Find table by its heading
         headings = [h for h in root.find_all(heading_type)
                     if heading in h.text]
-        if len(headings) == 0:
+        if not headings:
             raise ValueError('Cannot find a coefficient table matching text '
                              '"{}"'.format(heading))
         elif len(headings) > 1:
@@ -152,7 +152,7 @@ class GOESCoefficientCollector(object):
         tab = list()
         for row in table.find_all('tr'):
             cols = row.find_all('td')
-            if len(cols) > 0:
+            if cols:
                 tab.append([c.text for c in cols])
         return tab
 
