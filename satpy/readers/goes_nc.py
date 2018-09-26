@@ -503,11 +503,6 @@ SCAN_DURATION = {
 }  # Source: [SCHED-W], [SCHED-E]
 
 
-class Init(object):
-    """To initialize variables which can obtain None as a valid value"""
-    pass
-
-
 class GOESNCFileHandler(BaseFileHandler):
     """File handler for GOES Imager data in netCDF format"""
     def __init__(self, filename, filename_info, filetype_info):
