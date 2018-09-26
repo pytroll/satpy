@@ -541,8 +541,8 @@ class GOESNCFileHandler(BaseFileHandler):
         match = re.match('G-(\d+)', ncattr)
         if match:
             return SPACECRAFTS.get(int(match.groups()[0]))
-        else:
-            return None
+
+        return None
 
     def _get_sector(self, channel, nlines, ncols):
         """Determine which sector was scanned"""
@@ -557,8 +557,8 @@ class GOESNCFileHandler(BaseFileHandler):
             if np.fabs(ncols - ncols_ref) < margin and \
                     np.fabs(nlines - nlines_ref) < margin:
                 return sector
-        else:
-            return UNKNOWN_SECTOR
+
+        return UNKNOWN_SECTOR
 
     @staticmethod
     def _is_vis(channel):
@@ -605,8 +605,8 @@ class GOESNCFileHandler(BaseFileHandler):
             crow = rmin + (rmax - rmin) // 2
             ccol = cmin + (cmax - cmin) // 2
             return lon[crow, ccol]
-        else:
-            return None
+
+        return None
 
     @staticmethod
     def _is_yaw_flip(lat, delta=10):
@@ -674,8 +674,8 @@ class GOESNCFileHandler(BaseFileHandler):
         """End timestamp of the dataset"""
         if self.sector is not None:
             return self.start_time + SCAN_DURATION[self.sector]
-        else:
-            return self.start_time
+
+        return self.start_time
 
     def get_shape(self, key, info):
         """Get the shape of the data
@@ -754,9 +754,9 @@ class GOESNCFileHandler(BaseFileHandler):
                                              channel=channel)
             if calibration == 'radiance':
                 return radiance
-            else:
-                return self._calibrate(radiance=radiance, coefs=coefs,
-                                       channel=channel, calibration=calibration)
+
+            return self._calibrate(radiance=radiance, coefs=coefs,
+                                   channel=channel, calibration=calibration)
         else:
             raise ValueError('Unsupported calibration for channel {}: {}'
                              .format(channel, calibration))
@@ -772,9 +772,9 @@ class GOESNCFileHandler(BaseFileHandler):
             offset = np.array(coefs['offset']).mean()
             return self._viscounts2radiance(counts=counts, slope=slope,
                                             offset=offset)
-        else:
-            return self._ircounts2radiance(counts=counts, scale=coefs['scale'],
-                                           offset=coefs['offset'])
+
+        return self._ircounts2radiance(counts=counts, scale=coefs['scale'],
+                                       offset=coefs['offset'])
 
     def _calibrate(self, radiance, coefs, channel, calibration):
         """Convert radiance to reflectance or brightness temperature"""
