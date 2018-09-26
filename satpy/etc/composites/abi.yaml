@@ -317,7 +317,7 @@ composites:
     standard_name: airmass
 ## Tropical Airmass RGB (name from EUMETSAT)
   airmass_tropical:
-    compositor: !!python/name:satpy.composites.Airmasstr
+    compositor: !!python/name:satpy.composites.TropicalAirmass
     prerequisites:
     - name: C08
     - name: C10
@@ -326,7 +326,7 @@ composites:
     standard_name: airmass_tropical
 ## Ash, Dust and fog using RGB Dust recipe
   ash_abi:
-    compositor: !!python/name:satpy.composites.Dustabi
+    compositor: !!python/name:satpy.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
@@ -335,7 +335,7 @@ composites:
     standard_name: ash
 
   dust_abi:
-    compositor: !!python/name:satpy.composites.Dustabi
+    compositor: !!python/name:satpy.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
@@ -344,7 +344,7 @@ composites:
     standard_name: dust
 ## CIRA’s Natural Fire Color RGB (False color RGB)
   fog_abi:
-    compositor: !!python/name:satpy.composites.Dustabi
+    compositor: !!python/name:satpy.abi.DustABI
     prerequisites:
     - name: C11
     - name: C13
@@ -461,7 +461,7 @@ composites:
     standard_name: snow
 ## SO2
   volcanic_gas:
-    compositor: !!python/name:satpy.composites.volcanic_gas
+    compositor: !!python/name:satpy.composites.VolcanicGas
     prerequisites:
     - name: C09
     - name: C10
