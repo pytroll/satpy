@@ -235,6 +235,7 @@ composites:
     - name: C14
     standard_name: convection
 
+## Cloud Phase Distinction or Day Cloud Phase (name from NASA SPORT) or Cloud Type RGB(name from EUMETSAT)
   cloud_phase_distinction_raw:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -253,6 +254,7 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: cloud_phase_distinction
 
+## Water Vapors RGB or Simple Water Vapor (name from NASA SPORT)
   water_vapors1:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -267,7 +269,7 @@ composites:
     - name: C10
     - name: C08
     standard_name: mid_vapor
-
+## Water Vapors RGB (other version) or Differential Water Vapor (name from NASA SPORT)
   water_vapors2:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -276,6 +278,7 @@ composites:
     - name: C08
     standard_name: water_vapors2
 
+## Day Cloud Phase RGB(name from EUMETSAT)
   cloud_phase_raw:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -294,7 +297,7 @@ composites:
     - name: C02
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: natural
-
+##
   ir_overview:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -303,7 +306,7 @@ composites:
     - name: C14
     - name: C15
     standard_name: ir_overview
-
+## Airmass using Channel14 RGB (own)
   airmass_C14:
     compositor: !!python/name:satpy.composites.Airmass
     prerequisites:
@@ -312,7 +315,7 @@ composites:
     - name: C12
     - name: C14
     standard_name: airmass
-
+## Tropical Airmass RGB (name from EUMETSAT)
   airmass_tropical:
     compositor: !!python/name:satpy.composites.Airmasstr
     prerequisites:
@@ -321,7 +324,7 @@ composites:
     - name: C12
     - name: C13
     standard_name: airmass_tropical
-
+## Ash, Dust and fog using RGB Dust recipe
   ash_abi:
     compositor: !!python/name:satpy.composites.Dustabi
     prerequisites:
@@ -339,7 +342,7 @@ composites:
     - name: C14
     - name: C15
     standard_name: dust
-
+## CIRA’s Natural Fire Color RGB (False color RGB)
   fog_abi:
     compositor: !!python/name:satpy.composites.Dustabi
     prerequisites:
@@ -348,7 +351,7 @@ composites:
     - name: C14
     - name: C15
     standard_name: fog
-
+## Simple Fire & Smoke RGB by traditional bands (for WIS users)
   natural_fire:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
@@ -364,7 +367,7 @@ composites:
     - name: C02
     - name: C13
     standard_name: simple_fire_and_smoke
-
+## Temperature RGBs (Aki version)
   fire_temperature_aki:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -372,7 +375,7 @@ composites:
     - name: C06
     - name: C05
     standard_name: fire_temperature_aki
-
+## Temperature RGBs (Jochen version)
   fire_temperature_joche:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -380,7 +383,7 @@ composites:
     - name: C06
     - name: C05
     standard_name: fire_temperature_joche
-
+## RGB composite for smoke haze
   smoke_haze:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -388,7 +391,7 @@ composites:
     - name: C03
     - name: C13
     standard_name: smoke_haze
-
+## RGB composite for fire hotspots
   fire_hotspots:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -403,7 +406,7 @@ composites:
     - name: C13
     - name: C08
     standard_name: dif_conv
-
+## Day Convection version 1 by traditional bands (for WIS* users)
   day_conv_v1:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -411,7 +414,7 @@ composites:
     - name: C02
     - name: C13
     standard_name: day_conv_v1
-
+## Day Convection version 2 by traditional bands (for WIS* users) 
   day_conv_v2:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -419,7 +422,7 @@ composites:
     - name: C02
     - name: C13
     standard_name: day_conv_v2
-
+## Day Convection version 3 by traditional bands (for WIS* users) - (mid latitude, summer)
   day_conv_v3_midlat:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -427,7 +430,7 @@ composites:
     - name: dif_conv
     - name: C13
     standard_name: day_conv_v3_midlat
-
+## Day Convection version 3 by traditional bands (for WIS* users) - (Tropical area)
   day_conv_v3_tropcl:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -435,7 +438,7 @@ composites:
     - name: dif_conv
     - name: C13
     standard_name: day_conv_v3_tropcl
-
+## *WIS (WMO Information System)
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -445,7 +448,7 @@ composites:
       modifiers: [nir_reflectance]
     - name: C14
     standard_name: day_microphysics
-
+## EUMETSAT
   snow:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -456,7 +459,7 @@ composites:
     - name: C07
       modifiers: [nir_reflectance]
     standard_name: snow
-
+## SO2
   volcanic_gas:
     compositor: !!python/name:satpy.composites.volcanic_gas
     prerequisites:
