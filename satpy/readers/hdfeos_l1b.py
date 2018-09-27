@@ -100,213 +100,156 @@ def compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d):
     return c_expansion, c_alignment
 
 
-def modis_1km_to_500m(lon1, lat1, satz1):
-
-    scans = lat1.shape[0] // 10
-
-    lats_a = lat1[::10, :-1]
-    lons_a = lon1[::10, :-1]
-    satz_a = np.deg2rad(satz1[::10, :-1])
-    lats_b = lat1[::10, 1:]
-    lons_b = lon1[::10, 1:]
-    satz_b = np.deg2rad(satz1[::10, 1:])
-    lats_c = lat1[9::10, 1:]
-    lons_c = lon1[9::10, 1:]
-    satz_c = np.deg2rad(satz1[9::10, 1:])
-    lats_d = lat1[9::10, :-1]
-    lons_d = lon1[9::10, :-1]
-    satz_d = np.deg2rad(satz1[9::10, :-1])
-    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
-
-    y = ((np.arange(scans * 20) % 20) - .5)
-    x = np.arange(1354*2) % 2
-    x[-2] = 2
-    x[-1] = 3
-    i_rs, i_rt = da.meshgrid(x, y)
-
-    p_os = 0
-    p_ot = 0
-
-    s_s = (p_os + i_rs) / 2.
-    s_t = (p_ot + i_rt) / 18.
-
-    cols = 2
-    lines = 20
-
-    c_exp_full = da.repeat(da.repeat(c_exp.data, lines, axis=0), cols, axis=1)
-    c_exp_full = da.hstack((c_exp_full, c_exp_full[:, -2:]))
-    c_ali_full = da.repeat(da.repeat(c_ali.data, lines, axis=0), cols, axis=1)
-    c_ali_full = da.hstack((c_ali_full, c_ali_full[:, -2:]))
-
-    a_track = s_t
-    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
-
-    lats_a = da.repeat(da.repeat(lats_a.data, lines, axis=0), cols, axis=1)
-    lats_a = da.hstack((lats_a, lats_a[:, -2:]))
-    lats_b = da.repeat(da.repeat(lats_b.data, lines, axis=0), cols, axis=1)
-    lats_b = da.hstack((lats_b, lats_b[:, -2:]))
-    lats_c = da.repeat(da.repeat(lats_c.data, lines, axis=0), cols, axis=1)
-    lats_c = da.hstack((lats_c, lats_c[:, -2:]))
-    lats_d = da.repeat(da.repeat(lats_d.data, lines, axis=0), cols, axis=1)
-    lats_d = da.hstack((lats_d, lats_d[:, -2:]))
-    lons_a = da.repeat(da.repeat(lons_a.data, lines, axis=0), cols, axis=1)
-    lons_a = da.hstack((lons_a, lons_a[:, -2:]))
-    lons_b = da.repeat(da.repeat(lons_b.data, lines, axis=0), cols, axis=1)
-    lons_b = da.hstack((lons_b, lons_b[:, -2:]))
-    lons_c = da.repeat(da.repeat(lons_c.data, lines, axis=0), cols, axis=1)
-    lons_c = da.hstack((lons_c, lons_c[:, -2:]))
-    lons_d = da.repeat(da.repeat(lons_d.data, lines, axis=0), cols, axis=1)
-    lons_d = da.hstack((lons_d, lons_d[:, -2:]))
-
-    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
-    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
-    lats = (1 - a_track) * lats_1 + a_track * lats_2
-
-    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
-    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
-    lons = (1 - a_track) * lons_1 + a_track * lons_2
-
-    return (xr.DataArray(lons, attrs=lon1.attrs, dims=lon1.dims),
-            xr.DataArray(lats, attrs=lat1.attrs, dims=lat1.dims))
+def get_corners(arr):
+    arr_a = arr[:, :-1, :-1]
+    arr_b = arr[:, :-1, 1:]
+    arr_c = arr[:, 1:, 1:]
+    arr_d = arr[:, 1:, :-1]
+    return arr_a, arr_b, arr_c, arr_d
 
 
-def modis_5km_to_1km(lon5, lat5, satz5):
-    lats_a = lat5[::2, :-1]
-    lons_a = lon5[::2, :-1]
-    satz_a = np.deg2rad(satz5[::2, :-1])
-    lats_b = lat5[::2, 1:]
-    lons_b = lon5[::2, 1:]
-    satz_b = np.deg2rad(satz5[::2, 1:])
-    lats_c = lat5[1::2, 1:]
-    lons_c = lon5[1::2, 1:]
-    satz_c = np.deg2rad(satz5[1::2, 1:])
-    lats_d = lat5[1::2, :-1]
-    lons_d = lon5[1::2, :-1]
-    satz_d = np.deg2rad(satz5[1::2, :-1])
+class ModisInterpolator():
 
-    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
-    c_exp = c_exp.mean(axis=0)
-    c_ali = c_ali.mean(axis=0)
+    def __init__(self, cres, fres):
+        if cres == 1000:
+            self.cscan_len = 10
+            self.cscan_width = 1
+            self.cscan_full_width = 1354
+        elif cres == 5000:
+            self.cscan_len = 2
+            self.cscan_width = 5
+            self.cscan_full_width = 271
 
-    y = ((np.arange(lat5.shape[0] * 5) % 10) - 2) * 2  # why x2 ???
-    x = np.arange(-2, 1354 - 2) % 5
-    x[0] = -2
-    x[1] = -1
-    x[-2] = 5
-    x[-1] = 6
+        if fres == 250:
+            self.fscan_width = 4 * self.cscan_width
+            self.fscan_full_width = 1354 * 4
+            self.fscan_len = 4 * 10 // self.cscan_len
+            self.get_coords = self._get_coords_1km
+            self.expand_tiepoint_array = self._expand_tiepoint_array_1km
+        elif fres == 500:
+            self.fscan_width = 2 * self.cscan_width
+            self.fscan_full_width = 1354 * 2
+            self.fscan_len = 2 * 10 // self.cscan_len
+            self.get_coords = self._get_coords_1km
+            self.expand_tiepoint_array = self._expand_tiepoint_array_1km
+        elif fres == 1000:
+            self.fscan_width = 1 * self.cscan_width
+            self.fscan_full_width = 1354
+            self.fscan_len = 1 * 10 // self.cscan_len
+            self.get_coords = self._get_coords_5km
+            self.expand_tiepoint_array = self._expand_tiepoint_array_5km
 
-    i_rs, i_rt = np.meshgrid(x, y)
+    def _expand_tiepoint_array_1km(self, arr, lines, cols):
+        arr = da.repeat(arr, lines, axis=1)
+        arr = da.concatenate((arr[:, :lines//2, :], arr, arr[:, -(lines//2):, :]), axis=1)
+        arr = da.repeat(arr.reshape((-1, self.cscan_full_width - 1)), cols, axis=1)
+        return da.hstack((arr, arr[:, -cols:]))
 
-    p_os = 0
-    p_ot = 0
+    def _get_coords_1km(self, scans):
+        y = (np.arange((self.cscan_len + 1) * self.fscan_len) % self.fscan_len) + .5
+        y = y[self.fscan_len // 2:-(self.fscan_len // 2)]
+        y[:self.fscan_len//2] = np.arange(-self.fscan_len/2 + .5, 0)
+        y[-(self.fscan_len//2):] = np.arange(self.fscan_len + .5, self.fscan_len * 3 / 2)
+        y = np.tile(y, scans)
 
-    s_s = (p_os + i_rs) / 5.
-    s_t = (p_ot + i_rt) / 10.
+        x = np.arange(self.fscan_full_width) % self.fscan_width
+        x[-self.fscan_width:] = np.arange(self.fscan_width, self.fscan_width * 2)
+        return x, y
 
-    c_exp = c_exp.values
-    c_ali = c_ali.values
-    c_exp_full = np.zeros(1354)
-    c_ali_full = np.zeros(1354)
-    c_exp_full[2:-2] = np.repeat(c_exp, 5)
-    c_ali_full[2:-2] = np.repeat(c_ali, 5)
-    c_exp_full[:2] = c_exp[0]
-    c_exp_full[-2:] = c_exp[-1]
-    c_ali_full[:2] = c_ali[0]
-    c_ali_full[-2:] = c_ali[-1]
+    def _expand_tiepoint_array_5km(self, arr, lines, cols):
+        arr = da.repeat(arr, lines * 2, axis=1)
+        arr = da.repeat(arr.reshape((-1, self.cscan_full_width - 1)), cols, axis=1)
+        return da.hstack((arr[:, :2], arr, arr[:, -2:]))
 
-    a_track = s_t
-    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
+    def _get_coords_5km(self, scans):
+        y = np.arange(self.fscan_len * self.cscan_len) - 2
+        y = np.tile(y, scans)
 
-    cols = [7] + 268 * [5] + [7]
-    lats_a = np.repeat(np.repeat(lats_a, 10, axis=0), cols, axis=1)
-    lats_b = np.repeat(np.repeat(lats_b, 10, axis=0), cols, axis=1)
-    lats_c = np.repeat(np.repeat(lats_c, 10, axis=0), cols, axis=1)
-    lats_d = np.repeat(np.repeat(lats_d, 10, axis=0), cols, axis=1)
-    lons_a = np.repeat(np.repeat(lons_a, 10, axis=0), cols, axis=1)
-    lons_b = np.repeat(np.repeat(lons_b, 10, axis=0), cols, axis=1)
-    lons_c = np.repeat(np.repeat(lons_c, 10, axis=0), cols, axis=1)
-    lons_d = np.repeat(np.repeat(lons_d, 10, axis=0), cols, axis=1)
+        x = (np.arange(self.fscan_full_width) - 2) % self.fscan_width
+        x[0] = -2
+        x[1] = -1
+        x[-2] = 5
+        x[-1] = 6
+        return x, y
 
-    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
-    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
-    lats = (1 - a_track) * lats_1 + a_track * lats_2
+    def interpolate(self, lon1, lat1, satz1):
+        cscan_len = self.cscan_len
+        cscan_full_width = self.cscan_full_width
 
-    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
-    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
-    lons = (1 - a_track) * lons_1 + a_track * lons_2
+        fscan_width = self.fscan_width
+        fscan_len = self.fscan_len
 
-    return lons, lats
+        scans = lat1.shape[0] // cscan_len
+        latattrs = lat1.attrs
+        lonattrs = lon1.attrs
+        dims = lat1.dims
+        lat1 = lat1.data
+        lon1 = lon1.data
+        satz1 = satz1.data
+
+        lat1 = lat1.reshape((-1, cscan_len, cscan_full_width))
+        lon1 = lon1.reshape((-1, cscan_len, cscan_full_width))
+        satz1 = satz1.reshape((-1, cscan_len, cscan_full_width))
+
+        lats_a, lats_b, lats_c, lats_d = get_corners(lat1)
+        lons_a, lons_b, lons_c, lons_d = get_corners(lon1)
+        satz_a, satz_b, satz_c, satz_d = get_corners(da.deg2rad(satz1))
+        c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
+
+        x, y = self.get_coords(scans)
+        i_rs, i_rt = da.meshgrid(x, y)
+
+        p_os = 0
+        p_ot = 0
+
+        s_s = (p_os + i_rs) * 1. / fscan_width
+        s_t = (p_ot + i_rt) * 1. / fscan_len
+
+        cols = fscan_width
+        lines = fscan_len
+
+        c_exp_full = self.expand_tiepoint_array(c_exp, lines, cols)
+        c_ali_full = self.expand_tiepoint_array(c_ali, lines, cols)
+
+        a_track = s_t
+        a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
+
+        lats_a = self.expand_tiepoint_array(lats_a, lines, cols)
+        lats_b = self.expand_tiepoint_array(lats_b, lines, cols)
+        lats_c = self.expand_tiepoint_array(lats_c, lines, cols)
+        lats_d = self.expand_tiepoint_array(lats_d, lines, cols)
+        lons_a = self.expand_tiepoint_array(lons_a, lines, cols)
+        lons_b = self.expand_tiepoint_array(lons_b, lines, cols)
+        lons_c = self.expand_tiepoint_array(lons_c, lines, cols)
+        lons_d = self.expand_tiepoint_array(lons_d, lines, cols)
+
+        lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
+        lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
+        lats = (1 - a_track) * lats_1 + a_track * lats_2
+
+        lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
+        lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
+        lons = (1 - a_track) * lons_1 + a_track * lons_2
+
+        return xr.DataArray(lons, attrs=lonattrs, dims=dims), xr.DataArray(lats, attrs=latattrs, dims=dims)
 
 
 def modis_1km_to_250m(lon1, lat1, satz1):
 
-    scans = lat1.shape[0] // 10
+    interp = ModisInterpolator(1000, 250)
+    return interp.interpolate(lon1, lat1, satz1)
 
-    lats_a = lat1[::10, :-1]
-    lons_a = lon1[::10, :-1]
-    satz_a = np.deg2rad(satz1[::10, :-1])
-    lats_b = lat1[::10, 1:]
-    lons_b = lon1[::10, 1:]
-    satz_b = np.deg2rad(satz1[::10, 1:])
-    lats_c = lat1[9::10, 1:]
-    lons_c = lon1[9::10, 1:]
-    satz_c = np.deg2rad(satz1[9::10, 1:])
-    lats_d = lat1[9::10, :-1]
-    lons_d = lon1[9::10, :-1]
-    satz_d = np.deg2rad(satz1[9::10, :-1])
-    c_exp, c_ali = compute_expansion_alignment(satz_a, satz_b, satz_c, satz_d)
 
-    y = ((np.arange(scans * 40) % 40) - 1.5)
-    x = np.arange(1354*4) % 4
-    x[-4] = 4
-    x[-3] = 5
-    x[-2] = 6
-    x[-1] = 7
-    i_rs, i_rt = da.meshgrid(x, y)
+def modis_1km_to_500m(lon1, lat1, satz1):
 
-    p_os = 0
-    p_ot = 0
+    interp = ModisInterpolator(1000, 500)
+    return interp.interpolate(lon1, lat1, satz1)
 
-    s_s = (p_os + i_rs) / 4.
-    s_t = (p_ot + i_rt) / 36.
 
-    cols = 4
-    lines = 40
-    c_exp_full = da.repeat(da.repeat(c_exp.data, lines, axis=0), cols, axis=1)
-    c_exp_full = da.hstack((c_exp_full, c_exp_full[:, -4:]))
-    c_ali_full = da.repeat(da.repeat(c_ali.data, lines, axis=0), cols, axis=1)
-    c_ali_full = da.hstack((c_ali_full, c_ali_full[:, -4:]))
+def modis_5km_to_1km(lon1, lat1, satz1):
 
-    a_track = s_t
-    a_scan = (s_s + s_s * (1 - s_s) * c_exp_full + s_t*(1 - s_t) * c_ali_full)
-
-    lats_a = da.repeat(da.repeat(lats_a.data, lines, axis=0), cols, axis=1)
-    lats_a = da.hstack((lats_a, lats_a[:, -4:]))
-    lats_b = da.repeat(da.repeat(lats_b.data, lines, axis=0), cols, axis=1)
-    lats_b = da.hstack((lats_b, lats_b[:, -4:]))
-    lats_c = da.repeat(da.repeat(lats_c.data, lines, axis=0), cols, axis=1)
-    lats_c = da.hstack((lats_c, lats_c[:, -4:]))
-    lats_d = da.repeat(da.repeat(lats_d.data, lines, axis=0), cols, axis=1)
-    lats_d = da.hstack((lats_d, lats_d[:, -4:]))
-    lons_a = da.repeat(da.repeat(lons_a.data, lines, axis=0), cols, axis=1)
-    lons_a = da.hstack((lons_a, lons_a[:, -4:]))
-    lons_b = da.repeat(da.repeat(lons_b.data, lines, axis=0), cols, axis=1)
-    lons_b = da.hstack((lons_b, lons_b[:, -4:]))
-    lons_c = da.repeat(da.repeat(lons_c.data, lines, axis=0), cols, axis=1)
-    lons_c = da.hstack((lons_c, lons_c[:, -4:]))
-    lons_d = da.repeat(da.repeat(lons_d.data, lines, axis=0), cols, axis=1)
-    lons_d = da.hstack((lons_d, lons_d[:, -4:]))
-
-    lats_1 = (1 - a_scan) * lats_a + a_scan * lats_b
-    lats_2 = (1 - a_scan) * lats_d + a_scan * lats_c
-    lats = (1 - a_track) * lats_1 + a_track * lats_2
-
-    lons_1 = (1 - a_scan) * lons_a + a_scan * lons_b
-    lons_2 = (1 - a_scan) * lons_d + a_scan * lons_c
-    lons = (1 - a_track) * lons_1 + a_track * lons_2
-
-    return (xr.DataArray(lons, attrs=lon1.attrs, dims=lon1.dims),
-            xr.DataArray(lats, attrs=lat1.attrs, dims=lat1.dims))
+    interp = ModisInterpolator(5000, 1000)
+    return interp.interpolate(lon1, lat1, satz1)
 
 
 class HDFEOSFileReader(BaseFileHandler):
