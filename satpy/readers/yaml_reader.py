@@ -205,6 +205,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if 'coordinates' in dataset and \
                     isinstance(dataset['coordinates'], list):
                 dataset['coordinates'] = tuple(dataset['coordinates'])
+
             # Build each permutation/product of the dataset
             id_kwargs = []
             for key in DATASET_KEYS:
@@ -514,16 +515,37 @@ class FileYAMLReader(AbstractYAMLReader):
         for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
             # update resolution in the dataset IDs for this files resolution
-            res = getattr(fh, 'resolution', None)
-            if res is None:
-                continue
-
             for ds_id, ds_info in list(self.ids.items()):
-                if fh.filetype_info['file_type'] != ds_info['file_type']:
+                ftype = fh.filetype_info['file_type']
+                ftype_ds = ds_info['file_type']
+
+                # file_type from dataset info may be string, list or dictionary.
+                # A dictionary might carry information about the resolution.
+                # String or list don't. Bring them all into dictionary format.
+                if isinstance(ftype_ds, list):
+                    ftype_ds = dict([(t, {}) for t in ftype_ds])
+                if not isinstance(ftype_ds, dict):
+                    ftype_ds = {ftype_ds: {}}
+
+                # Check whether the current file type matches one of the
+                # possible file types in the dataset
+                if ftype not in ftype_ds:
                     continue
                 if ds_id.resolution is not None:
                     continue
+
+                # Determine resolution. Primary: from the filehandler.
+                # Secondary: from the dataset info.
+                res = getattr(fh, 'resolution', None)
+                if res is None:
+                    res = ftype_ds[ftype].get('resolution', None)
+                    if res is None:
+                        continue
+
+                # Update dataset info, drop non-matching file types
                 ds_info['resolution'] = res
+                ds_info['file_type'] = ftype  # now a plain string
+
                 new_id = DatasetID.from_dict(ds_info)
                 self.ids[new_id] = ds_info
                 del self.ids[ds_id]
@@ -596,7 +618,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
         At the moment, it just returns the first filetype that has been loaded.
         """
-        if not isinstance(filetypes, list):
+        if isinstance(filetypes, dict):
+            filetypes = filetypes.keys()
+        elif not isinstance(filetypes, list):
             filetypes = [filetypes]
 
         # look through the file types and use the first one that we have loaded
