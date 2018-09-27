@@ -40,6 +40,37 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 
+class BitFlags(object):
+    """Manipulate flags stored bitwise.
+    """
+    flag_list = ['INVALID',u'WATER',u'LAND',u'CLOUD',u'SNOW_ICE',
+                 u'INLAND_WATER',u'TIDAL',u'COSMETIC',u'SUSPECT',
+                 u'HISOLZEN',u'SATURATED',u'MEGLINT',u'HIGHGLINT',
+                 u'WHITECAPS',u'ADJAC',u'WV_FAIL',u'PAR_FAIL',
+                 u'AC_FAIL',u'OC4ME_FAIL',u'OCNN_FAIL',
+                 
+                 u'Extra_1',
+                 u'KDM_FAIL',
+                 u'Extra_2',
+                 
+                 u'CLOUD_AMBIGUOUS',u'CLOUD_MARGIN',u'BPAC_ON',u'WHITE_SCATT',
+                 u'LOWRW',u'HIGHRW']
+    
+    meaning = {f:i for i,f in enumerate(flag_list)}
+    
+    def __init__(self, value):
+        """
+        Arguments:
+        - `value`: an array
+        - `meaning`: a dict
+        """
+        self._value = value
+    def __getitem__(self, item):
+        pos = self.meaning[item]
+        return ((self._value >> pos) % 2).astype(np.bool)
+     
+    
+    
 class NCOLCIBase(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -57,7 +88,7 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-
+        
     @property
     def start_time(self):
         return datetime.strptime(self.nc.attrs['start_time'],
@@ -88,8 +119,9 @@ class NCOLCIChannelBase(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
+                                                
         self.channel = filename_info.get('dataset_name')
-
+        
 
 class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal):
@@ -160,10 +192,13 @@ class NCOLCI1B(NCOLCIChannelBase):
 
 
 class NCOLCI2(NCOLCIChannelBase):
-
+#    def apply_mask(self, dataset):
+#        return dataset.where(self.mask, np.nan)
+    
     def get_dataset(self, key, info):
         """Load a dataset
         """
+            
         if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
@@ -173,12 +208,30 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset = self.nc[info['nc_key']]
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
+            #TODO save mask
+#            self.getbitmask(dataset.to_masked_array().data)
+#        else:
+            #TODO Apply mask on current dataset
+#            dataset = dataset.where(self.mask, np.nan)
+            
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
         return dataset
-
-
+    
+    def getbitmask(self, wqsf, items=[]):
+        """ """
+        items = ["INVALID","SNOW_ICE","INLAND_WATER","SUSPECT",
+                 "AC_FAIL","CLOUD","HISOLZEN","OCNN_FAIL",
+                 "CLOUD_MARGIN","CLOUD_AMBIGUOUS","LOWRW"]
+        bflags = BitFlags(wqsf)
+        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        landmask = bflags[u'LAND']
+        self.mask = mask
+        self.landmask = landmask
+#        return mask, landmask   
+        
+        
 class NCOLCIAngles(BaseFileHandler):
 
     datasets = {'satellite_azimuth_angle': 'OAA',

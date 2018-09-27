@@ -887,6 +887,15 @@ REGION: baws250 {
 	AREA_EXTENT:    (-475617, 5324430, 924383, 6724430)
 };
 
+REGION: baws300_sweref99tm {
+        NAME:          BAWS, 300m resolution, sweref99tm
+        PCS_ID:        baws250_sweref99
+        PCS_DEF:       init=epsg:3006
+        XSIZE:         4667
+        YSIZE:         4667
+        AREA_EXTENT:   (-49739, 5954123, 1350361, 7354223)
+};
+
 REGION: moll {
 	NAME:	moll
 	PCS_ID:	moll_0.0_0.0
