@@ -432,8 +432,9 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
             os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
-            LOG.warning("No reader configs found for '%s'", reader)
-            continue
+            # either the reader they asked for does not exist
+            # or satpy is improperly configured and can't find its own readers
+            raise ValueError("No reader(s) named: {}".format(reader))
 
         yield reader_configs
 
