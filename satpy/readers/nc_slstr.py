@@ -110,7 +110,7 @@ class NCSLSTR1B(BaseFileHandler):
                                        chunks={'columns': CHUNK_SIZE,
                                                'rows': CHUNK_SIZE})
         self.indices = self.indices.rename({'columns': 'x', 'rows': 'y'})
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
