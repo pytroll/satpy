@@ -911,3 +911,195 @@ class GOESNCFileHandler(BaseFileHandler):
             self.nc.close()
         except (AttributeError, IOError, OSError):
             pass
+
+
+class GOESCoefficientReader(object):
+    """Read GOES Imager calibration coefficients from NOAA reference HTMLs"""
+
+    gvar_channels = {
+        'GOES-8': {'00_7': 1, '03_9': 2, '06_8': 3, '10_7': 4, '12_0': 5},
+        'GOES-9': {'00_7': 1, '03_9': 2, '06_8': 3, '10_7': 4, '12_0': 5},
+        'GOES-10': {'00_7': 1, '03_9': 2, '06_8': 3, '10_7': 4, '12_0': 5},
+        'GOES-11': {'00_7': 1, '03_9': 2, '06_8': 3, '10_7': 4, '12_0': 5},
+        'GOES-12': {'00_7': 1, '03_9': 2, '06_5': 3, '10_7': 4, '13_3': 6},
+        'GOES-13': {'00_7': 1, '03_9': 2, '06_5': 3, '10_7': 4, '13_3': 6},
+        'GOES-14': {'00_7': 1, '03_9': 2, '06_5': 3, '10_7': 4, '13_3': 6},
+        'GOES-15': {'00_7': 1, '03_9': 2, '06_5': 3, '10_7': 4, '13_3': 6},
+    }
+
+    ir_tables = {
+        'GOES-8': '2-1',
+        'GOES-9': '2-2',
+        'GOES-10': '2-3',
+        'GOES-11': '2-4',
+        'GOES-12': '2-5a',
+        'GOES-13': '2-6',
+        'GOES-14': '2-7c',
+        'GOES-15': '2-8b'
+    }
+
+    vis_tables = {
+        'GOES-8': 'Table 1.',
+        'GOES-9': 'Table 1.',
+        'GOES-10': 'Table 2.',
+        'GOES-11': 'Table 3.',
+        'GOES-12': 'Table 4.',
+        'GOES-13': 'Table 5.',
+        'GOES-14': 'Table 6.',
+        'GOES-15': 'Table 7.'
+    }
+
+    def __init__(self, ir_url, vis_url):
+        from bs4 import BeautifulSoup
+        import requests
+
+        ir_response = requests.get(ir_url)
+        vis_response = requests.get(vis_url)
+        if ir_response.ok and vis_response.ok:
+            ir_content = ir_response.text
+            vis_content = vis_response.text
+        else:
+            ir_content = open(ir_url)
+            vis_content = open(vis_url)
+
+        self.ir_html = BeautifulSoup(ir_content, features="html5lib")
+        self.vis_html = BeautifulSoup(vis_content, features="html5lib")
+
+    def get_coefs(self, platform, channel):
+        if channel == '00_7':
+            return self._get_vis_coefs(platform=platform)
+
+        return self._get_ir_coefs(platform=platform, channel=channel)
+
+    def _get_ir_coefs(self, platform, channel):
+        from collections import defaultdict
+
+        coefs = defaultdict(list)
+
+        # Extract scale and offset for conversion counts->radiance from
+        # Table 1-1 (same for all platforms, only depends on the channel)
+        gvar_channel = self.gvar_channels[platform][channel]
+        table11 = self._get_table(root=self.ir_html, heading='Table 1-1',
+                                  heading_type='h3')
+        for row in table11:
+            if int(row[0]) == gvar_channel:
+                coefs['scale'] = self._float(row[1])
+                coefs['offset'] = self._float(row[2])
+
+        # Extract n,a,b (radiance -> BT) from the coefficient table for the
+        # given platform
+        table = self._get_table(root=self.ir_html,
+                                heading=self.ir_tables[platform],
+                                heading_type='h3')
+        channel_regex = re.compile('^{}(?:/[a,b])?$'.format(gvar_channel))
+
+        for row in table:
+            if channel_regex.match(row[0]):
+                # Extract coefficients. Detector (a) always comes before (b)
+                # in the table so that simply appending preserves the order.
+                coefs['n'].append(self._float(row[1]))
+                coefs['a'].append(self._float(row[2]))
+                coefs['b'].append(self._float(row[3]))
+
+        return coefs
+
+    def _get_vis_coefs(self, platform):
+        from collections import defaultdict
+
+        # Find calibration table
+        table = self._get_table(root=self.vis_html,
+                                heading=self.vis_tables[platform],
+                                heading_type='p')
+
+        # Extract values
+        coefs = defaultdict(list)
+        if platform in ('GOES-8', 'GOES-9'):
+            # GOES 8&9 coefficients are in the same table
+            col = 1 if platform == 'GOES-8' else 2
+            coefs['slope'].append(self._float(table[1][col]))
+            coefs['x0'] = self._float(table[2][col])
+            coefs['offset'].append(self._float(table[3][col]))
+            coefs['k'] = self._float(table[4][col])
+        else:
+            # k and x0 appear in the first row only
+            coefs['slope'].append(self._float(table[0][1]))
+            coefs['x0'] = self._float(table[0][2])
+            coefs['k'] = self._float(table[0][4])
+            coefs['offset'].append(self._float(table[0][3]))
+
+            # Remaining rows
+            for row in table[1:]:
+                coefs['slope'].append(self._float(row[1]))
+                coefs['offset'].append(self._float(row[2]))
+
+        return coefs
+
+    def _get_table(self, root, heading, heading_type, ):
+        # Find table by its heading
+        headings = [h for h in root.find_all(heading_type)
+                    if heading in h.text]
+        if not headings:
+            raise ValueError('Cannot find a coefficient table matching text '
+                             '"{}"'.format(heading))
+        elif len(headings) > 1:
+            raise ValueError('Found multiple headings matching text "{}"'
+                             .format(heading))
+        table = headings[0].next_sibling.next_sibling
+
+        # Copy items to a list of lists
+        tab = list()
+        for row in table.find_all('tr'):
+            cols = row.find_all('td')
+            if cols:
+                tab.append([c.text for c in cols])
+        return tab
+
+    def _denoise(self, string):
+        return string.replace('\n', '').replace(' ', '')
+
+    def _float(self, string):
+        """Convert string to float
+
+        Take care of numbers in exponential format
+        """
+        string = self._denoise(string)
+        exp_match = re.match('^[-.\d]+x10-(\d)$', string)
+        if exp_match:
+            exp = int(exp_match.groups()[0])
+            fac = 10 ** -exp
+            string = string.replace('x10-{}'.format(exp), '')
+        else:
+            fac = 1
+
+        return fac * float(string)
+
+
+def test_coefs(ir_url, vis_url):
+    """Test calibration coefficients against NOAA reference pages
+
+    Currently the reference pages are:
+
+    ir_url = https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
+    vis_url = https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
+
+    Args:
+        ir_url: Path or URL to HTML page with IR coefficients
+        vis_url: Path or URL to HTML page with VIS coefficients
+
+    Raises:
+        ValueError if coefficients don't match the reference
+    """
+    reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
+
+    for platform in CALIB_COEFS.keys():
+        for channel, coefs in CALIB_COEFS[platform].items():
+            coefs_expected = reader.get_coefs(platform=platform,
+                                              channel=channel)
+            for cname in coefs_expected.keys():
+                if not np.allclose(coefs[cname], coefs_expected[cname]):
+                    raise ValueError(
+                        'Coefficient {} for {} channel {} does not match the '
+                        'reference'.format(cname, platform, channel))
+
+    logger.info('Coefficients OK')
+    return True
