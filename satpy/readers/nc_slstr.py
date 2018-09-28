@@ -201,7 +201,6 @@ class NCSLSTRAngles(BaseFileHandler):
                                      chunks={'columns': CHUNK_SIZE,
                                              'rows': CHUNK_SIZE})
 
-
     def get_dataset(self, key, info):
         """Load a dataset
         """

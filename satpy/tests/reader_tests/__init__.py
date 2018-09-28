@@ -70,5 +70,6 @@ def suite():
     mysuite.addTests(test_generic_image.suite())
     mysuite.addTests(test_scmi.suite())
     mysuite.addTests(test_hrit_jma.suite())
+    mysuite.addTests(test_nc_slstr.suite())
 
     return mysuite
