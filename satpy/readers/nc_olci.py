@@ -192,8 +192,6 @@ class NCOLCI1B(NCOLCIChannelBase):
 
 
 class NCOLCI2(NCOLCIChannelBase):
-#    def apply_mask(self, dataset):
-#        return dataset.where(self.mask, np.nan)
     
     def get_dataset(self, key, info):
         """Load a dataset
@@ -208,11 +206,11 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset = self.nc[info['nc_key']]
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-            #TODO save mask
-#            self.getbitmask(dataset.to_masked_array().data)
-#        else:
-            #TODO Apply mask on current dataset
-#            dataset = dataset.where(self.mask, np.nan)
+            
+        elif key.name == 'mask':
+            mask = self.getbitmask(dataset.to_masked_array().data)
+            dataset = dataset *np.nan
+            dataset = dataset.where(~mask, True)
             
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
@@ -223,12 +221,12 @@ class NCOLCI2(NCOLCIChannelBase):
         """ """
         items = ["INVALID","SNOW_ICE","INLAND_WATER","SUSPECT",
                  "AC_FAIL","CLOUD","HISOLZEN","OCNN_FAIL",
-                 "CLOUD_MARGIN","CLOUD_AMBIGUOUS","LOWRW"]
+                 "CLOUD_MARGIN","CLOUD_AMBIGUOUS","LOWRW","LAND"]
         bflags = BitFlags(wqsf)
-        mask = reduce(np.logical_or, [bflags[item] for item in items])
-        landmask = bflags[u'LAND']
-        self.mask = mask
-        self.landmask = landmask
+        return reduce(np.logical_or, [bflags[item] for item in items])
+
+#        mask = reduce(np.logical_or, [bflags[item] for item in items])
+#        landmask = bflags[u'LAND']
 #        return mask, landmask   
         
         
