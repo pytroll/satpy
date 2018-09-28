@@ -205,7 +205,7 @@ class TestSCMIWriter(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True, file_pattern="{Bad Key}.nc")
+        w = SCMIWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
         area_def = AreaDefinition(
             'test',
             'test',

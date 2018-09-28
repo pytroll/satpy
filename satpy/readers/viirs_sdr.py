@@ -38,6 +38,7 @@ from datetime import datetime, timedelta
 from glob import glob
 
 import numpy as np
+import dask.array as da
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -198,7 +199,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         num_grans = len(scaling_factors) // 2
         gran_size = data.shape[0] // num_grans
         factors = scaling_factors.where(scaling_factors > -999)
-        factors = xr.DataArray(np.repeat(factors.values[None, :], gran_size, axis=0),
+        factors = factors.data.reshape((-1, 2))
+        factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
                                dims=(data.dims[0], 'factors'))
         data = data * factors[:, 0] + factors[:, 1]
         return data
@@ -208,7 +210,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = xr.DataArray([1, 0])
+            factors = xr.DataArray(da.from_array([1, 0], chunks=1))
         factors = factors.where(factors != -999.)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":

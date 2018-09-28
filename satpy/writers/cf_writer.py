@@ -218,9 +218,11 @@ class CFWriter(Writer):
                                                                     EPOCH))
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename, **kwargs):
+    def save_datasets(self, datasets, filename=None, **kwargs):
         """Save all datasets to one or more files."""
         logger.info('Saving datasets to NetCDF4/CF.')
+        # XXX: Should we combine the info of all datasets?
+        filename = filename or self.get_filename(**datasets[0].attrs)
 
         datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
