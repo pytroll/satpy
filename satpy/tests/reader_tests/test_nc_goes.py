@@ -178,12 +178,12 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
-    @mock.patch('satpy.readers.goes_nc.xr')
+    @mock.patch('satpy.readers.nc_goes.xr')
     def setUp(self, xr_):
         # Disable logging
         logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-        from satpy.readers.goes_nc import GOESNCFileHandler, CALIB_COEFS
+        from satpy.readers.nc_goes import GOESNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
         self.all_coefs = CALIB_COEFS
@@ -301,7 +301,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel"""
-        from satpy.readers.goes_nc import FULL_DISC
+        from satpy.readers.nc_goes import FULL_DISC
 
         earth_mask = np.array([[0, 0, 0, 0],
                                [0, 1, 0, 0],
@@ -446,7 +446,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_sector(self):
         """Test sector identification"""
-        from satpy.readers.goes_nc import (FULL_DISC, NORTH_HEMIS_EAST,
+        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
                                            SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
                                            SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
         shapes_vis = {
