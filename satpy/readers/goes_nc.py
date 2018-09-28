@@ -664,6 +664,22 @@ class GOESNCFileHandler(BaseFileHandler):
 
         return self.start_time
 
+    @property
+    def resolution(self):
+        """Specify the spatial resolution of the dataset.
+
+        Channel 13_3's spatial resolution changes from one platform to another
+        while the wavelength and file format remain the same. In order to
+        avoid multiple YAML reader definitions for the same file format,
+        read the channel's resolution from the file instead of defining it
+        in the YAML dataset. This information will then be used by the YAML
+        reader to complement the YAML definition of the dataset.
+
+        Returns:
+            Spatial resolution in kilometers
+        """
+        return 1000. * self.nc['lineRes'].values
+
     def get_shape(self, key, info):
         """Get the shape of the data
 
