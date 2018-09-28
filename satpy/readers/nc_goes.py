@@ -951,19 +951,27 @@ class GOESCoefficientReader(object):
 
     def __init__(self, ir_url, vis_url):
         from bs4 import BeautifulSoup
+        self.ir_html = BeautifulSoup(self._load_url_or_file(ir_url),
+                                     features="html5lib")
+        self.vis_html = BeautifulSoup(self._load_url_or_file(vis_url),
+                                      features="html5lib")
+
+    def _load_url_or_file(self, url):
         import requests
+        from requests.exceptions import MissingSchema
 
-        ir_response = requests.get(ir_url)
-        vis_response = requests.get(vis_url)
-        if ir_response.ok and vis_response.ok:
-            ir_content = ir_response.text
-            vis_content = vis_response.text
-        else:
-            ir_content = open(ir_url)
-            vis_content = open(vis_url)
-
-        self.ir_html = BeautifulSoup(ir_content, features="html5lib")
-        self.vis_html = BeautifulSoup(vis_content, features="html5lib")
+        try:
+            response = requests.get(url)
+            if response.ok:
+                return response.text
+            else:
+                raise requests.HTTPError
+        except (MissingSchema, requests.HTTPError):
+            # Not a valid URL, is it a file?
+            try:
+                return open(url, mode='r')
+            except IOError:
+                raise ValueError('Invalid URL or file: {}'.format(url))
 
     def get_coefs(self, platform, channel):
         if channel == '00_7':
