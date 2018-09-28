@@ -715,19 +715,18 @@ class GOESNCFileHandler(BaseFileHandler):
                           'area_def_uni': area_def_uni}
         return self._meta
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None),
-                    yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Load dataset designated by the given key from file"""
         logger.debug('Reading dataset {}'.format(key.name))
 
         # Read data from file and calibrate if necessary
         if 'longitude' in key.name:
-            data = self.nc['lon'][xslice, yslice]
+            data = self.nc['lon']
         elif 'latitude' in key.name:
-            data = self.nc['lat'][xslice, yslice]
+            data = self.nc['lat']
         else:
             tic = datetime.now()
-            data = self.calibrate(self.nc['data'].isel(time=0)[xslice, yslice],
+            data = self.calibrate(self.nc['data'].isel(time=0),
                                   calibration=key.calibration,
                                   channel=key.name)
             logger.debug('Calibration time: {}'.format(datetime.now() - tic))
@@ -758,11 +757,7 @@ class GOESNCFileHandler(BaseFileHandler):
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
             )
 
-        if out is None:
-            return data
-        else:
-            out.data = data.data
-            out.attrs.update(data.attrs)
+        return data
 
     def calibrate(self, counts, calibration, channel):
         """Perform calibration"""
