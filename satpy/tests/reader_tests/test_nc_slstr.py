@@ -56,8 +56,7 @@ class TestSLSTRReader(TestCase):
         test.get_dataset(Dummy(), Base())
         mocked_Dataset.assert_called()
         mocked_Dataset.reset_mock()
-        
-        
+
         test = NCSLSTRAngles('somedir/S1_radiance_an.nc', Base(), 'c')
         mocked_Dataset.assert_called()
         mocked_Dataset.reset_mock()
@@ -67,4 +66,3 @@ class TestSLSTRReader(TestCase):
         assert(test.stripe == 'a')
         mocked_Dataset.assert_called()
         mocked_Dataset.reset_mock()
-        
