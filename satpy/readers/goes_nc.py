@@ -744,14 +744,19 @@ class GOESNCFileHandler(BaseFileHandler):
             {'platform_name': self.platform_name,
              'sensor': self.sensor,
              'sector': self.sector,
-             'satellite_longitude': self.meta['lon0'],
-             'satellite_latitude': self.meta['lat0'],
-             'satellite_altitude': ALTITUDE,
-             'nadir_row': self.meta['nadir_row'],
-             'nadir_col': self.meta['nadir_col'],
-             'area_def_uniform_sampling': self.meta['area_def_uni'],
              'yaw_flip': self.meta['yaw_flip']}
         )
+        if self.meta['lon0'] is not None:
+            # Attributes only available for full disc images. YAML reader
+            # doesn't like it if satellite_* is present but None
+            data.attrs.update(
+                {'satellite_longitude': self.meta['lon0'],
+                 'satellite_latitude': self.meta['lat0'],
+                 'satellite_altitude': ALTITUDE,
+                 'nadir_row': self.meta['nadir_row'],
+                 'nadir_col': self.meta['nadir_col'],
+                 'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
 
         if out is None:
             return data
