@@ -1,43 +1,53 @@
-# With GOES-14 13_3 nadir resolution improves from 8km to 4km
-#
-# References: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf,
-# chapter 3.
+# References:
+# GOES 8-12:  https://goes.gsfc.nasa.gov/text/databook/databook.pdf, page 20 ff
+# GOES 13-15: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf, chapter 3.
 
 reader:
-  description: GOES 14-15 netCDF Reader
-  name: goes_14to15_nc
+  description: GOES netCDF Reader
+  name: goes_nc
   sensors: [goes_imager]
-  default_channels: [00_7, 03_9, 06_5, 10_7, 13_3]
+  default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 
 file_types:
     goes_nc_00_7:
         file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
-        file_patterns: ['goes14.{start_time:%Y.%j.%H%M%S}.BAND_01.nc',
-                        'goes15.{start_time:%Y.%j.%H%M%S}.BAND_01.nc']
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_01.nc']
     goes_nc_03_9:
         file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
-        file_patterns: ['goes14.{start_time:%Y.%j.%H%M%S}.BAND_02.nc',
-                        'goes15.{start_time:%Y.%j.%H%M%S}.BAND_02.nc']
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_02.nc']
     goes_nc_06_5:
         file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
-        file_patterns: ['goes14.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+        file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes13.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes14.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes15.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
+    goes_nc_06_8:
+        file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
+        file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes09.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes10.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes11.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
     goes_nc_10_7:
         file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
-        file_patterns: ['goes14.{start_time:%Y.%j.%H%M%S}.BAND_04.nc',
-                        'goes15.{start_time:%Y.%j.%H%M%S}.BAND_04.nc']
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_04.nc']
+    goes_nc_12_0:
+        file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
+        file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes09.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes10.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes11.{start_time:%Y.%j.%H%M%S}.BAND_05.nc']
     goes_nc_13_3:
         file_reader: !!python/name:satpy.readers.goes_nc.GOESNCFileHandler
-        file_patterns: ['goes14.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+        file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+                        'goes13.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+                        'goes14.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
                         'goes15.{start_time:%Y.%j.%H%M%S}.BAND_06.nc']
-
 
 datasets:
   '00_7':
     name: '00_7'
-    resolution: 1000
     wavelength: [0.52, 0.65, 0.71]
     calibration:
       counts:
@@ -56,7 +66,6 @@ datasets:
 
   '03_9':
     name: '03_9'
-    resolution: 4000
     wavelength: [3.73, 3.9, 4.07]
     calibration:
       counts:
@@ -75,7 +84,6 @@ datasets:
 
   '06_5':
     name: '06_5'
-    resolution: 4000
     wavelength: [5.8, 6.5, 7.3]
     calibration:
       counts:
@@ -92,9 +100,26 @@ datasets:
         - latitude_06_5
     file_type: goes_nc_06_5
 
+  '06_8':
+    name: '06_8'
+    wavelength: [6.5, 6.75, 7.0]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_06_8
+        - latitude_06_8
+    file_type: goes_nc_06_8
+
   '10_7':
     name: '10_7'
-    resolution: 4000
     wavelength: [10.2, 10.7, 11.2]
     calibration:
       counts:
@@ -111,9 +136,26 @@ datasets:
         - latitude_10_7
     file_type: goes_nc_10_7
 
+  '12_0':
+    name: '12_0'
+    wavelength: [11.5, 12.0, 12.5]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_12_0
+        - latitude_12_0
+    file_type: goes_nc_12_0
+
   '13_3':
     name: '13_3'
-    resolution: 4000
     wavelength: [13.0, 13.35, 13.7]
     calibration:
       counts:
@@ -132,70 +174,84 @@ datasets:
 
   longitude_00_7:
       name: longitude_00_7
-      resolution: 1000
       file_type: goes_nc_00_7
       standard_name: longitude
       units: degrees_east
 
   latitude_00_7:
     name: latitude_00_7
-    resolution: 1000
     file_type: goes_nc_00_7
     standard_name: latitude
     units: degrees_north
 
   longitude_03_9:
       name: longitude_03_9
-      resolution: 4000
       file_type: goes_nc_03_9
       standard_name: longitude
       units: degrees_east
 
   latitude_03_9:
     name: latitude_03_9
-    resolution: 4000
     file_type: goes_nc_03_9
     standard_name: latitude
     units: degrees_north
 
   longitude_06_5:
       name: longitude_06_5
-      resolution: 4000
       file_type: goes_nc_06_5
       standard_name: longitude
       units: degrees_east
 
   latitude_06_5:
     name: latitude_06_5
-    resolution: 4000
     file_type: goes_nc_06_5
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_06_8:
+      name: longitude_06_8
+      file_type: goes_nc_06_8
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_06_8:
+    name: latitude_06_8
+    file_type: goes_nc_06_8
     standard_name: latitude
     units: degrees_north
 
   longitude_10_7:
       name: longitude_10_7
-      resolution: 4000
       file_type: goes_nc_10_7
       standard_name: longitude
       units: degrees_east
 
   latitude_10_7:
     name: latitude_10_7
-    resolution: 4000
     file_type: goes_nc_10_7
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_12_0:
+      name: longitude_12_0
+      file_type: goes_nc_12_0
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_12_0:
+    name: latitude_12_0
+    file_type: goes_nc_12_0
     standard_name: latitude
     units: degrees_north
 
   longitude_13_3:
       name: longitude_13_3
-      resolution: 4000
       file_type: goes_nc_13_3
       standard_name: longitude
       units: degrees_east
 
   latitude_13_3:
     name: latitude_13_3
-    resolution: 4000
     file_type: goes_nc_13_3
     standard_name: latitude
     units: degrees_north
