@@ -10,7 +10,6 @@ import numpy as np
 import xarray as xr
 
 from satpy import DatasetID
-from satpy.utils import logging_off
 
 
 if sys.version_info < (2, 7):
@@ -182,7 +181,6 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     @mock.patch('satpy.readers.goes_nc.xr')
     def setUp(self, xr_):
         # Disable logging
-        logging_off()
         logging.getLogger("urllib3").setLevel(logging.WARNING)
 
         from satpy.readers.goes_nc import GOESNCFileHandler, CALIB_COEFS
