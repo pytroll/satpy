@@ -301,25 +301,6 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                     info={})
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
-    def test_get_dataset_out(self):
-        """Test transfer to output array"""
-        arr = xr.DataArray(data=np.zeros(self.lon.shape),
-                           dims=('a', 'b'),
-                           attrs={'test': 'test'})
-
-        self.reader.get_dataset(
-            key=DatasetID(name='10_7', calibration='counts'),
-            info={}, out=arr)
-
-        # ... this only compares the valid (unmasked) elements
-        self.assertTrue(np.all(self.counts/32. == arr.to_masked_array()),
-                        msg='Incorrect data transfer to output array')
-
-        self.assertTrue('test' in arr.attrs, msg='Transfer to output array '
-                                                 'loses original attributes')
-        self.assertTrue(len(arr.attrs) > 1, msg='Transfer to output array '
-                                                'does not update attributes')
-
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel"""
         from satpy.readers.goes_nc import FULL_DISC
