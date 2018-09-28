@@ -30,6 +30,7 @@
 """
 
 import os
+from .version import get_versions
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
@@ -48,7 +49,6 @@ else:
 # convert to a dictionary of priority for faster access (0 higher priority)
 CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
 
-from satpy.version import __version__  # noqa
 from satpy.utils import get_logger  # noqa
 from satpy.dataset import DatasetID, DATASET_KEYS  # noqa
 from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
@@ -58,3 +58,6 @@ from satpy.scene import Scene  # noqa
 from satpy.multiscene import MultiScene  # noqa
 
 log = get_logger('satpy')
+
+__version__ = get_versions()['version']
+del get_versions

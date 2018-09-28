@@ -613,7 +613,7 @@ class NetCDFWriter(object):
             p.grid_mapping_name = "lambert_conformal_conic"
             p.standard_parallel = proj4_info["lat_0"]  # How do we specify two standard parallels?
             p.longitude_of_central_meridian = proj4_info["lon_0"]
-            p.latitude_of_projection_origion = proj4_info.get('lat_1', proj4_info['lat_0'])  # Correct?
+            p.latitude_of_projection_origin = proj4_info.get('lat_1', proj4_info['lat_0'])  # Correct?
         elif proj4_info['proj'] == 'stere':
             p = self.projection = self._nc.createVariable("polar_projection", 'i4')
             self.image_data.grid_mapping = "polar_projection"
@@ -621,7 +621,7 @@ class NetCDFWriter(object):
             p.grid_mapping_name = "polar_stereographic"
             p.standard_parallel = proj4_info["lat_ts"]
             p.straight_vertical_longitude_from_pole = proj4_info.get("lon_0", 0.0)
-            p.latitude_of_projection_origion = proj4_info["lat_0"]  # ?
+            p.latitude_of_projection_origin = proj4_info["lat_0"]  # ?
         elif proj4_info['proj'] == 'merc':
             p = self.projection = self._nc.createVariable("mercator_projection", 'i4')
             self.image_data.grid_mapping = "mercator_projection"
