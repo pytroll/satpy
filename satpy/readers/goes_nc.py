@@ -129,7 +129,6 @@ from datetime import datetime, timedelta
 import logging
 import re
 
-import dask.array as da
 import numpy as np
 import xarray as xr
 import xarray.ufuncs as xu
