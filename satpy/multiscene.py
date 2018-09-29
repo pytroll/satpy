@@ -71,7 +71,6 @@ def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
         arr_gens = iter(arrays)
         array_batches = (arrs for arrs in zip_longest(*([arr_gens] * batch_size)))
 
-    # current_writes = []
     for batch_arrs in array_batches:
         batch_arrs = [x for x in batch_arrs if x is not None]
         if optimize:
@@ -90,8 +89,6 @@ def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
             current_write = dask.delayed(_callback_wrapper)(
                 dask_arr, current_write)
         yield current_write
-        # current_writes.append(current_write)
-    # return current_writes
 
 
 def stack(datasets):
