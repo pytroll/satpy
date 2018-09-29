@@ -30,6 +30,7 @@ import dask.array as da
 import xarray as xr
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
+from itertools import chain
 
 try:
     from itertools import zip_longest
@@ -68,9 +69,8 @@ def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
         array_batches.append(arrays)
     else:
         arr_gens = iter(arrays)
-        array_batches = [arrs for arrs in zip_longest(*([arr_gens] * batch_size))]
+        array_batches = (arrs for arrs in zip_longest(*([arr_gens] * batch_size)))
 
-    current_writes = []
     for batch_arrs in array_batches:
         batch_arrs = [x for x in batch_arrs if x is not None]
         if optimize:
@@ -88,8 +88,7 @@ def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
         for dask_arr in batch_arrs:
             current_write = dask.delayed(_callback_wrapper)(
                 dask_arr, current_write)
-        current_writes.append(current_write)
-    return current_writes
+        yield current_write
 
 
 def stack(datasets):
@@ -100,12 +99,83 @@ def stack(datasets):
     return base
 
 
+class _SceneGenerator(object):
+    """Fancy way of caching Scenes from a generator."""
+
+    def __init__(self, scene_gen):
+        self._scene_gen = scene_gen
+        self._scene_cache = []
+        self._dataset_idx = {}
+        # this class itself is not an iterator, make one
+        self._self_iter = iter(self)
+
+    def __iter__(self):
+        """Iterate over the provided scenes, caching them for later."""
+        for scn in self._scene_gen:
+            self._scene_cache.append(scn)
+            yield scn
+
+    def __getitem__(self, ds_id):
+        """Get a specific dataset from the scenes."""
+        if ds_id in self._dataset_idx:
+            raise RuntimeError("Cannot get SceneGenerator item multiple times")
+        self._dataset_idx[ds_id] = idx = 0
+        while True:
+            if idx >= len(self._scene_cache):
+                scn = next(self._self_iter)
+            else:
+                scn = self._scene_cache[idx]
+            yield scn.get(ds_id)
+            idx += 1
+            self._dataset_idx[ds_id] = idx
+
+
 class MultiScene(object):
     """Container for multiple `Scene` objects."""
 
     def __init__(self, scenes=None):
-        """Initialize MultiScene and validate sub-scenes"""
-        self.scenes = scenes or []
+        """Initialize MultiScene and validate sub-scenes.
+
+        Args:
+            scenes (iterable):
+                `Scene` objects to operate on (optional)
+
+        .. note::
+
+            If the `scenes` passed to this object are a generator then certain
+            operations performed will try to preserve that generator state.
+            This may limit what properties or methods are available to the
+            user. To avoid this behavior compute the passed generator by
+            converting the passed scenes to a list first:
+            ``MultiScene(list(scenes))``.
+
+        """
+        self._scenes = scenes or []
+
+    def __iter__(self):
+        """Iterate over the provided Scenes once."""
+        return self.scenes
+
+    @property
+    def scenes(self):
+        """Get list of Scene objects contained in this MultiScene.
+
+        .. note::
+
+            If the Scenes contained in this object are stored in a
+            generator (not list or tuple) then accessing this property
+            will load/iterate through the generator possibly
+
+        """
+        if self.is_generator:
+            log.debug("Forcing iteration of generator-like object of Scenes")
+            self._scenes = list(self._scenes)
+        return self._scenes
+
+    @property
+    def is_generator(self):
+        """Contained Scenes are stored as a generator."""
+        return not isinstance(self._scenes, (list, tuple))
 
     @property
     def loaded_dataset_ids(self):
@@ -136,18 +206,37 @@ class MultiScene(object):
     def all_same_area(self):
         return self._all_same_area(self.loaded_dataset_ids)
 
+    def _gen_load(self, gen, *args, **kwargs):
+        """Perform a load in a generator so it is delayed."""
+        for scn in gen:
+            scn.load(*args, **kwargs)
+            yield scn
+
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
-        for layer in self.scenes:
-            layer.load(*args, **kwargs)
+        scene_gen = self._gen_load(self._scenes, *args, **kwargs)
+        self._scenes = scene_gen if self.is_generator else list(scene_gen)
+
+    def _gen_resample(self, gen, destination=None, **kwargs):
+        for scn in gen:
+            new_scn = scn.resample(destination, **kwargs)
+            yield new_scn
 
     def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
-        return self.__class__([scn.resample(destination, **kwargs)
-                               for scn in self.scenes])
+        new_scenes = self._gen_resample(self._scenes, destination=destination, **kwargs)
+        new_scenes = new_scenes if self.is_generator else list(new_scenes)
+        return self.__class__(new_scenes)
 
     def blend(self, blend_function=stack):
-        """Blend the datasets into one scene."""
+        """Blend the datasets into one scene.
+
+        .. note::
+
+            Blending is not currently optimized for generator-based
+            MultiScene.
+
+        """
         new_scn = Scene()
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
@@ -162,7 +251,7 @@ class MultiScene(object):
         first_dataset = valid_datasets[0]
         last_dataset = valid_datasets[-1]
         first_img = get_enhanced_image(first_dataset)
-        first_img_data = first_img._finalize(fill_value=fill_value)[0]
+        first_img_data = first_img.finalize(fill_value=fill_value)[0]
         shape = tuple(first_img_data.sizes.get(dim_name)
                       for dim_name in ('y', 'x', 'bands'))
         if fill_value is None and filename.endswith('gif'):
@@ -188,7 +277,7 @@ class MultiScene(object):
                 data = xr.DataArray(data)
             else:
                 img = get_enhanced_image(ds)
-                data, mode = img._finalize(fill_value=fill_value)
+                data, mode = img.finalize(fill_value=fill_value)
                 if data.ndim == 3:
                     # assume all other shapes are (y, x)
                     # we need arrays grouped by pixel so
@@ -227,19 +316,34 @@ class MultiScene(object):
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
-        dataset_ids = datasets or self.loaded_dataset_ids
+        scenes = iter(self._scenes)
+        first_scene = next(scenes)
+        info_scenes = [first_scene]
+        if 'end_time' in filename:
+            # if we need the last scene to generate the filename
+            # then compute all the scenes so we can figure it out
+            log.debug("Generating scenes to compute end_time for filename")
+            scenes = list(scenes)
+            info_scenes.append(scenes[-1])
+        scene_gen = _SceneGenerator(chain([first_scene], scenes))
+
+        if not self.is_generator:
+            available_ds = self.loaded_dataset_ids
+        else:
+            available_ds = list(first_scene.keys())
+        dataset_ids = datasets or available_ds
+
         writers = []
         delayeds = []
         for dataset_id in dataset_ids:
-            if not self._all_same_area([dataset_id]):
+            if not self.is_generator and not self._all_same_area([dataset_id]):
                 raise ValueError("Sub-scene datasets must all be on the same "
                                  "area (see the 'resample' method).")
 
-            all_datasets = [scn.datasets.get(dataset_id) for scn in self.scenes]
-            this_fn, shape, this_fill = self._get_animation_info(
-                all_datasets, filename, fill_value=fill_value)
-            data_to_write = list(self._get_animation_frames(
-                all_datasets, shape, this_fill, ignore_missing))
+            all_datasets = scene_gen[dataset_id]
+            info_datasets = [scn.get(dataset_id) for scn in info_scenes]
+            this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
+            data_to_write = self._get_animation_frames(all_datasets, shape, this_fill, ignore_missing)
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
             delayed = cascaded_compute(writer.append_data, data_to_write,
@@ -247,8 +351,7 @@ class MultiScene(object):
             # Save delayeds and writers to compute and close later
             delayeds.append(delayed)
             writers.append(writer)
-        # compute all the datasets at once to combine any computations that
-        # can be shared
+        # compute all the datasets at once to combine any computations that can be shared
         iter_delayeds = [iter(x) for x in delayeds]
         for delayed_batch in zip_longest(*iter_delayeds):
             delayed_batch = [x for x in delayed_batch if x is not None]
