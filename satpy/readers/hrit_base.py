@@ -138,17 +138,16 @@ class HRITFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the reader."""
-        if filename_info.get('compressed') == 'C':
-            logger.debug('Unpacking %s', filename)
-            filename = decompress(filename, gettempdir())
-            filename_info['compressed'] = ''
-
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
-
         self.mda = {}
-
         self._get_hd(hdr_info)
+
+        if self.mda.get('compression_flag_for_data'):
+            logger.debug('Unpacking %s', filename)
+            self.filename = decompress(filename, gettempdir())
+            self.mda = {}
+            self._get_hd(hdr_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
