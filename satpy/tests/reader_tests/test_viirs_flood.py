@@ -105,6 +105,6 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.add(loader.loadTestsFromTestCase(TestVIIRSEDRFloodReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSEDRFloodReader))
 
     return mysuite
