@@ -1,5 +1,7 @@
 import sys
 import os
+import numpy as np
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -10,13 +12,12 @@ try:
 except ImportError:
     import mock
 
-import numpy as np
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+
 
 class FakeHDF4FileHandler2(FakeHDF4FileHandler):
     """Swap in HDF4 file handler"""
@@ -43,8 +44,8 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
                 attrs = {}
-                for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude', 'ProjectionMinLongitude',
-                          'ProjectionMaxLatitude']:
+                for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude', 
+                    'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
                     if key + '/attr/' + a in file_content:
                         attrs[a] = file_content[key + '/attr/' + a]
                 if val.ndim > 1:
@@ -53,8 +54,10 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
                     file_content[key] = DataArray(val, attrs=attrs)
 
         if 'y' not in file_content['WaterDetection'].dims:
-            file_content['WaterDetection'] = file_content['WaterDetection'].rename({'fakeDim0': 'x', 'fakeDim1': 'y'})
+            file_content['WaterDetection'] = 
+                file_content['WaterDetection'].rename({'fakeDim0': 'x', 'fakeDim1': 'y'})
         return file_content
+
 
 class TestVIIRSEDRFloodReader(unittest.TestCase):
     """Test VIIRS EDR Flood Reader"""
@@ -97,6 +100,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'none')
 
+
 def suite():
     """The test suite for test_viirs_flood
     """
@@ -105,3 +109,4 @@ def suite():
     mysuite.add(loader.loadTestsFromTestCase(TestVIIRSEDRFloodReader))
 
     return mysuite
+
