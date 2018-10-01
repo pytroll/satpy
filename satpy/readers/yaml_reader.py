@@ -101,7 +101,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             filetype_info['file_patterns'] = file_patterns
             self.file_patterns.extend(file_patterns)
 
-        if not isinstance(self.info['sensors'], (list, tuple)):
+        if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
@@ -110,7 +110,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def sensor_names(self):
-        return self.info['sensors']
+        return self.info['sensors'] or []
 
     @property
     def all_dataset_ids(self):
