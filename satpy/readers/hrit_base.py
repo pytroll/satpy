@@ -25,7 +25,10 @@
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
+from tempfile import gettempdir
+import os
+from six import StringIO
 
 import numpy as np
 import xarray as xr
@@ -85,12 +88,61 @@ base_hdr_map = {0: primary_header,
                 }
 
 
+def decompress(infile, outdir='.'):
+    """Will decompress an XRIT data file and return the path to the
+    decompressed file. It expect to find Eumetsat's xRITDecompress through the
+    environment variable XRIT_DECOMPRESS_PATH
+    """
+    from subprocess import Popen, PIPE
+    cmd = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+    if not cmd:
+        raise IOError("XRIT_DECOMPRESS_PATH is not defined" +
+                      " (complete path to xRITDecompress)")
+
+    infile = os.path.abspath(infile)
+    cwd = os.getcwd()
+    os.chdir(outdir)
+
+    question = ("Did you set the environment variable " +
+                "XRIT_DECOMPRESS_PATH correctly?")
+    if not os.path.exists(cmd):
+        raise IOError(str(cmd) + " does not exist!\n" + question)
+    elif os.path.isdir(cmd):
+        raise IOError(str(cmd) + " is a directory!\n" + question)
+
+    p = Popen([cmd, infile], stdout=PIPE)
+    stdout = StringIO(p.communicate()[0])
+    status = p.returncode
+    os.chdir(cwd)
+
+    outfile = ''
+    for line in stdout:
+        try:
+            k, v = [x.strip() for x in line.split(':', 1)]
+        except ValueError:
+            break
+        if k == 'Decompressed file':
+            outfile = v
+            break
+
+    if status != 0:
+        raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
+    if not outfile:
+        raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
+    return os.path.join(outdir, outfile)
+
+
 class HRITFileHandler(BaseFileHandler):
 
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the reader."""
+        if filename_info.get('compressed') == 'C':
+            logger.debug('Unpacking %s', filename)
+            filename = decompress(filename, gettempdir())
+            filename_info['compressed'] = ''
+
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
 

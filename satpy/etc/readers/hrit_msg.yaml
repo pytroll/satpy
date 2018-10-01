@@ -68,11 +68,11 @@ file_types:
 
     HRIT_PRO:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_EPI:
         file_reader: !!python/name:satpy.readers.hrit_msg.HRITMSGEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-__']
 
 datasets:
   HRV:

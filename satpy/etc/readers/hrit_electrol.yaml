@@ -58,11 +58,11 @@ file_types:
 
     HRIT_PRO_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_EPI_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-EPI______-{start_time:%Y%m%d%H%M}-__']
 
 datasets:
   '00_6':
