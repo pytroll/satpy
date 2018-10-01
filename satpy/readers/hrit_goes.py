@@ -50,6 +50,10 @@ class CalibrationError(Exception):
 
 logger = logging.getLogger('hrit_goes')
 
+# Geometric constants [meters]
+EQUATOR_RADIUS = 6378169.00
+POLE_RADIUS = 6356583.80
+ALTITUDE = 35785831.00
 
 # goes implementation:
 key_header = np.dtype([('key_number', 'u1'),
@@ -444,9 +448,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
-        a = 6378169.00
-        b = 6356583.80
-        h = 35785831.00
+        a = EQUATOR_RADIUS
+        b = POLE_RADIUS
+        h = ALTITUDE
 
         lon_0 = self.prologue['SubSatLongitude']
 

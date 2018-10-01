@@ -95,8 +95,8 @@ class MITIFFWriter(ImageWriter):
                 image_description = self._make_image_description(dataset, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
                 self.filename_parser = self.create_filename_parser(create_opts)
-                LOG.info("Saving mitiff to: %s ...", self.get_filename(**kwargs))
-                gen_filename = self.get_filename(**kwargs)
+                gen_filename = filename or self.get_filename(**kwargs)
+                LOG.info("Saving mitiff to: %s ...", gen_filename)
                 self._save_datasets_as_mitiff(dataset, image_description,
                                               gen_filename, **kwargs)
             except:
