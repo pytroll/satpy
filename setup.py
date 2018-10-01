@@ -24,14 +24,12 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
-import imp
 import os.path
 import sys
 from glob import glob
+import versioneer
 
 from setuptools import find_packages, setup
-
-version = imp.load_source('satpy.version', 'satpy/version.py')
 
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
@@ -41,7 +39,8 @@ requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.10.0', 'trollsift',
             'dask[array] >=0.17.1']
 
 # pyhdf (conda) == python-hdf4 (pip)
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff', 'rasterio']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
+                 'rasterio']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -106,7 +105,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 NAME = 'satpy'
 
 setup(name=NAME,
-      version=version.__version__,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description='Meteorological post processing package',
       author='The Pytroll Team',
       author_email='pytroll@googlegroups.com',
