@@ -145,7 +145,10 @@ class HRITFileHandler(BaseFileHandler):
 
         if self.mda.get('compression_flag_for_data'):
             logger.debug('Unpacking %s', filename)
-            self.filename = decompress(filename, gettempdir())
+            try:
+                self.filename = decompress(filename, gettempdir())
+            except IOError as err:
+                logger.warning("Unpacking failed: %s", str(err))
             self.mda = {}
             self._get_hd(hdr_info)
 
