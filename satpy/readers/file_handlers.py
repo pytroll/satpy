@@ -62,6 +62,34 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         """
         raise NotImplementedError
 
+    def filter_available_dataset(self, dataset_id, dataset_info):
+        """Filter and complement the given dataset
+
+        Complement the given dataset ID and info with information from the
+        loaded file - if available. Return (None, None) to indicate that the
+        given dataset is not available in the file. Example usage:
+
+        >>> from satpy.dataset import DatasetID
+        >>>
+        >>> class MyFileHandler(BaseFileHandler):
+        >>>     def filter_available_dataset(self, dataset_id, dataset_info):
+        >>>         if not available(dataset_id):
+        >>>             return None, None
+        >>>         # Change resolution and add another attribute
+        >>>         dataset_info['resolution'] = 1234.0
+        >>>         dataset_info['myattr'] = True
+        >>>         new_id = DatasetID.from_dict(dataset_info)
+        >>>         return new_id, dataset_info
+
+        Params:
+            dataset_id: ID of the dataset
+            dataset_info: Corresponding info dictionary
+        Returns:
+            Complemented (dataset ID, dataset info). Both None if the dataset
+            is not available in the file.
+        """
+        raise NotImplementedError
+
     @staticmethod
     def _combine(infos, func, *keys):
         res = {}

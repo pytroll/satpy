@@ -499,10 +499,43 @@ class FileYAMLReader(AbstractYAMLReader):
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
         # update existing dataset IDs with information from the file handler
+        # TODO: Can be removed if all readers use filter_available_datasets()
         self.update_ds_ids_from_file_handlers()
+
+        # filter and complement available datasets
+        self.filter_available_datasets()
 
         # load any additional dataset IDs determined dynamically from the file
         self.add_ds_ids_from_files()
+
+    def filter_available_datasets(self):
+        """Filter and complement available datasets
+
+        Complement datasets with information from the loaded file. Drop datasets
+        which are not available in the file.
+        """
+        for file_handlers in self.file_handlers.values():
+            fh = file_handlers[0]
+            for ds_id, ds_info in self.ids.items():
+                # Only proceed if the file type matches
+                if not ds_info['file_type'] == fh.filetype_info['file_type']:
+                    continue
+
+                # Ask the filehandler to complement the dataset ID and info
+                # using information from the loaded file (if available)
+                try:
+                    new_id, new_info = fh.filter_available_dataset(
+                        dataset_id=ds_id, dataset_info=ds_info)
+                except NotImplementedError:
+                    continue
+
+                if (new_id, new_info) == (None, None):
+                    # Dataset is not available in the file
+                    del self.ids[ds_id]
+                else:
+                    # Update dataset ID and info
+                    del self.ids[ds_id]
+                    self.ids[new_id] = new_info
 
     def update_ds_ids_from_file_handlers(self):
         """Update DatasetIDs with information from loaded files.
@@ -510,6 +543,7 @@ class FileYAMLReader(AbstractYAMLReader):
         This is useful, for example, if dataset resolution may change
         depending on what files were loaded.
 
+        Deprecated. Use filter_available_datasets() instead.
         """
         for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
