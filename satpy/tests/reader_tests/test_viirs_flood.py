@@ -45,7 +45,7 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
             if isinstance(val, np.ndarray):
                 attrs = {}
                 for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude',
-                        'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
+                          'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
                     if key + '/attr/' + a in file_content:
                         attrs[a] = file_content[key + '/attr/' + a]
                 if val.ndim > 1:
