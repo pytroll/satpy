@@ -45,9 +45,9 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
             if isinstance(val, np.ndarray):
                 attrs = {}
                 for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude',
-                    'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
-                        if key + '/attr/' + a in file_content:
-                            attrs[a] = file_content[key + '/attr/' + a]
+                        'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
+                    if key + '/attr/' + a in file_content:
+                        attrs[a] = file_content[key + '/attr/' + a]
                 if val.ndim > 1:
                     file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
                 else:
@@ -108,4 +108,3 @@ def suite():
     mysuite.add(loader.loadTestsFromTestCase(TestVIIRSEDRFloodReader))
 
     return mysuite
-
