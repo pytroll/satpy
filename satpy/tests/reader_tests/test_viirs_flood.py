@@ -44,18 +44,17 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
                 attrs = {}
-                for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude', 
+                for a in ['_Fillvalue', 'units', 'ProjectionMinLatitude', 'ProjectionMaxLongitude',
                     'ProjectionMinLongitude', 'ProjectionMaxLatitude']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
+                        if key + '/attr/' + a in file_content:
+                            attrs[a] = file_content[key + '/attr/' + a]
                 if val.ndim > 1:
                     file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
                 else:
                     file_content[key] = DataArray(val, attrs=attrs)
 
         if 'y' not in file_content['WaterDetection'].dims:
-            file_content['WaterDetection'] = 
-                file_content['WaterDetection'].rename({'fakeDim0': 'x', 'fakeDim1': 'y'})
+            file_content['WaterDetection'] = file_content['WaterDetection'].rename({'fakeDim0': 'x', 'fakeDim1': 'y'})
         return file_content
 
 
