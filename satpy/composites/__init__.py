@@ -1236,7 +1236,8 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         return super(SelfSharpenedRGB, self).__call__(
             (red, green, blue), optional_datasets=(high_res,), **attrs)
-##
+
+
 class TropicalAirmass(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -1264,15 +1265,15 @@ class VolcanicGas(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Make an SO2 RGB image composite.
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        |  WV6.9 - WV7.3     |    -4 to 2 K       | gamma 1            |→ SO2, water vapor
-        +--------------------+--------------------+--------------------+
-        | IR10.4 - IR8.6     |    -4 to 5 K       | gamma 1            |→ SO2 (water vapor)
-        +--------------------+--------------------+--------------------+
-        | IR10.4             |   243 to 303 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
+        +-----------------+-----------------+--------------+
+        | Channels        | Temp            | Gamma        |
+        +=================+=================+==============+
+        |  WV6.9 - WV7.3  |    -4 to 2 K    | gamma 1      |→ SO2, water vapor
+        +-----------------+-----------------+--------------+
+        | IR10.4 - IR8.6  |    -4 to 5 K    | gamma 1      |→ SO2 (water vapor)
+        +-----------------+-----------------+--------------+
+        | IR10.4          |   243 to 303 K  | gamma 1      |
+        +-----------------+-----------------+--------------+
         """
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[3], projectables[2])
@@ -1280,4 +1281,3 @@ class VolcanicGas(GenericCompositor):
                                              projectables[3]),
                                             *args, **kwargs)
         return res
-

@@ -45,6 +45,7 @@ class SimulatedGreen(GenericCompositor):
 
         return super(SimulatedGreen, self).__call__((res,), **attrs)
 
+
 class DustABI(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
@@ -73,8 +74,6 @@ class DustABI(GenericCompositor):
         """
         ch1 = sub_arrays(projectables[3], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[0])
-        res = super(DustABI, self).__call__((ch1, ch2,
-                                          projectables[1]),
+        res = super(DustABI, self).__call__((ch1, ch2, projectables[1]),
                                          *args, **kwargs)
         return res
-
