@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
+
 class BitFlags(object):
 
     """Manipulate flags stored bitwise.
