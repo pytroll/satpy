@@ -88,7 +88,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
             Complemented (dataset ID, dataset info). Both None if the dataset
             is not available in the file.
         """
-        raise NotImplementedError
+        return dataset_id, dataset_info
 
     @staticmethod
     def _combine(infos, func, *keys):

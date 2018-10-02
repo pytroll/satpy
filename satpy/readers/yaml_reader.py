@@ -514,6 +514,8 @@ class FileYAMLReader(AbstractYAMLReader):
         Complement datasets with information from the loaded file. Drop datasets
         which are not available in the file.
         """
+        ids = self.ids.copy()
+
         for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
             for ds_id, ds_info in self.ids.items():
@@ -523,27 +525,23 @@ class FileYAMLReader(AbstractYAMLReader):
 
                 # Ask the filehandler to complement the dataset ID and info
                 # using information from the loaded file (if available)
-                try:
-                    new_id, new_info = fh.filter_available_dataset(
-                        dataset_id=ds_id, dataset_info=ds_info)
-                except NotImplementedError:
-                    continue
-
-                if (new_id, new_info) == (None, None):
+                new_id, new_info = fh.filter_available_dataset(
+                    dataset_id=ds_id, dataset_info=ds_info)
+                if new_id is None:
                     # Dataset is not available in the file
-                    del self.ids[ds_id]
+                    del ids[ds_id]
                 else:
                     # Update dataset ID and info
-                    del self.ids[ds_id]
-                    self.ids[new_id] = new_info
+                    del ids[ds_id]
+                    ids[new_id] = new_info
+
+        self.ids = ids
 
     def update_ds_ids_from_file_handlers(self):
         """Update DatasetIDs with information from loaded files.
 
         This is useful, for example, if dataset resolution may change
         depending on what files were loaded.
-
-        Deprecated. Use filter_available_datasets() instead.
         """
         for file_handlers in self.file_handlers.values():
             fh = file_handlers[0]
