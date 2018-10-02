@@ -115,13 +115,13 @@ def decompress(infile, outdir='.'):
     status = p.returncode
     os.chdir(cwd)
 
-    outfile = ''
+    outfile = b''
     for line in stdout:
         try:
-            k, v = [x.strip() for x in line.split(':', 1)]
+            k, v = [x.strip() for x in line.split(b':', 1)]
         except ValueError:
             break
-        if k == 'Decompressed file':
+        if k == b'Decompressed file':
             outfile = v
             break
 
@@ -129,7 +129,7 @@ def decompress(infile, outdir='.'):
         raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
     if not outfile:
         raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
-    return os.path.join(outdir, outfile)
+    return os.path.join(outdir, outfile.decode('utf-8'))
 
 
 class HRITFileHandler(BaseFileHandler):
