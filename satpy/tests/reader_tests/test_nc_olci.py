@@ -123,6 +123,7 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestBitFlags))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestOLCIReader))
     return mysuite
 
 
