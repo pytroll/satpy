@@ -86,7 +86,7 @@ class NCOLCIBase(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
-        
+
     @property
     def start_time(self):
         return datetime.strptime(self.nc.attrs['start_time'],
@@ -117,7 +117,7 @@ class NCOLCIChannelBase(NCOLCIBase):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
-                                                
+
         self.channel = filename_info.get('dataset_name')
 
 
@@ -216,8 +216,8 @@ class NCOLCI2(NCOLCIChannelBase):
 
     def getbitmask(self, wqsf, items=[]):
         """ """
-        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT", 
-                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL", 
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                  "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
