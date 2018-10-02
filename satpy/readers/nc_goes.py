@@ -135,6 +135,7 @@ import xarray.ufuncs as xu
 
 import pyresample.geometry
 from satpy import CHUNK_SIZE
+from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hrit_goes import (SPACECRAFTS, EQUATOR_RADIUS, POLE_RADIUS,
                                      ALTITUDE)
@@ -663,9 +664,8 @@ class GOESNCFileHandler(BaseFileHandler):
 
         return self.start_time
 
-    @property
-    def resolution(self):
-        """Specify the spatial resolution of the dataset.
+    def filter_available_dataset(self, dataset_id, dataset_info):
+        """Complement the given dataset with information from the loaded file
 
         Channel 13_3's spatial resolution changes from one platform to another
         while the wavelength and file format remain the same. In order to
@@ -673,11 +673,11 @@ class GOESNCFileHandler(BaseFileHandler):
         read the channel's resolution from the file instead of defining it
         in the YAML dataset. This information will then be used by the YAML
         reader to complement the YAML definition of the dataset.
-
-        Returns:
-            Spatial resolution in kilometers
         """
-        return 1000. * self.nc['lineRes'].values
+        res = 1000. * self.nc['lineRes'].values  # km
+        dataset_info['resolution'] = res
+        new_id = DatasetID.from_dict(dataset_info)
+        return new_id, dataset_info
 
     def get_shape(self, key, info):
         """Get the shape of the data
