@@ -35,7 +35,8 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_grib, test_hrit_goes, test_ahi_hsd,
                                       test_iasi_l2, test_generic_image,
                                       test_scmi, test_hrit_jma, test_nc_goes,
-                                      test_nc_slstr, test_viirs_flood)
+                                      test_nc_slstr, test_nc_olci, test_viirs_flood)
+
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -61,6 +62,7 @@ def suite():
     mysuite.addTests(test_omps_edr.suite())
     mysuite.addTests(test_nucaps.suite())
     mysuite.addTests(test_geocat.suite())
+    mysuite.addTests(test_nc_olci.suite())
     mysuite.addTests(test_seviri_calibration.suite())
     mysuite.addTests(test_clavrx.suite())
     mysuite.addTests(test_grib.suite())
