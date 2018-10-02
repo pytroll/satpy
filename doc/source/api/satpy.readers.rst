@@ -348,6 +348,14 @@ satpy.readers.viirs\_compact module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.viirs\_edr\_flood module
+--------------------------------------
+
+.. automodule:: satpy.readers.viirs_edr_flood
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.viirs\_l1b module
 -------------------------------
 
