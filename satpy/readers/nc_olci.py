@@ -43,18 +43,18 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 class BitFlags(object):
     """Manipulate flags stored bitwise.
     """
-    flag_list = ['INVALID','WATER','LAND','CLOUD','SNOW_ICE',
-                 'INLAND_WATER','TIDAL','COSMETIC','SUSPECT',
-                 'HISOLZEN','SATURATED','MEGLINT','HIGHGLINT',
-                 'WHITECAPS','ADJAC','WV_FAIL','PAR_FAIL',
-                 'AC_FAIL','OC4ME_FAIL','OCNN_FAIL',
+    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE', 
+                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 
+                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT', 
+                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL', 
+                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL', 
                  
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
+                 'Extra_1', 
+                 'KDM_FAIL', 
+                 'Extra_2', 
                  
-                 'CLOUD_AMBIGUOUS','CLOUD_MARGIN','BPAC_ON','WHITE_SCATT',
-                 'LOWRW','HIGHRW']
+                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT', 
+                 'LOWRW', 'HIGHRW']
     
     meaning = {f:i for i,f in enumerate(flag_list)}
     
@@ -219,9 +219,9 @@ class NCOLCI2(NCOLCIChannelBase):
     
     def getbitmask(self, wqsf, items=[]):
         """ """
-        items = ["INVALID","SNOW_ICE","INLAND_WATER","SUSPECT",
-                 "AC_FAIL","CLOUD","HISOLZEN","OCNN_FAIL",
-                 "CLOUD_MARGIN","CLOUD_AMBIGUOUS","LOWRW","LAND"]
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT", 
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL", 
+                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
         
