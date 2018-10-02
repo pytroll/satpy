@@ -28,7 +28,7 @@ import logging
 from datetime import timedelta
 from tempfile import gettempdir
 import os
-from six import StringIO
+from six import BytesIO
 
 import numpy as np
 import xarray as xr
@@ -111,7 +111,7 @@ def decompress(infile, outdir='.'):
         raise IOError(str(cmd) + " is a directory!\n" + question)
 
     p = Popen([cmd, infile], stdout=PIPE)
-    stdout = StringIO(p.communicate()[0])
+    stdout = BytesIO(p.communicate()[0])
     status = p.returncode
     os.chdir(cwd)
 
