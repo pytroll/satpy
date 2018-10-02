@@ -59,11 +59,6 @@ class BitFlags(object):
 
     def __init__(self, value):
 
-        """
-        Arguments:
-        - `value`: an array
-        - `meaning`: a dict
-        """
         self._value = value
 
     def __getitem__(self, item):
