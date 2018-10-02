@@ -41,6 +41,7 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 
 class BitFlags(object):
+
     """Manipulate flags stored bitwise.
     """
     flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
@@ -54,15 +55,17 @@ class BitFlags(object):
                  'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
                  'LOWRW', 'HIGHRW']
 
-    meaning = {f:i for i,f in enumerate(flag_list)}
+    meaning = {f: i for i, f in enumerate(flag_list)}
 
     def __init__(self, value):
+
         """
         Arguments:
         - `value`: an array
         - `meaning`: a dict
         """
         self._value = value
+
     def __getitem__(self, item):
         pos = self.meaning[item]
         return ((self._value >> pos) % 2).astype(np.bool)
@@ -114,6 +117,7 @@ class NCOLCIGeo(NCOLCIBase):
 
 
 class NCOLCIChannelBase(NCOLCIBase):
+
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -122,6 +126,7 @@ class NCOLCIChannelBase(NCOLCIBase):
 
 
 class NCOLCI1B(NCOLCIChannelBase):
+
     def __init__(self, filename, filename_info, filetype_info, cal):
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
@@ -206,7 +211,7 @@ class NCOLCI2(NCOLCIChannelBase):
 
         elif key.name == 'mask':
             mask = self.getbitmask(dataset.to_masked_array().data)
-            dataset = dataset *np.nan
+            dataset = dataset * np.nan
             dataset = dataset.where(~mask, True)
 
         dataset.attrs['platform_name'] = self.platform_name
