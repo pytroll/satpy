@@ -124,6 +124,16 @@ class DummyReader(BaseFileHandler):
     def end_time(self):
         return self._end_time
 
+    def filter_available_dataset(self, dataset_id, dataset_info):
+        # Channel 1 is not available in the dummy file
+        if dataset_id.name == 'ch1':
+            return None, None
+
+        dataset_info['resolution'] = 1234.0
+        dataset_info['test_attr'] = 'test_value'
+        new_id = DatasetID.from_dict(dataset_info)
+        return new_id, dataset_info
+
 
 class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
     """Test units from FileYAMLReader with multiple readers."""
@@ -301,6 +311,51 @@ class TestFileFileYAMLReader(unittest.TestCase):
         for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
             res = self.reader.time_matches(fh.start_time, None)
             self.assertEqual(res, idx not in [0, 1, 4, 5])
+
+    def test_filter_available_datasets(self):
+        """Test filtering and complementing of available datasets"""
+        res = 1234.0
+        dummy_reader = DummyReader(filename='',
+                                   filename_info={},
+                                   filetype_info={'file_type': 'ftype1'})
+
+        lon_id = DatasetID(name='lons',
+                           wavelength=None,
+                           resolution=None,
+                           polarization=None,
+                           calibration=None,
+                           modifiers=())
+        ch1_id = DatasetID(name='ch01',
+                           wavelength=(0.5, 0.6, 0.7),
+                           resolution=None,
+                           polarization=None,
+                           calibration='reflectance',
+                           modifiers=()),
+        ch2_id_with_res = DatasetID(name='ch02',
+                                    wavelength=(0.7, 0.75, 0.8),
+                                    resolution=res,
+                                    polarization=None,
+                                    calibration='counts',
+                                    modifiers=())
+
+        # Filter available datasets with file type "ftype1"
+        self.reader.file_handlers = {'ftype1': [dummy_reader]}
+        self.reader.filter_available_datasets()
+
+        # Test results
+        self.assertIn(lon_id, self.reader.ids,
+                      msg='Dataset with unmatching filetype has been filtered')
+        self.assertNotIn(ch1_id, self.reader.ids,
+                         msg='Unavailable dataset has not been filtered')
+        self.assertIn(ch2_id_with_res, self.reader.ids,
+                      msg='Available dataset has either been filtered or '
+                          'not been complemented correctly')
+
+        for attr, expected in zip(['test_attr', 'resolution'],
+                                  ['test_value', res]):
+            self.assertEqual(self.reader.ids[ch2_id_with_res][attr], expected,
+                             msg='Dataset info has not been complemented '
+                                 'correctly')
 
     @patch('satpy.readers.yaml_reader.get_area_def')
     @patch('satpy.readers.yaml_reader.AreaDefBoundary')
