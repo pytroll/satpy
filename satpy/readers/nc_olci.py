@@ -43,21 +43,19 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 class BitFlags(object):
     """Manipulate flags stored bitwise.
     """
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE', 
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT', 
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL', 
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL', 
-                 
-                 'Extra_1', 
-                 'KDM_FAIL', 
-                 'Extra_2', 
-                 
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT', 
+    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
+                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
+                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
+                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
+                 'Extra_1',
+                 'KDM_FAIL',
+                 'Extra_2',
+                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
                  'LOWRW', 'HIGHRW']
-    
+
     meaning = {f:i for i,f in enumerate(flag_list)}
-    
+
     def __init__(self, value):
         """
         Arguments:
@@ -68,9 +66,9 @@ class BitFlags(object):
     def __getitem__(self, item):
         pos = self.meaning[item]
         return ((self._value >> pos) % 2).astype(np.bool)
-     
-    
-    
+
+
+
 class NCOLCIBase(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -121,7 +119,7 @@ class NCOLCIChannelBase(NCOLCIBase):
                                                 filetype_info)
                                                 
         self.channel = filename_info.get('dataset_name')
-        
+
 
 class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal):
@@ -192,11 +190,10 @@ class NCOLCI1B(NCOLCIChannelBase):
 
 
 class NCOLCI2(NCOLCIChannelBase):
-    
+
     def get_dataset(self, key, info):
         """Load a dataset
         """
-            
         if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
@@ -216,7 +213,7 @@ class NCOLCI2(NCOLCIChannelBase):
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
         return dataset
-    
+
     def getbitmask(self, wqsf, items=[]):
         """ """
         items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT", 
@@ -224,8 +221,8 @@ class NCOLCI2(NCOLCIChannelBase):
                  "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
-        
-        
+
+
 class NCOLCIAngles(BaseFileHandler):
 
     datasets = {'satellite_azimuth_angle': 'OAA',
