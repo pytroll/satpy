@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2014-2018 PyTroll developers
@@ -32,6 +31,7 @@ import bz2
 import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
+from pyresample.boundary import AreaDefBoundary, Boundary
 
 LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, np.string_) and value.size == 1:
+            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
@@ -87,7 +87,7 @@ def _lonlat_from_geos_angle(x, y, geos_area):
     sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
                  (h**2 - (geos_area.proj_dict['a'] / 1000)**2))
-    #sd = 0
+    # sd = 0
 
     sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
     s1 = h - sn * np.cos(x) * np.cos(y)
@@ -140,8 +140,6 @@ def get_area_slices(data_area, area_to_cover):
 
         return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
 
-    from trollsched.boundary import AreaDefBoundary, Boundary
-
     data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
 
     area_boundary = AreaDefBoundary(area_to_cover, 100)
@@ -191,3 +189,19 @@ def unzip_file(filename):
         return tmpfilepath
 
     return None
+
+
+def bbox(img):
+    """Find the bounding box around nonzero elements in the given array
+
+    Copied from https://stackoverflow.com/a/31402351/5703449 .
+
+    Returns:
+        rowmin, rowmax, colmin, colmax
+    """
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax

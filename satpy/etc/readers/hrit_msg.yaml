@@ -88,6 +88,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_HRV
 
   IR_016:
@@ -103,6 +104,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_016
 
   IR_039:
@@ -118,6 +120,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_039
 
   IR_087:
@@ -133,6 +136,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_087
 
   IR_097:
@@ -148,6 +152,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_097
 
   IR_108:
@@ -163,6 +168,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_108
 
   IR_120:
@@ -178,6 +184,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_120
 
   IR_134:
@@ -193,6 +200,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_IR_134
 
   VIS006:
@@ -208,6 +216,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_VIS006
 
   VIS008:
@@ -223,6 +232,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_VIS008
 
   WV_062:
@@ -238,6 +248,7 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_WV_062
 
   WV_073:
@@ -253,4 +264,5 @@ datasets:
         units: W m-2 um-1 sr-1
       counts:
         standard_name: counts
+        units: count
     file_type: HRIT_WV_073

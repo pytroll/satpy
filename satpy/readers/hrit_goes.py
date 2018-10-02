@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2014-2018 Pytroll developpers
 
 # Author(s):
 
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
+#   Andrew Brooks
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
@@ -22,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader.
+"""GOES HRIT format reader.
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012
@@ -35,19 +34,26 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from pyresample import geometry
+
+from satpy.readers.eum_base import (time_cds_short, recarray2dict)
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
-                                     image_data_function, make_time_cds_short,
-                                     time_cds_short)
+                                     image_data_function)
 
 
 class CalibrationError(Exception):
     pass
 
+
 logger = logging.getLogger('hrit_goes')
 
+# Geometric constants [meters]
+EQUATOR_RADIUS = 6378169.00
+POLE_RADIUS = 6356583.80
+ALTITUDE = 35785831.00
 
 # goes implementation:
 key_header = np.dtype([('key_number', 'u1'),
@@ -100,11 +106,6 @@ attitude_coef = np.dtype([('StartTime', time_cds_short),
 cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
-time_cds_expanded = np.dtype([('days', '>u2'),
-                              ('milliseconds', '>u4'),
-                              ('microseconds', '>u2'),
-                              ('nanoseconds', '>u2')])
-
 
 sgs_time = np.dtype([('century', 'u1'),
                      ('year', 'u1'),
@@ -114,6 +115,7 @@ sgs_time = np.dtype([('century', 'u1'),
                      ('mins_secs', 'u1'),
                      ('secs_msecs', 'u1'),
                      ('msecs', 'u1')])
+
 
 def make_sgs_time(sgs_time_array):
     year = ((sgs_time_array['century'] >> 4) * 1000 +
@@ -131,14 +133,13 @@ def make_sgs_time(sgs_time_array):
             (sgs_time_array['secs_msecs'] >> 4))
     msecs = ((sgs_time_array['secs_msecs'] & 15) * 100 +
              (sgs_time_array['msecs'] >> 4) * 10 +
-             (sgs_time_array['msecs'] &15))
-    return (datetime(year, 1, 1) +
-            timedelta(days=doy - 1,
-                      hours=hours,
-                      minutes=mins,
-                      seconds=secs,
-                      milliseconds=msecs))
-
+             (sgs_time_array['msecs'] & 15))
+    return (datetime(int(year), 1, 1) +
+            timedelta(days=int(doy - 1),
+                      hours=int(hours),
+                      minutes=int(mins),
+                      seconds=int(secs),
+                      milliseconds=int(msecs)))
 
 
 satellite_status = np.dtype([("TagType", "<u4"),
@@ -158,8 +159,9 @@ image_acquisition = np.dtype([("TagType", "<u4"),
 
 gvar_float = '>i4'
 
+
 def make_gvar_float(float_val):
-    sign = 0
+    sign = 1
     if float_val < 0:
         float_val = -float_val
         sign = -1
@@ -172,88 +174,69 @@ def make_gvar_float(float_val):
     return res
 
 
-# XXX arb
-#prologue = np.dtype([('SatelliteStatus', satellite_status),
-#                     ('ImageAcquisition', image_acquisition, (10, )),
-#                     ('ImageCalibration', "<i4", (10, 1024))])
 prologue = np.dtype([
-  # common generic header
-  ("CommonHeaderVersion", "u1"),
-  ("Junk1", "u1", 3),
-  ("NominalSGSProductTime", time_cds_short),
-  ("SGSProductQuality", "u1"),
-  ("SGSProductCompleteness", "u1"),
-  ("SGSProductTimeliness", "u1"),
-  ("SGSProcessingInstanceId", "u1"),
-  ("BaseAlgorithmVersion", np.str_, 16),
-  ("ProductAlgorithmVersion", np.str_, 16),
-  # product header
-  ("ImageProductHeaderVersion", "u1"),
-  ("Junk2", "u1", 3),
-  ("ImageProductHeaderLength", ">u4"),
-  ("ImageProductVersion", "u1"),
-  # first block-0
-  ("SatelliteID", "u1"),
-  ("SPSID", "u1"),
-  ("IScan", "u1", 4),
-  ("IDSub", "u1", 16),
-  ("TCurr", sgs_time),
-  ("TCHED", sgs_time),
-  ("TCTRL", sgs_time),
-  ("TLHED", sgs_time),
-  ("TLTRL", sgs_time),
-  ("TIPFS", sgs_time),
-  ("TINFS", sgs_time),
-  ("TISPC", sgs_time),
-  ("TIECL", sgs_time),
-  ("TIBBC", sgs_time),
-  ("TISTR", sgs_time),
-  ("TLRAN", sgs_time),
-  ("TIIRT", sgs_time),
-  ("TIVIT", sgs_time),
-  ("TCLMT", sgs_time),
-  ("TIONA", sgs_time),
-  ("RelativeScanCount", '>u2'),
-  ("AbsoluteScanCount", '>u2'),
-  ("NorthernmostScanLine", '>u2'),
-  ("WesternmostPixel", '>u2'),
-  ("EasternmostPixel", '>u2'),
-  ("NorthernmostFrameLine", '>u2'),
-  ("SouthernmostFrameLine", '>u2'),
-  ("0Pixel", '>u2'),
-  ("0ScanLine", '>u2'),
-  ("0Scan", '>u2'),
-  ("SubSatScan", '>u2'),
-  ("SubSatPixel", '>u2'),
-  ("SubSatLatitude", gvar_float),
-  ("SubSatLongitude", gvar_float), # ">f4" seems better than "<f4". still wrong though.
-  ("Junk4", "u1", 96), # move to "word" 295
-  ("IMCIdentifier", "S4"),
-  ("Zeros", "u1", 12),
-  ("ReferenceLongitude", gvar_float),
-  ("ReferenceDistance",  gvar_float),
-  ("ReferenceLatitude",  gvar_float)
-  ])
-
-
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
+    # common generic header
+    ("CommonHeaderVersion", "u1"),
+    ("Junk1", "u1", 3),
+    ("NominalSGSProductTime", time_cds_short),
+    ("SGSProductQuality", "u1"),
+    ("SGSProductCompleteness", "u1"),
+    ("SGSProductTimeliness", "u1"),
+    ("SGSProcessingInstanceId", "u1"),
+    ("BaseAlgorithmVersion", "S1", 16),
+    ("ProductAlgorithmVersion", "S1", 16),
+    # product header
+    ("ImageProductHeaderVersion", "u1"),
+    ("Junk2", "u1", 3),
+    ("ImageProductHeaderLength", ">u4"),
+    ("ImageProductVersion", "u1"),
+    # first block-0
+    ("SatelliteID", "u1"),
+    ("SPSID", "u1"),
+    ("IScan", "u1", 4),
+    ("IDSub", "u1", 16),
+    ("TCurr", sgs_time),
+    ("TCHED", sgs_time),
+    ("TCTRL", sgs_time),
+    ("TLHED", sgs_time),
+    ("TLTRL", sgs_time),
+    ("TIPFS", sgs_time),
+    ("TINFS", sgs_time),
+    ("TISPC", sgs_time),
+    ("TIECL", sgs_time),
+    ("TIBBC", sgs_time),
+    ("TISTR", sgs_time),
+    ("TLRAN", sgs_time),
+    ("TIIRT", sgs_time),
+    ("TIVIT", sgs_time),
+    ("TCLMT", sgs_time),
+    ("TIONA", sgs_time),
+    ("RelativeScanCount", '>u2'),
+    ("AbsoluteScanCount", '>u2'),
+    ("NorthernmostScanLine", '>u2'),
+    ("WesternmostPixel", '>u2'),
+    ("EasternmostPixel", '>u2'),
+    ("NorthernmostFrameLine", '>u2'),
+    ("SouthernmostFrameLine", '>u2'),
+    ("0Pixel", '>u2'),
+    ("0ScanLine", '>u2'),
+    ("0Scan", '>u2'),
+    ("SubSatScan", '>u2'),
+    ("SubSatPixel", '>u2'),
+    ("SubSatLatitude", gvar_float),
+    ("SubSatLongitude", gvar_float),
+    ("Junk4", "u1", 96),  # move to "word" 295
+    ("IMCIdentifier", "S4"),
+    ("Zeros", "u1", 12),
+    ("ReferenceLongitude", gvar_float),
+    ("ReferenceDistance",  gvar_float),
+    ("ReferenceLatitude",  gvar_float)
+])
 
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
 
-    """GOES HRIT format reader
-    """
+    """GOES HRIT format reader"""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -269,8 +252,7 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
         """Read the prologue metadata."""
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=prologue, count=1)[0]
-
+            data = np.fromfile(fp_, dtype=prologue, count=1)
             self.prologue.update(recarray2dict(data))
 
         self.process_prologue()
@@ -351,26 +333,27 @@ C1 = 1.19104273e-5
 C2 = 1.43877523
 
 SPACECRAFTS = {
-               # these are GP_SC_ID
-               18007: "GOES-7",
-               18008: "GOES-8",
-               18009: "GOES-9",
-               18010: "GOES-10",
-               18011: "GOES-11",
-               18012: "GOES-12",
-               18013: "GOES-13",
-               18014: "GOES-14",
-               18015: "GOES-15",
-               # these are in block-0
-               7: "GOES-7",
-               8: "GOES-8",
-               9: "GOES-9",
-               10: "GOES-10",
-               11: "GOES-11",
-               12: "GOES-12",
-               13: "GOES-13",
-               14: "GOES-14",
-               15: "GOES-15"}
+    # these are GP_SC_ID
+    18007: "GOES-7",
+    18008: "GOES-8",
+    18009: "GOES-9",
+    18010: "GOES-10",
+    18011: "GOES-11",
+    18012: "GOES-12",
+    18013: "GOES-13",
+    18014: "GOES-14",
+    18015: "GOES-15",
+    # these are in block-0
+    7: "GOES-7",
+    8: "GOES-8",
+    9: "GOES-9",
+    10: "GOES-10",
+    11: "GOES-11",
+    12: "GOES-12",
+    13: "GOES-13",
+    14: "GOES-14",
+    15: "GOES-15"}
+
 
 class HRITGOESFileHandler(HRITFileHandler):
     """GOES HRIT format reader."""
@@ -385,39 +368,26 @@ class HRITGOESFileHandler(HRITFileHandler):
                                                    goms_text_headers))
         self.prologue = prologue.prologue
         self.chid = self.mda['spectral_channel_id']
-        # XXX no epilogue
-        #sublon = self.epilogue['GeometricProcessing']['TGeomNormInfo']['SubLon']
-        #sublon = sublon[self.chid]
-        sublon = self.prologue['SubSatLongitude'];
-        #sublon = -75.0 # XXX arb hard-coded since extraction returns -0.0883789
-        self.mda['projection_parameters']['SSP_longitude'] = sublon # degrees, so no need to np.rad2deg(sublon)
 
-        #satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
-        #self.platform_name = SPACECRAFTS[satellite_id]
+        sublon = self.prologue['SubSatLongitude']
+        self.mda['projection_parameters']['SSP_longitude'] = sublon
+
         satellite_id = self.prologue['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
-        #logger.debug("satellite_id  "+str(satellite_id))
-        #logger.debug("platform_name "+self.platform_name)
-        #logger.debug("SSP_longitude "+str(self.mda['projection_parameters']['SSP_longitude']))
-        #logger.debug("SSP_distance  "+str(self.prologue['ReferenceDistance']))
-        #logger.debug("SSP_latitude  "+str(self.prologue['SubSatLatitude']))
-
 
     def get_dataset(self, key, info):
         """Get the data  from the files."""
-        logger.debug("hrit_goes/get_dataset pre")
+        logger.debug("Getting raw data")
         res = super(HRITGOESFileHandler, self).get_dataset(key, info)
 
-        logger.debug("hrit_goes/get_dataset post")
-
-        logger.debug("hrit_goes/get_dataset res")
         self.mda['calibration_parameters'] = self._get_calibration_params()
+
         res = self.calibrate(res, key.calibration)
-        res.attrs['units'] = info['units']
-        res.attrs['standard_name'] = info['standard_name']
+        new_attrs = info.copy()
+        new_attrs.update(res.attrs)
+        res.attrs = new_attrs
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'goes_imager'
-
         return res
 
     def _get_calibration_params(self):
@@ -425,9 +395,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         params = {}
         idx_table = []
         val_table = []
-        for elt in self.mda['image_data_function'].split('\r\n'):
+        for elt in self.mda['image_data_function'].split(b'\r\n'):
             try:
-                key, val = elt.split(':=')
+                key, val = elt.split(b':=')
                 try:
                     idx_table.append(int(key))
                     val_table.append(float(val))
@@ -441,11 +411,10 @@ class HRITGOESFileHandler(HRITFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        logger.debug("hrit_goes/calibrate")
+        logger.debug("Calibration")
         tic = datetime.now()
-
         if calibration == 'counts':
-            return
+            return data
         if calibration == 'reflectance':
             res = self._calibrate(data)
         elif calibration == 'brightness_temperature':
@@ -461,13 +430,16 @@ class HRITGOESFileHandler(HRITFileHandler):
         """Calibrate *data*."""
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
-        # TODO use dask's map_blocks for this
-        res = xr.DataArray(np.interp(data, idx, val),
+        data.data = da.where(data.data == 0, np.nan, data.data)
+        ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
+        res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
-        res = res.where(data > 0)
-        res.attrs['units'] = self.mda['calibration_parameters']['_UNIT']
-        return data
+        res = res.clip(min=0)
+        units = {'percent': '%'}
+        unit = self.mda['calibration_parameters'][b'_UNIT']
+        res.attrs['units'] = units.get(unit, unit)
+        return res
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
@@ -476,13 +448,11 @@ class HRITGOESFileHandler(HRITFileHandler):
         coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
-
-        a = 6378169.00
-        b = 6356583.80
-        h = 35785831.00
+        a = EQUATOR_RADIUS
+        b = POLE_RADIUS
+        h = ALTITUDE
 
         lon_0 = self.prologue['SubSatLongitude']
-        lat_0 = self.prologue['SubSatLatitude']
 
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
@@ -513,38 +483,3 @@ class HRITGOESFileHandler(HRITFileHandler):
         self.area = area
 
         return area
-
-
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()

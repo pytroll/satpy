@@ -110,16 +110,6 @@ UNIT_CONV = {
 }
 
 
-# Lettered Grids are predefined/static tile grids starting with A
-# in the upper-left cell, going right until all cells are filled
-# Map proj_type -> (upper_left_extent, lower_right_extent, tile_width, tile_height)
-LETTERED_GRIDS = {
-    'lcc': ((-140, 55), (-50, 15), 5000, 5000),
-    'stere': ((130, 80), (-120, 50), 5000, 5000),
-    'mercator': ((-180, 50), (-50, 10), 5000, 5000),
-}
-
-
 class NumberedTileGenerator(object):
     def __init__(self, area_definition,
                  tile_shape=None, tile_count=None):
@@ -285,10 +275,10 @@ class LetteredTileGenerator(NumberedTileGenerator):
     def _get_tile_properties(self, tile_shape, tile_count):
         # ignore tile_shape and tile_count
         # they come from the base class, but aren't used here
+        del tile_shape, tile_count
 
         # get original image's X/Y
         ad = self.area_definition
-        p = Proj(ad.proj4_string)
         x, y = ad.get_proj_coords()
         x = x[0].squeeze()  # all rows should have the same coordinates
         y = y[:, 0].squeeze()  # all columns should have the same coordinates
@@ -367,7 +357,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
     def _tile_identifier(self, ty, tx):
         st = self.num_subtiles
         ttc = self.total_tile_count
-        alpha_num = int((ty / st[0]) * (ttc[1] / st[1]) + (tx / st[1]))
+        alpha_num = int((ty // st[0]) * (ttc[1] // st[1]) + (tx // st[1]))
         alpha = string.ascii_uppercase[alpha_num]
         tile_num = int((ty % st[0]) * st[1] + (tx % st[1])) + 1
         return "T{}{:02d}".format(alpha, tile_num)
@@ -623,7 +613,7 @@ class NetCDFWriter(object):
             p.grid_mapping_name = "lambert_conformal_conic"
             p.standard_parallel = proj4_info["lat_0"]  # How do we specify two standard parallels?
             p.longitude_of_central_meridian = proj4_info["lon_0"]
-            p.latitude_of_projection_origion = proj4_info.get('lat_1', proj4_info['lat_0'])  # Correct?
+            p.latitude_of_projection_origin = proj4_info.get('lat_1', proj4_info['lat_0'])  # Correct?
         elif proj4_info['proj'] == 'stere':
             p = self.projection = self._nc.createVariable("polar_projection", 'i4')
             self.image_data.grid_mapping = "polar_projection"
@@ -631,7 +621,7 @@ class NetCDFWriter(object):
             p.grid_mapping_name = "polar_stereographic"
             p.standard_parallel = proj4_info["lat_ts"]
             p.straight_vertical_longitude_from_pole = proj4_info.get("lon_0", 0.0)
-            p.latitude_of_projection_origion = proj4_info["lat_0"]  # ?
+            p.latitude_of_projection_origin = proj4_info["lat_0"]  # ?
         elif proj4_info['proj'] == 'merc':
             p = self.projection = self._nc.createVariable("mercator_projection", 'i4')
             self.image_data.grid_mapping = "mercator_projection"
@@ -1075,7 +1065,7 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
 
 
 def create_debug_lettered_tiles(init_args, create_args):
-    from satpy import Dataset
+    import xarray as xr
     create_args['lettered_grid'] = True
     create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
 
@@ -1086,8 +1076,7 @@ def create_debug_lettered_tiles(init_args, create_args):
     area_def, arr = _create_debug_array(sector_info, create_args['num_subtiles'])
 
     now = datetime.utcnow()
-    product = Dataset(
-        arr,
+    product = xr.DataArray(arr, attrs=dict(
         mask=np.isnan(arr),
         name='debug_{}'.format(sector_id),
         platform='DEBUG',
@@ -1099,7 +1088,7 @@ def create_debug_lettered_tiles(init_args, create_args):
         units='1',
         valid_min=0,
         valid_max=255,
-    )
+    ))
     created_files = writer.save_dataset(
         product,
         **create_args

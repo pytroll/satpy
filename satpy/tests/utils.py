@@ -46,6 +46,7 @@ def test_datasets():
         DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
+        DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
     ]
     return d
 
@@ -159,6 +160,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
+        DatasetID(name='comp23'): ([0.8], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -179,26 +181,9 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self,
-                     key,
-                     calibration=None,
-                     resolution=None,
-                     polarization=None,
-                     modifiers=None,
-                     aslist=False):
-    from satpy import DatasetID
-    if isinstance(key, DatasetID) and not key.modifiers:
-        try:
-            return _get_dataset_key(self, key.name or key.wavelength)
-        except KeyError:
-            pass
-
-    dataset_ids = self.datasets
-    for ds in dataset_ids:
-        # should do wavelength and string matching for equality
-        if key == ds:
-            return ds
-    raise KeyError("No fake test key '{}'".format(key))
+def _get_dataset_key(self, key, **kwargs):
+    from satpy.readers import get_key
+    return get_key(key, self.datasets, **kwargs)
 
 
 def _reader_load(self, dataset_keys):

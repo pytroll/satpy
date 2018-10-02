@@ -1,7 +1,7 @@
 reader:
   description: CSPP Geo and GEOCAT file reader
   name: geocat
-  reader: !!python/name:satpy.readers.geocat.GEOCATYAMLReader
+  reader: !!python/name:satpy.readers.geocat.FileYAMLReader
   sensors: [abi, ahi, goes_imager]
 
 file_types:

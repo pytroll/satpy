@@ -38,7 +38,7 @@ import yaml
 
 from satpy.config import (CONFIG_PATH, config_search_paths,
                           recursive_dict_update)
-from satpy.dataset import (DATASET_KEYS, Dataset, DatasetID, MetadataObject,
+from satpy.dataset import (DATASET_KEYS, DatasetID, MetadataObject,
                            combine_metadata)
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
@@ -297,7 +297,9 @@ class CompositeBase(MetadataObject):
             raise IncompatibleAreas("Y dimension has different sizes")
 
         areas = [ds.attrs.get('area') for ds in data_arrays]
-        if not areas or any(a is None for a in areas):
+        if all(a is None for a in areas):
+            return data_arrays
+        elif any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
@@ -380,41 +382,24 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
 class PSPRayleighReflectance(CompositeBase):
 
+    _rayleigh_cache = WeakValueDictionary()
+
     def get_angles(self, vis):
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
-        def _get_sun_angles(lons, lats, start_time):
-            sunalt, suna = get_alt_az(start_time, lons, lats)
-            suna = xu.rad2deg(suna)
-            sunz = sun_zenith_angle(start_time, lons, lats)
-            return np.stack([suna, sunz])
-
-        def _get_sat_angles(lons, lats, start_time, sat_lon, sat_lat, sat_alt):
-            sata, satel = get_observer_look(sat_lon,
-                                            sat_lat,
-                                            sat_alt,
-                                            start_time,
-                                            lons, lats, 0)
-            return np.stack([sata, satel])
-
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
 
-        res = da.map_blocks(_get_sun_angles, lons, lats,
-                            vis.attrs['start_time'],
-                            dtype=lons.dtype, new_axis=[0],
-                            chunks=(2, lons.chunks[0], lons.chunks[1]))
-
-        suna, sunz = res[0, :, :], res[1, :, :]
-        res = da.map_blocks(_get_sat_angles, lons, lats,
-                            vis.attrs['start_time'],
-                            vis.attrs['satellite_longitude'],
-                            vis.attrs['satellite_latitude'],
-                            vis.attrs['satellite_altitude'],
-                            dtype=lons.dtype, new_axis=[0],
-                            chunks=(2, lons.chunks[0], lons.chunks[1]))
-        sata, satel = res[0, :, :], res[1, :, :]
+        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
+        suna = xu.rad2deg(suna)
+        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        sata, satel = get_observer_look(
+            vis.attrs['satellite_longitude'],
+            vis.attrs['satellite_latitude'],
+            vis.attrs['satellite_altitude'],
+            vis.attrs['start_time'],
+            lons, lats, 0)
         satz = 90 - satel
         return sata, satz, suna, sunz
 
@@ -449,21 +434,26 @@ class PSPRayleighReflectance(CompositeBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-
-        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                             atmosphere=atmosphere,
-                             aerosol_type=aerosol_type)
+        rayleigh_key = (vis.attrs['platform_name'],
+                        vis.attrs['sensor'], atmosphere, aerosol_type)
+        if rayleigh_key not in self._rayleigh_cache:
+            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                                 atmosphere=atmosphere,
+                                 aerosol_type=aerosol_type)
+            self._rayleigh_cache[rayleigh_key] = corrector
+        else:
+            corrector = self._rayleigh_cache[rayleigh_key]
 
         try:
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
-                                          satz, ssadiff, vis.attrs['name'],
-                                          red.data)
-        except KeyError:
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
+                                                      vis.attrs['name'],
+                                                      red.data)
+        except (KeyError, IOError):
             LOG.warning("Could not get the reflectance correction using band name: %s", vis.attrs['name'])
             LOG.warning("Will try use the wavelength, however, this may be ambiguous!")
-            refl_cor_band = da.map_blocks(corrector.get_reflectance, sunz,
-                                          satz, ssadiff, vis.attrs['wavelength'][1],
-                                          red.data)
+            refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
+                                                      vis.attrs['wavelength'][1],
+                                                      red.data)
         proj = vis - refl_cor_band
         proj.attrs = vis.attrs
         self.apply_modifier_info(vis, proj)
@@ -478,9 +468,11 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
-        proj = Dataset(self._get_reflectance(projectables, optional_datasets) * 100, **_nir.info)
+        refl = self._get_reflectance(projectables, optional_datasets) * 100
+        proj = xr.DataArray(refl.filled(np.nan), dims=_nir.dims,
+                            coords=_nir.coords, attrs=_nir.attrs)
 
-        proj.info['units'] = '%'
+        proj.attrs['units'] = '%'
         self.apply_modifier_info(_nir, proj)
 
         return proj
@@ -506,11 +498,12 @@ class NIRReflectance(CompositeBase):
         tb13_4 = None
 
         for dataset in optional_datasets:
-            if (dataset.attrs['units'] == 'K' and
-                    "wavelengh" in dataset.attrs and
-                    dataset.attrs["wavelength"][0] <= 13.4 <= dataset.attrs["wavelength"][2]):
+            wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
+            if (dataset.attrs.get('units') == 'K' and
+                    wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset
-            elif dataset.attrs["standard_name"] == "solar_zenith_angle":
+            elif ("standard_name" in dataset.attrs and
+                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
                 sun_zenith = dataset
 
         # Check if the sun-zenith angle was provided:
@@ -535,7 +528,9 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        proj = Dataset(self._refl3x.emissive_part_3x(), **_nir.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
+                            dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
         self.apply_modifier_info(_nir, proj)
@@ -618,7 +613,9 @@ class DifferenceCompositor(CompositeBase):
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
-        return Dataset(projectables[0] - projectables[1], **info)
+        proj = projectables[0] - projectables[1]
+        proj.attrs = info
+        return proj
 
 
 class GenericCompositor(CompositeBase):
@@ -764,11 +761,13 @@ class ColorizeCompositor(ColormapCompositor):
         r[data.mask] = palette[-1][0]
         g[data.mask] = palette[-1][1]
         b[data.mask] = palette[-1][2]
-        r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
 
-        return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
+        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
+        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
+        #
+        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -830,6 +829,8 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
 
+        projectables = self.check_areas(projectables)
+
         day_data = projectables[0]
         night_data = projectables[1]
 
@@ -886,8 +887,8 @@ def enhance2dataset(dset):
     array of the image."""
     attrs = dset.attrs
     img = get_enhanced_image(dset)
-    # Clip image data to interval [0.0, 1.0] and replace nan values
-    data = img.data.clip(0.0, 1.0).fillna(0.0)
+    # Clip image data to interval [0.0, 1.0]
+    data = img.data.clip(0.0, 1.0)
     data.attrs = attrs
 
     return data
@@ -1175,17 +1176,40 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
     @staticmethod
     def four_element_average_dask(d):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean4(data):
+        def _mean4(data, offset=(0, 0), block_id=None):
             rows, cols = data.shape
-            if rows % 2 != 0 or cols % 2 != 0:
-                raise ValueError("Self-sharpening requires arrays with "
-                                 "shapes divisible by 2")
-            new_shape = (int(rows / 2.), 2, int(cols / 2.), 2)
-            data_mean = np.ma.mean(data.reshape(new_shape), axis=(1, 3))
+            rows2, cols2 = data.shape
+            pad = []
+            # we assume that the chunks except the first ones are aligned
+            if block_id[0] == 0:
+                row_offset = offset[0] % 2
+            else:
+                row_offset = 0
+            if block_id[1] == 0:
+                col_offset = offset[1] % 2
+            else:
+                col_offset = 0
+            row_after = (row_offset + rows) % 2
+            col_after = (col_offset + cols) % 2
+            pad = ((row_offset, row_after), (col_offset, col_after))
+
+            rows2 = rows + row_offset + row_after
+            cols2 = cols + col_offset + col_after
+
+            av_data = np.pad(data, pad, 'edge')
+            new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
+            data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
             data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
+            data_mean = data_mean[row_offset:row_offset + rows,
+                                  col_offset:col_offset + cols]
             return data_mean
 
-        res = d.data.map_blocks(_mean4, dtype=d.dtype)
+        try:
+            offset = d.attrs['area'].crop_offset
+        except (KeyError, AttributeError):
+            offset = (0, 0)
+
+        res = d.data.map_blocks(_mean4, offset=offset, dtype=d.dtype)
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):

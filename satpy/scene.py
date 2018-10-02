@@ -26,17 +26,20 @@
 
 import logging
 import os
-import yaml
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
-from satpy.dataset import DatasetID, MetadataObject, dataset_walker, replace_anc
+from satpy.config import get_environ_config_dir
+from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
+                           replace_anc)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
-from satpy.resample import resample_dataset, get_frozen_area, prepare_resampler
-from pyresample.geometry import AreaDefinition
+from satpy.resample import (resample_dataset,
+                            prepare_resampler, get_area_def)
+from satpy.writers import load_writer
+from pyresample.geometry import AreaDefinition, BaseDefinition
 from xarray import DataArray
+import numpy as np
+import six
 
 try:
     import configparser
@@ -153,6 +156,7 @@ class Scene(MetadataObject):
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
+        self.resamplers = {}
 
     def _ipython_key_completions_(self):
         return [x.name for x in self.datasets.keys()]
@@ -215,23 +219,29 @@ class Scene(MetadataObject):
                                  be either `xarray.DataArray` objects or
                                  identifiers to get the DataArrays from the
                                  current Scene. Defaults to all datasets.
+                                 This can also be a series of area objects,
+                                 typically AreaDefinitions.
             compare_func (callable): `min` or `max` or other function used to
                                      compare the dataset's areas.
 
         """
         if datasets is None:
-            check_datasets = list(self.values())
-        else:
-            check_datasets = []
-            for ds in datasets:
-                if not isinstance(ds, DataArray):
-                    ds = self[ds]
-                check_datasets.append(ds)
+            datasets = list(self.values())
 
-        if not check_datasets:
+        areas = []
+        for ds in datasets:
+            if isinstance(ds, BaseDefinition):
+                areas.append(ds)
+                continue
+            elif not isinstance(ds, DataArray):
+                ds = self[ds]
+            area = ds.attrs.get('area')
+            areas.append(area)
+
+        areas = [x for x in areas if x is not None]
+        if not areas:
             raise ValueError("No dataset areas available")
 
-        areas = [x.attrs['area'] for x in check_datasets]
         if not all(isinstance(x, type(areas[0]))
                    for x in areas[1:]):
             raise ValueError("Can't compare areas of different types")
@@ -396,13 +406,10 @@ class Scene(MetadataObject):
         datasets_by_area = {}
         for ds in self:
             a = ds.attrs.get('area')
-            a_str = str(a) if a is not None else None
-            datasets_by_area.setdefault(
-                a_str, (a, []))
-            datasets_by_area[a_str][1].append(DatasetID.from_dict(ds.attrs))
+            datasets_by_area.setdefault(a, []).append(
+                DatasetID.from_dict(ds.attrs))
 
-        for area_name, (area_obj, ds_list) in datasets_by_area.items():
-            yield area_obj, ds_list
+        return datasets_by_area.items()
 
     def keys(self, **kwargs):
         return self.datasets.keys(**kwargs)
@@ -410,13 +417,208 @@ class Scene(MetadataObject):
     def values(self):
         return self.datasets.values()
 
+    def copy(self, datasets=None):
+        """Create a copy of the Scene including dependency information.
+
+        Args:
+            datasets (list, tuple): `DatasetID` objects for the datasets
+                                    to include in the new Scene object.
+
+        """
+        new_scn = self.__class__()
+        new_scn.attrs = self.attrs.copy()
+        new_scn.dep_tree = self.dep_tree.copy()
+
+        for ds_id in (datasets or self.keys()):
+            # NOTE: Must use `.datasets` or side effects of `__setitem__`
+            #       could hurt us with regards to the wishlist
+            new_scn.datasets[ds_id] = self[ds_id]
+
+        if not datasets:
+            new_scn.wishlist = self.wishlist.copy()
+        else:
+            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
+                                    for ds in new_scn])
+        return new_scn
+
+    @property
+    def all_same_area(self):
+        """All contained data arrays are on the same area."""
+        all_areas = [x.attrs.get('area', None) for x in self.values()]
+        all_areas = [x for x in all_areas if x is not None]
+        return all(all_areas[0] == x for x in all_areas[1:])
+
+    @property
+    def all_same_proj(self):
+        """All contained data array are in the same projection."""
+        all_areas = [x.attrs.get('area', None) for x in self.values()]
+        all_areas = [x for x in all_areas if x is not None]
+        return all(all_areas[0].proj_str == x.proj_str for x in all_areas[1:])
+
+    def _slice_area_from_bbox(self, src_area, dst_area, ll_bbox=None,
+                              xy_bbox=None):
+        """Slice the provided area using the bounds provided."""
+        if ll_bbox is not None:
+            dst_area = AreaDefinition(
+                'crop_area', 'crop_area', 'crop_latlong',
+                {'proj': 'latlong'}, 100, 100, ll_bbox)
+        elif xy_bbox is not None:
+            dst_area = AreaDefinition(
+                'crop_area', 'crop_area', 'crop_xy',
+                src_area.proj_dict, src_area.x_size, src_area.y_size,
+                xy_bbox)
+        x_slice, y_slice = src_area.get_area_slices(dst_area)
+        return src_area[y_slice, x_slice], y_slice, x_slice
+
+    def _slice_datasets(self, dataset_ids, slice_key, new_area, area_only=True):
+        """Slice scene in-place for the datasets specified."""
+        new_datasets = {}
+        datasets = (self[ds_id] for ds_id in dataset_ids)
+        for ds, parent_ds in dataset_walker(datasets):
+            ds_id = DatasetID.from_dict(ds.attrs)
+            # handle ancillary variables
+            pres = None
+            if parent_ds is not None:
+                pres = new_datasets[DatasetID.from_dict(parent_ds.attrs)]
+            if ds_id in new_datasets:
+                replace_anc(ds, pres)
+                continue
+            if area_only and ds.attrs.get('area') is None:
+                new_datasets[ds_id] = ds
+                replace_anc(ds, pres)
+                continue
+
+            if not isinstance(slice_key, dict):
+                # match dimension name to slice object
+                key = dict(zip(ds.dims, slice_key))
+            else:
+                key = slice_key
+            new_ds = ds.isel(**key)
+            if new_area is not None:
+                new_ds.attrs['area'] = new_area
+
+            new_datasets[ds_id] = new_ds
+            if parent_ds is None:
+                # don't use `__setitem__` because we don't want this to
+                # affect the existing wishlist/dep tree
+                self.datasets[ds_id] = new_ds
+            else:
+                replace_anc(new_ds, pres)
+
+    def slice(self, key):
+        """Slice Scene by dataset index.
+
+        .. note::
+
+            DataArrays that do not have an ``area`` attribute will not be
+            sliced.
+
+        """
+        if not self.all_same_area:
+            raise RuntimeError("'Scene' has different areas and cannot "
+                               "be usefully sliced.")
+        # slice
+        new_scn = self.copy()
+        new_scn.wishlist = self.wishlist
+        for area, dataset_ids in self.iter_by_area():
+            new_area = area[key] if area is not None else None
+            new_scn._slice_datasets(dataset_ids, key, new_area)
+        return new_scn
+
+    def crop(self, area=None, ll_bbox=None, xy_bbox=None, dataset_ids=None):
+        """Crop Scene to a specific Area boundary or bounding box.
+
+        Args:
+            area (AreaDefinition): Area to crop the current Scene to
+            ll_bbox (tuple, list): 4-element tuple where values are in
+                                   lon/lat degrees. Elements are
+                                   ``(xmin, ymin, xmax, ymax)`` where X is
+                                   longitude and Y is latitude.
+            xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
+                                   projection units.
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                 `Scene`. Defaults to all datasets.
+
+        This method will attempt to intelligently slice the data to preserve
+        relationships between datasets. For example, if we are cropping two
+        DataArrays of 500m and 1000m pixel resolution then this method will
+        assume that exactly 4 pixels of the 500m array cover the same
+        geographic area as a single 1000m pixel. It handles these cases based
+        on the shapes of the input arrays and adjusting slicing indexes
+        accordingly. This method will have trouble handling cases where data
+        arrays seem related but don't cover the same geographic area or if the
+        coarsest resolution data is not related to the other arrays which are
+        related.
+
+        It can be useful to follow cropping with a call to the native
+        resampler to resolve all datasets to the same resolution and compute
+        any composites that could not be generated previously::
+
+        >>> cropped_scn = scn.crop(ll_bbox=(-105., 40., -95., 50.))
+        >>> remapped_scn = cropped_scn.resample(resampler='native')
+
+        .. note::
+
+            The `resample` method automatically crops input data before
+            resampling to save time/memory.
+
+        """
+        if len([x for x in [area, ll_bbox, xy_bbox] if x is not None]) != 1:
+            raise ValueError("One and only one of 'area', 'll_bbox', "
+                             "or 'xy_bbox' can be specified.")
+
+        new_scn = self.copy(datasets=dataset_ids)
+        if not new_scn.all_same_proj and xy_bbox is not None:
+            raise ValueError("Can't crop when dataset_ids are not all on the "
+                             "same projection.")
+
+        # get the lowest resolution area, use it as the base of the slice
+        # this makes sure that the other areas *should* be a consistent factor
+        min_area = new_scn.min_area()
+        new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
+            min_area, area, ll_bbox, xy_bbox)
+        new_target_areas = {}
+        for src_area, dataset_ids in new_scn.iter_by_area():
+            if src_area is None:
+                for ds_id in dataset_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+                continue
+
+            y_factor, y_remainder = np.divmod(float(src_area.shape[0]),
+                                              min_area.shape[0])
+            x_factor, x_remainder = np.divmod(float(src_area.shape[1]),
+                                              min_area.shape[1])
+            y_factor = int(y_factor)
+            x_factor = int(x_factor)
+            if y_remainder == 0 and x_remainder == 0:
+                y_slice = slice(min_y_slice.start * y_factor,
+                                min_y_slice.stop * y_factor)
+                x_slice = slice(min_x_slice.start * x_factor,
+                                min_x_slice.stop * x_factor)
+                new_area = src_area[y_slice, x_slice]
+                slice_key = (y_slice, x_slice)
+                new_scn._slice_datasets(dataset_ids, slice_key, new_area)
+            else:
+                new_target_areas[src_area] = self._slice_area_from_bbox(
+                    src_area, area, ll_bbox, xy_bbox
+                )
+
+        return new_scn
+
+    def get(self, key, default=None):
+        """Return value from DatasetDict with optional default."""
+        return self.datasets.get(key, default)
+
     def __getitem__(self, key):
-        """Get a dataset."""
+        """Get a dataset or create a new 'slice' of the Scene."""
+        if isinstance(key, tuple) and not isinstance(key, DatasetID):
+            return self.slice(key)
         return self.datasets[key]
 
     def __setitem__(self, key, value):
         """Add the item to the scene."""
         self.datasets[key] = value
+        # this could raise a KeyError but never should in this case
         ds_id = self.datasets.get_key(key)
         self.wishlist.add(ds_id)
         self.dep_tree.add_leaf(ds_id)
@@ -632,15 +834,46 @@ class Scene(MetadataObject):
             LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
-    def load(self,
-             wishlist,
-             calibration=None,
-             resolution=None,
-             polarization=None,
-             generate=True,
-             unload=True,
+    def load(self, wishlist, calibration=None, resolution=None,
+             polarization=None, level=None, generate=True, unload=True,
              **kwargs):
-        """Read, generate, and unload.
+        """Read and generate requested datasets.
+
+        When the `wishlist` contains `DatasetID` objects they can either be
+        fully-specified `DatasetID` objects with every parameter specified
+        or they can not provide certain parameters and the "best" parameter
+        will be chosen. For example, if a dataset is available in multiple
+        resolutions and no resolution is specified in the wishlist's DatasetID
+        then the highest (smallest number) resolution will be chosen.
+
+        Loaded `DataArray` objects are created and stored in the Scene object.
+
+        Args:
+            wishlist (iterable): Names (str), wavelengths (float), or
+                                 DatasetID objects of the requested datasets
+                                 to load. See `available_dataset_ids()` for
+                                 what datasets are available.
+            calibration (list, str): Calibration levels to limit available
+                                      datasets. This is a shortcut to
+                                      having to list each DatasetID in
+                                      `wishlist`.
+            resolution (list | float): Resolution to limit available datasets.
+                                       This is a shortcut similar to
+                                       calibration.
+            polarization (list | str): Polarization ('V', 'H') to limit
+                                       available datasets. This is a shortcut
+                                       similar to calibration.
+            level (list | str): Pressure level to limit available datasets.
+                                Pressure should be in hPa or mb. If an
+                                altitude is used it should be specified in
+                                inverse meters (1/m). The units of this
+                                parameter ultimately depend on the reader.
+            generate (bool): Generate composites from the loaded datasets
+                             (default: True)
+            unload (bool): Unload datasets that were required to generate
+                           the requested datasets (composite dependencies)
+                           but are no longer needed.
+
         """
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
@@ -648,7 +881,8 @@ class Scene(MetadataObject):
         unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
-                                                  resolution=resolution)
+                                                  resolution=resolution,
+                                                  level=level)
         self.wishlist |= needed_datasets
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
@@ -671,14 +905,22 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    @classmethod
-    def _resampled_scene(cls, datasets, destination, **resample_kwargs):
-        """Generate a new scene with resampled *datasets*."""
-        new_scn = cls()
+    def _resampled_scene(self, new_scn, destination_area, **resample_kwargs):
+        """Resample `datasets` to the `destination` area."""
         new_datasets = {}
-        destination_area = None
+        datasets = list(new_scn.datasets.values())
+        max_area = None
+        if isinstance(destination_area, (str, six.text_type)):
+            destination_area = get_area_def(destination_area)
+        if hasattr(destination_area, 'freeze'):
+            try:
+                max_area = new_scn.max_area()
+                destination_area = destination_area.freeze(max_area)
+            except ValueError:
+                raise ValueError("No dataset areas available to freeze "
+                                 "DynamicAreaDefinition.")
+
         resamplers = {}
-        resampler = resample_kwargs.get('resampler')
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
@@ -689,56 +931,73 @@ class Scene(MetadataObject):
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
-                    new_scn[ds_id] = dataset
+                    new_scn.datasets[ds_id] = dataset
                 else:
                     replace_anc(dataset, pres)
                 continue
-            if destination_area is None:
-                # FIXME: We should allow users to freeze based with specific
-                #        dataset
-                destination_area = get_frozen_area(destination,
-                                                   dataset.attrs['area'])
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
+            try:
+                slice_x, slice_y = source_area.get_area_slices(
+                    destination_area)
+                source_area = source_area[slice_y, slice_x]
+                dataset = dataset.isel(x=slice_x, y=slice_y)
+                assert ('x', source_area.x_size) in dataset.sizes.items()
+                assert ('y', source_area.y_size) in dataset.sizes.items()
+                dataset.attrs['area'] = source_area
+            except NotImplementedError:
+                LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
-                resamplers[source_area] = prepare_resampler(
-                    source_area, destination_area, resampler=resampler)
-            resample_kwargs['resampler'] = resamplers[source_area]
+                key, resampler = prepare_resampler(
+                    source_area, destination_area, **resample_kwargs)
+                resamplers[source_area] = resampler
+                self.resamplers[key] = resampler
+            kwargs = resample_kwargs.copy()
+            kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area,
-                                   **resample_kwargs)
+                                   **kwargs)
             new_datasets[ds_id] = res
             if parent_dataset is None:
-                new_scn[ds_id] = res
+                new_scn.datasets[ds_id] = res
             else:
                 replace_anc(res, pres)
 
-        return new_scn
+    def resample(self, destination=None, datasets=None, generate=True,
+                 unload=True, resampler=None, **resample_kwargs):
+        """Resample datasets and return a new scene.
 
-    def resample(self,
-                 destination=None,
-                 datasets=None,
-                 generate=True,
-                 unload=True,
-                 **resample_kwargs):
-        """Resample the datasets and return a new scene."""
-        to_resample = [dataset for (dsid, dataset) in self.datasets.items()
-                       if (not datasets) or dsid in datasets]
+        Args:
+            destination (AreaDefinition, GridDefinition): area definition to
+                resample to. If not specified then the area returned by
+                `Scene.max_area()` will be used.
+            datasets (list): Limit datasets to resample to these specified
+                `DatasetID` objects . By default all currently loaded
+                datasets are resampled.
+            generate (bool): Generate any requested composites that could not
+                be previously due to incompatible areas (default: True).
+            unload (bool): Remove any datasets no longer needed after
+                requested composites have been generated (default: True).
+            resampler (str): Name of resampling method to use. By default,
+                this is a nearest neighbor KDTree-based resampling
+                ('nearest'). Other possible values include 'native', 'ewa',
+                etc. See the :mod:`~satpy.resample` documentation for more
+                information.
+            resample_kwargs: Remaining keyword arguments to pass to individual
+                resampler classes. See the individual resampler class
+                documentation :mod:`here <satpy.resample>` for available
+                arguments.
+
+        """
+        to_resample_ids = [dsid for (dsid, dataset) in self.datasets.items()
+                           if (not datasets) or dsid in datasets]
 
         if destination is None:
-            destination = self.max_area(to_resample)
-        new_scn = self._resampled_scene(to_resample, destination,
-                                        **resample_kwargs)
-
-        new_scn.attrs = self.attrs.copy()
-        new_scn.dep_tree = self.dep_tree.copy()
-
-        # MUST set this after assigning the resampled datasets otherwise
-        # composite prereqs that were resampled will be considered "wishlisted"
-        if datasets is None:
-            new_scn.wishlist = self.wishlist.copy()
-        else:
-            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
-                                    for ds in new_scn])
+            destination = self.max_area(to_resample_ids)
+        new_scn = self.copy(datasets=to_resample_ids)
+        # we may have some datasets we asked for but don't exist yet
+        new_scn.wishlist = self.wishlist.copy()
+        self._resampled_scene(new_scn, destination, resampler=resampler,
+                              **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
@@ -766,8 +1025,10 @@ class Scene(MetadataObject):
     def show(self, dataset_id, overlay=None):
         """Show the *dataset* on screen as an image."""
         from satpy.writers import get_enhanced_image
+        from satpy.utils import in_ipynb
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
-        img.show()
+        if not in_ipynb():
+            img.show()
         return img
 
     def images(self):
@@ -776,31 +1037,19 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def load_writer_config(self, config_files, **kwargs):
-        """Load the writer config for *config_files*."""
-        conf = {}
-        for conf_fn in config_files:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
-        init_kwargs, kwargs = writer_class.separate_init_kwargs(kwargs)
-        writer = writer_class(ppp_config_dir=self.ppp_config_dir,
-                              config_files=config_files,
-                              **init_kwargs)
-        return writer, kwargs
-
     def save_dataset(self, dataset_id, filename=None, writer=None,
                      overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
-        if writer is None:
-            if filename is None:
-                writer, save_kwargs = self.get_writer("geotiff", **kwargs)
-            else:
-                writer, save_kwargs = self.get_writer_by_ext(
-                    os.path.splitext(filename)[1], **kwargs)
-        else:
-            writer, save_kwargs = self.get_writer(writer, **kwargs)
-        return writer.save_dataset(self[dataset_id], filename=filename,
+        if writer is None and filename is None:
+            writer = 'geotiff'
+        elif writer is None:
+            writer = self.get_writer_by_ext(os.path.splitext(filename)[1])
+
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          filename=filename,
+                                          **kwargs)
+        return writer.save_dataset(self[dataset_id],
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
 
@@ -810,20 +1059,21 @@ class Scene(MetadataObject):
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
         else:
-            datasets = self.datasets.values()
-        writer, save_kwargs = self.get_writer(writer, **kwargs)
+            datasets = [self.datasets.get(ds) for ds in self.wishlist]
+            datasets = [ds for ds in datasets if ds is not None]
+        if not datasets:
+            raise RuntimeError("None of the requested datasets have been "
+                               "generated or could not be loaded. Requested "
+                               "composite inputs may need to have matching "
+                               "dimensions (eg. through resampling).")
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
-    def get_writer(self, writer="geotiff", **kwargs):
-        """Get the writer instance."""
-        config_fn = writer + ".yaml" if "." not in writer else writer
-        config_files = config_search_paths(
-            os.path.join("writers", config_fn), self.ppp_config_dir)
-        kwargs.setdefault("config_files", config_files)
-        return self.load_writer_config(**kwargs)
-
-    def get_writer_by_ext(self, extension, **kwargs):
+    @classmethod
+    def get_writer_by_ext(cls, extension):
         """Find the writer matching the *extension*."""
-        mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf"}
-        return self.get_writer(
-            mapping.get(extension.lower(), "simple_image"), **kwargs)
+        mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
+                   ".mitiff": "mitiff"}
+        return mapping.get(extension.lower(), 'simple_image')

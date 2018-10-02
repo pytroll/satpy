@@ -24,23 +24,23 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
-import imp
 import os.path
 import sys
 from glob import glob
+import versioneer
 
 from setuptools import find_packages, setup
-
-version = imp.load_source('satpy.version', 'satpy/version.py')
 
 BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
     os.path.sep))
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
+requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.10.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
-test_requires = ['behave']
+# pyhdf (conda) == python-hdf4 (pip)
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
+                 'rasterio']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -58,17 +58,20 @@ extras_require = {
     'viirs_compact': ['h5py >= 2.7.0'],
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
-    'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
+    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral'],
-    'pyorbital': ['pyorbital >= v0.2.3'],
+    'pyspectral': ['pyspectral >= 0.7.0'],
+    'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
-    'nc_nwcsaf_msg': ['h5netcdf'],
+    'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'mitiff': ['libtiff'],
+    # MultiScene:
+    'animations': ['imageio'],
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -102,7 +105,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 NAME = 'satpy'
 
 setup(name=NAME,
-      version=version.__version__,
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description='Meteorological post processing package',
       author='The Pytroll Team',
       author_email='pytroll@googlegroups.com',
@@ -130,5 +134,6 @@ setup(name=NAME,
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
+      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
       extras_require=extras_require,
       )

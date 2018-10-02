@@ -3,10 +3,6 @@
 """Reader for AMSR2 L1B files in HDF5 format.
 """
 
-import numpy as np
-
-from satpy.dataset import Dataset
-HDF5FileHandler = None
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
@@ -18,10 +14,10 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         info.update({
             "shape": self.get_shape(ds_id, ds_info),
             "units": self[var_path + "/attr/UNIT"],
-            "platform_name": self["/attr/PlatformShortName"].item(),
-            "sensor": self["/attr/SensorShortName"].item(),
-            "start_orbit": int(self["/attr/StartOrbitNumber"].item()),
-            "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
+            "platform_name": self["/attr/PlatformShortName"],
+            "sensor": self["/attr/SensorShortName"],
+            "start_orbit": int(self["/attr/StartOrbitNumber"]),
+            "end_orbit": int(self["/attr/StopOrbitNumber"]),
         })
         info.update(ds_id.to_dict())
         return info

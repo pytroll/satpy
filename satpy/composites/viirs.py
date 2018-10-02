@@ -27,8 +27,12 @@ import logging
 import os
 
 import numpy as np
+import dask
+import dask.array as da
+import xarray as xr
+import xarray.ufuncs as xu
 
-from satpy.composites import CompositeBase, RGBCompositor
+from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
@@ -82,18 +86,37 @@ class ReflectanceCorrector(CompositeBase):
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 
-    def __call__(self, datasets, **info):
-        refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
+    def __call__(self, datasets, optional_datasets, **info):
+        if not optional_datasets or len(optional_datasets) != 4:
+            vis = self.check_areas([datasets[0]])[0]
+            sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
+        else:
+            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.check_areas(
+                datasets + optional_datasets)
+            # get the dask array underneath
+            sensor_aa = sensor_aa.data
+            sensor_za = sensor_za.data
+            solar_aa = solar_aa.data
+            solar_za = solar_za.data
+        # angles must be xarrays
+        sensor_aa = xr.DataArray(sensor_aa, dims=['y', 'x'])
+        sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
+        solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
+        solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
+        refl_data = datasets[0]
         if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
-
         if os.path.isfile(self.dem_file):
             LOG.debug("Loading CREFL averaged elevation information from: %s",
                       self.dem_file)
             from netCDF4 import Dataset as NCDataset
             # HDF4 file, NetCDF library needs to be compiled with HDF4 support
             nc = NCDataset(self.dem_file, "r")
-            avg_elevation = nc.variables[self.dem_sds][:]
+            # average elevation is stored as a 16-bit signed integer but with
+            # scale factor 1 and offset 0, convert it to float here
+            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float)
+            if isinstance(avg_elevation, np.ma.MaskedArray):
+                avg_elevation = avg_elevation.filled(np.nan)
         else:
             avg_elevation = None
 
@@ -104,30 +127,47 @@ class ReflectanceCorrector(CompositeBase):
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
                                         refl_data.attrs["resolution"])
-
+        use_abi = vis.attrs['sensor'] == 'abi'
+        lons, lats = vis.attrs['area'].get_lonlats_dask(chunks=vis.chunks)
         results = run_crefl(refl_data,
                             coefficients,
-                            sensor_aa.attrs["area"].lons,
-                            sensor_aa.attrs["area"].lats,
+                            lons,
+                            lats,
                             sensor_aa,
                             sensor_za,
                             solar_aa,
                             solar_za,
                             avg_elevation=avg_elevation,
-                            percent=percent, )
-
+                            percent=percent,
+                            use_abi=use_abi)
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         factor = 100. if percent else 1.
         results = results * factor
         results.attrs = info
-
         self.apply_modifier_info(refl_data, results)
         return results
 
+    def get_angles(self, vis):
+        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+        from pyorbital.orbital import get_observer_look
+
+        lons, lats = vis.attrs['area'].get_lonlats_dask(
+            chunks=vis.data.chunks)
+        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
+        suna = xu.rad2deg(suna)
+        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        sata, satel = get_observer_look(
+            vis.attrs['satellite_longitude'],
+            vis.attrs['satellite_latitude'],
+            vis.attrs['satellite_altitude'],
+            vis.attrs['start_time'],
+            lons, lats, 0)
+        satz = 90 - satel
+        return sata, satz, suna, sunz
+
 
 class HistogramDNB(CompositeBase):
-
     """Histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -152,6 +192,53 @@ class HistogramDNB(CompositeBase):
             "mixed_degree_step")) if "mixed_degree_step" in kwargs else None
         super(HistogramDNB, self).__init__(*args, **kwargs)
 
+    def _run_dnb_normalization(self, dnb_data, sza_data):
+        """Scale the DNB data using a histogram equalization method.
+
+        Args:
+            dnb_data (ndarray): Day/Night Band data array
+            sza_data (ndarray): Solar Zenith Angle data array
+
+        """
+        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
+        output_dataset = dnb_data.where(good_mask)
+        # we only need the numpy array
+        output_dataset = output_dataset.values.copy()
+        dnb_data = dnb_data.values
+        sza_data = sza_data.values
+
+        day_mask, mixed_mask, night_mask = make_day_night_masks(
+            sza_data,
+            good_mask.values,
+            self.high_angle_cutoff,
+            self.low_angle_cutoff,
+            stepsDegrees=self.mixed_degree_step)
+
+        did_equalize = False
+        if day_mask.any():
+            LOG.debug("Histogram equalizing DNB day data...")
+            histogram_equalization(dnb_data, day_mask, out=output_dataset)
+            did_equalize = True
+        if mixed_mask:
+            for mask in mixed_mask:
+                if mask.any():
+                    LOG.debug("Histogram equalizing DNB mixed data...")
+                    histogram_equalization(dnb_data,
+                                           mask,
+                                           out=output_dataset)
+                    did_equalize = True
+        if night_mask.any():
+            LOG.debug("Histogram equalizing DNB night data...")
+            histogram_equalization(dnb_data,
+                                   night_mask,
+                                   out=output_dataset)
+            did_equalize = True
+
+        if not did_equalize:
+            raise RuntimeError("No valid data found to histogram equalize")
+
+        return dnb_data
+
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
 
@@ -163,49 +250,20 @@ class HistogramDNB(CompositeBase):
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
-        good_mask = ~(dnb_data.mask | sza_data.mask)
+        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data, sza_data)
         output_dataset = dnb_data.copy()
-        output_dataset.mask = ~good_mask
-        day_mask, mixed_mask, night_mask = make_day_night_masks(
-            sza_data,
-            good_mask,
-            self.high_angle_cutoff,
-            self.low_angle_cutoff,
-            stepsDegrees=self.mixed_degree_step)
+        output_data = da.from_delayed(delayed, dnb_data.shape, dnb_data.dtype)
+        output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
 
-        did_equalize = False
-        if day_mask.any():
-            LOG.debug("Histogram equalizing DNB day data...")
-            histogram_equalization(dnb_data.data, day_mask, out=output_dataset)
-            did_equalize = True
-        if mixed_mask:
-            for mask in mixed_mask:
-                if mask.any():
-                    LOG.debug("Histogram equalizing DNB mixed data...")
-                    histogram_equalization(dnb_data.data,
-                                           mask,
-                                           out=output_dataset)
-                    did_equalize = True
-        if night_mask.any():
-            LOG.debug("Histogram equalizing DNB night data...")
-            histogram_equalization(dnb_data.data,
-                                   night_mask,
-                                   out=output_dataset)
-            did_equalize = True
-
-        if not did_equalize:
-            raise RuntimeError("No valid data found to histogram equalize")
-
-        info = dnb_data.info.copy()
+        info = dnb_data.attrs.copy()
         info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
-        output_dataset.info = info
+        output_dataset.attrs = info
         return output_dataset
 
 
 class AdaptiveDNB(HistogramDNB):
-
     """Adaptive histogram equalized DNB composite.
 
     The logic for this code was taken from Polar2Grid and was originally developed by Eva Schiffer (SSEC).
@@ -238,23 +296,25 @@ class AdaptiveDNB(HistogramDNB):
 
         super(AdaptiveDNB, self).__init__(*args, **kwargs)
 
-    def __call__(self, datasets, **info):
-        """Create the composite by scaling the DNB data using an adaptive histogram equalization method.
+    def _run_dnb_normalization(self, dnb_data, sza_data):
+        """Scale the DNB data using a adaptive histogram equalization method.
 
-        :param datasets: 2-element tuple (Day/Night Band data, Solar Zenith Angle data)
-        :param **info: Miscellaneous metadata for the newly produced composite
+        Args:
+            dnb_data (ndarray): Day/Night Band data array
+            sza_data (ndarray): Solar Zenith Angle data array
+
         """
-        if len(datasets) != 2:
-            raise ValueError("Expected 2 datasets, got %d" % (len(datasets), ))
+        good_mask = ~(dnb_data.isnull() | sza_data.isnull())
+        # good_mask = ~(dnb_data.mask | sza_data.mask)
+        output_dataset = dnb_data.where(good_mask)
+        # we only need the numpy array
+        output_dataset = output_dataset.values.copy()
+        dnb_data = dnb_data.values
+        sza_data = sza_data.values
 
-        dnb_data = datasets[0]
-        sza_data = datasets[1]
-        good_mask = ~(dnb_data.mask | sza_data.mask)
-        output_dataset = dnb_data.copy()
-        output_dataset.mask = ~good_mask
         day_mask, mixed_mask, night_mask = make_day_night_masks(
             sza_data,
-            good_mask,
+            good_mask.values,
             self.high_angle_cutoff,
             self.low_angle_cutoff,
             stepsDegrees=self.mixed_degree_step)
@@ -267,14 +327,14 @@ class AdaptiveDNB(HistogramDNB):
                     has_multi_times and self.adaptive_day == "multiple"):
                 LOG.debug("Adaptive histogram equalizing DNB day data...")
                 local_histogram_equalization(
-                    dnb_data.data,
+                    dnb_data,
                     day_mask,
-                    valid_data_mask=good_mask,
+                    valid_data_mask=good_mask.values,
                     local_radius_px=self.day_radius_pixels,
                     out=output_dataset)
             else:
                 LOG.debug("Histogram equalizing DNB day data...")
-                histogram_equalization(dnb_data.data,
+                histogram_equalization(dnb_data,
                                        day_mask,
                                        out=output_dataset)
         if mixed_mask:
@@ -287,14 +347,14 @@ class AdaptiveDNB(HistogramDNB):
                         LOG.debug(
                             "Adaptive histogram equalizing DNB mixed data...")
                         local_histogram_equalization(
-                            dnb_data.data,
+                            dnb_data,
                             mask,
-                            valid_data_mask=good_mask,
+                            valid_data_mask=good_mask.values,
                             local_radius_px=self.mixed_radius_pixels,
                             out=output_dataset)
                     else:
                         LOG.debug("Histogram equalizing DNB mixed data...")
-                        histogram_equalization(dnb_data.data,
+                        histogram_equalization(dnb_data,
                                                day_mask,
                                                out=output_dataset)
         if night_mask.any():
@@ -303,40 +363,53 @@ class AdaptiveDNB(HistogramDNB):
                     has_multi_times and self.adaptive_night == "multiple"):
                 LOG.debug("Adaptive histogram equalizing DNB night data...")
                 local_histogram_equalization(
-                    dnb_data.data,
+                    dnb_data,
                     night_mask,
-                    valid_data_mask=good_mask,
+                    valid_data_mask=good_mask.values,
                     local_radius_px=self.night_radius_pixels,
                     out=output_dataset)
             else:
                 LOG.debug("Histogram equalizing DNB night data...")
-                histogram_equalization(dnb_data.data,
+                histogram_equalization(dnb_data,
                                        night_mask,
                                        out=output_dataset)
 
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
 
-        info = dnb_data.info.copy()
-        info.update(self.attrs)
-        info["standard_name"] = "equalized_radiance"
-        info["mode"] = "L"
-        output_dataset.info = info
         return output_dataset
 
 
 class ERFDNB(CompositeBase):
-
     """Equalized DNB composite using the error function (erf).
 
-    The logic for this code was taken from Polar2Grid and was originally developed by Curtis Seaman and Steve Miller.
-    The original code was written in IDL and is included as comments in the code below.
+    The logic for this code was taken from Polar2Grid and was originally
+    developed by Curtis Seaman and Steve Miller. The original code was
+    written in IDL and is included as comments in the code below.
+
     """
 
     def __init__(self, *args, **kwargs):
-        self.saturation_correction = kwargs.pop(
-            "saturation_correction", False) in [True, "True", "true"]
+        self.saturation_correction = kwargs.pop("saturation_correction",
+                                                False)
         super(ERFDNB, self).__init__(*args, **kwargs)
+
+    def _saturation_correction(self, dnb_data, unit_factor, min_val,
+                               max_val):
+        saturation_pct = float(np.count_nonzero(dnb_data >
+                                                max_val)) / dnb_data.size
+        LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
+        while saturation_pct > 0.005:
+            max_val *= 1.1 * unit_factor
+            saturation_pct = float(np.count_nonzero(
+                dnb_data > max_val)) / dnb_data.size
+            LOG.debug("Dynamic DNB saturation percentage: %f",
+                      saturation_pct)
+
+        inner_sqrt = (dnb_data - min_val) / (max_val - min_val)
+        # clip negative values to 0 before the sqrt
+        inner_sqrt[inner_sqrt < 0] = 0
+        return np.sqrt(inner_sqrt)
 
     def __call__(self, datasets, **info):
         if len(datasets) != 4:
@@ -346,18 +419,17 @@ class ERFDNB(CompositeBase):
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
-        good_mask = ~(dnb_data.mask | sza_data.mask)
-        output_dataset = dnb_data.copy()
-        output_dataset.mask = ~good_mask
+        output_dataset = dnb_data.where(
+            ~(dnb_data.isnull() | sza_data.isnull()))
         # this algorithm assumes units of "W cm-2 sr-1" so if there are other
         # units we need to adjust for that
-        if dnb_data.info.get("units", "W m-2 sr-1") == "W m-2 sr-1":
+        if dnb_data.attrs.get("units", "W m-2 sr-1") == "W m-2 sr-1":
             unit_factor = 10000.
         else:
             unit_factor = 1.
 
         # convert to decimal instead of %
-        moon_illum_fraction = np.mean(datasets[3]) * 0.01
+        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         # From Steve Miller and Curtis Seaman
         # maxval = 10.^(-1.7 - (((2.65+moon_factor1+moon_factor2))*(1+erf((solar_zenith-95.)/(5.*sqrt(2.0))))))
@@ -383,37 +455,36 @@ class ERFDNB(CompositeBase):
         # radiance = sqrt(scaled_radiance)
 
         moon_factor1 = 0.7 * (1.0 - moon_illum_fraction)
-        moon_factor2 = 0.0022 * lza_data
-        erf_portion = 1 + erf((sza_data - 95.0) / (5.0 * np.sqrt(2.0)))
-        max_val = np.power(
+        moon_factor2 = 0.0022 * lza_data.data
+        erf_portion = 1 + erf((sza_data.data - 95.0) / (5.0 * np.sqrt(2.0)))
+        max_val = da.power(
             10, -1.7 -
             (2.65 + moon_factor1 + moon_factor2) * erf_portion) * unit_factor
-        min_val = np.power(10, -4.0 -
+        min_val = da.power(10, -4.0 -
                            (2.95 + moon_factor2) * erf_portion) * unit_factor
 
         # Update from Curtis Seaman, increase max radiance curve until less
         # than 0.5% is saturated
         if self.saturation_correction:
-            saturation_pct = float(np.count_nonzero(dnb_data >
-                                                    max_val)) / dnb_data.size
-            LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
-            while saturation_pct > 0.005:
-                max_val *= 1.1 * unit_factor
-                saturation_pct = float(np.count_nonzero(
-                    dnb_data > max_val)) / dnb_data.size
-                LOG.debug("Dynamic DNB saturation percentage: %f",
-                          saturation_pct)
+            delayed = dask.delayed(self._saturation_correction)(
+                output_dataset.data, unit_factor,
+                min_val, max_val)
+            output_dataset.data = da.from_delayed(delayed,
+                                                  output_dataset.shape,
+                                                  output_dataset.dtype)
+            output_dataset.data = output_dataset.data.rechunk(
+                dnb_data.data.chunks)
+        else:
+            inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
+            # clip negative values to 0 before the sqrt
+            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            output_dataset.data = xu.sqrt(inner_sqrt).data
 
-        inner_sqrt = (dnb_data - min_val) / (max_val - min_val)
-        # clip negative values to 0 before the sqrt
-        inner_sqrt[inner_sqrt < 0] = 0
-        np.sqrt(inner_sqrt, out=output_dataset)
-
-        info = dnb_data.info.copy()
+        info = dnb_data.attrs.copy()
         info.update(self.attrs)
         info["standard_name"] = "equalized_radiance"
         info["mode"] = "L"
-        output_dataset.info = info
+        output_dataset.attrs = info
         return output_dataset
 
 
@@ -441,7 +512,7 @@ def make_day_night_masks(solarZenithAngle,
     night_mask = (solarZenithAngle > highAngleCutoff) & good_mask
     day_mask = (solarZenithAngle <= lowAngleCutoff) & good_mask
     mixed_mask = []
-    steps = range(lowAngleCutoff, highAngleCutoff + 1, stepsDegrees)
+    steps = list(range(lowAngleCutoff, highAngleCutoff + 1, stepsDegrees))
     if steps[-1] >= highAngleCutoff:
         steps[-1] = highAngleCutoff
     steps = zip(steps, steps[1:])
@@ -544,7 +615,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     returns the equalized data
     """
 
-    out = out if out is not None else np.ma.zeros_like(data)
+    out = out if out is not None else np.zeros_like(data)
     # if we don't have a valid mask, use the mask of what we should be
     # equalizing
     if valid_data_mask is None:
@@ -726,7 +797,7 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
 
                 # now that we've calculated the weighted sum for this tile, set
                 # it in our data array
-                out.data[min_row:max_row, min_col:max_col][
+                out[min_row:max_row, min_col:max_col][
                     temp_mask_to_equalize] = temp_sum
                 """
                 # TEMP, test without using weights
@@ -942,7 +1013,6 @@ def _linear_normalization_from_0to1(
 
 
 class NCCZinke(CompositeBase):
-
     """Equalized DNB composite using the Zinke algorithm.
 
     http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
@@ -952,29 +1022,25 @@ class NCCZinke(CompositeBase):
 
     def __call__(self, datasets, **info):
         if len(datasets) != 4:
-            raise ValueError("Expected 4 datasets, got %d" % (len(datasets), ))
+            raise ValueError("Expected 4 datasets, got %d" % (len(datasets),))
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
-        #good_mask = ~(dnb_data.mask | sza_data.mask)
-        #output_dataset = dnb_data.copy()
-        #output_dataset.mask = ~good_mask
         # this algorithm assumes units of "W cm-2 sr-1" so if there are other
         # units we need to adjust for that
-        if dnb_data.info.get("units", "W m-2 sr-1") == "W m-2 sr-1":
+        if dnb_data.attrs.get("units", "W m-2 sr-1") == "W m-2 sr-1":
             unit_factor = 10000.
         else:
             unit_factor = 1.
 
-        mda = dnb_data.info.copy()
-
-        dnb_data = dnb_data / unit_factor
+        mda = dnb_data.attrs.copy()
+        dnb_data = dnb_data.copy() / unit_factor
 
         # convert to decimal instead of %
-        moon_illum_fraction = np.mean(datasets[3]) * 0.01
+        moon_illum_fraction = da.mean(datasets[3]) * 0.01
 
-        phi = np.rad2deg(np.arccos(2. * moon_illum_fraction - 1))
+        phi = da.rad2deg(da.arccos(2. * moon_illum_fraction - 1))
 
         vfl = 0.026 * phi + 4.0e-9 * (phi ** 4.)
 
@@ -982,24 +1048,26 @@ class NCCZinke(CompositeBase):
         m_sun = -26.74
         m_moon = vfl + m_fullmoon
 
-        gs_ = self.gain_factor(sza_data)
+        gs_ = self.gain_factor(sza_data.data)
 
         r_sun_moon = 10.**((m_sun - m_moon) / -2.5)
-        gl_ = r_sun_moon * self.gain_factor(lza_data)
+        gl_ = r_sun_moon * self.gain_factor(lza_data.data)
         gtot = 1. / (1. / gs_ + 1. / gl_)
 
         dnb_data += 2.6e-10
         dnb_data *= gtot
 
         mda['name'] = self.attrs['name']
-        mda.pop('calibration')
-        mda.pop('wavelength')
         mda['standard_name'] = 'ncc_radiance'
+        dnb_data.attrs = mda
+        return dnb_data
 
-        return Dataset(dnb_data, copy=False, **mda)
+    def gain_factor(self, theta):
+        return theta.map_blocks(self._gain_factor,
+                                dtype=theta.dtype)
 
     @staticmethod
-    def gain_factor(theta):
+    def _gain_factor(theta):
         gain = np.empty_like(theta)
 
         mask = theta <= 87.541
@@ -1021,11 +1089,12 @@ class NCCZinke(CompositeBase):
         return gain
 
 
-class SnowAge(RGBCompositor):
+class SnowAge(GenericCompositor):
+    """Create RGB snow product.
 
-    """Returns RGB snow product based on method presented at the second
+    Product is based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
-    """
+
     # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
     # These Look-up Tables allow you to create the RGB snow product
     # for SUOMI-NPP VIIRS Imager according to the algorithm
@@ -1038,6 +1107,7 @@ class SnowAge(RGBCompositor):
     # Bernard Bellec at Bernard.Bellec@meteo.fr
     # or
     # Pascale Roquet at Pascale.Roquet@meteo.fr
+    """
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate a SnowAge RGB composite.
@@ -1073,5 +1143,9 @@ class SnowAge(RGBCompositor):
         ch1 = m07 - refcu / 2. - m09 / 4.
         ch2 = m08 + refcu / 4. + m09 / 4.
         ch3 = m11 + m09
+        # GenericCompositor needs valid DataArrays with 'area' metadata
+        ch1.attrs = info
+        ch2.attrs = info
+        ch3.attrs = info
 
-        return RGBCompositor.__call__(self, [ch1, ch2, ch3], **info)
+        return super(SnowAge, self).__call__([ch1, ch2, ch3], **info)

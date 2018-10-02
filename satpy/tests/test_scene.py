@@ -201,7 +201,7 @@ class TestScene(unittest.TestCase):
                 self.assertSetEqual(ds_list_names, {'3'})
 
     def test_bad_setitem(self):
-        from satpy import Scene, Dataset
+        from satpy import Scene
         import numpy as np
         scene = Scene()
         self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
@@ -229,6 +229,8 @@ class TestScene(unittest.TestCase):
         self.assertIs(scene['2'], ds2)
         self.assertIs(scene['3'], ds3)
         self.assertRaises(KeyError, scene.__getitem__, '4')
+        self.assertIs(scene.get('3'), ds3)
+        self.assertIs(scene.get('4'), None)
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers"""
@@ -263,6 +265,152 @@ class TestScene(unittest.TestCase):
         self.assertRaises(KeyError, scene.__getitem__,
                           DatasetID(name='1', modifiers=tuple()))
         self.assertEqual(len(list(scene.keys())), 2)
+
+    def test_getitem_slices(self):
+        """Test __getitem__ with slices"""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition, SwathDefinition
+        from pyresample.utils import proj4_str_to_dict
+        import numpy as np
+        scene1 = Scene()
+        scene2 = Scene()
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=200,
+            y_size=400,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+        swath_def = SwathDefinition(lons=np.zeros((5, 10)),
+                                    lats=np.zeros((5, 10)))
+        scene1["1"] = scene2["1"] = DataArray(np.zeros((5, 10)))
+        scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)),
+                                              dims=('y', 'x'))
+        scene1["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': area_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': area_def}
+        scene1["3a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
+        scene2["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                attrs={'area': swath_def})
+        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
+                                                       'area': swath_def})]
+        attrs = {'ancillary_variables': anc_vars, 'area': swath_def}
+        scene2["4a"] = DataArray(np.zeros((5, 10)),
+                                 dims=('y', 'x'),
+                                 attrs=attrs)
+        new_scn1 = scene1[2:5, 2:8]
+        new_scn2 = scene2[2:5, 2:8]
+        for new_scn in [new_scn1, new_scn2]:
+            # datasets without an area don't get sliced
+            self.assertTupleEqual(new_scn['1'].shape, (5, 10))
+            self.assertTupleEqual(new_scn['2'].shape, (5, 10))
+
+        self.assertTupleEqual(new_scn1['3'].shape, (3, 6))
+        self.assertIn('area', new_scn1['3'].attrs)
+        self.assertTupleEqual(new_scn1['3'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn1['3a'].shape, (3, 6))
+        a_var = new_scn1['3a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
+
+        self.assertTupleEqual(new_scn2['4'].shape, (3, 6))
+        self.assertIn('area', new_scn2['4'].attrs)
+        self.assertTupleEqual(new_scn2['4'].attrs['area'].shape, (3, 6))
+        self.assertTupleEqual(new_scn2['4a'].shape, (3, 6))
+        a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
+        self.assertTupleEqual(a_var.shape, (3, 6))
+
+    def test_crop(self):
+        """Test the crop method."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=x_size,
+            y_size=y_size,
+            area_extent=area_extent,
+        )
+        area_def2 = AreaDefinition(
+            'test2',
+            'test2',
+            'test2',
+            proj_dict,
+            x_size=x_size // 2,
+            y_size=y_size // 2,
+            area_extent=area_extent,
+        )
+        scene1["1"] = DataArray(np.zeros((y_size, x_size)))
+        scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
+        scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        scene1["4"] = DataArray(np.zeros((y_size // 2, x_size // 2)), dims=('y', 'x'),
+                                attrs={'area': area_def2})
+
+        # by area
+        crop_area = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size=x_size,
+            y_size=y_size,
+            area_extent=(
+                area_extent[0] + 10000.,
+                area_extent[1] + 500000.,
+                area_extent[2] - 10000.,
+                area_extent[3] - 500000.)
+        )
+        new_scn1 = scene1.crop(crop_area)
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (3380, 3708))
+        self.assertTupleEqual(new_scn1['4'].shape, (1690, 1854))
+
+        # by lon/lat bbox
+        new_scn1 = scene1.crop(
+            ll_bbox=(-20., -5., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (184, 714))
+        self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
+
+        # by x/y bbox
+        new_scn1 = scene1.crop(
+            xy_bbox=(-200000., -100000., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
+        self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
     def test_contains(self):
         from satpy import Scene
@@ -548,6 +696,23 @@ class TestSceneLoading(unittest.TestCase):
                 tuple(loaded_ids[0]), tuple(DatasetID(name='ds1')))
             self.assertFalse(
                 m.called, "Reader.load was called again when loading something that's already loaded")
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds1_unknown_modifier(self, cri, cl):
+        """Test loading one dataset with no loaded compositors"""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        self.assertRaises(KeyError, scene.load,
+                          [DatasetID(name='ds1', modifiers=('_fake_bad_mod_',))])
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1256,6 +1421,48 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn(ds1_mod_id, scene.datasets)
         self.assertIn(ds3_mod_id, scene.datasets)
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp11_and_23(self, cri, cl):
+        """Test loading two composites that depend on similar wavelengths."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID, DatasetDict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+
+        def _test(self, sensor_names):
+            if not self.compositors:
+                self.compositors = comps
+                self.modifiers = mods
+            new_comps = {}
+            new_mods = {}
+            for sn in sensor_names:
+                new_comps[sn] = DatasetDict(
+                    self.compositors[sn].copy())
+                new_mods[sn] = self.modifiers[sn].copy()
+            return new_comps, new_mods
+
+        cl.side_effect = _test
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # mock the available comps/mods in the compositor loader
+        avail_comps = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='comp11'), avail_comps)
+        self.assertIn(DatasetID(name='comp23'), avail_comps)
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp11', 'comp23'])
+        comp11_node = scene.dep_tree['comp11']
+        comp23_node = scene.dep_tree['comp23']
+        self.assertEqual(comp11_node.data[1][-1].name, 'ds10')
+        self.assertEqual(comp23_node.data[1][0].name, 'ds8')
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertIn('comp11', scene.datasets)
+        self.assertIn('comp23', scene.datasets)
+
 
 class TestSceneResampling(unittest.TestCase):
 
@@ -1393,16 +1600,102 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(new_scn.missing_datasets), 0)
 
 
+class TestSceneSaving(unittest.TestCase):
+    """Test the Scene's saving method."""
+
+    def setUp(self):
+        """Create temporary directory to save files to"""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_save_datasets_default(self):
+        """Save a dataset using 'save_datasets'."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        scn.save_datasets(base_dir=self.base_dir)
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+
+    def test_save_datasets_bad_writer(self):
+        """Save a dataset using 'save_datasets' and a bad writer."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow()}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        self.assertRaises(ValueError,
+                          scn.save_datasets,
+                          writer='_bad_writer_',
+                          base_dir=self.base_dir)
+
+    def test_save_datasets_missing_wishlist(self):
+        """Calling 'save_datasets' with no valid datasets."""
+        from satpy.scene import Scene, DatasetID
+        scn = Scene()
+        scn.wishlist.add(DatasetID(name='true_color'))
+        self.assertRaises(RuntimeError,
+                          scn.save_datasets,
+                          writer='geotiff',
+                          base_dir=self.base_dir)
+        self.assertRaises(KeyError,
+                          scn.save_datasets,
+                          datasets=['no_exist'])
+
+    def test_save_dataset_default(self):
+        """Save a dataset using 'save_dataset'."""
+        from satpy.scene import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+        scn.save_dataset('test', base_dir=self.base_dir)
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+
+
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResampling))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
 
     return mysuite
+
 
 if __name__ == "__main__":
     unittest.main()

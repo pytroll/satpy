@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -33,9 +33,10 @@ import xarray as xr
 import dask.array as da
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.eum_base import time_cds_short
+from satpy.readers.msg_base import dec10216
 
 logger = logging.getLogger('hrit_base')
-
 
 common_hdr = np.dtype([('hdr_id', 'u1'),
                        ('record_length', '>u2')])
@@ -58,16 +59,6 @@ image_navigation = np.dtype([('projection_name', 'S32'),
 image_data_function = np.dtype([('function', '|S1')])
 
 annotation_header = np.dtype([('annotation', '|S1')])
-
-time_cds_short = np.dtype([('days', '>u2'),
-                           ('milliseconds', '>u4')])
-
-
-def make_time_cds_short(tcds_array):
-    return (datetime(1958, 1, 1) +
-            timedelta(days=int(tcds_array['days']),
-                      milliseconds=int(tcds_array['milliseconds'])))
-
 
 timestamp_record = np.dtype([('cds_p_field', 'u1'),
                              ('timestamp', time_cds_short)])
@@ -94,49 +85,8 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def dec10216(inbuf):
-    """Decode 10 bits data into 16 bits words.
-
-    ::
-
-        /*
-         * pack 4 10-bit words in 5 bytes into 4 16-bit words
-         *
-         * 0       1       2       3       4       5
-         * 01234567890123456789012345678901234567890
-         * 0         1         2         3         4
-         */
-        ip = &in_buffer[i];
-        op = &out_buffer[j];
-        op[0] = ip[0]*4 + ip[1]/64;
-        op[1] = (ip[1] & 0x3F)*16 + ip[2]/16;
-        op[2] = (ip[2] & 0x0F)*64 + ip[3]/4;
-        op[3] = (ip[3] & 0x03)*256 +ip[4];
-
-    """
-    arr10 = inbuf.astype(np.uint16)
-    arr16_len = int(len(arr10) * 4 / 5)
-    arr10_len = int((arr16_len * 5) / 4)
-    arr10 = arr10[:arr10_len]  # adjust size
-
-    # dask is slow with indexing
-    arr10_0 = arr10[::5]
-    arr10_1 = arr10[1::5]
-    arr10_2 = arr10[2::5]
-    arr10_3 = arr10[3::5]
-    arr10_4 = arr10[4::5]
-
-    arr16_0 = (arr10_0 << 2) + (arr10_1 >> 6)
-    arr16_1 = ((arr10_1 & 63) << 4) + (arr10_2 >> 4)
-    arr16_2 = ((arr10_2 & 15) << 6) + (arr10_3 >> 2)
-    arr16_3 = ((arr10_3 & 3) << 8) + arr10_4
-    arr16 = da.stack([arr16_0, arr16_1, arr16_2, arr16_3], axis=-1).ravel()
-    arr16 = da.rechunk(arr16, arr16.shape[0])
-
-    return arr16
-
-
 class HRITFileHandler(BaseFileHandler):
+
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
@@ -145,6 +95,16 @@ class HRITFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self.mda = {}
+
+        self._get_hd(hdr_info)
+
+        self._start_time = filename_info['start_time']
+        self._end_time = self._start_time + timedelta(minutes=15)
+
+    def _get_hd(self, hdr_info):
+        """Open the file, read and get the basic file header info and set the mda
+           dictionary
+        """
 
         hdr_map, variable_length_headers, text_headers = hdr_info
 
@@ -184,16 +144,13 @@ class HRITFileHandler(BaseFileHandler):
 
                 total_header_length = self.mda['total_header_length']
 
-            self._start_time = filename_info['start_time']
-            self._end_time = self._start_time + timedelta(minutes=15)
+        self.mda.setdefault('number_of_bits_per_pixel', 10)
 
-            self.mda.setdefault('number_of_bits_per_pixel', 10)
-
-            self.mda['projection_parameters'] = {'a': 6378169.00,
-                                                 'b': 6356583.80,
-                                                 'h': 35785831.00,
-                                                 # FIXME: find a reasonable SSP
-                                                 'SSP_longitude': 0.0}
+        self.mda['projection_parameters'] = {'a': 6378169.00,
+                                             'b': 6356583.80,
+                                             'h': 35785831.00,
+                                             # FIXME: find a reasonable SSP
+                                             'SSP_longitude': 0.0}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
@@ -256,7 +213,6 @@ class HRITFileHandler(BaseFileHandler):
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
         lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
 
@@ -286,17 +242,13 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        # TODO slicing !
-        tic = datetime.now()
-
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         if self.mda['number_of_bits_per_pixel'] == 16:
             dtype = '>u2'
-            shape /= 2
+            shape //= 2
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-
         data = np.memmap(self.filename, mode='r',
                          offset=self.mda['total_header_length'],
                          dtype=dtype,
@@ -306,5 +258,4 @@ class HRITFileHandler(BaseFileHandler):
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],
                              self.mda['number_of_columns']))
-        logger.debug("Reading time " + str(datetime.now() - tic))
         return data

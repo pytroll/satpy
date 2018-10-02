@@ -87,17 +87,6 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-class NullHandler(logging.Handler):
-
-    """Empty handler.
-    """
-
-    def emit(self, record):
-        """Record a message.
-        """
-        pass
-
-
 def debug_on():
     """Turn debugging logging on.
     """
@@ -127,17 +116,23 @@ def logging_on(level=logging.WARNING):
 def logging_off():
     """Turn logging off.
     """
-    logging.getLogger('').handlers = [NullHandler()]
+    logging.getLogger('').handlers = [logging.NullHandler()]
 
 
 def get_logger(name):
-    """Return logger with null handle
-    """
-
+    """Return logger with null handler added if needed."""
     log = logging.getLogger(name)
     if not log.handlers:
-        log.addHandler(NullHandler())
+        log.addHandler(logging.NullHandler())
     return log
+
+
+def in_ipynb():
+    """Are we in a jupyter notebook?"""
+    try:
+        return 'ZMQ' in get_ipython().__class__.__name__
+    except NameError:
+        return False
 
 
 # Spherical conversions

@@ -1,5 +1,5 @@
-satpy\.enhancements package
-===========================
+satpy.enhancements package
+==========================
 
 Module contents
 ---------------

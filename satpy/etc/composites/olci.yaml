@@ -135,3 +135,14 @@ composites:
     - name: 'Oa03'
       modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
+
+  ocean_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'Oa08'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: 'Oa06'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - name: 'Oa03'
+      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    standard_name: ocean_color

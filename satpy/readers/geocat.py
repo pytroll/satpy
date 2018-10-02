@@ -130,7 +130,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return self.resolutions.get(sensor, {}).get(int(elem_res),
                                                     elem_res * 1000.)
 
-    def available_dataset_ids(self):
+    def available_datasets(self):
         """Automatically determine datasets provided by this file"""
         res = self.resolution
         coordinates = ['pixel_longitude', 'pixel_latitude']
@@ -248,32 +248,3 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         data.attrs.update(info)
         data = data.rename({'lines': 'y', 'elements': 'x'})
         return data
-
-
-class GEOCATYAMLReader(FileYAMLReader):
-    def create_filehandlers(self, filenames):
-        super(GEOCATYAMLReader, self).create_filehandlers(filenames)
-        self.load_ds_ids_from_files()
-
-    def load_ds_ids_from_files(self):
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            # update resolution in the dataset IDs for this files resolution
-            res = fh.resolution
-            for ds_id, ds_info in list(self.ids.items()):
-                if fh.filetype_info['file_type'] != ds_info['file_type']:
-                    continue
-                if ds_id.resolution is not None:
-                    continue
-                ds_info['resolution'] = res
-                new_id = DatasetID.from_dict(ds_info)
-                self.ids[new_id] = ds_info
-                del self.ids[ds_id]
-
-            # dynamically discover other available datasets
-            for ds_id, ds_info in fh.available_dataset_ids():
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                self.ids.setdefault(ds_id, ds_info)
-
-

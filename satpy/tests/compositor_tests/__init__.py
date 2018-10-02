@@ -22,7 +22,7 @@
 
 import sys
 
-from satpy.tests.compositor_tests import test_abi, test_ahi
+from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -120,6 +120,7 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_abi.suite())
     mysuite.addTests(test_ahi.suite())
+    mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
 
     return mysuite

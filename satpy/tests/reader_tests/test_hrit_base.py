@@ -18,7 +18,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit base reader tests package.
+"""The HRIT base reader tests package.
 """
 
 import sys
@@ -26,7 +26,7 @@ from datetime import datetime
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, dec10216
+from satpy.readers.hrit_base import HRITFileHandler
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,18 +37,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-
-class TestDec10216(unittest.TestCase):
-    """Test the dec10216 function."""
-
-    def test_dec10216(self):
-        res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
-        exp = (np.ones((4, )) * 1023).astype(np.uint16)
-        self.assertTrue(np.all(res == exp))
-        res = dec10216(np.array([1, 1, 1, 1, 1], dtype=np.uint8))
-        exp = np.array([4,  16,  64, 257], dtype=np.uint16)
-        self.assertTrue(np.all(res == exp))
 
 
 class TestHRITFileHandler(unittest.TestCase):
@@ -69,6 +57,22 @@ class TestHRITFileHandler(unittest.TestCase):
                                           {'filetype': 'info'},
                                           [mock.MagicMock(), mock.MagicMock(),
                                            mock.MagicMock()])
+            ncols = 3712
+            nlines = 464
+            nbits = 10
+            self.reader.mda['number_of_bits_per_pixel'] = nbits
+            self.reader.mda['number_of_lines'] = nlines
+            self.reader.mda['number_of_columns'] = ncols
+            self.reader.mda['data_field_length'] = nlines * ncols * nbits
+            self.reader.mda['cfac'] = 5
+            self.reader.mda['lfac'] = 5
+            self.reader.mda['coff'] = 10
+            self.reader.mda['loff'] = 10
+            self.reader.mda['projection_parameters'] = {}
+            self.reader.mda['projection_parameters']['a'] = 6378169.0
+            self.reader.mda['projection_parameters']['b'] = 6356583.8
+            self.reader.mda['projection_parameters']['h'] = 35785831.0
+            self.reader.mda['projection_parameters']['SSP_longitude'] = 44
 
     def test_get_xy_from_linecol(self):
         """Test get_xy_from_linecol."""
@@ -88,12 +92,36 @@ class TestHRITFileHandler(unittest.TestCase):
                79266.655216079365, 79266.655216079365)
         self.assertTupleEqual(res, exp)
 
+    def test_get_area_def(self):
+        area = self.reader.get_area_def('VIS06')
+        self.assertEqual(area.proj_dict, {'a': 6378169.0,
+                                          'b': 6356583.8,
+                                          'h': 35785831.0,
+                                          'lon_0': 44.0,
+                                          'proj': 'geos',
+                                          'units': 'm'})
+        self.assertEqual(area.area_extent,
+                         (-77771774058.38356, -77771774058.38356,
+                          30310525626438.438, 3720765401003.719))
+
+    @mock.patch('satpy.readers.hrit_base.np.memmap')
+    def test_read_band(self, memmap):
+        nbits = self.reader.mda['number_of_bits_per_pixel']
+        memmap.return_value = np.random.randint(0, 256,
+                                                size=int((464 * 3712 * nbits) / 8),
+                                                dtype=np.uint8)
+        res = self.reader.read_band('VIS006', None)
+        self.assertEqual(res.compute().shape, (464, 3712))
+
 
 def suite():
     """The test suite for test_scene.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()

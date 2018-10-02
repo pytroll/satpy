@@ -51,9 +51,6 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                     xslice=slice(None), yslice=slice(None)):
         raise NotImplementedError
 
-    def get_shape(self, dataset_id, ds_info):
-        raise NotImplementedError
-
     def get_area_def(self, dsid):
         raise NotImplementedError
 
@@ -64,6 +61,14 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         clockwise around the points available in the file.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _combine(infos, func, *keys):
+        res = {}
+        for key in keys:
+            if key in infos[0]:
+                res[key] = func([i[key] for i in infos])
+        return res
 
     def combine_info(self, all_infos):
         """Combine metadata for multiple datasets.
@@ -81,21 +86,21 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          - end_time
          - start_orbit
          - end_orbit
+         - satellite_altitude
+         - satellite_latitude
+         - satellite_longitude
 
          Also, concatenate the areas.
 
         """
         combined_info = combine_metadata(*all_infos)
-        if 'start_time' not in combined_info and 'start_time' in all_infos[0]:
-            combined_info['start_time'] = min(
-                i['start_time'] for i in all_infos)
-        if 'end_time' not in combined_info and 'end_time' in all_infos[0]:
-            combined_info['end_time'] = max(i['end_time'] for i in all_infos)
-        if 'start_orbit' not in combined_info and 'start_orbit' in all_infos[0]:
-            combined_info['start_orbit'] = min(
-                i['start_orbit'] for i in all_infos)
-        if 'end_orbit' not in combined_info and 'end_orbit' in all_infos[0]:
-            combined_info['end_orbit'] = max(i['end_orbit'] for i in all_infos)
+
+        new_dict = self._combine(all_infos, min, 'start_time', 'start_orbit')
+        new_dict.update(self._combine(all_infos, max, 'end_time', 'end_orbit'))
+        new_dict.update(self._combine(all_infos, np.mean,
+                                      'satellite_longitude',
+                                      'satellite_latitude',
+                                      'satellite_altitude'))
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
@@ -105,7 +110,8 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         except KeyError:
             pass
 
-        return combined_info
+        new_dict.update(combined_info)
+        return new_dict
 
     @property
     def start_time(self):
@@ -118,4 +124,17 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     @property
     def sensor_names(self):
         """List of sensors represented in this file."""
+        raise NotImplementedError
+
+    def available_datasets(self):
+        """Get information of available datasets in file.
+
+        This is used for dynamically specifying what datasets are available
+        from a file instead of those listed in a YAML configuration file.
+
+        Returns: Iterator of (DatasetID, dict) pairs where dict is the
+                 dataset's metadata, similar to that specified in the YAML
+                 configuration files.
+
+        """
         raise NotImplementedError
