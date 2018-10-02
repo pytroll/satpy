@@ -43,18 +43,18 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 class BitFlags(object):
     """Manipulate flags stored bitwise.
     """
-    flag_list = ['INVALID',u'WATER',u'LAND',u'CLOUD',u'SNOW_ICE',
-                 u'INLAND_WATER',u'TIDAL',u'COSMETIC',u'SUSPECT',
-                 u'HISOLZEN',u'SATURATED',u'MEGLINT',u'HIGHGLINT',
-                 u'WHITECAPS',u'ADJAC',u'WV_FAIL',u'PAR_FAIL',
-                 u'AC_FAIL',u'OC4ME_FAIL',u'OCNN_FAIL',
+    flag_list = ['INVALID','WATER','LAND','CLOUD','SNOW_ICE',
+                 'INLAND_WATER','TIDAL','COSMETIC','SUSPECT',
+                 'HISOLZEN','SATURATED','MEGLINT','HIGHGLINT',
+                 'WHITECAPS','ADJAC','WV_FAIL','PAR_FAIL',
+                 'AC_FAIL','OC4ME_FAIL','OCNN_FAIL',
                  
-                 u'Extra_1',
-                 u'KDM_FAIL',
-                 u'Extra_2',
+                 'Extra_1',
+                 'KDM_FAIL',
+                 'Extra_2',
                  
-                 u'CLOUD_AMBIGUOUS',u'CLOUD_MARGIN',u'BPAC_ON',u'WHITE_SCATT',
-                 u'LOWRW',u'HIGHRW']
+                 'CLOUD_AMBIGUOUS','CLOUD_MARGIN','BPAC_ON','WHITE_SCATT',
+                 'LOWRW','HIGHRW']
     
     meaning = {f:i for i,f in enumerate(flag_list)}
     
@@ -224,10 +224,6 @@ class NCOLCI2(NCOLCIChannelBase):
                  "CLOUD_MARGIN","CLOUD_AMBIGUOUS","LOWRW","LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
-
-#        mask = reduce(np.logical_or, [bflags[item] for item in items])
-#        landmask = bflags[u'LAND']
-#        return mask, landmask   
         
         
 class NCOLCIAngles(BaseFileHandler):
