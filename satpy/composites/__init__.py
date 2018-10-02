@@ -1281,4 +1281,3 @@ class VolcanicGas(GenericCompositor):
                                              projectables[3]),
                                             *args, **kwargs)
         return res
-      
