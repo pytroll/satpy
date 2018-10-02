@@ -203,12 +203,12 @@ class NCOLCI2(NCOLCIChannelBase):
             dataset = self.nc[info['nc_key']]
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-            
+
         elif key.name == 'mask':
             mask = self.getbitmask(dataset.to_masked_array().data)
             dataset = dataset *np.nan
             dataset = dataset.where(~mask, True)
-            
+
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
