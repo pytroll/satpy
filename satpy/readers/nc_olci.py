@@ -39,7 +39,6 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
-
 class BitFlags(object):
 
     """Manipulate flags stored bitwise.
@@ -69,7 +68,6 @@ class BitFlags(object):
     def __getitem__(self, item):
         pos = self.meaning[item]
         return ((self._value >> pos) % 2).astype(np.bool)
-
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -202,17 +200,18 @@ class NCOLCI2(NCOLCIChannelBase):
         if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
+
         if self.channel is not None and self.channel.startswith('Oa'):
             dataset = self.nc[self.channel + '_reflectance']
         else:
             dataset = self.nc[info['nc_key']]
+
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-
         elif key.name == 'mask':
             mask = self.getbitmask(dataset.to_masked_array().data)
             dataset = dataset * np.nan
-            dataset = dataset.where(~mask, True)
+            dataset = dataset.where(~ mask, True)
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
