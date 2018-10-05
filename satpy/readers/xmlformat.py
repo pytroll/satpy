@@ -50,7 +50,7 @@ def process_field(elt, ascii=False):
 
     scale = np.uint8(1)
     if elt.get("type") == "bitfield" and not ascii:
-        current_type = ">u" + str(int(elt.get("length")) / 8)
+        current_type = ">u" + str(int(elt.get("length")) // 8)
         scale = np.dtype(current_type).type(1)
     elif (elt.get("length") is not None):
         if ascii:
