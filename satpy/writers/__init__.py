@@ -408,7 +408,7 @@ def compute_writer_results(results):
 
     Args:
         results (iterable): Iterable of dask graphs resulting from calls to
-                            `scn.save_datasets(..., compute=False)
+                            `scn.save_datasets(..., compute=False)`
     """
     if not results:
         return
