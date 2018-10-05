@@ -4,11 +4,11 @@ Satpy
 .. image:: https://travis-ci.org/pytroll/satpy.svg?branch=develop
     :target: https://travis-ci.org/pytroll/satpy
 
-.. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/develop?svg=true
-    :target: https://ci.appveyor.com/project/pytroll/satpy/branch/develop
+.. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/pytroll/satpy/branch/master
 
-.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=develop
-    :target: https://coveralls.io/github/pytroll/satpy?branch=develop
+.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=master
+    :target: https://coveralls.io/github/pytroll/satpy?branch=master
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
