@@ -79,7 +79,10 @@ def read_raw(filename):
                     "veadr", "viadr", "mdr"]
 
     records = []
-
+    # Attempts have been made to use memmaps here, but fail invariably with
+    # opening too many files, probably because the memmap open one file per
+    # record. A solution is to create first the dtype for the entire file, then
+    # memmap it.
     with open(filename, "rb") as fdes:
         while True:
             grh = np.fromfile(fdes, grh_dtype, 1)
