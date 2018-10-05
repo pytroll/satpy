@@ -48,6 +48,7 @@ installation.
 
 .. list-table:: SatPy Readers
     :header-rows: 1
+    :widths: 45 25 30
 
     * - Description
       - Reader name
