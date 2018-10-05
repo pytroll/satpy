@@ -83,8 +83,8 @@ the specified colors.
     >>> colorize(img, **kwargs)
     >>> img.show()
 
-Similarly it is possible to use discreet values without color interpolation
-using `palettize()` instead of `colorize()`
+Similarly it is possible to use discrete values without color interpolation
+using `palettize()` instead of `colorize()`.
 
 You can define several colormaps and ranges in the `palettes` list and they
 are merged together.  See trollimage_ documentation for more information how
@@ -109,9 +109,9 @@ The above example can be used in enhancements YAML config like this:
 Saving multiple Scenes in one go
 ================================
 
-As mentioned earlier, it is possible to save ``Scene`` datasets directly
+As mentioned earlier, it is possible to save `Scene` datasets directly
 using :meth:`~satpy.scene.Scene.save_datasets` method.  However,
-sometimes it is beneficial to collect more ``Scene``s together and process
+sometimes it is beneficial to collect more `Scene`\ s together and process
 and save them all at once.
 
 ::
