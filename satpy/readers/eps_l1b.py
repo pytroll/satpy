@@ -249,6 +249,8 @@ class EPSAVHRRFile(BaseFileHandler):
         expanded, this will refer to the tiepoint data.
         """
         if self.lons is None or self.lats is None:
+            if self.mdrs is None:
+                self._read_all(self.filename)
             self.lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                                    self["EARTH_LOCATIONS"][:, :, 0],
                                    self["EARTH_LOCATION_LAST"][:, [0]]))
@@ -257,6 +259,19 @@ class EPSAVHRRFile(BaseFileHandler):
                                    self["EARTH_LOCATIONS"][:, :, 1],
                                    self["EARTH_LOCATION_LAST"][:, [1]]))
         return self.lons[row, col], self.lats[row, col]
+
+    def get_bounding_box(self):
+        if self.mdrs is None:
+            self._read_all(self.filename)
+        lats = np.hstack([self["EARTH_LOCATION_FIRST"][0, [0]],
+                          self["EARTH_LOCATION_LAST"][0, [0]],
+                          self["EARTH_LOCATION_LAST"][-1, [0]],
+                          self["EARTH_LOCATION_FIRST"][-1, [0]]])
+        lons = np.hstack([self["EARTH_LOCATION_FIRST"][0, [1]],
+                          self["EARTH_LOCATION_LAST"][0, [1]],
+                          self["EARTH_LOCATION_LAST"][-1, [1]],
+                          self["EARTH_LOCATION_FIRST"][-1, [1]]])
+        return lons.ravel(), lats.ravel()
 
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
