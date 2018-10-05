@@ -40,7 +40,7 @@ LOG = logging.getLogger(__name__)
 try:
     from numexpr import evaluate
 except ImportError:
-    from numpy import log
+    from numpy import log  # noqa
     evaluate = eval
 
 C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
@@ -158,7 +158,7 @@ class EPSAVHRRFile(BaseFileHandler):
                     return (self.sections[altkey][key]
                             * self.form.scales[altkey][key])
                 except TypeError:
-                    val = self.sections[altkey][key][0].split("=")[1]
+                    val = self.sections[altkey][key][0].decode().split("=")[1]
                     try:
                         return float(val) * self.form.scales[altkey][key]
                     except ValueError:
@@ -369,7 +369,6 @@ class EPSAVHRRFile(BaseFileHandler):
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
         return dataset
-
 
     def get_lonlats(self):
         if self.area is None:
