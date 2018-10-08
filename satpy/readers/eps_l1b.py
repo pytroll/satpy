@@ -100,7 +100,7 @@ def read_raw(filename):
             dtypes.append(np.dtype(the_descr))
             fdes.seek(expected_size - grh_dtype.itemsize, 1)
 
-        file_dtype = np.dtype([(str(num), the_type) for num, the_type in enumerate(dtypes)])
+        file_dtype = np.dtype([(str(num), the_dtype) for num, the_dtype in enumerate(dtypes)])
         records = np.memmap(fdes, mode='r', dtype=file_dtype, shape=1)[0]
 
     return records, form
