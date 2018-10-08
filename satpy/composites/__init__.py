@@ -867,6 +867,10 @@ class DayNightCompositor(GenericCompositor):
         day_data = add_bands(day_data, night_data['bands'])
         night_data = add_bands(night_data, day_data['bands'])
 
+        # Replace missing channel data with zeros
+        day_data = zero_missing_data(day_data, night_data)
+        night_data = zero_missing_data(night_data, day_data)
+
         # Get merged metadata
         attrs = combine_metadata(day_data, night_data)
 
@@ -917,6 +921,19 @@ def add_bands(data, bands):
         data = new_data
 
     return data
+
+
+def zero_missing_data(data1, data2):
+    """Replace NaN values with zeros in data1 if the data is valid in
+    data2.
+    """
+    nans = xu.logical_and(xu.isnan(data1),
+                          xu.logical_not(xu.isnan(data2)))
+    attrs = data1.attrs.copy()
+    data1 = xr.where(nans, 0, data1)
+    data1.attrs = attrs.copy()
+
+    return data1
 
 
 class Airmass(GenericCompositor):
