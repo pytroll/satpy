@@ -191,6 +191,8 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        if 'prerequisites' in new_data.attrs:
+            new_data.attrs['prerequisites'] = [str(prereq) for prereq in new_data.attrs['prerequisites']]
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
