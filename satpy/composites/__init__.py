@@ -1246,7 +1246,7 @@ class TropicalAirmass(GenericCompositor):
         +--------------------+--------------------+--------------------+
         | Channels           | Temp               | Gamma              |
         +====================+====================+====================+
-        | WV7.3 - WV6.2      |   0.6 to 26.2 K    | gamma 1            |
+        |  WV7.3 - WV6.2     |   0.6 to 26.2 K    | gamma 1            |
         +--------------------+--------------------+--------------------+
         | IR10.4 - IR9.7     | -26.2 to 27.4 K    | gamma 1            |
         +--------------------+--------------------+--------------------+
@@ -1259,7 +1259,7 @@ class TropicalAirmass(GenericCompositor):
                                              projectables[0]),
                                             *args, **kwargs)
         return res
-
+    
 
 class VolcanicGas(GenericCompositor):
 
@@ -1277,7 +1277,7 @@ class VolcanicGas(GenericCompositor):
         """
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[3], projectables[2])
-        res = super(VolcanicGas, self).__call__((ch1, ch2,
-                                             projectables[3]),
+        res = super(VolcanicGas, self).__call__((ch1, ch2, projectables[3]),
                                             *args, **kwargs)
         return res
+    
