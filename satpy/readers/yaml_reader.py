@@ -67,7 +67,7 @@ def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
     tail_len = len(pattern.split(os.path.sep))
-    return os.path.join(*path.split(os.path.sep)[-tail_len:])
+    return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
 
 
 def match_filenames(filenames, pattern):

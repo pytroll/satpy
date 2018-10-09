@@ -212,7 +212,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_no_args(self):
         """Test no args provided.
-        
+
         This should check the local directory which should have no files.
         """
         from satpy.readers import load_readers
@@ -242,6 +242,16 @@ class TestReaderLoader(unittest.TestCase):
         self.assertRaises(ValueError, load_readers, reader='i_dont_exist', filenames=[
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             ])
+
+    @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
+    def test_filenames_as_path(self):
+        """Test with filenames specified as pathlib.Path"""
+        from pathlib import Path
+        from satpy.readers import load_readers
+        ri = load_readers(filenames=[
+            Path('SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'),
+        ])
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_as_dict(self):
         """Test loading readers where filenames are organized by reader"""
