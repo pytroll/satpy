@@ -78,4 +78,3 @@ class DustABI(GenericCompositor):
         res = super(DustABI, self).__call__((ch1, ch2, projectables[1]),
                                          *args, **kwargs)
         return res
-    
