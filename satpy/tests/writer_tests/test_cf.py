@@ -63,7 +63,7 @@ class TestCFWriter(unittest.TestCase):
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
                 self.assertEqual(f['test-array'].attrs['prerequisites'][0],
-                                 expected_prereq)
+                                 np.string_(expected_prereq))
         finally:
             os.remove(filename)
 

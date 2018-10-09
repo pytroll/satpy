@@ -26,6 +26,7 @@ import logging
 from datetime import datetime
 
 import xarray as xr
+import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
@@ -192,7 +193,7 @@ class CFWriter(Writer):
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         if 'prerequisites' in new_data.attrs:
-            new_data.attrs['prerequisites'] = [str(prereq) for prereq in new_data.attrs['prerequisites']]
+            new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
