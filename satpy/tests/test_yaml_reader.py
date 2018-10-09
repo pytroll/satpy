@@ -109,9 +109,6 @@ class DummyReader(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
-        self.filename = filename
-        self.filename_info = filename_info
-        self.filetype_info = filetype_info
         self._start_time = datetime(2000, 1, 1, 12, 1)
         self._end_time = datetime(2000, 1, 1, 12, 2)
         self.metadata = {}

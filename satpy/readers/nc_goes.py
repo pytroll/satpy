@@ -508,7 +508,7 @@ class GOESNCFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(GOESNCFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'xc': CHUNK_SIZE, 'yc': CHUNK_SIZE})

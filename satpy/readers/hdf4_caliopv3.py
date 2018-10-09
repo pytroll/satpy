@@ -43,7 +43,6 @@ class HDF4BandReader(BaseFileHandler):
         self._start_time = None
         self._end_time = None
 
-        self.filename = filename
         self.get_filehandle()
 
         self._start_time = filename_info['start_time']
