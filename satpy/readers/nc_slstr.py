@@ -47,7 +47,7 @@ class NCSLSTRGeo(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRGeo, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
@@ -87,22 +87,21 @@ class NCSLSTR1B(BaseFileHandler):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
 
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-        self.stripe = filename[-5]
-        self.view = filename[-4]
-        cal_file = os.path.join(os.path.dirname(
-            filename), 'viscal.nc')
+        self.stripe = self.filename[-5]
+        self.view = self.filename[-4]
+        cal_file = os.path.join(os.path.dirname(self.filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
                                    mask_and_scale=True,
                                    chunks={'views': CHUNK_SIZE})
-        indices_file = os.path.join(os.path.dirname(filename),
+        indices_file = os.path.join(os.path.dirname(self.filename),
                                     'indices_{}{}.nc'.format(self.stripe, self.view))
         self.indices = xr.open_dataset(indices_file,
                                        decode_cf=True,
@@ -172,7 +171,7 @@ class NCSLSTRAngles(BaseFileHandler):
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
 
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
@@ -268,14 +267,14 @@ class NCSLSTRFlag(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRFlag, self).__init__(filename, filename_info,
                                           filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-        self.stripe = filename[-5]
-        self.view = filename[-4]
+        self.stripe = self.filename[-5]
+        self.view = self.filename[-4]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'

@@ -50,7 +50,7 @@ class GenericImageFileHandler(BaseFileHandler):
             self.finfo['end_time'] = self.finfo['start_time']
         except KeyError:
             pass
-        self.finfo['filename'] = filename
+        self.finfo['filename'] = self.filename
         self.file_content = {}
         self.area = None
         self.read()

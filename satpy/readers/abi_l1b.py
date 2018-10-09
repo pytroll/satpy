@@ -51,7 +51,7 @@ class NC_ABI_L1B(BaseFileHandler):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
         # xarray's default netcdf4 engine
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})

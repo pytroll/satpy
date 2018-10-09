@@ -58,7 +58,7 @@ class MAIAFileHandler(BaseFileHandler):
             self.finfo['end_time'] = self.finfo['end_time'].replace(
                 day=myday + 1)
         self.selected = None
-        self.read(filename)
+        self.read(self.filename)
 
     def read(self, filename):
         self.h5 = h5py.File(filename, 'r')

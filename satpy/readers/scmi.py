@@ -64,7 +64,7 @@ class SCMIFileHandler(BaseFileHandler):
         super(SCMIFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
         # xarray's default netcdf4 engine
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'x': LOAD_CHUNK_SIZE, 'y': LOAD_CHUNK_SIZE})
