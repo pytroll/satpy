@@ -29,6 +29,7 @@ import os
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
+import warnings
 
 import six
 import xarray as xr
@@ -46,6 +47,14 @@ from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
+
+formatwarning_orig = warnings.formatwarning
+
+
+def formatwarning_no_source(message, category, filename, lineno, line=None):
+    """Issue a warning without the corresponding source line"""
+    return formatwarning_orig(message, category, filename, lineno,
+                              line='')
 
 
 def listify_string(something):
@@ -322,22 +331,25 @@ class FileYAMLReader(AbstractYAMLReader):
         return True
 
     def find_required_filehandlers(self, requirements, filename_info):
-        """Find the necessary fhs for the current filehandler.
+        """Find the necessary file handlers for the given requirements.
 
         We assume here requirements are available.
+
+        Raises:
+            KeyError, if no handler for the given requirements is available
+            RumtimeError, if there is a handler for the given requirements,
+            but it doesn't match the filename info
         """
         req_fh = []
+        filename_info = set(filename_info.items())
         if requirements:
             for requirement in requirements:
                 for fhd in self.file_handlers[requirement]:
-                    # FIXME: Isn't this super wasteful? filename_info.items()
-                    # every iteration?
-                    if (all(item in filename_info.items()
-                            for item in fhd.filename_info.items())):
+                    if set(fhd.filename_info.items()).issubset(filename_info):
                         req_fh.append(fhd)
                         break
                 else:
-                    raise RuntimeError('No matching file in ' + requirement)
+                    raise RuntimeError(requirement)
                     # break everything and continue to next
                     # filetype!
         return req_fh
@@ -386,11 +398,13 @@ class FileYAMLReader(AbstractYAMLReader):
             try:
                 req_fh = self.find_required_filehandlers(requirements,
                                                          filename_info)
-            except RuntimeError:
-                logger.warning("Can't find requirements for %s", filename)
-                continue
-            except KeyError:
-                logger.warning("Missing requirements for %s", filename)
+            except (KeyError, RuntimeError) as req:
+                # Monkeypatch warnings module to omit the source line - just
+                # for this warning.
+                warnings.formatwarning = formatwarning_no_source
+                warnings.warn("Missing requirement {} for {}".format(
+                    req, filename))
+                warnings.formatwarning = formatwarning_orig
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
@@ -479,6 +493,14 @@ class FileYAMLReader(AbstractYAMLReader):
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
+    def _is_requirement(self, filetype):
+        """Determine whether the given filetype is required by others"""
+        for _, filetype_info in self.config['file_types'].items():
+            requirements = filetype_info.get('requires', [])
+            if filetype in requirements:
+                return True
+        return False
+
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
@@ -497,6 +519,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
+
+        # Abort if there are insufficient requirements to read any data
+        # (e.g. no file handlers at all or only requirements).
+        only_requirements = all([self._is_requirement(filetype)
+                                 for filetype in self.file_handlers])
+        if not self.file_handlers or only_requirements:
+            raise RuntimeError('Insufficient requirements (e.g. Prolog, '
+                               'Epilog) to read any data')
 
         # update existing dataset IDs with information from the file handler
         self.update_ds_ids_from_file_handlers()
