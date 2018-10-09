@@ -24,10 +24,10 @@
 
 import logging
 from satpy.composites import GenericCompositor, IncompatibleAreas
+from . import sub_arrays
 
 LOG = logging.getLogger(__name__)
 
-from . import sub_arrays
 
 class SimulatedGreen(GenericCompositor):
 
