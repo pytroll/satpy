@@ -27,6 +27,7 @@ from satpy.composites import GenericCompositor, IncompatibleAreas
 
 LOG = logging.getLogger(__name__)
 
+from . import sub_arrays
 
 class SimulatedGreen(GenericCompositor):
 
