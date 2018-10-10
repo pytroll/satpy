@@ -48,14 +48,6 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
-formatwarning_orig = warnings.formatwarning
-
-
-def formatwarning_no_source(message, category, filename, lineno, line=None):
-    """Issue a warning without the corresponding source line"""
-    return formatwarning_orig(message, category, filename, lineno,
-                              line='')
-
 
 def listify_string(something):
     """Takes *something* and make it a list.
@@ -336,9 +328,9 @@ class FileYAMLReader(AbstractYAMLReader):
         We assume here requirements are available.
 
         Raises:
-            KeyError, if no handler for the given requirements is available
+            KeyError, if no handler for the given requirements is available.
             RumtimeError, if there is a handler for the given requirements,
-            but it doesn't match the filename info
+            but it doesn't match the filename info.
         """
         req_fh = []
         filename_info = set(filename_info.items())
@@ -349,7 +341,8 @@ class FileYAMLReader(AbstractYAMLReader):
                         req_fh.append(fhd)
                         break
                 else:
-                    raise RuntimeError(requirement)
+                    raise RuntimeError("No matching requirement file of type: "
+                                       "{}".format(requirement))
                     # break everything and continue to next
                     # filetype!
         return req_fh
@@ -398,13 +391,12 @@ class FileYAMLReader(AbstractYAMLReader):
             try:
                 req_fh = self.find_required_filehandlers(requirements,
                                                          filename_info)
-            except (KeyError, RuntimeError) as req:
-                # Monkeypatch warnings module to omit the source line - just
-                # for this warning.
-                warnings.formatwarning = formatwarning_no_source
-                warnings.warn("Missing requirement {} for {}".format(
-                    req, filename))
-                warnings.formatwarning = formatwarning_orig
+            except KeyError as req:
+                msg = "Missing requirement {} for {}".format(req, filename)
+                warnings.warn(msg)
+                continue
+            except RuntimeError as err:
+                warnings.warn(err.message)
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
