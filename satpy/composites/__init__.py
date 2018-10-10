@@ -929,9 +929,7 @@ def zero_missing_data(data1, data2):
     """
     nans = xu.logical_and(xu.isnan(data1),
                           xu.logical_not(xu.isnan(data2)))
-    attrs = data1.attrs.copy()
-    data1 = xr.where(nans, 0, data1)
-    data1.attrs = attrs.copy()
+    data1 = data1.where(~nans, 0)
 
     return data1
 
