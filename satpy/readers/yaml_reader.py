@@ -396,7 +396,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 warnings.warn(msg)
                 continue
             except RuntimeError as err:
-                warnings.warn(err.message)
+                warnings.warn(str(err))
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
