@@ -150,6 +150,12 @@ class Scene(MetadataObject):
         self.readers = self.create_reader_instances(filenames=filenames,
                                                     reader=reader,
                                                     reader_kwargs=reader_kwargs)
+
+        if filenames and not self.available_dataset_ids(reader_name=reader):
+            raise RuntimeError("Incomplete set of filenames for the requested "
+                               "datasets. Maybe some requirements (such as "
+                               "Epilog, Prolog) are missing?")
+
         self.attrs.update(self._compute_metadata_from_readers())
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
