@@ -152,10 +152,10 @@ class CLAVRXFileHandler(HDF4FileHandler):
         if dataset_id.resolution:
             data.attrs['resolution'] = dataset_id.resolution
         data.attrs = self.get_metadata(data, ds_info)
-        fill = data.attrs.get('_FillValue')
-        factor = data.attrs.get('scale_factor')
-        offset = data.attrs.get('add_offset')
-        valid_range = data.attrs.get('valid_range')
+        fill = data.attrs.pop('_FillValue')
+        factor = data.attrs.pop('scale_factor')
+        offset = data.attrs.pop('add_offset')
+        valid_range = data.attrs.pop('valid_range')
 
         if factor is not None and offset is not None:
             def scale_inplace(data):
