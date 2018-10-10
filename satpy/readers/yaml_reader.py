@@ -485,14 +485,6 @@ class FileYAMLReader(AbstractYAMLReader):
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
-    def _is_requirement(self, filetype):
-        """Determine whether the given filetype is required by others"""
-        for _, filetype_info in self.config['file_types'].items():
-            requirements = filetype_info.get('requires', [])
-            if filetype in requirements:
-                return True
-        return False
-
     def create_filehandlers(self, filenames):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
@@ -511,14 +503,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
-
-        # Abort if there are insufficient requirements to read any data
-        # (e.g. no file handlers at all or only requirements).
-        only_requirements = all([self._is_requirement(filetype)
-                                 for filetype in self.file_handlers])
-        if not self.file_handlers or only_requirements:
-            raise RuntimeError('Insufficient requirements (e.g. Prolog, '
-                               'Epilog) to read any data')
 
         # update existing dataset IDs with information from the file handler
         self.update_ds_ids_from_file_handlers()
