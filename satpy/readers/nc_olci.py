@@ -71,7 +71,7 @@ class NCOLCIBase(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine='h5netcdf',

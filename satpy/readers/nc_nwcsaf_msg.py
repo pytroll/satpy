@@ -50,7 +50,7 @@ class NcNWCSAFMSG(BaseFileHandler):
         """Init method."""
         super(NcNWCSAFMSG, self).__init__(filename, filename_info,
                                           filetype_info)
-        self.nc = h5netcdf.File(filename, 'r')
+        self.nc = h5netcdf.File(self.filename, 'r')
         self.sensor = 'seviri'
         sat_id = self.nc.attrs['satellite_identifier']
         try:
