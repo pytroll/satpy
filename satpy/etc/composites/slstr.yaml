@@ -4,9 +4,9 @@ composites:
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.65
-    - 0.86
-    - 10.8
+    - S2_an
+    - S3_an
+    - S8_in
     standard_name: overview
 
   day_microphysics:
