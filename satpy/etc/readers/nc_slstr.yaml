@@ -24,9 +24,12 @@ file_types:
     esa_l1b_co:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_co.nc']
-    esa_l1b_tir:
+    esa_l1b_ntir:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}n.nc']
+    esa_l1b_otir:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}o.nc']
     esa_angles:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRAngles
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc']
@@ -97,8 +100,8 @@ datasets:
 
 
   # The channels S1-S3 are available in nadir (default) and oblique view.
-  S1_n:
-    name: S1_n
+  S1_an:
+    name: S1_an
     sensor: slstr
     wavelength: [0.545,0.555,0.565]
     resolution: 500
@@ -112,8 +115,8 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_an
 
-  S1_o:
-    name: S1_o
+  S1_ao:
+    name: S1_ao
     sensor: slstr
     wavelength: [0.545,0.555,0.565]
     resolution: 500
@@ -127,8 +130,8 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_ao
 
-  S2_n:
-    name: S2_n
+  S2_an:
+    name: S2_an
     sensor: slstr
     wavelength: [0.649, 0.659, 0.669]
     resolution: 500
@@ -142,8 +145,8 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_an
 
-  S2_o:
-    name: S2_o
+  S2_ao:
+    name: S2_ao
     sensor: slstr
     wavelength: [0.649, 0.659, 0.669]
     resolution: 500
@@ -157,8 +160,8 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_ao
 
-  S3_n:
-    name: S3_n
+  S3_an:
+    name: S3_an
     sensor: slstr
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
@@ -172,10 +175,10 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l1b_an
 
-  S3_o:
-    name: S3_o
+  S3_ao:
+    name: S3_ao
     sensor: slstr
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.855, 0.865, 0.875]
     resolution: 500
     calibration:
       reflectance:
@@ -460,8 +463,8 @@ datasets:
     file_type: esa_l1b_co
 
   # The channels S7-S9, F1 and F2 are available in nadir (default) and oblique view.
-  S7:
-    name: S7
+  S7_in:
+    name: S7_in
     sensor: slstr
     wavelength: [3.55, 3.74, 3.93]
     resolution: 1000
@@ -470,10 +473,22 @@ datasets:
         standard_name: toa_brightness_temperature
         units: "K"
     coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    file_type: esa_l1b_ntir
 
-  S8:
-    name: S8
+  S7_io:
+    name: S7_io
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_otir
+
+  S8_in:
+    name: S8_in
     sensor: slstr
     wavelength: [10.4, 10.85, 11.3]
     resolution: 1000
@@ -482,10 +497,22 @@ datasets:
         standard_name: toa_brightness_temperature
         units: "K"
     coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    file_type: esa_l1b_ntir
 
-  S9:
-    name: S9
+  S8_io:
+    name: S8_io
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_otir
+
+  S9_in:
+    name: S9_in
     sensor: slstr
     wavelength: [11.0, 12.0, 13.0]
     resolution: 1000
@@ -494,7 +521,68 @@ datasets:
         standard_name: toa_brightness_temperature
         units: "K"
     coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    file_type: esa_l1b_ntir
+
+  S9_io:
+    name: S9_io
+    sensor: slstr
+    wavelength: [11.0, 12.0, 13.0]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_otir
+
+  F1_in:
+    name: F1_in
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_ntir
+
+  F1_io:
+    name: F1_io
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_otir
+
+  F2_in:
+    name: F2_in
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_ntir
+
+  F2_io:
+    name: F2_io
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude, latitude]
+    file_type: esa_l1b_otir
+
 
   solar_zenith_angle:
     name: solar_zenith_angle
@@ -758,4 +846,3 @@ datasets:
     resolution: 1000
     file_type: esa_l1b_flag_io
     coordinates: [longitude, latitude]
-
