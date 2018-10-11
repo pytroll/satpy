@@ -210,17 +210,9 @@ class NcNWCSAF(BaseFileHandler):
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
 
-        try:
-            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
-        except TypeError:
-            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
+        proj_str, area_extent = self._get_projection()
 
         nlines, ncols = self.nc[dsid.name].shape
-
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000)
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
@@ -270,6 +262,32 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y%m%dT%H%M%S%fZ')
+
+    def _get_projection(self):
+        """Get projection from the NetCDF4 attributes"""
+        try:
+            proj_str = self.nc.attrs['gdal_projection']
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode()
+
+        # Check the a/b/h units
+        radius_a = proj_str.split('+a=')[-1].split()[0]
+        if float(radius_a) > 10e3:
+            units = 'm'
+            scale = 1.0
+        else:
+            units = 'km'
+            scale = 1e3
+
+        if 'units' not in proj_str:
+            proj_str = proj_str + ' +units=' + units
+
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / scale,
+                       float(self.nc.attrs['gdal_ygeo_low_right']) / scale,
+                       float(self.nc.attrs['gdal_xgeo_low_right']) / scale,
+                       float(self.nc.attrs['gdal_ygeo_up_left']) / scale)
+
+        return proj_str, area_extent
 
 
 def remove_empties(variable):
