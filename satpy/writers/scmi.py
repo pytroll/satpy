@@ -590,7 +590,7 @@ class NetCDFWriter(object):
         LOG.info('writing image data')
         # note: autoscaling will be applied to make int16
         assert(hasattr(data, 'mask'))
-        self.image_data[:, :] = np.require(data.filled(fill_value), dtype=np.float32)
+        self.image_data[:, :] = np.require(data, dtype=np.float32)
 
     def set_projection_attrs(self, area_id, proj4_info):
         """
