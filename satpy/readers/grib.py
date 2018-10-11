@@ -55,7 +55,7 @@ class GRIBFileHandler(BaseFileHandler):
         self._start_time = None
         self._end_time = None
         try:
-            with pygrib.open(filename) as grib_file:
+            with pygrib.open(self.filename) as grib_file:
                 first_msg = grib_file.message(1)
                 last_msg = grib_file.message(grib_file.messages)
                 start_time = self._convert_datetime(
@@ -69,10 +69,10 @@ class GRIBFileHandler(BaseFileHandler):
                     self._idx = None
                 else:
                     self._create_dataset_ids(filetype_info['keys'])
-                    self._idx = pygrib.index(filename,
+                    self._idx = pygrib.index(self.filename,
                                              *filetype_info['keys'].keys())
         except (RuntimeError, KeyError):
-            raise IOError("Unknown GRIB file format: {}".format(filename))
+            raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)

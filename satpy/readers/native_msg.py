@@ -64,7 +64,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
-        self.filename = filename
         self.platform_name = None
 
         # The available channels are only known after the header

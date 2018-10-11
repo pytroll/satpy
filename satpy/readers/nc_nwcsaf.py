@@ -65,12 +65,12 @@ class NcNWCSAF(BaseFileHandler):
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
 
-        self._unzipped = unzip_file(filename)
+        self._unzipped = unzip_file(self.filename)
         if self._unzipped:
-            filename = self._unzipped
+            self.filename = self._unzipped
 
         self.cache = {}
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks=CHUNK_SIZE)

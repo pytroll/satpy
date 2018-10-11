@@ -86,7 +86,6 @@ class IASIL2HDF5(BaseFileHandler):
         super(IASIL2HDF5, self).__init__(filename, filename_info,
                                          filetype_info)
 
-        self.filename = filename
         self.finfo = filename_info
         self.lons = None
         self.lats = None
