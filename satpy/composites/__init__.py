@@ -36,8 +36,8 @@ import xarray.ufuncs as xu
 import dask.array as da
 import yaml
 
-from satpy.config import (CONFIG_PATH, config_search_paths,
-                          recursive_dict_update)
+from satpy.config_utils import (CONFIG_PATH, config_search_paths,
+                                recursive_dict_update)
 from satpy.dataset import (DATASET_KEYS, DatasetID, MetadataObject,
                            combine_metadata)
 from satpy.readers import DatasetDict

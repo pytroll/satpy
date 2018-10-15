@@ -26,7 +26,7 @@ import logging
 import os
 import yaml
 
-from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
+from satpy.config_utils import config_search_paths, get_environ_config_dir, recursive_dict_update
 
 try:
     import configparser

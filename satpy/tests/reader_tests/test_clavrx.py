@@ -103,7 +103,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        from satpy.config_utils import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -227,7 +227,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        from satpy.config_utils import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

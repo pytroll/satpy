@@ -34,8 +34,8 @@ import dask.array as da
 import xarray as xr
 import warnings
 
-from satpy.config import (config_search_paths, glob_config,
-                          get_environ_config_dir, recursive_dict_update)
+from satpy.config_utils import (config_search_paths, glob_config,
+                                get_environ_config_dir, recursive_dict_update)
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def

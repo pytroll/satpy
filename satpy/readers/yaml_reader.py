@@ -38,7 +38,7 @@ from weakref import WeakValueDictionary
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
-from satpy.config import recursive_dict_update
+from satpy.config_utils import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
 from satpy.readers.utils import get_area_slices, get_sub_area

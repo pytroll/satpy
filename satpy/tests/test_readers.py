@@ -470,7 +470,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy.config_utils import glob_config
         from satpy.readers import read_reader_config
         for reader_config in glob_config('readers/*.yaml'):
             reader_fn = os.path.basename(reader_config)

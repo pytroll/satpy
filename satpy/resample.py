@@ -142,7 +142,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition, AreaDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from satpy import CHUNK_SIZE
-from satpy.config import config_search_paths, get_config_path
+from satpy.config_utils import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
 

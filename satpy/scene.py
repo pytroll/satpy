@@ -28,7 +28,7 @@ import logging
 import os
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
-from satpy.config import get_environ_config_dir
+from satpy.config_utils import get_environ_config_dir
 from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
                            replace_anc)
 from satpy.node import DependencyTree

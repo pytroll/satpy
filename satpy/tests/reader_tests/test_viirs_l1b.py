@@ -138,7 +138,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap NetCDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        from satpy.config_utils import config_search_paths
         from satpy.readers.viirs_l1b import VIIRSL1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

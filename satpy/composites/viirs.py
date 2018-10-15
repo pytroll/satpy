@@ -33,7 +33,7 @@ import xarray as xr
 import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
-from satpy.config import get_environ_ancpath
+from satpy.config_utils import get_environ_ancpath
 from satpy.dataset import combine_metadata
 
 LOG = logging.getLogger(__name__)

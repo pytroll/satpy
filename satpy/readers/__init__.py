@@ -29,8 +29,8 @@ import os
 import six
 import yaml
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          glob_config)
+from satpy.config_utils import (config_search_paths, get_environ_config_dir,
+                                glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy import CALIBRATION_ORDER
 

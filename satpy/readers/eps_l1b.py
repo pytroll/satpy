@@ -32,7 +32,7 @@ import xarray as xr
 import dask.array as da
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
-from satpy.config import CONFIG_PATH
+from satpy.config_utils import CONFIG_PATH
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 from satpy import CHUNK_SIZE

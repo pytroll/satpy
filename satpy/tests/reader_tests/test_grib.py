@@ -128,7 +128,7 @@ class TestGRIBReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap pygrib to read fake data"""
-        from satpy.config import config_search_paths
+        from satpy.config_utils import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
         try:

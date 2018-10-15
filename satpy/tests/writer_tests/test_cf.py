@@ -36,8 +36,8 @@ else:
 class TestCFWriter(unittest.TestCase):
     def test_init(self):
         from satpy.writers.cf_writer import CFWriter
-        import satpy.config
-        CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH,
+        import satpy.config_utils
+        CFWriter(config_files=[os.path.join(satpy.config_utils.CONFIG_PATH,
                                             'writers', 'cf.yaml')])
 
     def test_save_array(self):
