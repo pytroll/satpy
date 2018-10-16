@@ -236,7 +236,8 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_text(orig, dc, img, text=None):
@@ -255,7 +256,8 @@ def add_text(orig, dc, img, text=None):
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -274,7 +276,8 @@ def add_logo(orig, dc, img, logo=None):
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_decorate(orig, fill_value=None, **decorate):
