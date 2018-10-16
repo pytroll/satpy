@@ -23,7 +23,7 @@
 """
 
 import logging
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites import GenericCompositor
 from . import sub_arrays
 
 LOG = logging.getLogger(__name__)
@@ -76,5 +76,5 @@ class DustABI(GenericCompositor):
         ch1 = sub_arrays(projectables[3], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[0])
         res = super(DustABI, self).__call__((ch1, ch2, projectables[1]),
-                                         *args, **kwargs)
+                                            *args, **kwargs)
         return res

@@ -1256,7 +1256,7 @@ class TropicalAirmass(GenericCompositor):
         ch1 = sub_arrays(projectables[1], projectables[0])
         ch2 = sub_arrays(projectables[3], projectables[2])
         res = super(TropicalAirmass, self).__call__((ch1, ch2, projectables[0]),
-                                            *args, **kwargs)
+                                                    *args, **kwargs)
         return res
 
 
@@ -1277,5 +1277,5 @@ class VolcanicGas(GenericCompositor):
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[3], projectables[2])
         res = super(VolcanicGas, self).__call__((ch1, ch2, projectables[3]),
-                                            *args, **kwargs)
+                                                *args, **kwargs)
         return res
