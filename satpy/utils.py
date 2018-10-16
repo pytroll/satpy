@@ -93,6 +93,13 @@ def debug_on():
     logging_on(logging.DEBUG)
 
 
+def debug_off():
+    """
+    Turn debugging off.
+    """
+    logging_on()
+
+
 def logging_on(level=logging.WARNING):
     """Turn logging on.
     """
